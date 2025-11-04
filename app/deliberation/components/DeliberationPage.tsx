@@ -36,7 +36,7 @@ export default function DeliberationReader({
        <h2 className="text-4xl font-semibold tracking-wide text-center my-4">
          {hostName ? `Deliberation for "${hostName}"` : "Deliberation"}
        </h2>
-       <div className="mx-auto mb-4 mt-5 w-[80%] border-b border-slate-500/40" />
+       <div className="mx-auto mb-1 mt-5 w-[80%] border-b border-slate-500/40" />
  
        {/* Mirror the article layout’s column exactly */}
        <div className="flex flex-col justify-center items-center mx-auto px-3 gap-6">

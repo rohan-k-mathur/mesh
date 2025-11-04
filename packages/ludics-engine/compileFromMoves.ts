@@ -83,6 +83,18 @@ interface DialogueMoveRow {
   endsWithDaimon?: boolean | null;
 }
 
+interface MoveWithScope extends DialogueMoveRow {
+  scope: string | null;
+  scopeType: string | null;
+}
+
+type ScopingStrategy = 'legacy' | 'issue' | 'actor-pair' | 'argument';
+
+interface CompileOptions {
+  scopingStrategy?: ScopingStrategy;
+  forceRecompile?: boolean;
+}
+
 function keyForTarget(tt?: string|null, id?: string|null) {
   return tt && id ? `${tt}:${id}` : null;
 }
@@ -94,40 +106,190 @@ async function ensureRoot(db: Tx, dialogueId: string) {
   return root;
 }
 
-export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; designs: string[] }> {
+// Helper: Compute argument root for issue-based grouping
+async function computeArgumentRoots(moves: DialogueMoveRow[]): Promise<Map<string, string>> {
+  const rootMap = new Map<string, string>();
+  
+  // Build a map of targets to their first appearance (proxy for "root issue")
+  const firstMoveByTarget = new Map<string, string>();
+  
+  for (const m of moves) {
+    const targetKey = keyForTarget(m.targetType, m.targetId);
+    if (!targetKey) continue;
+    
+    // For arguments, use the argument ID directly as the root
+    if (m.targetType === 'argument') {
+      rootMap.set(targetKey, m.targetId!);
+      if (!firstMoveByTarget.has(targetKey)) {
+        firstMoveByTarget.set(targetKey, m.targetId!);
+      }
+    }
+    
+    // For claims/cards, we'll group by target ID (simplified approach)
+    // In a real implementation, would traverse relations to find parent argument
+    if (m.targetType === 'claim' || m.targetType === 'card') {
+      // Use the target itself as the scope for now
+      rootMap.set(targetKey, m.targetId!);
+      if (!firstMoveByTarget.has(targetKey)) {
+        firstMoveByTarget.set(targetKey, m.targetId!);
+      }
+    }
+  }
+  
+  return rootMap;
+}
+
+// Helper: Derive human-readable label for scope
+function deriveScopeLabel(scopeKey: string, moves: MoveWithScope[]): string {
+  if (!scopeKey || scopeKey === 'legacy') return 'Global Deliberation';
+  
+  const [type, ...parts] = scopeKey.split(':');
+  
+  if (type === 'issue') {
+    const issueId = parts[0];
+    // Try to find issue title from moves targeting this issue
+    const issueMove = moves.find(m => m.targetType === 'argument' && m.targetId === issueId);
+    if (issueMove) {
+      const payload = issueMove.payload as any;
+      if (payload?.text) return `Issue: ${payload.text.slice(0, 50)}`;
+      if (payload?.brief) return `Issue: ${payload.brief.slice(0, 50)}`;
+    }
+    return `Issue ${issueId.slice(0, 8)}`;
+  }
+  
+  if (type === 'actors') {
+    const actorIds = parts;
+    return `Actors: ${actorIds.map(id => id.slice(0, 8)).join(' vs ')}`;
+  }
+  
+  if (type === 'argument') {
+    const argId = parts[0];
+    return `Argument ${argId.slice(0, 8)}`;
+  }
+  
+  return scopeKey;
+}
+
+// Helper: Build metadata for scope
+function buildScopeMetadata(
+  scopeKey: string,
+  moves: MoveWithScope[],
+  strategy: ScopingStrategy
+): any {
+  const actors = new Set<string>();
+  const proponents = new Set<string>();
+  const opponents = new Set<string>();
+  
+  for (const m of moves) {
+    if (m.actorId) {
+      actors.add(m.actorId);
+      if (m.polarity === 'P' || m.kind === 'ASSERT' || m.kind === 'GROUNDS') {
+        proponents.add(m.actorId);
+      } else if (m.polarity === 'O' || m.kind === 'WHY') {
+        opponents.add(m.actorId);
+      }
+    }
+  }
+  
+  const sortedMoves = [...moves].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  
+  return {
+    type: strategy === 'legacy' ? null : strategy,
+    label: deriveScopeLabel(scopeKey, moves),
+    moveCount: moves.length,
+    actors: {
+      proponent: Array.from(proponents),
+      opponent: Array.from(opponents),
+      all: Array.from(actors),
+    },
+    timeRange: sortedMoves.length > 0 ? {
+      start: sortedMoves[0].createdAt,
+      end: sortedMoves[sortedMoves.length - 1].createdAt,
+    } : null,
+    targetTypes: Array.from(new Set(moves.map(m => m.targetType).filter(Boolean))),
+  };
+}
+
+// Helper: Compute scope for each move based on strategy
+async function computeScopes(
+  moves: DialogueMoveRow[],
+  strategy: ScopingStrategy
+): Promise<MoveWithScope[]> {
+  if (strategy === 'legacy') {
+    // Legacy mode: all moves in single global scope
+    return moves.map(m => ({
+      ...m,
+      scope: null,
+      scopeType: null,
+    }));
+  }
+  
+  if (strategy === 'issue') {
+    // Issue-based: group by root argument
+    const rootMap = await computeArgumentRoots(moves);
+    
+    return moves.map(m => {
+      const targetKey = keyForTarget(m.targetType, m.targetId);
+      const rootId = targetKey ? rootMap.get(targetKey) : null;
+      
+      return {
+        ...m,
+        scope: rootId ? `issue:${rootId}` : null,
+        scopeType: rootId ? 'issue' : null,
+      };
+    });
+  }
+  
+  if (strategy === 'actor-pair') {
+    // Actor-pair: group by unique pairs of actors
+    return moves.map(m => {
+      if (!m.actorId) {
+        return { ...m, scope: null, scopeType: null };
+      }
+      
+      // For simplicity, use actorId as scope (in real impl, would pair with previous actor)
+      return {
+        ...m,
+        scope: `actors:${m.actorId}`,
+        scopeType: 'actor-pair',
+      };
+    });
+  }
+  
+  if (strategy === 'argument') {
+    // Argument-thread: each target is its own scope
+    return moves.map(m => {
+      const targetKey = keyForTarget(m.targetType, m.targetId);
+      return {
+        ...m,
+        scope: targetKey ? `argument:${m.targetId}` : null,
+        scopeType: targetKey ? 'argument' : null,
+      };
+    });
+  }
+  
+  // Fallback to legacy
+  return moves.map(m => ({ ...m, scope: null, scopeType: null }));
+}
+
+export async function compileFromMoves(
+  dialogueId: string,
+  options?: CompileOptions
+): Promise<{ ok: true; designs: string[] }> {
+  const { scopingStrategy = 'legacy', forceRecompile = false } = options ?? {};
+  
   return withCompileLock(dialogueId, async () => {
     // 1) wipe+recreate designs inside a short tx (relation-safe)
-    const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
+    const rootId = await prisma.$transaction(async (tx) => {
       const root = await ensureRoot(tx as Tx, dialogueId);
       await tx.ludicChronicle.deleteMany({ where: { design: { deliberationId: dialogueId } } });
       await tx.ludicAct.deleteMany({ where: { design: { deliberationId: dialogueId } } });
       await tx.ludicTrace.deleteMany({ where: { deliberationId: dialogueId } });
       await tx.ludicDesign.deleteMany({ where: { deliberationId: dialogueId } });
-
-           const nowIso = new Date().toISOString();
-      const P = await tx.ludicDesign.create({
-        data: {
-          deliberationId: dialogueId,
-          participantId: 'Proponent',
-          rootLocusId: root.id,
-          extJson: { role: 'pro', source: 'compile', at: nowIso },   // 👈 tag role
-        },
-      });
-      const O = await tx.ludicDesign.create({
-        data: {
-          deliberationId: dialogueId,
-          participantId: 'Opponent',
-          rootLocusId: root.id,
-          extJson: { role: 'opp', source: 'compile', at: nowIso },   // 👈 tag role
-        },
-      });
-      return { proponentId: P.id, opponentId: O.id };
+      return root.id;
     }, { timeout: 30_000, maxWait: 5_000 });
 
-    const P = { id: proponentId, participantId: 'Proponent' as const };
-    const O = { id: opponentId,  participantId: 'Opponent'  as const };
-
-    // 2) read moves + loci
+    // 2) read moves + compute scopes
     const moves: DialogueMoveRow[] = await prisma.dialogueMove.findMany({
       where: { deliberationId: dialogueId },
       orderBy: { createdAt: 'asc' },
@@ -137,10 +299,80 @@ export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; 
         polarity:true, locusId:true, endsWithDaimon:true,
       },
     });
+    
+    const movesWithScopes = await computeScopes(moves, scopingStrategy);
+    
+    // 3) group moves by scope
+    const movesByScope = new Map<string, MoveWithScope[]>();
+    for (const m of movesWithScopes) {
+      const scopeKey = m.scope ?? 'legacy';
+      if (!movesByScope.has(scopeKey)) {
+        movesByScope.set(scopeKey, []);
+      }
+      movesByScope.get(scopeKey)!.push(m);
+    }
+
     const loci = await prisma.ludicLocus.findMany({ where: { dialogueId }, select: { id:true, path:true } });
     const pathById = new Map(loci.map(l => [l.id, l.path]));
+    
+    const allDesignIds: string[] = [];
 
-    // 3) compile → acts
+    // 4) Create designs per scope
+    for (const [scopeKey, scopeMoves] of movesByScope.entries()) {
+      const scopeMetadata = buildScopeMetadata(scopeKey, scopeMoves, scopingStrategy);
+      const nowIso = new Date().toISOString();
+      
+      const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
+        const P = await tx.ludicDesign.create({
+          data: {
+            deliberationId: dialogueId,
+            participantId: 'Proponent',
+            rootLocusId: rootId,
+            scope: scopeKey === 'legacy' ? null : scopeKey,
+            scopeType: scopingStrategy === 'legacy' ? null : scopingStrategy,
+            scopeMetadata: scopeKey === 'legacy' ? null : scopeMetadata,
+            extJson: { role: 'pro', source: 'compile', at: nowIso },
+          },
+        });
+        const O = await tx.ludicDesign.create({
+          data: {
+            deliberationId: dialogueId,
+            participantId: 'Opponent',
+            rootLocusId: rootId,
+            scope: scopeKey === 'legacy' ? null : scopeKey,
+            scopeType: scopingStrategy === 'legacy' ? null : scopingStrategy,
+            scopeMetadata: scopeKey === 'legacy' ? null : scopeMetadata,
+            extJson: { role: 'opp', source: 'compile', at: nowIso },
+          },
+        });
+        return { proponentId: P.id, opponentId: O.id };
+      }, { timeout: 30_000, maxWait: 5_000 });
+
+      allDesignIds.push(proponentId, opponentId);
+      
+      // 5) Compile acts for this scope
+      await compileScopeActs(
+        dialogueId,
+        scopeMoves,
+        { id: proponentId, participantId: 'Proponent' as const },
+        { id: opponentId, participantId: 'Opponent' as const },
+        pathById
+      );
+    }
+    
+    await Promise.allSettled(allDesignIds.map(id => validateVisibility(id)));
+    return { ok: true, designs: allDesignIds };
+  });
+}
+
+// Helper function to compile acts for a single scope
+async function compileScopeActs(
+  dialogueId: string,
+  moves: MoveWithScope[],
+  P: { id: string; participantId: 'Proponent' },
+  O: { id: string; participantId: 'Opponent' },
+  pathById: Map<string, string>
+) {
     let nextTopIdx = 0;
     let lastAssertLocus: string | null = null;
     const anchorForTarget = new Map<string, string>();
@@ -334,7 +566,5 @@ export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; 
              }, { timeout: 10_000, maxWait: 5_000 });
     }
     (globalThis as any).__ludics__compile_skipped_additive = skippedAdditive;
-    await Promise.allSettled([ validateVisibility(proponentId), validateVisibility(opponentId) ]);
-    return { ok: true, designs: [proponentId, opponentId] };
-  });
 }
+
