@@ -120,7 +120,7 @@ function getMoveIcon(kind: string) {
   const iconMap: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
     ASSERT: {
       icon: <MessageSquare className="h-4 w-4" />,
-      color: "bg-blue-500",
+      color: "bg-sky-500",
       label: "Asserted",
     },
     WHY: {
@@ -180,22 +180,22 @@ function formatTargetText(move: DialogueMove, claimTexts: Map<string, string>, a
   if (move.targetType === "claim") {
     const text = claimTexts.get(move.targetId);
     return text ? (
-      <span className="text-sm text-gray-700 italic">
+      <span className="text-xs  text-gray-700 italic">
         "{text.length > 80 ? text.slice(0, 80) + "..." : text}"
       </span>
     ) : (
-      <span className="text-xs text-gray-500 font-mono">{move.targetId.slice(0, 8)}...</span>
+      <span className="text-xs px-3 text-gray-700 font-mono">{move.targetId.slice(0, 18)}...</span>
     );
   }
 
   if (move.targetType === "argument") {
     const text = argTexts.get(move.targetId);
     return text ? (
-      <span className="text-sm text-gray-700 italic">
+      <span className="text-xs text-gray-700 italic">
         "{text.length > 80 ? text.slice(0, 80) + "..." : text}"
       </span>
     ) : (
-      <span className="text-xs text-gray-500 font-mono">{move.targetId.slice(0, 8)}...</span>
+      <span className="text-xs px-3 text-gray-700  font-mono">{move.targetId.slice(0, 18)}...</span>
     );
   }
 
@@ -239,34 +239,34 @@ function TimelineEventCard({
 
       {/* Content */}
       <div className="flex-1 pb-8">
-        <Card className="surfacev2 group-hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
+        <Card className="sidebarv2 group-hover:shadow-md transition-shadow">
+          <CardContent className="p-3">
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className={`${moveInfo.color} p-1.5 rounded-lg text-white`}>
+                <div className={`${moveInfo.color} p-2 rounded-lg text-white`}>
                   {moveInfo.icon}
                 </div>
                 <div>
-                  <div className="font-semibold text-sm text-gray-900">{moveInfo.label}</div>
+                  <div className="font-semibold text-base text-gray-900">{moveInfo.label}</div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <User className="h-3 w-3" />
-                    <span>{userNames.get(move.actorId) || `User ${String(move.actorId).slice(0, 8)}...`}</span>
+                    <span>{userNames.get(move.actorId) || `User ${String(move.actorId).slice(0, 18)}...`}</span>
                     <span>•</span>
                     <Clock className="h-3 w-3" />
                     <span>{format(timestamp, "MMM d, yyyy 'at' h:mm a")}</span>
                   </div>
                 </div>
               </div>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge  className="bg-indigo-800 hover:bg-indigo-800 text-[10px]">
                 {move.kind}
               </Badge>
             </div>
 
             {/* Target content */}
             {move.targetId && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="text-xs text-gray-500 mb-1">
+              <div className="mt-0 py-2 px-4 text-xs surfacev2 bg-white border-none rounded-lg ring-none outline-none shadow-md hover:translate-y-0 hover:shadow-md">
+                <div className="text-[10px] mb-2 text-gray-700 bg-white/70 border border-indigo-300 px-1 w-fit rounded">
                   Target: {move.targetType}
                 </div>
                 {formatTargetText(move, claimTexts, argTexts)}
@@ -279,7 +279,7 @@ function TimelineEventCard({
                 <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
                   View details
                 </summary>
-                <pre className="mt-2 text-[10px] bg-gray-100 p-2 rounded overflow-x-auto">
+                <pre className="mt-2 text-xs  px-4 py-4  rounded-lg drop-shadow-white overflow-x-auto">
                   {JSON.stringify(move.payload, null, 2)}
                 </pre>
               </details>
@@ -326,30 +326,31 @@ function ThreadCard({
 
       {/* Content */}
       <div className="flex-1 pb-8">
-        <Card className="surfacev2 border-l-4" style={{ borderLeftColor: initiatingInfo.color.replace("bg-", "#") }}>
-          <CardContent className="p-4">
+        <Card className="sidebarv2 border-l-4" style={{ borderLeftColor: initiatingInfo.color.replace("bg-", "#") }}>
+          <CardContent className="p-3">
             {/* Thread header - always visible */}
             <div
               className="flex items-start justify-between cursor-pointer"
               onClick={onToggle}
             >
               <div className="flex items-center gap-2 flex-1">
-                <div className={`${initiatingInfo.color} p-1.5 rounded-lg text-white`}>
+                <div className={`${initiatingInfo.color} p-2 rounded-lg text-white`}>
                   {initiatingInfo.icon}
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold text-sm text-gray-900">
+                  <div className="font-semibold text-base text-gray-900">
                     {initiatingInfo.label}
-                    <Badge variant="outline" className="ml-2 text-[10px]">
-                      {thread.responses.length} {thread.responses.length === 1 ? "response" : "responses"}
-                    </Badge>
+                   
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
                     <User className="h-3 w-3" />
-                    <span>{userNames.get(thread.initiatingMove.actorId) || `User ${String(thread.initiatingMove.actorId).slice(0, 8)}...`}</span>
+                    <span>{userNames.get(thread.initiatingMove.actorId) || `User ${String(thread.initiatingMove.actorId).slice(0, 18)}...`}</span>
                     <span>•</span>
                     <Clock className="h-3 w-3" />
                     <span>{format(timestamp, "MMM d, yyyy 'at' h:mm a")}</span>
+                     <button  className="cardv2 ml-4 rounded-full  text-slate-700 bg-white/30  text-xs px-3 py-1 ">
+                      {thread.responses.length} {thread.responses.length === 1 ? "response" : "responses"}
+                    </button>
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -359,35 +360,44 @@ function ThreadCard({
             </div>
 
             {/* Target content - always visible */}
-            {thread.initiatingMove.targetId && (
+            {/* {thread.initiatingMove.targetId && (
               <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <div className="text-xs text-gray-500 mb-1">
                   Target: {thread.initiatingMove.targetType}
                 </div>
                 {formatTargetText(thread.initiatingMove, claimTexts, argTexts)}
               </div>
+            )} */}
+          {thread.initiatingMove.targetId && (
+              <div className="mt-3 py-3 px-4 text-xs surfacev2 bg-white rounded-lg shadow-md hover:translate-y-0 hover:shadow-md">
+                <div className="text-[11px] mb-1 text-gray-700 bg-white/70 border border-indigo-300 px-1 w-fit rounded">
+                  Target: {thread.initiatingMove.targetType}
+                </div>
+                {formatTargetText(thread.initiatingMove, claimTexts, argTexts)}
+              </div>
             )}
+
 
             {/* Expanded responses */}
             {isExpanded && (
-              <div className="mt-4 space-y-3 pl-4 border-l-2 border-gray-200">
+              <div className="mt-4 space-y-3 pl-4 border-l border-white">
                 {thread.responses.map((response, idx) => {
                   const responseInfo = getMoveIcon(response.kind);
                   const responseTime = new Date(response.createdAt);
                   
                   return (
-                    <div key={response.id} className="bg-white rounded-lg border p-3">
-                      <div className="flex items-start gap-2 mb-2">
-                        <div className={`${responseInfo.color} p-1 rounded text-white`}>
+                    <div key={response.id} className="bg-white/50 surfacev2  rounded-lg border p-3">
+                      <div className="flex items-start gap-2 ">
+                        <div className={`${responseInfo.color} p-1.5 rounded-lg text-white`}>
                           {responseInfo.icon}
                         </div>
                         <div className="flex-1">
                           <div className="font-medium text-sm text-gray-900">
                             {responseInfo.label}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
                             <User className="h-3 w-3" />
-                            <span>{userNames.get(response.actorId) || `User ${String(response.actorId).slice(0, 8)}...`}</span>
+                            <span>{userNames.get(response.actorId) || `User ${String(response.actorId).slice(0, 14)}...`}</span>
                             <span>•</span>
                             <Clock className="h-3 w-3" />
                             <span>{format(responseTime, "MMM d, h:mm a")}</span>
@@ -397,8 +407,9 @@ function ThreadCard({
                       
                       {/* Response payload */}
                       {response.payload && Object.keys(response.payload).length > 0 && (
-                        <div className="mt-2 text-xs text-gray-600">
-                          <pre className="bg-gray-50 p-2 rounded overflow-x-auto">
+                        <div className="mt-3 text-xs text-gray-600">
+                                          <pre className="mt-2 text-xs  px-4 py-4  rounded-lg drop-shadow-white overflow-x-auto">
+
                             {JSON.stringify(response.payload, null, 2)}
                           </pre>
                         </div>
@@ -995,7 +1006,7 @@ export default function DialogueTimelinePage() {
               <option value="asc">Oldest First</option>
               <option value="desc">Latest First</option>
             </select>
-            <button className="btnv2 text-sm rounded-lg px-3 py-2 bg-white/50" onClick={handleExport}>
+            <button className="btnv2 panelv2 text-sm rounded-lg px-3 py-2 bg-white/50" onClick={handleExport}>
               <Download className="h-4 w-4 " />
               Export
             </button>
@@ -1003,7 +1014,7 @@ export default function DialogueTimelinePage() {
         </div>
         {delibData?.deliberation && (
           <p className="text-gray-600">
-            {delibData.deliberation.title || `Deliberation ${deliberationId.slice(0, 8)}...`}
+            {delibData.deliberation.title || `Deliberation ${deliberationId.slice(0, 18)}...`}
           </p>
         )}
       </div>
@@ -1018,7 +1029,7 @@ export default function DialogueTimelinePage() {
         {/* Timeline View */}
         <TabsContent value="timeline" className="mt-6">
           {/* Filters */}
-          <Card className="mb-6 panelv2 py-2 panel-edge hover:translate-y-0">
+          <Card className="mb-6 cardv2 py-2 panel-edge hover:translate-y-0">
             <CardContent className="p-4">
               <div className="space-y-3">
                 {/* First row: Type and Participant filters */}
@@ -1051,7 +1062,7 @@ export default function DialogueTimelinePage() {
                     <option value="">All Participants</option>
                     {uniqueActors.map((actor) => (
                       <option key={actor} value={actor}>
-                        {userNames.get(actor) || `User ${actor.slice(0, 8)}...`}
+                        {userNames.get(actor) || `User ${actor.slice(0, 18)}...`}
                       </option>
                     ))}
                   </select>
@@ -1070,7 +1081,7 @@ export default function DialogueTimelinePage() {
                     </button>
                   )}
 
-                  <div className="ml-auto text-sm text-gray-500">
+                  <div className="ml-auto text-xs text-gray-500">
                     Showing {moves.length} of {movesData?.items?.length || 0} moves
                   </div>
                 </div>
@@ -1103,20 +1114,20 @@ export default function DialogueTimelinePage() {
                     <button
                       
                       onClick={() => setDateRangePreset("today")}
-                      className="text-xs h-8 btnv2 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-1.5"
+                      className="text-xs h-8 panelv2 rounded-lg px-3 py-1.5"
                     >
                       Today
                     </button>
                     <button
                   
                       onClick={() => setDateRangePreset("week")}
-                      className="text-xs h-8 btnv2 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-1.5"
+                      className="text-xs h-8 panelv2  rounded-lg px-3 py-1.5"
                     >
                       Last 7 Days
                     </button>
                     <button
                       onClick={() => setDateRangePreset("month")}
-                      className="text-xs h-8 btnv2 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-1.5"
+                      className="text-xs h-8 panelv2  rounded-lg px-3 py-1.5"
                     >
                       Last 30 Days
                     </button>

@@ -14,7 +14,7 @@ async function main() {
   console.log("🧪 Testing Scoped Designs Architecture\n");
   console.log("=" .repeat(60));
 
-  // Find a real deliberation with multiple arguments
+  // Find a real deliberation with both arguments AND moves
   const deliberation = await prisma.deliberation.findFirst({
     where: {
       arguments: {
@@ -26,10 +26,6 @@ async function main() {
         take: 5,
         select: { id: true, text: true },
       },
-      moves: {
-        take: 10,
-        select: { id: true, kind: true, targetType: true, targetId: true },
-      },
     },
   });
 
@@ -38,10 +34,51 @@ async function main() {
     return;
   }
 
+  // Fetch moves separately (no back-relation on Deliberation)
+  const moves = await prisma.dialogueMove.findMany({
+    where: { deliberationId: deliberation.id },
+    take: 10,
+    select: { id: true, kind: true, targetType: true, targetId: true },
+  });
+
   console.log(`\n📋 Test Deliberation: ${deliberation.id}`);
   console.log(`   Title: ${deliberation.title || "(untitled)"}`);
   console.log(`   Arguments: ${deliberation.arguments.length}`);
-  console.log(`   Moves: ${deliberation.moves.length}`);
+  console.log(`   Moves: ${moves.length}`);
+  
+  if (moves.length === 0) {
+    console.log("\n⚠️  This deliberation has no dialogue moves.");
+    console.log("   Creating minimal test data for demonstration...\n");
+    
+    // Create a test move if none exist
+    if (deliberation.arguments.length > 0) {
+      await prisma.dialogueMove.create({
+        data: {
+          deliberationId: deliberation.id,
+          targetType: "argument",
+          targetId: deliberation.arguments[0].id,
+          kind: "ASSERT",
+          actorId: "test-actor",
+          signature: `test-${Date.now()}`,
+          payload: { text: "Test assertion" },
+        },
+      });
+      console.log("   ✅ Created test ASSERT move");
+      
+      await prisma.dialogueMove.create({
+        data: {
+          deliberationId: deliberation.id,
+          targetType: "argument",
+          targetId: deliberation.arguments[0].id,
+          kind: "WHY",
+          actorId: "test-actor-2",
+          signature: `test-why-${Date.now()}`,
+          payload: { text: "Why?" },
+        },
+      });
+      console.log("   ✅ Created test WHY move\n");
+    }
+  }
   
   if (deliberation.arguments.length > 0) {
     console.log("\n   Sample Arguments:");

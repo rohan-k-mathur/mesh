@@ -341,33 +341,40 @@ async function testScopedDesigns() {
    - ✅ `POST /api/ludics/compile` - Accepts scopingStrategy parameter for recompilation
 10. **Testing:**
     - ✅ Unit tests created: `packages/ludics-engine/__tests__/scopedDesigns.test.ts` (300+ lines)
-    - ✅ Integration test script: `scripts/test-scoped-designs.ts` (200+ lines)
+    - ✅ Integration test script: `scripts/test-scoped-designs.ts` (240+ lines)
+    - ✅ Tested and working with real data
+11. **UI Integration:**
+    - ✅ Scoping strategy selector (4 strategies: legacy, issue, actor-pair, argument)
+    - ✅ Recompile button with loading state
+    - ✅ Grouped scope display with metadata (label, move count, actor count)
+    - ✅ Scope cards showing designs per scope
+    - ✅ Stats display (scope count, design count, interaction status)
 
 ### Known Issues 🐛
 1. **VS Code TypeScript Server Cache:** VS Code's TS server is showing compile errors for the `scope` fields, but:
    - The Prisma client DOES include the fields (verified in node_modules/.prisma/client/index.d.ts)
    - Running `npx tsc` directly doesn't complain about the scope fields
+   - The code runs successfully (verified via integration tests)
    - This is a VS Code caching issue that should resolve after:
-     - Reloading the VS Code window (Cmd+Shift+P → "Reload Window")
+     - Reloading the VS Code window (Cmd+Shift+P → "Developer: Reload Window")
      - Or restarting VS Code entirely
 
 ### What's Next 🚧
-1. **Reload VS Code:** Clear TypeScript server cache to verify no real errors
-2. **Run Tests:** 
-   - `npm run test` for unit tests
-   - `npx tsx scripts/test-scoped-designs.ts` for integration tests with real data
-3. **UI Polish:** Add scoping dropdown + recompile button to LudicsForest
+1. ✅ ~~Reload VS Code~~ (Skipped - code works despite cache warnings)
+2. ✅ ~~Run Tests~~ DONE - Integration test passing
+3. ✅ ~~UI Integration~~ DONE - Full scoping controls added
 4. **Manual QA:** Test with real deliberation data in browser
-5. **Documentation:** Update API docs, user guide
+5. **Documentation:** Update user guide with scoping feature
 
-### Estimated Time to Complete Milestone 1
+### Estimated Time Remaining
 - ~~**compileFromMoves updates:** 2-3 hours~~ ✅ DONE
 - ~~**API updates:** 1-2 hours~~ ✅ DONE
 - ~~**Testing setup:** 2-3 hours~~ ✅ DONE
-- **Run & verify tests:** 1-2 hours
-- **UI integration:** 1-2 hours
-- **Manual QA:** 1-2 hours
-- **Remaining:** ~3-6 hours
+- ~~**Run & verify tests:** 1-2 hours~~ ✅ DONE
+- ~~**UI integration:** 1-2 hours~~ ✅ DONE
+- **Manual QA:** 30-60 minutes (browser testing)
+- **Documentation:** 30-60 minutes
+- **Remaining:** ~1-2 hours
 
 ---
 
