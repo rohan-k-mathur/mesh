@@ -456,7 +456,16 @@ function RowImpl({
   support?: number;
   accepted?: boolean;
   dsMode?: boolean;
-  onArgumentClick?: (argument: { id: string; conclusionText?: string; schemeKey?: string }) => void;
+  onArgumentClick?: (argument: { 
+    id: string; 
+    text?: string;
+    conclusionText?: string; 
+    conclusionClaimId?: string;
+    schemeKey?: string;
+    schemeId?: string;
+    schemeName?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
+  }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -597,11 +606,20 @@ function RowImpl({
         {meta?.conclusion && (
           <div
             onClick={() => {
-              if (onArgumentClick) {
+              if (onArgumentClick && meta?.conclusion) {
                 onArgumentClick({
                   id: a.id,
+                  text: a.text,
                   conclusionText: conclusionText,
+                  conclusionClaimId: meta.conclusion.id,
                   schemeKey: meta?.scheme?.key,
+                  schemeId: meta?.scheme?.id,
+                  schemeName: meta?.scheme?.name,
+                  premises: (meta?.premises as any[] || []).map(p => ({
+                    id: p.id,
+                    text: p.text,
+                    isImplicit: p.isImplicit,
+                  })),
                 });
               }
             }}
@@ -786,7 +804,16 @@ export default function AIFArgumentsListPro({
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
   dsMode?: boolean;
-  onArgumentClick?: (argument: { id: string; conclusionText?: string; schemeKey?: string }) => void;
+  onArgumentClick?: (argument: { 
+    id: string; 
+    text?: string;
+    conclusionText?: string; 
+    conclusionClaimId?: string;
+    schemeKey?: string;
+    schemeId?: string;
+    schemeName?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
+  }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
 }) {
   // Confidence settings

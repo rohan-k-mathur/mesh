@@ -7,6 +7,9 @@ import { Zap, GitBranch, Shield, Target, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 import useSWR from "swr";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
+import { AttackMenuProV2 } from "./AttackMenuProV2";
+import { SchemeSpecificCQsModal } from "./SchemeSpecificCQsModal";
+import { CommunityDefenseMenu } from "@/components/agora/CommunityDefenseMenu";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -14,13 +17,19 @@ interface ArgumentActionsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   deliberationId: string;
+  authorId: string; // Add author ID for creating attacks/defenses
   // Selected argument context
   selectedArgument?: {
     id: string;
     text?: string;
     conclusionText?: string;
+    conclusionClaimId?: string;
     schemeKey?: string;
+    schemeId?: string;
+    schemeName?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
   } | null;
+  onRefresh?: () => void; // Callback to refresh after creating attacks/CQs
 }
 
 /**
@@ -38,7 +47,9 @@ export function ArgumentActionsSheet({
   open,
   onOpenChange,
   deliberationId,
+  authorId,
   selectedArgument,
+  onRefresh,
 }: ArgumentActionsSheetProps) {
   const [activeAction, setActiveAction] = React.useState<
     "overview" | "attack" | "defend" | "cqs" | "diagram"
@@ -90,13 +101,16 @@ export function ArgumentActionsSheet({
             {activeAction === "attack" && (
               <AttackPanel
                 deliberationId={deliberationId}
+                authorId={authorId}
                 argument={selectedArgument}
+                onRefresh={onRefresh}
               />
             )}
 
             {activeAction === "defend" && (
               <DefendPanel
                 deliberationId={deliberationId}
+                authorId={authorId}
                 argument={selectedArgument}
               />
             )}
@@ -104,7 +118,9 @@ export function ArgumentActionsSheet({
             {activeAction === "cqs" && (
               <CQsPanel
                 deliberationId={deliberationId}
+                authorId={authorId}
                 argument={selectedArgument}
+                onRefresh={onRefresh}
               />
             )}
 
@@ -281,10 +297,51 @@ function OverviewPanel({ argument, onSelectAction }: OverviewPanelProps) {
 // Attack Panel
 interface AttackPanelProps {
   deliberationId: string;
-  argument: { id: string; conclusionText?: string };
+  authorId: string;
+  argument: {
+    id: string;
+    conclusionText?: string;
+    conclusionClaimId?: string;
+    premises?: Array<{ id: string; text: string }>;
+  };
+  onRefresh?: () => void;
 }
 
-function AttackPanel({ deliberationId, argument }: AttackPanelProps) {
+function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPanelProps) {
+  // Prepare target data for AttackMenuProV2
+  const target = React.useMemo(() => {
+    if (!argument.conclusionClaimId || !argument.conclusionText) {
+      return null;
+    }
+    return {
+      id: argument.id,
+      conclusion: {
+        id: argument.conclusionClaimId,
+        text: argument.conclusionText,
+      },
+      premises: argument.premises || [],
+    };
+  }, [argument]);
+
+  if (!target) {
+    return (
+      <div>
+        <div className="mb-4">
+          <h4 className="text-sm font-semibold text-white/90 mb-1">Challenge Argument</h4>
+          <p className="text-xs text-white/60">
+            Choose an attack type to challenge this argument&apos;s validity
+          </p>
+        </div>
+        
+        <div className="p-6 rounded-lg bg-white/5 border border-white/10 text-center">
+          <Zap className="w-8 h-8 text-white/30 mx-auto mb-2" />
+          <div className="text-sm text-white/70">Cannot attack this argument</div>
+          <div className="text-xs text-white/50 mt-1">Missing conclusion or premise data</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -295,42 +352,49 @@ function AttackPanel({ deliberationId, argument }: AttackPanelProps) {
       </div>
       
       <div className="space-y-3">
-        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-          <div className="text-sm text-white/70 mb-4">
-            To challenge this argument, use the Attack Menu from the argument card in the Models tab.
+        {/* Attack type explanations */}
+        <div className="space-y-2 mb-4">
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+            <Zap className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white">Rebut</div>
+              <div className="text-xs text-white/60 mt-1">
+                Directly contradict the conclusion with a counter-claim
+              </div>
+            </div>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
-              <Zap className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white">Rebut</div>
-                <div className="text-xs text-white/60 mt-1">
-                  Directly contradict the conclusion with a counter-claim
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <Target className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white">Undercut</div>
-                <div className="text-xs text-white/60 mt-1">
-                  Challenge the inference between premises and conclusion
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-              <Shield className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white">Undermine</div>
-                <div className="text-xs text-white/60 mt-1">
-                  Contradict a specific premise with a counter-claim
-                </div>
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <Target className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white">Undercut</div>
+              <div className="text-xs text-white/60 mt-1">
+                Challenge the inference between premises and conclusion
               </div>
             </div>
           </div>
+          
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+            <Shield className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white">Undermine</div>
+              <div className="text-xs text-white/60 mt-1">
+                Contradict a specific premise with a counter-claim
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Attack Menu Component */}
+        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+          <AttackMenuProV2
+            deliberationId={deliberationId}
+            authorId={authorId}
+            target={target}
+            onDone={() => {
+              onRefresh?.();
+            }}
+          />
         </div>
       </div>
     </div>
@@ -340,10 +404,37 @@ function AttackPanel({ deliberationId, argument }: AttackPanelProps) {
 // Defend Panel
 interface DefendPanelProps {
   deliberationId: string;
-  argument: { id: string };
+  authorId: string;
+  argument: {
+    id: string;
+    conclusionClaimId?: string;
+    conclusionText?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
+  };
+  onRefresh?: () => void;
 }
 
-function DefendPanel({ deliberationId, argument }: DefendPanelProps) {
+function DefendPanel({ deliberationId, authorId, argument, onRefresh }: DefendPanelProps) {
+  // Prepare target data for CommunityDefenseMenu
+  const target = React.useMemo(() => {
+    if (!argument.conclusionClaimId || !argument.conclusionText) return null;
+    return {
+      id: argument.id,
+      conclusion: { id: argument.conclusionClaimId, text: argument.conclusionText },
+      premises: argument.premises || [],
+    };
+  }, [argument]);
+
+  if (!target) {
+    return (
+      <div className="p-6 rounded-lg bg-white/5 border border-white/10 text-center">
+        <Shield className="w-8 h-8 text-white/30 mx-auto mb-2" />
+        <div className="text-sm text-white/70">Cannot defend this argument</div>
+        <div className="text-xs text-white/50 mt-1">Missing conclusion or premise data</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4">
@@ -356,23 +447,44 @@ function DefendPanel({ deliberationId, argument }: DefendPanelProps) {
       <div className="space-y-3">
         <div className="p-4 rounded-lg bg-white/5 border border-white/10">
           <div className="text-sm text-white/70 mb-4">
-            To defend this argument, use the Community Defense Menu from the argument card.
+            Community defense helps strengthen arguments by providing additional support, backing, or alternative justifications.
           </div>
           
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white mb-1">Community Defense</div>
-                <div className="text-xs text-white/60">
-                  Support this argument with backing, reinforcement, or alternative justifications
+          <div className="space-y-2 mb-4">
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-start gap-3">
+                <Shield className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white mb-1">Backing</div>
+                  <div className="text-xs text-white/60">
+                    Provide additional evidence or reasoning to support the argument
+                  </div>
                 </div>
-                <div className="text-xs text-emerald-300 mt-2">
-                  Argument ID: <span className="font-mono">{argument.id.slice(0, 12)}...</span>
+              </div>
+            </div>
+            
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-start gap-3">
+                <Target className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white mb-1">Reinforcement</div>
+                  <div className="text-xs text-white/60">
+                    Strengthen the connection between premises and conclusion
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Integrated CommunityDefenseMenu */}
+          <CommunityDefenseMenu
+            deliberationId={deliberationId}
+            authorId={authorId}
+            target={target}
+            onDone={() => {
+              onRefresh?.();
+            }}
+          />
         </div>
       </div>
     </div>
@@ -382,10 +494,69 @@ function DefendPanel({ deliberationId, argument }: DefendPanelProps) {
 // CQs Panel
 interface CQsPanelProps {
   deliberationId: string;
-  argument: { id: string; schemeKey?: string };
+  authorId: string;
+  argument: {
+    id: string;
+    schemeKey?: string;
+    schemeId?: string;
+    schemeName?: string;
+    conclusionClaimId?: string;
+    conclusionText?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
+  };
+  onRefresh?: () => void;
 }
 
-function CQsPanel({ deliberationId, argument }: CQsPanelProps) {
+function CQsPanel({ deliberationId, authorId, argument, onRefresh }: CQsPanelProps) {
+  // Fetch CQs for this argument
+  const { data: cqData, mutate } = useSWR(
+    argument.schemeKey ? `/api/arguments/${argument.id}/cqs` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const handleRefresh = React.useCallback(() => {
+    mutate();
+    onRefresh?.();
+  }, [mutate, onRefresh]);
+
+  if (!argument.schemeKey) {
+    return (
+      <div>
+        <div className="mb-4">
+          <h4 className="text-sm font-semibold text-white/90 mb-1">Critical Questions</h4>
+          <p className="text-xs text-white/60">
+            Answer scheme-specific critical questions for this argument
+          </p>
+        </div>
+        
+        <div className="p-6 rounded-lg bg-white/5 border border-white/10 text-center">
+          <MessageSquare className="w-8 h-8 text-white/30 mx-auto mb-2" />
+          <div className="text-sm text-white/70">No scheme assigned to this argument</div>
+          <div className="text-xs text-white/50 mt-1">Scheme-specific CQs are not available</div>
+        </div>
+      </div>
+    );
+  }
+
+  const cqs = cqData?.cqs || [];
+  const meta = {
+    scheme: argument.schemeId
+      ? {
+          id: argument.schemeId,
+          key: argument.schemeKey,
+          name: argument.schemeName || argument.schemeKey,
+        }
+      : null,
+    conclusion: argument.conclusionClaimId
+      ? {
+          id: argument.conclusionClaimId,
+          text: argument.conclusionText || "",
+        }
+      : null,
+    premises: argument.premises || null,
+  };
+
   return (
     <div>
       <div className="mb-4">
@@ -395,38 +566,51 @@ function CQsPanel({ deliberationId, argument }: CQsPanelProps) {
         </p>
       </div>
       
-      {argument.schemeKey ? (
-        <div className="space-y-3">
-          <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-            <div className="text-xs font-medium text-white/60 mb-1">Scheme</div>
-            <div className="text-sm text-cyan-300">{argument.schemeKey}</div>
+      <div className="space-y-3">
+        <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+          <div className="text-xs font-medium text-white/60 mb-1">Scheme</div>
+          <div className="text-sm text-cyan-300">{argument.schemeName || argument.schemeKey}</div>
+        </div>
+        
+        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+          <div className="text-sm text-white/70 mb-3">
+            Critical Questions help evaluate the strength and validity of this argument based on its reasoning scheme.
           </div>
           
-          <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-            <div className="text-sm text-white/70 mb-3">
-              Critical Questions help evaluate the strength and validity of this argument based on its reasoning scheme.
-            </div>
-            
-            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <div className="flex items-start gap-3">
-                <MessageSquare className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white mb-1">Answer CQs</div>
-                  <div className="text-xs text-white/60">
-                    Use the CQ button on the argument card to view and answer scheme-specific questions
-                  </div>
+          {cqs.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-medium text-white/60">
+                  {cqs.filter((cq: any) => cq.status === "open").length} open questions
+                </div>
+                <div className="text-xs text-white/50">
+                  {cqs.length} total
                 </div>
               </div>
+
+              {/* CQ Modal */}
+              <SchemeSpecificCQsModal
+                argumentId={argument.id}
+                deliberationId={deliberationId}
+                authorId={authorId}
+                cqs={cqs}
+                meta={meta}
+                onRefresh={handleRefresh}
+                triggerButton={
+                  <button className="w-full p-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    View & Answer Critical Questions
+                  </button>
+                }
+              />
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-4">
+              <div className="text-sm text-white/50">Loading critical questions...</div>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="p-6 rounded-lg bg-white/5 border border-white/10 text-center">
-          <MessageSquare className="w-8 h-8 text-white/30 mx-auto mb-2" />
-          <div className="text-sm text-white/70">No scheme assigned to this argument</div>
-          <div className="text-xs text-white/50 mt-1">Scheme-specific CQs are not available</div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

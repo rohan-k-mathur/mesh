@@ -468,6 +468,9 @@ export default function DeepDivePanel({
   // Phase 3: Dialogue Move Highlighting
   const [highlightedDialogueMoveId, setHighlightedDialogueMoveId] = React.useState<string | null>(null);
   
+  // Argument actions refresh counter
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+  
   const { user } = useAuth();
   const authorId = user?.userId != null ? String(user.userId) : undefined;
   const [rhetoricSample, setRhetoricSample] = useState<string>('');
@@ -496,7 +499,16 @@ export default function DeepDivePanel({
   const [termsSheetOpen, setTermsSheetOpen] = useState(false);
   const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('claims');
   const [selectedTermId, setSelectedTermId] = useState<string | undefined>();
-  const [selectedArgumentForActions, setSelectedArgumentForActions] = useState<{ id: string; conclusionText?: string; schemeKey?: string } | null>(null);
+  const [selectedArgumentForActions, setSelectedArgumentForActions] = useState<{
+    id: string;
+    text?: string;
+    conclusionText?: string;
+    conclusionClaimId?: string;
+    schemeKey?: string;
+    schemeId?: string;
+    schemeName?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
+  } | null>(null);
 
   // at top of the component with the other state
 const [issuesOpen, setIssuesOpen] = useState(false);
@@ -1229,7 +1241,12 @@ const {
           open={rightSheetOpen}
           onOpenChange={setRightSheetOpen}
           deliberationId={deliberationId}
+          authorId={authorId || ""}
           selectedArgument={selectedArgumentForActions}
+          onRefresh={() => {
+            // Increment refresh counter to force AIFArgumentsListPro revalidation
+            setRefreshCounter(c => c + 1);
+          }}
         />
       ) : (
         <FloatingSheet
@@ -1634,6 +1651,7 @@ const {
   {/* </SectionCard> */}
             <SectionCard title="Arguments List (Argument Interchange Format)" className=" w-full" padded={true}>
               <AIFArgumentsListPro
+                key={refreshCounter}
                 deliberationId={deliberationId}
                 onVisibleTextsChanged={(texts) => {
                   window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));

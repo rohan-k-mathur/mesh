@@ -33,7 +33,7 @@ export function DebatePicker({
   return (
     <div className="flex items-center gap-2 text-sm">
       <label className="text-neutral-600">Debate:</label>
-      <select className="menuv2--lite rounded px-2 py-1"
+      <select className=" menuv2--lite w-full rounded px-2 py-1"
         value={value ?? ''} onChange={e=>onChange(e.target.value)}>
         {!value && <option value="">Select…</option>}
         {debates.map((d:any)=>(
@@ -62,7 +62,7 @@ export function SheetPicker({
         onChange={e=>onChange(e.target.value)}>
         <option value={`delib:${deliberationId}`}>Live (synthetic)</option>
         {curated.map((s:any)=>(
-          <option key={s.id} value={s.id}>{s.title ?? s.id.slice(0,6)+'…'}</option>
+          <option key={s.id} value={s.id}>{s.title ?? s.id.slice(0,18)+'…'}</option>
         ))}
       </select>
     </div>

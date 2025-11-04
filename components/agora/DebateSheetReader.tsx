@@ -23,6 +23,7 @@ import { PreferenceBadge } from "@/components/aif/PreferenceBadge";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
 import { ArgumentActionsSheet } from "@/components/arguments/ArgumentActionsSheet";
 import { Waypoints } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type EvNode = {
@@ -86,6 +87,9 @@ export function ClaimsPane({ deliberationId, claims }: { deliberationId: string;
 }
 
 export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
+  const { user } = useAuth();
+  const authorId = user?.userId != null ? String(user.userId) : "";
+  
   const { data, error } = useSWR(
     `/api/sheets/${sheetId}`,
     r => fetch(r).then(x => x.json()),
@@ -119,8 +123,15 @@ const { mode, setMode } = useConfidence();
     id: string;
     text?: string;
     conclusionText?: string;
+    conclusionClaimId?: string;
     schemeKey?: string;
+    schemeId?: string;
+    schemeName?: string;
+    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
   } | null>(null);
+  
+  // Refresh counter for AIF data
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
 const [imports, setImports] = React.useState<'off'|'materialized'|'virtual'|'all'>('off');
 
@@ -602,7 +613,11 @@ function barFor(claimId?: string|null) {
         open={actionsSheetOpen}
         onOpenChange={setActionsSheetOpen}
         deliberationId={deliberationId}
+        authorId={authorId}
         selectedArgument={selectedArgumentForActions}
+        onRefresh={() => {
+          setRefreshCounter(c => c + 1);
+        }}
       />
     )}
     </>

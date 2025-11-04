@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json({
     items: debates.map(d => ({
       id: d.id,
-      title: d.title ?? `debate:${d.id.slice(0,6)}…`,
+      title: d.title ?? `debate:${d.id.slice(0,18)}…`,
       updatedAt: d.updatedAt,
       // A synthetic sheet is always available:
       syntheticSheetId: `delib:${d.id}`,
