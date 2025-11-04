@@ -362,7 +362,7 @@ export function AifDiagramViewerDagre({
       {/* Main SVG */}
       <svg
         ref={svgRef}
-        className="relative border border-black w-full h-full cursor-move select-none"
+        className="relative rounded-xl w-full h-full cursor-move select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -403,77 +403,157 @@ export function AifDiagramViewerDagre({
         
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Edges with role-based styling */}
-          {/* {graph.edges.map((edge) => {
-            const from = nodePositions.get(edge.from);
-            const to = nodePositions.get(edge.to);
-            if (!from || !to) return null;
-            
-            const isHighlighted = highlightedEdges.has(edge.id);
-            const opacity = activePath && !isHighlighted ? 0.2 : 1;
-            const style = getEdgeStyle(edge.role);
-            
-            return (
-              <line
-                key={edge.id}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                stroke={isHighlighted ? '#3b82f6' : style.stroke}
-                strokeWidth={isHighlighted ? style.strokeWidth + 1 : style.strokeWidth}
-                strokeDasharray={isHighlighted ? undefined : style.strokeDasharray}
-                strokeOpacity={opacity}
-                markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
-                className="transition-all"
-              />
-            );
-          })} */}
-          {filteredGraph.edges.map((edge) => {
-  const from = nodePositions.get(edge.from);
-  const to = nodePositions.get(edge.to);
-  if (!from || !to) return null;
-  
-  const isHighlighted = highlightedEdges.has(edge.id);
-  const opacity = activePath && !isHighlighted ? 0.2 : 1;
-  const style = getEdgeStyle(edge.role);
-  
-  // Calculate the midpoint of the edge
-  const midX = (from.x + to.x) / 2;
-  const midY = (from.y + to.y) / 2;
+          {/* Old single-pass edge rendering - now using split rendering below for CA node layering */}
+          
+          {/* Edges NOT connected to CA nodes - render first (under everything) */}
+          {filteredGraph.edges
+            .filter(edge => {
+              const fromNode = filteredGraph.nodes.find(n => n.id === edge.from);
+              const toNode = filteredGraph.nodes.find(n => n.id === edge.to);
+              return fromNode?.kind !== 'CA' && toNode?.kind !== 'CA';
+            })
+            .map((edge) => {
+              const from = nodePositions.get(edge.from);
+              const to = nodePositions.get(edge.to);
+              if (!from || !to) return null;
+              
+              const isHighlighted = highlightedEdges.has(edge.id);
+              const opacity = activePath && !isHighlighted ? 0.2 : 1;
+              const style = getEdgeStyle(edge.role);
+              
+              const midX = (from.x + to.x) / 2;
+              const midY = (from.y + to.y) / 2;
 
-  // Define common properties for both line segments
-  const commonLineProps = {
-    stroke: isHighlighted ? '#3b82f6' : style.stroke,
-    strokeWidth: isHighlighted ? style.strokeWidth + 1 : style.strokeWidth,
-    strokeDasharray: isHighlighted ? undefined : style.strokeDasharray,
-    strokeOpacity: opacity,
-    className: 'transition-all',
-  };
-  
-  return (
-    <g key={edge.id}>
-      {/* First half of the line, with the marker at its end (the midpoint) */}
-      <line
-        x1={from.x}
-        y1={from.y}
-        x2={midX}
-        y2={midY}
-        markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
-        {...commonLineProps}
-      />
-      {/* Second half of the line, from the midpoint to the end node */}
-      <line
-        x1={midX}
-        y1={midY}
-        x2={to.x}
-        y2={to.y}
-        {...commonLineProps}
-      />
-    </g>
-  );
-})}
-          {/* Nodes */}
-          {filteredGraph.nodes.map((node) => {
+              const commonLineProps = {
+                stroke: isHighlighted ? '#3b82f6' : style.stroke,
+                strokeWidth: isHighlighted ? style.strokeWidth + 1 : style.strokeWidth,
+                strokeDasharray: isHighlighted ? undefined : style.strokeDasharray,
+                strokeOpacity: opacity,
+                className: 'transition-all',
+              };
+              
+              return (
+                <g key={edge.id}>
+                  <line
+                    x1={from.x}
+                    y1={from.y}
+                    x2={midX}
+                    y2={midY}
+                    markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
+                    {...commonLineProps}
+                  />
+                  <line
+                    x1={midX}
+                    y1={midY}
+                    x2={to.x}
+                    y2={to.y}
+                    {...commonLineProps}
+                  />
+                </g>
+              );
+            })}
+          
+          
+          
+          {/* Edges connected TO CA nodes (conflictingElement) - render before CA nodes */}
+          {filteredGraph.edges
+            .filter(edge => {
+              const toNode = filteredGraph.nodes.find(n => n.id === edge.to);
+              return toNode?.kind === 'CA' && (edge.role === 'conflictingElement' || edge.role === 'conflictedElement');
+            })
+            .map((edge) => {
+              const from = nodePositions.get(edge.from);
+              const to = nodePositions.get(edge.to);
+              if (!from || !to) return null;
+              
+              const isHighlighted = highlightedEdges.has(edge.id);
+              const opacity = activePath && !isHighlighted ? 0.2 : 1;
+              const style = getEdgeStyle(edge.role);
+              
+              const midX = (from.x + to.x) / 2;
+              const midY = (from.y + to.y) / 2;
+
+              const commonLineProps = {
+                stroke: isHighlighted ? '#3b82f6' : style.stroke,
+                strokeWidth: isHighlighted ? style.strokeWidth + 1 : style.strokeWidth,
+                strokeDasharray: isHighlighted ? undefined : style.strokeDasharray,
+                strokeOpacity: opacity,
+                className: 'transition-all',
+              };
+              
+              return (
+                <g key={edge.id}>
+                  <line
+                    x1={from.x}
+                    y1={from.y}
+                    x2={midX}
+                    y2={midY}
+                    markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
+                    {...commonLineProps}
+                  />
+                  <line
+                    x1={midX}
+                    y1={midY}
+                    x2={to.x}
+                    y2={to.y}
+                    {...commonLineProps}
+                  />
+                </g>
+              );
+            })}
+          
+      
+          
+          {/* Edges FROM CA nodes (conflictedElement) - render after CA nodes */}
+          {filteredGraph.edges
+            .filter(edge => {
+              const fromNode = filteredGraph.nodes.find(n => n.id === edge.from);
+              return fromNode?.kind === 'CA' && (edge.role === 'conflictingElement' || edge.role === 'conflictedElement');
+            })
+            .map((edge) => {
+              const from = nodePositions.get(edge.from);
+              const to = nodePositions.get(edge.to);
+              if (!from || !to) return null;
+              
+              const isHighlighted = highlightedEdges.has(edge.id);
+              const opacity = activePath && !isHighlighted ? 0.2 : 1;
+              const style = getEdgeStyle(edge.role);
+              
+              const midX = (from.x + to.x) / 2;
+              const midY = (from.y + to.y) / 2;
+
+              const commonLineProps = {
+                stroke: isHighlighted ? '#3b82f6' : style.stroke,
+                strokeWidth: isHighlighted ? style.strokeWidth + 1 : style.strokeWidth,
+                strokeDasharray: isHighlighted ? undefined : style.strokeDasharray,
+                strokeOpacity: opacity,
+                className: 'transition-all z-[10]',
+              };
+              
+              return (
+                <g key={edge.id}>
+                  <line
+                    x1={from.x}
+                    y1={from.y}
+                    x2={midX}
+                    y2={midY}
+                    markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
+                    {...commonLineProps}
+                  />
+                  <line
+                    x1={midX}
+                    y1={midY}
+                    x2={to.x}
+                    y2={to.y}
+                    {...commonLineProps}
+                  />
+                </g>
+              );
+            })}
+            {/* Nodes - render non-CA nodes first, then CA nodes so CA appears on top */}
+          {filteredGraph.nodes
+            .filter(node => node.kind !== 'CA') // Render RA, I, PA nodes first
+            .map((node) => {
             const pos = nodePositions.get(node.id);
             if (!pos) return null;
             
@@ -512,6 +592,63 @@ export function AifDiagramViewerDagre({
                     fill="none"
                     stroke="#eab308"
                     strokeWidth={2}
+                    rx={6}
+                  />
+                )}
+                
+                <ZoomAwareAifNode
+                  node={node}
+                  width={pos.width}
+                  height={pos.height}
+                  isHovered={isSelected}
+                  zoomLevel={zoom}
+                />
+              </g>
+            );
+          })}
+                {/* CA Nodes - render after incoming edges, before outgoing edges */}
+          {filteredGraph.nodes
+            .filter(node => node.kind === 'CA')
+            .map((node) => {
+            const pos = nodePositions.get(node.id);
+            if (!pos) return null;
+            
+            const isSelected = selectedNodeId === node.id;
+            const isHighlighted = highlightedNodes.has(node.id);
+            const isSearchMatch = highlightedNodeIds.has(node.id);
+            const isSearchSelected = selectedResult?.node.id === node.id;
+            const opacity = activePath && !isHighlighted ? 0.3 : 1;
+            
+            return (
+              <g
+                key={node.id}
+                transform={`translate(${pos.x - pos.width / 2}, ${pos.y - pos.height / 2})`}
+                opacity={opacity}
+                onClick={() => handleNodeClickInternal(node.id)}
+                className="cursor-pointer transition-all"
+              >
+                {(isSelected || isSearchSelected) && (
+                  <rect
+                    x={-4} y={-4}
+                    width={pos.width + 8}
+                    height={pos.height + 8}
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    rx={6}
+                    className="animate-pulse z-[1000]"
+                  />
+                )}
+                
+                {isSearchMatch && !isSearchSelected && (
+                  <rect
+                    x={-2} y={-2}
+                    width={pos.width + 4}
+                    height={pos.height + 4}
+                    fill="none"
+                    stroke="#eab308"
+                    strokeWidth={2}
+                    className='z-[1000]'
                     rx={6}
                   />
                 )}

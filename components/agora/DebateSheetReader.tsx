@@ -426,7 +426,7 @@ function barFor(claimId?: string|null) {
                   
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <div className="font-medium text-sm mb-1">{n.title ?? n.id}</div>
+                      <div className="font-medium text-sm mb-2">{n.title ?? n.id}</div>
                       {/* Metadata badges */}
                       <div className="flex flex-wrap gap-1 mb-2">
                         {aif?.scheme && (
@@ -460,8 +460,11 @@ function barFor(claimId?: string|null) {
                         >
                           <Waypoints className="w-4 h-4" />
                         </button>
+
                       )}
-                      
+                        <button                     onClick={() => handleNodeClick(n)}
+ className="btnv2--ghost text-xs rounded-lg p-2 bg-white"><span>Actions</span></button>
+
                       <Badge
                         variant={
                           label === 'accepted'
@@ -480,7 +483,7 @@ function barFor(claimId?: string|null) {
                   {/* Click node card to open full argument sheet */}
                   <div 
                     className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => handleNodeClick(n)}
+                    
                   >
                   {v && v.kind === 'scalar' && (
                     <div className="mt-2">
@@ -515,6 +518,8 @@ function barFor(claimId?: string|null) {
                   )}
 
                   <div className="justify-end items-end align-end mt-auto text-xs flex gap-3">
+                      
+
                     <button 
                       className="underline disabled:opacity-50 disabled:cursor-not-allowed" 
                       onClick={() => setOpenNodeId(n.id)} 
@@ -572,7 +577,7 @@ function barFor(claimId?: string|null) {
 
     {/* AIF Neighborhood Preview Modal */}
     <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
-      <DialogContent className="max-w-[750px] bg-white/15 backdrop-blur-md border border-white rounded-xl ">
+      <DialogContent className="max-w-[750px] bg-white/15 backdrop-blur-md border-2  border-white rounded-xl ">
         <DialogHeader>
           <DialogTitle className="tracking-wide font-medium">AIF Neighborhood Preview</DialogTitle>
         </DialogHeader>

@@ -277,7 +277,7 @@ export default function DiagramView({
       {layers.map((layer, layerIndex) => (
         <div key={layerIndex} className="mb-10">
           {layerIndex > 0 && (
-            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2 text-center">
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2 ml-24 text-center">
               Layer {layerIndex}
             </div>
           )}

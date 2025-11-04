@@ -1307,6 +1307,7 @@ textarea.textareav2 {
   backdrop-filter: saturate(1.25) blur(4px);
   outline: none;
 }
+
 /* Softer, lighter chrome */
 .menuv2--lite {
 
@@ -2019,15 +2020,17 @@ text-align: left;
   --card-accent: 129, 140, 248;
   --card-lite: 200, 210, 248;
   --card-heavy: 170, 180, 238;
+    --card-med: 225, 215, 231;
+
   --card-top: 255, 255, 255;
   --card-bot: 255, 255, 255;
   
   --card-ring: linear-gradient(
-    360deg,
-    rgba(var(--card-heavy), 0.65) 0%,
+   360deg,
+    rgba(var(--card-heavy), 0.6) 0%,
     rgba(var(--card-top), .65) 25%,
-    rgba(var(--card-heavy), .85) 50%,
-    rgba(var(--card-top), .65) 75%,
+    rgba(var(--card-lite), .75) 50%,
+    rgba(var(--card-med), .65) 75%,
     rgba(var(--card-heavy), .55) 100%
   );
   

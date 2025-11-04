@@ -82,7 +82,7 @@ export function EnhancedCANode({
           fill="#fef2f2"
           stroke="#ef4444"
           strokeWidth={isHovered ? 3 : 2}
-          className="transition-all"
+          className="transition-all z-[1000]"
         />
         <text
           x={width / 2}
@@ -112,11 +112,12 @@ export function EnhancedCANode({
         width={width - 4}
         height={height - 4}
         rx={4}
-        fill={`${scheme.color}15`}
+                  fill="#fef2f2"
+            
         stroke={scheme.color}
         strokeWidth={isHovered ? 3 : 2}
         strokeDasharray={node.schemeKey === 'undercut' ? '4,2' : undefined}
-        className="transition-all"
+        className="transition-all "
       />
 
       {/* Label */}
@@ -161,7 +162,7 @@ export function EnhancedCANode({
   );
 }
 
-// Enhanced RA Node with zoom-aware details
+// Enhanced RA Node with zoom-aware details and scheme badge
 export function EnhancedRANode({
   node,
   width,
@@ -177,6 +178,7 @@ export function EnhancedRANode({
 }) {
   const showScheme = zoomLevel > 0.75;
   const showLabel = zoomLevel > 0.5;
+  const showBadge = zoomLevel > 0.6; // Show badge when reasonably zoomed in
 
   return (
     <g>
@@ -203,46 +205,55 @@ export function EnhancedRANode({
         className="transition-all"
       />
 
-      {/* Text content */}
-      {showLabel ? (
+      {/* Scheme badge (top-right corner) */}
+      {showBadge && node.schemeName && (
         <>
+          <circle
+            cx={width - 8}
+            cy={8}
+            r={6}
+            fill="#3b82f6"
+            stroke="white"
+            strokeWidth={1}
+          />
           <text
-            x={width / 2}
-            y={height / 2 - 4}
-            className="text-xs font-medium fill-blue-700"
+            x={width - 8}
+            y={8}
+            className="text-[8px] font-bold fill-white"
             textAnchor="middle"
             dominantBaseline="middle"
           >
-            RA
+            S
           </text>
-          {showScheme && node.schemeKey && (
-            <text
-              x={width / 2}
-              y={height / 2 + 8}
-              className="text-[9px] fill-blue-600"
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              {node.schemeKey}
-            </text>
-          )}
+          {/* Tooltip */}
+          <title>Scheme: {node.schemeName}</title>
         </>
-      ) : (
-        <text
-          x={width / 2}
-          y={height / 2}
-          className="text-xs font-medium fill-blue-700"
-          textAnchor="middle"
-          dominantBaseline="middle"
-        >
-          RA
-        </text>
       )}
+
+      {/* Text content with proper wrapping */}
+      <foreignObject x={6} y={6} width={width - 12} height={height - 12}>
+        <div 
+          className="flex flex-col items-center justify-center h-full text-center"
+          style={{ 
+            fontSize: showScheme ? '10px' : '12px',
+            lineHeight: '1.2'
+          }}
+        >
+          <span className="text-blue-700 font-semibold">
+            RA
+          </span>
+          {showScheme && node.schemeKey && (
+            <span className="text-blue-600 text-[9px] mt-0.5">
+              {node.schemeKey}
+            </span>
+          )}
+        </div>
+      </foreignObject>
     </g>
   );
 }
 
-// Enhanced I Node with zoom-aware text truncation
+// Enhanced I Node with zoom-aware text truncation and CQ indicator
 export function EnhancedINode({
   node,
   width,
@@ -258,6 +269,7 @@ export function EnhancedINode({
 }) {
   const showFullText = zoomLevel > 0.75;
   const showText = zoomLevel > 0.3;
+  const showBadge = zoomLevel > 0.6; // Show CQ badge when reasonably zoomed in
   
   // Truncate text based on zoom
   const displayText = node.label  || '';
@@ -265,6 +277,8 @@ export function EnhancedINode({
   const truncatedText = displayText.length > maxChars 
     ? displayText.substring(0, maxChars) + '...' 
     : displayText;
+
+  const hasOpenCQs = node.cqStatus && node.cqStatus.open > 0;
 
   return (
     <g>
@@ -280,6 +294,34 @@ export function EnhancedINode({
         strokeWidth={isHovered ? 3 : 2}
         className="transition-all"
       />
+
+      {/* CQ indicator badge (top-right corner) */}
+      {showBadge && hasOpenCQs && (
+        <>
+          <circle
+            cx={width - 8}
+            cy={8}
+            r={7}
+            fill="#f97316"
+            stroke="white"
+            strokeWidth={1}
+            className="animate-pulse"
+          />
+          <text
+            x={width - 8}
+            y={8}
+            className="text-[9px] font-bold fill-white"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {node.cqStatus!.open}
+          </text>
+          {/* Tooltip with CQ details */}
+          <title>
+            {`Open Critical Questions: ${node.cqStatus!.open}/${node.cqStatus!.total}\nKeys: ${node.cqStatus!.keys.join(', ')}`}
+          </title>
+        </>
+      )}
 
       {/* Text with zoom-aware wrapping */}
       {showText && (
@@ -346,7 +388,7 @@ export function EnhancedPANode({
         fill="#f0fdf4"
         stroke="#22c55e"
         strokeWidth={isHovered ? 3 : 2}
-        className="transition-all"
+        className="transition-all z-[100]"
       />
       
       {showScheme && node.schemeKey ? (

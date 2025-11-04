@@ -59,7 +59,7 @@ const MOVE_STYLES: Record<DialogueMoveKind, { bg: string; border: string; text: 
   RETRACT: { bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-700", icon: "↶" },
   CLOSE: { bg: "bg-slate-50", border: "border-slate-300", text: "text-slate-700", icon: "■" },
   ACCEPT_ARGUMENT: { bg: "bg-teal-50", border: "border-teal-300", text: "text-teal-700", icon: "✓" },
-  GROUNDS: { bg: "bg-purple-50", border: "border-purple-300", text: "text-purple-700", icon: "⚡" },
+  GROUNDS: { bg: "bg-purple-50", border: "border-purple-300", text: "text-purple-700", icon: "⏚" },
   ATTACK: { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", icon: "⚔" },
   ASSERT: { bg: "bg-indigo-50", border: "border-indigo-300", text: "text-indigo-700", icon: "!" },
 };

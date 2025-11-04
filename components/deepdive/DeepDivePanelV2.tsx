@@ -169,8 +169,8 @@ function StickyHeader({
     <div
       className={clsx(
         "sticky top-0 z-20 px-4 py-2 rounded-lg transition-all duration-200 w-full",
-        "bg-white/80 backdrop-blur-sm border-b border-slate-200",
-        isScrolled && "shadow-md bg-white/95",
+        "bg-sky-100/50 backdrop-blur-lg panel-edge",
+       
         className
       )}
     >
@@ -344,7 +344,7 @@ export function SectionCard({
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-indigo-200 bg-slate-50 px-1.5 py-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-indigo-200 bg-white/60 px-2 py-1.5 text-xs">
       {children}
     </div>
   );
@@ -1473,11 +1473,11 @@ const {
               </ChipBar>
 
               {/* Phase 3: DS Mode Toggle */}
-              <ChipBar>
+            
                 <button
                   onClick={() => setDsMode(!dsMode)}
                   className={`
-                    text-xs px-3 py-1 rounded-md border transition-all duration-200
+                    text-xs px-3 py-.5 rounded-md menuv2--lite transition-all duration-200
                     ${dsMode 
                       ? 'bg-indigo-100 border-indigo-300 text-indigo-700 hover:bg-indigo-200' 
                       : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
@@ -1487,12 +1487,12 @@ const {
                 >
                   DS Mode: {dsMode ? 'ON' : 'OFF'}
                 </button>
-              </ChipBar>
-              <ChipBar>
+             
+             
                 <button
                   onClick={() => setDelibSettingsOpen(!delibSettingsOpen)}
                   className={`
-                    text-xs px-3 py-1 rounded-md border transition-all duration-200
+                    text-xs px-3 py-.5 rounded-md menuv2--lite transition-all duration-200
                     ${delibSettingsOpen 
                       ? 'bg-indigo-100 border-indigo-300 text-indigo-700 hover:bg-indigo-200' 
                       : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
@@ -1502,18 +1502,18 @@ const {
                 >
                   Delib Settings: {delibSettingsOpen ? 'ON' : 'OFF'}
                 </button>
-              </ChipBar>
+             
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Link href="/admin/schemes" target="_blank">
                 <button
                  
-                  className="flex px-3 py-0 items-center btnv2 rounded-md bg-white h-8 text-xs gap-2"
+                  className="flex  px-2 py-.5 items-center menuv2--lite rounded-md  h-8 text-xs text-slate-700 "
                   title="Manage Argumentation Schemes"
                 >
-                  <Settings className="h-3.5 w-3.5" />
-                  Schemes
+
+                  <span className="flex items-center">Argument Schemes</span>
                 </button>
               </Link>
               <DiscusHelpPage />
