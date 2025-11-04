@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const zBody = z.object({ 
   deliberationId: z.string(),
-  scopingStrategy: z.enum(["legacy", "issue", "actor-pair", "argument"]).optional(),
+  scopingStrategy: z.enum(["legacy", "issue", "actor-pair", "argument", "topic"]).optional(),
   forceRecompile: z.boolean().optional(),
 });
 

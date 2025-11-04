@@ -267,7 +267,7 @@ export function DecisiveBadge({ count, size = "md" }: DecisiveBadgeProps) {
       `}
       title={`${count} decisive step${count !== 1 ? "s" : ""} in trace`}
     >
-      <span>⚡</span>
+      <span>⛭</span>
       <span>{count}</span>
     </div>
   );

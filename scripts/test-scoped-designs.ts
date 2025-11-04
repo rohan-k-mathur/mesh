@@ -113,25 +113,25 @@ async function main() {
     console.log("   ⚠️  WARNING: Expected 2 designs in legacy mode!");
   }
 
-  // Test 2: Issue-based scoping
-  console.log("\n🧪 Test 2: Issue-Based Scoping");
+  // Test 2: topic-based scoping
+  console.log("\n🧪 Test 2: topic-Based Scoping");
   console.log("-".repeat(60));
 
-  const issueResult = await compileFromMoves(deliberation.id, {
-    scopingStrategy: "issue",
+  const topicResult = await compileFromMoves(deliberation.id, {
+    scopingStrategy: "topic",
     forceRecompile: true,
   });
 
-  console.log(`✅ Compiled: ${issueResult.designs.length} designs`);
+  console.log(`✅ Compiled: ${topicResult.designs.length} designs`);
 
-  const issueDesigns = await prisma.ludicDesign.findMany({
-    where: { deliberationId: deliberation.id, scopeType: "issue" },
+  const topicDesigns = await prisma.ludicDesign.findMany({
+    where: { deliberationId: deliberation.id, scopeType: "topic" },
     include: { acts: true },
   });
 
   // Group by scope
-  const scopeMap = new Map<string, typeof issueDesigns>();
-  for (const design of issueDesigns) {
+  const scopeMap = new Map<string, typeof topicDesigns>();
+  for (const design of topicDesigns) {
     const scopeKey = design.scope || "null";
     if (!scopeMap.has(scopeKey)) {
       scopeMap.set(scopeKey, []);

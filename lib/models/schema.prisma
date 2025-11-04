@@ -2924,6 +2924,8 @@ enum DeliberationHostType {
   room_thread
   library_stack
   site
+  discussion
+  free
   inbox_thread
   work
 }
@@ -4355,9 +4357,13 @@ model LudicDesign {
   extJson        Json?
 
   // Scoped Designs Architecture (Phase 1)
-  scope         String? // 'issue:<id>' | 'actors:<id1>:<id2>' | 'argument:<id>' | null (legacy)
-  scopeType     String? // 'issue' | 'actor-pair' | 'argument' | null
-  scopeMetadata Json?   // { label, actors, issueId, argumentId, moveCount, ... }
+  scope         String? // 'topic:<id>' | 'actors:<id1>:<id2>' | 'argument:<id>' | null (legacy)
+  scopeType     String? // 'topic' | 'actor-pair' | 'argument' | null
+  scopeMetadata Json?   // { label, actors, topicId, argumentId, moveCount, ... }
+
+  // Phase 4: Cross-Scope References (Delocation)
+  referencedScopes String[] @default([]) // List of scope keys this design references (e.g., ["topic:arg_123", "topic:arg_456"])
+  crossScopeActIds String[] @default([]) // Act IDs that use delocation (fax) to import from other scopes
 
   chronicles LudicChronicle[]
   acts       LudicAct[]

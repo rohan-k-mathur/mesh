@@ -1,6 +1,17 @@
 'use client';
 import * as React from 'react';
 
+type SemanticAnnotation = 
+  | { type: 'claim'; claimId: string; text: string; moid?: string | null }
+  | { 
+      type: 'argument'; 
+      argumentId: string;
+      scheme?: { key?: string; name?: string; purpose?: string; materialRelation?: string } | null;
+      premises: Array<{ claimId?: string; text?: string }>;
+      conclusion?: { claimId?: string; text?: string } | null;
+    }
+  | null;
+
 export type LociNode = {
   id: string;
   path: string; // e.g., "0.1.2"
@@ -9,6 +20,7 @@ export type LociNode = {
     polarity: 'P' | 'O' | null; // null used for †
     expression?: string;
     isAdditive?: boolean;
+    semantic?: SemanticAnnotation;
   }[];
   children: LociNode[];
 };
@@ -193,22 +205,75 @@ export function LociTree({
     const ring = a.isAdditive ? 'ring-1 ring-amber-300' : '';
     const label = a.polarity ?? '†';
     const stepIdx = stepIndexByActId?.[a.id];
+    
+    // Build tooltip with semantic content
+    let tooltipText = a.expression || '';
+    if (a.semantic) {
+      if (a.semantic.type === 'claim') {
+        tooltipText = `Claim: ${a.semantic.text}\n\n${tooltipText}`;
+      } else if (a.semantic.type === 'argument') {
+        const scheme = a.semantic.scheme?.name || a.semantic.scheme?.key || 'Unknown';
+        const premises = a.semantic.premises.map(p => p.text).filter(Boolean).join(', ');
+        const conclusion = a.semantic.conclusion?.text || '';
+        tooltipText = `Argument (${scheme})\nPremises: ${premises}\nConclusion: ${conclusion}\n\n${tooltipText}`;
+      }
+    }
 
     return (
-      <span
-        title={a.expression}
-        className={[
-          'text-[11px] px-1.5 py-0.5 rounded border',
-          base,
-          ring,
-          'max-w-[20rem] truncate',
-        ].join(' ')}
-      >
-        {label} {a.isAdditive ? '⊕' : ''}
-        {typeof stepIdx === 'number' ? (
-          <sup className="ml-1 text-[10px] text-indigo-600">{stepIdx}</sup>
-        ) : null}
-      </span>
+      <div className="relative group/act">
+        <span
+          title={tooltipText}
+          className={[
+            'text-[11px] px-1.5 py-0.5 rounded border',
+            base,
+            ring,
+            'max-w-[20rem] truncate inline-flex items-center gap-1',
+          ].join(' ')}
+        >
+          {label} {a.isAdditive ? '⊕' : ''}
+          {typeof stepIdx === 'number' ? (
+            <sup className="ml-1 text-[10px] text-indigo-600">{stepIdx}</sup>
+          ) : null}
+          {a.semantic && (
+            <span className="ml-0.5 text-[9px] opacity-60">
+              {a.semantic.type === 'claim' ? '💬' : '⛭'}
+            </span>
+          )}
+        </span>
+        {/* Hover tooltip with semantic details */}
+        {a.semantic && (
+          <div className="absolute hidden group-hover/act:block z-50 left-0 top-full mt-1 p-2 bg-slate-800 text-white text-xs rounded shadow-lg max-w-md">
+            {a.semantic.type === 'claim' ? (
+              <div>
+                <div className="font-semibold text-emerald-300 mb-1">Claim</div>
+                <div className="text-slate-200">{a.semantic.text}</div>
+              </div>
+            ) : (
+              <div>
+                <div className="font-semibold text-amber-300 mb-1">
+                  Argument: {a.semantic.scheme?.name || a.semantic.scheme?.key}
+                </div>
+                <div className="space-y-1">
+                  <div>
+                    <span className="text-slate-400">Premises:</span>
+                    <ul className="ml-2 list-disc list-inside">
+                      {a.semantic.premises.map((p, i) => (
+                        <li key={i} className="text-slate-200">{p.text}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  {a.semantic.conclusion?.text && (
+                    <div>
+                      <span className="text-slate-400">Conclusion:</span>
+                      <div className="ml-2 text-slate-200">{a.semantic.conclusion.text}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     );
   }
 

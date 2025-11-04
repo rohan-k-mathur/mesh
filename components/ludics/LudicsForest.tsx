@@ -10,7 +10,7 @@ import type { StepResult } from '@/packages/ludics-core/types';
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
 type ViewMode = 'forest' | 'split-screen' | 'merged';
-type ScopingStrategy = 'legacy' | 'issue' | 'actor-pair' | 'argument';
+type ScopingStrategy = 'legacy' | 'topic' | 'actor-pair' | 'argument';
 
 export function LudicsForest({ 
   deliberationId 
@@ -19,7 +19,7 @@ export function LudicsForest({
 }) {
   const [viewMode, setViewMode] = React.useState<ViewMode>('forest');
   const [selectedDesignId, setSelectedDesignId] = React.useState<string | null>(null);
-  const [scopingStrategy, setScopingStrategy] = React.useState<ScopingStrategy>('issue');
+  const [scopingStrategy, setScopingStrategy] = React.useState<ScopingStrategy>('topic');
   const [isRecompiling, setIsRecompiling] = React.useState(false);
   
   // Fetch all designs (not merged!)
@@ -105,7 +105,7 @@ export function LudicsForest({
               }`}
               title="Forest: Show all designs independently"
             >
-              🌲 Forest
+              𐄳 Forest
             </button>
             <button 
               onClick={() => setViewMode('split-screen')}
@@ -116,7 +116,7 @@ export function LudicsForest({
               }`}
               title="Split: Proponent vs Opponent side-by-side"
             >
-              ⚔️ Split
+              ◨ Split
             </button>
             <button 
               onClick={() => setViewMode('merged')}
@@ -127,7 +127,7 @@ export function LudicsForest({
               }`}
               title="Merged: Legacy unified tree view"
             >
-              🌳 Merged (Legacy)
+              𐂷 Merged (Legacy)
             </button>
           </div>
           
@@ -136,7 +136,7 @@ export function LudicsForest({
               <strong>{designs.length}</strong> designs
             </span>
             {scopes.length > 1 && (
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+              <span className="px-2 py-1 bg-sky-100 text-sky-700 rounded">
                 <strong>{scopes.length}</strong> scopes
               </span>
             )}
@@ -167,10 +167,10 @@ export function LudicsForest({
             value={scopingStrategy}
             onChange={(e) => setScopingStrategy(e.target.value as ScopingStrategy)}
             className="px-2 py-1 text-sm border rounded-md bg-white"
-            title="How to group designs: legacy (all moves), issue (per argument root), actor-pair (per pair of actors), argument (per target)"
+            title="How to group designs: legacy (all moves), topic (per argument root), actor-pair (per pair of actors), argument (per target)"
           >
             <option value="legacy">Legacy (Monolithic)</option>
-            <option value="issue">Issue-Based (Recommended)</option>
+            <option value="topic">Topic-Based (Recommended)</option>
             <option value="actor-pair">Actor-Pair</option>
             <option value="argument">Argument-Thread (Fine-Grained)</option>
           </select>
@@ -178,7 +178,7 @@ export function LudicsForest({
           <button
             onClick={handleRecompile}
             disabled={isRecompiling}
-            className="px-3 py-1 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="px-3 py-1 text-sm font-medium rounded-md bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {isRecompiling ? '⏳ Recompiling...' : '🔄 Recompile'}
           </button>
@@ -234,6 +234,11 @@ export function LudicsForest({
               const metadata = scopeMetadata[scopeKey];
               const label = metadata?.label || scopeKey;
               
+              // Get referenced scopes for this scope
+              const referencedScopes = scopeDesigns
+                .flatMap((d: any) => d.referencedScopes || [])
+                .filter((s: string, idx: number, arr: string[]) => arr.indexOf(s) === idx); // unique
+              
               return (
                 <div key={scopeKey} className="scope-card border rounded-lg bg-white/50 p-4">
                   {/* Scope header */}
@@ -253,6 +258,11 @@ export function LudicsForest({
                             {metadata.actors.all.length} actors
                           </span>
                         )}
+                        {referencedScopes.length > 0 && (
+                          <span className="px-2 py-0.5 bg-sky-100 text-sky-700 rounded font-medium" title="Cross-scope references">
+                            🔗 {referencedScopes.length}
+                          </span>
+                        )}
                       </div>
                     </div>
                     
@@ -260,6 +270,30 @@ export function LudicsForest({
                       <div className="mt-1 text-xs text-slate-600">
                         <span className="text-green-700 font-medium">P:</span> {metadata.actors.proponent.length} · 
                         <span className="text-red-700 font-medium ml-2">O:</span> {metadata.actors.opponent.length}
+                      </div>
+                    )}
+                    
+                    {/* Cross-scope reference indicators */}
+                    {referencedScopes.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-slate-200">
+                        <div className="text-xs text-slate-600 mb-1 font-medium">
+                          References other topics:
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {referencedScopes.map((refScope: string) => {
+                            const refMeta = scopeMetadata[refScope];
+                            const refLabel = refMeta?.label || refScope.split(':')[1]?.slice(0, 8) || refScope;
+                            return (
+                              <span
+                                key={refScope}
+                                className="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded text-xs"
+                                title={`References ${refScope}`}
+                              >
+                                → {refLabel}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

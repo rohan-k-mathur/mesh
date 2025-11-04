@@ -54,7 +54,11 @@ async function main() {
     
     // Delete in order due to foreign keys
     await prisma.dialogueMove.deleteMany({ where: { deliberationId: DEMO_DELIB_ID } });
+    await prisma.ludicChronicle.deleteMany({ where: { design: { deliberationId: DEMO_DELIB_ID } } });
+    await prisma.ludicAct.deleteMany({ where: { design: { deliberationId: DEMO_DELIB_ID } } });
+    await prisma.ludicTrace.deleteMany({ where: { deliberationId: DEMO_DELIB_ID } });
     await prisma.ludicDesign.deleteMany({ where: { deliberationId: DEMO_DELIB_ID } });
+    await prisma.ludicLocus.deleteMany({ where: { dialogueId: DEMO_DELIB_ID } });
     await prisma.argumentEdge.deleteMany({ where: { deliberationId: DEMO_DELIB_ID } });
     await prisma.argumentPremise.deleteMany({
       where: { argument: { deliberationId: DEMO_DELIB_ID } },
@@ -98,7 +102,7 @@ async function main() {
 
   const claims: Record<string, any> = {};
 
-  // Issue 1: Carbon Tax Effectiveness
+  // Topic 1: Carbon Tax Effectiveness
   claims.carbonTaxEfficient = await prisma.claim.create({
     data: {
       deliberationId: DEMO_DELIB_ID,
@@ -144,7 +148,7 @@ async function main() {
     },
   });
 
-  // Issue 2: Environmental Effectiveness
+  // Topic 2: Environmental Effectiveness
   claims.capTradeGuarantee = await prisma.claim.create({
     data: {
       deliberationId: DEMO_DELIB_ID,
@@ -172,7 +176,7 @@ async function main() {
     },
   });
 
-  // Issue 3: Political Feasibility  
+  // Topic 3: Political Feasibility  
   claims.politicalViability = await prisma.claim.create({
     data: {
       deliberationId: DEMO_DELIB_ID,
@@ -209,7 +213,7 @@ async function main() {
     },
   });
 
-  // Issue 4: International Coordination
+  // Topic 4: International Coordination
   claims.internationalMarkets = await prisma.claim.create({
     data: {
       deliberationId: DEMO_DELIB_ID,
@@ -228,12 +232,12 @@ async function main() {
     },
   });
 
-  claims.sovereigntyIssue = await prisma.claim.create({
+  claims.sovereigntyTopic = await prisma.claim.create({
     data: {
       deliberationId: DEMO_DELIB_ID,
       text: "Tax coordination requires fiscal sovereignty transfers that nations resist",
       createdById: userId,
-      moid: `${DEMO_DELIB_ID}-sovereignty-issue`,
+      moid: `${DEMO_DELIB_ID}-sovereignty-topic`,
     },
   });
 
@@ -251,8 +255,8 @@ async function main() {
     payload: any;
   }> = [];
 
-  // Issue 1 Thread: Carbon Tax Efficiency
-  console.log("\\n🎯 Issue 1: Carbon Tax Effectiveness");
+  // topic 1 Thread: Carbon Tax Efficiency
+  console.log("\\n🎯 topic 1: Carbon Tax Effectiveness");
   
   moves.push({
     targetType: "claim",
@@ -307,8 +311,8 @@ async function main() {
     },
   });
 
-  // Issue 2 Thread: Environmental Effectiveness
-  console.log("🎯 Issue 2: Environmental Effectiveness");
+  // topic 2 Thread: Environmental Effectiveness
+  console.log("🎯 topic 2: Environmental Effectiveness");
   
   moves.push({
     targetType: "claim",
@@ -342,8 +346,8 @@ async function main() {
     },
   });
 
-  // Issue 3 Thread: Political Feasibility
-  console.log("🎯 Issue 3: Political Feasibility");
+  // topic 3 Thread: Political Feasibility
+  console.log("🎯 topic 3: Political Feasibility");
   
   moves.push({
     targetType: "claim",
@@ -377,8 +381,8 @@ async function main() {
     },
   });
 
-  // Issue 4 Thread: International Coordination
-  console.log("🎯 Issue 4: International Coordination");
+  // topic 4 Thread: International Coordination
+  console.log("🎯 topic 4: International Coordination");
   
   moves.push({
     targetType: "claim",
@@ -408,7 +412,7 @@ async function main() {
     actorId: actors.dana.id,
     payload: {
       text: "Tax coordination requires sovereignty transfers - cap-and-trade only needs technical alignment",
-      claimId: claims.sovereigntyIssue.id,
+      claimId: claims.sovereigntyTopic.id,
     },
   });
 
@@ -446,7 +450,7 @@ async function main() {
   // Try each scoping strategy
   const strategies = [
     { key: "legacy", name: "Legacy (Global)" },
-    { key: "issue", name: "Issue-Based" },
+    { key: "topic", name: "Topic-Based" },
     { key: "argument", name: "Argument-Thread" },
   ] as const;
 
@@ -499,9 +503,9 @@ async function main() {
     }
   }
 
-  // Keep issue-based as default
+  // Keep Topic-based as default
   await compileFromMoves(DEMO_DELIB_ID, {
-    scopingStrategy: "issue",
+    scopingStrategy: "topic",
     forceRecompile: true,
   });
 
@@ -528,13 +532,13 @@ async function main() {
   console.log(`3. Open Ludics Panel`);
   console.log(`4. Click "🌲 Forest" view`);
   console.log(`5. Use scoping strategy dropdown to compare:`);
-  console.log(`   - Issue-Based: Separate scope per issue/argument`);
-  console.log(`   - Argument-Thread: Same as issue in this case`);
+  console.log(`   - Topic-Based: Separate scope per Topic/argument`);
+  console.log(`   - Argument-Thread: Same as Topic in this case`);
   console.log(`   - Legacy: All moves in one global scope`);
 
   console.log("\\n\\n💡 What to Look For:");
   console.log("=".repeat(70));
-  console.log(`✓ Each scope card shows the argument/issue label`);
+  console.log(`✓ Each scope card shows the argument/Topic label`);
   console.log(`✓ Move counts and actor counts per scope`);
   console.log(`✓ P/O design pairs within each scope`);
   console.log(`✓ Acts compiled from dialogue moves (ASSERT/WHY/GROUNDS)`);
@@ -548,7 +552,7 @@ async function main() {
   console.log(`• Arguments connect claims (AIF RA-nodes)`);
   console.log(`• DialogueMoves create/update arguments dynamically`);
   console.log(`• Ludics compilation reads from DialogueMoves`);
-  console.log(`• Scoping groups moves by issue/argument/actor-pair`);
+  console.log(`• Scoping groups moves by Topic/argument/actor-pair`);
   console.log(`• Each scope gets P/O design pair (game semantics)`);
 
   console.log("\\n");

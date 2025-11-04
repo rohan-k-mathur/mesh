@@ -4,7 +4,11 @@
 import * as React from 'react';
 import { LociTree } from '@/packages/ludics-react/LociTree';
 import { buildTreeFromDesign } from './buildTreeFromDesign';
+import { ArgumentSchemeView } from './ArgumentSchemeView';
 import type { StepResult } from '@/packages/ludics-core/types';
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 type Act = {
   id: string;
@@ -12,8 +16,10 @@ type Act = {
   polarity?: string | null;
   expression?: string;
   locus?: { path?: string | null };
+  locusPath?: string;
   ramification?: string[];
   isAdditive?: boolean;
+  semantic?: any;
 };
 
 type Design = {
@@ -24,6 +30,8 @@ type Design = {
   acts: Act[];
   extJson?: any;
 };
+
+type ViewMode = 'tree' | 'scheme' | 'both';
 
 export function DesignTreeView({
   design,
@@ -40,11 +48,22 @@ export function DesignTreeView({
   trace?: StepResult | null;
   highlight?: 'positive' | 'negative';
 }) {
-  // Build tree from SINGLE design (not merged)
+  const [viewMode, setViewMode] = React.useState<ViewMode>('tree');
+  
+  // Fetch semantic enriched design data
+  const { data: semanticData } = useSWR(
+    design?.id ? `/api/ludics/designs/${design.id}/semantic` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  
+  const enrichedDesign = semanticData?.ok ? semanticData.design : design;
+  
+  // Build tree from SINGLE design (with semantic annotations if available)
   const tree = React.useMemo(() => {
-    if (!design) return null;
-    return buildTreeFromDesign(design);
-  }, [design]);
+    if (!enrichedDesign) return null;
+    return buildTreeFromDesign(enrichedDesign);
+  }, [enrichedDesign]);
   
   // Extract acts used by THIS design in trace
   const actIdsUsedInTrace = React.useMemo(() => {
@@ -100,13 +119,13 @@ export function DesignTreeView({
       {/* Design header with ludics metadata */}
       <div className={`design-header rounded-t-lg border-b-2 p-3 ${
         isProponent 
-          ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200' 
+          ? 'bg-gradient-to-br from-sky-50 to-indigo-50 border-sky-200' 
           : 'bg-gradient-to-br from-rose-50 to-orange-50 border-rose-200'
       }`}>
         <div className="design-title flex items-center gap-2 mb-2">
           <span className={`polarity-badge text-lg font-bold px-2 py-1 rounded ${
             isProponent 
-              ? 'bg-blue-100 text-blue-700' 
+              ? 'bg-sky-100 text-sky-700' 
               : 'bg-rose-100 text-rose-700'
           }`}>
             {isProponent ? '+' : '−'}
@@ -115,6 +134,43 @@ export function DesignTreeView({
           <code className="design-id text-xs text-slate-500 font-mono bg-white px-1.5 py-0.5 rounded">
             {design.id.slice(0,8)}
           </code>
+          
+          {/* View mode toggle */}
+          <div className="ml-auto flex gap-1 bg-white/80 rounded-md p-0.5 border border-slate-200">
+            <button
+              onClick={(e) => { e.stopPropagation(); setViewMode('tree'); }}
+              className={`px-2 py-1 text-xs rounded transition ${
+                viewMode === 'tree' 
+                  ? 'bg-slate-700 text-white' 
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title="Show ludics tree"
+            >
+              𐂷 Tree
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setViewMode('scheme'); }}
+              className={`px-2 py-1 text-xs rounded transition ${
+                viewMode === 'scheme' 
+                  ? 'bg-slate-700 text-white' 
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title="Show argument schemes"
+            >
+              ⛭ Schemes
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setViewMode('both'); }}
+              className={`px-2 py-1 text-xs rounded transition ${
+                viewMode === 'both' 
+                  ? 'bg-slate-700 text-white' 
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title="Show both views"
+            >
+              ⨈ Both
+            </button>
+          </div>
         </div>
         
         <div className="design-metadata text-xs text-slate-600 flex flex-wrap gap-3 mb-1">
@@ -130,21 +186,37 @@ export function DesignTreeView({
       </div>
       
       {/* Tree: ONLY this design's acts */}
-      <div className={`design-tree-container rounded-b-lg border bg-white/70 backdrop-blur p-2 ${
-        isProponent ? 'border-blue-200' : 'border-rose-200'
-      }`}>
-        {tree && design.acts && design.acts.length > 0 ? (
-          <LociTree
-            root={tree}
-            showExpressions
-            stepIndexByActId={stepIndexByActId}
-            defaultCollapsedDepth={2}
-            enableKeyboardNav={false}
-            autoScrollOnFocus={false}
-          />
-        ) : (
-          <div className="empty-design p-4 text-sm text-slate-500 text-center">
-            No acts in this design yet
+      <div className={`design-content-container rounded-b-lg border bg-white/70 backdrop-blur ${
+        isProponent ? 'border-sky-200' : 'border-rose-200'
+      } ${viewMode === 'both' ? 'grid grid-cols-2 gap-2 p-2' : 'p-2'}`}>
+        
+        {/* Ludics Tree View */}
+        {(viewMode === 'tree' || viewMode === 'both') && (
+          <div className={viewMode === 'both' ? 'border-r border-slate-200 pr-2' : ''}>
+            {tree && enrichedDesign?.acts && enrichedDesign.acts.length > 0 ? (
+              <LociTree
+                root={tree}
+                showExpressions
+                stepIndexByActId={stepIndexByActId}
+                defaultCollapsedDepth={2}
+                enableKeyboardNav={false}
+                autoScrollOnFocus={false}
+              />
+            ) : (
+              <div className="empty-design p-4 text-sm text-slate-500 text-center">
+                No acts in this design yet
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Argument Scheme View */}
+        {(viewMode === 'scheme' || viewMode === 'both') && enrichedDesign && (
+          <div className={viewMode === 'both' ? 'pl-2' : ''}>
+            <ArgumentSchemeView 
+              acts={enrichedDesign.acts || []} 
+              participantId={design.participantId}
+            />
           </div>
         )}
       </div>

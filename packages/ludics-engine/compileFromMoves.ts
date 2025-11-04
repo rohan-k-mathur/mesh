@@ -88,7 +88,7 @@ interface MoveWithScope extends DialogueMoveRow {
   scopeType: string | null;
 }
 
-type ScopingStrategy = 'legacy' | 'issue' | 'actor-pair' | 'argument';
+type ScopingStrategy = 'legacy' | 'topic' | 'actor-pair' | 'argument';
 
 interface CompileOptions {
   scopingStrategy?: ScopingStrategy;
@@ -106,13 +106,14 @@ async function ensureRoot(db: Tx, dialogueId: string) {
   return root;
 }
 
-// Helper: Compute argument root for issue-based grouping
+// Helper: Compute argument root for topic-based grouping
 async function computeArgumentRoots(moves: DialogueMoveRow[]): Promise<Map<string, string>> {
   const rootMap = new Map<string, string>();
   
-  // Build a map of targets to their first appearance (proxy for "root issue")
+  // Build a map of targets to their first appearance (proxy for "root topic")
   const firstMoveByTarget = new Map<string, string>();
   
+  // First pass: map arguments to themselves
   for (const m of moves) {
     const targetKey = keyForTarget(m.targetType, m.targetId);
     if (!targetKey) continue;
@@ -124,14 +125,56 @@ async function computeArgumentRoots(moves: DialogueMoveRow[]): Promise<Map<strin
         firstMoveByTarget.set(targetKey, m.targetId!);
       }
     }
+  }
+  
+  // Fetch claim-to-argument relationships for all claims referenced in moves
+  const claimIds = moves
+    .filter(m => m.targetType === 'claim' && m.targetId)
+    .map(m => m.targetId!);
+  
+  if (claimIds.length > 0) {
+    // Find arguments that have these claims as conclusions
+    const argumentsWithClaims = await prisma.argument.findMany({
+      where: {
+        conclusionClaimId: { in: claimIds }
+      },
+      select: {
+        id: true,
+        conclusionClaimId: true,
+      }
+    });
     
-    // For claims/cards, we'll group by target ID (simplified approach)
-    // In a real implementation, would traverse relations to find parent argument
-    if (m.targetType === 'claim' || m.targetType === 'card') {
-      // Use the target itself as the scope for now
-      rootMap.set(targetKey, m.targetId!);
-      if (!firstMoveByTarget.has(targetKey)) {
-        firstMoveByTarget.set(targetKey, m.targetId!);
+    // Map claim IDs to their parent argument IDs
+    const claimToArgument = new Map(
+      argumentsWithClaims.map(a => [a.conclusionClaimId, a.id])
+    );
+    
+    // Second pass: map claims to their parent arguments (if any)
+    for (const m of moves) {
+      const targetKey = keyForTarget(m.targetType, m.targetId);
+      if (!targetKey) continue;
+      
+      if (m.targetType === 'claim') {
+        const parentArgumentId = claimToArgument.get(m.targetId!);
+        if (parentArgumentId) {
+          // This claim is the conclusion of an argument - use that argument as the root
+          rootMap.set(targetKey, parentArgumentId);
+        } else {
+          // Standalone claim - use the claim itself as the root
+          rootMap.set(targetKey, m.targetId!);
+        }
+        
+        if (!firstMoveByTarget.has(targetKey)) {
+          firstMoveByTarget.set(targetKey, m.targetId!);
+        }
+      }
+      
+      // For cards, use the target itself as the scope
+      if (m.targetType === 'card') {
+        rootMap.set(targetKey, m.targetId!);
+        if (!firstMoveByTarget.has(targetKey)) {
+          firstMoveByTarget.set(targetKey, m.targetId!);
+        }
       }
     }
   }
@@ -145,16 +188,16 @@ function deriveScopeLabel(scopeKey: string, moves: MoveWithScope[]): string {
   
   const [type, ...parts] = scopeKey.split(':');
   
-  if (type === 'issue') {
-    const issueId = parts[0];
-    // Try to find issue title from moves targeting this issue
-    const issueMove = moves.find(m => m.targetType === 'argument' && m.targetId === issueId);
-    if (issueMove) {
-      const payload = issueMove.payload as any;
-      if (payload?.text) return `Issue: ${payload.text.slice(0, 50)}`;
-      if (payload?.brief) return `Issue: ${payload.brief.slice(0, 50)}`;
+  if (type === 'topic') {
+    const topicId = parts[0];
+    // Try to find topic title from moves targeting this topic
+    const topicMove = moves.find(m => m.targetType === 'argument' && m.targetId === topicId);
+    if (topicMove) {
+      const payload = topicMove.payload as any;
+      if (payload?.text) return `topic: ${payload.text.slice(0, 50)}`;
+      if (payload?.brief) return `topic: ${payload.brief.slice(0, 50)}`;
     }
-    return `Issue ${issueId.slice(0, 8)}`;
+    return `topic ${topicId.slice(0, 8)}`;
   }
   
   if (type === 'actors') {
@@ -224,8 +267,8 @@ async function computeScopes(
     }));
   }
   
-  if (strategy === 'issue') {
-    // Issue-based: group by root argument
+  if (strategy === 'topic') {
+    // topic-based: group by root argument
     const rootMap = await computeArgumentRoots(moves);
     
     return moves.map(m => {
@@ -234,8 +277,8 @@ async function computeScopes(
       
       return {
         ...m,
-        scope: rootId ? `issue:${rootId}` : null,
-        scopeType: rootId ? 'issue' : null,
+        scope: rootId ? `topic:${rootId}` : null,
+        scopeType: rootId ? 'topic' : null,
       };
     });
   }
@@ -272,6 +315,67 @@ async function computeScopes(
   return moves.map(m => ({ ...m, scope: null, scopeType: null }));
 }
 
+// Helper: Detect cross-scope references in moves
+// Returns Map<scopeKey, Set<referencedScopeKeys>>
+async function detectCrossScopeReferences(
+  movesWithScopes: MoveWithScope[]
+): Promise<Map<string, Set<string>>> {
+  const crossScopeRefs = new Map<string, Set<string>>();
+  
+  // Build map of argumentId to scope
+  const argToScope = new Map<string, string>();
+  for (const m of movesWithScopes) {
+    if (m.targetType === 'argument' && m.targetId && m.scope) {
+      argToScope.set(m.targetId, m.scope);
+    }
+  }
+  
+  // Check each move's payload for references to other arguments
+  for (const move of movesWithScopes) {
+    const moveScope = move.scope ?? 'legacy';
+    const payload = move.payload as any;
+    
+    if (!payload) continue;
+    
+    // Check for citedArgumentId, referencedArgumentId, or similar fields
+    const referencedArgIds: string[] = [];
+    
+    if (payload.citedArgumentId) {
+      referencedArgIds.push(payload.citedArgumentId);
+    }
+    if (payload.referencedArgumentId) {
+      referencedArgIds.push(payload.referencedArgumentId);
+    }
+    if (payload.crossTopicReference) {
+      referencedArgIds.push(payload.crossTopicReference);
+    }
+    
+    // Check if move payload text mentions other argument IDs (heuristic)
+    if (typeof payload.text === 'string') {
+      // Look for patterns like "as shown in arg_xyz" or references to other topics
+      const argIdPattern = /(arg_[a-z0-9]+|cmh[a-z0-9]+)/gi;
+      const matches = payload.text.match(argIdPattern);
+      if (matches) {
+        referencedArgIds.push(...matches);
+      }
+    }
+    
+    // For each referenced argument, check if it's in a different scope
+    for (const refArgId of referencedArgIds) {
+      const refScope = argToScope.get(refArgId);
+      if (refScope && refScope !== moveScope) {
+        // Cross-scope reference detected!
+        if (!crossScopeRefs.has(moveScope)) {
+          crossScopeRefs.set(moveScope, new Set());
+        }
+        crossScopeRefs.get(moveScope)!.add(refScope);
+      }
+    }
+  }
+  
+  return crossScopeRefs;
+}
+
 export async function compileFromMoves(
   dialogueId: string,
   options?: CompileOptions
@@ -302,7 +406,10 @@ export async function compileFromMoves(
     
     const movesWithScopes = await computeScopes(moves, scopingStrategy);
     
-    // 3) group moves by scope
+    // 3) Detect cross-scope references
+    const crossScopeRefs = await detectCrossScopeReferences(movesWithScopes);
+    
+    // 4) group moves by scope
     const movesByScope = new Map<string, MoveWithScope[]>();
     for (const m of movesWithScopes) {
       const scopeKey = m.scope ?? 'legacy';
@@ -317,9 +424,10 @@ export async function compileFromMoves(
     
     const allDesignIds: string[] = [];
 
-    // 4) Create designs per scope
+    // 5) Create designs per scope
     for (const [scopeKey, scopeMoves] of movesByScope.entries()) {
       const scopeMetadata = buildScopeMetadata(scopeKey, scopeMoves, scopingStrategy);
+      const referencedScopes = Array.from(crossScopeRefs.get(scopeKey) ?? []);
       const nowIso = new Date().toISOString();
       
       const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
@@ -331,6 +439,7 @@ export async function compileFromMoves(
             scope: scopeKey === 'legacy' ? null : scopeKey,
             scopeType: scopingStrategy === 'legacy' ? null : scopingStrategy,
             scopeMetadata: scopeKey === 'legacy' ? null : scopeMetadata,
+            referencedScopes,
             extJson: { role: 'pro', source: 'compile', at: nowIso },
           },
         });
@@ -342,6 +451,7 @@ export async function compileFromMoves(
             scope: scopeKey === 'legacy' ? null : scopeKey,
             scopeType: scopingStrategy === 'legacy' ? null : scopingStrategy,
             scopeMetadata: scopeKey === 'legacy' ? null : scopeMetadata,
+            referencedScopes,
             extJson: { role: 'opp', source: 'compile', at: nowIso },
           },
         });
@@ -350,7 +460,7 @@ export async function compileFromMoves(
 
       allDesignIds.push(proponentId, opponentId);
       
-      // 5) Compile acts for this scope
+      // 6) Compile acts for this scope
       await compileScopeActs(
         dialogueId,
         scopeMoves,
@@ -421,6 +531,14 @@ async function compileScopeActs(
         for (const a of protoActs) {
           const locus = (a.locusPath && a.locusPath.trim()) ? a.locusPath.trim() : defaultAnchor;
           if (!locus) continue;
+          
+          // Preserve metadata from expandActsFromMove
+          const meta = {
+            moveId: a.moveId,
+            targetType: a.targetType,
+            targetId: a.targetId,
+            actorId: a.actorId,
+          };
 
           if (a.polarity === 'pos') {
             outActs.push({
@@ -430,6 +548,7 @@ async function compileScopeActs(
                 ramification: Array.isArray(a.openings) ? a.openings : [],
                 expression: a.expression ?? '',
                 isAdditive: !!a.isAdditive,
+                meta, // Attach metadata
               },
             });
           } else if (a.polarity === 'neg') {
@@ -438,12 +557,13 @@ async function compileScopeActs(
               act: {
                 kind: 'PROPER', polarity: 'O', locus,
                 ramification: [], expression: a.expression ?? '',
+                meta, // Attach metadata
               },
             });
           } else if (a.polarity === 'daimon') {
             outActs.push({
               designId: designFor('daimon').id,
-              act: { kind: 'DAIMON', expression: a.expression ?? 'END' },
+              act: { kind: 'DAIMON', expression: a.expression ?? 'END', meta },
             });
           }
         }
@@ -470,6 +590,12 @@ async function compileScopeActs(
             ramification: (payload.ramification as string[]) ?? ['1'],
             expression: expr,
             isAdditive: !!(payload as any).additive,   // C) mark additivity on opener
+            meta: {
+              moveId: m.id,
+              targetType: m.targetType,
+              targetId: m.targetId,
+              actorId: m.actorId,
+            },
           },
         });
 
@@ -494,7 +620,15 @@ async function compileScopeActs(
           act: {
             kind: 'PROPER', polarity: 'O', locus,
             ramification: [], expression: expr,
-            meta: { justifiedByLocus: parent, schemeKey: payload.schemeKey ?? null, cqId: payload.cqId ?? null },
+            meta: { 
+              justifiedByLocus: parent, 
+              schemeKey: payload.schemeKey ?? null, 
+              cqId: payload.cqId ?? null,
+              moveId: m.id,
+              targetType: m.targetType,
+              targetId: m.targetId,
+              actorId: m.actorId,
+            },
           },
         });
         
@@ -522,6 +656,10 @@ async function compileScopeActs(
               justifiedByLocus: parent,
               schemeKey: payload.schemeKey ?? null,
               cqId: payload.cqId ?? null,
+              moveId: m.id,
+              targetType: m.targetType,
+              targetId: m.targetId,
+              actorId: m.actorId,
               ...(delocInfo ? { delocated: true, delocatedFromDesignId: delocInfo.delocatedFromDesignId } : null),
             },
           },
@@ -687,7 +825,7 @@ async function compileScopeActs(
                    throw e;
                  }
                }
-             }, { timeout: 10_000, maxWait: 5_000 });
+             }, { timeout: 60_000, maxWait: 10_000 });
     }
     (globalThis as any).__ludics__compile_skipped_additive = skippedAdditive;
 }

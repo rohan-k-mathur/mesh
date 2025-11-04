@@ -29,12 +29,12 @@ describe("Scoped Designs - computeScopes", () => {
     testActorId1 = "actor-1";
     testActorId2 = "actor-2";
 
-    // Create test arguments (issues)
+    // Create test arguments (topics)
     const arg1 = await prisma.argument.create({
       data: {
         deliberationId: testDeliberationId,
         createdById: testActorId1,
-        text: "Issue 1: Should we implement feature X?",
+        text: "topic 1: Should we implement feature X?",
       },
     });
     testArgument1Id = arg1.id;
@@ -43,7 +43,7 @@ describe("Scoped Designs - computeScopes", () => {
       data: {
         deliberationId: testDeliberationId,
         createdById: testActorId2,
-        text: "Issue 2: What about performance concerns?",
+        text: "topic 2: What about performance concerns?",
       },
     });
     testArgument2Id = arg2.id;
@@ -110,8 +110,8 @@ describe("Scoped Designs - computeScopes", () => {
     });
   });
 
-  describe("Issue-based scoping", () => {
-    it("should create 2 designs per issue (P+O)", async () => {
+  describe("topic-based scoping", () => {
+    it("should create 2 designs per topic (P+O)", async () => {
       // Clear previous moves
       await prisma.ludicDesign.deleteMany({
         where: { deliberationId: testDeliberationId },
@@ -120,7 +120,7 @@ describe("Scoped Designs - computeScopes", () => {
         where: { deliberationId: testDeliberationId },
       });
 
-      // Create moves for issue 1
+      // Create moves for topic 1
       await prisma.dialogueMove.create({
         data: {
           deliberationId: testDeliberationId,
@@ -143,7 +143,7 @@ describe("Scoped Designs - computeScopes", () => {
         },
       });
 
-      // Create moves for issue 2
+      // Create moves for topic 2
       await prisma.dialogueMove.create({
         data: {
           deliberationId: testDeliberationId,
@@ -166,13 +166,13 @@ describe("Scoped Designs - computeScopes", () => {
         },
       });
 
-      // Compile with issue scoping
+      // Compile with topic scoping
       const result = await compileFromMoves(testDeliberationId, {
-        scopingStrategy: "issue",
+        scopingStrategy: "topic",
       });
 
       expect(result.ok).toBe(true);
-      expect(result.designs).toHaveLength(4); // 2 issues × 2 polarities
+      expect(result.designs).toHaveLength(4); // 2 topics × 2 polarities
 
       // Verify scopes
       const designs = await prisma.ludicDesign.findMany({
@@ -200,14 +200,14 @@ describe("Scoped Designs - computeScopes", () => {
       ]);
 
       // Verify scopeType
-      expect(designs.every(d => d.scopeType === "issue")).toBe(true);
+      expect(designs.every(d => d.scopeType === "topic")).toBe(true);
     });
 
     it("should include rich scope metadata", async () => {
       const designs = await prisma.ludicDesign.findMany({
         where: {
           deliberationId: testDeliberationId,
-          scopeType: "issue",
+          scopeType: "topic",
         },
       });
 
@@ -218,7 +218,7 @@ describe("Scoped Designs - computeScopes", () => {
 
       const metadata = design.scopeMetadata as any;
       expect(metadata).toMatchObject({
-        type: "issue",
+        type: "topic",
         label: expect.any(String),
         moveCount: expect.any(Number),
         actors: {
@@ -291,7 +291,7 @@ describe("Scoped Designs - computeScopes", () => {
       });
 
       const result = await compileFromMoves(emptyDelib.id, {
-        scopingStrategy: "issue",
+        scopingStrategy: "topic",
       });
 
       expect(result.ok).toBe(true);
@@ -321,7 +321,7 @@ describe("Scoped Designs - computeScopes", () => {
       });
 
       const result = await compileFromMoves(testDeliberationId, {
-        scopingStrategy: "issue",
+        scopingStrategy: "topic",
       });
 
       expect(result.ok).toBe(true);
@@ -355,7 +355,7 @@ describe("Scoped Designs - computeScopes", () => {
 
       // First compile
       const result1 = await compileFromMoves(testDeliberationId, {
-        scopingStrategy: "issue",
+        scopingStrategy: "topic",
       });
 
       const designs1 = await prisma.ludicDesign.findMany({
@@ -365,7 +365,7 @@ describe("Scoped Designs - computeScopes", () => {
 
       // Second compile
       const result2 = await compileFromMoves(testDeliberationId, {
-        scopingStrategy: "issue",
+        scopingStrategy: "topic",
         forceRecompile: true,
       });
 

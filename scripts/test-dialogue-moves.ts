@@ -17,8 +17,8 @@ interface TestCase {
 
 async function cleanup(deliberationId: string) {
   // Delete in correct order to respect foreign keys
-  await prisma.ludicAct.deleteMany({ where: { design: { deliberationId } } });
   await prisma.ludicChronicle.deleteMany({ where: { design: { deliberationId } } });
+  await prisma.ludicAct.deleteMany({ where: { design: { deliberationId } } });
   await prisma.ludicDesign.deleteMany({ where: { deliberationId } });
   await prisma.ludicLocus.deleteMany({ where: { dialogueId: deliberationId } });
   await prisma.dialogueMove.deleteMany({ where: { deliberationId } });
@@ -37,8 +37,8 @@ async function runTest(testCase: TestCase) {
     const delib = await prisma.deliberation.create({
       data: {
         id: deliberationId,
-        hostType: "ROOM" as any,
-        hostId: "test-room",
+        hostType: "site",
+        hostId: "test-site",
         createdById: "test-user",
       },
     });

@@ -149,6 +149,29 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
 
   const argId = created;
 
+  // Create a DialogueMove to assert this argument in the deliberation
+  // This allows the ludics engine to compile it into designs
+  try {
+    await prisma.dialogueMove.create({
+      data: {
+        deliberationId,
+        targetType: 'argument',
+        targetId: argId,
+        kind: 'ASSERT',
+        actorId: String(authorId),
+        signature: `assert-arg-${argId}`, // Unique signature for this argument assertion
+        payload: {
+          argumentId: argId,
+          conclusionClaimId,
+          schemeId: schemeId ?? null,
+        },
+      }
+    });
+  } catch (err) {
+    console.error('[arguments/POST] Failed to create dialogue move:', err);
+    // Non-fatal - argument is already created
+  }
+
   // await validateSlotsAgainstScheme({ tx: prisma, schemeId, slots });
 
 

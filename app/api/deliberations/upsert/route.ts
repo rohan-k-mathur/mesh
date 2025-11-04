@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prismaclient';
 import { asUserIdString } from '@/lib/auth/normalize';
 
 export async function getOrCreateDeliberationId(
-  hostType: 'article'|'post'|'room_thread'|'library_stack'|'site'|'inbox_thread' | 'work',
+  hostType: 'article'|'post'|'room_thread'|'library_stack'|'site'|'inbox_thread' | 'free' | 'discussion' | 'work',
   hostId: string,
   roomId: string | null,
   createdById: string

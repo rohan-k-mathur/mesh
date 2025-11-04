@@ -1,15 +1,28 @@
 // components/ludics/buildTreeFromDesign.ts
 import type { LociNode } from '@/packages/ludics-react/LociTree';
 
+type SemanticAnnotation = 
+  | { type: 'claim'; claimId: string; text: string; moid?: string | null }
+  | { 
+      type: 'argument'; 
+      argumentId: string;
+      scheme?: { key?: string; name?: string; purpose?: string; materialRelation?: string } | null;
+      premises: Array<{ claimId?: string; text?: string }>;
+      conclusion?: { claimId?: string; text?: string } | null;
+    }
+  | null;
+
 type Act = {
   id: string;
   kind: string;
   polarity?: string | null;
   expression?: string;
   locus?: { path?: string | null };
+  locusPath?: string;
   ramification?: string[];
   isAdditive?: boolean;
   additive?: boolean;
+  semantic?: SemanticAnnotation;
 };
 
 type Design = {
@@ -37,7 +50,7 @@ export function buildTreeFromDesign(design: Design): LociNode {
   
   // Add each act to its locus
   for (const act of design.acts || []) {
-    const path = act.locus?.path ?? '0';
+    const path = act.locusPath ?? act.locus?.path ?? '0';
     const node = ensure(path);
     
     const isDaimon = (act.kind ?? '').toUpperCase() === 'DAIMON';
@@ -54,6 +67,7 @@ export function buildTreeFromDesign(design: Design): LociNode {
       polarity,
       expression: act.expression,
       isAdditive: !!(act.isAdditive || act.additive),
+      semantic: act.semantic, // Include semantic annotation
     });
     
     // Ensure all ancestor loci exist (for proper tree structure)

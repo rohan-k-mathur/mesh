@@ -126,7 +126,7 @@ export function InsightsTooltip({ insights, children }: InsightsTooltipProps) {
                 />
                 {insights.hasOrthogonality && (
                   <div className="col-span-2 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
-                    ⚡ Contains orthogonality
+                    Contains orthogonality
                   </div>
                 )}
               </div>

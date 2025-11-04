@@ -850,7 +850,7 @@ const suggestClose = React.useCallback((path: string) => {
             value={viewMode}
             onChange={(v) => setViewMode(v)}
             options={[
-              { value: "forest", label: "🌲 Forest" },
+              { value: "forest", label: "𐄳 Forest" },
               { value: "unified", label: "Unified" },
               { value: "split", label: "Split" },
             ]}

@@ -6,17 +6,24 @@ const datasourceUrl = process.env.DATABASE_URL
   ? process.env.DATABASE_URL.replace("pgbouncer=false", "pgbouncer=true")
   : undefined;
 
+// Add connection pool parameters to the URL
+const enhancedUrl = datasourceUrl
+  ? `${datasourceUrl}${datasourceUrl.includes('?') ? '&' : '?'}connection_limit=20&pool_timeout=20`
+  : undefined;
+
 export const prisma =
   globalForPrisma.prisma ||
-  new PrismaClient(
-    datasourceUrl ? { datasources: { db: { url: datasourceUrl } } } : undefined
-  );
+  new PrismaClient({
+    datasources: enhancedUrl ? { db: { url: enhancedUrl } } : undefined,
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-void prisma.$connect();
+// Don't eagerly connect - let Prisma handle connections on-demand
+// This prevents connection pool exhaustion from pre-connecting
 // lib/prismaclient.ts
 // import { PrismaClient } from '@prisma/client';
 

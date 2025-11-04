@@ -12,7 +12,8 @@ Key scripts to run locally (refer to `package.json`):
 - `test` — runs `jest` for unit tests; `vitest` is also available under `vitest` script.
 - `worker` — start project workers (`workers/index.ts`) via `tsx` (reads `.env`).
 - `predev` / `prebuild` — build step for `@app/sheaf-acl` workspace; many scripts expect this package to be built first.
-- `db:push`, `migrate`, `prisma generate` hooks — Prisma is used; `postinstall` runs `prisma generate` automatically.
+- `db:push`, `migrate`, `prisma generate` hooks — Prisma is used; `postinstall` runs `prisma generate` automatically. -- do not use 'npx prisma migrate dev' -- just use 'npx prisma db push'
+-- sometimes vscode, typescript or prisma client are out of sync and need to be regerated/restarted/refreshed but if you have verified that the models are correct and the db is correct then it's just a local caching issue and you can proceed without worry.
 - `gen:db:types` — generates Supabase types and requires env vars: `SUPABASE_PROJECT_ID` (and usually `SUPABASE_ACCESS_TOKEN` for `prepare:db:types`).
 
 Type & path conventions

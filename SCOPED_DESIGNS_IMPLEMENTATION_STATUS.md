@@ -25,7 +25,7 @@
 
 ### 3. **Architecture Planning**
 - ✅ Created `LUDICS_SCOPED_DESIGNS_ARCHITECTURE.md` (900+ lines)
-  - 3 scoping strategies (issue, actor-pair, argument)
+  - 3 scoping strategies (topic, actor-pair, argument)
   - Complete implementation plan (4 milestones, 2 weeks)
   - Full code examples for all components
   - Migration strategy with backward compatibility
@@ -34,9 +34,9 @@
 - ✅ Updated `lib/models/schema.prisma`:
   ```prisma
   model LudicDesign {
-    scope         String? // 'issue:<id>' | 'actors:<id1>:<id2>' | null
-    scopeType     String? // 'issue' | 'actor-pair' | 'argument' | null
-    scopeMetadata Json?   // { label, actors, issueId, ... }
+    scope         String? // 'topic:<id>' | 'actors:<id1>:<id2>' | null
+    scopeType     String? // 'topic' | 'actor-pair' | 'argument' | null
+    scopeMetadata Json?   // { label, actors, topicId, ... }
     
     @@index([deliberationId, scope])
     @@index([deliberationId, scopeType])
@@ -61,7 +61,7 @@
 export async function compileFromMoves(
   dialogueId: string,
   options?: {
-    scopingStrategy?: 'legacy' | 'issue' | 'actor-pair' | 'argument';
+    scopingStrategy?: 'legacy' | 'topic' | 'actor-pair' | 'argument';
     forceRecompile?: boolean;
   }
 ): Promise<{ ok: true; designs: string[] }>
@@ -72,10 +72,10 @@ export async function compileFromMoves(
 // Helper: Compute scope for each move
 async function computeScopes(
   moves: DialogueMoveRow[],
-  strategy: 'legacy' | 'issue' | 'actor-pair' | 'argument'
+  strategy: 'legacy' | 'topic' | 'actor-pair' | 'argument'
 ): Promise<Array<DialogueMoveRow & { scope: string | null }>>
 
-// Helper: Find root arguments for issue grouping
+// Helper: Find root arguments for topic grouping
 async function computeArgumentRoots(
   moves: DialogueMoveRow[]
 ): Promise<Map<string, string>>
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
   const { deliberationId, scopingStrategy } = await req.json();
   
   const result = await compileFromMoves(deliberationId, {
-    scopingStrategy: scopingStrategy ?? 'issue',
+    scopingStrategy: scopingStrategy ?? 'topic',
     forceRecompile: true
   });
   
@@ -220,19 +220,19 @@ describe('compileFromMoves with scoping', () => {
     expect(designs.map(d => d.participantId)).toEqual(['Proponent', 'Opponent']);
   });
   
-  it('issue mode creates N*2 designs for N issues', async () => {
-    // Setup: 3 issues
-    await createTestMovesForMultipleIssues(testDelibId, 3);
+  it('topic mode creates N*2 designs for N topics', async () => {
+    // Setup: 3 topics
+    await createTestMovesForMultipletopics(testDelibId, 3);
     
     const result = await compileFromMoves(testDelibId, { 
-      scopingStrategy: 'issue' 
+      scopingStrategy: 'topic' 
     });
     
     const designs = await prisma.ludicDesign.findMany({
-      where: { deliberationId: testDelibId, scopeType: 'issue' }
+      where: { deliberationId: testDelibId, scopeType: 'topic' }
     });
     
-    expect(designs).toHaveLength(6); // 3 issues * 2 polarities
+    expect(designs).toHaveLength(6); // 3 topics * 2 polarities
     
     // Verify each scope has P and O
     const grouped = groupBy(designs, d => d.scope);
@@ -245,14 +245,14 @@ describe('compileFromMoves with scoping', () => {
   });
   
   it('scope metadata includes label and actors', async () => {
-    await compileFromMoves(testDelibId, { scopingStrategy: 'issue' });
+    await compileFromMoves(testDelibId, { scopingStrategy: 'topic' });
     
     const design = await prisma.ludicDesign.findFirst({
-      where: { deliberationId: testDelibId, scopeType: 'issue' }
+      where: { deliberationId: testDelibId, scopeType: 'topic' }
     });
     
     expect(design.scopeMetadata).toMatchObject({
-      type: 'issue',
+      type: 'topic',
       label: expect.any(String),
       moveCount: expect.any(Number),
       actors: {
@@ -286,13 +286,13 @@ async function testScopedDesigns() {
   console.assert(legacyDesigns.length === 2, 'Legacy should have 2 designs');
   console.log('✅ Pass\n');
   
-  // Test 2: Issue-based scoping
-  console.log('Test 2: Issue-based scoping...');
-  await compileFromMoves(testDelibId, { scopingStrategy: 'issue' });
-  const issueDesigns = await prisma.ludicDesign.findMany({
-    where: { deliberationId: testDelibId, scopeType: 'issue' }
+  // Test 2: topic-based scoping
+  console.log('Test 2: topic-based scoping...');
+  await compileFromMoves(testDelibId, { scopingStrategy: 'topic' });
+  const topicDesigns = await prisma.ludicDesign.findMany({
+    where: { deliberationId: testDelibId, scopeType: 'topic' }
   });
-  console.log(`Found ${issueDesigns.length} issue-scoped designs`);
+  console.log(`Found ${topicDesigns.length} topic-scoped designs`);
   console.log('✅ Pass\n');
   
   // Test 3: Forest view renders
@@ -310,7 +310,7 @@ async function testScopedDesigns() {
 
 - [ ] Apply migration: `npx prisma migrate deploy` or run SQL manually
 - [ ] Restart dev server
-- [ ] Navigate to deliberation with multiple issues
+- [ ] Navigate to deliberation with multiple topics
 - [ ] Click "🌲 Forest" view mode
 - [ ] Verify designs grouped by scope
 - [ ] Change scoping strategy dropdown
@@ -344,18 +344,18 @@ async function testScopedDesigns() {
     - ✅ Integration test script: `scripts/test-scoped-designs.ts` (240+ lines)
     - ✅ Tested and working with real data
 11. **UI Integration:**
-    - ✅ Scoping strategy selector (4 strategies: legacy, issue, actor-pair, argument)
+    - ✅ Scoping strategy selector (4 strategies: legacy, topic, actor-pair, argument)
     - ✅ Recompile button with loading state
     - ✅ Grouped scope display with metadata (label, move count, actor count)
     - ✅ Scope cards showing designs per scope
     - ✅ Stats display (scope count, design count, interaction status)
 
-### Known Issues 🐛
+### Known topics 🐛
 1. **VS Code TypeScript Server Cache:** VS Code's TS server is showing compile errors for the `scope` fields, but:
    - The Prisma client DOES include the fields (verified in node_modules/.prisma/client/index.d.ts)
    - Running `npx tsc` directly doesn't complain about the scope fields
    - The code runs successfully (verified via integration tests)
-   - This is a VS Code caching issue that should resolve after:
+   - This is a VS Code caching topic that should resolve after:
      - Reloading the VS Code window (Cmd+Shift+P → "Developer: Reload Window")
      - Or restarting VS Code entirely
 
@@ -380,7 +380,7 @@ async function testScopedDesigns() {
 
 ## Key Design Decisions Made
 
-### 1. **Issue-Based Scoping First**
+### 1. **topic-Based Scoping First**
 - **Why:** Natural grouping, moderate complexity, high user value
 - **Alternative considered:** Actor-pair (too many pairs for N actors)
 - **Future:** Can add actor-pair as secondary mode
@@ -397,7 +397,7 @@ async function testScopedDesigns() {
 
 ### 4. **Three Indexes for Performance**
 - `(deliberationId, scope)` - Get all scopes for deliberation
-- `(deliberationId, scopeType)` - Get all issue/actor-pair/argument scopes
+- `(deliberationId, scopeType)` - Get all topic/actor-pair/argument scopes
 - `(deliberationId, participantId, scope)` - Find P/O pair for specific scope
 
 ### 5. **Configurable Strategy (Not Hardcoded)**
@@ -415,7 +415,7 @@ async function testScopedDesigns() {
 - Test on staging first
 - Rollback plan: Remove indexes, set columns to NULL
 
-### Risk 2: Issue Detection Fails
+### Risk 2: topic Detection Fails
 **Mitigation:**
 - Fallback to `argument` scoping (fine-grained, always works)
 - Log scope computation errors
@@ -464,7 +464,7 @@ async function testScopedDesigns() {
 ## Questions for Review
 
 1. **Migration Timing:** Apply migration now (dev) or wait for staging?
-2. **Default Strategy:** Should new deliberations use `issue` or `legacy` by default?
+2. **Default Strategy:** Should new deliberations use `topic` or `legacy` by default?
 3. **UI Placement:** Scoping dropdown in LudicsPanel header or per-deliberation settings?
 4. **Performance Target:** What's acceptable compile time for 100 moves with 5 scopes?
 
@@ -487,7 +487,7 @@ async function testScopedDesigns() {
 10. 📝 Update user docs
 
 **Success Criteria:**
-- Can compile deliberation with `scopingStrategy: 'issue'`
+- Can compile deliberation with `scopingStrategy: 'topic'`
 - Forest view shows multiple scope cards
 - Each scope has independent P/O designs
 - Legacy mode still works (backward compat)

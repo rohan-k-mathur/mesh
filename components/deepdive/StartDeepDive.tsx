@@ -4,7 +4,7 @@ import DeepDivePanel from './DeepDivePanel';
 
 export default function StartDeepDive({
   hostType, hostId, roomId
-}: { hostType: 'post'|'room_thread'|'article'|'library_stack'|'site'|'inbox_thread'; hostId: string; roomId?: string | null }) {
+}: { hostType: 'post'|'room_thread'|'article'|'library_stack'|'site'|'work'| 'free' | 'discussion' | 'inbox_thread'; hostId: string; roomId?: string | null }) {
   const [delibId, setDelibId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

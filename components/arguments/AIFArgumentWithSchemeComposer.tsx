@@ -658,7 +658,7 @@ export function AIFArgumentWithSchemeComposer({
 
         <div className="flex items-center gap-3 mt-4">
           <button
-            className="px-5 py-2 text-sm tracking-wide font-medium rounded-lg btnv2 bg-white disabled:opacity-50"
+            className="px-5 py-2 text-sm tracking-wide font-medium rounded-full btnv2 bg-white disabled:opacity-50"
             disabled={creating || !canCreate}
             onClick={handleCreate}
           >

@@ -2,7 +2,7 @@
 import { prisma } from "../prismaclient";
 
 export async function getOrCreateDeliberationId(
-  hostType: 'article'|'post'|'room_thread'|'library_stack'|'site'|'inbox_thread',
+  hostType: 'article'|'post'|'room_thread'|'library_stack'|'site'|'inbox_thread'|'discussion'|'free'|'work',
   hostId: string,
   roomId: string | null,
   createdById: string
