@@ -322,7 +322,7 @@ export default function DiscusHelpPage() {
   return (
     <>
       <button
-        className="text-xs px-2 py-.5 rounded-lg  menuv2--lite border-[1px] border-indigo-200 outline-none"
+        className="text-xs px-2 py-.5 rounded-lg  menuv2--lite btnv2--ghost outline-none"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-controls="discus-help-modal"

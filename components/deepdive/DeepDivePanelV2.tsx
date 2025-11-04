@@ -169,7 +169,7 @@ function StickyHeader({
     <div
       className={clsx(
         "sticky top-0 z-20 px-4 py-2 rounded-lg transition-all duration-200 w-full",
-        "bg-sky-100/50 backdrop-blur-lg panel-edge",
+        "bg-sky-50/50 backdrop-blur-lg panelv2 hover:translate-y-0",
        
         className
       )}
@@ -1526,7 +1526,7 @@ const {
               <Link href="/admin/schemes" target="_blank">
                 <button
                  
-                  className="flex  px-2 py-.5 items-center menuv2--lite rounded-md  h-8 text-xs text-slate-700 "
+                  className="flex  px-2 py-.5 items-center menuv2--lite border-none bg-white/50 rounded-md  h-8 text-xs text-slate-600 "
                   title="Manage Argumentation Schemes"
                 >
 

@@ -543,6 +543,130 @@ async function compileScopeActs(
         lastAssertLocus = null;
         continue;
       }
+
+      if (kind === 'CONCEDE') {
+        // CONCEDE: Opponent/Proponent acknowledges a claim without retraction
+        // Creates PROPER act (acknowledgment) at target locus
+        // Unlike RETRACT, doesn't add DAIMON (continues dialogue)
+        const locus = explicitPath ?? locFromId ?? 
+          (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
+          lastAssertLocus ?? '0';
+        
+        // Create child locus for the concession acknowledgment
+        const child = pickChild(locus, explicitChild);
+        
+        outActs.push({
+          designId: design.id,
+          act: {
+            kind: 'PROPER',
+            polarity: 'P', // Conceding party makes positive acknowledgment
+            locus: child,
+            ramification: [],
+            expression: expr || 'CONCEDE',
+            meta: {
+              justifiedByLocus: locus,
+              originalTarget: targetKey ?? null,
+            },
+          },
+        });
+        
+        // Update commitment store handled by API layer
+        // No DAIMON - concession doesn't end the branch
+        continue;
+      }
+
+      if (kind === 'THEREFORE') {
+        // THEREFORE: Assert inference/conclusion from premises
+        // Can use multi-act expansion via payload.acts (handled above)
+        // Or simple single assertion (legacy path)
+        const locus = explicitPath ?? locFromId ?? 
+          (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
+          lastAssertLocus ?? '0';
+        
+        // Create child locus for the inference conclusion
+        const child = pickChild(locus, explicitChild);
+        
+        outActs.push({
+          designId: design.id,
+          act: {
+            kind: 'PROPER',
+            polarity: 'P', // Proponent asserts conclusion
+            locus: child,
+            ramification: (payload.ramification as string[]) ?? ['1'],
+            expression: expr || 'THEREFORE',
+            meta: {
+              justifiedByLocus: locus,
+              inferenceRule: payload.inferenceRule ?? null,
+              premiseIds: payload.premiseIds ?? null,
+            },
+          },
+        });
+        
+        if (targetKey) anchorForTarget.set(targetKey, child);
+        lastAssertLocus = child;
+        continue;
+      }
+
+      if (kind === 'SUPPOSE') {
+        // SUPPOSE: Introduce hypothetical assumption
+        // Opens new scope for conditional reasoning
+        const locus = explicitPath ?? locFromId ?? `0.${++nextTopIdx}`;
+        lastAssertLocus = locus;
+        if (targetKey) anchorForTarget.set(targetKey, locus);
+        
+        outActs.push({
+          designId: design.id,
+          act: {
+            kind: 'PROPER',
+            polarity: 'P',
+            locus,
+            ramification: (payload.ramification as string[]) ?? ['1'],
+            expression: expr || 'SUPPOSE',
+            meta: {
+              hypothetical: true,
+              scopeType: 'hypothesis',
+            },
+          },
+        });
+        
+        // Hypothesis stays open until DISCHARGE
+        continue;
+      }
+
+      if (kind === 'DISCHARGE') {
+        // DISCHARGE: Close hypothetical scope and assert conclusion
+        // Should reference the SUPPOSE locus
+        const supposeLocus = payload.supposeLocus ?? 
+          (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
+          lastAssertLocus ?? '0';
+        
+        // Create child to close the hypothesis
+        const child = pickChild(supposeLocus, explicitChild);
+        
+        outActs.push({
+          designId: design.id,
+          act: {
+            kind: 'PROPER',
+            polarity: 'P',
+            locus: child,
+            ramification: [],
+            expression: expr || 'DISCHARGE',
+            meta: {
+              dischargesLocus: supposeLocus,
+              hypothetical: false,
+            },
+          },
+        });
+        
+        // Add DAIMON to close the hypothetical branch
+        outActs.push({
+          designId: design.id,
+          act: { kind: 'DAIMON', expression: 'HYPOTHESIS_DISCHARGED' },
+        });
+        
+        lastAssertLocus = null;
+        continue;
+      }
     }
 
     // 4) batched appends (D) — robust to concurrent compiles

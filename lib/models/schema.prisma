@@ -3535,6 +3535,9 @@ enum Illocution {
   Concede
   Retract
   Close
+  Therefore
+  Suppose
+  Discharge
 }
 
 // If you need a simple edge model for the /api/attacks route (optional — skip if you already have edges):

@@ -133,7 +133,7 @@ export function DesignTreeView({
       <div className={`design-tree-container rounded-b-lg border bg-white/70 backdrop-blur p-2 ${
         isProponent ? 'border-blue-200' : 'border-rose-200'
       }`}>
-        {tree && tree.acts.length > 0 ? (
+        {tree && design.acts && design.acts.length > 0 ? (
           <LociTree
             root={tree}
             showExpressions

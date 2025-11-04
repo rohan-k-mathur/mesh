@@ -1,29 +1,30 @@
-import { prisma } from '../lib/prismaclient';
+import { prisma } from "../lib/prismaclient";
 
-async function main() {
-  // Get the QA test deliberation specifically
-  const deliberationId = 'cmgy6c8vz0000c04w4l9khiux';
-  
-  const designs = await prisma.ludicDesign.findMany({
-    where: { deliberationId },
+async function check() {
+  const design = await prisma.ludicDesign.findFirst({
+    where: { 
+      deliberationId: "ludics-forest-demo",
+      participantId: "Proponent"
+    },
     include: { 
       acts: { 
-        select: { id: true, kind: true, polarity: true, expression: true, locus: { select: { path: true } } }
+        include: { locus: true },
+        orderBy: { orderInDesign: "asc" }
       }
     }
   });
-
-  console.log(`Found ${designs.length} designs:`);
-  designs.forEach(d => {
-    console.log(`\n📦 Design ${d.id.slice(0,8)} (${d.participantId}):`);
-    console.log(`   Acts: ${d.acts.length}`);
-    d.acts.slice(0, 8).forEach(act => {
-      const locusPath = act.locus?.path || 'NO_LOCUS';
-      console.log(`   - ${locusPath} [${act.polarity}] ${act.kind}: ${act.expression?.substring(0,40) || ''}`);
-    });
+  
+  if (!design) {
+    console.log("No design found");
+    return;
+  }
+  
+  console.log(`Design ${design.id.slice(0,8)} has ${design.acts.length} acts:`);
+  design.acts.forEach((act: any) => {
+    console.log(`  Act ${act.id.slice(0,8)}: kind=${act.kind}, polarity=${act.polarity}, locusPath=${act.locus?.path || "NULL"}, expr=${(act.expression || "").slice(0, 40)}`);
   });
-
+  
   await prisma.$disconnect();
 }
 
-main().catch(console.error);
+check();
