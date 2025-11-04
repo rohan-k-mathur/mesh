@@ -336,6 +336,12 @@ async function testScopedDesigns() {
    - Helper functions: `computeScopes`, `computeArgumentRoots`, `buildScopeMetadata`, `deriveScopeLabel`
    - Scoped compilation loop creating P/O designs per scope
    - `compileScopeActs` function for per-scope act compilation
+9. **API Endpoints:**
+   - ✅ `GET /api/ludics/designs` - Returns grouped designs with scope metadata
+   - ✅ `POST /api/ludics/compile` - Accepts scopingStrategy parameter for recompilation
+10. **Testing:**
+    - ✅ Unit tests created: `packages/ludics-engine/__tests__/scopedDesigns.test.ts` (300+ lines)
+    - ✅ Integration test script: `scripts/test-scoped-designs.ts` (200+ lines)
 
 ### Known Issues 🐛
 1. **VS Code TypeScript Server Cache:** VS Code's TS server is showing compile errors for the `scope` fields, but:
@@ -346,18 +352,22 @@ async function testScopedDesigns() {
      - Or restarting VS Code entirely
 
 ### What's Next 🚧
-1. **Reload VS Code:** Clear TypeScript server cache
-2. **API Endpoints:** Update `/api/ludics/designs`, create `/api/ludics/compile`
+1. **Reload VS Code:** Clear TypeScript server cache to verify no real errors
+2. **Run Tests:** 
+   - `npm run test` for unit tests
+   - `npx tsx scripts/test-scoped-designs.ts` for integration tests with real data
 3. **UI Polish:** Add scoping dropdown + recompile button to LudicsForest
-4. **Testing:** Write unit tests, integration tests, manual QA
+4. **Manual QA:** Test with real deliberation data in browser
 5. **Documentation:** Update API docs, user guide
 
 ### Estimated Time to Complete Milestone 1
-- **compileFromMoves updates:** 2-3 hours
-- **API updates:** 1-2 hours
+- ~~**compileFromMoves updates:** 2-3 hours~~ ✅ DONE
+- ~~**API updates:** 1-2 hours~~ ✅ DONE
+- ~~**Testing setup:** 2-3 hours~~ ✅ DONE
+- **Run & verify tests:** 1-2 hours
 - **UI integration:** 1-2 hours
-- **Testing:** 2-3 hours
-- **Total:** ~6-10 hours (1-2 days)
+- **Manual QA:** 1-2 hours
+- **Remaining:** ~3-6 hours
 
 ---
 
