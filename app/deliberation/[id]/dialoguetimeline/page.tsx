@@ -276,8 +276,8 @@ function TimelineEventCard({
             {/* Payload details */}
             {move.payload && Object.keys(move.payload).length > 0 && (
               <details className="mt-3">
-                <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-                  View details
+                <summary className="text-xs text-gray-500 ml-2 cursor-pointer hover:text-gray-700">
+                  <span className="ml-1">View details</span>
                 </summary>
                 <pre className="mt-2 text-xs  px-4 py-4  rounded-lg drop-shadow-white overflow-x-auto">
                   {JSON.stringify(move.payload, null, 2)}
@@ -995,18 +995,18 @@ export default function DialogueTimelinePage() {
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">Dialogue Timeline</h1>
+          <h1 className="text-3xl font-semibold tracking0wide text-gray-900">Dialogue Timeline</h1>
           <div className="flex items-center gap-3">
             {/* Sort dropdown */}
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-              className="menuv2--lite text-sm  rounded-lg px-2 tracking-wide py-2 "
+              className="menuv2--lite   text-sm  rounded-lg px-2 tracking-wide py-2 "
             >
               <option value="asc">Oldest First</option>
               <option value="desc">Latest First</option>
             </select>
-            <button className="btnv2 panelv2 text-sm rounded-lg px-3 py-2 bg-white/50" onClick={handleExport}>
+            <button className="flex gap-2 items-center panelv2 text-sm rounded-lg px-3 py-2 bg-white/50" onClick={handleExport}>
               <Download className="h-4 w-4 " />
               Export
             </button>
@@ -1029,7 +1029,7 @@ export default function DialogueTimelinePage() {
         {/* Timeline View */}
         <TabsContent value="timeline" className="mt-6">
           {/* Filters */}
-          <Card className="mb-6 cardv2 py-2 panel-edge hover:translate-y-0">
+          <Card className="mb-6 surfacev2  py-2 panel-edge hover:translate-y-0">
             <CardContent className="p-4">
               <div className="space-y-3">
                 {/* First row: Type and Participant filters */}

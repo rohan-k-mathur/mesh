@@ -22,6 +22,8 @@ import {
   Quote,
   Link as LinkIcon,
   BookOpen,
+  Lightbulb,
+  Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { JSONContent } from "@tiptap/core";
@@ -29,6 +31,8 @@ import { ClaimNode } from "@/lib/tiptap/extensions/claim-node";
 import { ArgumentNode } from "@/lib/tiptap/extensions/argument-node";
 import { CitationNode } from "@/lib/tiptap/extensions/citation-node";
 import { TheoryWorkNode } from "@/lib/tiptap/extensions/theorywork-node";
+import { DraftClaimNode } from "@/lib/tiptap/extensions/draft-claim-node";
+import { DraftPropositionNode } from "@/lib/tiptap/extensions/draft-proposition-node";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { ArgumentPicker } from "@/components/arguments/ArgumentPicker";
 import {
@@ -119,6 +123,8 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
       ArgumentNode,
       CitationNode,
       TheoryWorkNode,
+      DraftClaimNode,
+      DraftPropositionNode,
     ],
     content: thesis?.content || { type: "doc", content: [{ type: "paragraph" }] },
     editorProps: {
@@ -263,6 +269,23 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
     setShowArgumentPicker(false);
     toast.success("Argument inserted");
   }, [editor]);
+
+  // Handlers for inserting draft nodes
+  const handleInsertDraftClaim = useCallback(() => {
+    if (!editor) return;
+    
+    (editor.chain().focus() as any).insertDraftClaim({ deliberationId }).run();
+    
+    toast.info("Draft claim composer inserted");
+  }, [editor, deliberationId]);
+
+  const handleInsertDraftProposition = useCallback(() => {
+    if (!editor) return;
+    
+    (editor.chain().focus() as any).insertDraftProposition({ deliberationId }).run();
+    
+    toast.info("Draft proposition composer inserted");
+  }, [editor, deliberationId]);
 
   if (fetchError) {
     return (
@@ -427,10 +450,33 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
           {/* Toolbar for inserting objects */}
           <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-2">
             <div className="flex items-center gap-1">
+              {/* Compose New Objects */}
+              <div className="flex items-center gap-1 pr-3 border-r border-slate-300">
+                <button
+                  onClick={handleInsertDraftProposition}
+                  className="px-3 py-1.5 text-sm text-purple-700 hover:bg-purple-50 hover:shadow-sm rounded-lg transition-all flex items-center gap-2 font-medium"
+                  title="Compose new proposition inline"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <Lightbulb className="w-4 h-4" />
+                  Proposition
+                </button>
+                <button
+                  onClick={handleInsertDraftClaim}
+                  className="px-3 py-1.5 text-sm text-teal-700 hover:bg-teal-50 hover:shadow-sm rounded-lg transition-all flex items-center gap-2 font-medium"
+                  title="Compose new claim inline"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <MessageSquare className="w-4 h-4" />
+                  Claim
+                </button>
+              </div>
+
+              {/* Insert Existing Objects */}
               <button
                 onClick={() => setShowClaimPicker(true)}
                 className="px-3 py-1.5 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-2"
-                title="Insert claim"
+                title="Insert existing claim"
               >
                 <MessageSquare className="w-4 h-4" />
                 Claim
@@ -438,7 +484,7 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
               <button
                 onClick={() => setShowArgumentPicker(true)}
                 className="px-3 py-1.5 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-2"
-                title="Insert argument"
+                title="Insert existing argument"
               >
                 <Quote className="w-4 h-4" />
                 Argument

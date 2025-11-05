@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
-import { MessageSquare, Settings } from "lucide-react";
+import { GalleryVerticalEnd, MessageSquare, Settings } from "lucide-react";
 import DeliberationComposer from "./DeliberationComposer";
 import { RepresentativeViewpoints } from "./RepresentativeViewpoints";
 import ArgumentsList from "./ArgumentsList";
@@ -1727,6 +1727,16 @@ const {
                   Explore the dialogue structure and argumentation moves in this deliberation.
                   Toggle dialogue layers, filter by move types, and see how arguments were created through dialogue.
                 </p>
+                <div className="flex w-full h-fit items-center justify-center px-3 py-2 border rounded-lg panel-edge">
+                
+<a
+                  className="flex px-8 py-4 w-fit items-center text-base tracking-wide  text-center  rounded-full cardv2 bg-indigo-100/50"
+                  href={`/deliberation/${deliberationId}/dialoguetimeline`} target="_blank" rel="noopener noreferrer"
+                >
+                  <GalleryVerticalEnd className="w-5 h-5 mr-3 text-indigo-700" />
+                  Dialogue Timeline 
+                </a>
+                </div>
                 <div className="min-h-[600px]">
                   <DialogueAwareGraphPanel
                     deliberationId={deliberationId}
@@ -1983,15 +1993,13 @@ const {
             <SectionCard
               title="Thesis Documents"
               action={
-                <button
+                <a
                   className="px-3 py-2  text-xs  rounded-full cardv2 bg-indigo-100/50"
-                  onClick={() => {
-                    setSelectedThesisId(null);
-                    setThesisComposerOpen(true);
-                  }}
+                  href={`/deliberations/${deliberationId}/thesis/new`} target="_blank" rel="noopener noreferrer"
                 >
                   Create Thesis
-                </button>
+                </a>
+               
               }
             >
               <div className="text-sm text-neutral-600 mb-3">

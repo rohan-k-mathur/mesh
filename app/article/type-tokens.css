@@ -2182,26 +2182,25 @@ box-shadow:
 /* === Sidebar Panel v2 === */
 .sidebarv2 {
   --sidebar-accent: 129, 140, 248;
-  --sidebar-lite: 205, 215, 248;
-  --sidebar-heavy: 175, 185, 238;
+  --sidebar-lite: 225, 235, 248;
+  --sidebar-heavy: 205, 205, 228;
   --sidebar-top: 255, 255, 255;
   --sidebar-bot: 255, 255, 255;
   
   --sidebar-ring: linear-gradient(
     90deg,
-    rgba(var(--sidebar-heavy), 0.70) 0%,
-    rgba(var(--sidebar-top), .70) 25%,
-    rgba(var(--sidebar-heavy), .90) 50%,
-    rgba(var(--sidebar-top), .70) 75%,
-    rgba(var(--sidebar-heavy), .60) 100%
+    rgba(var(--sidebar-lite), 0.70) 0%,
+    rgba(var(--sidebar-accent), .70) 25%,
+    rgba(var(--sidebar-lite), .90) 50%,
+    rgba(var(--sidebar-heavy), .70) 75%,
+    rgba(var(--sidebar-top), .60) 100%
   );
   
   --sidebar-fill: linear-gradient(
-    90deg,
-    rgba(var(--sidebar-top), .60) 0%,
-    rgba(var(--sidebar-lite), .16) 30%,
-    rgba(var(--sidebar-lite), .22) 50%,
-    rgba(var(--sidebar-lite), .12) 70%,
+    360deg,
+    rgba(var(--sidebar-top), .50) 0%,
+    rgba(var(--sidebar-lite), .26) 30%,
+   
     rgba(var(--sidebar-top), .50) 100%
   );
   
@@ -2211,9 +2210,6 @@ box-shadow:
   padding: 1rem;
   border: none;
   border-radius: 12px;
-  
-  outline: 1px solid rgba(var(--sidebar-heavy), .40);
-  outline-offset: -2.5px;
   
   color: rgb(30, 41, 59);
   background: var(--sidebar-fill);

@@ -110,11 +110,9 @@ export function DialogueControls({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Primary toggle: Show/hide dialogue layer */}
-      <Button
-        variant={localState.showDialogue ? "default" : "outline"}
-        size="sm"
+      <button
         onClick={toggleDialogue}
-        className="gap-2"
+        className="flex gap-2 px-3 py-2 btnv2 rounded-xl"
         aria-label={localState.showDialogue ? "Hide dialogue layer" : "Show dialogue layer"}
       >
         {localState.showDialogue ? (
@@ -128,7 +126,7 @@ export function DialogueControls({
             Dialogue OFF
           </>
         )}
-      </Button>
+      </button>
 
       {/* Filter controls (only shown when dialogue layer is visible) */}
       {localState.showDialogue && (
@@ -136,10 +134,9 @@ export function DialogueControls({
           {/* Move type filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
+              <button
+                       className="flex gap-2 px-3 py-2 btnv2 rounded-xl"
+
                 aria-label="Filter dialogue moves"
               >
                 <Filter className="h-4 w-4" />
@@ -149,7 +146,7 @@ export function DialogueControls({
                     {activeFilterCount}
                   </Badge>
                 )}
-              </Button>
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
               <DropdownMenuLabel>Move Type</DropdownMenuLabel>
