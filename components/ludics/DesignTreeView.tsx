@@ -113,11 +113,12 @@ export function DesignTreeView({
   
   return (
     <div 
-      className={`design-tree-view ${isSelected ? 'selected' : ''} ${highlight || ''}`}
+      className={`design-tree-view  rounded-lg ${isSelected ? 'selected' : ''} ${highlight || ''}`}
       onClick={onSelect}
     >
       {/* Design header with ludics metadata */}
-      <div className={`design-header rounded-t-lg border-b-2 p-3 ${
+      <div className={`design-header  rounded-t-lg border p-3 ${
+
         isProponent 
           ? 'bg-gradient-to-br from-sky-50 to-indigo-50 border-sky-200' 
           : 'bg-gradient-to-br from-rose-50 to-orange-50 border-rose-200'
@@ -125,8 +126,8 @@ export function DesignTreeView({
         <div className="design-title flex items-center gap-2 mb-2">
           <span className={`polarity-badge text-lg font-bold px-2 py-1 rounded ${
             isProponent 
-              ? 'bg-sky-100 text-sky-700' 
-              : 'bg-rose-100 text-rose-700'
+              ? 'bg-sky-200 text-sky-700' 
+              : 'bg-rose-200 text-rose-700'
           }`}>
             {isProponent ? '+' : '−'}
           </span>
@@ -136,7 +137,7 @@ export function DesignTreeView({
           </code>
           
           {/* View mode toggle */}
-          <div className="ml-auto flex gap-1 bg-white/80 rounded-md p-0.5 border border-slate-200">
+          <div className="ml-auto flex gap-1 bg-white/80 rounded-md p-0.5 border border-indigo-600">
             <button
               onClick={(e) => { e.stopPropagation(); setViewMode('tree'); }}
               className={`px-2 py-1 text-xs rounded transition ${
@@ -186,7 +187,7 @@ export function DesignTreeView({
       </div>
       
       {/* Tree: ONLY this design's acts */}
-      <div className={`design-content-container rounded-b-lg border bg-white/70 backdrop-blur ${
+      <div className={`design-content-container border rounded-b-lg bg-white/30 backdrop-blur ${
         isProponent ? 'border-sky-200' : 'border-rose-200'
       } ${viewMode === 'both' ? 'grid grid-cols-2 gap-2 p-2' : 'p-2'}`}>
         

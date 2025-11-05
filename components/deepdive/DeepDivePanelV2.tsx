@@ -19,6 +19,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DeliberationSettingsPanel } from "../deliberations/DeliberationSettingsPanel";
 import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
+import { DeliberationLoadingScreen } from "@/components/deliberations/DeliberationLoadingScreen";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 import { scrollIntoViewById } from "@/lib/client/scroll";
 import { CommandCard, performCommand } from '@/components/dialogue/command-card/CommandCard';
@@ -448,12 +449,14 @@ export default function DeepDivePanel({
   selectedClaimId,
   onClose,
   className,
+  hostName,
 }: {
   deliberationId: string;
   containerClassName?: string;
   className?: string;
   selectedClaimId?: string;
   onClose?: () => void;
+  hostName?: string | null;
 }) {
   const { proId, oppId, trace, loading } = useCompileStep(deliberationId);
 
@@ -904,6 +907,15 @@ const {
   // Main content
   const inner = (
     <ConfidenceProvider>
+      {/* Header section when content is ready */}
+      <div className="w-full">
+        
+        <h2 className="text-3xl font-medium tracking-wide text-center text-slate-800 mb-4">
+          {hostName ? `Deliberation for "${hostName}"` : "Deliberation"}
+        </h2>
+        <div className="mx-auto w-[80%] border-b border-slate-500/40" />
+      </div>
+
       {/* Floating Toggle Buttons */}
       <SheetToggleButton
         side="left"
@@ -1530,7 +1542,7 @@ const {
                   title="Manage Argumentation Schemes"
                 >
 
-                  <span className="flex items-center">Argument Schemes</span>
+                  <span className="flex items-center">Configure Argument Schemes</span>
                 </button>
               </Link>
               <DiscusHelpPage />
@@ -1541,7 +1553,9 @@ const {
 
         {/* Main Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="w-fit grid-cols-9 mb-2">
+                  <div className="flex w-full items-center justify-center mx-auto">
+
+          <TabsList className="w-full  items-center justify-center flex flex-1 mb-2">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="dialogue">Dialogue</TabsTrigger>
@@ -1552,6 +1566,7 @@ const {
             <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
             <TabsTrigger value="hom-sets">Hom-Sets</TabsTrigger>
           </TabsList>
+          </div>
 
           {/* DEBATE TAB */}
           <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
@@ -1769,13 +1784,11 @@ const {
           <TabsContent value="ludics" className="w-full min-w-0 space-y-4">
             {proId && oppId ? (
               <>
-                <SectionCard title="Ludics Panel">
                   <LudicsPanel
                     deliberationId={deliberationId}
                     proDesignId={proId}
                     oppDesignId={oppId}
                   />
-                </SectionCard>
                 <SectionCard title="Behaviour Inspector">
                   <BehaviourInspectorCard deliberationId={deliberationId} />
                 </SectionCard>
@@ -2056,9 +2069,11 @@ const {
     </ConfidenceProvider>
   );
 
-  const placeholder = (
+  const placeholder = loading ? (
+    <DeliberationLoadingScreen hostName={hostName} />
+  ) : (
     <div className="text-xs w-full text-neutral-500 px-4 py-2">
-      {loading ? 'Loading…' : 'No designs found'}
+      No designs found
     </div>
   );
 

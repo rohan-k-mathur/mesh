@@ -106,7 +106,13 @@ export function AIFArgumentWithSchemeComposer({
   }, [conclusionClaim?.id, conclusionClaim?.text]);
 
   const [premDraft, setPremDraft] = React.useState(""); // quick-add premise text
+  const [majorPremiseDraft, setMajorPremiseDraft] = React.useState("");
+  const [minorPremiseDraft, setMinorPremiseDraft] = React.useState("");
+  const [majorPremise, setMajorPremise] = React.useState<Prem | null>(null);
+  const [minorPremise, setMinorPremise] = React.useState<Prem | null>(null);
   const [pickerPremOpen, setPickerPremOpen] = React.useState(false);
+  const [pickerMajorOpen, setPickerMajorOpen] = React.useState(false);
+  const [pickerMinorOpen, setPickerMinorOpen] = React.useState(false);
   const [pickerConcOpen, setPickerConcOpen] = React.useState(false);
   const [editingConclusion, setEditingConclusion] = React.useState(false);
   const [savingConclusion, setSavingConclusion] = React.useState(false);
@@ -181,7 +187,15 @@ export function AIFArgumentWithSchemeComposer({
     Boolean(currentConclusion?.id) ||
     Boolean((conclusionDraft ?? "").trim().length > 0);
 
-  const canCreate = Boolean(authorId && hasConclusion && premises.length > 0);
+  // Check if using structured (major/minor) or freeform premises
+  const hasStructuredPremises = Boolean(majorPremise && minorPremise);
+  const hasFreeformPremises = premises.length > 0;
+  
+  const canCreate = Boolean(
+    authorId && 
+    hasConclusion && 
+    (hasStructuredPremises || hasFreeformPremises)
+  );
 
   function removePremise(id: string) {
     setPremises((ps) => ps.filter((p) => p.id !== id));
@@ -237,6 +251,38 @@ export function AIFArgumentWithSchemeComposer({
     }
   }
 
+  // Add major premise
+  async function addMajorPremiseFromDraft() {
+    const text = majorPremiseDraft.trim();
+    if (!text) return;
+    try {
+      const id = await createClaim({ deliberationId, authorId, text });
+      setMajorPremise({ id, text });
+      setMajorPremiseDraft("");
+      window.dispatchEvent(
+        new CustomEvent("claims:changed", { detail: { deliberationId } })
+      );
+    } catch (e: any) {
+      setErr(e.message || "Failed to create major premise");
+    }
+  }
+
+  // Add minor premise
+  async function addMinorPremiseFromDraft() {
+    const text = minorPremiseDraft.trim();
+    if (!text) return;
+    try {
+      const id = await createClaim({ deliberationId, authorId, text });
+      setMinorPremise({ id, text });
+      setMinorPremiseDraft("");
+      window.dispatchEvent(
+        new CustomEvent("claims:changed", { detail: { deliberationId } })
+      );
+    } catch (e: any) {
+      setErr(e.message || "Failed to create minor premise");
+    }
+  }
+
   // small helper to post CA (conflict application)
   async function postCA(body: any, signal?: AbortSignal) {
     const r = await fetch("/api/ca", {
@@ -252,8 +298,8 @@ export function AIFArgumentWithSchemeComposer({
   async function handleCreate() {
     if (!canCreate) {
       setErr(
-        !premises.length
-          ? "Add at least one premise."
+        !hasStructuredPremises && !hasFreeformPremises
+          ? "Add at least one premise or both major and minor premises."
           : !hasConclusion
           ? "Provide or pick a conclusion."
           : "User not ready."
@@ -268,12 +314,27 @@ export function AIFArgumentWithSchemeComposer({
       // 1) Ensure conclusion id (create if only text provided)
       const conclusionId = await ensureConclusionId();
 
-      // 2) (Optional) build slots from slotHints for server-side validators
-      //    Map 1st premise → 1st slot role, etc. Skip if not enough premises.
+      // 2) Build premise list: prioritize structured (major/minor) if present
+      let premiseClaimIds: string[];
+      if (hasStructuredPremises) {
+        // Use major + minor in order
+        premiseClaimIds = [majorPremise!.id, minorPremise!.id];
+      } else {
+        // Use freeform premises
+        premiseClaimIds = premises.map((p) => p.id);
+      }
+
+      // 3) (Optional) build slots from slotHints for server-side validators
       let slots: Record<string, string> | undefined = undefined;
       const roles =
         selected?.slotHints?.premises?.map((p: any) => p.role) ?? [];
-      if (roles.length) {
+      if (roles.length && hasStructuredPremises) {
+        // Map major premise to first role, minor to second
+        slots = {};
+        if (roles[0]) slots[roles[0]] = majorPremise!.id;
+        if (roles[1]) slots[roles[1]] = minorPremise!.id;
+        if (conclusionId) (slots as any).conclusion = conclusionId;
+      } else if (roles.length) {
         slots = {};
         roles.forEach((role: string, i: number) => {
           const pid = premises[i]?.id;
@@ -288,7 +349,7 @@ export function AIFArgumentWithSchemeComposer({
         deliberationId,
         authorId,
         conclusionClaimId: conclusionId,
-        premiseClaimIds: premises.map((p) => p.id),
+        premiseClaimIds,
         schemeId: selected?.id ?? null,
         implicitWarrant: notes ? { text: notes } : null,
         // harmless extra; server will just ignore if not using it yet
@@ -296,13 +357,22 @@ export function AIFArgumentWithSchemeComposer({
       });
       setArgumentId(id);
       onCreated?.(id);
+      
+      // Build response for onCreatedDetail
+      const responsePremises = hasStructuredPremises
+        ? [
+            { id: majorPremise!.id, text: majorPremise!.text },
+            { id: minorPremise!.id, text: minorPremise!.text },
+          ]
+        : premises;
+        
       onCreatedDetail?.({
         id,
         conclusion: {
           id: conclusionId,
           text: (conclusionClaim?.text ?? conclusionDraft) || conclusionId,
         },
-        premises,
+        premises: responsePremises,
       });
 
       // 4) Attach CA if we launched in “attack” mode (use the *new* argument’s conclusion)
@@ -525,85 +595,205 @@ export function AIFArgumentWithSchemeComposer({
         </div>
 
         <hr className="border-slate-500/50 my-3" />
-        {/* Premises: typing OR picking */}
-        <div className="mt-2">
-          <div className="flex items-center justify-start gap-3">
-            <span className="text-sm text-gray-800">Premises</span>
-            <button
-              className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
-              onClick={() => setPickerPremOpen(true)}
-            >
-              + Add from existing
-            </button>
-          </div>
-
-          {/* NEW: quick add by typing */}
-          <div className="mt-2 flex gap-2">
-            <input
-              className="flex-1  rounded-lg px-3 py-2 text-sm articlesearchfield"
-              placeholder="Add a premise"
-              value={premDraft}
-              onChange={(e) => setPremDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && premDraft.trim())
-                  addPremiseFromDraft();
-              }}
-            />
-            <button
-              className="text-xs px-5 rounded-lg btnv2 bg-white"
-              onClick={() => setExpandedPremiseEditor(true)}
-              title="Open rich editor for complex premises"
-            >
-              ➾ Expand
-            </button>
-            <button
-              className="text-xs px-5   rounded-lg bg-white btnv2"
-              disabled={!premDraft.trim()}
-              onClick={addPremiseFromDraft}
-            >
-              ⊕ Add
-            </button>
-          </div>
-
-          {premises.length ? (
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {premises.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-2 px-3 py-1 rounded-full panel-edge bg-white/30"
-                >
-                  <span className="text-xs">{p.text || p.id}</span>
+        
+        {/* Conditional rendering: Show structured major/minor inputs when scheme has formalStructure */}
+        {selected && selected.formalStructure && selected.formalStructure.majorPremise && selected.formalStructure.minorPremise ? (
+          <div className="mt-2 space-y-4">
+            <div className="text-sm font-medium text-indigo-900 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+              </svg>
+              Structured Premises (Walton-style)
+            </div>
+            
+            {/* Major Premise */}
+            <div>
+              <label className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">P1: Major Premise</span>
                   <button
-                    className="text-[10px] text-slate-500 underline"
-                    onClick={() => removePremise(p.id)}
+                    className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
+                    onClick={() => setPickerMajorOpen(true)}
                   >
-                    remove
+                    Pick existing
                   </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-sm text-slate-500 mt-2">No premises yet.</div>
-          )}
-        </div>
+                </div>
+                {selected.formalStructure.majorPremise && (
+                  <div className="text-[11px] text-indigo-700 italic bg-indigo-50/50 px-2 py-1 rounded border border-indigo-200">
+                    Template: {selected.formalStructure.majorPremise}
+                  </div>
+                )}
+                {majorPremise ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 border border-emerald-600/60 rounded-lg py-2 px-3 text-sm bg-emerald-50/50 flex items-center justify-between">
+                      <span className="truncate">{majorPremise.text}</span>
+                    </div>
+                    <button
+                      className="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 bg-rose-50"
+                      onClick={() => setMajorPremise(null)}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 rounded-lg px-3 py-2 text-sm articlesearchfield"
+                      placeholder="Enter major premise..."
+                      value={majorPremiseDraft}
+                      onChange={(e) => setMajorPremiseDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && majorPremiseDraft.trim())
+                          addMajorPremiseFromDraft();
+                      }}
+                    />
+                    <button
+                      className="text-xs px-4 rounded-lg bg-white btnv2"
+                      disabled={!majorPremiseDraft.trim()}
+                      onClick={addMajorPremiseFromDraft}
+                    >
+                      ⊕ Add
+                    </button>
+                  </div>
+                )}
+              </label>
+            </div>
+
+            {/* Minor Premise */}
+            <div>
+              <label className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">P2: Minor Premise</span>
+                  <button
+                    className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
+                    onClick={() => setPickerMinorOpen(true)}
+                  >
+                    Pick existing
+                  </button>
+                </div>
+                {selected.formalStructure.minorPremise && (
+                  <div className="text-[11px] text-indigo-700 italic bg-indigo-50/50 px-2 py-1 rounded border border-indigo-200">
+                    Template: {selected.formalStructure.minorPremise}
+                  </div>
+                )}
+                {minorPremise ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 border border-emerald-600/60 rounded-lg py-2 px-3 text-sm bg-emerald-50/50 flex items-center justify-between">
+                      <span className="truncate">{minorPremise.text}</span>
+                    </div>
+                    <button
+                      className="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 bg-rose-50"
+                      onClick={() => setMinorPremise(null)}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 rounded-lg px-3 py-2 text-sm articlesearchfield"
+                      placeholder="Enter minor premise..."
+                      value={minorPremiseDraft}
+                      onChange={(e) => setMinorPremiseDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && minorPremiseDraft.trim())
+                          addMinorPremiseFromDraft();
+                      }}
+                    />
+                    <button
+                      className="text-xs px-4 rounded-lg bg-white btnv2"
+                      disabled={!minorPremiseDraft.trim()}
+                      onClick={addMinorPremiseFromDraft}
+                    >
+                      ⊕ Add
+                    </button>
+                  </div>
+                )}
+              </label>
+            </div>
+          </div>
+        ) : (
+          /* Fallback: Freeform premises (original behavior) */
+          <div className="mt-2">
+            <div className="flex items-center justify-start gap-3">
+              <span className="text-sm text-gray-800">Premises</span>
+              <button
+                className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
+                onClick={() => setPickerPremOpen(true)}
+              >
+                + Add from existing
+              </button>
+            </div>
+
+            {/* NEW: quick add by typing */}
+            <div className="mt-2 flex gap-2">
+              <input
+                className="flex-1  rounded-lg px-3 py-2 text-sm articlesearchfield"
+                placeholder="Add a premise"
+                value={premDraft}
+                onChange={(e) => setPremDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && premDraft.trim())
+                    addPremiseFromDraft();
+                }}
+              />
+              <button
+                className="text-xs px-5 rounded-lg btnv2 bg-white"
+                onClick={() => setExpandedPremiseEditor(true)}
+                title="Open rich editor for complex premises"
+              >
+                ➾ Expand
+              </button>
+              <button
+                className="text-xs px-5   rounded-lg bg-white btnv2"
+                disabled={!premDraft.trim()}
+                onClick={addPremiseFromDraft}
+              >
+                ⊕ Add
+              </button>
+            </div>
+
+            {premises.length ? (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {premises.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-center gap-2 px-3 py-1 rounded-full panel-edge bg-white/30"
+                  >
+                    <span className="text-xs">{p.text || p.id}</span>
+                    <button
+                      className="text-[10px] text-slate-500 underline"
+                      onClick={() => removePremise(p.id)}
+                    >
+                      remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-sm text-slate-500 mt-2">No premises yet.</div>
+            )}
+          </div>
+        )}
 
         <hr className="border-slate-500/50 mt-4 mb-2" />
 
         {/* CQ Preview Panel - shown when scheme is selected, before argument creation */}
         {selected && selected.cqs && selected.cqs.length > 0 && !argumentId && (
-          <div className="my-4 p-4 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/50">
+          <div className="my-4 p-4 rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100/50">
             <div className="flex items-start gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-amber-200">
-                <svg className="w-5 h-5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 rounded-lg bg-orange-200">
+                <svg className="w-5 h-5 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-bold text-amber-900 mb-1">
+                <h4 className="text-sm font-bold text-orange-900 mb-1">
                   Critical Questions Preview
                 </h4>
-                <p className="text-xs text-amber-800 leading-relaxed">
-                  This scheme comes with {selected.cqs.length} critical question{selected.cqs.length !== 1 ? 's' : ''} that will test your argument's strength. Review them before creating your argument.
+                <p className="text-xs text-orange-800 leading-relaxed">
+                  This scheme comes with {selected.cqs.length} critical question{selected.cqs.length !== 1 ? "s" : ""} that will test your argument&apos;s strength. Review them before creating your argument.
                 </p>
               </div>
             </div>
@@ -612,9 +802,9 @@ export function AIFArgumentWithSchemeComposer({
               {selected.cqs.slice(0, 4).map((cq, idx) => (
                 <div 
                   key={cq.cqKey} 
-                  className="flex items-start gap-2 p-2 bg-white/70 rounded-lg border border-amber-200"
+                  className="flex items-start gap-2 p-2 bg-white/70 rounded-lg border border-orange-200"
                 >
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-xs font-bold flex items-center justify-center mt-0.5">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-200 text-orange-800 text-xs font-bold flex items-center justify-center mt-0.5">
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -622,7 +812,7 @@ export function AIFArgumentWithSchemeComposer({
                       {cq.text}
                     </p>
                     <div className="flex gap-2 mt-1">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
                         {cq.attackType}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -635,8 +825,8 @@ export function AIFArgumentWithSchemeComposer({
 
               {selected.cqs.length > 4 && (
                 <div className="text-center pt-2">
-                  <span className="text-xs font-medium text-amber-700">
-                    ...+ {selected.cqs.length - 4} more question{selected.cqs.length - 4 !== 1 ? 's' : ''}
+                  <span className="text-xs font-medium text-orange-700">
+                    ...+ {selected.cqs.length - 4} more question{selected.cqs.length - 4 !== 1 ? "s" : ""}
                   </span>
                 </div>
               )}
@@ -658,7 +848,7 @@ export function AIFArgumentWithSchemeComposer({
 
         <div className="flex items-center gap-3 mt-4">
           <button
-            className="px-5 py-2 text-sm tracking-wide font-medium rounded-full btnv2 bg-white disabled:opacity-50"
+            className="px-5 py-2 text-xs tracking-wide font-medium rounded-full btnv2 bg-white disabled:opacity-50"
             disabled={creating || !canCreate}
             onClick={handleCreate}
           >
@@ -748,6 +938,26 @@ export function AIFArgumentWithSchemeComposer({
               : [...ps, { id: it.id, text: it.label }]
           );
           setPickerPremOpen(false);
+        }}
+      />
+      <SchemeComposerPicker
+        kind="claim"
+        open={pickerMajorOpen}
+        onClose={() => setPickerMajorOpen(false)}
+        onPick={(it) => {
+          setMajorPremise({ id: it.id, text: it.label });
+          setMajorPremiseDraft("");
+          setPickerMajorOpen(false);
+        }}
+      />
+      <SchemeComposerPicker
+        kind="claim"
+        open={pickerMinorOpen}
+        onClose={() => setPickerMinorOpen(false)}
+        onPick={(it) => {
+          setMinorPremise({ id: it.id, text: it.label });
+          setMinorPremiseDraft("");
+          setPickerMinorOpen(false);
         }}
       />
 

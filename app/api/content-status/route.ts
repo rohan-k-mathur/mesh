@@ -17,21 +17,26 @@ export async function GET(req: NextRequest) {
   }
   const { targetType, targetId, roomId } = parsed.data;
 
-  // Prefer compound unique; fall back to findFirst if the unique differs in older DBs
-  let row = await prisma.contentStatus.findUnique({
-    where: {
-      roomId_targetType_targetId: {
-        roomId: roomId ?? null,
-        targetType: targetType as any,
-        targetId,
-      },
-    },
-  }).catch(async () => {
-    return prisma.contentStatus.findFirst({
-      where: { targetType: targetType as any, targetId, roomId: roomId ?? null },
-      orderBy: { createdAt: 'desc' },
-    });
-  });
+  // Use findFirst when roomId is null (unique constraint requires non-null roomId)
+  let row = roomId && typeof roomId === "string"
+    ? await prisma.contentStatus.findUnique({
+        where: {
+          roomId_targetType_targetId: {
+            roomId,
+            targetType: targetType as any,
+            targetId,
+          },
+        },
+      }).catch(async () => {
+        return prisma.contentStatus.findFirst({
+          where: { targetType: targetType as any, targetId, roomId },
+          orderBy: { createdAt: "desc" },
+        });
+      })
+    : await prisma.contentStatus.findFirst({
+        where: { targetType: targetType as any, targetId, roomId: null },
+        orderBy: { createdAt: "desc" },
+      });
 
-  return NextResponse.json({ ok: true, status: row?.currentStatus ?? 'OK' }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ ok: true, status: row?.currentStatus ?? "OK" }, { headers: { "Cache-Control": "no-store" } });
 }

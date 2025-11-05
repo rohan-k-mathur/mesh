@@ -750,7 +750,7 @@ const suggestClose = React.useCallback((path: string) => {
   };
 
   return (
-    <div className="space-y-3 rounded-2xl  bg-slate-50/70 p-3 panel-edge backdrop-blur">
+    <div className="space-y-3 rounded-2xl  p-3 panelv2 hover:translate-y-0 bg-white/10 backdrop-blur-md">
       {/* Ludics Insights Section (Phase 1: Week 2) */}
       {insightsData?.insights && (
         <div className="rounded-lg bg-white/80 border border-slate-200/80 p-3 space-y-4">
@@ -772,12 +772,14 @@ const suggestClose = React.useCallback((path: string) => {
                 size="sm"
               />
             </div>
-          </div>
-          <div className="grid grid-cols-4 gap-2 text-xs">
-            <div className="text-center">
+         
+          <div className="flex border-l pl-8 ml-4 border-slate-500/50 tracking-wide  text-xs gap-8">
+            <div className="text-center ">
               <div className="font-bold text-slate-900">{insightsData.insights.totalActs}</div>
               <div className="text-slate-600">Acts</div>
+
             </div>
+
             <div className="text-center">
               <div className="font-bold text-slate-900">{insightsData.insights.totalLoci}</div>
               <div className="text-slate-600">Loci</div>
@@ -791,6 +793,7 @@ const suggestClose = React.useCallback((path: string) => {
               <div className="text-slate-600">Branches</div>
             </div>
           </div>
+           </div>
         </div>
       )}
 
@@ -850,7 +853,7 @@ const suggestClose = React.useCallback((path: string) => {
             value={viewMode}
             onChange={(v) => setViewMode(v)}
             options={[
-              { value: "forest", label: "𐄳 Forest" },
+              { value: "forest", label: "Forest" },
               { value: "unified", label: "Unified" },
               { value: "split", label: "Split" },
             ]}
@@ -1091,7 +1094,7 @@ const suggestClose = React.useCallback((path: string) => {
         />
       )}
       {/* Trees */}
-      <div className="grid gap-4">
+      <div className="grid  gap-4">
         {viewMode === "forest" ? (
           <LudicsForest deliberationId={deliberationId} />
         ) : viewMode === "unified" ? (

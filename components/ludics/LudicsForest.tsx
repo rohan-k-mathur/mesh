@@ -90,7 +90,7 @@ export function LudicsForest({
   const opponentDesign = designs.find((d: any) => d.participantId === 'Opponent');
   
   return (
-    <div className="ludics-forest space-y-3">
+    <div className="ludics-forest   space-y-3">
       {/* Header: View mode selector + Scoping controls */}
       <div className="forest-header flex flex-col gap-3 rounded-lg border bg-white/70 backdrop-blur p-3">
         {/* Row 1: View mode toggle */}
@@ -116,7 +116,7 @@ export function LudicsForest({
               }`}
               title="Split: Proponent vs Opponent side-by-side"
             >
-              ◨ Split
+              ䷖ Split
             </button>
             <button 
               onClick={() => setViewMode('merged')}
@@ -127,7 +127,7 @@ export function LudicsForest({
               }`}
               title="Merged: Legacy unified tree view"
             >
-              𐂷 Merged (Legacy)
+              𐂷 Merged
             </button>
           </div>
           
@@ -180,7 +180,7 @@ export function LudicsForest({
             disabled={isRecompiling}
             className="px-3 py-1 text-sm font-medium rounded-md bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {isRecompiling ? '⏳ Recompiling...' : '🔄 Recompile'}
+            {isRecompiling ? '𝌗 Recompiling...' : '↻ Recompile'}
           </button>
           
           <span className="text-xs text-slate-500 ml-auto">
@@ -204,7 +204,7 @@ export function LudicsForest({
       
       {/* Forest view: Show all designs grouped by scope */}
       {viewMode === 'forest' && !designsLoading && (
-        <div className="forest-scopes space-y-4">
+        <div className="forest-scopes  space-y-4">
           {designs.length === 0 ? (
             <div className="p-4 text-sm text-slate-500 text-center border rounded-lg bg-white/50">
               No designs found for this deliberation.
@@ -215,7 +215,7 @@ export function LudicsForest({
               )}
             </div>
           ) : scopes.length === 0 ? (
-            <div className="forest-grid grid gap-4 md:grid-cols-2">
+            <div className="forest-grid  grid gap-4 md:grid-cols-2">
               {designs.map((design: any) => (
                 <DesignTreeView
                   key={design.id}
@@ -240,21 +240,21 @@ export function LudicsForest({
                 .filter((s: string, idx: number, arr: string[]) => arr.indexOf(s) === idx); // unique
               
               return (
-                <div key={scopeKey} className="scope-card border rounded-lg bg-white/50 p-4">
+                <div key={scopeKey} className="scope-card panel-edge bg-white/40 rounded-lg  p-4">
                   {/* Scope header */}
-                  <div className="scope-header mb-3 pb-2 border-b">
-                    <div className="flex items-center justify-between">
+                  <div className="scope-header mb-3 pb-2 border-b border-slate-400">
+                    <div className="flex items-center justify-start gap-8">
                       <h3 className="text-sm font-semibold text-slate-800">
                         {label}
                       </h3>
                       <div className="flex items-center gap-2 text-xs">
                         {metadata?.moveCount && (
-                          <span className="px-2 py-0.5 bg-slate-100 rounded">
+                          <span className="px-2 py-0.5 bg-slate-200 rounded">
                             {metadata.moveCount} moves
                           </span>
                         )}
                         {metadata?.actors?.all && (
-                          <span className="px-2 py-0.5 bg-slate-100 rounded">
+                          <span className="px-2 py-0.5 bg-slate-200 rounded">
                             {metadata.actors.all.length} actors
                           </span>
                         )}
@@ -264,15 +264,15 @@ export function LudicsForest({
                           </span>
                         )}
                       </div>
-                    </div>
+                    
                     
                     {metadata?.actors && (
-                      <div className="mt-1 text-xs text-slate-600">
-                        <span className="text-green-700 font-medium">P:</span> {metadata.actors.proponent.length} · 
-                        <span className="text-red-700 font-medium ml-2">O:</span> {metadata.actors.opponent.length}
+                      <div className=" gap-3 text-xs text-slate-600">
+                        <span className="text-green-700  font-medium">P:</span> {metadata.actors.proponent.length} 
+                        <span className="text-red-700 font-medium ml-3">O:</span> {metadata.actors.opponent.length}
                       </div>
                     )}
-                    
+                    </div>
                     {/* Cross-scope reference indicators */}
                     {referencedScopes.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-slate-200">
@@ -320,7 +320,7 @@ export function LudicsForest({
       
       {/* Split-screen: P vs O side-by-side */}
       {viewMode === 'split-screen' && !designsLoading && (
-        <div className="split-screen-view grid md:grid-cols-2 gap-4">
+        <div className="split-screen-view  grid md:grid-cols-2 gap-4">
           <DesignTreeView
             design={proponentDesign}
             deliberationId={deliberationId}

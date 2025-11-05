@@ -32,7 +32,7 @@ export function InsightsBadge({
   };
 
   const sizeClasses = {
-    sm: "text-xs px-2 py-0.5",
+    sm: "text-xs px-2 py-1",
     md: "text-sm px-3 py-1",
     lg: "text-base px-4 py-1.5",
   };
@@ -91,7 +91,7 @@ export function LocusBadge({
   const getRoleColor = (role: string) => {
     switch (role) {
       case "opener":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-sky-100 text-sky-700 border-sky-200";
       case "responder":
         return "bg-purple-100 text-purple-700 border-purple-200";
       case "daimon":
@@ -150,25 +150,25 @@ export function PolarityBadge({
   if (total === 0) return null;
 
   const sizeClasses = {
-    sm: "text-xs px-2 py-0.5 gap-1",
+    sm: "text-xs px-2 py-1 gap-1",
     md: "text-sm px-2.5 py-1 gap-1.5",
   };
 
   return (
     <div
       className={`
-        inline-flex items-center rounded-md border border-gray-200
-        bg-white font-medium transition-colors
+        inline-flex items-center rounded-full border border-gray-400
+        bg-gray-100  font-medium transition-colors
         ${sizeClasses[size]}
       `}
       title={`Polarity: ${positive} positive, ${negative} negative, ${neutral} neutral`}
     >
-      <span className="text-blue-600">⊕{positive}</span>
-      <span className="text-gray-300">/</span>
+      <span className="text-sky-600">⊕ {positive}</span>
+      <span className="text-gray-400">/</span>
       <span className="text-purple-600">⊖{negative}</span>
       {neutral > 0 && (
         <>
-          <span className="text-gray-300">/</span>
+          <span className="text-gray-400">/</span>
           <span className="text-gray-500">•{neutral}</span>
         </>
       )}
@@ -208,7 +208,7 @@ export function OrthogonalityBadge({
         return {
           icon: "✓",
           label: "Convergent",
-          color: "bg-blue-100 text-blue-700 border-blue-200",
+          color: "bg-sky-100 text-sky-700 border-sky-200",
         };
       default:
         return {
