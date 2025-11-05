@@ -20,16 +20,10 @@ export default function NewThesisPage() {
     (async () => {
       const KEY = `draftThesisId_${deliberationId}`;
       try {
-        const existing = localStorage.getItem(KEY);
-        if (existing) {
-          const check = await fetch(`/api/thesis/${existing}`, { cache: "no-store" });
-          if (check.ok) {
-            router.replace(`/deliberations/${deliberationId}/thesis/${existing}`);
-            return;
-          }
-          localStorage.removeItem(KEY);
-        }
-
+        // Always create a new thesis - allow multiple theses per deliberation
+        // Note: We could optionally check localStorage and prompt user if they want to
+        // resume their draft or start fresh, but for now we always create new
+        
         const res = await fetch("/api/thesis", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -42,6 +36,7 @@ export default function NewThesisPage() {
         if (!res.ok) throw new Error(await res.text());
         const { thesis } = (await res.json()) as { thesis: { id: string } };
 
+        // Store this as the latest draft for quick access
         localStorage.setItem(KEY, thesis.id);
         router.replace(`/deliberations/${deliberationId}/thesis/${thesis.id}`);
       } catch (err: any) {

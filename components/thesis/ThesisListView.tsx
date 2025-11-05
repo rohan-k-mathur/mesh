@@ -73,6 +73,7 @@ export function ThesisListView({ deliberationId, onEdit, onView }: ThesisListVie
       {theses.map((thesis) => (
         <ThesisCard
           key={thesis.id}
+          deliberationId={deliberationId}
           thesis={thesis}
           onEdit={onEdit}
           onView={onView}
@@ -84,10 +85,12 @@ export function ThesisListView({ deliberationId, onEdit, onView }: ThesisListVie
 
 function ThesisCard({
   thesis,
+  deliberationId,
   onEdit,
   onView,
 }: {
   thesis: Thesis;
+  deliberationId: string;
   onEdit: (id: string) => void;
   onView: (id: string) => void;
 }) {
@@ -130,7 +133,7 @@ function ThesisCard({
           <div className="flex items-center gap-4 text-xs text-slate-500">
             <div className="flex items-center gap-1">
               <User className="w-3 h-3" />
-              <span>{thesis.author.name || "Unknown"}</span>
+              <span>{thesis.author?.name || "Unknown"}</span>
             </div>
             <div className="flex items-center gap-1">
               <FileText className="w-3 h-3" />
@@ -147,21 +150,22 @@ function ThesisCard({
 
         <div className="flex gap-2 shrink-0">
           {thesis.status === "PUBLISHED" && (
-            <button
-              onClick={() => onView(thesis.id)}
+            <a
+              href={`/deliberations/${deliberationId}/thesis/${thesis.id}/view`}
               className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               title="View thesis"
             >
               <Eye className="w-4 h-4" />
-            </button>
+            </a>
           )}
-          <button
-            onClick={() => onEdit(thesis.id)}
+          <a
+            href={`/deliberations/${deliberationId}/thesis/${thesis.id}`}
+
             className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
             title="Edit thesis"
           >
             <Edit2 className="w-4 h-4" />
-          </button>
+          </a>
         </div>
       </div>
     </div>

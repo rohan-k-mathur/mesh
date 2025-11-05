@@ -188,15 +188,15 @@ export const DraftPropositionNode = Node.create({
   addCommands() {
     return {
       insertDraftProposition:
-        (attributes?: { deliberationId: string }) =>
+        (attributes?: { deliberationId: string; text?: string; mediaUrl?: string }) =>
         ({ commands }) => {
           const draftId = `draft_prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           return commands.insertContent({
             type: this.name,
             attrs: {
               draftId,
-              text: "",
-              mediaUrl: "",
+              text: attributes?.text || "",
+              mediaUrl: attributes?.mediaUrl || "",
               deliberationId: attributes?.deliberationId || "",
             },
           });

@@ -122,8 +122,22 @@ export async function GET(req: NextRequest) {
         title: true,
         status: true,
         template: true,
+        abstract: true,
+        publishedAt: true,
         createdAt: true,
         updatedAt: true,
+        author: {
+          select: {
+            auth_id: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            prongs: true,
+            sections: true,
+          },
+        },
         thesisClaim: {
           select: {
             id: true,

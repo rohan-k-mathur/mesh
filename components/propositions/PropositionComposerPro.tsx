@@ -239,7 +239,7 @@ export function PropositionComposerPro({
       
       // Attach any pending citations to the newly created proposition
       if (createdId && pendingCitations.length > 0) {
-        Promise.all(
+        await Promise.all(
           pendingCitations.map(async (citation) => {
             try {
               // First resolve the source
@@ -278,13 +278,15 @@ export function PropositionComposerPro({
               console.error('Failed to attach citation:', e);
             }
           })
-        ).then(() => {
-          window.dispatchEvent(new CustomEvent('citations:changed', { 
-            detail: { targetType: 'proposition', targetId: createdId } 
-          }));
-        });
+        );
+        
+        // Fire event after all citations are attached
+        window.dispatchEvent(new CustomEvent('citations:changed', { 
+          detail: { targetType: 'proposition', targetId: createdId } 
+        }));
       }
       
+      // Call onCreated AFTER citations are attached
       onCreated?.(created ?? ({ id: createdId!, deliberationId, authorId: '', text: trimmed, mediaType: parsed.data.mediaType, mediaUrl: (parsed.data as any).mediaUrl ?? null, status: 'PUBLISHED', promotedClaimId: null, voteUpCount: 0, voteDownCount: 0, endorseCount: 0, replyCount: 0, createdAt: new Date().toISOString() } as any));
       onPosted?.();
       window.dispatchEvent(new CustomEvent('propositions:created', { detail: { deliberationId, id: createdId } }));

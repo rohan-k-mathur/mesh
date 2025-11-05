@@ -24,6 +24,10 @@ import {
   BookOpen,
   Lightbulb,
   Plus,
+  Download,
+  PlusCircle,
+  SearchCode,
+  LocateFixed,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { JSONContent } from "@tiptap/core";
@@ -31,16 +35,21 @@ import { ClaimNode } from "@/lib/tiptap/extensions/claim-node";
 import { ArgumentNode } from "@/lib/tiptap/extensions/argument-node";
 import { CitationNode } from "@/lib/tiptap/extensions/citation-node";
 import { TheoryWorkNode } from "@/lib/tiptap/extensions/theorywork-node";
-import { DraftClaimNode } from "@/lib/tiptap/extensions/draft-claim-node";
-import { DraftPropositionNode } from "@/lib/tiptap/extensions/draft-proposition-node";
+import { PropositionNode } from "@/lib/tiptap/extensions/proposition-node";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { ArgumentPicker } from "@/components/arguments/ArgumentPicker";
+import { ThesisPublishConfirmation } from "@/components/thesis/ThesisPublishConfirmation";
+import { ThesisExportModal } from "@/components/thesis/ThesisExportModal";
+import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
+import { extractDraftObjects, validateDraftObjects } from "@/lib/thesis/draft-utils";
+import type { DraftInventory, ValidationError } from "@/lib/thesis/draft-utils";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PlusHexagon } from "@mynaui/icons-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -80,6 +89,18 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
   // Picker modals state
   const [showClaimPicker, setShowClaimPicker] = useState(false);
   const [showArgumentPicker, setShowArgumentPicker] = useState(false);
+
+  // Publish confirmation state
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [draftInventory, setDraftInventory] = useState<DraftInventory | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  // Rich editor modals for composing new objects
+  const [showPropositionEditor, setShowPropositionEditor] = useState(false);
+  const [showClaimEditor, setShowClaimEditor] = useState(false);
 
   // Fetch thesis data
   const { data, error: fetchError } = useSWR<{ ok: boolean; thesis: Thesis }>(
@@ -123,8 +144,7 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
       ArgumentNode,
       CitationNode,
       TheoryWorkNode,
-      DraftClaimNode,
-      DraftPropositionNode,
+      PropositionNode,
     ],
     content: thesis?.content || { type: "doc", content: [{ type: "paragraph" }] },
     editorProps: {
@@ -187,28 +207,34 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
     }
   }, [editor, saveThesis]);
 
-  // Publish
+  // Publish - show confirmation modal with draft inventory
   const handlePublish = useCallback(async () => {
     if (!thesisId || !title.trim()) {
       toast.error("Please add a title before publishing");
       return;
     }
 
-    try {
-      const res = await fetch(`/api/thesis/${thesisId}/publish`, {
-        method: "POST",
-      });
-
-      if (!res.ok) throw new Error("Failed to publish");
-
-      toast.success("Thesis published!");
-      mutate(`/api/thesis/${thesisId}`);
-      router.push(`/deliberations/${deliberationId}/thesis/${thesisId}/view`);
-    } catch (err: any) {
-      console.error("Publish error:", err);
-      toast.error("Failed to publish thesis");
+    if (!editor) {
+      toast.error("Editor not ready");
+      return;
     }
-  }, [thesisId, title, deliberationId, router]);
+
+    // Extract draft objects from current content
+    const content = editor.getJSON();
+    const inventory = extractDraftObjects(content);
+    const validation = validateDraftObjects(inventory);
+
+    setDraftInventory(inventory);
+    setValidationErrors(validation.errors);
+    setShowPublishConfirm(true);
+  }, [thesisId, title, editor]);
+
+  // Callback after successful publication
+  const handlePublishComplete = useCallback(() => {
+    toast.success("Thesis published!");
+    mutate(`/api/thesis/${thesisId}`);
+    router.push(`/deliberations/${deliberationId}/thesis/${thesisId}/view`);
+  }, [thesisId, deliberationId, router]);
 
   // Auto-resize title textarea
   useEffect(() => {
@@ -270,21 +296,99 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
     toast.success("Argument inserted");
   }, [editor]);
 
-  // Handlers for inserting draft nodes
+  // Handlers for inserting newly created objects via rich editors
   const handleInsertDraftClaim = useCallback(() => {
-    if (!editor) return;
-    
-    (editor.chain().focus() as any).insertDraftClaim({ deliberationId }).run();
-    
-    toast.info("Draft claim composer inserted");
-  }, [editor, deliberationId]);
+    setShowClaimEditor(true);
+  }, []);
 
   const handleInsertDraftProposition = useCallback(() => {
+    setShowPropositionEditor(true);
+  }, []);
+
+  // Handler for when a proposition is created in the rich editor
+  const handlePropositionCreated = useCallback(async (prop: any) => {
     if (!editor) return;
     
-    (editor.chain().focus() as any).insertDraftProposition({ deliberationId }).run();
+    // Fetch citation count for the proposition
+    let citationCount = 0;
+    try {
+      const citRes = await fetch(`/api/propositions/${prop.id}/citations`);
+      if (citRes.ok) {
+        const citData = await citRes.json();
+        citationCount = citData.citations?.length || 0;
+      }
+    } catch (err) {
+      console.error("Failed to fetch citations:", err);
+    }
     
-    toast.info("Draft proposition composer inserted");
+    // Insert the proposition as a rendered node (not a draft)
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "propositionNode",
+        attrs: {
+          propositionId: prop.id,
+          propositionText: prop.text,
+          mediaUrl: prop.mediaUrl || null,
+          authorName: null, // Could add author info if available
+          citationCount,
+        },
+      })
+      .run();
+    
+    setShowPropositionEditor(false);
+    toast.success("Proposition inserted");
+  }, [editor]);
+
+  // Handler for when a claim is created in the rich editor
+  const handleClaimCreated = useCallback(async (prop: any) => {
+    if (!editor) return;
+    
+    try {
+      // Auto-promote proposition to claim
+      const res = await fetch("/api/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deliberationId,
+          text: prop.text,
+        }),
+      });
+
+      const data = await res.json();
+      const claimId = data?.claim?.id ?? data?.claimId;
+
+      if (!claimId) {
+        throw new Error("Failed to create claim");
+      }
+
+      // Insert the claim as a rendered node (not a draft)
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "claimNode",
+          attrs: {
+            claimId: claimId,
+            claimText: prop.text,
+            position: "UNDEC",
+            authorName: null, // Could add author info if available
+          },
+        })
+        .run();
+      
+      setShowClaimEditor(false);
+      toast.success("Claim inserted");
+
+      // Dispatch event for claim lists to update
+      window.dispatchEvent(
+        new CustomEvent("claims:changed", { detail: { deliberationId } })
+      );
+    } catch (error: any) {
+      console.error("Failed to create claim:", error);
+      toast.error(error.message || "Failed to create claim");
+    }
   }, [editor, deliberationId]);
 
   if (fetchError) {
@@ -324,14 +428,14 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
         <div className="max-w-8xl mx-auto px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push(`/deliberations/${deliberationId}`)}
+              onClick={() => router.push(`/deliberation/${deliberationId}`)}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               title="Back to deliberation"
             >
               <ChevronLeft className="w-5 h-5 text-slate-600" />
             </button>
             <FileText className="w-5 h-5 text-teal-600" />
-            <span className="text-sm font-medium text-slate-700">Thesis Editor</span>
+            <span className="text-lg font-medium text-slate-700">Thesis Editor</span>
             {isSaving && (
               <span className="text-xs text-slate-500 flex items-center gap-1">
                 <div className="animate-spin h-3 w-3 border-2 border-teal-600 border-t-transparent rounded-full" />
@@ -352,6 +456,13 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
             >
               <Settings className="w-4 h-4" />
               Metadata
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export
             </button>
             <button
               onClick={handleManualSave}
@@ -433,16 +544,16 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
       )}
 
       {/* Main Editor */}
-      <div className="max-w-4xl mx-auto mt-6 px-4 pb-24">
+      <div className="max-w-4xl mx-auto mt-5 px-4 pb-24">
         <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
           {/* Title */}
-          <div className="border-b border-slate-200 px-12 pt-12 pb-6">
+          <div className="border-b border-slate-200 px-8 pt-6 pb-3">
             <textarea
               ref={titleInputRef}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Thesis Title"
-              className="w-full text-4xl font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none resize-none overflow-hidden"
+              className="w-full text-2xl font-semibold tracking-wide text-slate-900 placeholder:text-slate-300 focus:outline-none resize-none overflow-hidden"
               rows={1}
             />
           </div>
@@ -451,46 +562,47 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
           <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-2">
             <div className="flex items-center gap-1">
               {/* Compose New Objects */}
-              <div className="flex items-center gap-1 pr-3 border-r border-slate-300">
+              <div className="flex items-center gap-1 pr-2 border-r border-slate-300">
                 <button
                   onClick={handleInsertDraftProposition}
-                  className="px-3 py-1.5 text-sm text-purple-700 hover:bg-purple-50 hover:shadow-sm rounded-lg transition-all flex items-center gap-2 font-medium"
+                  className="px-1 py-1.5 text-sm text-purple-700 hover:bg-purple-50 hover:shadow-sm rounded-lg transition-all flex items-center gap-1 font-medium"
                   title="Compose new proposition inline"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <Lightbulb className="w-4 h-4" />
-                  Proposition
+                  <PlusCircle className="w-4 h-4" />
+                  
+                  New Proposition
                 </button>
                 <button
                   onClick={handleInsertDraftClaim}
-                  className="px-3 py-1.5 text-sm text-teal-700 hover:bg-teal-50 hover:shadow-sm rounded-lg transition-all flex items-center gap-2 font-medium"
+                  className="px-1 py-1.5 text-sm text-teal-700 hover:bg-teal-50 hover:shadow-sm rounded-lg transition-all flex items-center gap-1 font-medium"
                   title="Compose new claim inline"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <MessageSquare className="w-4 h-4" />
-                  Claim
+                  <PlusHexagon className="w-4 h-4" />
+                  New Claim
                 </button>
               </div>
+                            <SearchCode className="ml-3  flex items-center w-4 h-4 text-slate-700" />
 
+              <div className="flex mr-2 text-sm gap-1" > Select: </div>
               {/* Insert Existing Objects */}
               <button
                 onClick={() => setShowClaimPicker(true)}
-                className="px-3 py-1.5 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-2"
+                className="px-1 py-1.5  text-sm text-slate-700  rounded-lg hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-1"
                 title="Insert existing claim"
               >
-                <MessageSquare className="w-4 h-4" />
+                <LocateFixed className="w-4 h-4" />
                 Claim
               </button>
               <button
                 onClick={() => setShowArgumentPicker(true)}
-                className="px-3 py-1.5 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-2"
+                className="px-1 py-1.5 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-1"
                 title="Insert existing argument"
               >
                 <Quote className="w-4 h-4" />
                 Argument
               </button>
               <button
-                className="px-3 py-1.5 text-sm text-slate-400 cursor-not-allowed rounded-lg flex items-center gap-2"
+                className="px-1 py-1.5 text-sm text-slate-400 cursor-not-allowed rounded-lg flex items-center gap-1"
                 title="Insert citation (coming soon)"
                 disabled
               >
@@ -498,12 +610,12 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
                 Citation
               </button>
               <button
-                className="px-3 py-1.5 text-sm text-slate-400 cursor-not-allowed rounded-lg flex items-center gap-2"
-                title="Insert theorywork (coming soon)"
+                className="px-1 py-1.5 text-sm text-slate-400 cursor-not-allowed rounded-lg flex items-center gap-1"
+                title="Insert theory (coming soon)"
                 disabled
               >
                 <BookOpen className="w-4 h-4" />
-                TheoryWork
+                Theory
               </button>
             </div>
           </div>
@@ -529,6 +641,66 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
         onClose={() => setShowArgumentPicker(false)}
         onPick={handleInsertArgument}
       />
+
+      {/* Publish Confirmation Modal */}
+      {draftInventory && (
+        <ThesisPublishConfirmation
+          open={showPublishConfirm}
+          onClose={() => setShowPublishConfirm(false)}
+          thesisId={thesisId}
+          inventory={draftInventory}
+          validationErrors={validationErrors}
+          onPublishComplete={handlePublishComplete}
+        />
+      )}
+
+      {/* Export Modal */}
+      <ThesisExportModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        thesisId={thesisId}
+        thesisTitle={title || "Untitled Thesis"}
+      />
+
+      {/* Rich Editor Modal for Propositions */}
+      <Dialog open={showPropositionEditor} onOpenChange={setShowPropositionEditor}>
+        <DialogContent className="max-w-3xl bg-white">
+          <DialogHeader>
+            <DialogTitle>Compose Proposition</DialogTitle>
+          </DialogHeader>
+          <PropositionComposerPro
+            deliberationId={deliberationId}
+            onCreated={(prop) => {
+              handlePropositionCreated(prop);
+              window.dispatchEvent(
+                new CustomEvent("claims:changed", { detail: { deliberationId } })
+              );
+            }}
+            onPosted={() => setShowPropositionEditor(false)}
+            placeholder="State your proposition with rich formatting..."
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Rich Editor Modal for Claims */}
+      <Dialog open={showClaimEditor} onOpenChange={setShowClaimEditor}>
+        <DialogContent className="max-w-3xl bg-white">
+          <DialogHeader>
+            <DialogTitle>Compose Claim</DialogTitle>
+          </DialogHeader>
+          <PropositionComposerPro
+            deliberationId={deliberationId}
+            onCreated={(prop) => {
+              handleClaimCreated(prop);
+              window.dispatchEvent(
+                new CustomEvent("claims:changed", { detail: { deliberationId } })
+              );
+            }}
+            onPosted={() => setShowClaimEditor(false)}
+            placeholder="State your claim with rich formatting..."
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

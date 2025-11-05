@@ -386,10 +386,37 @@ export async function compileFromMoves(
     // 1) wipe+recreate designs inside a short tx (relation-safe)
     const rootId = await prisma.$transaction(async (tx) => {
       const root = await ensureRoot(tx as Tx, dialogueId);
-      await tx.ludicChronicle.deleteMany({ where: { design: { deliberationId: dialogueId } } });
-      await tx.ludicAct.deleteMany({ where: { design: { deliberationId: dialogueId } } });
-      await tx.ludicTrace.deleteMany({ where: { deliberationId: dialogueId } });
-      await tx.ludicDesign.deleteMany({ where: { deliberationId: dialogueId } });
+      
+      // First, get all design IDs for this deliberation
+      const designs = await tx.ludicDesign.findMany({
+        where: { deliberationId: dialogueId },
+        select: { id: true }
+      });
+      const designIds = designs.map(d => d.id);
+      
+      // Delete in correct order to avoid foreign key constraint violations
+      if (designIds.length > 0) {
+        // Delete LudicChronicle (references both LudicDesign and LudicAct)
+        await tx.ludicChronicle.deleteMany({ 
+          where: { designId: { in: designIds } } 
+        });
+        
+        // Delete LudicAct (references LudicDesign via designId foreign key)
+        await tx.ludicAct.deleteMany({ 
+          where: { designId: { in: designIds } } 
+        });
+      }
+      
+      // Delete LudicTrace (references LudicDesign but has deliberationId directly)
+      await tx.ludicTrace.deleteMany({ 
+        where: { deliberationId: dialogueId } 
+      });
+      
+      // Finally, delete LudicDesign (no dependencies left)
+      await tx.ludicDesign.deleteMany({ 
+        where: { deliberationId: dialogueId } 
+      });
+      
       return root.id;
     }, { timeout: 30_000, maxWait: 5_000 });
 

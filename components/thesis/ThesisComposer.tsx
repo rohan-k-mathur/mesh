@@ -304,7 +304,7 @@ export function ThesisComposer({
   if (isCreating) {
     return (
       <Dialog open onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold flex items-center gap-3">
               <FileText className="w-6 h-6 text-teal-600" />

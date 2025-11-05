@@ -21,7 +21,9 @@ import {
   Filter,
   Sparkles,
   SendHorizontal,
-  SquareCheck
+  SquareCheck,
+  Link as LinkIcon,
+  Image as ImageIcon
 } from 'lucide-react';
 
 const PAGE = 20;
@@ -389,8 +391,10 @@ function Row({
   });
   const [openReply, setOpenReply] = React.useState(false);
   const [replyText, setReplyText] = React.useState('');
- const [showCopied, setShowCopied] = React.useState(false);
+  const [showCopied, setShowCopied] = React.useState(false);
   const [showRepliesModal, setShowRepliesModal] = React.useState(false);
+  const [citations, setCitations] = React.useState<any[]>([]);
+  const [loadingCitations, setLoadingCitations] = React.useState(false);
 
   // Hydrate viewer state
   React.useEffect(() => {
@@ -401,6 +405,26 @@ function Row({
       if (!cancel && j?.proposition) {
         setViewerVote(j.proposition.viewerVote ?? 0);
         setViewerEnd(!!j.proposition.viewerEndorsed);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [p.id]);
+
+  // Fetch citations
+  React.useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLoadingCitations(true);
+      try {
+        const r = await fetch(`/api/propositions/${encodeURIComponent(p.id)}/citations`, { cache: 'no-store' });
+        const j = await r.json().catch(() => ({}));
+        if (!cancel && j?.ok && j?.citations) {
+          setCitations(j.citations);
+        }
+      } catch {
+        // Silent fail - citations not critical
+      } finally {
+        if (!cancel) setLoadingCitations(false);
       }
     })();
     return () => { cancel = true; };
@@ -583,12 +607,56 @@ function Row({
             <div className="flex items-center gap-1.5">
               <MetricBadge icon={SquareCheck} count={counts.endorse} tone="endorse" active={viewerEnd} />
               <MetricBadge icon={MessageSquare} count={counts.replies} tone="replies" />
+              {p.mediaUrl && (
+                <MetricBadge icon={ImageIcon} count={1} tone="neutral" />
+              )}
+              {citations.length > 0 && (
+                <MetricBadge icon={LinkIcon} count={citations.length} tone="neutral" />
+              )}
             </div>
           </div>
 
           {/* Main text content */}
           <div className="mb-4 p-4 bg-gradient-to-br from-slate-50/50 to-white/50 backdrop-blur-md rounded-xl border border-slate-200">
             <ClampedText text={p.text} lines={4} />
+            
+            {/* Media display */}
+            {p.mediaUrl && p.mediaType === 'image' && (
+              <div className="mt-3">
+                <img 
+                  src={p.mediaUrl} 
+                  alt="Proposition media" 
+                  className="max-w-full h-auto rounded-lg border border-slate-200"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* Citations display */}
+            {citations.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <div className="text-xs font-medium text-slate-600 mb-2 flex items-center gap-1">
+                  <LinkIcon className="w-3 h-3" />
+                  Citations ({citations.length})
+                </div>
+                <div className="space-y-1">
+                  {citations.map((citation: any) => (
+                    <a
+                      key={citation.id}
+                      href={citation.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1"
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                      {citation.title || citation.url}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

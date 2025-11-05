@@ -182,15 +182,15 @@ export const DraftClaimNode = Node.create({
   addCommands() {
     return {
       insertDraftClaim:
-        (attributes?: { deliberationId: string }) =>
+        (attributes?: { deliberationId: string; text?: string; position?: string }) =>
         ({ commands }) => {
           const draftId = `draft_claim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           return commands.insertContent({
             type: this.name,
             attrs: {
               draftId,
-              text: "",
-              position: "UNDEC",
+              text: attributes?.text || "",
+              position: attributes?.position || "UNDEC",
               deliberationId: attributes?.deliberationId || "",
             },
           });
