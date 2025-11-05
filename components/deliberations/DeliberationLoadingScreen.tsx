@@ -17,8 +17,8 @@ export function DeliberationLoadingScreen({ hostName }: { hostName?: string | nu
   }, []);
 
   return (
-    <div className="relative h-screen overflow-hidden bg-gradient-to-b from-indigo-50 via-purple-50 to-slate-50 text-slate-900 py-8">
-      <GridBG />
+    <div className="relative h-screen overflow-hidden ">
+     
       <div className="relative z-10 mx-auto max-w-2xl px-4">
         {/* Title section - mimics the main page header */}
         <div className="text-center mb-8">

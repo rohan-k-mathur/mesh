@@ -193,7 +193,7 @@ export function DialogueAwareGraphPanel({
 
   // Scroll/highlight effect when highlightMoveId changes
   useEffect(() => {
-    if (highlightMoveId && data) {
+    if (highlightMoveId && data && data.dialogueMoves) {
       // Find the dialogue move in the data
       const moveNode = data.dialogueMoves.find(m => m.id === highlightMoveId);
       
@@ -265,15 +265,15 @@ export function DialogueAwareGraphPanel({
           {data && controlState.showDialogue && (
             <div className="mt-3 flex items-center gap-3 text-xs text-gray-600">
               <span>
-                <strong>{data.nodes.length}</strong> nodes
+                <strong>{data.nodes?.length || 0}</strong> nodes
               </span>
               <span>•</span>
               <span>
-                <strong>{data.edges.length}</strong> edges
+                <strong>{data.edges?.length || 0}</strong> edges
               </span>
               <span>•</span>
               <span>
-                <strong>{data.dialogueMoves.length}</strong> moves
+                <strong>{data.dialogueMoves?.length || 0}</strong> moves
               </span>
               {data.metadata && data.metadata.dmNodeCount && data.metadata.dmNodeCount > 0 && (
                 <>
@@ -295,7 +295,7 @@ export function DialogueAwareGraphPanel({
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
-          ) : data ? (
+          ) : data && data.nodes && data.edges ? (
             renderGraph ? (
               renderGraph(data.nodes, data.edges)
             ) : (

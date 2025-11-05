@@ -1462,7 +1462,7 @@ const {
       </FloatingSheet>
 
       {/* Main Content - Full Width, No Columns */}
-      <div className="w-full px-4 py-6 max-w-7xl mx-auto space-y-4">
+      <div className="w-full px-4 pt-1 pb-6 max-w-7xl mx-auto space-y-4">
         {/* Sticky Header */}
         <StickyHeader>
           <div className="flex items-center justify-between">
@@ -1984,7 +1984,7 @@ const {
               title="Thesis Documents"
               action={
                 <button
-                  className="px-3 py-2 btnv2 text-xs bg-teal-100 hover:bg-teal-200 rounded-lg"
+                  className="px-3 py-2  text-xs  rounded-full cardv2 bg-indigo-100/50"
                   onClick={() => {
                     setSelectedThesisId(null);
                     setThesisComposerOpen(true);
@@ -2070,7 +2070,10 @@ const {
   );
 
   const placeholder = loading ? (
+        <div className="mt-[-2] overflow-y-hidden min-h-screen">
+
     <DeliberationLoadingScreen hostName={hostName} />
+    </div>
   ) : (
     <div className="text-xs w-full text-neutral-500 px-4 py-2">
       No designs found

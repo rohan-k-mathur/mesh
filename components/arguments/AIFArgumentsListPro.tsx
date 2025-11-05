@@ -527,7 +527,7 @@ function RowImpl({
               Conclusion: 
                 </span>
                 <span
-                  className="flex text-xs px-2 py-1 tracking-wide menuv2--lite text-slate-800 font-medium leading-snug 
+                  className="flex text-xs px-2 py-1 tracking-wide menuv2--lite bg-white text-slate-800 font-medium leading-snug 
                   max-w-[100%] overflow-hidden text-ellipsis whitespace-nowrap "
                   title={conclusionText}
                 >
@@ -582,12 +582,13 @@ function RowImpl({
                   )}
                 </div>
               )}
-
-            </div>
-            <div className="flex items-center flex-wrap gap-1.5 justify-end">
+                <div className="flex items-center flex-wrap gap-1.5 justify-end">
               <PreferenceCounts p={meta?.preferences} />
               <AttackCounts a={meta?.attacks} />
             </div>
+
+            </div>
+          
           </div>
         </div>
 
