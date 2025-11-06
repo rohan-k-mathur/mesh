@@ -1,0 +1,583 @@
+AIF Formal Grounding in ASPIC+ Argumentation
+
+This report provides a rigorous and detailed analysis of the initial sections (Abstract, Introduction, and Section 2) of the paper, focusing on the foundational motivation for mapping the Argument Interchange Format (AIF) ontology onto the ASPIC+ structured argumentation framework.
+Rigorous, Detailed, and Thorough Report on Formal Specification of the Argument Interchange Format
+Abstract and Introduction (Section 1): Establishing the Formal Grounding of AIF
+The fundamental objective of the work is to address a critical gap in computational argumentation: the formal logical specification of the Argument Interchange Format (AIF) ontology. The AIF was initially conceived as an abstract ontology intended to serve as an interlingua to facilitate the exchange of ideas and data across diverse projects and applications in the field. However, prior to this work, the precise relationship between this abstract ontology and established formal argumentation systems and their associated semantics remained largely unclear.
+This research meticulously delineates this relationship by proposing a set of translation functions between the core AIF ontology and the ASPIC+ framework. By formally grounding the AIF ontology within ASPIC+, the paper simultaneously achieves several critical theoretical and practical contributions:
+1. Formal Logical Specification: The AIF ontology is provided a sound logical basis, which is essential for subjecting arguments represented in the format to rigorous analysis, such as consistency checking. This process establishes formal constraints for rational argumentation within the ontology, transcending the flexibility needed for capturing natural arguments.
+2. Instantiation of Semantics: ASPIC+ is designed explicitly to generate Dung-style Abstract Argumentation Frameworks (AFs). By interpreting AIF graphs as ASPIC+ theories, the arguments embedded within the AIF become evaluable under widely accepted argumentation-theoretic semantics, such as grounded, preferred, and stable semantics.
+3. Intermediate Abstraction: The choice of ASPIC+ is motivated by its inherent flexibility and intermediate level of abstraction. ASPIC+ integrates concepts from various structured argumentation approaches (e.g., rule-based argumentation by Vreeswijk and Pollock, and logic-based approaches). Crucially, ASPIC+ provides guidance on argument structure, attack types (undercutting, rebutting, undermining), and the application of preferences—aspects inherently abstracted away in Dung’s frameworks. This framework has also been extended (E-ASPIC+) to instantiate extensions of Dung's AFs that accommodate argumentation about preferences.
+4. Enabling Mixed-Initiative Systems: The ability to translate AIF representations (often stemming from user-oriented tools like Rationale) into formal ASPIC+ structures facilitates the development of computational models that can engage with large corpora of natural argument. This allows formal reasoning processes to calculate properties—such as the acceptability of an argument—and feed that calculated status back into AIF-based tools (e.g., OVA-gen).
+In essence, the research links the high-level, flexible conceptual model provided by the AIF, which explicitly supports logical, philosophical, and pragmatic approaches to argumentation, with a normative logical foundation encapsulated by ASPIC+.
+Section 2: The AIF Core Ontology
+The AIF core ontology provides an abstract, high-level specification of argumentative information and the fundamental relations governing inference, conflict, and preference. This conceptual model represents arguments and their interrelations as typed graphs, offering a systematic representation decoupled from the stringent formal constraints of any specific logic. The ontology distinguishes between the content of the argument (represented by nodes in the Upper Ontology) and the general patterns of reasoning applied (specified in the Forms Ontology).
+2.1 The Upper Ontology: Nodes and Structure
+The Upper Ontology defines two primary types of nodes used to construct AIF argument graphs:
+1. Information Nodes (I-nodes): These nodes represent propositional content, sentences, or claims. I-nodes only connect to other I-nodes via S-nodes, as a scheme must express the rationale behind any relation between pieces of information.
+2. Scheme Application Nodes (S-nodes): These nodes denote the application of generalized patterns (schemes) of reasoning, inference, conflict, or preference.
+S-nodes are subdivided into three categories:
+• Rule Application Nodes (RA-nodes): Denoting applications of inference relations (support).
+• Conflict Application Nodes (CA-nodes): Denoting specific conflict relations (attack).
+• Preference Application Nodes (PA-nodes): Denoting specific preference relations (preference).
+Definition of an AIF Graph
+An AIF argument graph G is formally defined as a simple directed graph (V,E), where V is the set of all nodes (V=I∪RA∪CA∪PA). The edges E in the graph connect non-I-nodes to other nodes (excluding I-node to I-node connections) and are specifically typed:
+• Edges associated with RA-nodes are typically typed as premise (from antecedent I-nodes) or conclusion (to the consequent I-node). An RA-node must have at least one premise predecessor and exactly one conclusion successor.
+• Edges associated with PA-nodes are typed as preferred element and dispreferred element, each having exactly one connection point.
+• Edges associated with CA-nodes are typed as conflicting element and conflicted element, each having exactly one connection point.
+Any non-I-node must have at least one direct predecessor and one direct successor.
+2.2 The Forms Ontology
+The Forms Ontology houses the abstract argumentative concepts, or forms, which are instantiated (fulfilled) by the S-nodes in the argument graph. This ontology classifies patterns of reasoning into Inference Schemes, Conflict Schemes, and Preference Schemes.
+Inference Schemes are further classified as deductive or defeasible. These schemes facilitate the representation of structured knowledge, such as the Argument from Expert Opinion, which defines required premises, the conclusion, associated presumptions, and potential exceptions. By allowing argumentation schemes to be modeled as rules, the AIF can accommodate specific, generalized knowledge in a principled manner. The AIF framework itself does not prescribe the content or structure of the schemes within the Forms Ontology.
+
+ASPIC+ and Abstract Argumentation Frameworks
+
+The ensuing report provides a rigorous and highly detailed analysis of Section 3 of the paper, titled "Abstract Argumentation and the ASPIC+ Framework," drawing upon the provided sources to contextualize the sophisticated logical machinery employed. This section establishes the critical bridge between the highly abstract, graph-based representation of the Argument Interchange Format (AIF) and the concrete, yet flexible, formalism of ASPIC+ (Argumentation System with Pleadings, Inference rules, and Conflict-handling), emphasizing its role in providing logical grounding for AIF graphs.
+Section 3: Abstract Argumentation and the ASPIC+ Framework
+Section 3 serves as the formal foundation, reviewing Abstract Argumentation Frameworks (AFs) and the ASPIC+ framework, which is selected as the target for the AIF translation due to its expressive power and intermediate level of abstraction. ASPIC+ further develops earlier attempts to integrate structured argumentation methods—such as those by Vreeswijk and Pollock—within the seminal work of Dung. Its significance lies in its capacity to subsume or closely approximate a broad range of other argumentation logics, including classical logic approaches and Assumption-Based Argumentation (ABA).
+3.1 Abstract Argumentation Frameworks (Dung and Extended)
+Dung Argumentation Frameworks (DFs)
+Dung's Abstract Argumentation Framework (DF) is the standard model against which structured frameworks are evaluated. A DF is formally defined as a tuple ⟨A,C⟩, where A is a set of arguments and C⊆A×A is a binary attack relation between them. This framework intentionally abstracts away the internal structure of arguments and the specific nature of the attack relations.
+The core concept in evaluating a DF is acceptability, which leads to the definition of extensions under various semantics.
+1. Acceptability and Characteristic Function: An argument X∈A is deemed acceptable with respect to a set S⊆A if every argument Y that attacks X is, in turn, attacked by some argument Z∈S. The characteristic function, F(S), returns the set of all arguments acceptable with respect to S.
+2. Extensions (Semantics): Extensions are conflict-free subsets of A (meaning no two arguments in the subset attack each other).
+    ◦ Admissible extension: A conflict-free set S such that S⊆F(S) (it defends all its members).
+    ◦ Complete extension: An admissible set S such that S=F(S).
+    ◦ Grounded extension: The set-inclusion minimal complete extension.
+    ◦ Preferred extension: A set-inclusion maximal complete extension.
+    ◦ Stable extension: A preferred extension that defeats every argument outside of it.
+An argument X is classified as sceptically justified if it belongs to all extensions under a given semantics, or credulously justified if it belongs to at least one extension.
+Extended Argumentation Frameworks (EAFs)
+Extended Argumentation Frameworks (EAFs), proposed by Modgil (2009), introduce a secondary attack relation, termed pref-attack, to model arguments that conclude preferences, thereby enabling argumentation about preferences.
+An EAF is defined as a tuple ⟨A,C,D⟩, where (A,C) is a DF, and D⊆A×C is the set of pref-attacks, linking arguments to attacks. A crucial constraint on D is imposed to ensure rationality: if an argument Z pref-attacks an attack (X,Y)∈C, and Z 
+′
+  pref-attacks the symmetric attack (Y,X)∈C, then Z and Z 
+′
+  must themselves symmetrically attack each other (as they express contradictory preferences).
+The E-ASPIC+ framework is a formal instantiation designed to generate EAFs, extending the standard ASPIC+ mechanism by removing fixed preferences and instead generating preferences from preference arguments.
+3.2 ASPIC+ with Fixed Preferences
+ASPIC+ is defined by a series of structured components that ultimately generate a DF, incorporating logical structure, explicit representation of defeasibility, and argument preferences.
+Argumentation System (AS) and Knowledge Base (KB)
+The fundamental building block is the Argumentation System (AS), a quadruple AS=(L, 
+⋅
+ ,R,≤):
+• L: A logical language.
+•  
+⋅
+ : A contrariness function (from L to 2 
+L
+ ) defining conflict relations, where ψ= 
+ϕ
+​
+  means ψ=¬ϕ or ϕ=¬ψ.
+• R=R 
+s
+​
+ ∪R 
+d
+​
+ : A disjoint set of strict rules (R 
+s
+​
+ ) (deductive, premises guarantee conclusion) and defeasible rules (R 
+d
+​
+ ) (presumptive, premises create a presumption for conclusion).
+• ≤: A partial preorder defined over R 
+d
+​
+  (used for comparing the strength of defeasible inferences).
+• Additionally, a partial function n:R 
+d
+​
+ →L is used to assign names to defeasible rules, allowing arguments to attack the application of a specific defeasible rule.
+The Knowledge Base (KB) is a pair (K,≤ 
+′
+ ), where K⊆L and K is partitioned into disjoint subsets:
+• K 
+n
+​
+  (Axioms/Necessary Premises): Information that cannot be attacked.
+• K 
+p
+​
+  (Ordinary Premises): Information that can be attacked.
+• K 
+a
+​
+  (Assumptions): Generally defined as ordinary premises where attacks always succeed.
+• ≤ 
+′
+ : A partial preorder defined over K∖K 
+n
+​
+  (used for comparing the strength of uncertain premises).
+An Argumentation Theory (AT) is then defined as a triple AT=(AS,KB,⪯), incorporating the argument ordering ⪯.
+Argument Construction and Properties
+Arguments are inductively constructed as inference trees from the KB using the rules defined in the AS. An argument A can be either a premise ϕ∈K, or derived through a strict (→) or defeasible (⇒) rule from sub-arguments A 
+1
+​
+ ,…,A 
+n
+​
+ .
+Arguments are classified based on their components:
+• Strict: Contains no defeasible rules (DefRules(A) = ∅).
+• Defeasible: Contains at least one defeasible rule (DefRules(A) 
+
+=∅).
+• Firm: All premises are axioms (Prem(A)⊆K 
+n
+​
+ ).
+• Plausible: At least one premise is not an axiom (Prem(A)
+
+⊆K 
+n
+​
+ ).
+The Argument Ordering (⪯): This partial preorder on arguments determines which attacks succeed as defeats. It is critical that ⪯ is admissible, meaning, for instance, that strict-and-firm arguments are generally preferred over plausible or defeasible arguments. Specific instantiation principles include the last-link principle and the weakest-link principle, both derived from the preference orderings ≤ and ≤ 
+′
+  on rules and premises.
+Attack and Defeat Mechanisms
+ASPIC+ defines three fundamental syntactic forms of attack, derived from the argument structure:
+1. Undercutting Attack: An argument A undercuts argument B (on a sub-argument B 
+′
+ ) if the conclusion of A contradicts the name of the defeasible rule used as the top rule of B 
+′
+ . This attacks the inference step itself.
+2. Rebutting Attack (Restricted): A rebuts B (on B 
+′
+ ) if A's conclusion contradicts the conclusion of B 
+′
+ , and B 
+′
+  has a defeasible top rule. This attacks the conclusion of a defeasible inference.
+3. Undermining Attack: A undermines B (on premise ϕ) if A's conclusion contradicts ϕ, and ϕ is an ordinary premise or assumption in B (ϕ∈Prem(B)∖K 
+n
+​
+ ). This attacks an uncertain premise.
+These attacks are converted into defeats based on argument preference:
+• Preference-Independent Defeat: Undercutting attacks, contrary-rebuts (where Conc(A) is a contrary of the attacked conclusion), and contrary-undermine attacks succeed as defeats regardless of preference.
+• Preference-Contingent Defeat: Standard rebutting and undermining attacks only succeed if the attacking argument A is not strictly less preferred (
+
+≺) than the argument being attacked at the point of conflict.
+Generating the Abstract Framework
+The final step connects the structured argumentation theory back to Dung's abstract model:
+A Structured Argumentation Framework (SAF) corresponding to an AT is defined as a triple ⟨A,C,⪯⟩, encompassing the set of constructed arguments A, the attack relation C, and the argument ordering ⪯.
+The Abstract Argumentation Framework (DF 
+AT
+​
+ ) derived from this SAF is the pair ⟨A,D⟩, where D is the defeat relation determined by the SAF's components. This rigorous process ensures that arguments defined within the ASPIC+ structure can be evaluated using the established semantics of Dung's framework.
+
+AIF and ASPIC+ Translation: Fixed Preferences
+
+This segment provides a rigorous, in-depth analysis of Section 4 of the paper, focusing on the formal translation functions established between the Argument Interchange Format (AIF) ontology and the ASPIC+ structured argumentation framework, utilizing the variant of ASPIC+ that employs fixed preferences.
+Section 4: Translating the ASPIC+ Framework: Fixed Preferences
+The primary intellectual contribution of this section is the meticulous formalization of the interpretation of AIF argument graphs within the logical constraints of the ASPIC+ framework, and the demonstration that this translation is information-preserving. By defining this bidirectional mapping, the research effectively grounds the abstract, graph-based AIF ontology in a formal logical calculus, thereby enabling rigorous analysis—such as evaluating argument acceptability using standard Dung semantics—for arguments originally expressed in AIF tools. Furthermore, due to ASPIC+'s capacity to characterize or subsume numerous other argumentation systems (like Assumption-Based Argumentation or Defeasible Logic), connecting AIF to ASPIC+ implicitly establishes links between AIF and these other formal languages.
+4.1 From the AIF Ontology to the ASPIC+ Framework (AIF → ASPIC+)
+The translation process, formalized in Definition 4.1, interprets an AIF argument graph G and its associated Forms Ontology F as an ASPIC+ Argumentation Theory (AT). Since the Abstract Argumentation Framework (DF 
+AT
+​
+ ) is calculated directly from the AT, this procedure extracts the components necessary to construct arguments and define conflict relations within ASPIC+.
+The mapping proceeds by correlating AIF node and edge types with the foundational elements of an AT=(AS,K) (where AS=(L, 
+⋅
+ ,R,≤) and K=K 
+n
+​
+ ∪K 
+p
+​
+ ∪K 
+a
+​
+ ):
+1. Language (L): The logical language L of the argumentation theory is defined as the set of all Information Nodes (I-nodes) and all Rule Application Nodes (RA-nodes) found in the graph G. The RA-nodes specifically constitute the subset L 
+R
+​
+  of L, which is reserved for naming inference rules at the object level.
+2. Knowledge Base (K): The knowledge base contains all initial nodes (nodes lacking predecessors) in the AIF graph (G). These nodes are rigorously classified into subsets of the knowledge base based on the form they fulfill: I-nodes fulfilling an 'axiom' form become Axioms (K 
+n
+​
+ ), those fulfilling an 'assumption' form become Assumptions (K 
+a
+​
+ ), and all other initial I-nodes are designated Ordinary Premises (K 
+p
+​
+ ).
+3. Inference Rules (R): The set of strict (R 
+s
+​
+ ) and defeasible (R 
+d
+​
+ ) inference rules in ASPIC+ are constructed from the RA-nodes in the AIF graph. An RA-node (v 
+k
+​
+ ) that fulfills a deductive scheme translates to a strict rule, while one fulfilling a defeasible scheme translates to a defeasible rule. The antecedents of the rule are the direct predecessors of v 
+k
+​
+  connected via premise edges (v 
+1
+​
+ ,…,v 
+n−1
+​
+ ), and the consequent is the direct successor connected via a conclusion edge (v 
+n
+​
+ ).
+4. Contrariness ( 
+⋅
+ ): The contrariness function is instantiated by the Conflict Application Nodes (CA-nodes). If a CA-node (v 
+k
+​
+ ) links a predecessor v 
+i
+​
+  (conflicting element) to a successor v 
+j
+​
+  (conflicted element), then v 
+i
+​
+  is defined as a contrary of v 
+j
+​
+  (v 
+i
+​
+ ∈ 
+v 
+j
+​
+ 
+​
+ ).
+5. Fixed Preferences (≤ 
+′
+ ,≤): The fixed preference orderings utilized in ASPIC+ are derived from the Preference Application Nodes (PA-nodes).
+    ◦ Premise Ordering (≤ 
+′
+ ): If a PA-node (v 
+k
+​
+ ) links an initial I-node v 
+i
+​
+  (preferred element) to an initial I-node v 
+j
+​
+  (dispreferred element), this establishes the partial preorder (v 
+j
+​
+ ,v 
+i
+​
+ )∈≤ 
+′
+  over the elements of K.
+    ◦ Rule Ordering (≤): If a PA-node (v 
+k
+​
+ ) links two RA-nodes (r 
+i
+​
+ ,r 
+j
+​
+ , corresponding to rules in R 
+d
+​
+ ) as preferred and dispreferred elements, respectively, this sets the partial preorder (r 
+j
+​
+ ,r 
+i
+​
+ )∈≤ over the defeasible rules.
+The definition implicitly avoids translation for AIF structures that cannot be naturally represented in ASPIC+ with fixed preferences, such as conflict relations where the conflicting element is itself a CA-node or PA-node, because the ASPIC+ contrariness function is restricted to logical formulae (L) and rule names (L 
+R
+​
+ ).
+4.2 From the ASPIC+ Framework to the AIF Ontology (ASPIC+ → AIF)
+The reverse translation (Definition 4.2) is defined for a given set of arguments (Args 
+AT
+​
+ ) constructed on the basis of an AT, rather than the AT itself. This is because AIF is intended to represent actual arguments, whereas an AT potentially defines the closure of a knowledge base, including rules that might not be used. This process reconstructs the AIF graph (G) using only those elements of the AT actually present within the constructed arguments:
+1. Nodes (I,RA,CA,PA):
+    ◦ I-nodes represent all premises and conclusions that are formal statements (Wff(A)∖L 
+R
+​
+ ) present in the arguments.
+    ◦ RA-nodes represent every inference rule (r) used in the arguments (Rules(A)), fulfilling either a deductive or defeasible scheme.
+    ◦ CA-nodes are created for every instance of conflict (ϕ∈ 
+ψ
+​
+ ) found between the formulas (premises or conclusions) used within the arguments (Wff(A)).
+    ◦ PA-nodes are created for every preference pair (k,k 
+′
+  in ≤ 
+′
+  or r,r 
+′
+  in ≤) used, corresponding to premises or rules present in the arguments.
+2. Edges (E): Edges are established according to the role elements play within the arguments:
+    ◦ Inference Structure: Edges connect I-nodes (antecedents/consequents) to the corresponding RA-nodes via premise and conclusion edges, respectively. Crucially, links from one RA-node (v) to another (v 
+′
+ ) via a conclusion edge are generated if the conclusion of the rule v corresponds to the rule name r 
+′
+  of v 
+′
+ . This permits the representation of arguments that support the application of other inference rules.
+    ◦ Conflict Structure: Edges connect the conflicting element (ϕ) to the CA-node, and the CA-node to the conflicted element (ψ). This mechanism expresses undercutters, where the conclusion of the undercutting argument (I-node) links via a CA-node to the rule application (RA-node) being attacked.
+    ◦ Preference Structure: Edges connect the preferred element to the PA-node and the PA-node to the dispreferred element.
+4.3 Identity-Preserving Translations for ASPIC+
+A vital component of demonstrating the formal equivalence between AIF and ASPIC+ is proving that the translation is identity-preserving, meaning that translating an AIF graph to an ASPIC+ theory and back yields a resulting graph isomorphic to the original one. This proof (Theorem 4.4) relies on specific conditions being met by the initial AIF graph (G 
+′
+ ):
+1. Node Types and Connectivity: Standard AIF connectivity rules must be met, such as I-nodes being the only initial nodes, RA-nodes having at least one premise predecessor and exactly one conclusion successor, and PA/CA-nodes having singular preferred/conflicting predecessors and singular dispreferred/conflicted successors.
+2. Structural Integrity (Assumption 4.3): The model with fixed preferences imposes constraints restricting complex inter-scheme connections that ASPIC+ cannot resolve using only static preference orderings (≤,≤ 
+′
+ ). Specifically, Assumption 4.3 prohibits:
+    ◦ PA- or CA-nodes from being connected to RA-nodes via premise or conclusion edges.
+    ◦ PA- or CA-nodes from being connected to PA-nodes via preferred or dispreferred edges.
+    ◦ PA- or CA-nodes from being connected to CA-nodes via conflicting or conflicted edges.
+Under these strict structural assumptions, the resulting AIF graph (G) is proven to be isomorphic to the original graph (G 
+′
+ ), confirming the information-preserving nature of the translation in this direction. The authors emphasize that, while this result is achieved, proving the isomorphism for the reverse translation (ASPIC+ → AIF → ASPIC+) would require imposing assumptions on the ASPIC+ theory to filter out structures that the AIF cannot express (e.g., assuming all rules in R are utilized in argument construction to avoid generating unconnected RA-nodes in the AIF representation).
+
+
+AIF Translation to E-ASPIC+ Defeasible Preferences
+
+The formal grounding of the Argument Interchange Format (AIF) ontology in structured argumentation necessitates extending the analytical scope to accommodate dynamically defined preferences, which is the province of the E-ASPIC+ framework. Section 5 of the source articulates the rigorous, two-way translation mechanism required to map the AIF onto this more sophisticated formalism, addressing the critical challenge of translating graph structures representing preferences into object-level logical assertions.
+Section 5: Translating the E-ASPIC+ Framework: Defeasible Preferences
+The move from the standard ASPIC+ framework (with its fixed preference orderings ≤ and ≤ 
+′
+ ) to E-ASPIC+ is motivated by the necessity to represent and reason about preferences themselves as arguments, thus providing a foundation for argumentation about priorities. E-ASPIC+ achieves this by employing an extended argumentation theory (EAT) which uses a partial function P to dynamically extract preference orderings from a set of arguments that conclude preference statements.
+5.1 From the AIF Ontology to the E-ASPIC+ Framework (AIF → E-ASPIC+)
+The translation from an AIF argument graph G to an E-ASPIC+ Argumentation Theory (EAT) must integrate preference statements into the object language L, transforming PA-nodes and their related structures into explicit, logically manipulable claims.
+1. Language Expansion and Preference Terms (L 
+m
+​
+ ): In contrast to fixed preferences, the E-ASPIC+ language (L) must be explicitly defined to include preference expressions, L=L 
+o
+​
+ ∪L 
+R
+​
+ ∪L 
+m
+​
+ . The preference language L 
+m
+​
+  contains well-formed formulae (wffs) expressing preference predicates (ϕ>ψ). These terms are recursively defined to capture preferences between I-nodes, RA-nodes, and even nested preferences between PA-nodes (e.g., PA→PA→PA structures).
+2. Rule Set and Axiomatization (R 
+s
+​
+ ): A critical structural requirement for E-ASPIC+ is that the strict rule set (R 
+s
+​
+ ) must contain the rules PP={o1,o2}. These rules axiomatize the properties of a partial preorder, enforcing transitivity and asymmetry on the preference statements in L 
+m
+​
+ . This means that the logical constraints on rational preference orderings, which were externally imposed as fixed conditions (≤,≤ 
+′
+ ) in standard ASPIC+, are now internally represented as strict, unassailable rules within the theory itself.
+3. Knowledge Base Definition (K): The Knowledge Base (K) is expanded to include two categories of formulae:
+• Initial I-nodes: Propositions corresponding to initial I-nodes in G are classified as Axioms (K 
+n
+​
+ ), Assumptions (K 
+a
+​
+ ), or Ordinary Premises (K 
+p
+​
+ ).
+• Inferred Preferences: Preference statements (ϕ∈L 
+m
+​
+ ) derived from PA-nodes that are not inferred from any other information (i.e., those PA-nodes having at most one direct predecessor) are treated as premises in K. This distinction is crucial; if a PA-node has multiple predecessors, one is likely an RA-node representing the inference step that concludes the preference statement.
+4. Translation of Inference Structure (R): The translation of AIF inference structure via RA-nodes must be adjusted to account for preference statements as potential consequents. For instance, if an RA-node denotes an inference whose conclusion is a preference statement (e.g., supporting p>q), the translation must produce a rule where the conclusion is ϕ>ψ∈L 
+m
+​
+ , rather than just the application node itself.
+5. Limitations in Translation: The EAT framework, while more expressive than standard AT, still imposes ontological restrictions, primarily around conflict relations. The translation function is limited because E-ASPIC+ does not permit:
+• Reasons for conflict relations.
+• Preferences between conflict relations (CA-nodes).
+5.2 From the E-ASPIC+ Framework to the AIF Ontology (E-ASPIC+ → AIF)
+The reverse translation defines the process for reconstructing an AIF graph G from the set of arguments A generated by an EAT. This procedure is contingent upon assuming a P function that defines argument ordering via rule and premise priorities (e.g., last-link or weakest-link principles) and that all preference statements in L 
+m
+​
+  are actively utilized in constructing arguments in A.
+1. Node Mapping:
+• I-nodes: Represent all WFFs in A that are neither rule names (L 
+R
+​
+ ) nor preference statements (L 
+m
+​
+ ).
+• RA-nodes and CA-nodes: Generated based on the rules and contrariness relations utilized within A, similar to the fixed preference translation.
+• PA-nodes: Distinctly generated for every preference statement ϕ>ψ∈L 
+m
+​
+  that appears as a WFF in the set of arguments A.
+2. Edge Construction (Connectivity): The edge definition is complex due to the explicit representation of preference arguments. Edges must connect PA-nodes to RA-nodes and other PA-nodes, reflecting inference structure and preference structure.
+• Inference Edges (Involving PA-nodes): Edges are established between an RA-node and a PA-node if the rule represented by the RA-node has the preference statement (denoted by the PA-node) as its conclusion. Conversely, a PA-node preceding an RA-node indicates that the preference statement is an antecedent of the rule.
+• Preference Edges: For a PA-node corresponding to ϕ>ψ, the edge from ϕ to the PA-node is typed preferred element, and the edge from the PA-node to ψ is typed dispreferred element.
+• Axiomatization Translation: Since EAT includes the strict rules PP (axiomatizing preference properties like transitivity), any derived preference (e.g., p>r derived from p>q and q>r) generates arguments in A which subsequently translate back into AIF graphs showing the derivation using RA-nodes.
+5.3 Identity-Preserving Translations for E-ASPIC+
+Establishing the information-preserving quality of the translation is crucial for confirming the theoretical equivalence between the two formalisms. Theorem 5.4 demonstrates that translating an AIF graph G 
+′
+  to an EAT and then back to an AIF graph G results in a graph isomorphic to G 
+′
+ .
+To prove this identity preservation, specific structural constraints (Assumption 5.3) are necessary, slightly relaxed compared to the fixed preference case, as E-ASPIC+ inherently supports more complex structures (e.g., preference arguments). The minimal necessary assumption restricts interactions involving CA-nodes (conflict applications):
+• A CA-node cannot be connected to an RA-node via premise or conclusion edges.
+• A CA-node cannot be connected to a PA-node via preferred or dispreferred element edges.
+• A CA-node cannot be connected to another CA-node via conflicting or conflicted element edges.
+These constraints exclude structures that E-ASPIC+ explicitly does not model (such as reasons for conflict relations or conflicts between conflict relations). Under these assumptions, the translation is proven to be information-preserving, ensuring that the AIF ontology maintains its integrity when formally specified within the E-ASPIC+ framework.
+
+Evaluating Diagrammed Arguments via AIF to ASPIC+ Translation
+
+This report provides a rigorous, detailed, and thorough analysis of Section 6 of the paper, titled "Evaluating Diagrammed Arguments via the AIF to ASPIC+ Translation." This section transitions the foundational theoretical work—the formal specification of the Argument Interchange Format (AIF) ontology within the ASPIC+ structured argumentation framework—into a practical application domain: the formal evaluation of arguments initially authored and diagrammed by human users.
+Section 6: Evaluating Diagrammed Arguments via the AIF to ASPIC+ Translation
+The overarching purpose of this section is to demonstrate the practical utility of the AIF-to-ASPIC+ translation functions (Definitions 4.1 and 5.1). The AIF was fundamentally conceived as an interlingua intended to bridge user-centric tools for argument visualization and manipulation with formal software components capable of calculating the dialectical status of arguments according to computational semantics, such as those derived from Dung's Abstract Argumentation Frameworks (AFs).
+6.1 Bridging Rationale and ASPIC+ via AIF
+The Rationale tool, a specific example of an argument diagramming utility, is used to test the viability of this linkage. Rationale enables users to construct arguments by visualizing propositions as text boxes and connecting them using two primary relations: (supporting) reasons (visually depicted as green links) and (opposing) objections (red links).
+The translation procedure from a Rationale diagram (D) to an AIF argument graph (G) is formalized in Definition 6.1:
+1. Information Nodes (I-nodes): Each text box representing a claim, sentence, or proposition in D is translated into a distinct I-node in G.
+2. Rule Application Nodes (RA-nodes): Each reason link (support) in D is mapped to a distinct RA-node in G.
+3. Conflict Application Nodes (CA-nodes): Each objection link (opposition) in D is mapped to a distinct CA-node in G.
+The edges (E) define the structure, linking nodes based on the position of the corresponding elements in the Rationale diagram (e.g., linking antecedents to RA-nodes via premise edges and linking CA-nodes to conflicted elements). Once transformed into the structured AIF format, the diagrammed argument can then be formally specified as an ASPIC+ Argumentation Theory (AT) using Definition 4.1, leading directly to the generation of a Dung-style AF (Definition 3.10) for subsequent acceptability evaluation.
+6.2 Analysis of Simple Structures
+In a straightforward example involving a claim i1, a supporting premise i2, and an opposing premise i3 (the "beach argument"), the resulting AT is defined as: K 
+p
+​
+ ={i2,i3}; R 
+d
+​
+ ={r1:i2⇒i1}; and the contrariness relation  
+i1
+ ={i3}.
+The analysis confirms that:
+• The argument A2 (for i1) based on the defeasible rule r1 is constructed.
+• The argument B1 (for i3) attacks A2.
+• This attack is realized as an asymmetric contrary-rebut due to i3 being a contrary of i1. Crucially, because it is a contrary-rebut, the defeat succeeds independently of any preference ordering defined over the arguments (⪯).
+6.3 Technical Challenges: Modeling Complex Relations
+The utility of a formal specification, however, is severely tested by the more complex argumentative relations supported by Rationale, particularly those dealing with the links themselves, which parallel core mechanisms in computational argumentation like undercutters and attacks on attacks.
+1. Undercutting Attacks: Rationale allows objections to support links. This structure naturally aligns with the undercutting mechanism in ASPIC+. For instance, an objection i4 against the support link r1 is translated by defining i4 as a contrary of the rule name r1 ( 
+r1
+ ={i4}). The argument for i4 then successfully undercuts the argument using r1, and undercutting attacks succeed as defeats independently of argument preference.
+2. Objections to Objections (Attacks on Attacks): The most significant limitation arises when translating objections to objections (attacks on CA-nodes). If premise i6 objects to an opposition link (represented by a CA-node, say ca3), this implies i6 attacks the conflict relation itself. The difficulty is that the rigid framework of ASPIC+ (specifically the fixed-preference version utilized by Definition 4.1) is unable to handle this structure because the contrariness function ( 
+⋅
+ ) is defined over the logical language L or rule names L 
+R
+​
+ , but does not allow for propositions to be defined as contraries of the contrariness relations themselves (i.e., contraries of CA-nodes or PA-nodes).
+6.4 Required Interpretative Decisions
+To bridge this gap between the expressiveness of the human diagramming tool (Rationale) and the logical constraints of ASPIC+, the paper posits that translating certain complex structures necessitates establishing the author's intended interpretation. Two solutions are offered for the complex attack scenarios:
+1. Reinterpretation as Argument for Negation: An objection link (e.g., i3) can be reinterpreted as a reason for a negative conclusion (e.g., i1 
+neg
+​
+ : 'I should not go to the beach today') via a new RA-node. This allows subsequent counterarguments to be formulated as supporting or undercutting this new, explicit argument for the negation.
+2. Mapping to E-ASPIC+ Preferences: An objection against an objection (e.g., i6 supporting going to the beach despite the danger) must be interpreted as a preference argument. This requires abandoning the fixed-preference model (ASPIC+) and translating the structure into the more robust E-ASPIC+ framework, which is specifically engineered to model arguments about preferences that succeed as attacks on attacks (Definition 3.12).
+In conclusion, Section 6 affirms the AIF’s role as a vital link between natural and computational argumentation models. However, it rigorously defines the boundary conditions under which automatic, information-preserving translation into standard ASPIC+ is feasible, demonstrating that complex argumentative moves require interpretive disambiguation or the utilization of the advanced ontological machinery provided by E-ASPIC+. This integration provides the foundation for developing sophisticated mixed-initiative argumentation systems.
+
+Conclusions and future research
+In this paper we have shown how argument graphs as defined by the AIF can be understood
+as structures of the (E-)ASPIC+ framework. We have demonstrated how a logical framework
+10Note, however, that F1 has no direct effect on the dialectical status of B1.
+27
+can aid in tracing possible inconsistencies in an AIF graph. Because of previous work showing
+relationships between (E-)ASPIC+ and other logical formalisms, we have also implicitly shown
+the connection between the AIF and these other systems. In addition to the (E-)ASPIC+ frame-
+work’s obvious relation to [14, 26, 44, 28], several other well-known argumentation systems
+(e.g. [11],[6]) are shown by [27, 23] to be special cases of the (E-)ASPIC+ framework. The
+connection between the AIF and (E-)ASPIC+ can therefore be extended to these systems. A
+topic for future research is to see what the relation is between the AIF and other argumentation
+formalisms that fall outside the scope of (E-)ASPIC+ (see [27, 29] for examples); this would
+also further clarify the relation between the (E-)ASPIC+ framework and these other formalisms.
+In section 6 we lay the foundations for evaluating arguments in diagramming tools accord-
+ing to argument acceptability semantics. This thus shows a possible use of the AIF as a bridge
+between natural argumentation as performed by humans, and logical models of argumentation.
+This in turn provides foundations for logic-based normative concepts of reasoning to guide
+human argumentation (e.g. by suggesting an argument the user needs to attack in order to rein-
+state his main point), as well as for integrating human argumentation with logic based models
+of reasoning.
+A valid question here is whether we really need an intermediate language like the AIF on-
+tology to stand between our models of natural argument and our logical models of argument.
+ASPIC+ itself is based on models from philosophy [26] and legal reasoning [28], models which
+have been expressly developed to understand and specify natural human reasoning. Argumen-
+tation schemes can be represented in the ASPIC+ framework through the use of rule schemes,
+and its tree-structured arguments are very similar to, for example, Araucaria-style argument di-
+agrams [9]. However, the heritage of ASPIC+ lies in systems of logic. As a result, it inherits a
+specific focus and approach. Semantics, for example, are those of propositional logic, in which
+every formula means one of two things, true or false. Its logical engine is designed with a single
+purpose in mind: determination of entailment (and by extension, some sense of consistency).
+And it assumes a propositional foundation in which deixis is resolved, repetition prohibited and
+rephrasing irrelevant. The AIF ontology’s focus is on real text, in which quotation is common,
+straw man arguments are subtle and effective and repetition is a rhetorically powerful technique.
+The paper shows that a relatively simple AIF argument graph contains enough information
+for representation in a mature logical framework such as ASPIC+. Information that is important
+for logical systems but that is not contained in the graph, such as defeat relations for example,
+can be calculated from information that is in the graph. This conforms to the central aim of the
+AIF project: the AIF is intended as a language for expressing arguments rather than a language
+for, for example, evaluating or visualizing arguments. That said, the discussion on what should
+be explicitly represented in the graph and what should count as a calculated property is by no
+means settled. In this regard, it would be interesting to explore how and if the AIF can be
+directly connected to abstract argumentation frameworks, which have the notion of argument as
+one of its basic components.11
+A connection between computational argumentation theory and argumentation practice is
+vital if the former is to find application and real world utility in the latter. Of course, there are
+other areas where computational argument might have impact (in distributed, complex systems;
+in automated markets; etc.) but with so much computational work – from [16] to [14] – ex-
+plicitly inspired by and acknowledging influence from natural argumentation, it is an enormous
+missed opportunity if we, as a community, fail to connect computational with natural practice.
+Yet to date, there has been only the lightest connections between formal and natural models.
+Specifically, only a very small subset of features of argument (typically those concerned with
+logical relations between propositions) have found their way into computational systems. In
+this paper we have shown for the first time how not just a single technique, but an wide range
+11An implementation of this connection between an extended version of AIF and abstract argumentation has been
+trialled in OVA-gen, a tool for computing acceptability semantics accessible at http://www.arg.dundee.ac.uk/OVA/
+[www.arg.dundee.ac.uk].
+28
+of tools, theories and systems encompassed by or compatible with the AIF ontology (includ-
+ing, but not limited to, diagramming systems such as Rationale [5], philosophical theories of
+argumentation such as [26], linguistic theories that apply to argument such as [37] and recent
+advances in argumentation theory itself such as [45]) can be connected to work not only on
+structured argumentation, characterised by ASPIC+, but also on abstract argumentation via
+the formal machinery introduced in [27]. Thus we have laid a foundation for now exploring
+what our formal and computational models can do in natural argument contexts, and, similarly,
+exploring what features of natural argument might next be tackled to enrich our computational
+systems. In this way we aim to contribute both to the continuing growth of research in computa-
+tional models of argument whilst simultaneously contributing to the relevance and applicability
+of that research.
+
+
+Appendix: Proofs
+In order to be able to prove identity-preserving translations for ASPIC+, we use the following
+conditions and assumptions on the graph G.
+• Definition 2.1(3): Only I-nodes are initial nodes.
+• Definition 2.1(4): RA-nodes are connected to at least one direct predecessor via a premise
+edge and to exactly one direct successor via a conclusion edge.
+• Definition 2.1(5): PA-nodes are connected to exactly one direct predecessor via a pre-
+ferred element edge and to exactly one direct successor via a dispreferred element edge.
+• Definition 2.1(6): CA-nodes are connected to exactly one direct predecessor via a con-
+flicting element edge and to exactly one direct successor via a conflicted element edge.
+• A1: (Assumption 4.3) There are no PA- or CA-nodes connected to an RA-node via a
+premise or conclusion edge.
+• A2: (Assumption 4.3) There are no PA- or CA-nodes connected to a PA-node via a pre-
+ferred element or dispreferred element edge.
+• A3: (Assumption 4.3) There are no PA- or CA-nodes connected to a CA-node via a
+conflicting element or conflicted element edge.
+Under these assumptions it can be proven that all translations from the AIF to ASPIC+ and
+then back result in an AIF graph that is isomorphic with the original graph in that the graphs
+differ at most in their names for the nodes.
+We first prove that under the above assumptions any node or edge in an AIF graph Gis trans-
+lated to something in the AT based on Gand any element of a component in the corresponding
+ASPIC+ AT is the result of a translation from G.

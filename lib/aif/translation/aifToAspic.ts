@@ -84,7 +84,12 @@
 //   return { language, contraries, strictRules, defeasibleRules, axioms, premises, assumptions };
 // }
 // lib/aif/translation/aifToAspic.ts
-import type { AIFGraph } from '../types';
+import type { AIFGraph, INode, RANode, CANode, PANode } from '../types';
+import type { Argument, Attack, Defeat, ArgumentationSystem } from '../../aspic/types';
+import { constructArguments } from '../../aspic/arguments';
+import { computeAttacks } from '../../aspic/attacks';
+import { computeDefeats } from '../../aspic/defeats';
+import { computeGroundedExtension, computeArgumentLabeling } from '../../aspic/semantics';
 
 export interface Rule {
   id: string;
@@ -101,7 +106,15 @@ export interface ArgumentationTheory {
   axioms: Set<string>;
   premises: Set<string>;
   assumptions: Set<string>;
-  preferences: Array<{ preferred: string; dispreferred: string }>; // NEW: from PA-nodes
+  preferences: Array<{ preferred: string; dispreferred: string }>;
+}
+
+export interface AspicSemantics {
+  arguments: Argument[];
+  attacks: Attack[];
+  defeats: Defeat[];
+  groundedExtension: Set<string>;
+  justificationStatus: Map<string, 'in' | 'out' | 'undec'>;
 }
 
 export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
@@ -196,4 +209,288 @@ export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
   }
 
   return { language, contraries, strictRules, defeasibleRules, axioms, premises, assumptions, preferences };
+}
+
+// ============================================================================
+// SEMANTIC COMPUTATION
+// ============================================================================
+
+/**
+ * Compute complete ASPIC+ semantics from an argumentation theory
+ * 
+ * This performs the full ASPIC+ pipeline:
+ * 1. Construct all possible arguments
+ * 2. Compute attack relations
+ * 3. Resolve attacks to defeats using preferences
+ * 4. Compute grounded extension
+ * 5. Assign justification status to all arguments
+ * 
+ * @param theory The ASPIC+ argumentation theory (old format)
+ * @returns Complete semantics including arguments, attacks, defeats, extension, and status
+ */
+export function computeAspicSemantics(theory: ArgumentationTheory): AspicSemantics {
+  // Build ASPIC+ ArgumentationTheory from old format
+  const aspicTheory: import('../../aspic/types').ArgumentationTheory = {
+    system: {
+      language: theory.language,
+      contraries: theory.contraries,
+      strictRules: theory.strictRules,
+      defeasibleRules: theory.defeasibleRules,
+      ruleNames: new Map(theory.defeasibleRules.map(r => [r.id, `rule_${r.id}`])),
+    },
+    knowledgeBase: {
+      axioms: theory.axioms,
+      premises: theory.premises,
+      assumptions: theory.assumptions,
+      premisePreferences: theory.preferences,
+      rulePreferences: theory.preferences,
+    },
+  };
+
+  // Step 1: Construct arguments
+  const args = constructArguments(aspicTheory);
+
+  // Step 2: Compute attacks
+  const attacks = computeAttacks(args, aspicTheory);
+
+  // Step 3: Resolve to defeats
+  const defeats = computeDefeats(attacks, aspicTheory);
+
+  // Step 4: Compute grounded extension
+  const groundedResult = computeGroundedExtension(args, defeats);
+
+  // Step 5: Compute justification labels
+  const labeling = computeArgumentLabeling(args, defeats);
+
+  // Convert labeling to status map
+  const justificationStatus = new Map<string, 'in' | 'out' | 'undec'>();
+  for (const id of labeling.in) {
+    justificationStatus.set(id, 'in');
+  }
+  for (const id of labeling.out) {
+    justificationStatus.set(id, 'out');
+  }
+  for (const id of labeling.undecided) {
+    justificationStatus.set(id, 'undec');
+  }
+
+  return {
+    arguments: args,
+    attacks,
+    defeats,
+    groundedExtension: groundedResult.inArguments,
+    justificationStatus,
+  };
+}
+
+/**
+ * Enhanced AIF to ASPIC+ translation with optional semantic computation
+ * 
+ * @param graph AIF graph structure
+ * @param computeSemantics Whether to compute full ASPIC+ semantics (default: false)
+ * @returns Argumentation theory and optionally computed semantics
+ */
+export function aifToAspicWithSemantics(
+  graph: AIFGraph,
+  computeSemantics = false
+): { theory: ArgumentationTheory; semantics?: AspicSemantics } {
+  const theory = aifToASPIC(graph);
+
+  if (!computeSemantics) {
+    return { theory };
+  }
+
+  const semantics = computeAspicSemantics(theory);
+  return { theory, semantics };
+}
+
+// ============================================================================
+// REVERSE TRANSLATION: ASPIC+ → AIF
+// ============================================================================
+
+/**
+ * Translate ASPIC+ arguments and attacks back to AIF graph structure
+ * 
+ * This creates:
+ * - I-nodes for premises and conclusions
+ * - RA-nodes for inference rules used in arguments
+ * - CA-nodes for attack relations
+ * - Edges connecting the structure
+ * 
+ * @param args ASPIC+ arguments to translate
+ * @param attacks Attack relations between arguments
+ * @param defeats Defeat relations (attacks + preferences)
+ * @param debateId ID of the debate/deliberation
+ * @returns AIF graph representing the argumentation structure
+ */
+export function aspicToAif(
+  args: Argument[],
+  attacks: Attack[],
+  defeats: Defeat[],
+  debateId: string
+): AIFGraph {
+  const nodes: AIFGraph['nodes'] = [];
+  const edges: AIFGraph['edges'] = [];
+  const nodeIdMap = new Map<string, string>(); // formula -> node ID
+
+  // Helper: Get or create I-node for a formula
+  function getOrCreateINode(formula: string): string {
+    if (nodeIdMap.has(formula)) {
+      return nodeIdMap.get(formula)!;
+    }
+
+    const nodeId = `aif_i_${nodes.length}`;
+    nodes.push({
+      id: nodeId,
+      nodeType: 'I',
+      content: formula,
+      claimText: formula,
+      debateId,
+      metadata: { source: 'aspic', formula },
+    } as INode);
+
+    nodeIdMap.set(formula, nodeId);
+    return nodeId;
+  }
+
+  // Helper: Create RA-node for a rule application
+  function createRANode(
+    ruleId: string,
+    ruleType: 'strict' | 'defeasible',
+    argId: string
+  ): string {
+    const nodeId = `aif_ra_${ruleId}_${argId}`;
+    nodes.push({
+      id: nodeId,
+      nodeType: 'RA',
+      content: ruleId,
+      debateId,
+      schemeType: ruleType === 'strict' ? 'deductive' : 'defeasible',
+      inferenceType: 'generic',
+      metadata: { source: 'aspic', ruleId, argumentId: argId },
+    } as RANode);
+
+    return nodeId;
+  }
+
+  // Process each argument
+  for (const arg of args) {
+    // Create I-nodes for all premises
+    const premiseNodeIds = Array.from(arg.premises).map(p => getOrCreateINode(p));
+
+    // Create I-node for conclusion
+    const conclusionNodeId = getOrCreateINode(arg.conclusion);
+
+    // If argument has structure (uses rules), create RA-nodes
+    if (arg.structure.type === 'inference') {
+      const raNodeId = createRANode(
+        arg.structure.rule.id,
+        arg.structure.rule.type,
+        arg.id
+      );
+
+      // Edges: premises → RA
+      for (const premiseId of premiseNodeIds) {
+        edges.push({
+          id: `edge_${premiseId}_${raNodeId}`,
+          sourceId: premiseId,
+          targetId: raNodeId,
+          edgeType: 'premise',
+          debateId,
+        });
+      }
+
+      // Edge: RA → conclusion
+      edges.push({
+        id: `edge_${raNodeId}_${conclusionNodeId}`,
+        sourceId: raNodeId,
+        targetId: conclusionNodeId,
+        edgeType: 'conclusion',
+        debateId,
+      });
+    }
+  }
+
+  // Process defeats (attacks that succeeded) as CA-nodes
+  for (const defeat of defeats) {
+    const caNodeId = `aif_ca_${defeat.defeater.id}_${defeat.defeated.id}`;
+
+    // Determine conflict type based on attack type
+    const conflictType: 'rebut' | 'undercut' | 'undermine' =
+      defeat.attack.type === 'rebutting' ? 'rebut' :
+      defeat.attack.type === 'undercutting' ? 'undercut' :
+      'undermine';
+
+    nodes.push({
+      id: caNodeId,
+      nodeType: 'CA',
+      content: `${defeat.defeater.conclusion} attacks ${defeat.defeated.conclusion}`,
+      debateId,
+      conflictType,
+      metadata: {
+        source: 'aspic',
+        attackType: defeat.attack.type,
+        defeaterArgId: defeat.defeater.id,
+        defeatedArgId: defeat.defeated.id,
+        preferenceApplied: defeat.preferenceApplied,
+      },
+    } as CANode);
+
+    // Get node IDs for defeater and defeated conclusions
+    const defeaterNodeId = getOrCreateINode(defeat.defeater.conclusion);
+    const defeatedNodeId = getOrCreateINode(defeat.defeated.conclusion);
+
+    // Edge: defeater → CA (conflicting)
+    edges.push({
+      id: `edge_${defeaterNodeId}_${caNodeId}`,
+      sourceId: defeaterNodeId,
+      targetId: caNodeId,
+      edgeType: 'conflicting',
+      debateId,
+    });
+
+    // Edge: CA → defeated (conflicted)
+    edges.push({
+      id: `edge_${caNodeId}_${defeatedNodeId}`,
+      sourceId: caNodeId,
+      targetId: defeatedNodeId,
+      edgeType: 'conflicted',
+      debateId,
+    });
+  }
+
+  return { nodes, edges };
+}
+
+/**
+ * Complete ASPIC+ evaluation: compute semantics and generate AIF graph
+ * 
+ * This is the full pipeline:
+ * 1. Build ASPIC+ theory from AIF
+ * 2. Compute arguments, attacks, defeats, extension
+ * 3. Translate back to enriched AIF with CA-nodes
+ * 
+ * @param inputGraph Input AIF graph
+ * @param debateId ID for output nodes
+ * @returns Enriched AIF graph with computed attacks and semantics
+ */
+export function evaluateAifWithAspic(
+  inputGraph: AIFGraph,
+  debateId: string
+): { outputGraph: AIFGraph; semantics: AspicSemantics } {
+  // AIF → ASPIC+ theory
+  const theory = aifToASPIC(inputGraph);
+
+  // Compute semantics
+  const semantics = computeAspicSemantics(theory);
+
+  // ASPIC+ → AIF (with attacks as CA-nodes)
+  const outputGraph = aspicToAif(
+    semantics.arguments,
+    semantics.attacks,
+    semantics.defeats,
+    debateId
+  );
+
+  return { outputGraph, semantics };
 }

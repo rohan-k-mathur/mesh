@@ -1,0 +1,490 @@
+A Formal Framework for Combining Legal Reasoning Methods
+
+This report provides a rigorous, detailed, and thorough analysis of the requested sections (Abstract, Introduction, and Section 2: Formal Preliminaries) from the source "A Formal Framework for Combining Legal Reasoning Methods".
+--------------------------------------------------------------------------------
+Rigorous Report on "A Formal Framework for Combining Legal Reasoning Methods"
+Abstract Analysis
+The central theoretical contribution of the paper is the proposal of a novel argumentation-based methodology for integrating various legal reasoning methods, each addressing a subproblem within a larger legal inquiry. This approach conceptualizes the combination of diverse reasoning processes—which may include logical, case-based, or probabilistic techniques—by modeling their input-output behaviors at a specific representational layer: the metalevel. This modeling leverages deductive and defeasible rules to describe the flow of information between these reasoning methods.
+Crucially, the entire model is framed within the ASPIC+ framework (Argumentation System with Preferences based on Inference Rules). The choice of ASPIC+ is strategic, allowing the system to immediately benefit from the established metatheory of structured argumentation, including guarantees regarding the satisfaction of rationality postulates and access to sophisticated explanation methods. By utilizing defeasible rules at the metalevel, the formalism inherently accommodates disagreement about the optimal solution method for any given subproblem. The authors explicitly state that the model's objective is not direct implementation but rather to function as a formal semantics guiding the development of practical legal reasoning architectures and implementations.
+Introduction (Section 1) Analysis
+The introductory section establishes the practical motivation for combining diverse methods in AI and Law, recognizing that legal reasoning requires addressing distinct issues—both factual and normative—which necessitates a plurality of reasoning approaches. Examples of this plurality include the reliance on common sense defeasible generalizations, the deductive application of scientific theories, the use of statistical inference, and expert intuition.
+The proposed solution addresses the challenge of combining these diverse methods by adopting an argumentation-based approach at the metalevel. This formal framework is rooted in prior work (specifically referencing in the source material, indicating a historical foundation in ad-hoc metalevel formalisms) but strategically replaces those earlier approaches with ASPIC+.
+The preference for ASPIC+ over other formalisms is justified by several significant theoretical advantages:
+1. Metatheoretical Transfer: The existing metatheory of ASPIC+, encompassing results on the satisfaction of fundamental rationality postulates (such as consistency and closure properties), is automatically applicable to the combined system.
+2. Explanations: Established explanation methods developed for ASPIC+, such as argument games for grounded semantics, can be utilized, providing highly intuitive justifications for the derived outcomes.
+3. Conceptual Problem Solving: The framework offers an innovative solution to a known theoretical difficulty concerning the modeling of burden of proof and shifts therein, a challenge previously highlighted in literature referenced by.
+Ultimately, the goal is to provide a robust semantic foundation for complex implementations, specifically emphasizing the generation of clear and sound explanations for the outcomes resulting from the combination of different reasoning modules.
+Formal Preliminaries (Section 2) Analysis
+Section 2 lays the essential foundation by reviewing the theoretical constructs upon which the novel combination framework is built: Abstract Argumentation Frameworks (AFs) and the ASPIC+ structured argumentation framework.
+Abstract Argumentation Frameworks (AFs)
+An AF is formally defined as a pair ⟨A,D⟩, where A is the set of arguments, and D⊆A×A is the binary defeat relation between arguments. Although the seminal work used the term 'attack,' the context here utilizes 'defeat,' aligning with the outcome of preference comparison in ASPIC+ [207, fn 1].
+A core concept in AF semantics is defense: an argument A∈A is defended by a set of arguments S⊆A if every argument B that defeats A is itself defeated by some argument C∈S.
+This leads to the definition of fundamental extension semantics, which identify sets of internally coherent arguments that are acceptable:
+• Admissible Extension: A set E that is conflict-free and defends all its members.
+• Complete Extension: An admissible set E such that A∈E if and only if A is defended by E.
+• Preferred Extension: A ⊆-maximal admissible set.
+• Grounded Extension: The subset-minimal complete extension, derivable as the least fixed point of the characteristic operator F.
+• Stable Extension: A preferred extension that defeats every argument outside it.
+The status of a conclusion ϕ depends on its representation within these extensions: ϕ is sceptically justified if it is the conclusion of an argument belonging to all extensions of a given semantics T, and credulously justified if it belongs to at least one T extension but not all.
+The ASPIC+ Framework
+ASPIC+ is positioned as an intermediate layer of abstraction between concrete logical systems and Dung's fully abstract AFs, defining the structure of arguments and attacks.
+1. Argumentation System (AS) An ASPIC+ argumentation system is defined as a triple AS=(L,R,n):
+• L: A logical language, here simplified to include standard negation ¬ (though the framework is adaptable to asymmetric negation). Conflict is represented by the relation L, where ψ=−ϕ denotes contradictories.
+• R=R 
+s
+​
+ ∪R 
+d
+​
+ : A finite, disjoint set of inference rules, comprising strict rules (R 
+s
+​
+ ) ({ϕ 
+1
+​
+ ,…,ϕ 
+n
+​
+ }→ϕ) and defeasible rules (R 
+d
+​
+ ) ({ϕ 
+1
+​
+ ,…,ϕ 
+n
+​
+ }⇒ϕ). Strict rules entail their conclusion necessarily, while defeasible rules create only a presumption in favor of the conclusion.
+• n: A partial function n:R 
+d
+​
+ →L that assigns a well-formed formula (wff) in L to each defeasible rule r. This wff, n(r), asserts the applicability of r.
+2. Knowledge Base and Theory The knowledge base K⊆L is divided into two disjoint subsets:
+• K 
+n
+​
+ : Axioms (necessary, infallible premises that cannot be attacked).
+• K 
+p
+​
+ : Ordinary Premises (fallible, uncertain premises that can be attacked). An Argumentation Theory (AT) is the pair (AS,K).
+3. Argument Construction Arguments are constructed as inference trees by finitely chaining applications of rules starting from premises in K. Key accessor functions define an argument's components:
+• Prem(A): All premises from K used.
+• Conc(A): The conclusion derived.
+• DefRules(A): The set of defeasible rules utilized.
+• TopRule(A): The final inference rule applied.
+Based on these components, arguments are categorized: an argument A is strict if DefRules(A)=∅, and defeasible otherwise. It is firm if Prem 
+p
+​
+ (A)=∅ (only axioms used), and plausible if Prem 
+p
+​
+ (A)
+
+=∅. Arguments that are either defeasible or plausible are considered fallible.
+4. Attack and Defeat Arguments are in conflict through three forms of syntactic attack:
+1. Undercutting: An argument A undercuts B (on subargument B 
+′
+ ) if Conc(A)=−n(r), where r is the defeasible top rule of B 
+′
+ . These attacks succeed as defeats independently of preference orderings.
+2. Rebutting: A rebuts B (on subargument B 
+′
+ ) if Conc(A)=−ϕ, where ϕ is the conclusion of B 
+′
+  and B 
+′
+  uses a defeasible rule.
+3. Undermining: A undermines B (on premise ϕ) if Conc(A)=−ϕ and ϕ∈K 
+p
+​
+  (an ordinary premise).
+Defeat is determined by applying a preference relation ⪯ over the set of arguments. An attack from A to B 
+′
+  (a subargument of B) succeeds as a defeat only if B 
+′
+  is not strictly preferred to A (i.e., A
+
+≺B 
+′
+ ).
+The result is a Structured Argumentation Framework (SAF), defined as a triple ⟨A,C,⪯⟩, where A is the set of arguments, C is the attack relation, and ⪯ is the argument ordering. The SAF then yields a Dung-style AF ⟨A,D⟩ where D is the derived defeat relation, allowing standard semantics to be applied to determine justified conclusions.
+
+
+ASPIC+ Formalism for Heterogeneous Legal Reasoning
+
+The ensuing report provides a meticulous and rigorous exegesis of Section 3, "Main Ideas and Formalism," which presents the core theoretical innovation of the structured framework for combining heterogeneous legal reasoning methods within the ASPIC+ formalism.
+--------------------------------------------------------------------------------
+Report on Section 3: Main Ideas and Formalism
+Section 3 of the source material formally articulates an argumentation-based methodology designed to synthesize diverse legal reasoning approaches—which may involve rule-based argumentation, evidential Bayesian networks, or case-based reasoning—by modeling their interaction at a unifying metalevel. The framework's fundamental premise is that a complex legal inquiry can be decomposed into a series of interconnected subproblems, each addressed by a dedicated module.
+The Conceptual Architecture and ASPIC+ Foundation
+The proposed solution posits that the inputs and outputs of these heterogeneous problem-solving components must be consistently represented within a single formal language: the metalevel logical language of an encompassing ASPIC+ system. This strategic choice of ASPIC+ is justified by the immediate accessibility of its rich metatheory, including established results regarding the satisfaction of rationality postulates (such as consistency and closure properties) and the availability of intuitive explanation methods, such as argument games for grounded semantics. The resultant formal model is not intended for direct implementation but rather to furnish a semantic guide for the development of concrete legal reasoning architectures.
+The interactions and internal behaviors of the modules are described using two distinct categories of metalevel rules, both formalized as ASPIC+ defeasible rules, thereby inherently modeling potential disagreement or conflict concerning the appropriate method or input for any subproblem.
+3.1 Formalizing Problem-Solving Modules
+The foundational building block is the Problem-Solving Module (M), which abstractly captures the input-output behavior of any reasoning method.
+A problem-solving module M is formally defined as a quadruple: M=(L 
+M
+I
+​
+ ,L 
+M
+O
+​
+ ,R 
+M
+​
+ ,R 
+M
+io
+​
+ ). The components are defined as follows:
+• L 
+M
+I
+​
+ : The module's designated input language.
+• L 
+M
+O
+​
+ : The module's designated output language.
+• R 
+M
+​
+ : The problem-solving mechanism, conceived as a function R 
+M
+​
+ :Pow(L 
+M
+I
+​
+ )→Pow(L 
+M
+O
+​
+ ), mapping sets of inputs to corresponding sets of outputs.
+• R 
+M
+io
+​
+ : The set of all input-output metalevel rules. These rules are defeasible ASPIC+ rules of the form S⇒ϕ, constrained such that the antecedent S is a finite subset of the input language L 
+M
+I
+​
+ , the consequent ϕ is an element of the output language L 
+M
+O
+​
+ , and ϕ is actually derivable by the module's mechanism given the inputs S (i.e., ϕ∈R 
+M
+​
+ (S)).
+These input-output rules (R 
+M
+io
+​
+ ) are critical because they translate the complex, potentially non-argumentative internal mechanics (R 
+M
+​
+ ) of a module (e.g., a Bayesian network computing posterior probabilities) into a standardized metalevel representation that is entirely accessible to the overarching ASPIC+ framework.
+3.2 Defining Inter-Module Connectivity
+The flow of information between distinct modules is governed by output-input rules (R 
+M
+oi
+​
+ ), formally defined as follows:
+R 
+M
+oi
+​
+  is a set of rules of the form S⇒ϕ, where:
+1. Each element of the finite antecedent set S originates from the output language (L 
+M
+O
+​
+ ) of some module M∈M.
+2. The consequent ϕ originates from the input language (L 
+M 
+′
+ 
+I
+​
+ ) of some module M 
+′
+ ∈M.
+3. The structure imposes a constraint: if M 
+′
+  is the module whose input language contains ϕ, then M 
+′
+  must not have any element from its own output language L 
+M 
+′
+ 
+O
+​
+  included in the antecedent set S.
+These rules fundamentally define the problem decomposition, determining which conclusions reached by one module become the necessary premises or starting points for another module. While practical system design typically enforces non-circularity in these rules, the formal framework itself does not impose this constraint, relying on ASPIC+'s capacity to handle cyclic arguments.
+3.3 The Problem Specification Framework
+The culmination of the modules and their interaction rules is the Problem Specification (PS), which is instantiated directly as a complete ASPIC+ Structured Argumentation Framework (SAF).
+A Problem Specification is defined as PS=(M,R 
+M
+oi
+​
+ ), generating a SAF (A 
+PS
+​
+ ,C 
+PS
+​
+ ,⪯ 
+PS
+​
+ ) based on an Argumentation Theory AT 
+PS
+​
+ =(AS 
+PS
+​
+ ,K 
+PS
+​
+ ):
+1. Logical Language (L 
+PS
+​
+ ): This language is formed by the union of all input and output languages (L 
+M
+I
+​
+ ∪L 
+M
+O
+​
+ ) across all constituent modules M∈M.
+2. Inference Rules:
+    ◦ Strict Rules (R 
+PS
+s
+​
+ ): Defined as all classically valid first-order inferences (entailment ⊢ 
+FOL
+​
+ ) over the metalevel language L 
+PS
+​
+ . This ensures the metalevel deduction is sound.
+    ◦ Defeasible Rules (R 
+PS
+d
+​
+ ): Composed entirely of the internal input-output rules (R 
+M
+io
+​
+ ) and the inter-module output-input rules (R 
+M
+oi
+​
+ ).
+3. Knowledge Base (K 
+PS
+​
+ ): K 
+PS
+​
+  consists exclusively of necessary axioms (K 
+PS
+n
+​
+ ), taken as a subset of the input languages (L 
+M
+I
+​
+ ) of the modules.
+    ◦ K 
+PS
+n
+​
+  serves to define the initial, indisputable parameters of the problem, such as assumptions about consistency for ASPIC+ instantiations, or the axioms of probability theory for Bayesian network modules.
+    ◦ Crucially, placing constraints within K 
+PS
+n
+​
+  can generate conflicting metalevel arguments if inputs specify incompatible axioms (e.g., two different unconditional probabilities for the same variable in a Bayesian network), thereby activating the ASPIC+ conflict resolution mechanisms.
+4. Argument Ordering (⪯ 
+PS
+​
+ ): The ordering must include mechanisms for comparing argument strength, particularly specificity orderings for each set of internal input-output rules (R 
+M
+io
+​
+ ).
+3.4 The Role of Specificity in Input-Output Rules
+A primary objective of the R 
+M
+io
+​
+  rules is to ensure that the module's output correctly reflects the totality of its received inputs, which, in the metalevel context, corresponds to determining which combination of metalevel premises should be used.
+The formal solution to prioritizing the "best" representation of the module's behavior involves applying a preference mechanism (such as specificity) to the R 
+M
+io
+​
+  rules.
+• Mechanism: R 
+M
+io
+​
+  rules are designed so that only the output derived from the most specific rule—the rule whose antecedents capture the fullest specification of the module’s inputs—is ultimately accepted.
+• Conflict Resolution: This mechanism ensures that if a general rule (e.g., assuming input A) and a more specific rule (e.g., assuming inputs A and B) yield conflicting outputs, the argument based on the more comprehensive input specification (the more specific rule) prevails.
+• Genuine Disagreement: If multiple rules are equally specific yet yield contradictory outputs (reflecting genuine internal conflict within the problem domain), the metalevel framework accommodates this by allowing these contradictory conclusions to exist as defensible (but not sceptically justified) arguments, prompting further investigation or decision-making outside the module itself.
+The overall integration of these formal components ensures that heterogeneous reasoning processes can interact through a standardized defeasible logical framework, allowing the resolution of complex legal problems to be traced and explained at the metalevel using the rigorous semantic tools provided by ASPIC+.
+
+Modeling Heterogeneous Legal Reasoning Frameworks
+
+The subsequent analysis provides a rigorous, in-depth examination of Section 4, "Applications," detailing the architectural implementation of the proposed formal framework for combining heterogeneous legal reasoning methods. This section validates the framework's theoretical utility by demonstrating its capacity to model complex real-world legal scenarios, particularly those involving burdens of proof, evidential reasoning, and the resolution of conflicting inputs at the metalevel.
+--------------------------------------------------------------------------------
+Rigorous Report on Section 4: Applications
+Section 4 applies the Problem Specification (PS) framework established in Section 3 to several salient legal reasoning challenges, illustrating how diverse problem-solving modules (M), employing distinct internal methods, can be cohesively integrated through metalevel ASPIC+ argumentation.
+4.1 Combining Rule-based and Evidential Reasoning under Burden of Proof
+The first scenario addresses a civil law example concerning medical liability, specifically focusing on how the framework models the allocation and discharge of the burden of persuasion.
+Problem Context and Decomposition
+The canonical legal inquiry is decomposed into three specialized problem-solving modules, each instantiated as a local ASPIC+ system:
+1. Legal Rule Module (LR): Contains the domain's legal rules (e.g., liability rules: harm,¬dueDiligence⇒liable). LR uses the last-link ordering, which is generally considered appropriate for normative reasoning.
+2. Evidential Module (Ev): Contains evidential rules (e.g., relating observed facts to conclusions about adherence to guidelines: e1⇒¬guidelines, e2⇒guidelines). Ev uses the weakest-link ordering, often preferred for epistemic reasoning where the strength of the conclusion depends on the certainty of all supporting elements.
+3. Burden Module (B): Explicitly defines the relevant burdens of persuasion (e.g., Burden(dueDiligence)). B uses the last-link ordering.
+The metalevel K 
+PS
+n
+​
+  of the overarching Problem Specification contains all rule and premise definitions relevant to the internal operation of these modules, categorized by module (e.g., e1∈K 
+n
+​
+ (Ev), r4∈R 
+d
+​
+ (LR)).
+Modeling Burden Shifts via Output-Input Rules
+The core mechanism for modeling the legal principle that liability is avoided only if the doctor successfully proves diligence involves specific output-input metalevel rules (R 
+M
+oi
+​
+ ) that transfer information from the evidential assessment (Ev) and the burden definition (B) into the factual premise base of the Legal Rule module (K 
+n
+​
+ (LR)). These rules operate strictly on formulas (ϕ) for which a burden is defined:
+• Rule oi1: If Burden(ϕ) is defensible or justified based on SAF(B) AND ϕ is justified based on SAF(Ev), THEN ϕ is added as an axiom to LR (ϕ∈K 
+n
+​
+ (LR)).
+• Rule oi2: If Burden(ϕ) is defensible or justified based on SAF(B) AND ϕ is not justified based on SAF(Ev), THEN the negation of ϕ (−ϕ) is added as an axiom to LR (−ϕ∈K 
+n
+​
+ (LR)).
+In the example, since the doctor fails to provide a convincing argument for dueDiligence in Ev (i.e., dueDiligence is not justified), rule oi2 is triggered for dueDiligence, causing ¬dueDiligence to be introduced as a necessary premise in LR. This successfully generates an unattacked metalevel argument leading to the overall conclusion that "liable is justified on the basis of SAF(LR)".
+Theoretical Implication for Rationality
+This decomposition offers an elegant solution to the perennial theoretical challenge of modeling shifts in the burden of proof within structured argumentation frameworks. Previous attempts required alternative argumentation semantics, which often jeopardized desirable properties like the uniqueness of the grounded extension. By isolating the burden component and formalizing its effect through metalevel rules, the framework retains standard ASPIC+ semantics (like grounded semantics) while achieving the desired outcome, reinforcing the view that legal proof debates are fundamentally meta-theoretic.
+Modeling Conflict in Input Specification
+The framework's power is further demonstrated by modeling disagreements about the input facts themselves. If the premise governing the burden of diligence is changed from an axiom (K 
+n
+​
+ ) to a disputable ordinary premise (K 
+p
+​
+ ), and both Burden(dueDiligence) and Burden(¬dueDiligence) are specified in K 
+p
+​
+ (B), both corresponding output-input rules (oi2) are triggered.
+• This yields conflicting arguments at the metalevel: one arguing for ¬dueDiligence∈K 
+n
+​
+ (LR) and another for dueDiligence∈K 
+n
+​
+ (LR).
+• The system incorporates an axiom asserting that K 
+n
+​
+ (LR) must be consistent. This consistency axiom facilitates the generation of counter-arguments that defeat the original arguments for including ¬dueDiligence and dueDiligence in K 
+n
+​
+ (LR).
+• The final outcome is that two contradictory conclusions regarding liability—"liable is justified" and "liable is not justified"—become defensible arguments based on the overall metalevel SAF, reflecting a fundamental, unresolved conflict regarding who carries the burden of proof, thereby necessitating external resolution.
+4.2 Reasoning with and about Bayesian Networks
+This section illustrates the framework's capability to integrate non-logical, probabilistic reasoning tools by substituting the rule-based Ev module with a Bayesian Network (BN).
+4.2.1 From BN to Rule-Based Argumentation
+The BN itself (defined by a graph G=(V,D) and probability function Pr) is formalized entirely within K 
+n
+​
+ (Ev), including variables, dependencies, conditional probability tables (CPTs), and evidence (E).
+New output-input rules (oi4 and oi5) are defined to map the BN's quantitative output to the categorical inputs required by the Legal Rule module (LR), implementing the legal standard of "on the balance of probabilities" (i.e., a probability greater than 0.5):
+• Rule oi4 (Probabilistic Justification): If Burden(ϕ) is defensible/justified AND Pr(ϕ∣E)>0.5 based on the BN, THEN ϕ∈K 
+n
+​
+ (LR).
+• Rule oi5 (Probabilistic Non-Justification): If Burden(ϕ) is defensible/justified AND Pr(ϕ∣E)≤0.5 based on the BN, THEN −ϕ∈K 
+n
+​
+ (LR).
+At the metalevel, the internal complexities of BN calculation are hidden, described only by input-output rules (e.g., io 
+′
+ 5,io 
+′′
+ 5) that derive specific probabilistic statements (e.g., Pr(harm∣E)>0.5) from the complete BN specification.
+4.2.2 From Argument-Scheme-Based Argumentation to BN
+The modularity is extended by introducing a third module, ArS (Argument Schemes), designed to argue about the input parameters of the BN, such as the required conditional probability values.
+• ArS is an ASPIC+ module that utilizes defeasible rule schemes, like the expert testimony scheme, to argue for specific probability statements (e.g., Pr(H∣E)=n).
+• Output-input rule oi6 then connects ArS output to the BN input: Pr(H∣E)=n justified/defensible in ArS ⇒Pr(H∣E)=n∈Pr(BN).
+This setup allows for metalevel conflict generation. If two experts in ArS provide conflicting probability values, and both resultant statements are defensible, rule oi6 applies to both. Since probability theory axioms in K 
+n
+​
+ (M) are strict, this immediately triggers contradictory metalevel arguments concerning the composition of the BN. This structural conflict propagates forward, leading again to two defensible metalevel arguments regarding the justification of liable.
+The general principle that conflicting inputs to a module (whether from competing evidential modules like Ev 
+a
+​
+  (ASPIC+) and Ev 
+b
+​
+  (BN), or from conflicting expert arguments in ArS) trigger contradictory metalevel arguments that are checked against the module's consistency constraints (K 
+n
+​
+ (LR) is consistent) ensures that the final ambiguity is traced and formally represented as two defensible outcomes in the overarching SAF.
+4.3 Other Possible Applications
+The framework's flexibility supports combining rule-based reasoning with case-based reasoning. By adopting the modular approach, systems like IBP, which combine deductive rule-based reasoning with HYPO/CATO-style case-based reasoning, could be remodeled. This allows replacing the deductive rule model with a defeasible one (e.g., ASPIC+ or Carneades) and integrating a model for determining applicable factors in a case. This modularity enables the system to model conflicts regarding which factors apply, which then results in the instantiation of alternative copies of the case-based and rule-based modules to evaluate the consequences of each interpretation.
+
+In this paper we proposed a novel argumentation-based approach
+to combine the application of legal-reasoning methods to different
+parts of a legal problem. The model was formulated in the ASPIC+
+framework, to profit from its metatheory and explanation meth-
+ods. An interesting feature of our approach is that it can model
+disagreement about what is a suitable method to model a legal
+problem. The model is not meant to be directly implementable but
+to serve as a semantics for architectures and implementations, with
+special emphasis on explanations of outcomes of a combination of
+reasoning methods. We illustrated the power of our approach with
+applications to evidential reasoning and reasoning under burden of
+proof. Among other things, we proposed a novel way to reconcile
+‘standard’ argumentation semantics with the concept of shifts in
+the burden of proof, based on the idea that a standard semantics
+can be applied in individual reasoning modules while shifts in the
+burden of proof are modelled in the connections between various
+modules, which have an ASPIC+ semantics.
+The idea to combine reasoning methods in a modular way is
+not new in AI. In [4] a modular approach to logic programming
+is proposed which inspired much further work. For instance, in
+
+[7] a modular version of assumption-based argumentation [16]
+was proposed for representing and reasoning with alternative legal
+theories. Modules can attack each other but the logic of each of
+them is assumption-based argumentation. Other related work is
+[3], in which a framework for multi-context systems is proposed
+where each context can have its own logic (monotonic or not) while
+bridge rules specify the information flow between contexts. These
+bridge rules are nonmonotonic since in their body they can refer
+to non-consequences of a module. Their semantics is, unlike in our
+approach, not given by an existing nonmonotonic logic but by a
+formalism especially developed for multi-context systems. While
+[3]’s approach thus has some similarities with ours, there are also
+differences and [3] do not discuss legal applications. Finally, in
+[2] modularity is studied in the context of abstract argumentation
+frameworks [6]. In future work it would be interesting to investigate
+the formal relations between our approach and all this related work.

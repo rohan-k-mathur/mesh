@@ -141,6 +141,23 @@ export {
 } from "./rationality";
 
 // ============================================================================
+// CQ MAPPING
+// ============================================================================
+
+export {
+  cqToAspicAttack,
+  batchCqToAspicAttacks,
+  extractSuccessfulAttacks,
+  generateCQMappingReport,
+} from "./cqMapping";
+
+export type {
+  CQMetadata,
+  SchemeMetadata,
+  CQAttackResult,
+} from "./cqMapping";
+
+// ============================================================================
 // CONVENIENCE EXPORTS
 // ============================================================================
 

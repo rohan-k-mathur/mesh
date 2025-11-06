@@ -13,7 +13,7 @@ The Argument Interchange Format (AIF) was devised as a communal project aimed at
 The structure of the paper is laid out sequentially: detailing the AIF (Section 2), recalling the pertinent definitions of the ASPIC framework (Section 3), and subsequently articulating the formal translation functions between an AIF argument graph and an ASPIC argumentation theory (Section 4).
 III. The Argument Interchange Format (Section 2)
 Section 2 provides a detailed conceptual and formal breakdown of the AIF structure, which centers around the notion of an argument graph. The AIF ontology is partitioned into the Upper Ontology and the Forms Ontology.
-A. Core Ontological Distinction
+A. Core Ontological Distinction sd
 The fundamental conceptual separation in the AIF is between two categories of knowledge representations:
 1. Information: Represented by propositions or sentences.
 2. Schemes: Represented by generalized patterns of reasoning, such as inference schemes or conflict patterns.

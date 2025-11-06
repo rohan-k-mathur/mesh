@@ -3397,6 +3397,10 @@ model ArgumentScheme {
   clusterTag String? // e.g., "practical_reasoning_family", "authority_family"
   inheritCQs Boolean @default(true) // Whether to inherit parent scheme's CQs
 
+  // NEW: Module 8 - ASPIC+ integration metadata
+  // Maps this scheme to ASPIC+ constructs for formal argumentation semantics
+  aspicMapping Json? // { ruleType: 'strict' | 'defeasible', ruleId?: string, preferenceLevel?: number }
+
   @@index([parentSchemeId])
   @@index([clusterTag])
 }
@@ -3610,6 +3614,10 @@ model CriticalQuestion {
   attackType   AttackType? // REBUTS | UNDERCUTS | UNDERMINES
   targetScope  TargetScope? // conclusion | inference | premise
   instance     SchemeInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  // NEW: Module 8 - ASPIC+ attack formalization
+  // Maps this CQ to specific ASPIC+ attack parameters
+  aspicMapping Json? // { ruleId?: string, premiseIndex?: number, defeasibleRuleRequired?: boolean }
 
   @@unique([schemeId, cqKey])
   @@index([instanceId])

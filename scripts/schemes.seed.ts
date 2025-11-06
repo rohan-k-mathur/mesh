@@ -7,6 +7,12 @@ type CQSeed = {
   text: string;
   attackType: AttackType;
   targetScope: TargetScope;
+  // NEW: ASPIC+ formalization for CQs
+  aspicMapping?: {
+    ruleId?: string;        // For UNDERCUTS (which rule this attacks)
+    premiseIndex?: number;  // For UNDERMINES (which premise index)
+    defeasibleRuleRequired?: boolean; // True if target must be defeasible
+  };
 };
 
 type SchemeSeed = {
@@ -21,6 +27,12 @@ type SchemeSeed = {
   conclusionType?: string | null;
   slotHints?: any;
   cqs: CQSeed[];
+  // NEW: ASPIC+ formalization for scheme
+  aspicMapping?: {
+    ruleType: "strict" | "defeasible";  // How this scheme translates to ASPIC+ rules
+    ruleId?: string;                     // Optional rule identifier
+    preferenceLevel?: number;            // Default preference level (1-10, higher = stronger)
+  };
 };
 
 const SEEDS: SchemeSeed[] = [
@@ -146,6 +158,7 @@ async function main() {
         ruleForm: s.ruleForm,
         conclusionType: s.conclusionType ?? null,
         slotHints: s.slotHints ?? {},
+        aspicMapping: s.aspicMapping ?? null, // NEW: ASPIC+ mapping
       },
       create: {
         key: s.key,
@@ -159,6 +172,7 @@ async function main() {
         ruleForm: s.ruleForm,
         conclusionType: s.conclusionType ?? null,
         slotHints: s.slotHints ?? {},
+        aspicMapping: s.aspicMapping ?? null, // NEW: ASPIC+ mapping
       },
     });
 
@@ -169,16 +183,18 @@ async function main() {
           text: cq.text,
           attackType: cq.attackType,
           targetScope: cq.targetScope,
+          aspicMapping: cq.aspicMapping ?? null, // NEW: ASPIC+ mapping
         },
         create: {
-  schemeId: scheme.id,
-  cqKey: cq.cqKey,
-  text: cq.text,
-  attackType: cq.attackType,
-  targetScope: cq.targetScope,
-  attackKind: cq.attackType, // Ensure this maps correctly
-  status: "OPEN", // Default status for template CQs
-},
+          schemeId: scheme.id,
+          cqKey: cq.cqKey,
+          text: cq.text,
+          attackType: cq.attackType,
+          targetScope: cq.targetScope,
+          attackKind: cq.attackType, // Ensure this maps correctly
+          status: "OPEN", // Default status for template CQs
+          aspicMapping: cq.aspicMapping ?? null, // NEW: ASPIC+ mapping
+        },
       });
     }
   }
