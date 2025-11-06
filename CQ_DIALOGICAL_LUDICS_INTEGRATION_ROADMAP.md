@@ -26,7 +26,7 @@ This roadmap unifies three currently fragmented systems (CQs, Dialogical Moves, 
 ---
 
 ## **Phase 1: Database Schema Updates** 
-**Duration:** 1-2 days  
+**Duration:** 1-2 days 
 **Dependencies:** None  
 **Risk:** Low (additive changes only)
 

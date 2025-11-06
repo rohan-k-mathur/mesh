@@ -1,0 +1,483 @@
+Stability and Relevance in Incomplete ASPIC+
+
+This report provides a rigorous, detailed, and thorough analysis of the abstract, introduction, and foundational definitions (Section 2) of the source document, "Argumentative Reasoning in ASPIC+ under Incomplete Information". The analysis focuses on elucidating the scientific context, methodological choices, and complexity results associated with integrating stability and relevance into structured argumentation frameworks.
+--------------------------------------------------------------------------------
+I. Abstract and Contextualization
+The central scholarly contribution outlined in the abstract is the exploration of computational approaches to reasoning under incomplete information within the structured argumentation framework, ASPIC+. This endeavor addresses a recognized gap in the literature, where prior advancements in handling incomplete information have predominantly focused on abstract argumentation frameworks (AAFs).
+The core objective is to analyze stability and relevance—formal concepts used to assess the resilience of argument acceptance statuses in light of potential new information—specifically within ASPIC+. This theoretical investigation is pragmatically motivated by applications in criminal investigation conducted by the Netherlands Police.
+The main results presented are multi-faceted:
+1. Complexity Analysis: Deciding stability for incomplete ASPIC+ theories is shown to be coNP-complete, specifically assuming a last-link preference ordering on defeasible rules. Deciding relevance is substantially more complex, residing in the second level of the polynomial hierarchy, proved to be Σ 
+2
+P
+​
+ -complete.
+2. Algorithmic Development: The research provides the first exact algorithms for determining stability and relevance. These algorithms are based on the declarative programming paradigm of Answer Set Programming (ASP).
+3. Empirical Validation: The implementation demonstrates promising scalability on both real-world and synthetic datasets. Critically, the exact approach to stability is competitive with earlier inexact methods, and the runtime performance for both problems is sufficiently low on real-world data to support their deployment in online settings, such as inquiry dialogue applications.
+II. Introduction (Section 1)
+The introduction frames the necessity of this work by observing that argumentation is an inherently dynamic process; the acquisition of new information constantly alters the set of available arguments, consequently impacting the acceptability status of claims. This dynamic aspect necessitates formal models capable of handling information uncertainty.
+1.1 Stability and Relevance in Structured Argumentation
+The authors emphasize that when engaging in reasoning under incomplete information, one must consider future, obtainable information, particularly in inquiry dialogues aimed at establishing whether a claim should be accepted robustly, irrespective of subsequent data acquisition.
+The utility of these concepts is illustrated using a specific domain application: supporting the investigation of online trade fraud in law enforcement. In this domain, defeasible rules are used to model presumptive conclusions (e.g., determining a citizen is a victim of fraud). If critical information is missing (e.g., whether payment was made), arguments cannot be completed. The system must then prioritize questions to resolve this uncertainty.
+The formal notions are defined conceptually:
+• Stability: A conclusion (or its justification status) is defined as stable if additional information cannot alter its status. Achieving stability is the explicit goal of the information gathering process in inquiry dialogues, as further investigation becomes redundant thereafter.
+• Relevance: When a conclusion is not yet stable, relevance identifies the specific pieces of unknown information (queryables) that possess the capacity to change the conclusion’s justification status, guiding efficient information acquisition.
+The motivation for studying these concepts in ASPIC+ stems from the need for inquiry systems capable of reasoning with defeasible rules, which naturally model practical and legal rules in domains like criminal investigation. While stability had previously been studied in ASPIC+ and abstract argumentation frameworks (AAFs), relevance had, to date, only been analyzed in the representationally less complex abstract setting.
+1.2 Focus of this Work
+The study focuses on generating definitions for stability and relevance over incomplete ASPIC+ theories. Analogous to incomplete abstract argumentation frameworks (IAFs), incomplete ASPIC+ theories model a collection of possible "future theories" that could arise upon obtaining new information.
+The complexity analysis and algorithm design are concentrated on a specialized ASPIC+ instantiation motivated by the police use-case, incorporating several restrictions:
+1. Knowledge Base: Reasoning relies exclusively on observations considered certain, corresponding to axioms and unattackable premises.
+2. Rules: Only defeasible rules are considered; strict rules are excluded. This choice is deliberate, aiming to simplify the framework for non-expert users (e.g., police employees) adapting or creating rule sets, and to ensure that theoretical rationality postulates remain satisfied.
+3. Attack Types: The conflicts are entirely modeled using rebuttal attacks—attacks targeting the conclusions of defeasible rules—as this suffices for the police use-case.
+4. Preference: The framework allows for preferences on rules, extending prior work in this applied domain.
+5. Semantics: The grounded semantics are adopted, characterized by a strong skeptical flavor and providing a single justification status, which is convenient for practical applications such as criminal investigation.
+1.3 Contributions
+The contributions section re-emphasizes the significance of the complexity results: confirming the coNP-completeness of stability (even when incorporating the last-link preference ordering, which generalizes prior restrictive results) and establishing the Σ 
+2
+P
+​
+ -completeness of relevance.
+Furthermore, the ASP-based algorithmic approach is highlighted as the first exact method for these problems, providing both a standard decision procedure and an extension capable of identifying all relevant queryables for a given conclusion. The authors explicitly contextualize the need for this structured study by noting that, as shown later in the paper, stability and relevance in ASPIC+ cannot be straightforwardly reduced to or captured by the analogous concepts defined for IAFs.
+III. ASPIC+ Framework Definitions (Section 2)
+Section 2 rigorously defines the foundational elements of the ASPIC+ structured argumentation framework required for this work, particularly tailored to the restricted fragment utilized in the computational study.
+A. Argumentation System and Theory
+An Argumentation System (AS) is formally defined as a quadruple AS=(L, 
+⋅
+ ,R,≤):
+• L is a finite set of literals.
+•  
+⋅
+  is the contradiction function (generalizing negation). It requires symmetry (if ϕ∈ 
+ψ
+​
+  then ψ∈ 
+ϕ
+​
+ ) and consistency (no literal is its own contradictory, ϕ∈
+/
+ϕ
+​
+ ).
+• R is the finite set of defeasible rules, a 
+1
+​
+ ,…,a 
+m
+​
+ ⇒c. This framework specifically excludes strict rules R 
+s
+​
+ .
+• ≤ is a partial preorder (reflexive and transitive relation) defined on the set of defeasible rules R.
+An Argumentation Theory (T) is defined simply as a pair T=(AS,K), combining the system AS with a Knowledge Base K.
+B. Argument Construction and Structure
+The set of arguments (Arg 
+T
+​
+ ) is defined inductively:
+1. Observation-based arguments: Any literal c∈K forms an argument for c itself.
+2. Rule-based arguments: If A 
+1
+​
+ ,…,A 
+m
+​
+  are arguments supporting the premises c 
+1
+​
+ ,…,c 
+m
+​
+  respectively, and a defeasible rule r:c 
+1
+​
+ ,…,c 
+m
+​
+ ⇒c exists, then (A 
+1
+​
+ ,…,A 
+m
+​
+ ⇒c) is a rule-based argument for conclusion c.
+Several crucial functions define the structure of an argument A:
+• prem(A): The set of premises used.
+• defrules(A): The set of defeasible rules used.
+• conc(A): The conclusion of A.
+• sub(A): The set of all subarguments, including A itself.
+• top-rule(A): The last inference rule applied, or undefined for observation-based arguments.
+C. Attack, Preference, and Defeat
+The source focuses on the rebuttal attack as the conflict mechanism (excluding undercutting and undermining attacks due to the defined fragment constraints).
+• Rebuttal Attack (Definition 5): Argument A rebuts argument B (on B 
+′
+ ) if conc(A) is a contrary of conc(B 
+′
+ ) (conc(A)∈ 
+conc(B 
+′
+ )
+​
+ ) for some rule-based subargument B 
+′
+ ∈sub(B).
+Defeat is determined by incorporating an argument preference relation (⪯).
+• Last-Link Principle (Definition 7): This preference mechanism orders arguments based on the preference of their topmost defeasible rules. An argument B is preferred to A (A⪯B) if, when both arguments are rule-based, the top rule of B is preferred to or equal in preference to the top rule of A (top-rule(B)≤top-rule(A)). Furthermore, observation-based arguments cannot be strictly less preferred than any other argument.
+An Argumentation Theory T generates an Abstract Argumentation Framework (AF) defined as the pair ⟨A,C⟩, where A=Arg 
+T
+​
+  and C is the resulting defeat relation.
+D. Grounded Semantics and Justification Status
+The analysis focuses on the standard Dungean concepts of conflict-freeness, defense, and admissibility leading to the grounded extension (G(T)), which is the unique subset-minimal complete extension.
+The fundamental formal concepts of acceptance status are defined via four justification statuses (Definition 10):
+1. Unsatisfiable: There exists no argument for the literal l.
+2. Defended: There is an argument for l that belongs to the grounded extension G(T).
+3. Out: An argument for l exists, but every argument for l is defeated by an argument within G(T).
+4. Blocked: An argument for l exists, but no argument for l is in G(T), yet there is at least one argument for l that is not defeated by any argument in G(T).
+
+
+Stability and Relevance in ASPIC+ Complexity
+
+This report continues the detailed exposition of "Argumentative Reasoning in ASPIC+ under Incomplete Information," focusing on the formal definitions of stability and relevance (Section 3) and the subsequent rigorous analysis of their computational complexity (Section 4).
+--------------------------------------------------------------------------------
+III. Stability and Relevance in ASPIC+ (Section 3)
+The concept of stability serves as a crucial metric for evaluating the resilience of conclusions within a dynamic argumentative environment where information acquisition is ongoing. Stability is fundamentally concerned with establishing a point at which further investigation—the gathering of additional facts—becomes redundant for determining a conclusion's status.
+A. Formalizing Incomplete Information
+The framework models the dynamic acquisition of new information as an expansion of the Knowledge Base (K) by adding axioms. This formalization necessitates two primary definitions: Queryables and Future Argumentation Theories.
+1. Queryables (Q): The set of queryables defines the universe of literals that can potentially be added as axioms to the knowledge base. This set Q must adhere to strong logical constraints, notably:
+    ◦ The current knowledge base K must be a subset of the queryables (K⊆Q⊆L).
+    ◦ If a literal q is queryable, its contraries must also be queryable (if q∈Q, then  
+q
+​
+ ⊆Q). This ensures that both sides of a potential conflict can be introduced as new information.
+2. Future Argumentation Theories (T 
+′
+ ): A future AT, denoted T 
+′
+ =(AS,K 
+′
+ ), represents a possible state of the system resulting from additional information gathering. T 
+′
+  is a future AT of T with respect to Q (T⊑ 
+Q
+​
+ T 
+′
+ ) if the expanded knowledge base K 
+′
+  satisfies K⊆K 
+′
+ ⊆Q. A crucial implicit requirement is that all axioms in K 
+′
+  must remain mutually consistent,.
+B. Defining Stability
+Stability is defined relative to the four possible justification statuses established in the previous section (unsatisfiable, defended, out, blocked),.
+A literal l∈L is stable-j (where j is one of the four statuses) with respect to an AT T and queryable set Q if, for all future argumentation theories T 
+′
+  such that T⊑ 
+Q
+​
+ T 
+′
+ , the literal l retains the status j in T 
+′
+ .
+This captures the goal of argument-based inquiry: reaching a state where the justification status of a claim is robust against any potential information yet to be uncovered within the queryable scope. For instance, if a claim is stable-defended, it means that even if all remaining queryable information were acquired consistently, the claim would still possess an undefeated argument lying within the grounded extension of the resulting theory.
+C. Defining Relevance
+When a claim is not stable, the concept of relevance is introduced to identify which unknown pieces of information (queryables) are critical for achieving a stable status. This requires defining the notion of a minimally useful future theory.
+1. Minimal Stable-j Future Theory (Definition 14): A future theory T 
+′
+ =(AS,K 
+∗
+ ) is minimal stable-j for l if:
+    ◦ l is stable-j in T 
+′
+ .
+    ◦ T 
+′
+  is minimal, meaning there is no strictly smaller intermediate future theory T 
+′′
+  (T⊑ 
+Q
+​
+ T 
+′′
+ ⊏ 
+Q
+​
+ T 
+′
+ ) for which l is also stable-j.
+2. j-Relevance (Definition 15): A queryable literal q∈Q that is not already in the initial knowledge base (q∈
+/
+K) is j-relevant for l if q is part of the knowledge base (K 
+∗
+ ) of some minimal stable-j future theory for l,. Relevance thus identifies the smallest, necessary information additions required to transition the status of l to j, aiding in the strategic guidance of information gathering.
+IV. Complexity Results (Section 4)
+Section 4 presents the central theoretical contribution regarding the computational complexity of justification, stability, and relevance within the defined fragment of ASPIC+,. A crucial preliminary step addresses the computational bottleneck inherent in structured argumentation.
+A. Rephrasing Grounded Semantics for Polynomial Time
+Traditional definitions of argument acceptability rely on enumerating the set of arguments (Arg 
+T
+​
+ ),, which can be exponential in the size of the Argumentation Theory (AT). Consequently, deciding justification status cannot rely on explicit argument construction if tractability is desired.
+The authors circumvent this by reformulating the definitions of grounded semantics, attack, and defense purely in terms of sets of defeasible rules (R 
+d
+​
+ ) rather than arguments,.
+1. Rule-based Defense: Proposition 1 establishes an equivalence between argument defeat and rule defeat: an argument A is defeated by a set of arguments Arg 
+T
+​
+ (D) if and only if the rule set D defeats some rule r used in A (defrules(A)). Similarly, Proposition 2 establishes that a set of arguments Arg 
+T
+​
+ (D) defends an argument A if and only if D defends every rule r used in A,.
+2. Characteristic Function: This reformulation allows the definition of a characteristic function def 
+T
+​
+ (D) over rule sets D⊆R 
+d
+​
+ , which returns the set of applicable rules defended by D.
+3. Fixed Point and Grounded Extension: Proposition 4 demonstrates that the grounded extension G(T) corresponds exactly to the arguments built exclusively using the rules found in the least fixed point (C) of the characteristic function (def 
+T
+​
+ ),,.
+B. Complexity of Justification (P)
+This rule-based approach yields strong tractability results for determining the justification status.
+Theorem 1 establishes that deciding whether a literal l∈L possesses any of the four justification statuses (j) is decidable in Polynomial time (P),.
+This complexity is achieved because Proposition 5 proves that the iterative calculation required to reach the least fixed point of the rule characteristic function (def 
+T
+​
+ ) terminates rapidly, specifically in at most ∣R∣/2 iterations, where ∣R∣ is the total number of defeasible rules,. Once the fixed point is reached, polynomial-time checks determine which status applies based on whether arguments for l can be constructed using rules from the fixed point C or the set of undefeated rules U (rules not defeated by C),.
+C. Complexity of Stability (coNP-complete)
+Moving to reasoning under incomplete information, the stability problem is proven to be computationally harder.
+Proposition 7 establishes that deciding stability (stable-j) is coNP-complete for all four justification statuses, confirming earlier results for restricted fragments and extending the proof to the framework including the last-link preference ordering.
+The coNP-membership is demonstrated because the complementary problem—deciding whether a literal is not stable-j—is in NP. Checking non-stability involves guessing a future theory T 
+′
+  (T⊑ 
+Q
+​
+ T 
+′
+ ) that changes the status of l. Since checking the status of l in the guessed T 
+′
+  is a polynomial-time operation (as shown in Section 4.2), the non-stability check is non-deterministic polynomial time (NP).
+D. Complexity of Relevance (Σ 
+2
+P
+​
+ -complete)
+The core result concerning the queryable identification problem demonstrates a further escalation in complexity, placing it at the second level of the polynomial hierarchy.
+Theorem 2 (as derived from Section 4.4 and Appendix A results) establishes that deciding whether a given queryable q is j-relevant for a literal l is Σ 
+2
+P
+​
+ -complete for all four justification statuses,.
+1. Membership (Σ 
+2
+P
+​
+ ): Membership in Σ 
+2
+P
+​
+  (which is NP 
+NP
+  or NP 
+coNP
+ ) is supported by Lemma 2, which formally characterizes relevance. To decide if q is relevant, the procedure involves non-deterministically guessing a minimal stable theory T 
+′
+  containing q. Verification of the minimality condition requires two steps: (1) checking stability in T 
+′
+  and (2) checking non-stability in T 
+′
+ ∖{q}. Since stability checking requires solving a coNP problem (via Proposition 7), the overall relevance problem requires an NP outer layer using a coNP oracle, placing it in Σ 
+2
+P
+​
+ ,.
+2. Hardness (Σ 
+2
+P
+​
+ -hard): Hardness is achieved via a polynomial-time reduction from the Σ 
+2
+P
+​
+ -complete problem of deciding quantified Boolean formulas with one quantified alternation (2-QBF), specifically ∃X∀Y¬ϕ,. The structure of the reduction uses the knowledge base assignment X (the existential variables) to construct a preliminary knowledge base K 
+′
+ , and relies on the universality of Y (the universal variables) to ensure that stability is achieved, demonstrating the necessity of Σ 
+2
+P
+​
+  complexity,,.
+In summary, the detailed complexity analysis reveals a clear separation between the computational burden of internal justification evaluation (P) and the external dynamic evaluation problems: stability (coNP-complete) and relevance (Σ 
+2
+P
+​
+ -complete). These results motivate the need for the specialized algorithmic approaches presented later in the paper.
+
+Algorithms and Empirics for Dynamic ASPIC+ Reasoning
+
+The subsequent sections of the source document ("Argumentative Reasoning in ASPIC+ under Incomplete Information," 18404_pub.pdf) detail the implementation of algorithms necessary to tackle the complexity results established earlier, provide empirical validation, and, critically, situate the ASPIC+ concepts within the broader literature by comparison to Abstract Argumentation Frameworks (AAFs).
+--------------------------------------------------------------------------------
+V. Algorithms for Stability and Relevance (Section 5)
+Given the sharp stratification in computational complexity—justification being P-time, stability coNP-complete, and relevance Σ 
+2
+P
+​
+ -complete—the necessity for efficient, exact algorithms is paramount. This section introduces the core algorithmic solutions, leveraging the Answer Set Programming (ASP) paradigm,.
+A. Encoding Justification and Stability
+The complexity analysis established that the grounded extension and justification status can be determined in polynomial time by operating on sets of defeasible rules rather than the potentially exponential set of arguments. This insight is fundamental to the ASP encodings.
+1. Justification Encoding (π 
+just
+​
+  / π 
+≺-just
+​
+ ): The ASP encoding formalizes the iterative application of the characteristic function def 
+T
+​
+  (Definition 19 in the original paper, based on Proposition 5) to find the least fixed point C (the set of rules corresponding to the grounded extension G(T)),,. The justification status (defended, out, blocked) is then inferred using the resulting sets C and U (rules not defeated by C) (Proposition 6). Separate modules (π 
+just
+​
+  and π 
+≺-just
+​
+ ) are provided depending on whether preferences (≤) are incorporated.
+2. Stability Encoding (π 
+stab
+​
+  / π 
+≺-stab
+​
+ ): Stability checking relies on the inherent capability of ASP to handle non-deterministic guessing and constrained verification. To decide if a literal l is stable-j, the system attempts to find a counterexample: a future argumentation theory T 
+′
+  (T⊑ 
+Q
+​
+ T 
+′
+ ) where l is not status j,.
+    ◦ This involves non-deterministically selecting queryable literals to become axioms (subject to consistency) (Δ 
+stab
+​
+ ).
+    ◦ The problem of deciding stability j for a literal l reduces to checking the unsatisfiability of the combined ASP program (Justification Encoding + Non-deterministic Guessing + constraint ←j(l)).
+B. The CEGAR Algorithm for Relevance
+The Σ 
+2
+P
+​
+ -completeness of relevance precludes a single, non-deterministic ASP call analogous to stability, necessitating a different approach. The authors employ Counterexample-Guided Abstraction Refinement (CEGAR), an iterative meta-algorithmic technique leveraging multi-shot ASP solving.
+The core of the CEGAR approach (Algorithms 1 and 2) is grounded in Lemma 2, which characterizes j-relevance: a queryable q is relevant for l if there exists an AT T 
+′
+  such that l is not stable-j w.r.t. T 
+′
+ , but l is stable-j w.r.t. the expanded theory T 
+′
+ ∪{q}.
+1. Algorithm 1 (Deciding Relevance of a Single Queryable q): This algorithm iteratively searches for a candidate future knowledge base K 
+′
+  satisfying the criteria of Lemma 2.
+    ◦ Candidate Generation (π 
+c
+​
+ ): Non-deterministically generates consistent sets of queryables K 
+′
+  that must include q,.
+    ◦ Verification (π 
+v
+​
+ ): Uses the stability encoding (π 
+stab
+​
+ ) to verify that l is stable-j in K 
+′
+ ∪{q} and unstable in K 
+′
+ .
+    ◦ Refinement: If a candidate fails verification, the search space is refined based on Proposition 13: failure implies that either all subsets of the resulting counterexample C or all supersets of K 
+′
+  can be excluded from future searches, thus pruning the search space effectively.
+2. Algorithm 2 (Finding All Relevant Queryables): This extension addresses the practical goal of generating a list of all relevant questions for inquiry dialogues,. Instead of checking one queryable q at a time, it searches the entire space of consistent K 
+′
+  subsets, identifies all queryables q 
+′
+  within that subset that satisfy Lemma 2, adds them to the result set R, and then refines the space by eliminating all supersets of K 
+′
+ ,. This incremental approach is demonstrably superior to running Algorithm 1 iteratively.
+VI. Empirical Evaluation (Section 6)
+The empirical validation was executed using the ASP solver Clingo, incorporating its multi-shot features for the CEGAR algorithms. The evaluation utilized both real-world data derived from criminal investigation applications at the Netherlands Police and synthetic datasets parameterized by language size (∣L∣) and rule set size (∣R∣),.
+A. Stability Performance
+The empirical results for stability provide a critical assessment of the proposed exact ASP approach against prior state-of-the-art inexact methods.
+1. Exact vs. Inexact: For instances without preferences, the exact ASP approach is shown to be highly competitive and often superior to the polynomial-time inexact algorithm (which is sound but not complete),. Specifically, the ASP method exhibits significantly lower mean run times on large synthetic instances (e.g., ∣L∣=5000: ASP solved instances in 1.0s mean time, while the inexact approach required 82.3s).
+2. Impact of Preferences: Incorporating preferences leads to expected increases in computation time, reflecting the complexity added by argument ordering comparison, but performance remains robust on real-world datasets.
+B. Relevance Performance
+The evaluation of the relevance algorithms confirms the expected computational difficulty associated with the Σ 
+2
+P
+​
+ -complete status, yet yields positive practical results.
+1. Online Feasibility: The run times for deciding relevance on real-world data were sufficiently low (mean times around 0.2s to 0.4s with and without preferences, respectively) to enable their use in online settings such as inquiry dialogues,,.
+2. Scalability: Performance on synthetic data degrades notably slower for relevance than for stability, aligning with their respective complexity classes. However, scalability is promising, solving all instances up to ∣L∣=80 with preferences.
+3. Algorithmic Efficiency: The incremental Algorithm 2 designed to find all relevant queryables performs significantly better than the naive approach (sequential calls to Algorithm 1), demonstrating roughly twice the speed efficiency.
+4. Influence of Problem Structure: The mean running time is inversely correlated with the number of axioms, confirming the intuition that larger initial knowledge bases (fewer unknowns) constrain the search space over future theories, reducing complexity.
+VII. Relation to Abstract Argumentation (Section 7)
+Section 7 addresses a crucial theoretical query: whether the structured notions of stability and relevance developed for incomplete ASPIC+ theories can be directly captured or reduced to the analogous concepts previously defined for Incomplete Abstract Argumentation Frameworks (IAFs),. The conclusion is definitive: no direct reduction is possible, highlighting the necessity of studying these properties at the structured level,.
+A. Background: IAFs and Correspondence
+1. IAFs: An IAF I=⟨A,A 
+?
+ ,C⟩ consists of certain arguments (A) and uncertain arguments (A 
+?
+ ). A completion F selects a subset of A 
+?
+  to include in the resulting AF. Stability is defined over all possible completions.
+2. ASPIC+ to IAF Mapping: The correspondence mapping IAF(T,Q) defines certain arguments A as those derivable from the current theory T, and uncertain arguments A 
+?
+  as arguments derivable only in future theories T 
+′
+ .
+B. Disconnect in Stability
+The source establishes an asymmetric relationship between stability in the abstract and structured settings:
+1. Abstract ⟹ Structured (Holds): If an argument A in the current theory is stable-gr-in w.r.t. the IAF (abstract level), then its conclusion conc(A) is stable-defended w.r.t. the AT (structured level) (Proposition 16). This is because every future AT T 
+′
+  corresponds to a legal completion of the IAF.
+2. Structured ⟹ Abstract (Fails): The converse implication does not hold (Counterexample 1). A conclusion may be determined to be stable-defended in the ASPIC+ theory, yet the single argument supporting it in the original theory may not be stable-gr-in in the corresponding IAF. This divergence arises because the IAF considers completions resulting from arbitrarily including or excluding uncertain arguments, which does not necessarily align with the constraints imposed by updates to the structured knowledge base.
+C. Disconnect in Relevance
+Similarly, relevance does not translate directly (Counterexample 2). An abstractly relevant queryable in the IAF is one whose addition or removal results in a minimal stable partial completion. However, the paper demonstrates a case where the addition of a queryable (snow) is abstractly relevant for an argument's conclusion, but none of the premises required for that argument are defended-relevant for the conclusion in the structured ASPIC+ theory,.
+The fundamental reason for these failures of reduction is that stability and relevance on the structured level are intrinsically tied to updates of the knowledge base (K), which impose constraints on which arguments and conflicts can materialize in future theories. Conversely, abstract approaches typically define stability over arbitrary subsets of uncertain arguments and defeats, failing to capture the propagation and interaction of evidence through the structured rule system. This structural distinction justifies the native study of these dynamic properties within ASPIC+ itself.
+
+We addressed the challenge of developing computational approaches to reasoning under incomplete information
+in the central structured argumentation formalism of ASPIC+. In particular, we studied the stability and relevance
+problems both from a complexity theoretic and an algorithmic perspective in an instantiation of ASPIC+ for
+which the two problems are motivated through applications in inquiry dialogue applied at the Netherlands Police.
+In terms of complexity results, we pinpointed the complexity of deciding stability and relevance under grounded
+semantics, establishing coNP-completeness of stability and ΣP
+2 -completeness of relevance. Complementing the
+complexity results, we developed and implemented first practical exact algorithms for deciding stability and
+relevance, as well as for the task of finding all relevant queryables, by harnessing ASP solving. We showed
+through an extensive empirical evaluation on both real-world and synthetic data that our algorithmic approach
+exhibits promising scalability. Our approach is competitive with an earlier-proposed inexact approach with run
+times for both stability and relevance sufficiently low on real-world data to enable their use in online settings.
+There are various interesting directions to extend our study of stability and relevance in ASPIC+. The main
+directions are to extend our complexity analysis and algorithms beyond the ASPIC+ instantiation we focused on
+to a more general fragment, as well as to consider different argumentation semantics and different preference
+handling mechanisms. Given that the computational aspects of ASPIC+ are somewhat underexplored in current
+literature, there are interesting research challenges to overcome in order to extend our work in these directions.
+Firstly, it would be interesting to study deciding stability and relevance for other semantics. While upper bounds
+are given in Section 4.5, lower bounds and algorithms for these semantics are not known. It is known that deciding
+acceptance for admissible, complete, stable and preferred semantics is typically (co)NP-hard [28]. Therefore it
+is likely that computing stability and relevance for these semantics is also more computationally expensive in
+practice compared to grounded semantics. Another direction for future work is to take into account a more
+general fragment of ASPIC+. This opens various design choices in generalizing the concept of future ATs, and
+thereby stability and relevance. For instance: should queryables only be able to become axioms, or can queryables
+also become ordinary premises in future ATs? And can queryables switch from an ordinary premise to an axiom?
+Should we consider all ATs that can be obtained by adding queryables to the knowledge base, or only those for
+which the rationality postulates are satisfied [14]? Yet another extension would be to allow for rules to be “added”
+in future theories. Such an extension would open up further design choices such as whether to fix concrete rules
+that can be added, or whether to allow for example for adding instantiations of given rule schemes. A further
+potential extension of our approach would be to consider preferences under weakest-link rather than last-link
+ordering. It has been observed that the complexity of justification under stable semantics rises to the second level
+of the polynomial hierarchy under weakest-link principle [29], in contrast to the (co)NP-completeness when no
+preferences are included [28]. Thus a similar increase in the complexity of deciding stability and relevance is
+expected, and along with it the need for more elaborate algorithms.

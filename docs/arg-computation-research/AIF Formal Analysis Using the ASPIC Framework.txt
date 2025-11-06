@@ -1,0 +1,473 @@
+Foundations of the ASPIC+ Argumentation Framework
+
+This report provides a rigorous, detailed, and thorough analysis of the initial sections of the source titled "Abstract Rule-Based Argumentation" (Source), focusing on the intellectual context, core theoretical motivations, and foundational definitions of the ASPIC+ framework.
+--------------------------------------------------------------------------------
+I. Analysis of the Abstract
+The abstract effectively positions the work within the intellectual domain of abstract rule-based approaches to computational argumentation, highlighting ASPIC+ as the central structured formalism under review. A key conceptual feature of ASPIC+ is its capacity to construct arguments by integrating two distinct categories of inference rules: strict rules, which capture deductively valid inferences where premises necessitate the conclusion, and defeasible rules, which model presumptive inferences where premises only create a presumption in favor of the conclusion.
+A core objective of ASPIC+ is its function as a generator for abstract argumentation frameworks (AFs), as originally conceived by Dung (1995). By defining arguments and the conflicts between them, ASPIC+ leverages a preference relation on arguments to resolve conflicts into a binary defeat relation. This generated AF is then subjected to evaluation under established theories of abstract argumentation to determine the acceptability status of the arguments.
+The research scope, as outlined in the abstract, is comprehensive, covering the basic framework, various instantiation methodologies, analysis of constraints related to logical closure and consistency properties, comparative analysis with other formalisms (including reconstructive possibilities), recent theoretical extensions, and a discussion of unresolved issues and avenues for future inquiry.
+II. Analysis of the Introduction (Section 1)
+The introduction provides crucial historical context and justifies the necessity of structured argumentation frameworks like ASPIC+.
+Historical Trajectory and Rationale
+The lineage of abstract rule-based argumentation systems is traced back to the foundational work of John Pollock, emphasizing the long-standing tradition of allowing arguments to combine strict and defeasible inference rules.
+A critical tension is identified between abstract argumentation theory and practical knowledge representation: while Dung's AFs are highly influential, their high level of abstraction offers no concrete guidance on defining arguments, specifying attacks from a knowledge base, or ensuring that the resultant arguments, when evaluated under Dung’s semantics, yield rational outcomes. This ambiguity necessitates a framework that operates at an intermediate level of abstraction.
+Aims and Conceptual Contributions of ASPIC+
+ASPIC+, developed from the initial ASPIC framework, was designed with two principal aims:
+1. Generalization and Formalization: To generalize previous work and provide a robust framework for formalizing a broad range of existing and novel instantiations of AFs.
+2. Rationality Guidelines: To offer specific guidelines for instantiating frameworks that utilize features such as preferences, ensuring that the resulting systems satisfy the established rationality postulates of Caminada and Amgoud (2007) (e.g., consistency and closure properties of conclusions within acceptable extensions).
+A fundamental distinction established by ASPIC+ is that its strict and defeasible inference rules function at the metalevel—they are not object-level formulae within the logical language L. This inherent abstraction allows ASPIC+ to study various logical instantiations and derive conditions necessary for satisfying key rationality criteria.
+This design choice contrasts sharply with logic-based approaches (such as classical-logic argumentation), where arguments are derived from a single notion of logical consequence from a base logic. In contrast, rule-based systems, including ASPIC+, utilize a combination of two logics, one governing strict inferences and another governing defeasible inferences.
+III. Analysis of Section 2: ASPIC+: Defining the Framework
+Section 2 systematically introduces the structural and relational components of the ASPIC+ framework.
+2.1 The Underlying Ideas and Attacks
+Argumentation is conceived as a process aimed at removing doubt regarding a claim. Real-world arguments are often fallible, either due to uncertain premises or non-conclusive inference steps.
+Based on philosophical arguments from literature (e.g., Pollock), ASPIC+ adheres to the view that fallibility can be located both in premises and in the inference steps, leading to the incorporation of defeasible rules.
+The structural definition of arguments naturally yields three primary mechanisms of attack:
+1. Undermining Attack (Premise Attack): Attacking an argument's uncertain or ordinary premises. Axiom premises, being indisputable, cannot be attacked.
+2. Rebutting Attack (Conclusion Attack): Attacking an argument's conclusion derived via a defeasible rule. Attacks on conclusions derived from strict rules are generally prohibited (restricted rebut) to maintain desired rationality properties.
+3. Undercutting Attack (Inference Attack): Attacking the application of a defeasible rule itself. This attack uses the rule's formal name, provided by the function n, as its target.
+2.2 The Basic Framework with Symmetric Negation
+2.2.1 Argumentation Systems, Knowledge Bases, and Arguments
+The fundamental component is the Argumentation System (AS=(L,R,n)):
+• Logical Language (L): Closed under classical negation (¬). Symmetric conflict (ψ=−ϕ) is based on standard negation.
+• Inference Rules (R): R is partitioned into disjoint sets of strict rules (R
+s
+
+
+) and defeasible rules (R
+d
+
+
+). These rules are meta-variables or schemes designed to specify inference patterns.
+• Naming Function (n): A partial function n:R
+d
+
+
+→L maps defeasible rules to well-formed formulas (wffs) in L, providing a target for undercutting attacks.
+Arguments are constructed relative to an Argumentation Theory (AT=(AS,K)), where the Knowledge Base (K) is divided into axioms (K
+n
+
+
+) and ordinary premises (K
+p
+
+
+).
+Arguments themselves possess four crucial properties based on their composition:
+• Strict vs. Defeasible: Defined by whether DefRules(A) is empty.
+• Firm vs. Plausible: Defined by whether Prem(A) is exclusively drawn from K
+n
+
+
+ (axioms).
+• An argument is considered fallible if it is either defeasible or plausible.
+Furthermore, an optional constraint, c-consistency, borrowed from logic-based approaches, can be imposed. A set of premises S is c-consistent if no contradiction (ϕ and −ϕ) can be strictly derived from S. A c-SAF variant mandates that all arguments within the framework must be c-consistent.
+2.2.2 Attack and Defeat Mechanisms
+In ASPIC+, the outcome of a conflict (attack) depends on whether it successfully translates into a defeat.
+• Attack Definitions: Undercutting attacks are successful if Conc(A)=−n(r) for a defeasible rule r in B. Undermining attacks target ordinary premises ϕ, where Conc(A)=−ϕ. Rebutting attacks target defeasible conclusions ϕ where Conc(A)=−ϕ.
+• Defeat Resolution: The success of undermining and rebutting attacks is contingent upon a specified argument preference ordering (≺). An attack from A on B
+′
+ succeeds as a defeat if B
+′
+ is not strictly preferred to A (B
+′
+
+≺A). Crucially, undercutting attacks succeed as defeats independently of preferences.
+• Structured AF (SAF): The outcome of the process is a (c-)SAF, defined as a triple ⟨A,C,≺⟩, where A is the argument set, C is the attack relation, and ≺ is the preference ordering.
+2.2.3 Generating Abstract AFs and Semantics
+The SAF translates directly into a Dung-style Abstract Argumentation Framework (AF=(A,D)), where D is the defeat relation derived from the SAF. The acceptability status of arguments (e.g., conflict-free, admissible, grounded, preferred, stable) is then determined by applying Dung's semantics to (A,D). A well-formed formula (ϕ) is considered justified if all, or at least one, extension contains an argument concluding ϕ.
+2.3 The Basic Framework with Possibly Non-Symmetric Negation
+To enhance generality and accommodate formalisms like Assumption-Based Argumentation (ABA) that use negation-as-failure, ASPIC+ introduces a generalized contrariness function (−) that maps wffs in L to 2
+L
+.
+This generalization formalizes two distinct types of conflict:
+1. Contradictory: Symmetric conflict (ϕ=−ψ) where ϕ∈ψ and ψ∈ϕ. Classical negation is a specific case.
+2. Contrary: Asymmetric conflict (ϕ is a contrary of ψ) where ϕ∈ψ but ψ∈
+/
+ϕ. This is vital for modeling logical languages incorporating concepts like negation as failure (∼α), where α is a contrary of ∼α.
+The introduction of contraries necessitates modifications to the defeat relation: if an argument A contrary rebuts or contrary undermines another argument, this attack succeeds independently of preferences, provided certain "well-formed" conditions are met (i.e., the attacked consequent is neither an axiom nor a strict rule consequent). This ensures that specific counterarguments inherent to the semantic structure of the language automatically succeed.
+
+Instantiating ASPIC+ Framework: Rules, Preferences, and Rationality
+
+The following report constitutes a rigorous, detailed, and thorough examination of Section 3 of the source, "Abstract Rule-Based Argumentation" (rbaIfcologCRC.pdf), which addresses the crucial process of instantiating the ASPIC+ framework. This section provides necessary guidelines for defining the constituent elements of an Argumentation Theory (AT), particularly focusing on achieving formal rigor and satisfying established rationality postulates.
+--------------------------------------------------------------------------------
+III. Analysis of Section 3: Instantiating the ASPIC+ Framework
+Section 3 of the source serves as a practical and theoretical guide for developers seeking to specify an instantiation of ASPIC+, outlining best practices for defining the core components: the inference rules, the knowledge base premises, and the argument preference ordering.
+3.1 Choosing Strict and Defeasible Rules
+The definition of the strict rules (R 
+s
+​
+ ) and defeasible rules (R 
+d
+​
+ ) within the Argumentation System (AS) significantly influences the resultant framework's properties.
+3.1.1 Domain Specific Strict Inference Rules and Closure
+ASPIC+ permits the specification of domain-specific strict inference rules that encapsulate definitional knowledge, such as the relationship between "Married" and "¬Bachelor" (Example 3.1).
+A key recommendation for constructing robust argumentation theories is ensuring that the AT is closed under transposition.
+• Definition of Closure under Transposition: An AT is closed under transposition if, whenever a strict rule ϕ 
+1
+​
+ ,…,ϕ 
+n
+​
+ →ψ is in R 
+s
+​
+ , then for every antecedent ϕ 
+i
+​
+ , the transposed rule ϕ 
+1
+​
+ ,…,ϕ 
+i−1
+​
+ ,−ψ,ϕ 
+i+1
+​
+ ,…,ϕ 
+n
+​
+ →−ϕ 
+i
+​
+  is also in R 
+s
+​
+ .
+• Rationale: This property adheres to the logical meaning of a strict rule: if the consequent (ψ) is guaranteed by the antecedents (ϕ 
+1
+​
+ ,…,ϕ 
+n
+​
+ ), then the negation of the consequent (−ψ) logically dictates that at least one of the antecedents cannot hold. Ensuring closure under transposition is essential, as its absence can lead to violations of direct and indirect consistency in the resulting extension.
+3.1.2 Strict Inference Rules Based on Deductive Logics
+For applications where strict rules are reserved for general patterns of deductive inference rather than domain-specific definitions, ASPIC+ permits basing R 
+s
+​
+  on a deductive logic of choice.
+1. Crude Approach: This involves populating R 
+s
+​
+  with all propositionally valid inferences over the chosen logical language L. Specifically, S→ϕ∈R 
+s
+​
+  if and only if S classically entails ϕ ($\left.S \models_{PL} \phi\right$) for any finite set S⊆L. This approach inherently ensures that R 
+s
+​
+  is closed under transposition due to the properties of classical logic.
+2. Sophisticated Approach: This method incorporates an existing axiomatic system for the chosen logic, placing its axioms in K 
+n
+​
+  and its limited set of inference rules (e.g., Modus Ponens) in R 
+s
+​
+ .
+While the sophisticated approach may not explicitly contain rules like Modus Tollens (a transposition), the desired contrapositive reasoning can still be enforced if the strict consequence operator (⊢) itself contraposes.
+• Definition of Closure under Contraposition: An AT is closed under contraposition if for all S⊆L,s∈S and ϕ, if S⊢ϕ, then S∖{s}∪{−ϕ}⊢−s.
+Closure under contraposition, like closure under transposition, is a necessary requirement for ensuring the satisfaction of key rationality postulates.
+3.1.3 Choosing Defeasible Inference Rules
+The philosophical view on defeasible rules affects how they are modeled in ASPIC+:
+1. Inference Licenses: Some philosophers view all defeasible generalizations as inference licenses that exist at the metalevel and cannot be expressed as object-level formulae in L. In this view, they are exclusively formulated as domain-specific defeasible rules in R 
+d
+​
+ .
+2. Object-Level Conditionals: Other logicians prefer to express contingent knowledge in the object language L, often using a new conditional connective (e.g., ;), where p;q is read as "If p then normally q." Here, these conditionals (p;q) are placed in the knowledge base K 
+p
+​
+ , and general inference schemas like defeasible Modus Ponens (ϕ;ψ,ϕ⇒ψ) are placed in R 
+d
+​
+ .
+This latter approach, based on model-theoretic semantics for nonmonotonic logics, is recognized as generating a different argument structure and different conflict mechanisms compared to using domain-specific rules (Example 3.1 revisited). Importantly, some researchers base their choice of defeasible rules not solely on logical semantics but on criteria related to human cognition, such as John Pollock's epistemology or established argument schemes (discussed further in Section 3.5).
+3.2 Choosing Argument Preference Orderings
+The ASPIC+ framework utilizes an abstract argument preference ordering (≺) to determine whether an attack succeeds as a defeat. This ordering must be derived from underlying partial preference relations: ≤ on defeasible rules (R 
+d
+​
+ ) and ≤ 
+′
+  on ordinary premises (K 
+p
+​
+ ). Since arguments often involve sets of rules or premises, the process requires defining a strict set ordering (≺ 
+s
+​
+ ) to lift these individual preferences to the argument level.
+The set ordering ≺ 
+s
+​
+  ensures that arguments with empty sets of defeasible elements (e.g., strict and firm arguments) are generally preferred over those that contain fallible elements. Two common set comparison methods are defined:
+• Elitist (≺ 
+Eli
+​
+ ): Compares sets based on the minimal (weakest) element in each set. Γ≺ 
+Eli
+​
+ Γ 
+′
+  if there exists some element X in Γ such that X is strictly preferred to every element Y in Γ 
+′
+ .
+• Democratic (≺ 
+Dem
+​
+ ): Compares sets based on the maximal (strongest) element in each set. Γ≺ 
+Dem
+​
+ Γ 
+′
+  if for every element X in Γ, there exists some element Y in Γ 
+′
+  such that X is strictly less preferred than or equal to Y.
+Two main lifting principles are employed using these set orderings:
+1. Last-Link Principle (Definition 3.6)
+The last-link principle focuses exclusively on the last defeasible inference rule(s) applied in the argument. It prefers argument A over B (A≺B) if the last defeasible rules of A are strictly preferred (≺ 
+s
+​
+ ) over the last defeasible rules of B.
+• Application Context: The last-link ordering is often argued to be appropriate for reasoning with legal or normative rules, where the final step of reasoning is often considered the most critical point of conflict. For example, in a legal context, the conflict is between two competing rules (e.g., denial of access), and the initial conditions that triggered the argument chain (e.g., snoring) are considered less relevant for resolving that particular rule conflict.
+2. Weakest-Link Principle (Definition 3.8)
+The weakest-link principle considers all defeasible rules (DefRules(A)) and all ordinary premises (Prem 
+p
+​
+ (A)) in the argument. An argument A is preferred over B (A≺B) if its defeasible rules and/or ordinary premises, when compared using ≺ 
+s
+​
+ , are preferred over those of B.
+• Application Context: The weakest-link ordering is generally favored for epistemic reasoning (reasoning about belief/knowledge), as the uncertainty associated with premises and early inference steps should propagate to weaken the final conclusion. This approach reflects the intuition that the argument is only as strong as its weakest fallible component.
+3.3 The Rationality Postulates of Caminada and Amgoud (2007)
+A primary goal of the ASPIC+ metatheory is to define conditions under which an instantiation is "well-behaved," meaning the resulting extensions satisfy the rationality postulates defined by Caminada and Amgoud (2007). These postulates apply to any complete extension E of the generated AF.
+• Sub-argument Closure: If argument A is in E, then all sub-arguments of A must also be in E.
+• Closure under Strict Rules: The set of conclusions of arguments in E must be closed under the application of strict rules (R 
+s
+​
+ ).
+• Direct Consistency: The set of conclusions of arguments in E must not contain any two formulae that are contraries or contradictories of each other (ϕ,ψ such that ψ∈ϕ).
+• Indirect Consistency: The strict closure (Cl(S)) of the set of conclusions of arguments in E must be directly consistent.
+Conditions for Postulate Satisfaction
+Satisfaction of these postulates is guaranteed if the Structured Argumentation Framework (SAF) is well-defined. The requirements for a well-defined SAF include:
+1. Logical Properties: The AT must be closed under transposition or closed under contraposition. Failure to enforce one of these properties can lead to consistency violations because arguments with contradictory conclusions may exist simultaneously in an extension if the corresponding counterargument cannot be generated through strict closure.
+2. Axiom Consistency: The set of axioms (K 
+n
+​
+ ) must be indirectly consistent (i.e., Cl 
+R 
+s
+​
+ 
+​
+ (K 
+n
+​
+ ) is consistent).
+3. Well-Formedness: If a formula ϕ is a contrary of ψ, then ψ cannot be an axiom or the consequent of a strict rule. This property is particularly relevant when generalizing conflict using the contrary function (e.g., modeling negation as failure).
+4. Reasonable Ordering: The preference ordering (≺) must be reasonable. This condition mandates several properties, fundamentally ensuring that the preference relation is consistent and determined exclusively by fallible elements:
+    ◦ Strict and firm arguments are strictly preferred over all plausible or defeasible arguments.
+    ◦ Applying strict rules to an argument does not weaken its standing relative to other arguments.
+    ◦ The ordering must satisfy an acyclicity constraint (i.e., preventing preference cycles).
+The weakest-link and last-link orderings (Definitions 3.6 and 3.8) are recognized as satisfying the conditions necessary to be considered reasonable orderings, provided their underlying strict set ordering (≺ 
+s
+​
+ ) is "reasonable inducing".
+3.4 On the Necessity of ASPIC+ Components
+Section 3 further engages in a critical meta-analysis of the core components of ASPIC+, examining whether the expressive power afforded by all elements (knowledge bases, strict rules, preferences, defeasible rules) is truly necessary or if they can be reduced or eliminated.
+• Knowledge Bases (KB): Although some formalisms dispense with explicit KBs (encoding premises as rules with empty antecedents), retaining the distinction between knowledge (premises) and inference rules is standard practice in logic and facilitates the systematic study of logical consequence notions encoded in R 
+s
+​
+ .
+• Strict Rules and Axiom Premises: While theoretical results exist showing that a SAF satisfying rationality postulates under the weakest-link ordering can be translated into an equivalent SAF without strict rules or axioms, the philosophical distinction between infallible and fallible information, and deductive versus presumptive inference, justifies retaining these elements in a general framework.
+• Preferences: Although methods exist to encode preferences into rule sets (especially in ABA contexts), these methods often fail to cover generalized argument orderings like the weakest-link principle, which depends on global properties of the argument structure. Therefore, retaining explicit preference mechanisms is essential for generality.
+• Defeasible Rules: This is perhaps the most controversial element. The use of defeasible rules permits attacks on the inference steps themselves (undercutting), or on the conclusions of defeasible inferences (rebutting).
+    ◦ Classical Simulation Argument: Critics argue these attacks can be simulated using only strict rules by adding explicit normality premises (e.g., "our senses functioned normally") that can be undermined.
+    ◦ ASPIC+ Defense: The defense is twofold: first, deductive simulations using classical logic often yield counterintuitive results, particularly violating non-contraposition, which is undesirable for modeling empirical generalizations. Second, modeling defeasible inferences explicitly aligns with the goal of characterizing logical modes of reasoning in a way that corresponds with human debate and the "everyday practice of ‘jumping to defeasible conclusions’".
+3.5 Argument Schemes and Critical Questions
+ASPIC+ offers a systematic method for reconstructing argument schemes—stereotypical non-deductive patterns of reasoning—developed in informal argumentation theory, such as those formulated by John Pollock or Douglas Walton.
+• Modeling Schemes: Argument schemes are formalized as defeasible inference rules in R 
+d
+​
+  (e.g., Pollock’s perception scheme: Sees(x,ϕ)⇒ϕ).
+• Modeling Critical Questions (CQs): Critical questions associated with a scheme are mapped to specific counterarguments:
+    ◦ CQs challenging a premise (e.g., "Is A in the position to know?") correspond to undermining attacks on the premise.
+    ◦ CQs challenging the applicability of the inference rule (e.g., "Is A an honest source?") correspond to undercutting attacks, formalized via a defeasible rule whose conclusion is the negation of the scheme's name (e.g., ¬Credible(x)⇒¬dw(x,ϕ)).
+This systematic reconstruction of schemes within ASPIC+ enables the formal analysis of complex evidential reasoning chains, where an overall claim relies on sequential applications of multiple schemes (e.g., witness testimony drawing on position to know, memory, and perception schemes).
+
+
+ASPIC+ Relations to Argumentation Formalisms and NMR
+
+This report presents a rigorous, detailed, and thorough analysis of Section 4 of the source "Abstract Rule-Based Argumentation" (rbaIfcologCRC.pdf), focusing on the intricate relationships and formal connections between the ASPIC+ framework and various alternative formalisms in computational argumentation and non-monotonic reasoning (NMR).
+--------------------------------------------------------------------------------
+IV. Analysis of Section 4: Relationship with Other Argumentation Formalisms
+Section 4 establishes ASPIC+'s role as a comprehensive and generalized framework capable of characterizing, reconstructing, and extending several prominent structured and logic-based argumentation systems and non-monotonic formalisms. The flexibility inherent in ASPIC+'s foundational definitions allows it to serve as an encompassing metalanguage for comparative analysis.
+4.1 Assumption-Based Argumentation (ABA)
+Assumption-Based Argumentation (ABA) is a foundational framework originating from attempts to formalize negation as failure in logic programming, subsequently evolving into a general framework for non-monotonic logics. ABA is defined by a deductive system based on inference rules and assumptions formulated in a logical language.
+Distinguishing Features of ABA
+In contrast to ASPIC+, ABA only permits attacks on an argument's assumptions, thus rendering its underlying rules effectively strict inference rules. Conflict is modeled minimally: an argument using an assumption β is attacked by any argument deriving the contrary conclusion  
+β
+​
+ .
+Reconstructing ABA in ASPIC+
+The abstract nature of ABA, specifically the version formulated by Dung et al. (2007), can be precisely reconstructed as a special case of the ASPIC+ framework, particularly the generalized version incorporating the non-symmetric contrariness function (Section 2.3).
+The mapping of an ABA framework (ABF=(L 
+ABF
+​
+ ,R 
+ABF
+​
+ ,A, 
+⋅
+  
+ABF
+​
+ )) to a corresponding ASPIC+ Argumentation Theory (AT 
+ABF
+​
+ ) is highly constrained:
+1. Rules: The ASPIC+ rules (R 
+AT
+​
+ ) consist exclusively of strict rules (R 
+s
+​
+ ), which are identically the rules R 
+ABF
+​
+  of the ABA deductive system. The set of defeasible rules (R 
+d
+​
+ ) is empty.
+2. Knowledge Base: The ABA assumptions (A) are mapped directly to ASPIC+'s ordinary premises (K 
+p
+​
+ =A). The set of axiom premises (K 
+n
+​
+ ) is empty.
+3. Conflict and Preferences: The ASPIC+ contrariness function ( 
+⋅
+  
+AT
+​
+ ) models the ABA contrary function ( 
+⋅
+  
+ABF
+​
+ ). The naming function n is undefined, and importantly, there are no preferences.
+This construction establishes a strong formal equivalence: the existence of an argument in the ABF corresponds directly to the existence of an argument in the AT 
+ABF
+​
+ . Furthermore, there is a one-to-one correspondence between the extensions of the ABF and the extensions of the resulting ASPIC+ framework under semantics subsumed by complete semantics. This reconstruction is valuable as it allows the conditions under which ABA satisfies the established rationality postulates (e.g., by ensuring strict rules satisfy transposition properties) to be systematically identified within the ASPIC+ metatheory.
+Reconstructing ASPIC+ in ABA
+The inverse translation is also possible, albeit for a restricted fragment of ASPIC+ that lacks knowledge bases and preferences. Dung and Thang (2014) demonstrated that ASPIC+'s defeasible rules (p 
+1
+​
+ ,…,p 
+n
+​
+ ⇒q) can be effectively simulated in ABA by constructing a strict rule: di,p 
+1
+​
+ ,…,p 
+n
+​
+ ,not¬q→q, where di (the ASPIC+ rule name) and not¬q are defined as ABA assumptions with appropriate contraries. Under these constraints, the resulting ABA framework validates the same conclusions as the original ASPIC+ Structured Argumentation Framework (SAF).
+4.2 Tarskian Abstract Logics and Classical-Logic Argumentation
+ASPIC+ offers a robust reconstruction and extension of argumentation approaches based on Tarskian abstract logics, including classical-logic argumentation.
+Tarskian Abstract Logics
+Tarskian abstract logic assumes a logical language L and a general monotonic consequence operator Cn. Arguments are defined as pairs (S,p), where S is a minimally consistent premise set deriving the conclusion p via Cn.
+ASPIC+ formalizes this abstract approach by selecting strict rules (R 
+s
+​
+ ) such that S→p∈R 
+s
+​
+  if and only if p∈Cn(S) (for finite S), setting defeasible rules (R 
+d
+​
+ ) to empty, and mapping all premises Σ to ordinary premises (K 
+p
+​
+ =Σ). This provides an argumentation account extended with preferences.
+Crucially, when combined with a reasonable argument preference ordering ≺ (possibly derived from an ordering ≤ 
+′
+  on Σ), the resulting c-SAF (requiring consistent premises for arguments) is shown to be well-defined. This ensures the satisfaction of rationality postulates like strict closure and consistency.
+Classical-Logic Argumentation (CA)
+Classical-Logic Argumentation (CA), which defines arguments based on minimal classical consequences (⊨) from consistent premise sets, is instantiated by setting the consequence operator Cn equal to the classical consequence operator. This requires defining R 
+s
+​
+  such that S→p∈R 
+s
+​
+  if and only if S⊨p.
+ASPIC+'s extension of CA with preferences is theoretically significant because in CA (and other Tarskian logic approaches), the lack of intrinsic non-monotonic conflict resolution mechanisms results in a one-to-one correspondence between the maximal consistent subsets of the knowledge base (Σ) and the stable/preferred extensions of the resulting AF. The use of ASPIC+'s reasonable preferences thus supplies the necessary "extra-logical" means to systematically arbitrate among conflicts derived from a classically inconsistent knowledge base.
+4.3 Carneades
+The Carneades system, known for its focus on argument schemes, exceptions, and flexible proof standards (such as preponderance of the evidence), can be successfully reconstructed within ASPIC+ using a generalized contrariness relation.
+The reconstruction involves modeling the structural assessment inherent in Carneades using two sequential defeasible rules for every Carneades argument a=⟨P,E,c⟩:
+1. Applicability: P⇒ 
+appa
+​
+ arga (If premises P hold, a is applicable).
+2. Acceptability: arga⇒ 
+acca
+​
+ c (If a is applicable, its conclusion c is acceptable).
+Facts provided by the audience are mapped to axiom premises (K 
+n
+​
+ ). Due to the strong non-circularity assumptions inherent in Carneades’ inference graph, the ASPIC+ reconstruction guarantees that the resulting SAF possesses a unique extension across all Dungean semantics. Furthermore, the justified conclusions of arguments in the ASPIC+ framework correspond exactly to the acceptable conclusions in Carneades.
+4.4 Defeasible Logic Programming (DeLP)
+Defeasible Logic Programming (DeLP) shares structural similarities with ASPIC+, employing strict and defeasible rules over a predicate-logic literal language, and incorporating an argument ordering. DeLP arguments align with ASPIC+ arguments but require an additional constraint: their conclusions must be consistent under the application of strict rules (Conc(A)
+
+⊢ϕ,¬ϕ).
+A core distinction lies in the evaluation method: DeLP does not generate Dung AFs but instead utilizes a proprietary concept of warrant defined via an argument game, conceptually similar to the proof theory for grounded semantics but with differing game rules regarding defeat strength and argument reuse. Establishing a formal connection between DeLP and abstract argumentation theory would be facilitated by adopting the standard grounded semantics game rules within DeLP's warrant definition, which would aid in the analysis of its adherence to rationality postulates.
+4.5 ASPIC+ Characterisations of Non-Monotonic Reasoning Formalisms
+ASPIC+ is capable of characterizing sophisticated NMR formalisms by providing them with an explicit, argument-based semantics.
+Logic Programming
+Logic Programming is instantiated by defining defeasible rules as program rules, setting strict rules and axioms to empty, and modeling negation as failure assumptions as ordinary premises using the ASPIC+ generalized contrariness function (where α is a contrary of ∼α).
+Preferred Subtheories (PS)
+Brewka's PS (1989), based on a totally ordered set of propositional classical formulae (Σ), is characterized by instantiating ASPIC+ as a Classical-Logic Argumentation theory. When the argument ordering is defined via the weakest-link principle using the elitist set comparison (≺ 
+Eli
+​
+ ) and the total ordering on Σ, each maximally consistent Preferred Subtheory corresponds precisely to the premises of arguments within a stable extension. Thus, sceptical (credulous) PS inferences are equivalent to sceptically (credulously) justified formulae under stable semantics.
+Prioritised Default Logic (PDL)
+Prioritised Default Logic (Brewka, 1994a), which includes a priority ordering (≺ 
+D
+​
+ ) on defaults, is characterized by a complex ASPIC+ instantiation:
+1. Rules and Knowledge: Strict rules (R 
+s
+​
+ ) characterize classical logic inference, and axioms (K 
+n
+​
+ ) are the set W of first-order formulae. Defaults are modeled as defeasible rules (R 
+d
+​
+ ).
+2. Preference: A linear structure preference ordering (≺ 
+SP
+​
+ ) is derived from ≺ 
+D
+​
+  to account for dependencies. The argument preference is then defined using the weakest-link principle based on this ≺ 
+SP
+​
+  ordering. This specialized ASPIC+ framework yields a unique stable extension whose conclusions correspond exactly to the unique extension E of the PDL theory.
+4.6 Relationship with Developments of Abstract Argumentation Frameworks
+The generality of ASPIC+ enables its application to and analysis of various extensions proposed for Dung's Abstract Argumentation Frameworks (AFs).
+Preference-Based AFs (PAFs)
+PAFs (⟨A,attacks,≺⟩) incorporate preferences directly into the defeat definition (A defeats B if A attacks B and A
+
+≺B). However, when instantiated with structured arguments, this simple preference application often results in violations of fundamental rationality postulates, particularly sub-argument closure. The structural insight provided by ASPIC+ reveals that to maintain rationality, the preference ordering must be applied only at the direct point of conflict (e.g., comparing the attacking argument A with the directly attacked subargument B 
+′
+  or premise ϕ), a constraint absent in abstract PAFs.
+Extended Argumentation Frameworks (EAFs)
+EAFs, which allow arguments to attack the attacks between other arguments (often used to model preference arguments), can be instantiated by E-ASPIC+. E-ASPIC+ modifies the basic framework to generate a special class of bounded hierarchical EAFs, incorporating arguments that express preferences over other arguments via a dedicated function, ensuring the system remains well-defined and satisfies the rationality postulates.
+Abstract Support Relations
+The ASPIC+ notion of a subargument implicitly instantiates certain abstract support relations. The subargument relation satisfies constraints necessary for necessary support in SuppAFs (Argument A defeats B implies A defeats any argument C supported by B). Using Pollock's definition of p-defeat (direct defeat) and mapping the immediate subargument relation to the support relation, the Dungean semantics for the resulting SuppAF are provably equivalent to the Dungean semantics for the standard ASPIC+ AF.
+However, analysis suggests that explicit support relations may often be redundant when structure is maintained. Cases motivating support (e.g., A supporting premise ϕ in B) frequently imply the existence of auxiliary arguments generated naturally by the underlying premises and rules, leading to the conclusion that standard AF evaluation, correctly instantiated by ASPIC+, is sufficient.
+Dynamics of Argumentation
+The study of dynamics (e.g., argument addition or deletion) at the abstract level is often constrained by its lack of structural awareness. Abstract models cannot account for the properties unique to structured frameworks, such as the impossibility of attacking strict and firm arguments, the mandatory persistence of undercutting attacks regardless of preference, or the hierarchical dependence where deleting a subargument implies deleting the parent argument. Studying dynamics within the structured ASPIC+ model, as explored by Modgil and Prakken (2012) regarding preference dynamics, is necessary to address the subtleties missed by purely abstract analyses.
+
