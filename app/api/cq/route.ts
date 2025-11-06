@@ -1,6 +1,7 @@
 // app/api/cq/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { computeAspicConflictMetadata } from '@/lib/aspic/conflictHelpers';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 export async function POST(req: NextRequest) {
@@ -71,7 +72,20 @@ export async function POST(req: NextRequest) {
         console.error('[cq] Failed to create ATTACK move:', err);
       }
       
-      await prisma.conflictApplication.create({
+      // Compute ASPIC+ metadata for ConflictApplication
+      const aspicMetadata = computeAspicConflictMetadata(
+        null, // No ASPIC+ computation in this legacy endpoint
+        {
+          attackType: attachCA.attackType,
+          targetScope: attachCA.targetScope,
+          cqKey,
+          schemeKey,
+        },
+        attachCA.conflictingClaimId,
+        attachCA.conflictedArgumentId || attachCA.conflictedClaimId
+      );
+      
+      await (prisma as any).conflictApplication.create({
         data: {
           deliberationId,
           createdById: String(authorId || 'self'),
@@ -82,6 +96,10 @@ export async function POST(req: NextRequest) {
           conflictedClaimId: attachCA.conflictedClaimId ?? null,
           // Link to ATTACK move for dialogue provenance
           createdByMoveId: attackMoveId,
+          // ASPIC+ Integration - Phase 1d
+          aspicAttackType: aspicMetadata.aspicAttackType,
+          aspicDefeatStatus: aspicMetadata.aspicDefeatStatus,
+          aspicMetadata: aspicMetadata.aspicMetadata,
         }
       }).catch(()=>{});
     }

@@ -5,16 +5,23 @@ import { prisma } from "@/lib/prismaclient";
  * Creates AifNode for each act that doesn't have one.
  * Updates locusPath and locusRole.
  * 
- * Phase 1: Ludics-AIF Integration
+ * Phase 1e: Enhanced with ASPIC+ CA-node generation
+ * 
+ * When a LudicAct has ASPIC+ metadata in metaJson.aspic, this function:
+ * 1. Creates standard I/RA nodes for the act itself
+ * 2. Creates CA-nodes representing ASPIC+ attacks/defeats
+ * 3. Creates appropriate AifEdges linking attacker → CA → defender
  */
 export async function syncLudicsToAif(deliberationId: string): Promise<{
   nodesCreated: number;
   nodesUpdated: number;
   edgesCreated: number;
+  caNodesCreated: number; // Phase 1e
 }> {
   let nodesCreated = 0;
   let nodesUpdated = 0;
   let edgesCreated = 0;
+  let caNodesCreated = 0; // Phase 1e
 
   // 1. Fetch all LudicActs for this deliberation
   const acts = await prisma.ludicAct.findMany({
@@ -27,7 +34,7 @@ export async function syncLudicsToAif(deliberationId: string): Promise<{
   });
 
   if (acts.length === 0) {
-    return { nodesCreated, nodesUpdated, edgesCreated };
+    return { nodesCreated, nodesUpdated, edgesCreated, caNodesCreated };
   }
 
   // 2. Fetch existing AifNodes for these acts (query separately for now)
@@ -97,6 +104,25 @@ export async function syncLudicsToAif(deliberationId: string): Promise<{
             }
           }
         }
+        
+        // Phase 1e: Create CA-node if ASPIC+ attack metadata present
+        const aspicMeta = (act.metaJson as any)?.aspic;
+        if (aspicMeta && aspicMeta.attackType) {
+          const caResult = await createCANodeForAspicAttack(
+            deliberationId,
+            act,
+            aifNode,
+            aspicMeta,
+            acts,
+            nodesByActId
+          );
+          
+          if (caResult.caNodeCreated) {
+            caNodesCreated++;
+            edgesCreated += caResult.edgesCreated;
+          }
+        }
+        
       } catch (err) {
         console.error(`[ludics] Failed to create AifNode for act ${act.id}:`, err);
       }
@@ -120,7 +146,7 @@ export async function syncLudicsToAif(deliberationId: string): Promise<{
     }
   }
 
-  return { nodesCreated, nodesUpdated, edgesCreated };
+  return { nodesCreated, nodesUpdated, edgesCreated, caNodesCreated };
 }
 
 /**
@@ -146,4 +172,106 @@ function mapActToNodeKind(act: any): string {
   
   // Default: treat as locution in dialogue
   return "DM";
+}
+
+/**
+ * Phase 1e: Create CA-node for ASPIC+ attack
+ * 
+ * Creates a Conflict Application node representing the ASPIC+ attack/defeat,
+ * and links attacker → CA → defender with appropriate AifEdges.
+ * 
+ * @param deliberationId - Deliberation context
+ * @param attackerAct - LudicAct containing the attack
+ * @param attackerNode - AifNode for the attacker (just created)
+ * @param aspicMeta - ASPIC+ metadata from metaJson.aspic
+ * @param allActs - All LudicActs for finding defender
+ * @param nodesByActId - Existing AifNodes for linking
+ * @returns Result with counts
+ */
+async function createCANodeForAspicAttack(
+  deliberationId: string,
+  attackerAct: any,
+  attackerNode: any,
+  aspicMeta: any,
+  allActs: any[],
+  nodesByActId: Map<string, any>
+): Promise<{ caNodeCreated: boolean; edgesCreated: number }> {
+  let edgesCreated = 0;
+
+  try {
+    // Find defender act by targetId (argument or claim being attacked)
+    const defenderId = aspicMeta.defenderId || (attackerAct.metaJson as any)?.targetId;
+    if (!defenderId) {
+      console.warn(`[ludics] CA-node skipped: no defenderId in ASPIC+ metadata`);
+      return { caNodeCreated: false, edgesCreated: 0 };
+    }
+
+    // Find the defender's LudicAct by targetId
+    const defenderAct = allActs.find(
+      (a) => (a.metaJson as any)?.targetId === defenderId
+    );
+
+    if (!defenderAct) {
+      console.warn(`[ludics] CA-node skipped: defender act not found for ${defenderId}`);
+      return { caNodeCreated: false, edgesCreated: 0 };
+    }
+
+    const defenderNode = nodesByActId.get(defenderAct.id);
+    if (!defenderNode) {
+      console.warn(`[ludics] CA-node skipped: defender AifNode not found`);
+      return { caNodeCreated: false, edgesCreated: 0 };
+    }
+
+    // Create CA-node representing the ASPIC+ attack
+    const caNode = await (prisma as any).aifNode.create({
+      data: {
+        deliberationId,
+        nodeKind: "CA", // Conflict Application
+        locusPath: attackerAct.locus?.path ?? "0",
+        locusRole: "conflict",
+        text: `${aspicMeta.attackType} attack`, // e.g., "undermining attack"
+        nodeSubtype: "aspic_conflict",
+        dialogueMetadata: {
+          aspicAttackType: aspicMeta.attackType,
+          aspicDefeatStatus: aspicMeta.succeeded,
+          attackerId: aspicMeta.attackerId,
+          defenderId: aspicMeta.defenderId,
+          cqKey: aspicMeta.cqKey,
+          cqText: aspicMeta.cqText,
+          reason: aspicMeta.reason,
+          targetScope: aspicMeta.targetScope,
+        },
+      },
+    });
+
+    // Create edges: attacker → CA → defender
+    // Edge 1: Attacker supports the CA-node (source of attack)
+    await (prisma as any).aifEdge.create({
+      data: {
+        deliberationId,
+        sourceId: attackerNode.id,
+        targetId: caNode.id,
+        edgeRole: "attacks_via",
+        causedByMoveId: (attackerAct.metaJson as any)?.moveId ?? null,
+      },
+    }).catch(() => {}); // Ignore duplicates
+    edgesCreated++;
+
+    // Edge 2: CA-node targets the defender (attack application)
+    await (prisma as any).aifEdge.create({
+      data: {
+        deliberationId,
+        sourceId: caNode.id,
+        targetId: defenderNode.id,
+        edgeRole: "conflicts_with",
+        causedByMoveId: (attackerAct.metaJson as any)?.moveId ?? null,
+      },
+    }).catch(() => {}); // Ignore duplicates
+    edgesCreated++;
+
+    return { caNodeCreated: true, edgesCreated };
+  } catch (err) {
+    console.error(`[ludics] Failed to create CA-node:`, err);
+    return { caNodeCreated: false, edgesCreated: 0 };
+  }
 }

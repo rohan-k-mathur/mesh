@@ -7,6 +7,7 @@ import { TargetType } from '@prisma/client';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { syncLudicsToAif } from '@/lib/ludics/syncToAif';
 import { invalidateInsightsCache } from '@/lib/ludics/insightsCache';
+import { computeAspicConflictMetadata } from '@/lib/aspic/conflictHelpers';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 const CreateCA = z.object({
@@ -43,6 +44,19 @@ export async function POST(req: NextRequest) {
     ? await prisma.conflictScheme.findUnique({ where: { key: d.schemeKey }, select: { id:true, legacyAttackType:true, legacyTargetScope:true } })
     : null;
 
+  // Compute ASPIC+ metadata
+  const aspicMetadata = computeAspicConflictMetadata(
+    null, // No ASPIC+ computation in this endpoint yet
+    {
+      attackType: (d.legacyAttackType ?? scheme?.legacyAttackType ?? 'UNDERMINES') as any,
+      targetScope: (d.legacyTargetScope ?? scheme?.legacyTargetScope ?? 'premise') as any,
+      cqKey: (d.metaJson as any)?.cqKey,
+      schemeKey: d.schemeKey,
+    },
+    d.conflictingClaimId || d.conflictingArgumentId,
+    d.conflictedClaimId || d.conflictedArgumentId
+  );
+
   const created = await prisma.conflictApplication.create({
     data: {
       deliberationId: d.deliberationId,
@@ -57,6 +71,10 @@ export async function POST(req: NextRequest) {
       legacyTargetScope: d.legacyTargetScope ?? scheme?.legacyTargetScope ?? null,
       // NEW: CQ tracking metadata
       metaJson: d.metaJson ?? {},
+      // Phase 1d: ASPIC+ Integration
+      aspicAttackType: aspicMetadata.aspicAttackType,
+      aspicDefeatStatus: aspicMetadata.aspicDefeatStatus,
+      aspicMetadata: aspicMetadata.aspicMetadata,
       // Phase 1 dialogue provenance: will be linked to ATTACK move below
       // createdByMoveId: <set after ATTACK move created>
     },

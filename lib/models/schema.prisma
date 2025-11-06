@@ -2496,6 +2496,12 @@ model ConflictApplication {
   createdByMoveId String?
   createdByMove   DialogueMove? @relation("ConflictCreatedByMove", fields: [createdByMoveId], references: [id], onDelete: SetNull)
 
+  // ASPIC+ Integration - Phase 1d
+  // Formal argumentation semantics for attacks and defeats
+  aspicAttackType  String? // 'undermining' | 'rebutting' | 'undercutting'
+  aspicDefeatStatus Boolean? // true if attack succeeded as defeat (after preference check)
+  aspicMetadata    Json? // Full ASPIC+ attack details: { attackerId, defenderId, targetPremiseIndex, ruleId, preferenceResult, ... }
+
   scheme ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
   @@index([deliberationId])

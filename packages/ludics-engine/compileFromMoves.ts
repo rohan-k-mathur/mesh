@@ -7,6 +7,7 @@ import type { DialogueAct } from 'packages/ludics-core/types';
 import { withCompileLock } from './locks';
 import { Prisma } from '@prisma/client';
 import { delocate } from './delocate';
+import { extractAspicMetadataFromMove } from '@/lib/aspic/conflictHelpers';
 
 type Tx = Prisma.TransactionClient;
  type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
@@ -20,7 +21,11 @@ type Move = {
     expression?: string;
     cqId?: string;
     sourceDesignId?: string;
-    // legacy fields ok
+    // ASPIC+ fields from Phase 1c
+    aspicAttack?: any;
+    aspicMetadata?: any;
+    cqKey?: string;
+    cqText?: string;
   };
   targetType: 'argument'|'claim'|'card';
   targetId: string;
@@ -28,8 +33,13 @@ type Move = {
 };
 
 // -- helper: materialize acts out of a move payload (new path)
+// Enhanced for Phase 1e: Extract ASPIC+ metadata and preserve in act metadata
 function expandActsFromMove(m: Move) {
   const acts = m.payload?.acts ?? [];
+  
+  // Extract ASPIC+ metadata from DialogueMove payload (Phase 1e)
+  const aspicMetadata = extractAspicMetadataFromMove(m.payload ?? {});
+  
   return acts.map(a => ({
     polarity: a.polarity,                          // 'pos'|'neg'|'daimon'
     locusPath: a.locusPath ?? '0',
@@ -40,6 +50,8 @@ function expandActsFromMove(m: Move) {
     targetType: m.targetType,
     targetId: m.targetId,
     actorId: m.actorId,
+    // Phase 1e: Include ASPIC+ metadata for Ludics→AIF provenance
+    aspic: aspicMetadata,
   }));
 }
 
@@ -559,12 +571,14 @@ async function compileScopeActs(
           const locus = (a.locusPath && a.locusPath.trim()) ? a.locusPath.trim() : defaultAnchor;
           if (!locus) continue;
           
-          // Preserve metadata from expandActsFromMove
+          // Preserve metadata from expandActsFromMove (Phase 1e: includes ASPIC+)
           const meta = {
             moveId: a.moveId,
             targetType: a.targetType,
             targetId: a.targetId,
             actorId: a.actorId,
+            // Phase 1e: Include ASPIC+ metadata for AIF synchronization
+            ...(a.aspic ? { aspic: a.aspic } : {}),
           };
 
           if (a.polarity === 'pos') {
@@ -575,7 +589,7 @@ async function compileScopeActs(
                 ramification: Array.isArray(a.openings) ? a.openings : [],
                 expression: a.expression ?? '',
                 isAdditive: !!a.isAdditive,
-                meta, // Attach metadata
+                meta, // Attach metadata with ASPIC+ provenance
               },
             });
           } else if (a.polarity === 'neg') {
@@ -584,7 +598,7 @@ async function compileScopeActs(
               act: {
                 kind: 'PROPER', polarity: 'O', locus,
                 ramification: [], expression: a.expression ?? '',
-                meta, // Attach metadata
+                meta, // Attach metadata with ASPIC+ provenance
               },
             });
           } else if (a.polarity === 'daimon') {
