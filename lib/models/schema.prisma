@@ -102,6 +102,9 @@ model User {
   // Thesis builder relations
   authoredTheses Thesis[] @relation("AuthoredTheses")
 
+  // Source rating relations
+  sourceRatings SourceRating[]
+
   @@map("users")
 }
 
@@ -1624,6 +1627,7 @@ model Source {
   updatedAt     DateTime  @updatedAt
 
   citations Citation[]
+  ratings   SourceRating[]
 }
 
 model Citation {
@@ -1641,6 +1645,22 @@ model Citation {
   source Source @relation(fields: [sourceId], references: [id])
 
   @@unique([targetType, targetId, sourceId, locator]) // prevents dup cites
+}
+
+model SourceRating {
+  id        String   @id @default(cuid())
+  sourceId  String
+  userId    BigInt   // Changed to BigInt to match User.id
+  rating    Int // 1-10 scale for source quality
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, userId]) // One rating per user per source
+  @@index([sourceId])
+  @@index([userId])
 }
 
 model Annotation {

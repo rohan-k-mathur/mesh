@@ -96,7 +96,7 @@ function ThesisCard({
 }) {
   const statusColors = {
     DRAFT: "bg-slate-100 text-slate-700",
-    SUBMITTED: "bg-blue-100 text-blue-700",
+    SUBMITTED: "bg-sky-100 text-sky-700",
     PUBLISHED: "bg-green-100 text-green-700",
     ARCHIVED: "bg-neutral-100 text-neutral-700",
   };
@@ -109,7 +109,7 @@ function ThesisCard({
   };
 
   return (
-    <div className="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+    <div className="p-4 border border-slate-200 rounded-lg bg-slate-50 transition-colors">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
@@ -138,7 +138,7 @@ function ThesisCard({
             <div className="flex items-center gap-1">
               <FileText className="w-3 h-3" />
               <span>
-                {thesis._count.prongs} prong{thesis._count.prongs !== 1 ? "s" : ""}
+                {thesis._count.prongs} fork{thesis._count.prongs !== 1 ? "s" : ""}
               </span>
             </div>
             <div className="flex items-center gap-1">

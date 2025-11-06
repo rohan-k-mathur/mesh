@@ -62,6 +62,7 @@ import { HomSetComparisonChart } from "@/components/agora/HomSetComparisonChart"
 import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
 import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPanel";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
+import { EvidenceList } from "@/components/evidence/EvidenceList";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -1987,7 +1988,19 @@ const {
 
           {/* Sources TAB */}
           <TabsContent value="sources" className="w-full min-w-0 mt-4 space-y-4">
-            
+            <SectionCard
+              title="Evidence & Sources"
+              action={
+                <div className="text-xs text-neutral-500">
+                  Community-evaluated sources used across arguments and claims
+                </div>
+              }
+            >
+              <div className="text-sm text-neutral-600 mb-4">
+                All citations and sources referenced in this deliberation. Rate sources to help the community evaluate evidence quality.
+              </div>
+              <EvidenceList deliberationId={deliberationId} />
+            </SectionCard>
           </TabsContent>
 
           {/* THESIS TAB */}
