@@ -327,8 +327,9 @@ function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPa
     return (
       <div>
         <div className="mb-4">
+
           <h4 className="text-sm font-semibold text-white/90 mb-1">Challenge Argument</h4>
-          <p className="text-xs text-white/60">
+          <p className="text-xs text-white/60 ">
             Choose an attack type to challenge this argument&apos;s validity
           </p>
         </div>
@@ -345,15 +346,17 @@ function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPa
   return (
     <div>
       <div className="mb-4">
+        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+
         <h4 className="text-sm font-semibold text-white/90 mb-1">Challenge Argument</h4>
-        <p className="text-xs text-white/60">
+        <p className="text-xs text-white/60 mb-4">
           Choose an attack type to challenge this argument&apos;s validity
         </p>
-      </div>
+
       
       <div className="space-y-3">
         {/* Attack type explanations */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-4 mb-2">
           <div className="flex items-start gap-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
             <Zap className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
@@ -383,10 +386,10 @@ function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPa
               </div>
             </div>
           </div>
+                </div>
         </div>
-
-        {/* Attack Menu Component */}
-        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                {/* Attack Menu Component */}
+        <div className="p-4 mt-4 rounded-lg bg-white w-fit border border-white/10">
           <AttackMenuProV2
             deliberationId={deliberationId}
             authorId={authorId}
@@ -396,6 +399,8 @@ function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPa
             }}
           />
         </div>
+</div>
+
       </div>
     </div>
   );
@@ -450,13 +455,13 @@ function DefendPanel({ deliberationId, authorId, argument, onRefresh }: DefendPa
             Community defense helps strengthen arguments by providing additional support, backing, or alternative justifications.
           </div>
           
-          <div className="space-y-2 mb-4">
+          <div className="space-y-4 mb-4">
             <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <div className="flex items-start gap-3">
                 <Shield className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-white mb-1">Backing</div>
-                  <div className="text-xs text-white/60">
+                  <div className="text-xs text-white/90">
                     Provide additional evidence or reasoning to support the argument
                   </div>
                 </div>
@@ -468,13 +473,14 @@ function DefendPanel({ deliberationId, authorId, argument, onRefresh }: DefendPa
                 <Target className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-white mb-1">Reinforcement</div>
-                  <div className="text-xs text-white/60">
+                  <div className="text-xs text-white/90">
                     Strengthen the connection between premises and conclusion
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        <div className="p-4 rounded-lg bg-white w-fit border border-white/10">
 
           {/* Integrated CommunityDefenseMenu */}
           <CommunityDefenseMenu
@@ -485,6 +491,7 @@ function DefendPanel({ deliberationId, authorId, argument, onRefresh }: DefendPa
               onRefresh?.();
             }}
           />
+          </div>
         </div>
       </div>
     </div>

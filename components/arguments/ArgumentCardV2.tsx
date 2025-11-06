@@ -15,7 +15,8 @@ import {
   PanelBottomOpen,
   StepForward,
   MessageSquare,
-  Loader2
+  Loader2,
+  Link as LinkIcon
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttackMenuPro } from "./AttackMenuPro";
@@ -30,6 +31,7 @@ import { DialogueProvenanceBadge, type DialogueMoveKind } from "@/components/aif
 import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetailModal";
 import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
+import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -349,6 +351,8 @@ export function ArgumentCardV2({
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
   const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
   const [schemeDialogOpen, setSchemeDialogOpen] = React.useState(false);
+  const [citations, setCitations] = React.useState<any[]>([]);
+  const [loadingCitations, setLoadingCitations] = React.useState(false);
   
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
@@ -425,6 +429,48 @@ export function ArgumentCardV2({
     if (required === 0) return null;
     return { required, satisfied };
   }, [argCqData]);
+
+  // Fetch citations for the argument
+  React.useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLoadingCitations(true);
+      try {
+        const r = await fetch(`/api/arguments/${encodeURIComponent(id)}/citations`, { cache: "no-store" });
+        const j = await r.json().catch(() => ({}));
+        if (!cancel && j?.ok && j?.citations) {
+          setCitations(j.citations);
+        }
+      } catch {
+        // Silent fail - citations not critical
+      } finally {
+        if (!cancel) setLoadingCitations(false);
+      }
+    })();
+    return () => { cancel = true; };
+  }, [id]);
+
+  // Listen for citation changes
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail?.targetType === "argument" && e.detail?.targetId === id) {
+        // Refetch citations
+        (async () => {
+          try {
+            const r = await fetch(`/api/arguments/${encodeURIComponent(id)}/citations`, { cache: "no-store" });
+            const j = await r.json().catch(() => ({}));
+            if (j?.ok && j?.citations) {
+              setCitations(j.citations);
+            }
+          } catch {
+            // Silent fail
+          }
+        })();
+      }
+    };
+    window.addEventListener("citations:changed", handler);
+    return () => window.removeEventListener("citations:changed", handler);
+  }, [id]);
 
   // Fetch attacks when attacks section is expanded
   React.useEffect(() => {
@@ -508,6 +554,13 @@ export function ArgumentCardV2({
                 <h3 className="text-sm font-semibold text-slate-900 leading-snug">
                   {conclusion.text}
                 </h3>
+                
+                {/* Collapsible Claim Details */}
+                <ClaimDetailPanel 
+                  claimId={conclusion.id}
+                  deliberationId={deliberationId}
+                  className="mt-2"
+                />
               </div>
             </div>
             
@@ -608,6 +661,14 @@ export function ArgumentCardV2({
                 />
               )}
 
+              {/* Citations Badge */}
+              {citations.length > 0 && (
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
+                  <LinkIcon className="w-3 h-3" />
+                  <span>{citations.length}</span>
+                </div>
+              )}
+
               {/* Phase 2 Week 2: Ludics Badges */}
               {showLudicsBadges && ludicsInsights && (
                 <>
@@ -701,23 +762,32 @@ export function ArgumentCardV2({
                 premises.map((p, idx) => (
                   <div 
                     key={p.id}
-                    className="flex items-start gap-2 p-3 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors"
+                    className="flex flex-col gap-2 p-3 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors"
                   >
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-700 leading-relaxed">{p.text}</p>
+                    <div className="flex items-start gap-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-700 leading-relaxed">{p.text}</p>
+                        
+                        {/* Collapsible Claim Details */}
+                        <ClaimDetailPanel 
+                          claimId={p.id}
+                          deliberationId={deliberationId}
+                          className="mt-2"
+                        />
+                      </div>
+                      {/* Dialogue Actions for Premise Claim */}
+                      <DialogueActionsButton
+                        deliberationId={deliberationId}
+                        targetType="claim"
+                        targetId={p.id}
+                        locusPath="0"
+                        variant="icon"
+                        onMovePerformed={onAnyChange}
+                      />
                     </div>
-                    {/* Dialogue Actions for Premise Claim */}
-                    <DialogueActionsButton
-                      deliberationId={deliberationId}
-                      targetType="claim"
-                      targetId={p.id}
-                      locusPath="0"
-                      variant="icon"
-                      onMovePerformed={onAnyChange}
-                    />
                   </div>
                 ))
               ) : (
@@ -818,24 +888,24 @@ export function ArgumentCardV2({
               onToggle={() => toggleSection("assumptions")}
             />
             {expandedSections.assumptions && (
-              <div className="p-4 space-y-2 bg-blue-50/50">
-                <div className="text-xs text-blue-700 mb-3 flex items-center gap-2">
+              <div className="p-4 space-y-2 bg-sky-50/50">
+                <div className="text-xs text-sky-700 mb-3 flex items-center gap-2">
                   <AlertCircle className="w-3 h-3" />
                   <span>This argument relies on the following assumptions:</span>
                 </div>
                 {assumptionsData.assumptions.map((assumption: any, idx: number) => (
                   <div 
                     key={assumption.id}
-                    className="flex items-start gap-2 p-3 rounded-lg bg-white border border-blue-200 hover:border-blue-300 transition-colors"
+                    className="flex items-start gap-2 p-3 rounded-lg bg-white border border-sky-200 hover:border-sky-300 transition-colors"
                   >
-                    <span className="inline-flex items-center justify-center min-w-[1.75rem] h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+                    <span className="inline-flex items-center justify-center min-w-[1.75rem] h-7 rounded-full bg-sky-100 text-sky-700 text-xs font-bold shrink-0">
                       λ{idx + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-700 leading-relaxed">{assumption.text}</p>
                       <div className="flex items-center gap-3 mt-1.5 text-[10px]">
                         {assumption.weight !== undefined && (
-                          <span className="font-medium text-blue-700">
+                          <span className="font-medium text-sky-700">
                             weight: {assumption.weight.toFixed(2)}
                           </span>
                         )}
@@ -848,9 +918,60 @@ export function ArgumentCardV2({
                     </div>
                   </div>
                 ))}
-                <div className="text-[10px] text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">
+                <div className="text-[10px] text-sky-600 bg-sky-50 p-2 rounded border border-sky-200 mt-2">
                   💡 <strong>Tip:</strong> Retracting or challenging an assumption may affect this argument&apos;s confidence.
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CITATIONS SECTION */}
+        {citations.length > 0 && (
+          <div>
+            <SectionHeader
+              title="Evidence & Citations"
+              icon={LinkIcon}
+              count={citations.length}
+              expanded={expandedSections.assumptions}
+              onToggle={() => toggleSection("assumptions")}
+            />
+            {expandedSections.assumptions && (
+              <div className="p-4 space-y-2 bg-slate-50/50">
+                {citations.map((citation: any) => (
+                  <a
+                    key={citation.id}
+                    href={citation.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 p-3 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group"
+                  >
+                    <LinkIcon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0 group-hover:text-indigo-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-indigo-700 leading-tight">
+                        {citation.title}
+                      </p>
+                      {citation.authors && (
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          {Array.isArray(citation.authors) 
+                            ? citation.authors.map((a: any) => a.family || a.literal).join(", ")
+                            : citation.authors
+                          }
+                        </p>
+                      )}
+                      {citation.text && (
+                        <p className="text-xs text-slate-500 mt-1 italic border-l-2 border-slate-300 pl-2">
+                          &ldquo;{citation.text}&rdquo;
+                        </p>
+                      )}
+                      {citation.locator && (
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          {citation.locator}
+                        </p>
+                      )}
+                    </div>
+                  </a>
+                ))}
               </div>
             )}
           </div>

@@ -187,7 +187,7 @@ export function DesignTreeView({
       </div>
       
       {/* Tree: ONLY this design's acts */}
-      <div className={`design-content-container border rounded-b-lg bg-white/30 backdrop-blur ${
+      <div className={`design-content-container  max-h-[500px]  overflow-y-auto border rounded-b-lg bg-white/30 backdrop-blur ${
         isProponent ? 'border-sky-200' : 'border-rose-200'
       } ${viewMode === 'both' ? 'grid grid-cols-2 gap-2 p-2' : 'p-2'}`}>
         

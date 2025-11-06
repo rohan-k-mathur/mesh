@@ -463,7 +463,7 @@ export default function DeepDivePanel({
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'models' | 'dialogue' | 'ludics' | 'issues' | 'cq-review' | 'thesis' | 'assumptions' | 'hom-sets'>('debate');
+  const [tab, setTab] = useState<'debate' | 'arguments' | 'dialogue' | 'ludics' | 'admin' | 'sources' | 'thesis' | 'assumptions' | 'analytics'>('debate');
   const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
   const [dsMode, setDsMode] = React.useState(false); // Phase 3: Dempster-Shafer mode toggle
@@ -1557,14 +1557,14 @@ const {
 
           <TabsList className="w-full  items-center justify-center flex flex-1 mb-2">
             <TabsTrigger value="debate">Debate</TabsTrigger>
-            <TabsTrigger value="models">Models</TabsTrigger>
+            <TabsTrigger value="arguments">Arguments</TabsTrigger>
             <TabsTrigger value="dialogue">Dialogue</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
-            <TabsTrigger value="issues">Issues</TabsTrigger>
-            <TabsTrigger value="cq-review">CQ Review</TabsTrigger>
+            <TabsTrigger value="admin">Admin</TabsTrigger>
+            <TabsTrigger value="sources">Sources</TabsTrigger>
             <TabsTrigger value="thesis">Thesis</TabsTrigger>
             <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
-            <TabsTrigger value="hom-sets">Hom-Sets</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
           </div>
 
@@ -1626,7 +1626,7 @@ const {
           </TabsContent>
 
           {/* MODELS TAB */}
-          <TabsContent value="models" className="w-full min-w-0 space-y-4 mt-4">
+          <TabsContent value="arguments" className="w-full min-w-0 space-y-4 mt-4">
             {/* Phase 4: Scheme Breakdown for Selected Argument */}
            
 
@@ -1874,7 +1874,7 @@ const {
           </TabsContent> */}
 
           {/* ISSUES TAB */}
-          <TabsContent value="issues" className="w-full min-w-0 h-screen space-y-4">
+          <TabsContent value="admin" className="w-full min-w-0 h-screen space-y-4">
             <SectionCard
               title="Issues & Objections"
               action={
@@ -1926,10 +1926,6 @@ const {
   }}
 />
             </SectionCard>
-          </TabsContent>
-
-          {/* CQ REVIEW TAB */}
-          <TabsContent value="cq-review" className="w-full min-w-0 mt-4 space-y-4">
             <div className="p-6 bg-gradient-to-br from-sky-50 to-cyan-50 rounded-xl border-2 border-sky-200 shadow-sm">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-sky-500/20 to-cyan-500/20">
@@ -1986,6 +1982,12 @@ const {
                 For now, review responses within individual claims and arguments in the Debate tab.
               </p>
             </div>
+            
+          </TabsContent>
+
+          {/* Sources TAB */}
+          <TabsContent value="sources" className="w-full min-w-0 mt-4 space-y-4">
+            
           </TabsContent>
 
           {/* THESIS TAB */}
@@ -2069,7 +2071,7 @@ const {
           </TabsContent>
 
           {/* HOM-SETS TAB - Phase 3 Integration */}
-          <TabsContent value="hom-sets" className="w-full min-w-0 mt-4 space-y-4">
+          <TabsContent value="analytics" className="w-full min-w-0 mt-4 space-y-4">
             <HomSetsTab deliberationId={deliberationId} />
           </TabsContent>
         </Tabs>

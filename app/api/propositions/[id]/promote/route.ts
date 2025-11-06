@@ -36,17 +36,32 @@ await tx.proposition.update({
   data: { status: 'CLAIMED', promotedClaimId: claim.id, promotedAt: new Date() }
 });
 
-    // optional: copy citations
+    // Copy unified Citations from proposition to claim
+    const existingCitations = await tx.citation.findMany({
+      where: { targetType: 'proposition', targetId: p.id }
+    });
+    
+    if (existingCitations.length > 0) {
+      await tx.citation.createMany({
+        data: existingCitations.map(c => ({
+          targetType: 'claim',
+          targetId: claim.id,
+          sourceId: c.sourceId,
+          locator: c.locator,
+          quote: c.quote,
+          note: c.note,
+          relevance: c.relevance,
+          createdById: c.createdById
+        }))
+      });
+    }
+
+    // optional: copy legacy citations (deprecated)
     if (Array.isArray(body?.citations) && body.citations.length) {
       await tx.claimCitation.createMany({
         data: body.citations.map((uri: string) => ({ claimId: claim.id, uri, kind: 'secondary' }))
       }).catch(()=>void 0);
     }
-
-    await tx.proposition.update({
-      where: { id: p.id },
-      data: { status: 'CLAIMED', promotedClaimId: claim.id, promotedAt: new Date() }
-    });
 
     // optional: assert move for Ludics
     if (body?.assertMove !== false) {

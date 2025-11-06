@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThesisExportModal } from "@/components/thesis/ThesisExportModal";
+import { PropositionNodeView } from "@/components/thesis/PropositionNodeView";
 
 interface ThesisData {
   id: string;
@@ -35,20 +36,17 @@ interface ThesisData {
 export default function ThesisViewPage() {
   const params = useParams();
   const router = useRouter();
-
-  if (!params) {
-    return null;
-  }
-
-  const thesisId = params.thesisId as string;
-  const deliberationId = params.id as string;
-
   const [thesis, setThesis] = useState<ThesisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  const thesisId = params?.thesisId as string;
+  const deliberationId = params?.id as string;
+
   useEffect(() => {
+    if (!thesisId) return;
+    
     async function fetchThesis() {
       try {
         const res = await fetch(`/api/thesis/${thesisId}`);
@@ -64,6 +62,10 @@ export default function ThesisViewPage() {
 
     fetchThesis();
   }, [thesisId]);
+
+  if (!params) {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -422,29 +424,12 @@ function ContentNode({ node }: { node: any }) {
       attrs || {};
 
     return (
-      <div className="not-prose my-2 py-3 px-2 space-y-1 border-l-4 rounded-r-lg border-purple-300 bg-purple-100 text-purple-900">
-        <div className="flex items-start justify-between tracking-wide">
-          <div className="text-sm font-semibold uppercase tracking-wide opacity-70">
-            Proposition
-          </div>
-        </div>
-        <p className="text-base leading-relaxed">{propositionText}</p>
-        {mediaUrl && (
-          <div className="mt-3">
-            <img
-              src={mediaUrl}
-              alt="Proposition media"
-              className="max-w-md rounded-lg border border-slate-200"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          </div>
-        )}
-        {authorName && (
-          <p className="mt-2 text-xs opacity-60">— {authorName}</p>
-        )}
-      </div>
+      <PropositionNodeView
+        propositionId={propositionId}
+        propositionText={propositionText}
+        mediaUrl={mediaUrl}
+        authorName={authorName}
+      />
     );
   }
 

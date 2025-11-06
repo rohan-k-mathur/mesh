@@ -16,6 +16,7 @@ import { SchemePickerWithHierarchy } from "./SchemePickerWithHierarchy";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 import { Save } from "lucide-react";
+import CitationCollector, { type PendingCitation } from "@/components/citations/CitationCollector";
 export type AttackContext =
   | { mode: "REBUTS"; targetClaimId: string; hint?: string }
   | { mode: "UNDERCUTS"; targetArgumentId: string; hint?: string }
@@ -96,6 +97,7 @@ export function AIFArgumentWithSchemeComposer({
     }>
   >([]);
   const [err, setErr] = React.useState<string | null>(null);
+  const [pendingCitations, setPendingCitations] = React.useState<PendingCitation[]>([]);
 
   // NEW: drafts for inline creation
   const [conclusionDraft, setConclusionDraft] = React.useState(
@@ -357,6 +359,57 @@ export function AIFArgumentWithSchemeComposer({
       });
       setArgumentId(id);
       onCreated?.(id);
+      
+      // Attach citations to the newly created argument
+      if (pendingCitations.length > 0) {
+        await Promise.all(
+          pendingCitations.map(async (citation) => {
+            try {
+              // First resolve the source
+              let resolvePayload: any = {};
+              if (citation.type === "url") {
+                resolvePayload = { url: citation.value, meta: { title: citation.title } };
+              } else if (citation.type === "doi") {
+                resolvePayload = { doi: citation.value };
+              } else if (citation.type === "library") {
+                resolvePayload = { libraryPostId: citation.value, meta: { title: citation.title } };
+              }
+
+              const resolveRes = await fetch("/api/citations/resolve", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(resolvePayload),
+                signal: ctrl.signal,
+              });
+              const { source } = await resolveRes.json();
+              
+              if (!source?.id) throw new Error("Failed to resolve source");
+
+              // Then attach the citation
+              await fetch("/api/citations/attach", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  targetType: "argument",
+                  targetId: id,
+                  sourceId: source.id,
+                  locator: citation.locator,
+                  quote: citation.quote,
+                  note: citation.note,
+                }),
+                signal: ctrl.signal,
+              });
+            } catch (citErr) {
+              console.error("Failed to attach citation:", citErr);
+              // Continue with other citations even if one fails
+            }
+          })
+        );
+        // Clear citations after successful attachment
+        setPendingCitations([]);
+        // Notify listeners that citations changed
+        window.dispatchEvent(new CustomEvent("citations:changed", { detail: { targetType: "argument", targetId: id } }));
+      }
       
       // Build response for onCreatedDetail
       const responsePremises = hasStructuredPremises
@@ -648,6 +701,13 @@ export function AIFArgumentWithSchemeComposer({
                           addMajorPremiseFromDraft();
                       }}
                     />
+                      <button
+                className="text-xs px-5 rounded-lg btnv2 bg-white"
+                onClick={() => setExpandedPremiseEditor(true)}
+                title="Open rich editor for complex premises"
+              >
+                ➾ Expand
+              </button>
                     <button
                       className="text-xs px-4 rounded-lg bg-white btnv2"
                       disabled={!majorPremiseDraft.trim()}
@@ -701,6 +761,13 @@ export function AIFArgumentWithSchemeComposer({
                           addMinorPremiseFromDraft();
                       }}
                     />
+                    <button
+                className="text-xs px-5 rounded-lg btnv2 bg-white"
+                onClick={() => setExpandedPremiseEditor(true)}
+                title="Open rich editor for complex premises"
+              >
+                ➾ Expand
+              </button>
                     <button
                       className="text-xs px-4 rounded-lg bg-white btnv2"
                       disabled={!minorPremiseDraft.trim()}
@@ -845,6 +912,15 @@ export function AIFArgumentWithSchemeComposer({
             onChange={(e) => setNotes(e.target.value)}
           />
         </label>
+
+        {/* Citations - Use CitationCollector for evidence attachment */}
+        <div className="mt-4">
+          <CitationCollector
+            citations={pendingCitations}
+            onChange={setPendingCitations}
+            className="w-full"
+          />
+        </div>
 
         <div className="flex items-center gap-3 mt-4">
           <button

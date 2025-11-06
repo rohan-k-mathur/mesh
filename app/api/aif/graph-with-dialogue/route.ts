@@ -68,15 +68,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Verify user has access to this deliberation
+    // Verify deliberation exists
     const deliberation = await prisma.deliberation.findUnique({
       where: { id: deliberationId },
       select: {
         id: true,
-        createdById: true,
-        roles: {
-          select: { userId: true },
-        },
       },
     });
 
@@ -84,18 +80,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: "Deliberation not found" },
         { status: 404 }
-      );
-    }
-
-    // Check authorization: user must be creator or have a role in the deliberation
-    const userIdStr = String(userId);
-    const isCreator = deliberation.createdById === userIdStr;
-    const hasRole = deliberation.roles.some((role) => role.userId === userIdStr);
-    
-    if (!isCreator && !hasRole) {
-      return NextResponse.json(
-        { error: "You do not have access to this deliberation" },
-        { status: 403 }
       );
     }
 

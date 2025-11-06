@@ -55,7 +55,7 @@ export function AIFAuthoringPanel({
   const readyForCompose = Boolean(effectiveAuthorId);
 
   // Always expanded now - removed userInteracted state
-  const heightClass = 'h-[530px] overflow-y-auto';
+  const heightClass = 'h-[560px] overflow-y-auto';
 
   function AttackScopeBar() {
     if (!attackContext) return null;
@@ -74,11 +74,11 @@ export function AIFAuthoringPanel({
   }
 
   return (
-    <div className={`flex flex-1 ${heightClass} bg-white/50 backdrop-blur-md flex-col py-4 px-3 space-y-4 overflow-y-auto panel-edge rounded-xl transition-all duration-300`}>
+    <div className={`flex flex-1 ${heightClass} bg-white/50 backdrop-blur-md flex-col py-4 px-3 space-y-2 overflow-y-auto panel-edge rounded-xl transition-all duration-300`}>
 
       {/* Loading indicator for author */}
       {!user && !authorIdProp && (
-        <div className="border rounded-md p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm">
+        <div className="fixed right-0 shadow-xl border rounded-md px-3 py-1 w-fit bg-amber-50 border-amber-200 text-amber-800 text-xs">
           Loading user session...
         </div>
       )}

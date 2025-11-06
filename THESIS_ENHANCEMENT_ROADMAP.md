@@ -1398,6 +1398,375 @@ By integrating schemes, critical questions, semantic analysis, dialogue provenan
 
 ---
 
+## Phase 8: Evidence & Citation Infrastructure Integration ✅ (IN PROGRESS)
+
+**Status:** Phase 1 Complete, Phase 2-3 Pending  
+**Priority:** High - Foundational for academic integrity  
+**Timeline:** 3 weeks  
+**Dependencies:** Unified Citation + Source system (already built)
+
+### Overview
+
+Comprehensive integration of the existing unified citation system across all major entity types (Arguments, Claims, Critical Questions). This addresses significant gaps in evidence tracking and citation management identified in the infrastructure audit.
+
+### Context & Motivation
+
+**Problem Statement:**
+- Arguments have 0% citation coverage despite being core AIF entities
+- Claims use legacy ClaimCitation model (deprecated pattern)
+- Critical Questions use primitive string arrays for sources
+- Unified Citation + Source system exists but is underutilized
+- No consistent evidence workflow across entity types
+
+**Existing Infrastructure:**
+- ✅ Citation + Source models (polymorphic, well-designed)
+- ✅ /api/citations/resolve (creates/retrieves Sources)
+- ✅ /api/citations/attach (links Citations to targets)
+- ✅ CitationCollector component (reusable UI)
+- ✅ Propositions have full citation support (reference implementation)
+
+**Impact:**
+- Academic credibility: proper source tracking
+- Evidence traceability: from claim → source
+- Thesis quality: citations flow into exports
+- Cross-deliberation evidence: portable citations
+
+---
+
+### Phase 1: Arguments ✅ **COMPLETE**
+
+**Goal:** Enable citation collection and display for AIF Arguments
+
+**Completed:**
+1. ✅ API Endpoint: `/api/arguments/[id]/citations/route.ts`
+   - GET handler returns citations with source metadata
+   - Follows proposition pattern exactly
+   - Uses authorsJson field (CSL-JSON format)
+
+2. ✅ Composer Integration: `AIFArgumentWithSchemeComposer.tsx`
+   - Added CitationCollector component
+   - pendingCitations state management
+   - Resolve + Attach flow after argument creation
+   - Event dispatch for live updates
+
+3. ✅ Display Integration: `ArgumentCardV2.tsx`
+   - Citation count badge in header
+   - "Evidence & Citations" collapsible section
+   - Live update listener (citations:changed event)
+   - Proper formatting (authors, quotes, locators)
+
+**Coverage:** Arguments 0% → 100% ✅
+
+**Documentation:** See `CITATION_INTEGRATION_PHASE1_COMPLETE.md`
+
+---
+
+### Phase 2: Claims Migration 📋 **NEXT**
+
+**Goal:** Migrate legacy ClaimCitation to unified Citation system
+
+**Status:** Not Started  
+**Timeline:** 1 week  
+**Complexity:** Medium (requires data migration)
+
+**Tasks:**
+1. **API Layer** (2 days)
+   - Create `/api/claims/[id]/citations/route.ts`
+   - GET handler following argument pattern
+   - Check for data in ClaimCitation table
+   - Write migration script if needed (ClaimCitation → Citation)
+
+2. **Composer Integration** (2 days)
+   - Add CitationCollector to claim creation forms
+   - Update ClaimPicker to show citation counts
+   - Integrate into inline claim composers
+
+3. **Display Integration** (1 day)
+   - Update ClaimCard (if exists) to show citations
+   - Add citation section to claim detail views
+   - Citation count badges in claim lists
+
+4. **Schema Cleanup** (1 day)
+   - Mark ClaimCitation as @deprecated in schema
+   - Add migration timestamp field
+   - Document deprecation path
+
+**Migration Strategy:**
+```typescript
+// If ClaimCitation data exists
+const legacyCitations = await prisma.claimCitation.findMany();
+for (const legacy of legacyCitations) {
+  // 1. Create/get Source from legacy data
+  const source = await prisma.source.upsert({
+    where: { url: legacy.url },
+    create: { kind: 'webpage', url: legacy.url, title: legacy.title }
+  });
+  
+  // 2. Create Citation record
+  await prisma.citation.create({
+    data: {
+      targetType: 'claim',
+      targetId: legacy.claimId,
+      sourceId: source.id,
+      quote: legacy.excerpt,
+      note: legacy.note
+    }
+  });
+}
+```
+
+**Files to Modify:**
+- `app/api/claims/[id]/citations/route.ts` (new)
+- `components/claims/ClaimPicker.tsx`
+- `components/claims/ClaimCard.tsx`
+- `lib/models/schema.prisma` (deprecation)
+- `scripts/migrate-claim-citations.ts` (new, one-time)
+
+**Success Criteria:**
+- [ ] All ClaimCitation data migrated
+- [ ] Claims can collect citations during creation
+- [ ] Citations display in claim views
+- [ ] No new ClaimCitation records created
+
+---
+
+### Phase 3: Critical Questions Enhancement 📋
+
+**Goal:** Replace string array sourceUrls with proper Citation relations
+
+**Status:** Not Started  
+**Timeline:** 1 week  
+**Complexity:** Medium (schema change + UI updates)
+
+**Tasks:**
+1. **Schema Update** (1 day)
+   ```prisma
+   model CQResponse {
+     id               String     @id @default(cuid())
+     cqKey            String
+     argumentId       String?
+     claimId          String?
+     text             String
+     satisfied        Boolean    @default(false)
+     evidenceClaimIds String[]   @default([])  // Keep this
+     sourceUrls       String[]   @default([])  // DEPRECATED
+     citations        Citation[] @relation("CQResponseCitations") // NEW
+     createdAt        DateTime   @default(now())
+     updatedAt        DateTime   @updatedAt
+   }
+   ```
+
+2. **Migration Script** (2 days)
+   ```typescript
+   // Convert sourceUrls to Citations
+   const cqResponses = await prisma.cQResponse.findMany({
+     where: { sourceUrls: { isEmpty: false } }
+   });
+   
+   for (const cq of cqResponses) {
+     for (const url of cq.sourceUrls) {
+       const source = await prisma.source.upsert({
+         where: { url },
+         create: { kind: 'webpage', url, title: url }
+       });
+       
+       await prisma.citation.create({
+         data: {
+           targetType: 'cq_response',
+           targetId: cq.id,
+           sourceId: source.id,
+           note: 'Migrated from sourceUrls'
+         }
+       });
+     }
+   }
+   ```
+
+3. **UI Integration** (2 days)
+   - Update `CQResponseForm` to use CitationCollector
+   - Remove textarea for sourceUrls
+   - Display citations in CQ response cards
+   - Update `CriticalQuestionsV3` component
+
+4. **API Updates** (1 day)
+   - Update CQ response endpoints to include citations
+   - Add citation support to CQ satisfaction logic
+
+**Files to Modify:**
+- `lib/models/schema.prisma` (CQResponse model)
+- `components/claims/CQResponseForm.tsx`
+- `components/claims/CriticalQuestionsV3.tsx`
+- `app/api/cqs/*/route.ts` (response endpoints)
+- `scripts/migrate-cq-source-urls.ts` (new, one-time)
+
+**Success Criteria:**
+- [ ] All sourceUrls migrated to Citations
+- [ ] CQ responses can collect citations
+- [ ] Citations display in CQ cards
+- [ ] No functional regressions in CQ satisfaction logic
+
+---
+
+### Cross-Cutting Concerns
+
+#### Event System
+**Event:** `citations:changed`
+```typescript
+window.dispatchEvent(new CustomEvent('citations:changed', {
+  detail: {
+    targetType: 'argument' | 'claim' | 'cq_response',
+    targetId: string
+  }
+}));
+```
+
+**Listeners:** ArgumentCardV2, ClaimCard, CQResponseCard
+
+#### Reusable Components
+- `CitationCollector` - Pre-creation citation collection
+- `CitePickerInlinePro` - Inline citation picker (if needed)
+- Citation display pattern - Consistent across all cards
+
+#### API Pattern
+All entity citation endpoints follow this structure:
+```typescript
+GET /api/{entity}/[id]/citations
+→ { ok: true, citations: FormattedCitation[] }
+```
+
+#### TypeScript Types
+```typescript
+type FormattedCitation = {
+  id: string;
+  url: string | null;
+  title: string;
+  authors: CSL_JSON | null;
+  doi: string | null;
+  text: string | null;      // quote
+  locator: string | null;   // page/section
+  note: string | null;
+  createdAt: Date;
+};
+```
+
+---
+
+### Integration with Thesis System
+
+**Thesis Editor Benefits:**
+- Arguments inserted via ArgumentNode show citation counts
+- Claims inserted via ClaimNode show citation badges
+- Thesis exports include full citation bibliography
+- Citation integrity across thesis snapshots
+
+**Prong System Benefits:**
+- Prong arguments display evidence strength
+- Citation counts factor into argument quality metrics
+- Cross-prong evidence reuse tracking
+
+**Export System:**
+- HTML export includes linked citations
+- PDF export generates bibliography
+- Snapshot system preserves citation metadata
+
+---
+
+### Testing Strategy
+
+#### Unit Tests
+- Citation resolution (URL, DOI, Library)
+- Citation attachment (valid/invalid targets)
+- Migration scripts (idempotent, data integrity)
+
+#### Integration Tests
+- End-to-end citation flow (collect → attach → display)
+- Event propagation (citations:changed)
+- Live updates across components
+
+#### Manual Testing Checklist
+- [ ] Create argument with citations
+- [ ] Create claim with citations
+- [ ] Answer CQ with citations
+- [ ] Citations display correctly
+- [ ] Citations survive page refresh
+- [ ] Citations export properly
+- [ ] Migration scripts run cleanly
+
+---
+
+### Rollout Plan
+
+#### Phase 1 (Arguments) ✅
+- **Status:** Complete
+- **Rollout:** Immediate (feature flag: OFF by default)
+- **Monitoring:** Citation attachment success rate
+- **Docs:** CITATION_INTEGRATION_PHASE1_COMPLETE.md
+
+#### Phase 2 (Claims) 📋
+- **Week 1:** API + Migration
+- **Week 2:** UI Integration + Testing
+- **Week 3:** Production rollout (gradual)
+- **Feature Flag:** `enable_claim_citations`
+
+#### Phase 3 (CQs) 📋
+- **Week 1:** Schema + Migration
+- **Week 2:** UI Integration + Testing
+- **Week 3:** Production rollout (gradual)
+- **Feature Flag:** `enable_cq_citations`
+
+---
+
+### Success Metrics
+
+**Coverage:**
+- Arguments: 100% ✅
+- Claims: 0% → 100%
+- CQs: 0% → 100%
+
+**Quality:**
+- Citation attachment success rate > 95%
+- Migration data integrity 100%
+- No loss of legacy citation data
+
+**Adoption:**
+- % of new arguments with citations (goal: 40%+)
+- % of new claims with citations (goal: 30%+)
+- % of CQ responses with citations (goal: 50%+)
+
+**Performance:**
+- Citation fetch time < 100ms
+- Parallel resolution time < 500ms
+- No N+1 queries
+
+---
+
+### Future Enhancements
+
+**Phase 4: Advanced Features** (Future)
+- Citation deduplication across entities
+- Citation impact scoring (usage tracking)
+- Citation recommendation (ML-based)
+- Citation conflict detection (contradictory sources)
+- Citation quality scoring (peer-reviewed, impact factor)
+
+**Phase 5: Scholar Integration** (Future)
+- Google Scholar API integration
+- Semantic Scholar integration
+- Crossref DOI resolution
+- Auto-population of citation metadata
+- Citation network analysis
+
+---
+
+**Phase 8 Status Summary:**
+- Phase 1 (Arguments): ✅ COMPLETE
+- Phase 2 (Claims): 📋 Next (1 week)
+- Phase 3 (CQs): 📋 Pending (1 week)
+- Total Timeline: 2 weeks remaining
+- Documentation: EVIDENCE_CITATION_INFRASTRUCTURE_AUDIT.md, CITATION_INTEGRATION_PHASE1_COMPLETE.md
+
+---
+
 ### Success Metrics (Updated with Generative Thesis)
 
 #### Adoption Metrics

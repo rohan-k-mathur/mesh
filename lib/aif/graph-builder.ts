@@ -477,11 +477,35 @@ export async function getCommitmentStores(
 
   // Fetch participant names
   const participantIds = Array.from(new Set(moves.map((m) => m.actorId)));
+  
+  // Filter to only real user IDs (BigInt format) vs demo actors (string format like "actor-charlie")
+  const realUserIds = participantIds.filter(id => {
+    try {
+      BigInt(id);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  
   const users = await prisma.user.findMany({
-    where: { id: { in: participantIds.map(id => BigInt(id)) } },
+    where: { id: { in: realUserIds.map(id => BigInt(id)) } },
     select: { id: true, name: true },
   });
+  
+  // Create name map with real users + fallback for demo actors
   const userNameMap = new Map(users.map((u) => [String(u.id), u.name || "Unknown"]));
+  
+  // Add demo actors to name map
+  participantIds.forEach(id => {
+    if (!userNameMap.has(id)) {
+      // Demo actor - extract readable name from ID (e.g., "actor-charlie" -> "Charlie")
+      const demoName = id.startsWith("actor-") 
+        ? id.substring(6).charAt(0).toUpperCase() + id.substring(7)
+        : id;
+      userNameMap.set(id, demoName);
+    }
+  });
 
 
   // Fetch all claims that might be referenced
