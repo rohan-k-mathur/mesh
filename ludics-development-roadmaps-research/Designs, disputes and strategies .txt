@@ -1,0 +1,801 @@
+Technical Report
+UCAM-CL-TR-535
+ISSN 1476-2986
+Number 535
+Computer Laboratory
+Designs, disputes and strategies
+Claudia Faggian, Martin Hyland
+May 2002
+JJ Thomson Avenue
+Cambridge CB3 0FD
+United Kingdom
+phone +44 1223 763500
+http://www.cl.cam.ac.uk/c ⃝2002 Claudia Faggian, Martin Hyland
+Technical reports published by the University of Cambridge
+Computer Laboratory are freely available via the Internet:
+http://www.cl.cam.ac.uk/TechReports/
+Series editor: Markus Kuhn
+ISSN 1476-2986Abstract
+Important progresses in logic are leading to interactive and dynamical models. Geom-
+etry of Interaction and Games Semantics are two major examples. Ludics, initiated
+by Girard, is a further step in this direction.
+The objects of Ludics which correspond to proofs are designs. A design can be
+described as the skeleton of a sequent calculus derivation, where we do not manipulate
+formulas, but their location (the address where the formula is stored). To study
+the traces of the interactions between designs as primitive leads to an alternative
+presentation, which is to describe a design as the set of its possible interactions, called
+disputes. This presentation has the advantage to make precise the correspondence
+between the basic notions of Ludics (designs, disputes and chronicles) and the basic
+notions of Games semantics (strategies, plays and views).
+1 Introduction
+Interaction has become an important notion both in theoretical computer science and in
+proof theory. From the computational point of view, when running an application the
+result of computation (if there is any) is not necessarely the more interesting aspect. The
+dynamics, the process itself of computation plays a central role. Moreover, composition
+of programs is in general a rich two-directions process, which entails communication and
+exchanges between the components. A paradigm of computation as interaction underlies
+several models of computations. This paradigm is particularly significant today, since
+interaction often appears to be more visible and even more important than computation.
+Important progresses in logic are also leading to interactive and dynamical models.
+Two major examples are Geometry of Interaction and Games Semantics. The Geometry
+of Interaction [5], which arose from Linear Logic, interprets normalization (computation)
+as a flow of information circulating around a net. Games Semantics interprets computation
+as a dialog between two parties, the program (player) and the environment (opponent),
+each one following its own “strategy”. Games Semantics (see [2] for a survey) has been
+an important development in logic, but also a successful approach to the semantics of
+programming language. The strength of these models is to capture the dynamical aspects
+of computation, so as to take into account both qualitative (correctness) and quantitative
+(eﬃciency) aspects of programming languages. Ludics, recently introduced by Girard in
+[6], is a further step in this development, the fundamental notion in the theory being that
+of interaction.
+The basic objects of Ludics are designs, which are both (i) an abstraction of formal
+proofs and (ii) a concretion of their semantical interpretation. A design can be described
+as the skeleton of a sequent calculus derivation, where we do not manipulate formulas, but
+their locations (the addresses where the formulas are stored).
+A design can also be presented in a very natural way as the collection of its possible
+interactions. Our paper focuses on this presentation . An advantage of the approach we
+follow is to establish a bridge with the notions of Game Semantics, in particular with HO
+Games [8]. In fact, we are going to make precise the following correspondences:
+actions – moves
+disputes – plays
+3chronicles – views
+designs – innocent strategies
+The crucial correspondence is
+“view - chronicle - sequent calculus branch”
+This correspondence is the key to move between Ludics and Games Semantics. To keep
+all notions concrete, one should always remember that a chronicle is a branch in a sequent
+calculus derivation, a design being the “skeleton” of a sequent calculus derivation. Condi-
+tions on views, as conditions on chronicles, can easily be understood as conditions on the
+branches of a sequent calculus derivation.
+We expect to be able to transfer experiences and techniques between the two settings.
+2 Ludics in a nutshell
+2.1 The universe of proofs
+The program of Ludics is to overcome the distinction between syntax (the formal system)
+on one side and semantics (its interpretation) on the other side. Rather then having two
+separate worlds, all properties of proofs should be determined and tested internally to the
+system, where internally means interactively: proofs are tested with proofs. To do so, it
+is necessary to generalize the notion of proofs.
+In Ludics, a proof must be thought of in the sense of “proof search” or “proof con-
+struction”: we start from the conclusion, and guess a last rule, then the rule above. To
+stop (for example, because no rule can be applied) a new rule is introduced, the daimon:
+⊢ Γ †
+When using such a rule, we assume the conclusion, without providing a justification. Such
+an aborted proof is still a well defined formal object The gain is that now the universe of
+proofs has enough inhabitants for any proof of A be tested by proofs of A⊥
+.
+2.2 Designs
+We begin by giving an intuition of what is a design. This is enough to follow the rest of
+the paper. We recall the precise definitions (to which the proofs refer) in the appendix.
+Instead, we do not really enter in the details of the logical calculus associated to designs,
+which is a focalized version of second order multiplicative-additive Linear Logic (MALL2).
+Designs capture the geometrical structure of sequent calculus derivations. The simplest
+way to introduce designs is to start from sequent calculus. Let us consider the following
+derivation, where the rules are labelled by the active formula and the subformulas which
+4appear in the premises1: for example, ⊕L would be labelled as (a ⊕ b, {a}).
+⊢ a0, c0
+⊥
+⊢ b0, d0
+⊥
+⊢ a0, c (c, {c0
+⊥})
+⊢ b0, d (d, {d0
+⊥})
+(a, {a0})
+⊢ a⊥
+, c
+⊢ b⊥
+, d (b⊥
+, {b0})
+⊢ c, d, a⊥ ⊗ b⊥ (a⊥ ⊗ b⊥
+, { a⊥
+, b⊥})
+⊢ c
+&
+d, a⊥ ⊗ b⊥ (c
+&
+d, {c, d})
+a⊥
+, b⊥
+, c, d are formulas that respectively decompose into a0, b0, c0
+⊥
+, d0
+⊥
+.
+Let us forget everything in the sequent derivation, but the labels. The derivation above
+becomes the following tree of labels, which is in fact a (typed) design:
+c d
+{c0
+⊥} {d0
+⊥}
+a⊥{a0}
+b⊥ {b0}
+a⊥ ⊗ b⊥
+{a⊥
+,b⊥}
+c
+&
+d
+{c,d}
+⊢ c
+&
+d,a⊥ ⊗ b⊥
+This formalism is more concise than the original sequent proof, but still carries all
+relevant information to retrieve its sequent calculus counter-part.
+Remark 2.1 (Focalization) What makes this formalism possible is focalization. Multi-
+plicative and additive connectives of Linear Logic (MALL) split into two families: positives
+(⊗, ⊕, 1, 0) and negatives (
+&
+, &, ⊥, ⊤). A cluster of operations of the same polarity can be
+decomposed in a single step. Such a cluster can be written as a single connective, which is
+called a synthetic connective. For example the formula (P⊥ ⊕ Q⊥)⊗ R⊥ has as immediate
+subformulas P⊥
+, Q⊥
+, R⊥
+, to which we applied the connective (− ⊕ −) ⊗ −
+As a consequence, in a derivation positive and negative alternate at each step.
+To complete the process, let us now abstract from the type annotation (the formulas),
+writing only the addresses. In the example above, we locate a⊥ ⊗ b⊥ at the address ξ;
+for its subformulas a and b we choose the sub-addresses ξ1 and ξ2. Finally we locate a0
+in ξ10 and b0 in ξ20. In the same way, we locate c
+&
+d at the address σ and so on for its
+subformulas. Our design becomes:
+1In first approximation, we slightly simplify the labels; this is possible when working with slices, which
+essentially are multiplicative derivations
+5σ1
+{0}
+ξ1 {0}
+σ2
+{0}
+ξ2 {0}
+{1,2}
+{1,2}
+ξ
+σ
+σ ⊢ ξ
+Definition 2.2 (Actions) The pair (ξ, I) is called an action. As we have seen, ξ is an
+address (a list of natural numbers, which is the address of the formula) and I ∈ Pf (N) is
+a finite set of natural numbers, the relative addresses of the immediate subformulas we are
+considering. ξ is called focus of the action, while I is called ramification.
+† is also an action, but an improper action.
+A design is given by:
+a base, which is a sequent giving the conclusion of the proof (the specification of the
+process) and
+a tree of actions with some properties that we recall in the Appendix. A branch in the
+tree is called a chronicle. If κ1 is before κ2 we write κ1 < κ2.
+Slices and additives. The notion of slice was introduced as part of the theory of proof-
+nets in Linear Logic, to speak of the two components of a &-rule. Informally speaking, an
+&-rule is seen as the super-imposition of two unary rules: (a&b, a and (a&b, b). Given a
+derivation, we obtain a slice if for any &-rule we select one of the premises. The derivation
+...
+...
+a
+b
+⊢ a,c
+⊢ b,c
+⊢ a&b,c (a&b,{a}),(a&b,{b})
+((a&b) ⊕ d,{a&b})
+⊢ (a&b) ⊕ d,c
+can be decomposed as the super-imposition of two slices (in each slice the &-rule is unary)
+...
+a
+⊢ a,c
+⊢ a&b,c (a&b,{a})
+((a&b) ⊕ d,{a&b}) and
+...
+b
+⊢ b,c
+⊢ a&b,c (a&b,{b})
+((a&b) ⊕ d,{a&b})
+⊢ (a&b) ⊕ d,c
+⊢ (a&b) ⊕ d,c
+In the same way, a design is a superimposition of slices.
+We locate c in the address τ, ↓ (a&b) in the address ξ, (a&b) in ξ0, a in ξ01, and b in
+ξ02. The derivation of our previous example corresponds to the following design
+τ
+ξ1 {1}
+τ
+τ
+τ
+ξ1 {2}
+ξ {1}
+ξ1 {1}
+whose two slices are ξ {1}
+ξ1 {2}
+and ξ {1}
+The actions (ξ1{1})/(a&b, a) and (ξ1{2})/(a&b, b) should be be thought of as unary
+&. The usual binary rule is a set of two actions.
+6Notation 2.3 In a slice, each address only appears once, therefore each action is uniquely
+determined by its focus. For this reason, when working with slices we often identify an
+action κ = (σ, I) with its focus σ.
+Normalization. A set of designs to be cut together is called a cut-net. A cut between
+two designs is a coincidence of addresses of opposite polarity in the base of the two designs.
+The uncut addresses form a base. By far, the most important case in Ludics is the closed
+case: all addresses are cut and the base is empty
+Given a base, its opposite is the base (or family of bases) which allow us to close the net.
+The opposite of ⊢ ξ is ξ ⊢; the opposite of ξ ⊢ λ1, . . ., λn is the family ⊢ ξ, λ1 ⊢, λn ⊢.
+Given two design D, E the result of normalization is indicated as [ [D, E] ]. If D, E
+have opposite base, since all addresses are cut, there are only two possible results for
+normalization: either it converges ([ [D, E] ] = †) or it fails ([ [D, E] ] = Ω). In the first case
+the two designs are said orthogonal.
+While the normal form presents no surprise, what we are interested in is the interaction
+itself. An easy way to present normalization of designs is by a token traveling along a
+cut-net (see Appendix). As the token travels on the net, it draws a path: the sequence of
+visited actions, which is the trace of the interaction among the designs, is called a dispute,
+and indicated as [D E]. The part of the cut-net visited during the normalization is
+called the pull-back of that dispute.
+In a design, the same action may appear several times, because of additive duplications.
+What allows us to identify a specific occurrence of an action κ is the chronicle that leads
+us from the base to that action. In the dispute we have enough information to retrieve
+the chronicle that identifies any of its actions (see Proposition 3.6).
+The interaction of designs and counter-designs produces a dispute. Conversely, given
+a dispute, we can reconstruct the design which produced it (the pull-back).
+Plan Our aim is to present a design as the collection of its possible interactions. The
+first step will be to characterize the sequences of actions that correspond to a dispute. We
+will then need to characterize the set of disputes which correspond to interactions of the
+same design, and verify that we have all of them. We therefore need:
+(i) a “coherence condition” to guarantee that a set of disputes is compatible, meaning
+that all the disputes are paths on the same design, and
+(ii) a “saturation condition” to guarantee we have all the possible paths.
+3 Arenas, players and legal positions
+In this section we only consider designs (more precisely cut-nets) on the empty base <>.
+The associated “dependency tree” is the universal Arena. The generalization to the base
+Ξ ⊢ Λ is straightforward.
+Players: The universe of addresses splits into two players: one owning the even-length
+addresses (Even), the other owning the odd-length addresses (Odd). As soon as we fix
+a point of view, one will be called Proponent (P), the other Opponent (O). There is a
+complete symmetry between the two players: they are of the same nature, and therefore
+they obey to the same rules.
+7Arena: An arena is given by a set of moves, a labelling function from the moves to
+{P, O}, and an enabling relation. The Universal Arena is the forest of actions induced by
+the sub-address relation.
+Definition 3.1 (Universal Arena) The universal arena is given by a set of moves, a
+labelling function and an enabling relation, as follows:
+Moves: The moves are all the actions (ξ, J), where ξ is an address and J ∈ ℘fin(N).
+Both labelling and enabling are already coded in the action:
+Labels: The labelling is implicit in the address: all even-length addresses are attributed
+to one Player, all odd-length addresses are attributed to the other.
+Enabling relation:
+We say that (ξ, I) justifies (ξi, J), if i ∈ I. We call initial move an action which is not
+justified (the actions whose focus is <>).
+The universal arena A can be delocated to any initial address ξ. As usual, the moves
+of ξ(A) are those of A with the renaming ξ(σ, I) = (ξσ, I).
+We call such a structure an atomic arena. An atomic arena is identified by an atomic
+base. The universal arena has base ⊢<>.
+Polarity The polarity is relative to the Player: a move is positive for a player if it
+belongs to that player, negative if it belongs to the other. Positive means same parity
+(“mine”), negative means opposite parity (“yours”).
+P-move (“move belonging to P”) = P-positive (“move positive for P”) = O-negative
+(“move negative for O”). O-move = O-positive = P-negative.
+Notation 3.2 When we need to specify a player but do not wish to take a point of view,
+we will use the variables X where X ∈ {P, O} and X for its dual.
+To make explicit if a move κ is P, O, positive or negative we use the notation:
+κP
+, κO
+, κ+
+, κ−
+.
+Since it is convenient to fix a point of view, let us fix Proponent to be the one who
+starts (the player owning the initial move) and Opponent the other.
+3.1 Plays
+Definition 3.3 (Linear positions) A sequence of actions s is a linear position, if it
+satisfies the following conditions:
+Parity Parity alternates
+Justification Each move is either initial or is justified by an earlier move.
+Linearity Any address appears at most once.
+Each position belongs to one of the players, according to the last move (the following
+definition takes care of the case where no move has been played yet).
+8Definition 3.4 (X-position) We call P-Position a position that expects an action by
+Opponent. Typically, a position whose last move is P. An O-Position is a position that
+expects an action by Proponent. Observe that if we choose to call Proponent the player
+who starts, ϵ is an O-position.
+A P-position is a positive position for P, and a negative position for O. We use the
+notation pP
+, pO
+, p+
+, p−
+.
+The key notion is that of view.
+Definition 3.5 (Views) Let q be a linear position and X ∈ {O, P} a player. Its view
+q X of q is inductively defined as follows. When there is no ambiguity on the player, we
+simply write q for q X
+. Below, positive and negative is relative to X.
+• ϵ = ϵ;
+• sκ+ = s−
+κ+;
+• sκ−
+= κ− if κ is initial;
+• sκ′tκ−
+= s−
+κ′κ, if κ = (ξi, J) and κ′
+= (ξ, I)+
+.
+We denote Opponent view by q O and Proponent view by q P
+. Moreover, by qκ+
+we mean the view of the player for which κ is positive. If κ belongs to X, then qκ+ =
+qκ X and qκ−
+= qκ X
+.
+In a design, the same action may appear several times, because of the use of n-ary
+negative rules. What allows us to identify a specific occurrence of an action κ is the
+chronicle that leads us from the base to that action. The operation of view allows one to
+extract from the dispute the chronicle that identifies any of its actions (see [4]):
+Proposition 3.6 (Chronicles extraction) p= [D E] and qκ ⊑ p. Assume κ has
+parity X. The chronicle that identifies κ+ is qκ+ (that is qκ X). The chronicle that
+identifies κ− is qκ− (that is qκ X).
+The following (standard) definition of play allows us to characterize the sequence of
+actions that correspond to a dispute.
+Definition 3.7 (Legal positions/Plays) We say that a linear position p is legal, or a
+play, if it satisfies the following condition:
+Visibility If tκ ⊑ p where κ is non initial, then the justifier of κ occurs in tκ+
+.
+According to our convention, this means that if κ is a P-move, its justifier occurs in tκ P
+,
+and therefore in t P
+, if κ is an O-move, its justifier occurs in t O
+.
+Proposition 3.8 (Disputes as plays) Any dispute p on a closed net of base ⊢<> is a
+legal position on the universal arena.
+9Proof. Parity and justification are obvious.
+Visibility. Let tκ ⊆ and κ, say, a P-move. tκ P
+= cκ is a chronicle. Hence, by definition
+of chronicle, the justifier belong to c.
+Conversely, we shall show that, given a legal position p, we can extract a design S and
+a counter-design T s.t. [S T] = p.
+S
+T
+p
+{S, T} is exactly the pull-back associated to p.
+To move from disputes to design we need to deal with the daimon. Our choice is to
+deal with it implicitly, as we shall explain, and retrieve it when we need. However, we also
+add † to the arena as a special move. We use this as an intermediate step which allows us
+more compact definitions.
+Definition 3.9 (Daimon) We extend the universal arena with a formal action †. † is
+fixed positive for any player; it does not justify and is not justified by any other action.
+Given a collection of legal positions, we define an operation of (positive) closure w.r.t.
+either of the player: we complete all maximal negative plays with a daimon.
+Definition 3.10 (dai-closure) Let S be a collection of plays on the universal arena. We
+define its positive closure w.r.t. the player X as follows:
+p†X = p ∗ † if p is X-negative, p†X = p otherwise.
+S†X = {p†X
+, p ∈ S}
+Definition 3.11 Let p be a legal position.
+ChP(p) = { q P : q ⊑ p, q ̸= ϵ}.
+ChO(p) = { q O : q ⊑ p, q ̸= ϵ}.
+Proposition 3.12 (Pull-back) Let p be a play.
+ChP(p†P ) is a P-slice, ChO(p†O ) is an O-slice.
+Proof. Let us fix a point of view, either O or P and check that ChX (p) is a slice.
+(i) s ∈ Ch(p) is a chronicle.
+Alternation. obvious. Daimon. obvious. Negative focus. Immediate by the definition
+10of view on a negative action. Positive focus. This exactly corresponds to the visibility
+condition. Destruction of foci: imposed by linearity.
+(ii) Ch(p) is a design, in fact a slice.
+Closure under prefix. Let ck′k= qk , qκ ⊑ p. If κ is positive: ck′
+= q and q ⊆ p.
+If κ is negative then cκ′κ = sκ′tκ= s κ′κ. We have cκ′
+= sκ′
+, sκ′ ⊑ q ⊑ p.
+Coherence. c1, c2 ∈ Ch(p) are coherent. If c1, c2 are incomparable, let us consider
+c1 c2 = cκ. If c1 ⊒ cκκ1 and c2 ⊒ cκκ2, with κ1 ̸= κ2. then κ is positive. Otherwise
+κ1, κ2 would be positive. Then cκκ1 = s1κκ1
+P
+, cκκ2 = s2κκ2
+P
+, and since linearity
+forces s1 = s2, thus κ1 = κ2.
+Ch(p) is a Slice; propagation. Both propagation and the fact that Ch(p) is a Slice
+are forced by linearity. If c(ξ, I) = q(ξ, I) , c′(ξ, I′) = q′(ξ, I′) , then by linearity
+q(ξ, I) = q′(ξ, I′) and c(ξ, I) = c′(ξ, I).
+Example 3.13 On the empty base:
+ChP(ϵ†P ) = {†}, which corresponds to the derivation ChO(ϵ†P ) = ∅, which corresponds to the derivation <>⊢ ⊢<> †
+.
+(<>, ∅)
+It is immediate that
+Remark 3.14 If qX ⊑ p then ChX (q) ⊆ ChX (p).
+Proposition 3.15 (Plays as disputes) To each play p on the universal arena we can
+associate a pair of slices S, T of respective bases ⊢<> <>⊢ s.t. [S T] = p; {S, T}
+is the pull-back associated to p.
+Proof. Let S= ChP(p) and T= ChO(p). We need to check that [S T] = p.
+This is immediate by the procedure of normalization on designs. If [S T] = t we show
+that for any prefix tn of length n, tn ⊑ p.
+If p= ϵ the result is immediate. Step 1. The first action in the cut-net is the same as
+the first move of p.
+Let t′κn = tn = pn. To perform the n+1-ary step of normalization on S, T, we look in
+the slice where κn is negative, that is the chronicle cκ−
+n. Let κ = Succ(κ−
+n ); such an action
+exists, either proper or improper, because κn is negative. We know that the chronicle cκnκ
+is the view of a prefix of p: p′κnκ
+X
+, p′κnκ ⊑ p. Linearity implies that p′κn = pn. Hence
+either p= pn = tn and κn+1 = † or pnκn+1 ⊑ p and κ = κn+1. This also guarantees the
+existence of a chronicle dκ−
+n+1, thus tnκn = pnκn.
+4 Strategies
+Now we want to describe designs as collections of the possible interactions, forgetting the
+notion of design.
+Definition 4.1 (Disp (D)) Let D be a design. Disp D= {[D E] : E⊥D}.
+11What we need is a “coherence” condition on disputes (characterizing disputes on the same
+design) and a “saturation” condition that guarantees we have all such possible interactions.
+To do so let us first define a coherent collection of disputes, a strategy.
+Definition 4.2 (X-Strategy) A P-strategy (O-strategy) S on the universal arena ⊢<>
+is a collection of plays (on that arena) which is closed under positive prefix and such that:
+Coherence. If p ̸= q ∈ S then p q is a positive position (a P-position for a P-
+Strategy, an O-position for an O-strategy).
+Remark 4.3 Maximal position (and only maximal position) can be negative. This means
+that the last action is followed by † in the design we are describing.
+Fact 4.4 It is immediate that the above definition is equivalent to the following one, in
+line with the most standard Games Semantics definition:
+S† is a collection of plays such that
+s0. S† is closed under positive prefix;
+s1. p ∈ S† then p is positive;
+s2. determinism:
+sbX
+, scX ∈ S† then b= c.
+Definition 4.5 (Ch(D)) To an X- strategy S we associate a collection of chronicles
+ChX (S) =
+p∈S†X ChX (p).
+Remark 4.6 Ch(S) can be seen as the super-imposition of the slices associated to the
+plays in S.
+It is easy to see that Disp D is a strategy. However, a strategy does not necessarily
+correspond to any construct in Ludics.
+Example 4.7 Let us consider the strategy S on ⊢<> given by the closure under prefix of
+{p1 = ⟨(<>, {0, 1, 2}), (0, I0), (01, I01), (1, J)⟩ and
+p2 = ⟨(<>, {0, 1, 2}), ((0, I0), (02, I02), (020, I020), (01, I01), (2, K))}⟩
+S is an O-strategy. ChO(p1 ) and ChO(p2 ) respectively produce the slices:
+020
+02
+1
+01
+0
+<>
+2
+01
+0
+<>
+The two slices cannot co-exist in the same design because they diﬀer in the way they
+complete the chronicle ⟨<>, 0, 01−⟩. The two resulting chronicles are not coherent.
+12If two diﬀerent disputes cover the same design, when they reach to the same negative
+action they continue in the same way. To arrive at the same action means they are on the
+same chronicle, that is the two path have the same view
+The notion we need to express this condition is exactly that of innocent strategy.
+Definition 4.8 (Innocent strategy) An X-strategy S is innocent if S† satisfies:
+sab+ ∈ S†
+, p+ ∈ S†
+, pa is a legal position, pa X
+= sa X ⇒ pab ∈ S† (∗)
+Innocence plays two roles:
+1. It assures the uniqueness of the move that follows a negative action (cf. Fact 4.15);
+2. It is a condition of “saturation.” It guarantees that all the possible disputes on a
+design are taken into account.
+Remark 4.9 As we show in Appendix C one can read “innocence” in a very concrete,
+procedural way, as an algorithm to calculate all possible dispute on a given design (or all
+designs orthogonal to a given design.)
+It is well known in Games Semantics that:
+1. The collection of views of an innocent strategy generates, by innocence, the complete
+strategy.
+2. The collections of views of an innocent strategy S is contained in S.
+A design can be seen as the collection of views of an innocent strategy. From the views
+we can recover the strategy, from the strategy we can extract the views.
+Section 4.1 reviews this ideas. Section 4.2 comes back to designs.
+4.1 Innocent strategies: Views and Plays
+The fact that an innocent strategy can be presented either as a set of plays or as a set
+of views is well known. The constructions V iews(−) and Plays(−) correspond to similar
+operations Fun(−) and Traces(−) defined in [9] and [7].
+The facts in this section apply to any innocent strategy. All along this section we
+consider w.l.o.g. strategies whose plays are all positive. W.r.t our previous definitions,
+this means that we always work with the closure of our strategies
+S= S†
+.
+Definition 4.10 (Views(S)) Let S be an X-strategy. We define
+V iews(S) = { p X
+, p ∈ S}
+We say that a set of position V is stable under view if p= p for all p ∈ V.
+Definition 4.11 (Plays(V)) Let V be an X-strategy such that V iews(V) = V. We define:
+P0(V) = {p ∈ V : p is minimal for ⊑}
+Pn+1(V) = {pab s.t. p ∈ Pn(V), ∃ cab ∈ V, pa= ca and pa is a legal position}
+13Plays(V) =
+n Pn(V)
+Fact 4.12 Plays(V) satisfies the property:
+If p ∈ Plays(V) and ∃ cab ∈ V s.t. pa= ca and pa is a legal position , then pab ∈
+Plays(V).
+Fact 4.13 (Innocence by views) If S is an X-strategy and V iews(S) ⊆ S, then the
+property (1) in Definition 4.8 is equivalent to the following one:
+cab+ ∈ V iews(S), p ∈ S, pa is a legal position , pa= ca then pab ∈ S (∗∗)
+Remark 4.14 We indicate p as c on purpose, to remember we can think of it as a
+chronicle.
+4.1.1 Some properties
+Observe that determinism together with innocence implies in particular that
+Fact 4.15 (Determinism under view) Let S be an innocent X-strategy. If pab ∈ S, qac ∈
+S, pa= qa then b= c.
+This in particular solves the problem with example 4.7. It also means that V iews(S)
+satisfies itself determinism (cf. Definition 4.2) and thus it is a strategy.
+Proposition 4.16 (Closure under view) If S is an innocent X-strategy then V iews(S) ⊆
+S.
+Proposition 4.17 (Saturation) Let T be any strategy and S an innocent strategy. If
+V iews(T) ⊆ S then T ⊆ S.
+4.1.2 Plays vs. Views
+Proposition 4.18 Let S be an innocent X-strategy.
+V iews(S) is an X-strategy, stable under view.
+Proposition 4.19 Let V be an X-strategy stable under view.
+V iews(Plays(V)) = V
+Proposition 4.20 Let V be an X-strategy stable under view.
+Plays(V) is the smallest innocent strategy which contains V.
+Proof. Plays(V) is a strategy. It is deterministic because V is. Indeed, if sa, sb ∈
+Plays(V) then sa = s a and sb= s b are in V, hence a = b. Moreover Plays(V) is
+innocent because by construction it satisfies the condition (∗∗) of 4.13.
+If S is an innocent strategy and V ⊆ S then Plays(V) ⊆ S, because V iews(Plays(V)) =
+V and Proposition 4.17.
+14Proposition 4.21 Let S be an innocent X-strategy.
+Plays(V iews(S)) = S
+Proof. Let V iews(S) = V. V iews(S) ⊆ S implies Plays(V) ⊆ S.
+We show S ⊆ Plays(V iews(S)) by induction on the length of p ∈ S. Assume tab ∈ S.
+Observe that tab= ta b= cab ∈ V. By induction, t ∈ Plays(V), ta= ca, hence
+tab ∈ Plays(V).
+4.2 Designs and innocent strategies
+Definition 4.22 Let us indicate by V iews∗(S) the set V iews(S)by S the closure under non empty negative prefix of S.
+ {ϵ}. Let us indicate
+Fact 4.23 Ch(S)+
+= V iews∗(S†).
+D= D+ and Ch(S) = V iews∗(S†)
+Proposition 4.24 Let D be a design of base X. Then
+D+ is an X-strategy stable under view.
+Unfortunately, a strategy stable under view is not a design, in that it does not satisfies
+the condition of linearity (“propagation”). To guarantee that all slices in a design are
+linear, it is not enough that each single play is linear. This phenomenon is of the same
+nature as similar phenomenons one observes when studying interactive observability (see
+[4]). Since this deserves a separate analysis, it will be discussed in Section 5.
+Here we simply translate the condition of propagation from chronicles to views.
+Definition 4.25 (Propagation) A strategy S satisfies the propagation condition if:
+If tκ, t′κ ∈ V iews(S) and t= c ∗ (ξ, I) ∗ d, t′
+= c ∗ (ξ′
+, I′) ∗ d′ then ξ= ξ′
+.
+Proposition 4.26 Let V be an X-strategy which is stable under view and which also
+satisfies propagation, then
+V is the positive part of a design D: V= D+
+Using the previous proposition and the fact (cf. C) that Disp (D) = Plays(D) =
+Plays(D+) we have that:
+Proposition 4.27 (i) Let D be a design. Then:
+Disp (D) is an innocent strategy,
+the smallest innocent strategy which contains D+
+.
+(ii) Let S be an innocent strategy which satisfies propagation. Then:
+Ch(S) is a design.
+15As for V iews and Plays,
+Proposition 4.28
+Proof. Disp (Ch(S)) = S and Ch(Disp D) = D
+Disp (Ch(S)) = Plays(Ch(S)+) = Plays(V iews(S)) = S.
+Ch(Disp D) = V iews(Plays(D+)) = D+ = D
+5 Some issues on Linearity
+Extracting strategies from a play. We have shown that to a play p we can associate
+both a design and a counter-design. Notice that the issue of lifting a play to a strategy
+(not a counter-strategy) is addressed by Danos Herbelin and Regnier in [3]. To extract
+both a strategy and a counter-strategy it is essential that p is linear. For example, to the
+play ⟨α, α0, α⟩ we can associate a design, but not a counter-design. In other words, this
+play belongs to an innocent strategy, but not to an innocent counter-strategy.
+Propagation and Linear Plays. As we have seen, there is only one delicate point to
+establish a correspondence between designs and innocent strategies, namely that it is not
+enough to consider linear plays. We need to explicitly ask the condition of propagation.
+If we consider linear plays, without imposing propagation on strategies, what do we
+have in ludics? This is not the same as abolishing the condition of propagation in ludics.
+It rather corresponds to making linearity local. W.r.t. computation, a design that satisfies
+linearity locally will behave as a design that satisfies linearity globally.
+We may compare the situation to that in lambda calculus, where non-linearity of a
+term may be serious or not (think for example of the expression “if then else”).
+Propagation. The condition of propagation is a way to explicitly demand the separation
+of the contexts on a Tensor rule. It is immediate that we can reformulate propagation as:
+“In each slice, any address only appears once”.
+If we abolish this condition, we need to radically change the theory. In particular, we loose
+linearity of the chronicles, and we do not know how to deal with separation (the analogous
+of B¨ ohm theorem in Ludics).
+Linear plays. Let us consider an innocent strategy of linear plays. We can associate to
+it a collection of chronicles. For example, to the innocent strategy {⟨ξ+
+, ξ1, α⟩, ⟨ξ+
+, ξ2, α⟩}
+we would associate
+α+
+ξ1−
+α+
+ξ2−
+ξ+
+The objects described by innocent linear strategies are linear for all computational purpose.
+16However in this way we do not reach a full completeness result for MALL. Typically,
+we would find a proof such as the following one. This is exactly the proof associated to
+the design above, inside the behaviour which interprets the conclusion of the derivation.
+0 ⊢ A
+0 ⊢ B
+⊢↓ ⊤, A
+⊢↓ ⊤, B
+↓ A⊥ ⊢↓ ⊤
+↓ B⊥ ⊢↓ ⊤
+⊢ (↓↑ A) ⊗ (↓↑ B), ↓ ⊤
+No play satisfying justification can detect that α (↓ ⊤) is used twice, visiting both branches
+of the design. This is a typical phenomenon with designs, which also makes impossible to
+detect interactively the use of weakening. The plays approach suggests a possible solution
+in the use of a more liberal notion of play, as in [1].
+If we do not have constants, and therefore all winning designs terminate by a fax, the
+notion of linear play entails propagation, because we can always perform some η-expansions
+to have enough space to allow all players to reach all addresses.
+6 Further work
+This work opens the way to several directions to be explored. A natural continuation is
+to develop a presentation of Ludics based on disputes.
+Moreover, since this work establishes a bridge between Ludics and Games Semantics,
+we expect to be able to transfer experiences and techniques between the two settings.
+The use of plays rather than views (chronicles) could allow for a finer analysis. We have
+seen that deseigns correspond to innocent strategies. It is a natural question to ask what
+would be the analogous of general strategies in Ludics. Conversely, to what would lead
+the notion of location in Games?
+Several developments arising in diﬀerent contexts appear to study structures and con-
+structions which are closely related: designs and a number of variations on the theme of
+innocent strategies, behaviours, orthogonality and double gluing. Our work establishes
+the bases for a deeper investigation in this direction.
+Behaviours and Games Let us sketch the way one would follow to develop a pre-
+sentation of Ludics based on disputes.
+It is immediate that two strategies belonging to opposite players are orthogonal if they
+intersect in a play.
+Definition 6.1 (Orthogonality) S ⊥ T if S ∩ T= p.
+One can then proceed as in [6]. In particular, one can define a type (a game, a
+behaviour) in an internal way, that is without setting special rules for each type:
+Definition 6.2 (Behaviours / Games) A game G on the arena ⊢<> is a set of inno-
+cent strategies on the same arena equal to its biorthogonal.
+One can retrieve a more standard definition of game when looking at the incarnation.
+17Definition 6.3 (Incarnation) The incarnation |S| of S is the set of disputes which occur
+both in S and a strategy of G⊥
+.
+A strategy is incarnated or material when S= |S|. We define the incarnation |G| of
+G as the set of its material designs
+It is immediate that we have again pleasant phenomenons such as that A&B= A ∩ B
+and |A&B|= |A| × |B|.
+The “standard” definition of games would correspond to a direct definition of the
+incarnation.
+A Designs as set of chronicles
+Designs are described as set of chronicles. The definition in [6] is in two steps:
+definition of chronicle, that is a formal branch in a focalized sequent calculus derivation,
+definition of a coherence condition making a set of chronicles all belong to the same
+proof.
+Definition A.1 (Chronicle) A chronicle c of base Ξ ⊢ Λ is a non empty sequence of
+actions ⟨κ0, κ1, ....κn⟩ such that:
+Alternation. The polarity of κj is equal to that of the base for j even, opposite for j
+odd.
+Daimon. For j < n, κj is proper.
+Positive focuses. The focus of a positive action κp either belongs to the basis or is an
+address ξi generated by a previous action: κq = (ξ, I), i ∈ I and κq < κp.
+Negative focuses. The focus of a negative action κp either belongs to the basis or is an
+address ξi generated by the previous action: κp−1 = (ξ, I), i ∈ I
+Destruction of Focuses. Focuses are pairwise distinct.
+Definition A.2 (Coherence) The chronicles c, c′ are coherent when
+Comparability. Either one extends the other, or they first diﬀer on negative actions,
+i.e. if c = c ∧ c′ ∗ k ∗ e,
+c = c ∧ c′ ∗ k′ ∗ e′ then κ, κ′ are negative.
+Propagation. If c, c′ first diﬀer on κ, κ′ with distinct focuses, then all ulterior focuses
+are distinct.
+Definition A.3 (Design) A design D of base Ξ ⊢ Λ is a set of chronicles of base Ξ ⊢ Λ
+such that:
+Arborescence. D is closed under restriction.
+Coherence. The chronicles of D are pairwise coherent.
+Positivity. If c ∈ D has no extension in D, then its last action is positive.
+Totality. If the base is positive, then D is non empty.
+B Normalization
+Normalization of a closed net, that is of a cut-net where all addresses are cut, is especially
+simple. We start on the first action of the main design (the only design starting with a
+positive action).
+18Transitions: When entering a positive action, we exit at the corresponding negative
+action (then changing of design), and move to the unique action that follows.
+Transitions:
+Initialization:
+Dj
+Main
++
+Di
++ σ+
+...
+σ−
+...
+Observe that if we do not work with slices, in a design the same action may appear several
+times, because of additive duplications. However, the sequence of visited actions carries
+all information needed to retrieve the position of any its action (Proposition 3.6). In
+particular, when we enter a positive action κ+ we are able to retrieve the chronicle that
+identifies the negative action κ− to which we have to move. Assume p is the sequence of
+actions we have visited so far, and we enter the positive action κ+
+. We then move to the
+action κ− identified by the chronicle d= pκ−
+.
+C Generating Disp D
+If we want to calculate all possible disputes on a given design D we would not generate
+all possible designs of opposite base and execute the normalization... What we can do
+is to trace all possible paths, and verify that they correspond to a counter-slice. As we
+have just seen, this amounts to verify that the path is a dispute/play. This guarantees
+that the tree of actions of opposite polarity satisfies the the sub-address condition, which
+is the sense of the visibility condition for plays. Actually, calculating the paths which are
+disputes is also the easiest way to calculate the orthogonal of a design. Let us write a
+procedure to do this.
+Definition C.1 A chronicle c is positive (negative) if its last action is positive (negative).
+Let us indicate by D+ the subset of positive chronicles of D. We call it the positive part
+of D.
+Observe that:
+1. From D’s point of view, a disputes always terminates on a positive action: either †
+is in D (therefore normalization terminates on the chronicle p X†) or † is in E, therefore
+the last action of p is negative in E and positive in D.
+2. Moreover:
+D+ ⊆ Disp D
+because for any c+ ∈ D, [D Oppc] = c.
+19A completed dispute will always stop on a positive action (possibly †). To do an
+exhaustive search, we trace all possible positive paths of a given length, starting from the
+minimal ones.
+Definition C.2 (Plays(D)) Let D be a design of base X. We define:
+P0(D) = {c ∈ D+ : c is minimal for ⊑}
+Pn+1(D) = {pab s.t. p ∈ Pn(D) and ∃ cab ∈ D+ : pa is a legal play and pa X
+=
+ca}
+Plays(D) =
+n Pn(D), augmented of {ϵ} if D has negative base.
+This procedure describes all disputes on D. It is easy to understand the step Pn+1
+if one has in mind normalization. Let Ep be a counterdesigns that with D realizes the
+dispute p: p= [D Ep]. If p X ∈ D is not followed by † then p X
+= d− ∈ E, which
+continues with †.
+Let us look for a design Epab, such that [D Ep] = pab. To do so, we substitute †
+with an action a such that that (i) the new design will converge against D and (ii) d−
+a+
+is actually chronicle (it must satisfy the sub-address condition). Therefore we need an
+action a s.t. (i) pa= ca is in D and (ii) pa is a play. Since pa+ = da+
+, visibility
+implies that a+ is justified by an action in d.
+Normalization will proceed as with Ep until the token is on the last action of d−
+. From
+here it moves on to a, and then to a in pa X
+= ca− ∈ D. There is a unique action b
+which completes this chronicle. Either b is †, and we are done, or we add b+ to E (we
+have seen several times that this is always possible) and complete the new chronicle with
+†. We have built the design Epab we wanted.
+Proposition C.3 Disp D= Plays(D).
+Proof. Let pab+ ∈ Disp D. Being a dispute, pa ⊑ pab is a legal position. For
+the induction, assume p ∈ Plays(D). There is an i such that p ∈ Pi(D). Moreover,
+qpab= cab ∈ D+ and pa= ca. Hence, pab ∈ Pi+1.
+Let p ∈ PlaysD. If p ∈ D+
+, then p ∈ Disp D. Since p is a play, we already know that
+Pull(p) is a cut-net and that [PullX(p) PullX(p)] = p. We check that PullX(p) ⊆ D,
+by induction on the length of p. Assume p= qab+ and PullX(q) ⊆ D. There is an i for
+which qab ∈ Pi, qa = ca, and cab ∈ D+
+. Therefore qa = ca and qab= cab are both
+chronicles of D, hence PullX(qab) ⊆ D.
+References
+[1] S. Abramsky, K. Honda, and G. McCusker. A fully abstract game semantics for general
+references. In Proceedings LICS’98. IEEE Computer Society Press, 1998.
+[2] S. Abramsky and G. McCusker. Computational Logic, chapter Game semantics. Springer-
+Verlag, 1999.
+20[3] V. Danos, H. Herbelin, and L. Regnier. Games semantics and abstract machines. In Proceedings
+LICS’96. IEEE Computer Society Press, 1996.
+[4] C. Faggian. On the Dynamics of Ludics. A Study of Interaction. PhD thesis, Universit´
+e
+Aix-Marseille II, 2002.
+[5] J.-Y. Girard. Geometry of interaction i: Interpretation of system f. In Z. A. Ferro R.m
+Bonotto C., Valentini S., editor, Logic Colloquium 88, pages 221–260. North Holland, 1989.
+[6] J.-Y. Girard. Locus solum. Mathematical Structures in Computer Science, 2001.
+[7] R. Harmer. Games Semantics and Full Abstraction for Nondeterministic Languages. PhD
+thesis, Imperial College, 1999.
+[8] M. Hyland and L. Ong. On full abstraction for PCF. Information and Computation, 2000.
+[9] G. McCusker. Games and Full Abstraction for a Functional Metalanguage with Recursive Types.
+PhD thesis, Imperial College, University of London, 1996.
+21

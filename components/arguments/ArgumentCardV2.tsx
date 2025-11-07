@@ -268,6 +268,24 @@ function AttackItem({ attack }: { attack: any }) {
 
   const state = DIALOGUE_STATE[dialogueState];
   const StateIcon = state.icon;
+  
+  // Phase 8: ASPIC+ attack type styling
+  const getAspicStyle = (aspicType: string | undefined) => {
+    if (!aspicType) return null;
+    
+    switch (aspicType.toLowerCase()) {
+      case 'rebutting':
+        return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300', label: 'REBUTS' };
+      case 'undercutting':
+        return { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300', label: 'UNDERCUTS' };
+      case 'undermining':
+        return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300', label: 'UNDERMINES' };
+      default:
+        return null;
+    }
+  };
+  
+  const aspicStyle = getAspicStyle(attack.aspicAttackType);
 
   return (
     <div 
@@ -280,13 +298,22 @@ function AttackItem({ attack }: { attack: any }) {
       <div className="flex items-start gap-2 flex-1">
         <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${attackType?.textClass || "text-slate-600"}`} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={`text-xs font-semibold ${attackType?.textClass || "text-slate-700"}`}>
               {attackType?.label || attack.attackType}
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
               {attack.id.slice(-6)}
             </span>
+            {/* Phase 8: ASPIC+ Attack Type Badge */}
+            {aspicStyle && (
+              <span 
+                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${aspicStyle.bg} ${aspicStyle.text} border ${aspicStyle.border}`}
+                title={`ASPIC+ Classification: ${attack.aspicAttackType}`}
+              >
+                ⚔️ {aspicStyle.label}
+              </span>
+            )}
           </div>
           {/* <p className={`text-xs ${state.textClass} leading-relaxed`}>
             {attackType?.description || "Attack on argument"}
@@ -506,6 +533,7 @@ export function ArgumentCardV2({
             targetScope: ca.legacyTargetScope,
             fromArgumentId: ca.conflictingArgumentId,
             fromClaimId: ca.conflictingClaimId,
+            aspicAttackType: ca.aspicAttackType, // Phase 8: ASPIC+ attack type
             whyCount: 0,
             groundsCount: 0,
             dialogueStatus: "neutral",

@@ -464,7 +464,7 @@ export default function DeepDivePanel({
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'arguments' | 'dialogue' | 'ludics' | 'admin' | 'sources' | 'thesis' | 'assumptions' | 'analytics'>('debate');
+  const [tab, setTab] = useState<'debate' | 'arguments' | 'dialogue' | 'ludics' | 'admin' | 'sources' | 'thesis' | 'aspic' | 'analytics'>('debate');
   const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
   const [dsMode, setDsMode] = React.useState(false); // Phase 3: Dempster-Shafer mode toggle
@@ -1564,7 +1564,7 @@ const {
             <TabsTrigger value="admin">Admin</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
             <TabsTrigger value="thesis">Thesis</TabsTrigger>
-            <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
+            <TabsTrigger value="aspic">ASPIC</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
           </div>
@@ -1983,6 +1983,13 @@ const {
                 For now, review responses within individual claims and arguments in the Debate tab.
               </p>
             </div>
+             <SectionCard title="Create Assumption">
+              <CreateAssumptionForm deliberationId={deliberationId} />
+            </SectionCard>
+            
+            <SectionCard title="Active Assumptions">
+              <ActiveAssumptionsPanel deliberationId={deliberationId} />
+            </SectionCard>
             
           </TabsContent>
 
@@ -2072,15 +2079,9 @@ const {
             )}
           </TabsContent>
 
-          {/* ASSUMPTIONS TAB - Phase 3 Integration */}
-          <TabsContent value="assumptions" className="w-full min-w-0 mt-4 space-y-4">
-            <SectionCard title="Create Assumption">
-              <CreateAssumptionForm deliberationId={deliberationId} />
-            </SectionCard>
-            
-            <SectionCard title="Active Assumptions">
-              <ActiveAssumptionsPanel deliberationId={deliberationId} />
-            </SectionCard>
+          {/* ASPIC TAB  */}
+          <TabsContent value="aspic" className="w-full min-w-0 mt-4 space-y-4">
+           
           </TabsContent>
 
           {/* HOM-SETS TAB - Phase 3 Integration */}

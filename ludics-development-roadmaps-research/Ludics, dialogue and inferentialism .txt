@@ -1,0 +1,1143 @@
+Baltic International Yearbook of Cognition, Logic and Baltic International Yearbook of Cognition, Logic and
+Communication Communication
+Volume 8 Games, Game Theor y and Game
+Semantics Article 6
+2013
+Ludics, dialogue and inferentialism
+Ludics, dialogue and inferentialism
+Alain Lecomte
+Université P aris 8 – Vincennes Saint-Denis
+Follow this and additional works at: https://newprairiepress.org/biyclc
+Part of the Logic and Foundations Commons
+This work is licensed under a Creative Commons Attribution-Noncommercial-No Derivative
+Works 4.0 License.
+Recommended Citation Recommended Citation
+Lecomte, Alain (2013) "Ludics, dialogue and inferentialism," Baltic International Y earbook of Cognition,
+Logic and Communication: Vol. 8. https://doi.org/10.4148/1944-3676.1075
+This Proceeding of the Symposium for Cognition, Logic and Communication is brought to you for free and open
+access by the Conferences at New Prairie Press. It has been accepted for inclusion in Baltic International Yearbook
+of Cognition, Logic and Communication by an authorized administrator of New Prairie Press. For more information,
+please contact cads@k-state.edu.The Baltic International Yearbook of
+Cognition, Logic and Communication
+November 2013 Volume 8: Games, Game Theory
+and Game Semantics
+pages 1-33 DOI: 10.4148/1944-3676.1075
+ALAIN LECOMTE
+Université Paris 8 - Vincennes-Saint-Denis
+& CNRS “Structures Formelles du Langage”
+LUDICS, DIALOGUE AND INFERENTIALISM
+ABSTRACT: In this paper, we try to show that Ludics, a (pre-)
+logical framework invented by J-Y. Girard, enables us to rethink
+some of the relationships between Philosophy, Semantics and Prag-
+matics. In particular, Ludics helps to shed light on the nature of
+dialogue and to articulate features of Brandom’s inferentialism.1
+1. INTRODUCTION
+A large part of Philosophy and notably of the Philosophy of Logic has
+ignored the recent revolution which has occured in logic over the last
+fifty years. Philosophers often think that such a revolution only con-
+cerns computer sciences and is merely technical, when in fact it brings
+to the fore essential features of language that a philosopher should
+not ignore. In particular, this revolution sheds a new light on the
+foundations of logical laws. This question repeatedly occurs in the
+philosophical debate. Sometimes relegated to psychology, that is to the
+organization of the brain, or to metaphysics under the aspect of tran-
+scendental norms, this question cannot be resolved until we have left
+behind the superficial analysis of logic, limited to the apparent laws
+of discourse, as we have received them from the first ancient logicians
+via the medieval tradition. Remaining tethered to this tradition leads
+Ludics, dialogue and inferentialism 2
+us to ignore the studies made within logic and calculus. By encom-
+passing these studies, not only do we gain a deeper understanding of
+logic but also of language. In particular we may grasp the fundamen-
+tal nature of language–interaction. About eighty years of research (at
+least from Gentzen, 1934) have lead to the huge importance of the
+concepts of proofs, seen as mathematical objects, and of normaliza-
+tion of proofs, also known as cut-elimination in the Sequent Calculus
+presentation of logic. While the study of proofs and their transforma-
+tions gave rise to a proof semantics, particularly in the intuitionistic
+tradition of Brouwer and Heyting, their study in connection with pro-
+grams led to the exploration of their dynamic aspects, as they are in-
+volved in the “proofs as programs” paradigm, largely illustrated by the
+Curry-Howard isomorphism (Howard 1980). This isomorphism not
+only provides an equivalence between formulae and types, proofs and
+programs, but also between normalization and reduction, that is the
+execution of a program. Seen through the perspective of computer
+sciences, logic appears as a domain of processes in interaction. Proper-
+ties such as the Curry-Howard isomorphism, the Church-Rosser conflu-
+ence, and the cut elimination theorem have become central properties
+in logic, but these are not accounted for in model theoretic seman-
+tics. In the eighties, the French logician Jean-Yves Girard (1987; 1989;
+1989; 1995) generalized this line of research, essentially done in the
+context of intuitionism, by signaling the crucial role of structural rules
+in logic, paving the way for linear logic and its more recent successors,
+such as Ludics and the Geometry of Interaction.
+In this paper, we try to show how this paradigm of research brings
+new concepts and tools that enable us to reflect on language and the
+Philosophy of language. As we shall see, this concerns not only the
+study of empirical objects such as ordinary dialogues, and therefore a
+study of pragmatics, through taking a slightly different approach than
+Grice’s, but also philosophical approaches such as Rational Pragma-
+tism (Brandom 1994, 2000), that have seen much discussion in recent
+years. In the modern logical frameworks that we consider, interaction
+is a two-faceted concept, one referring to the reduction of proofs, and
+the other to game-theoretic aspects. For instance, in Ludics, the frame-
+work invented by Jean-Yves Girard (2001), the main objects are not
+properly proofs but what Girard calls designs, that is, generalizations
+Vol. 8: Games, Game Theory
+and Game Semantics3 Alain Lecomte
+of proofs and counter-proofs, which can also be seen as strategies in
+games. The important point is that these games are not governed by
+rules which would be a priori given: rules are flexible and come to
+the fore in practice, only respecting some general geometric proper-
+ties. Nor are they governed by some gain function: the game ends
+when players reach a situation where one of them endorses the move
+made by the other. We therefore reach a notion of game that is very
+suitable for the incorporation of wittgensteinian intuitions, and in ad-
+dition, of claims by philosophers like W. Sellars and R. Brandom who
+argue, contra Wittgenstein, that language has a downtown, which con-
+sists of giving and asking for reasons.
+2. LOGIC AND PROCESSES
+2.1. The Curry-Howard Correspondence
+According to the Curry-Howard correspondence, proofs in an intuition-
+istic system are programs and according to the Church-Rosser theorem,
+programs so obtained execute in a deterministic way, that is, the reduc-
+tion of λ-terms is confluent (the result is not modified when we change
+the reduction strategy). Extensions of this isomorphism to other sys-
+tems lead to interesting results and new interesting calculi such as
+Parigot’s λµ-calculus and Curien-Herbelin λµ˜
+µ-calculus (Parigot 1992;
+Curien & Herbelin 2000). In those “classical” calculi, a particular strat-
+egy must be chosen (for instance, the so-called call-by-value and call-
+by-name strategies) in order to keep the property of determinism. If
+not, computations may diverge. If we interpret “computation” as se-
+mantic evaluation of a symbolic form (a linguistic expression), we get
+the analogy with semantic ambiguity, that is several readings for one
+sentence (as in the case of everyone loves someone). In all cases, these
+terms (λ, λµ, λµ˜
+µ) are proof encodings and their reductions refer to
+normalizations of the proofs they encode. We are thus led to study
+proofs in more general (or more specific) systems than intuitionism,
+that is to study:
+• how proofs normalize,
+• how they interact with each other.
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 4
+2.2. Logical Language and Ordinary Language
+Many of these observations can be transposed into the Philosophy of
+language, considering that cut-elimination could be the main feature
+not only of a logical language, but also of ordinary language. We shall
+even try to argue that language is cut-elimination, thus diverging from
+the traditional claim that language is primarily attuned to (the descrip-
+tion of) external reality. Such a view has, we argue, a strong philo-
+sophical impact in that it may change the emphasis we put on some
+aspects of language, thus reinforcing the viewpoint, taken by Rational
+Pragmatism, according to which inference should be privileged over ref-
+erence. Of course, a proof-theoretic viewpoint, like the one sustained
+by P. Martin-Löf, A. Ranta or R. Cooper (1984; 1994; 2012), can al-
+ready deal with the inferential view according to which: “[o]ne can
+pick out what is propositionally contentful as whatever can serve both
+as a premise and as a conclusion in inference” but, as pointed out by
+Brandom, this is not the entire point:
+“[We]typically think about inference solely in terms of
+the relation between premise and conclusion, that is as a
+monological relation between propositional contents. Dis-
+cursive practice, the giving and asking for reasons, how-
+ever, involves both intercontent and interpersonal relations
+[...] The claim is that the representational aspect of the
+propositional contents that play the inferential roles of
+premise and conclusion should be understood in terms of
+the social and dialogical dimension of communicating rea-
+sons, of assessing the significance of reasons offered by
+others”.
+(R. Brandom, Articulating Reasons, p. 166)
+Our aim is therefore to show how a formal theory based on:
+• proofs (premises and conclusions)
+• a possible game interpretation of inference processes
+• interaction (another name for cut-elimination)
+can provide a rigorous account of inferentialism.
+In passing, we will show that we need to extend the notion of proof in
+Vol. 8: Games, Game Theory
+and Game Semantics5 Alain Lecomte
+order to get a realistic approach. Sellars’ “inferential game of making
+claims and giving and asking for reasons” will then be seen as an in-
+teraction between processes which generalize proofs (in that they may,
+for instance, be infinite).
+2.3. From Intuitionistic to Linear logic
+It is often said that, if it is possible to translate proofs into λ-terms in
+the intuitionistic framework, it is because of the constructivism of in-
+tuitionistic logic (IL). In IL, sequents can easily be seen as functions:
+they have n inputs (as many as formulae on the left hand side) and
+exactly one output (or none when we consider the absurd (⊥) as a
+constant of IL). The cut-rule amounts to a composition of functions. Of
+course, in this framework there is no particular mystery about logical
+rules like modus ponens: “A, A ⇒ B ⊢ B” simply means the application
+of a function of type A → B to an argument of type A, the result of
+which is known to be obviously of type B. Nevertheless, Intuitionnistic
+logic has restricted power and we could ask whether there exist other
+systems endowed with such properties of constructivism. While explor-
+ing the denotational semantics of the System F that he had invented (a
+system of second order logic that is very useful for computational pur-
+poses since, for instance, it provides a foundation for the use of type
+polymorphism), J-Y. Girard discovered linear logic, based on the use of
+particular morphisms (“linear” ones) between coherent spaces (Girard
+et al. 1989). Expressed as a syntactic calculus, linear logic emerged
+as symmetric (like classical logic) and constructive (like intuitionistic
+logic). In linear logic, sequents are no longer functions but reversible
+flows of information (n inputs, m outputs). They are “reversible” by
+means of negation (⊥). As an essential difference with IL, in linear
+logic, the negation is involutive.
+2.4. Linear Logic and Interaction
+As is well known, the removal of the two structural rules of weakening
+and contraction entails distinguishing two families of connectives: mul-
+tiplicatives and additives. According to the introduction rules for these
+connectives, contexts are cumulative in multiplicatives, but shared in
+additives.
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 6
+For instance, the right rule for the additive “and” is the following:
+Γ ⊢ A, ∆ Γ ⊢ B, ∆
+Γ ⊢ A&B, ∆
+stating that, by means of a multiset of resources Γ, in the same context
+∆, if some user has A as well as B, she does not have A and B, in
+the cumulative sense, but she has the (active) choice between the two
+resources. Whereas & (the additive and) can be interpreted as an active
+choice, ⊕, the additive or, can be interpreted as a passive choice, that
+is, the user must be prepared to receive either A or B, but without
+knowing which one in advance. It may be shown that the De Morgan
+laws are preserved, in such a way that we have:
+(A&B)⊥ ≡ A⊥ ⊕ B⊥
+(A ⊕ B)⊥ ≡ A⊥&B⊥
+Thus, it clearly appears that negation (⊥) does not play the usual role
+of “negating” (which is merely a La Palisse Truth) but, more subtly,
+the role of a change of viewpoint. Along the same lines, the usual law
+concerning implication expressed as : A −◦B = A⊥℘B (the counterpart,
+in the multiplicative dimension, of A ⇒ B = A⊥ ∨ B) must be read as
+the rule of an exchange: if you give me A, I will give you B (in the
+same exchange, this is why ℘ is also called a “par”, for parallelization).
+Thus begins a “game” interpretation of linear logic which has been
+developed by A. Blass, S. Abramsky, R. Jagadeesan and others (1992;
+1994). But in order to go further with this interpretation, we must
+introduce more concepts, such as polarization.
+2.5. Polarization
+A second important distinction between connectives has emerged from
+some of Girard’s insights and J-M. Andreoli’s significant result (1992)
+on the focusing property of proofs in linear logic: some are said to be
+positive and others are negative. For instance, when applying the right
+rule for ⊗, coming from the bottom of the proof, we know that we
+have to guess a splitting of the context: Γ, the multiset of resources for
+obtaining A ⊗ B, must be split into Γ1, used to give A, and Γ2, used to
+Vol. 8: Games, Game Theory
+and Game Semantics7 Alain Lecomte
+give B, with Γ1 ∩Γ2 = . Such a splitting necessitates a choice, that is, a
+decision from the user. A similar observation may be made concerning
+⊕ since, in this case, in order to prove Γ ⊢ A ⊕ B, ∆, we have to choose
+between Γ ⊢ A, ∆ and Γ ⊢ B, ∆. On the other hand, no such choice has
+to be made for either ℘ or &: the rules introducing these connectives
+are perfectly reversible. In other words, ⊗ and ⊕ have active rules,
+while & and ℘ have passive ones.
+Following a theorem presented by Andreoli, any proof can be put in a
+focalized form, that is, a form which respects the following conditions:
+• as long as there are still negative formulae in the sequent to
+prove, choose one
+• when there are no more negative formulae, choose a positive
+formula and focalize it, that is, make active all the positive sub-
+formulae until there are none left.
+A proof then becomes an alternation of sequences of positive and neg-
+ative steps. Moreover, it is possible to regroup every sequence of (+/-)
+steps into one step, that amounts to applying a (+/-) rule for a synthetic
+connective. Then, any proof is displayed as an alternation of positive
+and negative steps. The calculus which is obtained, called hypersequen-
+tialized may be summed up in the following rules:
+Formulas :
+F = O|1|P|(F ⊥ ⊗ · · · ⊗ F ⊥) ⊕ · · · ⊕ (F ⊥ ⊗ · · · ⊗ F ⊥)|
+Rules :
+• axioms : P ⊢ P , ∆ • logical rules :
+⊢ A11, . . . , A1n1 , Γ ⊢ 1, ∆ O ⊢ ∆
+. . . ⊢ Ap1, . . . , Apnp , Γ
+(A⊥
+11 ⊗ · · · ⊗ A⊥
+1n1 ) ⊕ · · · ⊕ (A⊥
+p1 ⊗ · · · ⊗ A⊥
+pnp ) ⊢ Γ
+Ai1 ⊢ Γ1. . . Aini
+⊢ Γp
+⊢ (A⊥
+11 ⊗ · · · ⊗ A⊥
+1n1 ) ⊕ · · · ⊕ (A⊥
+p1 ⊗ · · · ⊗ A⊥
+pnp ), Γ
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 8
+where ∪Γk ⊂ Γ (the possibility of ∪kΓk strictly inside Γ, allows
+weakening) and for all k, l ∈ {1, . . . p}, Γk ∩ Γl =
+.
+• cut rule :
+A ⊢ B, ∆ B ⊢ Γ
+A ⊢ ∆, Γ
+Let us mention that:
+• all propositional variables P are positive
+• formulae connected by ⊗ and ⊕ are negative (the focalisation
+process leads to maximal decompositions of positive formulae)
+• the general pattern (... ⊗... ⊗...) ⊕ (... ⊗... ⊗...)... ⊕ (... ⊗... ⊗...)
+is not a restriction because of distributivity : (A ⊕ B) ⊗ C ≡ (A ⊗
+C) ⊕ (B ⊗ C)
+• concerning the particular case of a synthetic connective of arity
+1, where (A⊥
+11 ⊗ · · · ⊗ A⊥
+1n1 ) ⊕ · · · ⊕ (A⊥
+p1 ⊗ · · · ⊗ A⊥
+pnp ) reduces
+to only one term, the connective is noted: “↓”. We have then the
+two rules:
+⊢ A, Γ
+↓ A⊥ ⊢ Γ
+A ⊢ Γ
+⊢↓ A⊥
+, Γ
+where A is positive. In this case, A⊥ is negative and “↓” changes
+the polarity of the formula.
+It has a dual, ↑, so that : ↓ (A⊥) = (↑ A)⊥
+.
+2.6. A Gaming Aspect
+An action consists of playing a rule:
+• either positive, amounting to the selection of a disjunct, then
+displaying its components
+• or negative, amounting to the display of as many branches as
+there are disjuncts, displaying components of each one (with no
+active choice)
+Vol. 8: Games, Game Theory
+and Game Semantics9 Alain Lecomte
+This stems from Andreoli’s theorem that every positive (resp. negative)
+action is followed by a negative (resp. positive) action until axioms are
+reached. Now, what happens if we connect two attempts to build a
+proof, one pertaining to one player aiming to prove ⊢ A, Γ, the other
+pertaining to another player, aiming to prove ⊢ A⊥
+, Γ (or A ⊢ Γ) in-
+stead? Let us take a particular case, where Player A wants to prove
+X = (A11
+⊥ ⊗... ⊗ A1n1
+⊥) ⊕... ⊕ (Ap1
+⊥ ⊗... ⊗ Apnp
+⊥), while Player B wants
+to deny it. The two attempts may be plugged by the cut-rule. Then,
+the cut-elimination procedure reduces the cut, that is the previous occur-
+rence of the cut-rule is replaced by one or several other occurrences
+of a lower degree (that is implying less connectives). This is evident
+in the fact that debate continues. In this particular case, the cut is
+transmitted to the pair made of the premise that A chooses to prove X
+and the corresponding premise assumed by B to deny X . This amounts
+to saying that, by a negative rule, B previewed all the choices possibly
+made by A. Let us suppose that A chooses Γ ⊢ Aj1
+⊥ ⊗... ⊗ Ajnj
+⊥, that
+is the jth component of the ⊕ (where 1 ≤ j ≤ p), the cut is between
+this formula and the corresponding Γ ⊢ Aj1℘...℘Ajnj , or in other words
+there are nj cuts between formulae belonging to the sequents Γi ⊢ Ajk
+⊥
+(1 ≤ k ≤ nj) on one side and the sequent Γ ⊢ Aj1, ..., Ajnj
+on the other
+side. Then, roles are interchanged, because each Ajk is positive, it is B’s
+turn to perform a positive action while A performs a negative action.
+Of course, because there cannot be a proof of X and a proof of X ⊥, if
+one of the sequents is provable, the corresponding attempt (or para-
+proof ) ends up by an axiom, while the other ends up by a termination
+rule which is not a proof rule but what can be called a paralogism: the
+daimon, formulated as: †
+⊢ Γ.
+2.7. Geometrisation of Proofs
+While proofs in intuitionistic logic are encoded into λ-terms, in linear
+logic, they are encoded into proof-nets, which are one of the main inno-
+vations due to linear logic. Generally speaking, proof-nets are graphs
+enjoying a particular correctness criterion. Figure 1 illustrates such
+a proof-net. The idea behind proof-nets can be formulated as follows.
+When we display the proof of a sequent in sequent calculus, the deriva-
+tion produces many redundancies. Contexts are duplicated as long as
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 10
+A⊥ B
+A A⊥ ⊗ B
+A ℘ (A⊥ ⊗ B)
+B⊥
+Figure 1: Proof net for ⊢ A ℘ (A⊥ ⊗ B), B⊥
+formulae belonging to them are not active, moreover several deriva-
+tions may be obtained differing only in a non-essential way (for in-
+stance non-relevant commutations of rules). The representation under
+the form of a net avoids this problem, thus providing the true essence
+of the proof. Having discovered that any sequential proof can be rep-
+resented this way, it becomes possible to assert a new, geometrical,
+conception of proofs. Proof structures are graphs obtained by means of
+particular links associated with the connectives: the set of these links
+is the “bottom” of the proof attempt, or of its typing part. The graph
+is then completed by so called axiom-links, that is, edges linking atoms
+with opposite polarities (a and a⊥ for instance): those links express
+the “proof” properly speaking. Cut-links are supplementary links which
+link two instances of the same formula, having opposite polarities, thus
+plugging two nets. Of course, not all proof-structures are proof-nets,
+that is, graphs that we can really associate with sequential proofs. A
+proof-structure that is not a proof-net is demonstrated in Figure 2.
+If we compare figures 1 and 2, we see that in the latter the re-
+moval of a dashed line may suppress connectivity and maintain a cycle
+(see figure 3). while any such removal in the former graph keeps con-
+nectivity and eliminates cycles. From now on, we can use an easy
+geometrical criterion (known as the Danos-Régnier criterion (1989))
+to discriminate proof-nets among proof structures:
+A proof-net is a proof-structure enjoying the following criterion:
+• for every switching of a ℘ link, the graph is connex and acyclic
+(Switching is the selection of only one edge in a link). Cut-elimination
+Vol. 8: Games, Game Theory
+and Game Semantics11 Alain Lecomte
+Ludics, dialogue and inferentialism 12
+A⊥ B
+A A⊥℘B
+A ⊗ (A⊥℘ B)
+B⊥
+Figure 2: A proof structure which is not a proof net
+A⊥ B
+A A⊥℘B
+A ⊗ (A⊥℘ B)
+B⊥
+Figure 3: A cycle created by a switch
+can be performed on proof-nets, as illustrated in figure 4. In stage (i),
+there is a cut between the two main formulae A⊥ ⊗ B and A℘B⊥. This
+cut is reduced in (ii) where it is replaced by two cuts, one between A⊥
+and A and the other between B and B⊥. At this stage, the cut elim-
+ination algorithm faces the case of an axiom: the cut is removed in
+both instances, leading to (iii). All along the procedure, the correct-
+ness criterion has been preserved. Put in the reverse order, starting
+from a cut-free proof, a pair of dual formulae cannot be introduced,
+to avoid the creation of a cycle. This is a key point with regard to
+the foundations of logical laws, since, from now on, instead of starting
+from sequential proofs, then discovering the proof structures associated
+with them, we can consider the reverse: starting from proof structures
+which are proof-nets. In this way, the correctness criterion comes first
+and the derivations second. We can even say that rules are those par-
+ticular kinds of morphisms which allow one to respect the correctness
+criterion, thereby producing a significant change of viewpoint in logic.
+Moreover, the origin of the criterion may be intuitively understood by
+means of the two fundamental results:
+• acyclicity is an invariant of normalization
+• normalization succeeds when every cut is eliminated
+since normalization, for instance, would fail in the case illustrated in
+figure 5 (as the cut can never be eliminated). Because of the preser-
+vation of the criterion, the configuration in figure 5, if it is a result of
+normalization, necessarily indicates a cycle in a previous stage, there-
+fore a wrong proof. Finally, execution explains correctness and at least
+partially, why rules are such as they are.
+To sum up:
+• proofs are alternations of positive and negative steps, but we may
+also consider other such alternations, such as counter-proofs, that
+is, attempts to deny a proof,
+• geometrizing proofs leads to the pre-eminence of geometrical cri-
+teria (such as acyclicity), thus opening the field for more gener-
+alization of the concept of proof (design)
+www.thebalticyearbook.org
+Vol. 8: Games, Game Theory
+and Game Semantics13 Alain Lecomte
+A⊥ B
+A A⊥ ⊗ B
+B⊥
+A B⊥
+A ℘ B⊥
+B A⊥
+B ⊗ A⊥
+(i)
+A⊥ B
+A
+A B⊥
+B A⊥
+B ⊗ A⊥
+B⊥
+A B⊥
+(ii)
+B A⊥
+B ⊗ A⊥
+(iii)
+Figure 4: Cut-elimination in proof-nets
+a x
+a⊥ a
+cut
+Figure 5: An elementary loop in cut-elimination
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 14
+3. LUDICS
+3.1. Rules and Designs
+Ludics is an attempt to provide foundations for logical rules and con-
+nectives, starting from the properties we have seen in the previous sec-
+tion, which converge on the central idea of interaction (Girard 2001,
+2006). In Ludics, we get rid of axioms and formulae, only keeping loca-
+tions of formulae and sub-formulae, for geometrical purposes, notions
+like actions and their polarities, and of course the process of normaliza-
+tion. We can distinguish two rules (which may be seen as the skeleton
+of the two rules introduced in the hypersequential calculus):
+- POSITIVE RULE
+(ξ.i ⊢ ∆i)i∈I
+(ξ,I)
+⊢ ∆, ξ
+where I is a finite set of integers (possibly empty) and the ∆i’s
+are pairwise disjoint and included in ∆.
+- NEGATIVE RULE
+(⊢ (ξ.ij)ij∈I , ∆I )I∈N
+(ξ,N)
+ξ ⊢ ∆
+where N is a set (possibly empty or infinite) of finite sets of in-
+tegers and the ∆I ’s, not necessarily disjoint, are contained into
+∆.
+• and a third rule, DAÏMON:
+†
+⊢ ∆
+In those rules, loci, or addresses, are indicated by sequences of inte-
+gers, sequents are limited to forks, that is, deduction relations with at
+most one locus on the left-hand side (all sequents could already be put
+in this form in the hypersequential calculus because of the involutive
+Vol. 8: Games, Game Theory
+and Game Semantics15 Alain Lecomte
+...
+a xξ′
+i,ξi
+ξ′
+i ⊢ ξi...
+a xξ,ξ′ =
+(+, ξ′
+, I )
+...
+⊢ (ξi)i∈I, ξ′
+...
+(−
+, ℘f ( ))
+ξ ⊢ ξ′
+Figure 6: The Fax
+negation and the fact that several formulae on the left-hand side could
+be considered linked by a ⊗, thus giving only one positive formula).
+Negative forks have a non-empty left-hand side. A design can be de-
+fined as a tree built only by using these rules and such that it always
+terminates (seen from the bottom) by the application of a positive rule.
+The fork at the root of a design is called its basis. A design is said to
+be positive (resp. negative) if its basis is positive (resp. negative). This
+is obviously a generalization of the notion of proof. The daïmon rule
+can be seen as a way to stop a design. Intuitively, this corresponds to
+an action of giving up (we shall see this in more details below). Such
+a generalization allows one to deal with infinite processes (e.g. an
+infinite design illustrated on figure 6).
+3.2. Normalization of a Net of Designs
+As evident from the three rules above, in Ludics, there is no explicit
+formulation of the cut-rule: a cut is therefore the mere coincidence of
+two loci of opposite polarities that share the same address. Normaliza-
+tion is then the process of cancellation of such pairs. Let us start from
+a net of designs the bases of which are, for instance:
+0 : ξ ⊢ α, β
+1 : α ⊢
+2 : β ⊢
+3 : ⊢ ξ
+(where loci of the bases occur at most twice and the graph of the con-
+nections between loci has no cycle) then normalization may be per-
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 16
+⊢ ξ.1.1
+†
+(−{{1}})
+⊢ ξ.2.1
+ξ.1 ⊢
+ξ.2 ⊢
+†
+(−{{1}})
+(+, {1, 2})
+ξ.2.1 ⊢
+⊢ ξ.2
+ξ.1.1 ⊢ ξ.2
+⊢ ξ
+⊢ ξ.1, ξ.2
+(+, )
+⊢
+(−
+, {})
+(+, ξ.2, {1})
+(−
+, {})
+(+, ξ.1, {1})
+(−
+, {{1, 2}})
+ξ ⊢
+Figure 7: Two designs connected by a cut
+formed. It may be explicated in the following way. Let κ be the last
+rule of the main design:
+• if κ = † then normalization succeeds, the result is : †
+⊢
+• if κ = (+, ξ, I ) (in duality with (−
+, ξ, )) :
+– if I ̸∈ : normalization fails
+– if I ∈ : the process goes on.
+An example is provided in figure 7, where two designs (one positive
+and one negative) create a net with a cut which can be reduced. For the
+sake of readability, we shall use a graphic representation of designs in
+figure 8. Positive rules are represented as embranchments in thin lines.
+They connect a positive fork, represented by a rectangle in a thin line,
+and negative forks represented by rectangles in a dashed line. Negative
+rules are represented as embranchments in dashed lines. Rectangles in
+dashed lines are indexed with their unique loci, while rectangles in thin
+lines are indexed by sequences of loci. If this sequence is empty, that
+means that there is no continuation above the marked locus. There
+can only be a continuation above a locus that is not yet marked (a new
+focus). In figure 8, both designs terminate on a positive action, as ex-
+pected. The left design ends twice through the daïmon rule, and the
+right design ends through the positive rule labelled by the empty set.
+Vol. 8: Games, Game Theory
+and Game Semantics17 Alain Lecomte
+Ludics, dialogue and inferentialism 18
+Red thin lines connecting the two designs symbolize cuts: these are
+progressively removed, until reaching a situation (Fig. 9) containing
+only one last cut, which will disappear during the last step (not illus-
+trated in the figure), in which the rule is confronted with the † rule.
+The result of this normalization is simply the empty fork †
+⊢ . In this
+situation, the two designs are said to be orthogonal.
+1
+1 1 1
+† †
+1 2 1, 2
+0 0
+(i)
+1
+1 1 1
+† †
+1 2 1, 2
+(ii)
+1
+1 1 1
+† †
+2 , 2
+(iii)
+www.thebalticyearbook.org
+Vol. 8: Games, Game Theory
+and Game Semantics19 Alain Lecomte
+Ludics, dialogue and inferentialism 20
+1
+†
+1
+2 , 2
+(iv)
+Figure 8: Normalization of a net of designs
+1
+†
+1
+(v)
+then stop!
+Figure 9: Normalization of a net of designs - Final steps
+4. FROM LUDICS TO LANGUAGE
+4.1. A Linguistic Interpretation of Normalization
+We argue here that the normalization of the previous net of designs
+can be seen as an exact parallel to a situation of dialogue between two
+participants A and B, as illustrated below:
+A - let us speak of your father and mother
+B - my father is dead...
+A - ... your mother?
+B - she is retired.
+A - I see...
+Actually, we can re-use the same graphical representation, with la-
+bels associated with utterances (illustrated in figure 10) progressing
+along the following lines.
+(1) The first cut connects the question asked by A to its recording by
+B. Referring to figure 7, the locus of this question is ξ, and it
+opens two new loci (ξ.1 and ξ.2), a priori, one for the father,
+the other for the mother. The first step of normalization succeeds
+because B receives and accepts the question. It leads to a new
+situation, illustrated by (ii).
+(2) Since A has created two negative loci (corresponding to two dif-
+ferent ways of continuing the conversation) and B has recorded
+both, two cuts have to be reduced. The order in which they are
+reduced does not matter here. It happens that B first responds by
+speaking of her father (locus ξ.1) and that, at the same time, A,
+performing a negative action, has previewed the kind of answer
+that B is expected to give with regard to her father. The cut line
+connecting the two 1’s (the one in the dashed rectangle and the
+one in the thin rectangle) can therefore be removed. This leads
+to the situation illustrated by (iii).
+www.thebalticyearbook.org
+Vol. 8: Games, Game Theory
+and Game Semantics21 Alain Lecomte
+1 retired
+“...” “I see”
+1 exp. 1 exp. 1 dead
+1 f? m?
+2 1, 2 expectation
+0 0
+Figure 10: Dialogue as normalization
+(3) The only positive action A can perform after the previous moves
+is to acknowledge B’s response by, for instance, repeating only
+the second part of her question (... your mother?). At the same
+time, B performs a negative move by which she stops any contin-
+uation above her father’s locus (what she uttered is a mere fact).
+This combination of a fact and an acknowledgement results in a
+successful step altogether in the dialogue and the normalization.
+This leads to situation (iv).
+(4) In situation (iv), the first focus (the father) has been given up,
+and it is time now to speak of B’s mother. Still, the response by
+B encounters A’s expectations, thus resulting in the removal of a
+new cut, leading to situation (v).
+(5) In situation (v), A can only acknowledge the new fact provided
+by B, and the last cut is then removed, thus leading to a perfectly
+well-behaved dialogue.
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 22
+(a) Emma: We have a flat.
+(b) Robert: Ah, I see. (Pause) Nice? (Pause) A flat. It’s quite well
+established then, your . . . uh . . . affair?
+(c) Emma: Yes.
+(d) Robert: How long?
+(e) Emma: Some time.
+(f) Robert: But how long exactly?
+(g) Emma: Five years.
+(h) Robert: Five years?
+Figure 11: A sample dialogue, taken from Harold Pinter, Betrayal
+4.2. Language as a Cut-elimination Process
+Concerning dialogue, Ginzburg (2012) makes the following crucial ob-
+servations, while discussing a very simple sample taken from H. Pinter’s
+play Betrayal (see figure 11).
+• “Coherence: each conversational move seems to cohere smoothly
+with its predecessor: questions are followed by answers which,
+in turn, raise new questions”.
+• “Conciseness: conversation is, by comparison with text, a highly
+efficient medium. Emma’s affirmation of the well-established na-
+ture of the affair, Robert’s wondering how long the affair has
+been going on, Emma’s informing Robert that it has gone on for
+five years and Robert’s astonishment at Emma’s informing him
+this, all of this which takes 40 odd words of text to convey, takes
+a dozen words of dialogue.”
+• “Radical Context Dependence: Isolated from their occurrence in a
+dialogue many utterances lose most of their import. None of the
+utterances ((c)-(h)) could stand on their own in a text. Indeed,
+some utterances (e.g. ((d),(h)) resist a univocal sentential para-
+phrase. At the same time, in context, all these utterances seem
+readily comprehensible to the conversationalists.”
+It is true that all these features are amazing. Their prototypical exam-
+ple lies in the phenomenon of non-sentential utterances (from now on
+Vol. 8: Games, Game Theory
+and Game Semantics23 Alain Lecomte
+MEG : Is that you?
+PETER : Yes, it’s me.
+MEG : What? Are you back?
+PETER Yes.
+nice?
+PETER : Very nice.
+MEG : I’ve got your cornflakes ready. Here’s your cornflakes. Are they
+Figure 12: Non-Sentential Utterances in a dialogue
+NSU), that is, utterances frequently consisting of one word: yes, no,
+perhaps or even bye, hmh... and so on. Interpreting such utterances
+can only be done in context, but such a characterization is still too
+vague: these words explicitly make reference to the current interac-
+tion itself. As noted by Ginzburg, “the conventional meaning of a word
+or a construction involves notions that irreducibly involve reference
+to interaction - notions such as ‘current issue under discussion’, ‘dis-
+engagement from conversation’, ‘acknowledgement of understanding’
+and ‘ask intended reference of other’s utterance”’ (p. 5). A “grammar
+of dialogue”, as proposed by Ginzburg, is, of course, a possibility. He
+proposes explicit conversational rules expressing the facts relative to
+the change of context due to a turn of speech, saying, for instance, that
+the pair (speaker, addressee), made of two features, is permuted at each
+turn of speech, or explicating what is the LATEST MOVE to have been
+performed. However, we think that much of the information which
+would be contained in such a “grammar” is already present, without
+cost, in an interaction-based framework, where interaction is an a pri-
+ori foundation, not constructed a posteriori by means of conventional
+rules. Let us demonstrate this with the extract from Pinter’s The Birth-
+day Party (figure 12). The dialogue from MEG’s perspective can be
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 24
+represented by the following design:
+...
+...
+⊢ Λ
+⊢ σ.0.1, τ, Γ
+..
+σ.0 ⊢ Λ
+c
+⊢
+...
+b
+⊢
+⊢ ξ.0.1, ∆
+⊢ ξ.0.1.0.1, σ, Λ
+ξ.0.1.0 ⊢ ∆
+ξ.0 ⊢ ∆
+a
+⊢ ξ, ∆
+where a corresponds to the positive action “question”: is that you?, b
+to are you back? and c to are your cornflakes nice?.
+PETER’s perspective is represented by the following.
+⊢ ξ.0.1.0.1.0
+ξ.0.1.0.1 ⊢
+⊢ σ.0.1.0
+b′
+⊢ ξ.0.1.0
+σ.0.1 ⊢
+c′
+ξ.0.1 ⊢
+⊢ ξ.0
+ξ ⊢
+et c.
+⊢ σ.0
+a′
+σ ⊢
+The net made of these designs normalizes just in case the first yes an-
+swers the first question, the second answers the second question and
+very nice is an option for “are your cornflakes nice?”. Thus, as long as
+normalization is successful, we know that such replies can only be as-
+sociated with the expectations expressed by negative steps in the other
+speaker’s design, thus restricting the number of possible interpreta-
+tions. It would also be possible to analyse the phenomena of ellipsis
+and focus, and of question /answer dynamics along the same lines.
+Vol. 8: Games, Game Theory
+and Game Semantics25 Alain Lecomte
+5. FROM LUDICS TO INFERENTIALISM
+5.1. Utterance and Game
+It is interesting to compare Ludics (or its “spirit”) with Brandom’s infer-
+entialism since both assign significance to the two notions of proof (or
+inference) and game (Brandom 1994, 2000). The latter is less explicit
+in Brandom’s work, where it seems to be more metaphorical, as in the
+wittgensteinian notion of language game. Nevertheless, we argue that,
+even though metaphoric, Brandom’s, as well as Wittgenstein’s notions
+of game can be effectively recast in ludical terms. A similar position
+is noted by A. Pietarinen ((2007)) who remarks that “Girard’s writings
+on Ludics carry Wittgensteinian undertones” (p. 273). Moreover, when
+seen from this inferentialist viewpoint, actions take on a different inter-
+pretation. Here, we move from the previous conception — according
+to which positive actions were conceived of as mere interventions in
+dialogue and negative actions as mere recordings — to a new concep-
+tion, more precise and philosophically richer, where positive actions
+may be seen as commitments and negative actions as entitlements. In
+fact, performing a positive action in Ludics (distinct from the daïmon
+rule) is selecting a positive locus, as if selecting a token in a game, and
+from it, creating any number of negative loci (or none), as would be
+the case in a game that includes a rule explaining the circumstances
+under which you can move a token from a black square to a white
+square, to several, or to none. We then know that the negative loci (or
+the new tokens on negative squares) give rise to potential questions
+or objections from the other speaker, who may ask for reasons to say
+certain things, and that the speaker has to answer those questions and
+objections. Therefore, when performing a positive action (which is al-
+ways followed by a negative action, unless it is the daïmon or a rule
+labelled by ), every speaker commits herself to providing reasons for
+what she says. On the other hand, by performing a negative action,
+every speaker limits the type of utterance the other speaker can choose
+for her to perform (e.g. either an answer or a new question). By doing
+so, every speaker gives entitlements to the other. In what follows, we
+shall consider a case in which the other speaker is fictitious and reacts
+as a “scorekeeper” in a game. In fact, his role is to give entitlements and,
+when acting positively, to react to every speaker’s commitment either
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 26
+by an acknowledgement (thereby increasing the speaker’s score) or
+by a failure to acknowledge (which occurs when normalization fails).
+These notions of score and scorekeeper may be found in Brandom who
+says, for instance: “[u]nderstanding a speech act - grasping its dis-
+cursive significance - is being able to attribute the right commitments
+in response. This is knowing how it changes the score of what the
+performer and the audience are committed and entitled to” (Brandom
+2000, p. 165). Brandom is still more explicit when introducing the
+notion of scorekeeper:
+“Suppose we have a set of counters or markers such
+that producing or playing one has the social significance
+of making an assertional move in the game. We can call
+such counters “sentences”. Then for any player at any time
+there must be a way of partitionning sentences into two
+classes, by distinguishing somehow those that he is dis-
+posed or otherwise prepared to assert (perhaps when suit-
+ably prompted). These counters, which are distinguished
+by bearing the player’s mark, being on his list, or being kept
+in his box, constitute his score. By playing a new counter,
+making an assertion, one alters one’s own score, and per-
+haps that of others.” (Brandom 2000, p. 190)
+This explanation can be correlated with the rules of Ludics. In Ludics
+games, counters are replaced by loci. We may consider that selecting
+one locus “has the social significance of making an assertional move”.
+At any time, of course, any player has a way of partitionning loci into
+two classes: those he is allowed to select and those he is not allowed.
+This partitionning depends on the moves of the other player: when
+acting positively, if he wants to keep convergence, the first player has to
+select a locus in a range offered by the other one, and thus, if he suc-
+ceeds, he improves his score (as well as the other’s score — this shows
+the difference between Ludics and other game semantics. In Ludics,
+convergence gives points to both players so it is in their interest to co-
+operate).
+We may also suggest that it is not only sentences that are counters, but
+also any part of speech. We may say that the utterance of The swatch
+is red is not simply submitting a proposition to evaluation by stating a
+“true” or “false” value, but playing it as a token in a game, and know-
+Vol. 8: Games, Game Theory
+and Game Semantics27 Alain Lecomte
+ing that other players can ask for reasons for this statement, either by
+challenging the choice of the noun “swatch”, or by contesting that “it
+is red”. Only after this game has come to an end can the assertion be
+evaluated.
+In this setting, assertion may be analyzed by assuming that counters
+are parts of speech and that when producing an utterance such as The
+swatch is red, the speaker is in dialogue with a score-keeper, who, at
+first, entitles the speaker to choose a THEME from a restricted range of
+topics allowed by the context. After the choice of a theme, the speaker
+expects it to be validated by the score-keeper, in a virtual positive move,
+followed by a new series of proposals concerning the PREDICATE, which
+is dependent on the selected THEME. The speaker can then select her
+own predicate from this series, waiting for a new validation, and per-
+haps other moves (involving assessment of truth, modality and so on).
+5.2. Assessments of Truth and Normalization
+Normalization may still be connected to the way rational pragmatism
+considers how assessments of truth work, as in the following passage
+from Brandom:
+Consider how assessments of truth work. Perhaps the cen-
+tral context in which such assessments classically arise is
+attributions of knowledge [...]
+In order for [a statement]to be knowledge that a score-
+keeper takes another to have, that scorekeeper must adopt
+three sorts of practical attitude. First, the scorekeeper must
+attribute an inferentially articulated commitment [...]. Sec-
+ond, the scorekeeper must attribute a sort of inferential en-
+titlement to that commitment [...]. What is it that then cor-
+responds to the third, truth condition on knowledge? For
+the scorekeeper to take the attributed claim to be true is
+just for the scorekeeper to endorse that claim. That is, the
+third condition is that the scorekeeper himself untertake
+the same commitment attributed to the candidate knower.
+(Brandom 2000, p. 168)
+We suggest that these three moves correspond to the three possible
+configurations in the normalization process. The first practical atti-
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 28
+tude corresponds to the case where the “candidate knower” (here A)
+makes a positive move (distinct from the daïmon rule) while the score-
+keeper (here B) makes a negative one. In this case, the utterance is
+currently performed, A asserts something (“the swatch is red”) while B
+records its content among her expectations. By doing so, B “attributes
+to A an inferentially articulated commitment” since B recognizes it as
+entering into the dialogical game. There is convergence if the repre-
+sentational2 content of the assertion belongs to B’s set of expectations.
+A’s positive step may consist of a positive rule labelled by the empty
+set, provided that B acknowledges A’s statement as a fact. The second
+attitude corresponds to a second step, just above the previous one, that
+is, a negative step for A, which is opposed to B’s positive action. In
+this case, the utterance has been produced, and therefore the corre-
+sponding commitment has been made by A, and B can ask for reasons
+for each aspect under discussion. This amounts to B “attributing a
+sort of inferential entitlement to that commitment” since by challeng-
+ing A, B attributes to A the power of drawing inferences in response
+to these challenges. There is convergence if A has previewed appro-
+priate answers (inferences A is compelled to draw from her statement).
+And finally, there is the case where A performs a negative action and
+B performs the daïmon. B “acknowledges” A, or more precisely, he en-
+dorses the claim, or he “undertakes the same commitment attributed
+to the candidate knower”. We thus have a deeper understanding of the
+role of the daïmon, and how Ludics, in particular, contrasts with other
+approaches such as classical game semantics. In traditional game se-
+mantics, the purpose of the players is to achieve a precise goal: the
+Proponent wants to show she is right when claiming that some thesis
+is true, and the Opponent wants to show the contrary. Those games
+are founded on an “objective” criterion which determines the winner
+(in Hintikka’s games, the ultimate criterion is a model, by which it is
+possible to determine the truth or falsity of any elementary fact (Hin-
+tikka & Sandu 1997). In Lorenzen’s games, it is a more internal crite-
+rion, relying on the fact that some player at some point has no rule to
+apply (Lorenzen 1960). Translated into extensive games, those criteria
+can be expressed as payoff functions. But, as Wittgenstein might say,
+not all games are games with a payoff function and a notion of a win-
+ner. Above all, most language games are not! At first glance, Ludics
+Vol. 8: Games, Game Theory
+and Game Semantics29 Alain Lecomte
+may also be seen as a search for the “winning” statement, particularly
+when viewed from the perspective of a proof system, such as the hy-
+persequential calculus. After all, the purpose of such a system was also
+to get proofs, even if the notion of proof was analyzed from the per-
+spective of interaction. But in the last sections we have seen that the
+object of a proof (that to which the concept of a proof can apply) can
+be significantly extended, so that it may now incorporate notions like
+achievement, success or acknowledgement. According to our final con-
+clusion, inspired by Brandom’s conception, a “proof” is an assertion,
+which is supposed to be checked by an interlocutor (a score-keeper)
+and the termination rule daïmon is used not “because there is no other
+rule to apply” but rather because the partner in the interaction consents
+to endorse a claim. That does not prevent one from referring to truth
+and falsity, to the extent that the interaction is taken to hold between a
+locutor and a (potentially) infinite number of participants, in this case,
+we can characterize a true statement as a statement for which all inter-
+actions end through the daïmon played by the dual participant. This
+clearly brings up similar statements by C. S. Peirce, whose principles
+are often compared with Wittgenstein’s.3
+5.3. Incompatibility and Convergence
+Following this inferentialist direction, it is also worth noting that Ludics
+may go deeper than views expressed by Brandom (2008) concerning
+logical laws as grounded on an explicitation of discursive practices. Ac-
+cording to Brandom’s views, incompatibility plays the pre-eminent role.
+It is true that a commitment is such that the player who undertakes it is
+constrained by a logic of incompatibility (if she says that “it is red”, she
+cannot say that “it is green” since these two judgements are incompat-
+ible). Nevertheless, it would be a regression to think of incompatibility
+in set-theoretical terms, thus assuming a non-contradiction principle at
+the source of logical laws when in fact we are looking for foundations
+for these laws. Moreover, as shown by D. Porello (2012), Brandom’s
+concept of incompatibility does not take into account all the “stan-
+dard” consequence relations we can imagine, but only the “classical”
+ones.4 Such drawbacks may be avoided if incompatibility is defined in
+another way. Actually, as suggested by Porello, incompatibility must be
+defined on the basis of symmetry between players, according to which
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 30
+each one has to agree on what counts as disagreement. This considera-
+tion calls for a formulation in terms of linear logic due to its particular
+interpretation of negation, as a change of viewpoint, so that involu-
+tivity (A = A⊥⊥) means precisely that the propositional content of A
+requires agreement on which actions can challenge the content of A.
+Thus, the concept of interaction, and more precisely that of normaliza-
+tion (or convergence of the interaction) becomes the most appropriate
+for generating the consequence relations which emerge from the game
+of giving and asking for reasons.
+Ludics contains important theorems which help us to distinguish be-
+tween judgements, such as Girard’s separation theorem according to
+which two designs 1 and 2 are said to be equal if and only if any
+counter-design orthogonal to one is orthogonal to the other . This pro-
+vides us with a method to compare designs via their orthogonal sets
+: is said to be “more defined” than ′ if and only if ⊥ ⊂ ′⊥, it
+is written ≼ ′, and it can be shown that this relation is a partial
+order. Let us note that a behaviour is a set of designs which behave
+the same way with regards to the other designs. More precisely, if
+is a design, ⊥ is the set of designs orthogonal to (that is the set
+of all designs whose interaction with converges), and ⊥⊥, which
+obviously contains , is a behaviour. In fact, we may see behaviours as
+propositions (see D. Porello for a similar view), and designs belonging
+to them as their possible justifications (or reasons if preferred). Accord-
+ing to the separation theorem, a behaviour ⊥⊥ can be seen as the set
+of all the designs′ less defined than , and therefore a proposition as
+the partially ordered set of its justifications. If we consider two positive
+behaviours B and B′ and ⊢ B, ⊢ B′ their respective bases, if B ⊂ B′
+,
+then each attempt to prove ⊢ B is also an attempt to prove ⊢ B′ and
+if ⊢ B succeeds, so does ⊢ B’. Thus, we obtain a natural notion of
+entailment, closed to material entailment. Of course if ⊢ B succeeds,
+⊢ B⊥ does not, but attempts to prove ⊢ B⊥ are in B⊥. Viewed from
+this perspective, we can say that two dual behaviours express incompat-
+ibility. There are actually two notions of incompatibility, strong and
+weak. Strong incompatibility occurs between two statements when
+the interaction of their designs does not converge. This can be illus-
+trated with two statements which do not share their presuppositions
+( “is your sister a teacher?” - “But I have no sister!”). Strong incom-
+Vol. 8: Games, Game Theory
+and Game Semantics31 Alain Lecomte
+patibility may be fixed by changing the designs. (For instance, in this
+example, we may unfold the first design by beginning with the ques-
+tion “do you have a sister?”, if the other speaker answers “no”, there
+is convergence). Weak incompatibility is in fact orthogonality.5 We
+see then that in conformity with Brandom’s aims, this “incompatibility
+semantics” yields consequence relations which make explicit our dis-
+cursive practices, but as in Porello’s model (based on phase semantics
+for linear logic), those relations are not limited to classical inference
+and are able to include more than just classical reasoning.
+6. CONCLUSION
+We have tried to show that Ludics is a promising framework which
+enables us to rethink many pragmatic, semantical and logical phenom-
+ena. We may summarize by saying that
+• Ludics allows one to get rid of a conception of meaning based on
+model theory which takes truth, denotation and truth conditions
+for granted while many approaches to language (Peirce, Wittgen-
+stein, Sellars, Brandom a.o.) are in favour of a more procedural
+way of grasping sentences’ meanings.
+• A consequence of this first direction resides in, in some sense,
+putting most of Semantics into the domain of Pragmatics : the
+use of words amounts to making actions, which are best depicted
+as moves in games.
+• Another consequence is that Ludics allows one to account for
+inferentialism, overcoming some of the difficulties encountered
+by Brandom’s theory and by proof-theory.
+What is probably the most striking is that by delving deeply into the
+foundations of logic, the Ludics project has shed a new light on the
+foundations of language. Thus, this foundational exploration has given
+raise to concepts which can be dubbed “proto-logical” and are therefore
+applicable in the field of language as well as in the field of logic, thereby
+going towards a common foundation for both, something that we could
+ultimately name a foundation of λoγoσ.
+www.thebalticyearbook.org
+Ludics, dialogue and inferentialism 32
+Notes
+1This work was completed with the support of the ANR Project LOCI number 0212
+02.
+2Brandom defines the representational content of a sentence, as opposed to the propo-
+sitional content in these terms: “the representational aspect of the propositional content
+that play the inferential roles of premise and conclusion should be understood in terms
+of the social and dialogical dimension of communicating reasons, of assessing the signif-
+icance of reasons offered by others.” (Brandom 2000, p. 166.)
+3For instance, his view that truth is a matter of long-term convergence of scientific
+research. cf. “Different minds may set out with the most antagonistic views, but the
+progress of investigation carries them by a force outside of themselves to one and the
+same conclusion. This activity of thought by which we are carried, not where we wish,
+but to a fore-ordained goal, is like the operation of destiny . No modification of the point
+of view taken, no selection of other facts for study, no natural bent of mind even, can
+enable a man to escape the predestinate opinion. This great hope is embodied in the
+conception of truth and reality. The opinion which is fated to be ultimately agreed to
+by all who investigate, is what we mean by the truth, and the object represented in this
+opinion is the real. That is the way I would explain reality” (Peirce 1982).
+4For Brandom, a standard consequence relation is defined by two properties: general
+transitivity and defeasibility. The first may be expressed by the cut rule, and the second
+states that if a proposition B is not a consequence of A, then there is something which,
+when added to B but not to A yields an absurdity.
+5Our notions of “weak” and “strong” incompatibility correspond to Girard’s distinction
+between refutation and recusation with regard to the interpretation of negation.
+References
+Abramsky, Samson & Jagadeesan, Radha. 1994. ‘Games and full completeness for multi-
+plicative linear logic’. Journal of symbolic logic 543–574.
+Andreoli, Jean-Marc. 1992. ‘Logic programming with focusing proofs in linear logic’.
+Journal of Logic and Computation 2, no. 3: 297–347.
+Blass, Andreas. 1992. ‘A game semantics for linear logic’. Annals of Pure and Applied logic
+56, no. 1: 183–220.
+Brandom, Robert. 1994. Making it explicit: Reasoning, representing, and discursive com-
+mitment. Harvard University Press.
+——. 2000. Articulating reasons: An introduction to inferentialism. Harvard University
+Press. Trad. franç. L’articulation des raisons, ed. du Cerf, 2009.
+——. 2008. Between saying and doing: Towards an analytic pragmatism. Oxford Univer-
+sity Press.
+Cooper, Robin. 2012. ‘Type Theory and Semantics in Flux’. In R. Kempson, T. Fernando
+& N. Asher (eds.) ‘Philosophy of Linguistics’, 271–324. North-Holland.
+Curien, Pierre-Louis & Herbelin, Hugo. 2000. ‘The duality of computation’. In ‘Proceed-
+ings of the Fifth ACM SIGPLAN’, 233–243. ACM.
+Danos, Vincent & Regnier, Laurent. 1989. ‘The structure of multiplicatives’. Archive for
+Mathematical logic 28, no. 3: 181–203.
+Vol. 8: Games, Game Theory
+and Game Semantics33 Alain Lecomte
+Dummett, Michael. 1977. Elements of intuitionism, vol. 39. Oxford University Press.
+Ginzburg, Jonathan. 2012. The interactive stance. Oxford University Press.
+Girard, Jean-Yves. 1987. ‘Linear logic’. Theoretical computer science 50, no. 1: 1–101.
+——. 1989. ‘Towards a geometry of interaction’. Categories in Computer science and Logic
+92: 69–108.
+——. 1995. ‘Geometry of interaction III: accommodating the additives’. In Y. Lafont &
+L. Regnier (eds.) ‘Advances in Linear logic’, 329–389. Cambridge University Press.
+——. 1999. ‘On the Meaning of Logical Rules I: Syntax Versus Semantics’. In ‘Computa-
+tional Logic’, 215–272. Springer.
+——. 2001. ‘Locus Solum’. Mathematical Structures in Computer Science, Cambridge UP
+11, no. 3: 301–506.
+——. 2003. ‘From foundations to ludics’. The Bulletin of Symbolic Logic 9, no. 2: 131–
+168.
+——. 2006. ‘Le point aveugle’. Hermann (ed.) Cours de Logique. Vers la Perfection, Paris
+1.
+——. 2007. ‘La logique comme géométrie du cognitif’. Joinet, éd., Logique, Dynamique
+et Cognition 15–29.
+——. 2012. ‘Transcendental syntax 2.0’. notes du cours donné à “Logique et Interaction
+2012”.
+Girard, Jean-Yves, Taylor, Paul & Lafont, Yves. 1989. Proofs and types, Cambridge Tracts
+in Theoretical Computer Science, vol. 7. Cambridge University Press Cambridge.
+Hintikka, J & Sandu, G. 1997. ‘Game Theoretical Semantics’. In J. Van Benthem & A. ter
+Meulen (eds.) ‘Handbook of logic and language’, 361–410. Springer.
+Howard, William A. 1980. ‘The formulae-as-types notion of construction’. To HB Curry:
+essays on combinatory logic, lambda calculus and formalism 44: 479–490.
+Joinet, J-B. 2007. ‘Logique et interaction’. Habilitationa diriger des recherches, Université
+Paris 7.
+Lecomte, A. 2011. ‘Logic, Meaning and Ludics’.
+Lecomte, Alain & Quatrini, Myriam. 2011. ‘Figures of dialogue: a view from Ludics’.
+Synthese 183, no. 1: 59–85.
+Lorenzen, Paul. 1960. ‘Logik und agon’. Atti Congr. Internat. di Filosofia 4: 187–194.
+Martin-Lof, Per & Sambin, Giovanni. 1984. Intuitionistic type theory, vol. 17. Bibliopolis
+Naples, Italy.
+Parigot, Michel. 1992. ‘λµ-calculus: an algorithmic interpretation of classical natural
+deduction’. In ‘Logic programming and automated reasoning’, 190–201. Springer.
+Peirce, Charles Sanders. 1982. ‘How to make our ideas clear’. In ‘Writings of Charles S
+Peirce’, vol. 3. Indiana University Press.
+Pietarinen, Ahti-Veikko et al. 2007. Game theory and linguistic meaning. Elsevier Science.
+Porello, Daniele. 2012. ‘Incompatibility semantics from agreement’. Philosophia 40,
+no. 1: 99–119.
+Quatrini, Myriam. 2008. ‘Une lecture ludique des stratagemes de Schopenhauer’. Tech.
+rep., Technical report, IML, Marseille.
+Ranta, Aarne. 1994. Type-theoretical grammar. Oxford University Press.
+www.thebalticyearbook.org
