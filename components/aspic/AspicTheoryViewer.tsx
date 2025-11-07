@@ -60,7 +60,7 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
   const contrariesEntries = Object.entries(contraries);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Language Section */}
       <Card className="sidebarv2 p-0">
         <CardHeader className="pb-3">
@@ -109,7 +109,8 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
       </Card>
 
       {/* Rules Section */}
-      <Card>
+            <Card className="sidebarv2 p-0">
+
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <button
@@ -201,7 +202,7 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
       </Card>
 
       {/* Knowledge Base Section */}
-      <Card>
+      <Card className="sidebarv2 p-0">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <button
@@ -292,7 +293,8 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
       </Card>
 
       {/* Contraries Section */}
-      <Card>
+           <Card className="sidebarv2 p-0">
+
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <button

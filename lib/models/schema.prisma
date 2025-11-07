@@ -105,6 +105,9 @@ model User {
   // Source rating relations
   sourceRatings SourceRating[]
 
+  // ASPIC+ Explicit Contraries - Phase D-1
+  claimContraries ClaimContrary[]
+
   @@map("users")
 }
 
@@ -2511,6 +2514,40 @@ model ConflictApplication {
   @@index([conflictedArgumentId])
 }
 
+// ASPIC+ Explicit Contraries - Phase D-1
+// Allows users to explicitly mark claim pairs as contrary/contradictory
+// independent of attack relationships
+model ClaimContrary {
+  id             String   @id @default(cuid())
+  deliberationId String
+  claimId        String // First claim
+  contraryId     String // Contradictory/contrary claim
+  isSymmetric    Boolean  @default(true) // true = contradictory (mutual), false = contrary (one-way)
+  
+  // Provenance tracking for transparency
+  createdById BigInt
+  createdAt   DateTime @default(now())
+  
+  // Status for future challenge/moderation system
+  status String @default("ACTIVE") // "ACTIVE" | "PROPOSED" | "DISPUTED" | "RETRACTED"
+  
+  // Optional metadata
+  reason String? @db.Text // User's explanation for why these are contrary
+  
+  // Relations
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  claim        Claim        @relation("ClaimContraries", fields: [claimId], references: [id], onDelete: Cascade)
+  contrary     Claim        @relation("ContraryOf", fields: [contraryId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  
+  @@unique([claimId, contraryId])
+  @@index([deliberationId])
+  @@index([claimId])
+  @@index([contraryId])
+  @@index([createdById])
+  @@index([deliberationId, status])
+}
+
 // Dialogue Action Tracking Models (Phase 2.1)
 
 model ResponseVote {
@@ -3244,6 +3281,10 @@ model Claim {
   thesisReferences Thesis[]      @relation("ThesisMainClaim")
   prongClaims      ThesisProng[] @relation("ProngMainClaim")
 
+  // ASPIC+ Explicit Contraries - Phase D-1
+  contraries   ClaimContrary[] @relation("ClaimContraries")
+  contraryOf   ClaimContrary[] @relation("ContraryOf")
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -3806,6 +3847,9 @@ model Deliberation {
   // AIF graph nodes and edges for this deliberation
   aifNodes AifNode[]
   aifEdges AifEdge[]
+
+  // ASPIC+ Explicit Contraries - Phase D-1
+  claimContraries ClaimContrary[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])

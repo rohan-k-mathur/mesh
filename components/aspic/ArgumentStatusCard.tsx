@@ -16,10 +16,10 @@ import {
 interface ArgumentStatusCardProps {
   argument: {
     id: string;
-    premises: string[];
+    premises: any[];
     conclusion: string;
-    defeasibleRules: string[];
-    topRule: string | null;
+    defeasibleRules: any[];
+    topRule: any;
     structure: string;
   };
   status: "in" | "out" | "undec";
@@ -28,6 +28,18 @@ interface ArgumentStatusCardProps {
 
 export function ArgumentStatusCard({ argument, status, explanation }: ArgumentStatusCardProps) {
   const [expanded, setExpanded] = useState(false);
+
+  // Debug logging
+  console.log("[ArgumentStatusCard] Rendering with:", {
+    id: argument.id,
+    idType: typeof argument.id,
+    conclusion: argument.conclusion,
+    conclusionType: typeof argument.conclusion,
+    premises: argument.premises,
+    premisesType: typeof argument.premises,
+    premisesIsArray: Array.isArray(argument.premises),
+    status,
+  });
 
   const statusConfig = {
     in: {
@@ -71,10 +83,10 @@ export function ArgumentStatusCard({ argument, status, explanation }: ArgumentSt
             <div className="flex items-center gap-2 flex-1">
               <span className="text-lg">{config.icon}</span>
               <Badge variant="outline" className="font-mono text-xs">
-                {argument.id}
+                {String(argument.id || "unknown")}
               </Badge>
               <span className="font-mono text-sm font-semibold">
-                {argument.conclusion}
+                {String(argument.conclusion || "unknown")}
               </span>
             </div>
           </button>
@@ -100,11 +112,27 @@ export function ArgumentStatusCard({ argument, status, explanation }: ArgumentSt
           <div>
             <div className="text-xs font-semibold text-gray-600 mb-1">Premises:</div>
             <div className="flex flex-wrap gap-1">
-              {argument.premises.map((premise, idx) => (
-                <Badge key={idx} variant="secondary" className="font-mono text-xs">
-                  {premise}
-                </Badge>
-              ))}
+              {Array.from(argument.premises || []).map((premise: any, idx: number) => {
+                console.log(`[ArgumentStatusCard] Rendering premise ${idx}:`, {
+                  premise,
+                  type: typeof premise,
+                  isObject: typeof premise === "object",
+                  keys: typeof premise === "object" && premise ? Object.keys(premise) : null,
+                });
+                
+                // Handle string premises or objects with formula property
+                const premiseText = typeof premise === "string" 
+                  ? premise 
+                  : premise?.formula || premise?.text || JSON.stringify(premise);
+                
+                console.log(`[ArgumentStatusCard] Premise ${idx} text:`, premiseText);
+                
+                return (
+                  <Badge key={idx} variant="secondary" className="font-mono text-xs">
+                    {String(premiseText)}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
 
@@ -115,12 +143,31 @@ export function ArgumentStatusCard({ argument, status, explanation }: ArgumentSt
                 Defeasible Rules:
               </div>
               <div className="flex flex-wrap gap-1">
-                {argument.defeasibleRules.map((rule, idx) => (
-                  <Badge key={idx} variant="outline" className="font-mono text-xs">
-                    {rule}
-                  </Badge>
-                ))}
+                {Array.from(argument.defeasibleRules || []).map((rule: any, idx: number) => {
+                  const ruleText = typeof rule === "string"
+                    ? rule
+                    : rule?.id || rule?.name || `Rule ${idx + 1}`;
+                  return (
+                    <Badge key={idx} variant="outline" className="font-mono text-xs">
+                      {String(ruleText)}
+                    </Badge>
+                  );
+                })}
               </div>
+            </div>
+          )}
+
+          {/* Top Rule */}
+          {argument.topRule && (
+            <div>
+              <div className="text-xs font-semibold text-gray-600 mb-1">Top Rule:</div>
+              <Badge variant="outline" className="font-mono text-xs">
+                {typeof argument.topRule === "string" 
+                  ? argument.topRule 
+                  : (argument.topRule as any)?.type || 
+                    (argument.topRule as any)?.id || 
+                    "Rule"}
+              </Badge>
             </div>
           )}
 
@@ -128,7 +175,9 @@ export function ArgumentStatusCard({ argument, status, explanation }: ArgumentSt
           <div>
             <div className="text-xs font-semibold text-gray-600 mb-1">Structure:</div>
             <Badge variant="outline" className="text-xs">
-              {argument.structure}
+              {typeof argument.structure === "string" 
+                ? argument.structure 
+                : JSON.stringify(argument.structure)}
             </Badge>
           </div>
 

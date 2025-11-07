@@ -50,6 +50,17 @@ export function GroundedExtensionPanel({ arguments: args, semantics }: GroundedE
     new Set(["in", "out"])
   );
 
+  // Debug logging
+  console.log("[GroundedExtensionPanel] Received data:", {
+    argsCount: args.length,
+    firstArg: args[0],
+    semantics: {
+      attacksCount: semantics.attacks.length,
+      groundedExtension: semantics.groundedExtension,
+      justificationStatus: semantics.justificationStatus,
+    },
+  });
+
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(section)) {

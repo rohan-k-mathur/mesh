@@ -62,6 +62,22 @@ export function computeDefeats(
     const target = getAttackTarget(attack);
     if (!target) continue;
 
+    // Special case: Undermining attacks on assumptions ALWAYS succeed
+    if (attack.type === "undermining" && attack.target.premise) {
+      const targetPremise = attack.target.premise;
+      const isAssumption = theory.knowledgeBase.assumptions.has(targetPremise);
+      
+      if (isAssumption) {
+        defeats.push({
+          defeater: attack.attacker,
+          defeated: attack.attacked,
+          attack,
+          preferenceApplied: false, // No preference check for assumptions
+        });
+        continue;
+      }
+    }
+
     // Attack succeeds if attacker ⊀ target (not strictly less preferred)
     const isStrictlyLessPreferred = preferenceRelation.isLessPreferred(
       attack.attacker,

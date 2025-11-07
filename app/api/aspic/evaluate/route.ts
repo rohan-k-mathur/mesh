@@ -164,8 +164,46 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Step 1b: Fetch ConflictApplications (attacks) for this deliberation
+    const conflictsList = await prisma.conflictApplication.findMany({
+      where: { deliberationId },
+      include: {
+        scheme: true,
+        createdByMove: true,
+      },
+    });
+
+    console.log(`[ASPIC API] Fetched ${conflictsList.length} ConflictApplications for deliberation ${deliberationId}`);
+
+    // Step 1c: Fetch AssumptionUse records (ACCEPTED assumptions for K_a)
+    const assumptionsList = await prisma.assumptionUse.findMany({
+      where: {
+        deliberationId,
+        status: "ACCEPTED", // Only accepted assumptions enter knowledge base
+      },
+      include: {
+        // Include claim if tied to existing claim
+      },
+    });
+
+    console.log(`[ASPIC API] Fetched ${assumptionsList.length} ACCEPTED AssumptionUse records for deliberation ${deliberationId}`);
+
+    // Step 1d: Fetch explicit ClaimContrary records (Phase D-1)
+    // @ts-ignore - ClaimContrary model exists but TypeScript server hasn't refreshed
+    const explicitContraries = await prisma.claimContrary.findMany({
+      where: {
+        deliberationId,
+        status: "ACTIVE",
+      },
+      include: {
+        claim: true,
+        contrary: true,
+      },
+    });
+
+    console.log(`[ASPIC API] Fetched ${explicitContraries.length} explicit ClaimContrary records for deliberation ${deliberationId}`);
+
     // Step 2: Build AIFGraph from fetched data
-    // Note: For now, skip conflicts until Prisma client is regenerated
     const nodes: AnyNode[] = [];
     const edges: Edge[] = [];
     const nodeIds = new Set<string>();
@@ -235,8 +273,186 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // TODO: Add CA-nodes when Prisma client includes ConflictApplication
-    // For now, attacks will be derived from contraries in ASPIC+ translation
+    // Step 3: Add CA-nodes (ConflictApplications as attack nodes)
+    for (const conflict of conflictsList) {
+      const caNodeId = `CA:${conflict.id}`;
+      
+      // Determine attack type for visualization
+      const attackType = conflict.aspicAttackType || conflict.legacyAttackType || 'unknown';
+      
+      // Create CA-node
+      if (!nodeIds.has(caNodeId)) {
+        nodes.push({
+          id: caNodeId,
+          nodeType: "CA",
+          content: `${attackType} attack`,
+          debateId: deliberationId,
+          conflictType: attackType.toLowerCase() as "rebut" | "undercut" | "undermine",
+          metadata: {
+            schemeKey: conflict.scheme?.key,
+            createdByMoveId: conflict.createdByMoveId,
+            aspicAttackType: conflict.aspicAttackType,
+            aspicDefeatStatus: conflict.aspicDefeatStatus,
+            aspicMetadata: conflict.aspicMetadata,
+            legacyAttackType: conflict.legacyAttackType,
+            legacyTargetScope: conflict.legacyTargetScope,
+          },
+        });
+        nodeIds.add(caNodeId);
+      }
+
+      // Edge 1: Attacker → CA-node (conflicting edge)
+      if (conflict.conflictingArgumentId) {
+        const attackerNodeId = `RA:${conflict.conflictingArgumentId}`;
+        edges.push({
+          id: `${attackerNodeId}->${caNodeId}`,
+          sourceId: attackerNodeId,
+          targetId: caNodeId,
+          edgeType: "conflicting",
+          debateId: deliberationId,
+        });
+      } else if (conflict.conflictingClaimId) {
+        // Attacker is a claim (create I-node if needed)
+        const attackerClaimNodeId = `I:${conflict.conflictingClaimId}`;
+        if (!nodeIds.has(attackerClaimNodeId)) {
+          // Fetch claim text (we may need to optimize this with a batch query)
+          const attackerClaim = await prisma.claim.findUnique({
+            where: { id: conflict.conflictingClaimId },
+          });
+          if (attackerClaim) {
+            nodes.push({
+              id: attackerClaimNodeId,
+              nodeType: "I",
+              content: attackerClaim.text,
+              claimText: attackerClaim.text,
+              debateId: deliberationId,
+            });
+            nodeIds.add(attackerClaimNodeId);
+          }
+        }
+        edges.push({
+          id: `${attackerClaimNodeId}->${caNodeId}`,
+          sourceId: attackerClaimNodeId,
+          targetId: caNodeId,
+          edgeType: "conflicting",
+          debateId: deliberationId,
+        });
+      }
+
+      // Edge 2: CA-node → Target (conflicted edge)
+      if (conflict.conflictedArgumentId) {
+        const targetNodeId = `RA:${conflict.conflictedArgumentId}`;
+        edges.push({
+          id: `${caNodeId}->${targetNodeId}`,
+          sourceId: caNodeId,
+          targetId: targetNodeId,
+          edgeType: "conflicted",
+          debateId: deliberationId,
+        });
+      } else if (conflict.conflictedClaimId) {
+        // Target is a claim (create I-node if needed)
+        const targetClaimNodeId = `I:${conflict.conflictedClaimId}`;
+        if (!nodeIds.has(targetClaimNodeId)) {
+          const targetClaim = await prisma.claim.findUnique({
+            where: { id: conflict.conflictedClaimId },
+          });
+          if (targetClaim) {
+            nodes.push({
+              id: targetClaimNodeId,
+              nodeType: "I",
+              content: targetClaim.text,
+              claimText: targetClaim.text,
+              debateId: deliberationId,
+            });
+            nodeIds.add(targetClaimNodeId);
+          }
+        }
+        edges.push({
+          id: `${caNodeId}->${targetClaimNodeId}`,
+          sourceId: caNodeId,
+          targetId: targetClaimNodeId,
+          edgeType: "conflicted",
+          debateId: deliberationId,
+        });
+      }
+
+      console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (${conflict.conflictingArgumentId || conflict.conflictingClaimId} → ${conflict.conflictedArgumentId || conflict.conflictedClaimId})`);
+    }
+
+    // Step 4: Add I-nodes for assumptions (K_a)
+    for (const assumption of assumptionsList) {
+      // Determine the assumption text
+      let assumptionText: string | undefined;
+      let assumptionNodeId: string | undefined;
+
+      if (assumption.assumptionClaimId) {
+        // Assumption tied to existing claim
+        assumptionNodeId = `I:${assumption.assumptionClaimId}`;
+        
+        // Fetch claim if not already in nodes
+        if (!nodeIds.has(assumptionNodeId)) {
+          const claim = await prisma.claim.findUnique({
+            where: { id: assumption.assumptionClaimId },
+          });
+          
+          if (claim) {
+            assumptionText = claim.text;
+            nodes.push({
+              id: assumptionNodeId,
+              nodeType: "I",
+              content: assumptionText,
+              claimText: assumptionText,
+              debateId: deliberationId,
+              metadata: {
+                role: "assumption", // Tag as assumption for K_a
+                assumptionId: assumption.id,
+                weight: assumption.weight,
+                confidence: assumption.confidence,
+              },
+            });
+            nodeIds.add(assumptionNodeId);
+          }
+        }
+      } else if (assumption.assumptionText) {
+        // Freeform assumption (not tied to existing claim)
+        assumptionNodeId = `I:assumption_${assumption.id}`;
+        assumptionText = assumption.assumptionText;
+        
+        if (!nodeIds.has(assumptionNodeId)) {
+          nodes.push({
+            id: assumptionNodeId,
+            nodeType: "I",
+            content: assumptionText,
+            claimText: assumptionText,
+            debateId: deliberationId,
+            metadata: {
+              role: "assumption", // Tag as assumption for K_a
+              assumptionId: assumption.id,
+              weight: assumption.weight,
+              confidence: assumption.confidence,
+            },
+          });
+          nodeIds.add(assumptionNodeId);
+        }
+      }
+
+      // Only create edge and log if we successfully created the assumption node
+      if (assumptionNodeId && assumptionText) {
+        // Create presumption edge from assumption to argument (if used in argument)
+        if (assumption.argumentId) {
+          const argumentNodeId = `RA:${assumption.argumentId}`;
+          edges.push({
+            id: `${assumptionNodeId}->${argumentNodeId}`,
+            sourceId: assumptionNodeId,
+            targetId: argumentNodeId,
+            edgeType: "presumption", // Special edge type for assumptions
+            debateId: deliberationId,
+          });
+        }
+
+        console.log(`[ASPIC API] Created assumption I-node ${assumptionNodeId}: "${assumptionText}" (weight: ${assumption.weight}, confidence: ${assumption.confidence})`);
+      }
+    }
 
     // Build AIFGraph object
     const aifGraph: AIFGraph = {
@@ -247,8 +463,8 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    // Step 4: Translate AIF → ASPIC+ theory
-    const theory = aifToASPIC(aifGraph);
+    // Step 4: Translate AIF → ASPIC+ theory (with explicit contraries)
+    const theory = aifToASPIC(aifGraph, explicitContraries as any);
 
     // Step 5: Compute ASPIC+ semantics
     const semantics = computeAspicSemantics(theory);
@@ -277,14 +493,32 @@ export async function GET(req: NextRequest) {
         },
       },
       semantics: {
-        arguments: semantics.arguments.map((arg) => ({
-          id: arg.id,
-          premises: Array.from(arg.premises),
-          conclusion: arg.conclusion,
-          defeasibleRules: Array.from(arg.defeasibleRules),
-          topRule: arg.topRule,
-          structure: arg.structure,
-        })),
+        arguments: semantics.arguments.map((arg) => {
+          const mapped = {
+            id: arg.id,
+            premises: Array.from(arg.premises),
+            conclusion: arg.conclusion,
+            defeasibleRules: Array.from(arg.defeasibleRules),
+            topRule: arg.topRule,
+            structure: arg.structure,
+          };
+          
+          // Debug: Log first argument in detail
+          if (semantics.arguments.indexOf(arg) === 0) {
+            console.log("[ASPIC API] First argument details:", {
+              id: arg.id,
+              idType: typeof arg.id,
+              premises: arg.premises,
+              premisesType: typeof arg.premises,
+              premisesArray: Array.from(arg.premises),
+              conclusion: arg.conclusion,
+              conclusionType: typeof arg.conclusion,
+              mapped,
+            });
+          }
+          
+          return mapped;
+        }),
         attacks: semantics.attacks.map((atk) => ({
           attackerId: atk.attacker.id,
           attackedId: atk.attacked.id,

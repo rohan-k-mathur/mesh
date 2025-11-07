@@ -117,7 +117,10 @@ export interface AspicSemantics {
   justificationStatus: Map<string, 'in' | 'out' | 'undec'>;
 }
 
-export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
+export function aifToASPIC(
+  graph: AIFGraph,
+  explicitContraries?: Array<{ claimId: string; contraryId: string; isSymmetric: boolean; claim: { text: string }; contrary: { text: string } }>
+): ArgumentationTheory {
   const language = new Set<string>();
   const contraries = new Map<string, Set<string>>();
   const strictRules: Rule[] = [];
@@ -134,6 +137,34 @@ export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
   for (const n of graph.nodes) {
     if (n.nodeType === 'I') language.add((n as any).content ?? (n as any).text ?? n.id);
     if (n.nodeType === 'RA') language.add(n.id);
+  }
+
+  // Phase D-1: Add explicit contraries FIRST (before CA-nodes)
+  // This allows users to pre-define semantic relationships independent of attacks
+  if (explicitContraries && explicitContraries.length > 0) {
+    console.log(`[aifToAspic] Processing ${explicitContraries.length} explicit contraries`);
+    for (const contrary of explicitContraries) {
+      const claimText = contrary.claim.text;
+      const contraryText = contrary.contrary.text;
+      
+      // Add to language
+      language.add(claimText);
+      language.add(contraryText);
+      
+      // Add to contraries map: claimText -> contraryText
+      if (!contraries.has(claimText)) {
+        contraries.set(claimText, new Set());
+      }
+      contraries.get(claimText)!.add(contraryText);
+      
+      // If symmetric (contradictory), add reverse mapping
+      if (contrary.isSymmetric) {
+        if (!contraries.has(contraryText)) {
+          contraries.set(contraryText, new Set());
+        }
+        contraries.get(contraryText)!.add(claimText);
+      }
+    }
   }
 
   // KB premises: I-nodes with no incoming edges
