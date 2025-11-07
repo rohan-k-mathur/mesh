@@ -49,6 +49,7 @@ import { DiagramViewer } from "../dialogue/deep-dive/DiagramViewer";
 import IssuesDrawer from "@/components/issues/IssuesDrawer";
 import IssueComposer from "@/components/issues/IssueComposer";
 import { ConfidenceProvider } from "../agora/useConfidence";
+import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
 import ClaimMiniMap from "../claims/ClaimMiniMap";
 import { PropositionComposerPro } from "../propositions/PropositionComposerPro";
 import IssuesList from "../issues/IssuesList";
@@ -2081,7 +2082,7 @@ const {
 
           {/* ASPIC TAB  */}
           <TabsContent value="aspic" className="w-full min-w-0 mt-4 space-y-4">
-           
+            <AspicTheoryPanel deliberationId={deliberationId} />
           </TabsContent>
 
           {/* HOM-SETS TAB - Phase 3 Integration */}
