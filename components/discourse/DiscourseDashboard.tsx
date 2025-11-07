@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { 
   User, 
   MessageSquare, 
@@ -20,6 +20,8 @@ import {
   AlertTriangle,
   Info
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -696,7 +698,7 @@ function EngagementCard({ type, data }: EngagementCardProps) {
             </span>
           </div>
           <p className="text-sm text-slate-700">
-            {type === "attack" && `${data.legacyAttackType} attack on ${data.targetType}`}
+            {type === "attack" && `${data.legacyAttackType} attack on ${data.targetType}: "${data.targetText || "Unknown"}"`}
             {type === "challenge" && `Challenged: "${data.targetText || "Unknown"}"`}
             {type === "response" && `Responded with GROUNDS: "${data.payload?.text || "..."}"`}
           </p>
@@ -718,28 +720,62 @@ interface ActionOnMeCardProps {
 
 function ActionOnMeCard({ type, data, deliberationId, userId }: ActionOnMeCardProps) {
   const [responding, setResponding] = React.useState(false);
-  const [responseType, setResponseType] = React.useState<"GROUNDS" | "CONCEDE" | "RETRACT">("GROUNDS");
+  const [responseType, setResponseType] = React.useState<"GROUNDS" | "RETRACT">("GROUNDS");
+  const [groundsText, setGroundsText] = React.useState("");
+  const [showGroundsInput, setShowGroundsInput] = React.useState(false);
+  const [showDetailsModal, setShowDetailsModal] = React.useState(false);
 
   const handleRespond = async () => {
+    // Validate GROUNDS text if GROUNDS is selected
+    if (responseType === "GROUNDS" && !groundsText.trim()) {
+      alert("Please provide grounds for your response");
+      return;
+    }
+
     setResponding(true);
     try {
-      // Create dialogue move response
-      await fetch("/api/dialogue/move", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deliberationId,
-          targetType: data.targetType,
-          targetId: data.targetId,
-          kind: responseType,
-          actorId: userId,
-        }),
-      });
+      if (responseType === "GROUNDS") {
+        // Use answer-and-commit API for GROUNDS with text
+        await fetch("/api/dialogue/answer-and-commit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType: data.targetType,
+            targetId: data.targetId,
+            cqKey: "default",
+            locusPath: "0",
+            expression: groundsText,
+            original: groundsText,
+            commitOwner: "Proponent",
+            commitPolarity: "pos",
+          }),
+        });
+      } else {
+        // Create simple dialogue move for RETRACT
+        await fetch("/api/dialogue/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType: data.targetType,
+            targetId: data.targetId,
+            kind: responseType,
+            actorId: userId,
+            payload: { locusPath: "0" },
+          }),
+        });
+      }
       
-      // Refresh data
-      window.location.reload();
+      // Refresh data using SWR mutate
+      mutate((key) => typeof key === 'string' && key.includes(`/api/deliberations/${deliberationId}`));
+      
+      // Reset state
+      setShowGroundsInput(false);
+      setGroundsText("");
     } catch (err) {
       console.error("Failed to respond:", err);
+      alert("Failed to submit response. Please try again.");
     } finally {
       setResponding(false);
     }
@@ -785,29 +821,153 @@ function ActionOnMeCard({ type, data, deliberationId, userId }: ActionOnMeCardPr
           </p>
 
           {/* Response Actions */}
-          <div className="flex items-center gap-2">
-            <select
-              value={responseType}
-              onChange={(e) => setResponseType(e.target.value as any)}
-              className="text-xs border border-slate-300 rounded px-2 py-1"
-            >
-              <option value="GROUNDS">Provide GROUNDS</option>
-              <option value="CONCEDE">CONCEDE</option>
-              <option value="RETRACT">RETRACT</option>
-            </select>
-            <button
-              onClick={handleRespond}
-              disabled={responding}
-              className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {responding ? "Responding..." : "Respond"}
-            </button>
-            <button className="text-xs text-slate-600 hover:text-slate-800">
-              View Details
-            </button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <select
+                value={responseType}
+                onChange={(e) => {
+                  const newType = e.target.value as any;
+                  setResponseType(newType);
+                  setShowGroundsInput(newType === "GROUNDS");
+                }}
+                className="text-xs border border-slate-300 rounded px-2 py-1"
+              >
+                <option value="GROUNDS">Provide GROUNDS (Defend)</option>
+                <option value="RETRACT">RETRACT (Withdraw)</option>
+              </select>
+              {!showGroundsInput && (
+                <button
+                  onClick={() => {
+                    if (responseType === "GROUNDS") {
+                      setShowGroundsInput(true);
+                    } else {
+                      handleRespond();
+                    }
+                  }}
+                  disabled={responding}
+                  className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {responding ? "Responding..." : "Respond"}
+                </button>
+              )}
+              <button 
+                onClick={() => setShowDetailsModal(true)}
+                className="text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 px-2 py-1 rounded"
+              >
+                View Details
+              </button>
+            </div>
+
+            {/* GROUNDS text input */}
+            {showGroundsInput && responseType === "GROUNDS" && (
+              <div className="space-y-2 mt-2">
+                <textarea
+                  value={groundsText}
+                  onChange={(e) => setGroundsText(e.target.value)}
+                  placeholder="Provide your grounds/justification..."
+                  className="w-full text-sm border border-slate-300 rounded px-3 py-2 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleRespond}
+                    disabled={responding || !groundsText.trim()}
+                    className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {responding ? "Submitting..." : "Submit GROUNDS"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroundsInput(false);
+                      setGroundsText("");
+                    }}
+                    className="text-xs text-slate-600 hover:text-slate-800 px-3 py-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-3xl bg-white max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {type === "attack" ? "Attack Details" : "Challenge Details"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Target Information */}
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                Target {data.targetType === "claim" ? "Claim" : "Argument"}
+              </h3>
+              <p className="text-sm text-slate-600 mb-3">
+                {data.targetText || "No text available"}
+              </p>
+              
+              {/* Show ClaimDetailPanel if target is a claim */}
+              {data.targetType === "claim" && data.targetId && (
+                <ClaimDetailPanel
+                  claimId={data.targetId}
+                  deliberationId={deliberationId}
+                  claimText={data.targetText}
+                  className="mt-3"
+                />
+              )}
+            </div>
+
+            {/* Attack/Challenge Information */}
+            <div className="bg-slate-50 p-4 rounded-lg">
+              <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                {type === "attack" ? "Attack Information" : "Challenge Information"}
+              </h3>
+              {type === "attack" && (
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium text-slate-600">Type:</span>{" "}
+                    <span className="text-slate-700">{data.legacyAttackType}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Attacker:</span>{" "}
+                    <span className="text-slate-700">{data.attackerName || "Unknown"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Created:</span>{" "}
+                    <span className="text-slate-700">
+                      {new Date(data.createdAt || Date.now()).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {type === "challenge" && (
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="font-medium text-slate-600">Question:</span>{" "}
+                    <span className="text-slate-700">
+                      {data.payload?.text || "Why do you assert this?"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Challenger:</span>{" "}
+                    <span className="text-slate-700">{data.challengerName || "Unknown"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-600">Created:</span>{" "}
+                    <span className="text-slate-700">
+                      {new Date(data.createdAt || Date.now()).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

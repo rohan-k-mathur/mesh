@@ -1,6 +1,6 @@
 // lib/dialogue/moves.ts
 import { LudicPolarity } from "@prisma/client";
-export type DialogueKind ="ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
+export type DialogueKind ="ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE" |"ACCEPT_ARGUMENT";
 export type TargetType = 'argument'|'claim'|'card';
 
 

@@ -23,7 +23,7 @@ const WHY_TTL_HOURS = 24;
 /**
  * Map move kind to illocution (speech act type)
  */
-function getIllocution(kind: string): 'Assert' | 'Question' | 'Argue' | 'Concede' | 'Retract' | 'Close' {
+function getIllocution(kind: string): 'Assert' | 'Question' | 'Argue' | 'Concede' | 'Retract' | 'Close' | 'Accept' | 'Suppose' | 'Discharge'  {
   switch (kind) {
     case 'WHY':
       return 'Question';
@@ -36,9 +36,14 @@ function getIllocution(kind: string): 'Assert' | 'Question' | 'Argue' | 'Concede
       return 'Retract';
     case 'CLOSE':
       return 'Close';
+    case 'ACCEPT_ARGUMENT':
+      return 'Accept';
     case 'ASSERT':
+      return 'Assert';
     case 'SUPPOSE':
+      return 'Suppose';
     case 'DISCHARGE':
+      return 'Discharge';
     default:
       return 'Assert';
   }
@@ -60,7 +65,7 @@ async function createArgumentFromGrounds(payload: {
     // Look up scheme ID if schemeKey is provided
     let schemeId: string | null = null;
     if (payload.schemeKey) {
-      const schemeRow = await prisma.argumentationScheme.findFirst({
+      const schemeRow = await prisma.argumentScheme.findFirst({
         where: { key: payload.schemeKey },
         select: { id: true }
       });
@@ -96,7 +101,7 @@ const Body = z.object({
   deliberationId: z.string().min(1),
   targetType: z.enum(['argument','claim','card']),
   targetId: z.string().min(1),
- kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE','THEREFORE','SUPPOSE','DISCHARGE']),
+ kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE','THEREFORE','SUPPOSE','DISCHARGE',"ACCEPT_ARGUMENT"]),
   payload: z.any().optional(),
   postAs: z.object({
     targetType: z.enum(['argument','claim','card']),
@@ -149,6 +154,8 @@ function synthesizeActs(kind: string, payload: any): DialogueAct[] {
   if (kind === 'GROUNDS') return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
   if (payload?.as === 'CONCEDE') // 👈 key off marker, not kind
     return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr || 'conceded' }];
+      if (kind === 'ACCEPT_ARGUMENT')   return [{ polarity:'daimon', locusPath:locus, openings:[], expression:'†' }];
+
   if (kind === 'CLOSE')   return [{ polarity:'daimon', locusPath:locus, openings:[], expression:'†' }];
   return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr }];
 }
@@ -158,6 +165,7 @@ function makeSignature(kind: string, targetType: string, targetId: string, paylo
    if (kind === 'THEREFORE') return ['THEREFORE', targetType, targetId, String(payload?.locusPath ?? '0'), hashExpr(String(payload?.expression ?? ''))].join(':');
  if (kind === 'SUPPOSE')   return ['SUPPOSE', targetType, targetId, String(payload?.locusPath ?? '0'), hashExpr(String(payload?.expression ?? ''))].join(':');
  if (kind === 'DISCHARGE') return ['DISCHARGE', targetType, targetId, String(payload?.locusPath ?? '0')].join(':');
+ if (kind === 'ACCEPT_ARGUMENT') return ['ACCEPT_ARGUMENT', targetType, targetId, String(payload?.locusPath ?? '0')].join(':');
 
   if (kind === 'GROUNDS') {
     const key = cqKey(payload);

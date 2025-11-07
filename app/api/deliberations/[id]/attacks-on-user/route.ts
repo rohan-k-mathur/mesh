@@ -101,6 +101,20 @@ export async function GET(
       }),
     ]);
 
+    // Collect unique attacker user IDs
+    const attackerUserIds = [
+      ...conflictingClaims.map(c => c.createdById),
+      ...conflictingArguments.map(a => a.authorId),
+    ].filter(Boolean) as string[];
+
+    // Fetch attacker user profiles
+    const attackerUsers = await prisma.profile.findMany({
+      where: { id: { in: attackerUserIds } },
+      select: { id: true, displayName: true, username: true },
+    });
+
+    const attackerUserMap = new Map(attackerUsers.map((u) => [u.id, u]));
+
     // Create lookup maps
     const conflictingClaimMap = new Map(conflictingClaims.map((c) => [c.id, c]));
     const conflictingArgumentMap = new Map(conflictingArguments.map((a) => [a.id, a]));
@@ -121,6 +135,10 @@ export async function GET(
                         conflictingArgument?.authorId || 
                         null;
 
+      // Fetch attacker name
+      const attackerUser = attackerId ? attackerUserMap.get(attackerId) : null;
+      const attackerName = attackerUser?.displayName || attackerUser?.username || "Unknown";
+
       // Determine target
       const conflictedClaim = attack.conflictedClaimId
         ? conflictedClaimMap.get(attack.conflictedClaimId)
@@ -138,7 +156,7 @@ export async function GET(
       return {
         id: attack.id,
         attackerId,
-        attackerName: null, // TODO: Fetch user names
+        attackerName,
         legacyAttackType: attack.legacyAttackType,
         legacyTargetScope: attack.legacyTargetScope,
         targetType,

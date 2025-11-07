@@ -49,7 +49,37 @@ export async function GET(
       },
     });
 
-    return NextResponse.json(moves, NO_STORE);
+    // Fetch target text for all moves
+    const claimTargetIds = moves
+      .filter(m => m.targetType === "claim" && m.targetId)
+      .map(m => m.targetId!);
+    const argumentTargetIds = moves
+      .filter(m => m.targetType === "argument" && m.targetId)
+      .map(m => m.targetId!);
+
+    const [targetClaims, targetArguments] = await Promise.all([
+      prisma.claim.findMany({
+        where: { id: { in: claimTargetIds } },
+        select: { id: true, text: true },
+      }),
+      prisma.argument.findMany({
+        where: { id: { in: argumentTargetIds } },
+        select: { id: true, text: true, claim: { select: { text: true } } },
+      }),
+    ]);
+
+    const claimMap = new Map(targetClaims.map(c => [c.id, c.text]));
+    const argumentMap = new Map(targetArguments.map(a => [a.id, a.claim?.text || a.text]));
+
+    // Add targetText to each move
+    const movesWithTargets = moves.map(move => ({
+      ...move,
+      targetText: move.targetType === "claim" 
+        ? claimMap.get(move.targetId!) 
+        : argumentMap.get(move.targetId!),
+    }));
+
+    return NextResponse.json(movesWithTargets, NO_STORE);
   } catch (err) {
     console.error("[GET /api/deliberations/[id]/dialogue-moves] Error:", err);
     return NextResponse.json(

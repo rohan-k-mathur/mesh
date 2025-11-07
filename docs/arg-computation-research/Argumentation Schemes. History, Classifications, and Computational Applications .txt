@@ -1,0 +1,2339 @@
+Argumentation Schemes.
+History, Classifications, and Computational
+Applications
+Fabrizio Macagno
+Universidade Nova de Lisboa, Portugal
+fabriziomacagno@hotmail.com
+Douglas Walton
+University of Windsor, Canada
+dwalton@uwindsor.ca
+Chris Reed
+University of Dundee, Scotland
+chris@computing.dundee.ac.uk
+Abstract
+Argumentation schemes can be described as abstract structures representing
+the most generic types of argument, constituting the building blocks of the ones
+used in everyday reasoning. This paper investigates thestructure, classification,
+and uses of such schemes. Three goals are pursued: 1) to describe the schemes,
+showing how they evolved and how they have been classified in the traditional
+and the modern theories; 2) to propose a method for classifying them based on
+ancient and modern developments; and 3) to outline and show how schemes can
+be used to describe and analyze or produce real arguments. To this purpose, we
+will build on the traditional distinctions for building a dichotomic classification
+of schemes, and we will advance a modular approach to argument analysis,
+in which diﬀerent argumentation schemes are combined together in order to
+represent each step of reasoning on which a complex argument relies. Finally,
+we will show how schemes are applied to formal systems, focusing on their
+applications to Artificial Intelligence, AI & Law, argument mining, and formal
+ontologies.
+Vol. 4 No. 8 2017
+IFCoLog Journal of Logics and Their Applications
+Electronic copy available at: https://ssrn.com/abstract=3092491Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+1 Introduction
+The purpose of this paper is threefold: 1) to describe the schemes, showing how
+they evolved and how they have been classified in the traditional and the modern
+theories; 2) to propose a method for classifying them based on ancient and modern
+developments; and 3) to outline and show how schemes are interrelated and can
+be organized in a modular way to describe natural arguments or produce complex
+arguments. Historically, the schemes evolved from the Aristotelian topics, the so-
+calledplacestofindarguments. ButlookingoverthedescriptionsAristotlepresented
+of them in the Topics, for the most part they do not appear to very much resemble
+the argumentation schemes in the contemporary list of Walton, Reed and Macagno
+[Walton et al., 2008]. Of course there are exceptions, such as the topic for argument
+from analogy described in Aristotle, which is recognizable as standing for the same
+kind of argument as the current scheme for argument from analogy, even though the
+detailed description of it is quite diﬀerent.
+Argumentation schemes are instruments for argumentation, involving the activ-
+ity of critically evaluating a viewpoint and the reasons given in its support. For this
+reason, every scheme has a corresponding set of critical questions, representing its
+defeasibility conditions and the possible weak points that the interlocutor can use
+to question the argument and evaluate its strength. A critic who has no counter-
+arguments ready to hand can search through the list of critical questions matching
+the argument he is confronted with in order to look for clues on how the argument
+can be attacked that might suggest sources of evidence that could be used to build
+up a whole line of argumentation that furnishes a way of refuting the argument.
+The fundamental challenge that a theory of argumentation schemes needs to
+face is the problem of finding a useful and sound classification system. The schemes
+need to be usable, easily identifiable, and at the same time they need to allow
+the user to detect the most specific pattern of argument that can fit the text or
+that can be employed for producing an argument suitable to the circumstances
+and the purpose. In any classification system, entities can be classified in many
+diﬀerent ways, depending on the purpose of the classification. The purpose of the
+classification system will determine the criteria for classification that are adopted in
+that system. For example, a much more detailed classification of animals may be
+useful in biology than the kind of classification that might be useful for law, or for
+classifying animals as they are spoken and written about in everyday conversational
+English. We need to begin by specifying the purpose of the classification, so that
+some guidance can be given on how to identify the criteria used in the classification
+system. Fromthisperspectiveitisusefultoexaminehowthestudyofargumentation
+schemes evolved.
+Electronic copy available at: https://ssrn.com/abstract=3092491Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+2 Introducing argumentation schemes
+Argumentation schemes represent forms of argument that are widely used in every-
+day conversational argumentation, and in other contexts such as legal and scientific
+argumentation. But for the most part these arguments are not adequately modeled
+by deductive forms of reasoning of the kind familiar in classical logic or as statistical
+inferences based on the standard Bayesian account of probability. They represent
+the premise-conclusion structure of an argument, and they are defeasible. Their de-
+feasibility conditions are shown as a set of critical questions, dialectical instruments
+to help begin the procedure of testing the strength and acceptability of an argument
+by weighing the pro and con arguments.
+2.1 Nature of the schemes
+Argumentation schemes are stereotypical patterns of inference, combining semantic-
+ontological relations with types of reasoning and logical axioms and representing
+the abstract structure of the most common types of natural arguments [Macagno
+and Walton, 2015]. The argumentation schemes provided in [Walton et al., 2008]
+describe the patterns of the most typical arguments, without drawing distinctions
+betweenmaterialrelations(namelyrelationsbetweenconceptsexpressedbythewar-
+rant of an argument), types of reasoning (such as induction, deduction, abduction),
+and logical rules of inference characterizing the various types of reasoning (such as
+modus ponens, modus tollens, etc.). For this reason, argumentation schemes fall into
+distinct patterns of reasoning such as abductive, analogical, or inductive ones, and
+ones from classification or cause to eﬀect.
+In order to design a system for classifying the schemes, it is useful to understand
+their limits, and investigate how the dimensions of an argument (material relation
+and logical form) are merged. For example, consider argument from cause to eﬀect
+[Walton et al., 2008, p.328]:
+Major premise Generally, if A occurs, then B will (might) occur.
+Minor premise In this case, A occurs (might occur).
+Conclusion Therefore, in this case B will (might) occur).
+Table 1: Argument from cause to eﬀect
+This argumentation scheme is based on a defeasible modus ponens scheme [Ver-
+heij, 2003a] which is combined with a semantic causal relation between two events.
+The material (semantic) relation is merged with the logical one. However, this com-
+bination represents only one of the possible types of inferences that can be drawn
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+from the same semantic-ontological connection. The actual relationship between the
+material and the logical relation is much more complex. For example, consider the
+classic Aristotelian causal link between “having fever” and “breathing fast,” and see
+how this cause-eﬀect relation can be used to draw a conclusion based on diﬀerent
+logical rules [Macagno and Walton, 2015; Macagno, 2015])
+1. He had fever. (Fever causes breathing fast). Therefore, he (must have)
+breathed fast.
+2. He did not breathe fast. (Fever causes breathing fast). Therefore, he had no
+fever.
+3. He is breathing fast. (Fever causes breathing fast). Therefore, he might have
+fever.
+4. He has no fever. (Fever causes breathing fast). Therefore, he may be not
+breathing fast.
+5. You may have fever. When I had fever, I was breathing fast, and you are
+breathing fast.
+Cases (1) and (2) proceed logically from defeasible deductive axioms, i.e. the
+defeasible modus ponens (in 1), and the defeasible modus tollens (in 2). Cases 3 and
+4 proceed from abductive reasoning. In (3) the conclusion is drawn by aﬃrming the
+consequent, while in (4) the denial of the antecedent can be rephrased by contrapo-
+sition as “not breathing fast is caused by having no fever,” leading to a conclusion
+drawn abductively [Walton et al., 2008, pp.169–173]. In (5) the conclusion is based
+on an inductive generalization from one single case.
+Schemes represent only the prototypical matching between semantic relations
+and logical rules (types of reasoning and axioms). This matching is, however, only
+the most common one. The material and the logical relations can combine in several
+diﬀerent ways. Hence this distinction needs to be taken into account order to classify
+the schemes.
+2.2 Why schemes are important
+Critics often ask how these schemes can be justified, given that they resisted analysis
+as deductive or inductive forms of argument of the kind recognized as valid in the
+dominant 20th-century logic tradition [Walton and Sartor, 2013].
+Schemes are becoming extremely important for practical reasons. First, argu-
+mentation schemes are instruments for analyzing and recognizing natural arguments
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+occurring in ordinary and specialized discourse. For example, arguments from polit-
+ical discourse have been analyzed using the schemes, and the argumentative profiles
+of the candidates have been brought to light considering their preferences of the
+types of arguments used [Hansen & Walton, 2013]. Thousands of real examples of
+these forms of argument have been analyzed in the argumentation literature, such as
+the considerable literature on fallacies, with the aid of tools like argument mapping
+[Reed et al., 2007; Rowe et al., 2006]. On this basis, the structure, use, and im-
+portance of schemes for argumentation studies have been justified inductively. This
+method consists in the following steps:
+1. The structure of a scheme is outlined considering the literature on the topic.
+2. A significant mass of examples of arguments is analyzed using the scheme,
+adapting and modifying the scheme so that it can best describe the specific
+natural arguments.
+3. Itisshownthattheformofargumentrepresentedbytheschemeunderanalysis
+is significantly important for the study of argumentation as it occurs in natural
+language discourse (and other specialized contexts such as legal discourse).
+4. Empirical justification is given that this form of argument needs to be recog-
+nized as a basic scheme for argumentation.
+Second, schemes are instruments that can be used for the purpose of teaching critical
+thinking. Informal logic is a field is known for having grown from its origins in
+textbooks that departed from formal logic and instead proceeded on the basis of
+analyzing numerous examples of arguments from ordinary discourse, such as those
+taken from magazines and newspapers. There is an abundance of such textbooks full
+of examples of everyday arguments related to topics such as the informal fallacy of
+appealtoauthority,falsecause,andsoforth. Duringitsgrowthstageandsubsequent
+theoretical flowering, the field followed this trend by stressing the importance of
+analyzing real arguments “on the hoof”. For example, the handbook Informal Logic
+[Walton, 1989] was based on hundred 150 key examples, many of them illustrating
+forms of argument now identified with argumentation schemes, including personal
+attack, uses and abuses of expert opinion, arguments from analogy, arguments from
+correlation to cause, and so forth. These textbooks and continued academic writings
+on informal logic contained a very large number of such examples, often analyzed
+in minute detail. Argumentation schemes, such as argument from expert opinion,
+are tested against the real examples, to discuss the respects in which the abstract
+scheme fits or does not fit the vagaries of the real-life example. This body of data
+confirms that certain types of arguments, mainly the ones subsequently identified
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+as argumentation schemes, are not only extremely common, but are also highly
+influential in daily practices of argumentation.
+Third, schemes can be used in education both for teaching students how to ar-
+gueandforlearningthroughargumentation[ErduranandJimenez-Aleixandre, 2007;
+Erduran and Jiménez Aleixandre, 2012; Rapanta and Walton, 2016]. The interest
+in argumentation and the patterns for representing natural arguments is growing
+[Rapanta et al., 2013]. The argumentation schemes illustrated in [Walton, 1995;
+Walton et al., 2008] have been applied to science education in order to represent
+students’ arguments and improve the quality thereof [Rapanta and Macagno, 2016],
+retrieve the implicit premises, and assess and rebut their reasoning in a systematic
+fashion [Macagno and Konstantinidou, 2013], or to assess the quality of argumen-
+tation [Duschl et al., 1999; Ozdem et al., 2013]. However, a crucial problem arising
+out of the use of schemes in education is their diﬀerentiation [Kim et al., 2010;
+Nussbaum and Edwards, 2011]. Students often fail to understand the diﬀerences
+between various types of arguments, and the recent developments in education tend
+to conflate the schemes instead of providing criteria for classifying or distinguishing
+between them.
+Fourth, schemes have now been recognized as important for argument mining,
+and it has also been recognized that there are too many schemes for handy use
+[Mochales Palau and Moens, 2009; Mochales Palau and Moens, 2011]. Configuring
+the relationships between clusters of them, and the internal structure of each cluster,
+would help in the research eﬀorts to apply the schemes as working tools to a broader
+range of problems as the field of computational linguistics has moved forward.
+From a theoretical point of view, schemes fit into current formal argumentation
+models such as ASPIC+ [Prakken et al., 2015], DefLog [Verheij, 2003a] and the
+Carneades Argumentation System [Walton and Gordon, 2012]. Among the basic
+schemes presented in the list of 60+ schemes in chapter 9 of [Walton et al., 2008]
+are argument from expert opinion, argument from sign, argument from example,
+argumentfromcommitment, argumentfrompositiontoknow, argumentfromlackof
+knowledge, practical reasoning (argument from goal to action), argument from cause
+to eﬀect, the sunk costs argument, argument from analogy, ad hominem argument,
+and the slippery slope argument. These schemes are at this point well enough
+recognized in the argumentation literature that no detailed account of them needs
+to be given in this paper, except for the ones that we will focus on to illustrate
+general characteristics of schemes discussed in detail in the paper.
+Moreover, Walton and Sartor [Walton and Sartor, 2013] have shown that the
+basic defeasible schemes can be justified by the teleological argument. According
+to this reasoning, the use of a specific scheme is warranted by the fact that it can
+serve an agent’s goals better than using nothing, and better than other alternative
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+schemata the agent has at its disposal. This kind of justification of basic schemes
+is essentially a practical one saying that these schemes, even at their current state
+of development, are proving to be useful in such areas as artificial intelligence and
+multiagent computing. Defeasible schemes allow agents to arrive at a presumptive
+conclusion on how to proceed in a situation where continuing to collect evidence
+may cause delay, taking time and costing money.
+This form of justification of schemes applies both to goals of epistemic cognition
+(getting to the truth of a matter) and goals of practical cognition (making the best
+choice in given circumstances). The importance of the schemes has also been ac-
+knowledged in the history of dialectics. The forms of argument, their critical and
+defeasible dimension, and their structure was long ago acknowledged in the earlier
+concerns of the Sophists, who pointed out forms of argument useful for persuasion
+and deliberation [Schiappa, 1999; Tindale, 2010]. In the Topics [Aristotle, 1991b]
+and in the Rhetoric [Aristotle, 1991a], Aristotle set out a list of topics that, pro-
+viding the abstract and general hypothetical premises of dialectical syllogisms, can
+be considered to be the predecessors of the argument patterns developed in modern
+times [Macagno et al., 2014; Rubinelli, 2009; Macagno et al., 2014].
+The tradition of the topics was continued through the Middle Ages, with var-
+ious theories aimed at providing a classification and an analysis of the nature of
+the schemes [Bird, 1962; Gabbay and Woods, 2008; Green-Pedersen, 1984; Green-
+Pedersen, 1987; Stump, 1982; Stump, 1989]. Study of the kinds of schemes that are
+the focus of this paper was eclipsed during the Enlightenment, as the dominant view
+became firmly entrenched that the only forms of reasoning that can be identified
+with rational thinking are those of deductive logic, and inductive reasoning of the
+kind used in games of chance. But the study of these schemes made a comeback
+in the 20th century at the beginning of, and after the rise of argumentation stud-
+ies as a respectable discipline, once the basic schemes were identified by Hastings
+[1963], Perelman and Olbrechts-Tyteca [1969], Kienpointner [1992], Walton [1995],
+Grennan [1997], and Walton, Reed and Macagno [2008]. From that point onwards,
+the study of schemes has been recognized as important for building computational
+models of argumentation, and especially for applying these models to argumentation
+in natural language discourse.
+2.3 Classification of the schemes: how to proceed
+In this paper, it is shown how the complex project of classifying schemes needs
+to proceed by matching a top-down approach with a bottom-up approach, and in
+particular that this bottom-up approach needs to begin by studying relationships
+between clusters of nested schemes. From a top-down approach, dichotomic criteria
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+of classification need to be found, allowing the user to decide the scheme needed,
+both by direct identification and by exclusion. For this purpose, an overview of the
+existing classification systems developed in the tradition and in the recent theories
+can provide useful criteria. From a bottom-up approach, relationships within groups
+of schemes need to be studied, and then how one group fits with another can be
+studied. Walton [2012] took a bottom-up approach that began with some examples
+at the ground level of cases where two schemes seem to apply to the same real
+example of an argument found in a text, leading to a diﬃculty of determining which
+scheme fits the argument. Working from there, we identify clusters of schemes that
+fit together, and then at the next step, we examine how these clusters can be fitted
+together. Once clusters of schemes are fitted together into larger groups, we can
+gradually learn how they fit into an overarching system.
+3 The topics in the dialectical and rhetorical tradition
+Argumentation schemes describe patterns from which specific arguments can be
+drawn. In this sense, they can be seen as the modern development of the traditional
+concept of topos, the conditional expressing a generic principle from which some of
+the specific premises warranting the conclusion in an argument can be drawn. The
+purpose of this section is to show how the ancient account of topoi and loci can be
+considered as the ground and the predecessor of the modern theory of schemes.
+3.1 Aristotle
+The idea of providing general principles of inference from which various arguments
+can be drawn was the ground of Aristotle’s Topics and Rhetoric. The Aristotelian
+topoi can be conceived as principles [De Pater, 1965, pp.150–159] having often the
+form of “P, then Q”. The various semantic (material) relations between P and Q, or
+the “nature of the things which the terms of the argument represent or stand for”
+[Green-Pedersen, 1987, p.413], constitute the diﬀerences between the various topoi.
+For example, P and Q can be related by a relation of genus-species, definiens-
+definiendum, contraries, similarity, etc. The function of the topoi in the mechanism
+of argument production can be explained as follows [Slomkowski, 1997, p.45]:
+The enthymemes seem to be instances of topoi; or, expressed diﬀerently, en-
+thymemes are arguments which are warranted by the principle expressed in the
+topos. Thus hypothetical syllogism would fall under a topos insofar as it falls
+under its major premiss in which the essence of the hypothetical syllogism is
+expressed.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+Topoi can be considered as the external general rules of reasoning of an enthymeme,
+or the genera of the major premises of dialectical and rhetorical syllogisms. Topoi
+can work as rules, namely as the principle of inference guaranteeing the passage from
+an enthymematic premise to the conclusion. For example, we consider the following
+enthymeme [Slomkowski, 1997, p.51]: âĂć
+âĂć Doing greater injustice is a greater evil.
+âĂć From “what is more A is more B”, you may infer: “A is B”.
+âĂć Doing injustice is an evil.
+The topos can be also used as a general principle from which it is possible to draw
+the specific premises of a hypothetical syllogism [Bird, 1960; Bird, 1962; Macagno et
+al., 2014]. For example, the same argument mentioned above can be completed by
+adding the major premise that is an instantiation (an axiom-instance) of the topos
+from the more [Slomkowski, 1997, p.53] (Table 2):
+Table 2: Topoi as general principles of inference
+The aforementioned mechanism of specification (or instantiation) of the topoi brings
+tolightafundamentaldistinctionthatAristotledrawsbetweengenerictopoi andthe
+idia(thespecifictopics)[Rubinelli, 2009, pp.59–70]. Whilegenerictopoi areabstract
+and commonly shared conditionals under which specific premises can be found, the
+specific topoi represent premises warranting the conclusion ([De Pater, 1965, p.134];
+[Stump, 1989, p.29]) that are accepted within specific disciplines, such as ethics,
+law, or medicine. For example, consider the following specific topic [Lawson, 1885,
+p.262]:
+General principle If being more A is more B, then A is B.
+Specific instantiation of
+the topos as a premise
+If doing greater injustice (A) is a greater evil
+(B), then doing injustice (A) is an evil (B).
+Minor premise Doing greater injustice (A) is a greater
+evil (B).
+Conclusion Doing injustice (A) is an evil (B)
+Where a person does an act, he is presumed in so doing to have intended that
+the natural and legal consequences of his act shall result.
+In specific domains of knowledge, specific topoi can be listed as instruments of in-
+vention, premises that can be used to construct arguments in support of typical
+conclusions.
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+Generic topics can be considered as abstractions from the specific ones, or
+more correctly, an abstraction from a large number of specific topics. They pro-
+vide classes of both necessary and defeasible inferences [Bird, 1960; Bird, 1962;
+Christensen, 1988; Drehe, 2011; Stump, 2004]. In the first class fall some maxims
+setting out definitional properties of meta-semantic concepts, i.e. concepts represent-
+ing semantic relations between concepts, such as definition, genus, and property. For
+example the locus from definition, which establishes the convertibility between def-
+inition and definiendum, represents also the essential logical characteristic that a
+predicate needs to have in order be considered as a “discourse signifying what a
+thing is.” Other loci, such as the ones based on analogy or the more and the less,
+are only defeasible, as they represent only commonly accepted relationships. In the
+Topics [Aristotle, 1991b], Aristotle focuses most of his analysis on the topics govern-
+ing the meta-semantic relations between concepts, i.e. genus, property, definition,
+and accident. The Aristotelian account was developed in the Latin and medieval
+dialectical tradition, which developed classifications of the topics (called loci) based
+on the type of material relation they represent.
+3.2 Cicero
+Cicero [Cicero, 2003] reduced the Aristotelian list of topoi to 20 loci or maxims,
+grouping them in generic categories (diﬀerences) and dividing them in two broad
+classes, the intrinsic and the extrinsic topics [Stump, 1989]. While the first ones
+proceed directly from the subject matter at issue (for instance, its semantic prop-
+erties), the external topics (the Aristotelian arguments from authority) support the
+conclusion through contextual elements (for instance, the source of the speech act
+expressing the claim) (Cicero, Topica, 8, 3–4). In between there are the topics that
+concern the relationship between a predicate and the other predicates of a linguistic
+system (for instance, its relations with its contraries or alternatives). We represent
+the topics of Cicero in Table 3 below.
+Cicero pointed out some loci that, on his view, are principally used by dialec-
+ticians. Such topics, named loci from antecedents, consequents, and incompatibles
+(no. 8, 9, and 10 in Table 1), represent patterns of reasoning based only on the
+meaning of the connector of the hypothetical premise (if...then). For instance, if
+such a premise holds, and the antecedent is aﬃrmed, the consequent follows nec-
+essarily (topic from antecedents) (Cicero, Topica, 53, 1–25). These loci seem to
+be aimed at establishing commitments based on previous commitments. In other
+words, instead of increasing the acceptability of a viewpoint based on the accept-
+ability of the content of the premises on which it is grounded, such topics lead the
+interlocutor to the acceptance of a conclusion because of his previous acceptance of
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+Table 3: Cicero - Classification of generic topics
+other propositions [Green-Pedersen, 1984, p.256].
+Cicero connected the theory of topics to the division of discourse according to
+the Hermagoras stasis, the issue of the discussion, formulating the proposition to be
+proved or disputed [Kennedy, 1963, p.303]. He provided a classification of the topics
+according to their function for addressing a specific type of issue, namely conjecture,
+definition, and qualification (Cicero, Topica, 87) (Table 4).
+Conjecture Definition Qualification
+Cause, eﬀect,
+circumstances
+Definition, description, notation,
+division, partition, consequent,
+antecedent, inconsistencies,
+cause and eﬀect, adiuncta.
+Comparison
+Table 4: Cicero - Division of topics by issue
+Cicero’s classification of topics became the ground for Boethius’ works, which
+are the basis of the medieval dialectical tradition ([Stump, 1982]; [Stump, 1989];
+[Stump, 2004]).
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+3.3 Boethius
+Boethius commented on and organized Cicero’s loci in his In Ciceronis Topica and
+De Topicis Diﬀerentiis, distinguishing between necessary and plausible connections
+and between dialectical and rhetorical loci. The treatise on De Topicis Diﬀeren-
+tiis includes loci that in Cicero and previously in Aristotle were distinguished as
+dialectical and rhetorical topics.
+Boethius underscored how while dialectical loci stem from the rules of predic-
+tion and the logic-semantic properties of the predicates, rhetorical topoi represent
+the possible connections between things having diﬀerent qualities (De Topicis Dif-
+ferentiis,1215C).1 Some dialectical topics, such as topics from definition or genus
+and species, are necessary [Macagno and Walton, 2014, Ch.3], while others (for in-
+stance, from adiuncta) represent only frequent connections. This relation between
+probable and necessary consequence was studied in the Middle Ages. Garlandus
+Compotista classified topics according to their logical (demonstrative) role. Topics
+from whole (which includes definition and genus), along with part and equal became
+the foundations of categorical syllogism [Stump, 1982, p.277].
+In Boethius the Aristotelian topoi are interpreted as maximae propositiones
+falling under diﬀerentiae, genera of these maxims. Maximae propositiones are gen-
+eral principles, also called axioms. They are general (indefinite in respect to par-
+ticulars) and generic propositions that several arguments can instantiate, and they
+have warranting the conclusion in an argument as a primary role. The relationship
+between the terms of the premises and the conclusion, namely the respect under
+which they are regarded, is called diﬀerentia, representing the criterion of appropri-
+ateness or the genus of maxims. The maxim is found from the genus of the maximae
+propositiones and the relationship between the terms of the first premise [Stump,
+1989, p.6]. The structure of a topic are illustrated in Table 5.
+First term: Middle term: Second term: Maxim: Diﬀerentia: Every virtue is advantageous.
+Justice is a virtue.
+Therefore justice is advantageous.
+What belongs to the genus, belongs to the species.
+From the whole, i.e. the genus
+Table 5: Argument and maxim in Boethius
+1Rhetorical loci are similar in form to the dialectical ones, but they proceed from frequent
+connections between things, from stereotypes and not from semantic properties of concepts (for
+instance, usually people addicted to alcohol are dissolute, this person is alcoholic, therefore he is
+dissolute. See Boethius De Topicis Diﬀerentiis1215b).
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+Topoi are divided into three main categories: intrinsic, extrinsic and intermedi-
+ate. While the first two categories are similar to Cicero’s organization, the third is
+based on diﬀerent principles. Loci medii represent semantic connections of gram-
+matical relations, such as from words stemming from the same root, or semantic
+relations of division underlying the definition of the word (Table 6).
+Intrinsic Loci
+From substance From things accompanying the substance
+· From the definition
+· From the description
+· From the explanation of the
+name
+· From the whole
+(genus)
+· From the integral
+whole
+· From a part (species)
+· From the parts of an
+integral whole
+· From efficient cause
+· From the matter
+· From the end
+· From the form
+· From the generation
+(effects)
+· From the corruption
+· From uses
+· From associated
+accidents
+Intermediate Loci
+Extrinsic Loci
+· From inflections
+· From coordinates
+· From division
+· From estimation about
+a thing
+· From similar
+· From what is more
+· From things that are
+less
+· From proportion
+· From contraries
+· From opposites with
+reference to privation
+and possession
+· From relative opposites
+· From opposites with
+reference to affirmation
+and negation
+· From transumption
+Table 6: Boethius - Division of the dialectical loci
+Boethius distinguishes the dialectical loci from the rhetorical ones. Rhetorical
+topics are drawn from not from the concepts (representing the abstract relations
+between concepts), but from the things and how things usually are. For example,
+while the dialectical topic from genus proceeds from the definition of a concept (if
+a person is drunk, he is also intoxicated), the rhetorical one concerns how a more
+generic concept is usually related to a more specific one (usually if someone is not
+dissipated, he does not get drunk). Boethius takes from Cicero the rhetorical topics,
+not dealing with the abstract principles of inference concerning concepts, but with
+the circumstances concerning the specific cases2. For instance, reasoning from place,
+2They are diﬀerent from the preceding topics, because the preceding topics either contained
+deeds or adhered to deeds in such a way that they could not be separated, as place, time, and
+the rest, which do not desert the action performed. But those things that are associated with the
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+name, time depends on the fact, stem from the factors of the event and not from
+the logic-semantic relations between concepts. The rhetorical topics are organized
+into the four classes pointed out by Cicero (De Topicis Diﬀerentiis,1212A-1214A)
+(Table 7).
+Intrinsic Loci
+Person Action
+· Name (Verres)
+· Natura (Barbar)
+· Mode of life
+(Friend of nobles)
+· Fortune (Rich)
+· Studies (Architect)
+· Luck (Exiled)
+· Feelings (Lover)
+· Disposition (Wise)
+· Purpose
+· Deeds
+· Words
+· Gist of the deed
+(Murder of a relative)
+· Before the deed (He
+stole a sword)
+· While the deed occurs
+(He struck violently)
+· After the deed (He hid
+him in a secret place)
+· When: Time (night)
+and opportunity
+(people were sleeping)
+· Where: Place
+(bedroom)
+· How: Method
+(secretly)
+· With the aid: Means
+(with many men)
+Comparing
+circumstances
+Extrinsic Loci
+· Species
+· Genus
+· Contrary
+· Result
+· Greater
+· Lesser
+· Equal
+· Who are the doers of the deed
+for the thing.
+· By what name to call what has been done
+· Who approve of its having been thought up
+· What is the law, custom, agreement, judgment, opinion, and theory
+· Whether the thing is contrary to custom
+· Whether men generally agree to these things.
+Table 7: Boethius - Division of the rhetorical loci
+3.4 Abaelardus
+During the Middle Ages, the focal point of the study of argument was the connec-
+tion between dialectics and demonstration. Beginning with the XI century, Garlan-
+dus Compotista analysed the categorical syllogisms as proceeding from topics from
+whole, part, and equal. On the other hand, he conceived all the topics under the log-
+ical forms of topics from antecedent and consequent, whose diﬀerentiae (the genera
+of maximae propositiones) are the syllogistic rules [Stump, 1982, p.277]. In the XII
+action do not adhere to the action itself but are accidents of the circumstances, and they provide
+an argument only when they enter into comparison. The arguments, however, are taken not from
+contrariety but from a contrary, and not from similarity but from a similar, so that the argument
+seems to be taken not from a relationship [such as contrariety] but from things associated with the
+action [such as contraries]. Those things are associated with the action which are related to the
+very action at issue (De Topicis Diﬀerentiis,1214B 6-1214C 19).
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+century, Abelard in his Dialectica examined the structure of dialectical consequence
+in its components for the first time [Kienpointner, 1987, p.283]).
+Abelard described topics as imperfect inferences, diﬀerent from valid categorical
+syllogisms. In this work, the maxima propositio, expressing a principle of inference,
+is related to the function of invention. The maxima is the general principle that is
+useful for finding the propositions accepted by everybody or the by the wise (the
+endoxa) relative to the subject dealt with in the argument. From this perspective,
+the structure of an argument is similar to a syllogism. The main diﬀerence lies in
+the nature of the assumptions, the propositions connecting the general principles to
+the subject of the reasoning. While dialectical inferences depend on the content of
+the propositions (or, rather, on the terms and their connections), syllogisms depend
+only on the form. The diﬀerence between form and content can be explained with
+the following cases. A syllogism such as:
+Every man is an animal
+But every animal is animate
+Therefore, every man is animate
+depends on a rule of inference, that is [Abaelardus, 1970, p.262]:
+posito antecedenti ponitur consequens (if the antecedent is aﬃrmed, the conse-
+quent is aﬃrmed as well))
+The connection between the terms of the inference depends only on their position
+in the propositions. On the other hand, dialectical inferences cannot be resolved
+only by considering the positions of the terms. These inferences are imperfect, since
+assumptions are needed for the conclusion to follow from the premises. For instance,
+the consequence
+If he is a man, he is an animate being
+is necessarily valid since it is known that “animate being” is the genus of man and
+“whatever is predicated of the species is predicated of the genus as well.” The
+inference depends on the local connection between the terms, on the habitudo. The
+habitudo is the topical relation, the semantic-ontological respect under which the
+termsareconnectedtoeachotherina(dialectical)syllogism([Green-Pedersen, 1984,
+p.185]; [Green-Pedersen, 1987, p.415]), and on which the strength of the inference
+depends [Abaelardus, 1970, pp.254-257]. The mechanism of an argument scheme
+can be shown by the ancient model of Abelard [Abaelardus, 1970, p.315], in which
+the assumptions were connected to the axioms, to the maxims the locus proceeded
+from [Stump, 1989, p.36] (Table 8).
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+Consequence If Socrates is a man, he is an animate being.
+Maxim What the species is said of, the genus is said of as well.
+Assumption But "man," which is the species of"animate being" is said of
+Socrates; also therefore "animate being," which is clearly its genus.
+Assumption 1 "Man" is a species of"animate being."
+Syllogism 1 • What the species is said of, the genus is said of as well.
+• Man is species of"animate being" .
+• Therefore, if man is said of anything, "animate being" is said of it
+as well.
+Syllogism 2 • If "man" is said of anything, "animate being" is said of it as well.
+• Socrates is a man .
+• Therefore Socrates is an animate being .
+Table 8: Rules of inference and the material structure of arguments in Abelard
+In the example above, the passage from the predicate “to be a man” attributed
+to the subject to the diﬀerent predicate “to be an animate being” is grounded on
+a relation of semantic inclusion between these two predicates, i.e. a genus-species
+relation [Bird, 1962]. This relationship guarantees the inference based on a rule
+(the maxim) that expresses a necessary consequence of the concept of genus itself.
+The genus expresses the generic fundamental features of a concept, answering to
+the question “what is it?” and is attributed to all the concepts diﬀerent in kind
+(Aristotle, Topics 102a 31-32). For this reason, it is predicated of what the species
+is predicated of.
+After Abelard, in the 12th century, the notion of form of inference was developed
+into a reduction of all topical inferences to syllogisms. Later on, in the 13th century
+analytical consequences were analysed as following from topics “dici de omni” and
+“dici de nullo” (Every A is B, Every B is C, therefore every A is C). Demonstration
+is for this reason based on a topical relation (from the whole)[Green-Pedersen, 1984,
+p.256].
+4 Modern Theories of Schemes
+In the modern and contemporary theories on argumentation (or argument) schemes,
+several types of classification have been advanced [Walton et al., 2008]. In this
+section, the most relevant theories on schemes and the classification thereof will be
+summarized.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+4.1 Perelman and the New Rhetoric
+Perelman and Olbrechts-Tyteca divided their system of topoi into two broad cate-
+gories, defined based on the two purposes that they considered to be the basic ones,
+finding associations and dissociations between concepts [Perelman and Olbrechts-
+Tyteca, 1969, p.190]. According to the New Rhetoric, arguments from association
+are divided in three main classes: Quasi-logical Arguments, Relations Establishing
+the Structure of Reality, and Arguments based on the Structure of Reality, while
+dissociation constitutes a distinct class. This classification can be represented in
+Table 9.
+Table 9: Classification of the arguments in the New Rhetoric
+This classification is based several criteria, namely on the conceptual/ontological
+structure (association-dissociation; the reference to the structure of reality), the log-
+ical structure (quasi-logical vs. non-logical arguments), and the type of relations
+between concepts (sequential vs. coexistence). However, the interrelation between
+all these criteria is not specified, and there is not a unique rationale linking all such
+diﬀerent arguments.
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+4.2 Toulmin
+A diﬀerent approach is provided by Toulmin, Rieke and Janik (1984), in which
+they classified arguments based on the basic functions of the warrants on which
+the arguments are grounded. Nine general classes of arguments were distinguished,
+subdivided into subclasses [Toulmin et al., 1984], shown in Figure 1.
+Figure 1: Classification of the arguments in Toulmin
+Also in this case, diﬀerent criteria are used in the classification. Some schemes
+represent types of reasoning (such as generalization, sign, or analogy); others are
+characterized by logical rules of inference (dilemma, opposites); others refer to the
+content of the argument (authority, classification, cause, degree). The relationship
+between the various criteria is not given.
+4.3 Kienpointner
+KienpointnerinAlltagslogik providesacomplexandfine-grainedclassification, based
+on four criteria: 1) the type of inference; 2) the epistemic nature of the premises;
+3) the dialectical function of the conclusion; and 4) the pragmatic function of the
+conclusion. On his view, every scheme 1) can proceed from diﬀerent logical rules;
+2) must be real (namely based upon the truth or likeliness of the premises), or
+fictive (grounded upon the mere possibility) (epistemic nature of the premises); 3)
+it must be pro or contra a certain thesis (dialectical function); and 4) it must have
+either a descriptive or a normative conclusion (pragmatic function) [Kienpointner,
+1992, p.241]. In this sense, all the schemes can have descriptive or normative, pro
+or contra, real or fictive variants. The classification provided in Alltagslogik groups
+21 schemes in three abstract classes characterized by the typology of the inferential
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+rule: argument schemes using a rule; argument schemes establishing a rule by means
+of induction; argument schemes both using and establishing a rule (Figure 2).
+Figure 2: Classification of the arguments in Kienpointner
+The first class, as shown in Figure 2, is subdivided in its turn in four content-
+based categories: classification, comparison, opposition, and causal schemes [Kien-
+pointner, 1992, p.246]. Based on the aforementioned criteria, all the argument
+schemes may in turn have descriptive or normative variants, diﬀerent logical forms
+(Modus Ponens, Modus Tollens, Disjunctive Syllogism, etc.), diﬀerent dialectical
+purposes (establishing or countering a viewpoint), and diﬀerent word-world relation
+(fictive – real).
+This system of classification is aimed at distinguishing first the type of reasoning
+(induction, deduction), and then diﬀerentiating between the various material rela-
+tions. The possible limitation of this system is that while the material relation of
+many deductive schemes is specified and distinguished, the content dimension of the
+inductive schemes is not pointed out.
+4.4 Pragma-Dialectics
+The pragma-dialectical system of classification of schemes consists of three basic
+schemes [Van Eemeren and Grootendorst, 1992]: 1) symptomatic argumentation; 2)
+argumentation based on similarities; and 3) the instrumental argumentation. The
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+first scheme represents type of argumentation in which the speaker tries to convince
+his interlocutor “by pointing out that something is symptomatic of something else.”
+In this type of pattern, what is stated in the argument premise is a sign or symptom
+of what is stated in the conclusion. The second scheme is grounded on a relation
+of analogy between what is stated in the argument premise and what is stated in
+the conclusion. In the third type of scheme the argument and the conclusion are
+linked by a very broad relation of causality. Other arguments are classified under
+these categories [Van Eemeren and Grootendorst, 1992]. For instance, arguments
+based on inherent qualities or a characteristic part of an entity or from authority are
+regarded as belonging to the symptomatic argumentation; arguments pointing out
+the consequences of an action or based on the means-end relationship are considered
+as subclasses of causal arguments [Garssen, 2001].
+This system of classification is grounded on a twofold criterion. While causal
+argumentation is characterized by a material relation, analogical argumentation rep-
+resents a type of reasoning independent from the specific content of the premises and
+conclusion. Symptomatic argumentation is a combination of these two criteria, as a
+sign or a symptom presupposes an abductive pattern and a material causal relation.
+4.5 Grennan
+In Grennan’s [Grennan, 1997, pp.163-165] typology, the structurally valid inductive3
+inference patterns are classified according to 9 warrant types, derived from Ehninger
+and Brockreide’s typology [Brockriede and Ehninger, 1963]. The warrant types
+include possible reasons for inferring conclusions from premises, all belonging to
+the “logical mode” (and not to other types of motivations, such as emotions). The
+argument patterns can be summarized as follows:
+1. Cause to Eﬀect: The phenomenon mentioned in P produces the one in C.
+2. Eﬀect to Cause: The phenomenon mentioned in P is best explained by C.
+3. Sign: The phenomenon mentioned in P is symptomatic (naturally or conventionally)
+of one reported in C.
+4. Sample to Population: What is true of sample of X is also true of other Xs.
+5. Parallel Case: What is true of the referent of P is also true of other Xs.
+6. Analogy: B1 is to B2 in C as A1 is to A2 in P.
+7. Population to Sample: What is true of Known Xs is also true of this X.
+3Inferences, in an informal logic perspective, are considered inductive, since argumentation
+does not deal with deductive validity. The criterion for discriminating between acceptable and
+unacceptable patterns is provided by a logical intuition.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+8. Authority: S (the assertor of C) is a reliable source.
+9. Ends-Means: The action mentioned in C generally achieves the end mentioned in
+P.
+The patterns mentioned above are individuated on the basis of the warrant type.
+Together with this criterion of argument classification, Grennan presents a typology
+of claims. Each argument can be analysed relative to the type of warrant and to
+the kind of conclusion to be supported. The types of claim identified by Grennan
+[Grennan, 1997, p.162] can be represented in Table 10.
+Type of Claim Example
+1. Obligation Claims:
+X must do A.
+“Sam must apologize.
+”
+2. Supererogatory Actuative Claims:
+X ought to do A (they express a judgment that is in
+the interests of someone other than X for X to do A)
+“I ought to help the needy in this area.
+”
+3. Prudential Actuative Claims:
+X ought to do A.
+“Canadians ought to avoid heart diseases.
+”
+4. Evaluative Claims, of which there are three
+kinds: grading, rating, and comparison.
+“This is a good cantaloupe.
+” “Steffi Graf is the
+best female tennis player at this time.
+” “Gretzky
+is a better hockey player than Howe was.
+”
+5. Physical-World Claims, which include both
+physical brute facts and institutional facts.
+“The sun is setting.
+”
+“The Dodgers beat the Giants three to two in
+eleven innings.
+”
+6. Mental-World Claims, which ascribe mental
+phenomena.
+“He is upset.
+”
+7. Constitutive-Rule Claims, which are based on
+definitions and other necessary truths and
+falsehoods.
+“In this election, majority should be defined as a
+majority of members present and voting.
+”
+“Solid iron does not float in water.
+”
+8. Regulative-Rule Claims, which express
+obligations and prohibitions.
+“Driving on the right is obligatory.
+”
+Table 10: Grennan: Classification of schemes
+The types of warrant and the types of claim are the two criteria underlying Gren-
+nan’s typology of argument patterns, each characterized by a premise, a warrant,
+and a conclusion. In the diagram below are represented the valid and useful patterns
+of arguments for obligation claims resulting from this classification [Grennan, 1997,
+p.162] (Figure 3).
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+Argument for
+obligation claims
+Argument with
+obligation premises
+Obligation claims with
+other kinds of premises
+Sample-to-
+population
+version
+Population
+-to-group
+version
+Effect-to-
+cause
+version
+Evaluative-
+premise
+version
+Physical
+world premise
+version
+Mental world
+premise
+version
+Regulative
+rule premise
+version
+Cause-to-effect
+version
+Cause-to-effect
+version
+Institutional claim
+version Brute fact version
+Figure 3: Classification of the arguments for obligation claims in Grennan
+Grennan’s typology develops the distinction between the warrant type and the
+kind of conclusion. The typology is extremely deep as regards the relation between
+speech acts and argument, but is limited to 8 warrant types.
+4.6 Katzav and Reed
+Rooted in the schemes presented by Walton [Walton, 1995], the classification system
+of Katzav and Reed [Katzav and Reed, 2004b] aims to classify an argument by
+virtue of the “relation of conveyance” that the complex proposition constituting the
+argument represents. These relations of conveyance describe how it is that one fact
+necessitates another, such as in the following example [Katzav and Reed, 2004a,
+p.2]:
+Consider, by way of illustration, a case in which the causal relation is oper-
+ative: in the circumstances, the fact that the US military attacked Iraq caused
+the fall of Saddam′s regime. Thus, in the circumstances, and via or in virtue of
+the obtaining of a causal relation, the fact that the US military attacked Iraq
+necessitated, or made it liable that, Saddam′s regime fell.
+Using the causal relation and the above statements about Saddam′s regime,
+we can construct the following simple argument:
+(1) Saddam′s regime fell, because the US military attacked Iraq and if the
+US military were to attack Iraq, Saddam′s regime would fall.
+In (1), the fact that the US military attacked Iraq is represented as con-
+veying, via the causal relation, the fact that Saddam′s regime fell. That the
+relation of conveyance represented is the causal relation is implicit in the sub-
+junctive conditional “if the US military were to attack Iraq, Saddam′s regime
+would fall.”
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+In [Katzav and Reed, 2004b] the nature of such relations of conveyance is unpacked
+and connected to the concepts of warrant and scheme and to the work of Kien-
+pointner [Kienpointner, 1992] and Walton [Walton, 1995]in particular. In [Katzav
+and Reed, 2004a], they sketch a high-level classification of relations of conveyance.
+At the topmost level, they distinguish between “internal” and “external” relations,
+whereby the former depend solely upon intrinsic features (and therefore encompass
+definitional, cladistic, mereological and normative relations, amongst others), whilst
+external relations depend upon extrinsic features (thereby covering such as spa-
+tiotemporal and casual relations, amongst others). Beneath this, the classification
+is further broken down into groups of schemes: those of specification, constitution,
+analyticity and identity under intrinsic relations and causal and non-causal under
+extrinsic (due largely to the fact that so many schemes rely upon causal relations).
+The full top-level classification tree (which identifies the main branches but does not
+give an exhaustive specification) is given in the scheme below:
+Internal relation of conveyance
+Relation of specification
+• Relation of species to genus
+• Relation of species to genus
+• Relation of genus to species
+• Determinable-determinate
+• Etc.
+Relation of constitution
+• Abstract fact constitution
+• Constitution of normative facts
+• Constitution of positive normative facts
+• Constitution of negative normative facts
+• Constitution of non-normative abstract facts
+• Constitution of necessary conditions
+• Constitution of causal law
+• Constitution of singular causal conditionals
+• Constitution of constitution facts
+• Constitution of Possibility
+• Constitution of Impossibility
+• Etc.
+Concrete fact constitution
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+• Species/kind instance constitution
+• Property instance constitution
+• Property constitution by properties
+• Property constitution by particulars
+• Etc.
+• Constitution of singular causal facts
+• Relation of a part to a whole
+• Relation of whole to one of its parts
+• Etc.
+Relation of analyticity
+• Relation of sameness of meaning
+• Relation of stipulative definition
+• Relation of implication
+Relation of identity
+• Relation of qualitative identity
+• Relation of numerical identity
+• Etc.
+External relation of conveyance
+Non-causal dependence
+• Non-causal law
+• Conservation
+• Conserved quantity
+• Conserved quality
+• Etc.
+• Symmetry
+• Spatial symmetry
+• Etc.
+• Nomological incompatibility
+• Thing location incompatibility
+• Thing type incompatibility
+• Etc.
+• Topological structure conveyance
+Causal dependence
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+• Eﬃcient cause conveyance
+• Causal law
+• Singular cause to eﬀect
+• Singular eﬀect to cause
+• Common cause
+• Final cause conveyance
+Though the mapping from individual relations of conveyance in this classification to
+the argumentation schemes in [Walton, 1995] and particularly [Walton et al., 2008]is
+not a trivial 1-to-1 correspondence, those schemes have been slotted in successfully
+in later work with a computational focus such as [Bex and Reed, 2011].
+4.7 Lumer and Dove
+The last system of classification that we consider was provided by Lumer and Dove
+(Lumer & Dove, 2011), using three general classes, each including subclasses:
+1. Deductive argument schemes
+• Elementary deductive argument schemes;
+• Analytical arguments:
+• Definitoric arguments
+• Subsuming legal arguments:
+2. Probabilistic argument schemes
+• Pure probabilistic argument schemes (statistics, signs);
+• Impure probabilistic argument schemes (best explanation);
+3. Practical argument schemes
+• Pure practical argument for pure evaluations;
+• Impure practical argument schemes (for justification of actions; justification of instru-
+ments);
+• Arguments for evaluations based on adequacy conditions;
+• Arguments for welfare-ethical value judgements;
+• Practical arguments for theoretical theses.
+This system consists of a mix of two distinct criteria, logical and pragmatic. While
+the first two classes are characterized by the type of reasoning, the last one is a
+type of argument with a specific pragmatic purpose, recommending a course of
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+action. Moreover, the subclasses are defined based on both logic-based and content-
+based criteria, where together with distinctions based on the logical form (analytic
+schemes; probabilistic schemes) there are subclasses based on the nature of the
+premises (definitoric; subsuming).
+All these types of classification show how a sole criterion is not suﬃcient for
+providing a clear and comprehensive classification of schemes. In order to under-
+stand what criteria can be used and in what abstract categories can be considered
+as the most basic ones, it is necessary to analyze the structure of the schemes. Once
+the common components of these heterogeneous combinations of premises and con-
+clusions are brought to light, it is possible to find criteria for organizing them for
+specific purposes.
+5 Using the schemes: A classification system
+Argumentation schemes can be conceived as the prototypical combination of seman-
+tic (or topical) relations with logical rules of inference [Macagno and Walton, 2015;
+Macagno et al., 2016; Walton and Macagno, 2015]. A classification based on the
+semantic link can provide an instrument for bringing to light the material relation
+between premises and conclusion, but the same semantic relation can be combined
+with types and rules of reasoning, and lead to various types of conclusion. For in-
+stance, causal relations are the ground of the argument from cause to eﬀect, but
+also of arguments from sign and practical reasoning. Argumentation schemes merge
+the most common combinations between types of reasoning and material relations.
+For this reason, we need first to distinguish between these two levels, distinguishing
+between the various types of reasoning in Table 11.
+Table 11: Types of argument and types of reasoning
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+A multi-logical perspective needs to be taken into account as a classification
+criterion, inwhichthelogicalformcanbedescribedusingdistincttypesofreasoning,
+which in turn can include various logical rules of inference (MP, MT). However,
+in the Latin and Medieval tradition, the formal rules of inference are treated as
+maxims and not as distinct levels of abstraction. For this reason, the two levels of
+the general, semantic topics and of the logical rules are not distinguished, and the
+possible interconnections between them are not taken into account. The modern
+theories of argumentation schemes propose classifications essentially mirroring the
+ancient approach. The logical rules are treated at the same level as the semantic-
+ontological topics, and not as distinct levels of abstraction. A possible solution is
+to acknowledge the discrepancy between logical form and semantic content as a
+divergence in kind, and try to show how these two levels can be interconnected.
+A possible overarching principle can be found in the pragmatic function of the
+schemes, namely what they have been intended for. Argumentation schemes can
+be thought of as instruments for reconstructing and building arguments (intended
+as discourse moves), i.e. analytical or invention tools. For this reason, in order
+to provide a classificatory system to retrieve and detect the needed scheme it can
+be useful to start from the intended purpose of an argumentation scheme. From
+an analytical point of view, the analysis of an argument in a discourse, a text,
+or dialogue presupposes a previous understanding of the communicative goal (and,
+therefore, the “pragmatic” meaning) of the argument and the components thereof.
+For example, an argument can be aimed at classifying a state of aﬀairs, supporting
+the existence of a state of aﬀairs, or influencing a decision-making process.
+This teleological classification needs to be combined with a practical one. The
+generic purposes of a move need to be achieved by means of an inferential passage.
+In this sense, the classificatory system needs to account for the possible (argumenta-
+tive) means to achieve the pragmatic purpose of an argument. Not all the semantic
+relations underlying the schemes can support all the possible conclusions or purposes
+of an argument. Definitional schemes are aimed at supporting the classification of
+a state of aﬀairs; they cannot lead to the prediction or retrodiction of an event.
+Similarly, a pattern of reasoning based on the evaluation of the consequences of an
+action or an event can be used to establish the desirability of a course of action
+brining it about. However, it cannot be reasonably used to establish the truth or
+falsity (or acceptability) of a proposition. For this reason, the analysis of the prag-
+matic meaning (i.e. the purpose) of an argument provides a criterion for restricting
+the paradigm of the possible means to achieve it. The crucial problem is to find
+categories of argument purposes that can establish criteria for distinguishing among
+classes of semantic relations, which in turn can be specified further according to the
+means to achieve such goals.
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+The first distinction to be made is based on the nature of the subject matter,
+which can be 1) a course of action or 2) a state of aﬀairs. In the first case, the goal
+is to support the desirability or non-desirability of an action; in the second case,
+the schemes are aimed at providing grounds for the acceptability of a judgment on
+a state of aﬀairs. The ancient dialectical accounts (Cicero, Topica; Boethius, De
+Topicis Diﬀerentiis) distinguished between two types of argumentative “means” to
+support a conclusion, namely the “internal” and the “external” arguments. The first
+ones are based on the characteristics of the subject matter (such as arguments from
+definition or cause). The latter derive their force from the source of the statement,
+namelyfromtheauthorityofwhoadvancesthejudgmentortheproposal(arguments
+from authority). This first distinction can be represented as shown in Figure 4.
+Figure 4: Purposes of an argument
+The acceptability of a conclusion can be supported externally in two ways. If
+the argument is aimed at establishing the desirability of a course of action, the
+authority can correspond to the role of the source (“You should do it because he
+told you that!”). Otherwise, the popular practice can be a reason for pursuing a
+course of action (“We should buy a bigger car. Everyone drives big cars here!”).
+External arguments can be represented in Figure 5.
+Figure 5: External arguments
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+When external arguments are used to support also a judgment on a state of
+aﬀairs, the relevant quality of the source is not the speaker’s authority (connected
+with the consequences of not complying with the orders/conforming to common
+behavior) but rather with the source’s superior knowledge. The quality of the source
+can be also used negatively to show that a source is not reliable (it is not a good
+source), and that consequently the conclusion itself should be considered as doubtful
+(ad hominem arguments).
+Internal arguments can be divided into the two categories of arguments aimed
+at assessing the desirability of a course of action, and the ones supporting the ac-
+ceptability of a judgment. Courses of action can be classified as desirable or not
+depending on the quality of their consequences (the course of action is a condition
+of a resulting positive or negative state of aﬀairs) or their function in bringing about
+a desired goal (an action is productive of a pursued state of aﬀairs) (Figure 6).
+Figure 6: Internal practical arguments
+The arguments used to provide grounds for a judgment on a state of aﬀairs can
+be divided according to the nature of the predicate that is to be attributed. The
+most basic diﬀerentiation can be traced between the predicates that attribute the
+existence of a state of aﬀairs (the occurrence of an event or the existence of an
+entity in the present, the past, or the future), and the ones representing factual or
+evaluative properties.
+Theargumentssupportingapredictionoraretrodictionareaimedatestablishing
+whetherornotaneventhasoccurredorwilloccur,orwhetheranentitywasorwillbe
+present (existent). The arguments proceeding from casual relations (in particular
+from material and eﬃcient causes) bear out this type of conclusion. The other
+type of predicates can be divided in two categories: factual judgments and value
+judgments. The first type of predicates can be attributed by means of reasoning
+from classification, grounded on descriptive (definitional) features and supporting
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+the attribution of a categorization to an entity or an event (Bob is a man; Tom
+is a cat). Value judgments are classifications that are not based on definitions of
+categoricalconcepts(tobeacat)butratheronvalues, orratherhierarchiesofvalues.
+Such judgments proceed from criteria (or more specifically, criteria of importance to
+the audience to whom the argument is presented) for classifying what is commonly
+considered to be “good” or “bad.” Also the reasoning underlying the attribution of
+evaluative predicates, such as “to be a criminal,” can be considered as belonging to
+this group of arguments. These latter patterns are grounded on signs of an internal
+disposition of character, which in its turn is evaluated. The distinctions discussed
+above are summarized in Figure 7 below.
+Figure 7: Establishing the acceptability of a judgment (SoA)
+Thissystemofclassificationofargumentationschemesisbasedontheinteraction
+between two criteria, the (pragmatic) purpose of an argument and the means to
+achieve it. This tree model can be used both for analytical and production purposes.
+In the first case, the speaker’s intention is reconstructed by examining the generic
+purpose of his move, and then the possible choices that he made to support it, based
+on the linguistic elements of the text. Depending on the desired level of preciseness,
+the analysis can be narrowed down until detecting the specific scheme, namely the
+precise combination of the semantic principle and the logical rule supporting the
+conclusion. In this fashion, the analyst can decide where to stop his reconstruction.
+This analytical model can be of help also for educational purposes, as it can be
+adapted to various teaching needs and levels. For production purposes, the nature
+of the viewpoint to be supported can be analyzed using the most generic criteria
+set out above (What is under discussion, a decision or a fact? The occurrence of an
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+eventoritsclassification? Thenamingofastateofaﬀairsoritsqualification?). Such
+questions closely resemble the ones that were at the basis of the rhetorical theory
+of stasis, namely the issues that can be discussed [Heath, 1994]. These distinctions
+are then combined with the specific alternative strategies to support the defended
+viewpoint.
+The aforementioned system of classification can also account for the interrelation
+between the semantic relation and the diﬀerent types of reasoning, namely logical
+forms. For example, the desirability of a course of action can be assessed internally
+by taking into consideration the means to achieve a goal. This pattern of reasoning
+can be stronger or weaker depending on whether there is only one or several alter-
+natives. The paradigm of the possible means will determine whether the reasoning
+is abductive or deductive, resulting in a more or less defeasible conclusion. The
+same principle applies to the other semantic relations, such as the ones proceeding
+from cause or classification, which can be shaped logically according to inductive,
+analogical, deductive, or abductive types of reasoning.
+6 A bottom-up approach to classification: Clusters of
+decision-making schemes
+Argumentation schemes are characterized by both “family” resemblances and ac-
+tual interconnections [Walton and Macagno, 2015]. Practical reasoning, value-based
+reasoning, value-based practical reasoning, argument from positive consequences,
+argument from negative consequences, and the slippery slope argument are related
+by the same similar structure based on value judgments and practical outcome.
+Such schemes are often also interconnected when we analyze the structure of actual
+arguments. However, in order to understand and choose between similar and inter-
+related schemes, it is necessary to examine their relations and their diﬀerences. The
+simplest and most intuitive version of the scheme for practical reasoning (Table 13)
+uses the first-person pronoun “I” to represents a rational agent, an entity that has
+goals, some knowledge of its circumstances, and the capability of taking action to
+change those circumstances. It also has sensors to perceive its circumstances, and to
+perceive at least some of the consequences of its actions when it acts to change its
+circumstances. Such a rational agent also therefore has the capability for feedback.
+When it perceives changes in its circumstances due to its own actions, it can modify
+its actions or goals accordingly, depending on whether the consequences of its ac-
+tions are deemed to contribute to its goals or not. This simplest form of practical
+reasoning [Walton et al., 2008, p.95] can be described as a fast and frugal heuristic
+for jumping to a quick conclusion that may later need to be retracted in the light of
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+further considerations (Table 12).
+Major Premise: I have a goal G.
+Minor Premise: Carrying out this action A is a means
+to realize G.
+Conclusion: Therefore, I ought (practically speaking)
+to carry out this action A.
+Table 12: Argument from Practical reasoning
+The defeasible nature of this simple form of practical reasoning is brought out by
+the observation that it typically provides a starting point for action that needs to
+be challenged by the asking of critical questions as the agent moves ahead. Below
+is the standard set of critical questions matching this scheme.
+CQ1 What other goals do I have that should be considered that might conflict with
+G?
+CQ2 What alternative actions to my bringing about A that would also bring about
+G should be considered?
+CQ3 Among bringing about A and these alternative actions, which is arguably the
+most eﬃcient?
+CQ4 What grounds are there for arguing that it is practically possible for me to
+bring about A?
+CQ5 WhatconsequencesofmybringingaboutAshouldalsobetakenintoaccount?
+The last critical question, CQ5, often called the side eﬀects question, concerns as-
+sessment of the potential negative consequences of carrying out the action described
+in the conclusion of the scheme. If negative consequences of this course of action are
+identified, that is a reason for withdrawing the conclusion and considering an alter-
+native course of action that might avoid the negative consequences. Use of the term
+“negative” implies that values are involved, and that a rational agent is assumed to
+have values as well as goals that it bases its practical reasoning on.
+A complication is that there is another closely related argumentation scheme
+associated with this critical question, Argument from negative consequences. This
+scheme, widely recognized in the literature, cites known or estimated consequences
+ofaproposedcourseofactionaspresentingareason, orsetofreasons, againsttaking
+the course of action initially indicated by the practical reasoning scheme. Argument
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+from negative consequences also has a positive form. According to the scheme for
+argument from positive consequences, known or estimated consequences that have
+a positive value for the agent are cited as a reason, or set of reasons, supporting
+the carrying out of the action initially considered. Below the versions of the two
+basic argumentation schemes for arguments from consequences are formulated as
+they were in [Walton et al., 2008, p.101]. The first one is called argument from
+positive consequences (Table 13).
+Premise: If A is brought about, good
+consequences will plausibly occur.
+Conclusion: Therefore A should be brought
+about.
+Table 13: Argument from positive consequences
+Premise: If A is brought about, bad
+consequences will plausibly occur.
+Conclusion: Therefore A should not be brought
+about.
+Table 14: Argument from negative consequences
+The second one is called argument from negative consequences (Table 14).
+In both instances, an implicit premise could be made explicit in the scheme stat-
+ing that if good (bad) consequences will plausibly occur, A should (not) be brought
+about. As with the basic form of practical reasoning, arguments from positive or
+negative consequences are defeasible. The premise oﬀers a reason to accept a pro-
+posal for action tentatively, subject to exceptions as new circumstances come to be
+known by the agent. In these formulations, the expression “good consequences”
+refers to consequences taken by the agent to have positive value, and the expression
+“bad consequences” refers to actions taken to have negative value. These observa-
+tions bring us to another pair of schemes closely related to the ones for argument
+from positive consequences and argument from negative consequences.
+The relationship between a state of aﬀairs, its classification according to a value,
+andthecommitmenttoanactionisrepresentedintermsofvalue. Values(diﬀerently
+from [Atkinson et al., 2005];[Bench-Capon, 2003]) are regarded as grounds for a type
+of reasoning independent from and related to (or rather, presupposed by) practical
+reasoning. This reasoning guarantees the so-called “practical classification” [West-
+berg, 2002, p.163] of a state of aﬀairs and the commitment thereto. The scheme for
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+argument from positive value is formulated in Table 15 as in [Walton et al., 2008,
+p.321]:
+Premise 1: Value V is positive as judged by agent A.
+Premise 2: If V is positive, it is a reason for A
+to commit to goal G.
+Conclusion: V is a reason for A to commit
+to goal G.
+Table 15: Argument from positive value
+The corresponding scheme representing argument for argument from negative
+value is formulated in Table 16.
+Premise 1: Value V is negative as judged by agent A.
+Premise 2: If V is negative, it is a reason for
+retracting commitment to goal G.
+Conclusion: V is a reason for retracting
+commitment to goal G.
+Table 16: Argument from negative value
+Argument from positive consequences typically supports an argument taking
+the form of basic practical reasoning by giving justification for going ahead with
+the contemplated action. Argument from negative consequences presents a reason
+against taking the action being considered by citing consequences of it that would
+contravene the values of the agent.
+Another more complex argumentation scheme has also been recognized in the
+literature [Bench-Capon, 2003] that combines all the schemes mentioned above.
+This scheme describes a form of argument called goal-based practical reasoning that
+combines basic practical reasoning with value-based reasoning. The version of this
+scheme (Table 17) is from [Walton et al., 2008, p.324].
+The scheme for value-based practical reasoning can also be formulated in a more
+explicit way that brings out an important aspect of practical reasoning, namely
+the circumstances of the case that can be observed by the agent and used by as a
+basis for reaching a decision on what to do. According to the version of the scheme
+formulated in [Atkinson et al., 2005], any action the agent takes can be seen as a
+transition from the current set of circumstances to a new set of circumstances, as
+the agent moves forward to attempt to realize its goal.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+Premise 1: I have a goal G.
+Premise 2: G is supported by my set of values, V.
+Premise 3: Bringing about A is necessary (or suﬃcient)
+for me to bring about G.
+Conclusion: Therefore, I should (practically ought to)
+bring about A.
+Table 17: Argument from goal-based practical reasoning
+The last decision-making argument is the slippery slope argument, sometimes
+also called the wedge argument. Diﬀerent varieties of slippery slope argument have
+been recognized, such as the causal slippery slope argument, the precedent slip-
+pery slope argument, the linguistic slippery slope argument, which depends on the
+vagueness of terms or concepts, and a more complex (all-in) form of slippery slope
+argument that combines the simpler variants. A good place to start is a simple
+version of the slippery slope type of argument formulated as the basic scheme in
+[Walton et al., 2008, p.340] (Table 18).
+First Step
+Premise:
+A0 is up for consideration as a proposal that seems
+initially like something that should be brought about.
+Recursive
+Premise:
+Bringing up A0 would plausibly lead (in the given
+circumstances) to A1, which would in turn plausibly
+lead to A2, and so forth, through the sequence A2, . . . An.
+Bad Outcome
+Premise: An is a horrible (disastrous, bad) outcome.
+Conclusion: A0 should not be brought about.
+Table 18: Argument from goal-based practical reasoning
+According to [Walton et al., 2008, p.340], the following three critical questions
+match this basic scheme.
+CQ1 What intervening propositions in the sequence linking up A0 with n are actu-
+ally given?
+CQ2 What other steps are required to fill in the sequence of events, to make it
+plausible?
+CQ3 What are the weakest links in the sequence, where specific critical questions
+should be asked on whether one event will really lead to another?
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+So here we have a cluster of schemes all closely related to each other. The argument
+fromnegativeconsequencesisoneofthecriticalquestionsmatchingthebasicscheme,
+buttheschemeforargumentfromnegativeconsequencesisitselfbasedontheclosely
+related scheme for argument from negative values.
+Clarifying the relationships among this cluster of schemes enables us to draw an
+important distinction widely discussed in the philosophical literature on practical
+reasoning between two distinct types of practical reasoning: instrumental practical
+reasoning and value-based practical reasoning. When it comes to classifying the
+arguments within this cluster of schemes, it would seem reasonable to venture as
+a hypothesis that the basic scheme for practical reasoning is the simplest form of
+it, while the scheme for value-based practical reasoning is a more complex variant
+of the scheme. It combines the basic scheme with the schemes for argument from
+values. On this approach to drawing distinctions within the cluster, arguments from
+positive consequences can be taken as species of arguments from positive value,
+and arguments from negative consequences can be taken as species of arguments
+from negative value. Practical experience in using assistants to use argumentation
+schemes to identify types of arguments in natural language text suggests that the
+assistants sometimes find it diﬃcult to classify a particular argument identified in a
+text as fitting one or more of these schemes. It can be helpful for this purpose is to
+give the assistants identification conditions that attempt to formulate key essential
+requirements of the type of argument represented by a particular scheme.
+The following is a set of three identification conditions for the type of argument
+matching the scheme for instrumental practical reasoning: (1) An agent (or group
+of agents in the case of multiagent reasoning) is attempting to arrive at a reasoned
+decision on what course of action to take in a given set of circumstances requiring
+some action, (2) the circumstances provide evidence on which to build pro and
+con arguments, arguments for and against the course of action being considered,
+(3) the agent is basing its decision on its goals, as well as its perception of the
+circumstances of the case, (4) arguments need to be weighed against each other as
+stronger or weaker reasons for taking this action or not, and (5) the agent purports
+to be using this evaluation of the stronger or weaker reasons as its basis for taking
+the action or not. Here the four conditions describe an agent deciding whether to
+take a particular course of action or not. But it needs to be recognized that in some
+situations there may be several alternative courses of action to be considered, and
+the agent is trying to decide which of them would be the best course of action, based
+on the reasons provided by its goals and the circumstances of the case.
+The identification conditions for the value-based species of practical reasoning
+are the same as the five identification conditions for instrumental practical reason-
+ing, except that another condition needs to be added: (6) the agent is justifying its
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+decision based on its values, as well as on its goals and its perception of the circum-
+stances of the case. The aforementioned cluster of arguments is characterized by
+several types of relations, which can be of help in distinguishing them and detecting
+their possible nets. For example, argument from negative consequences is one of
+the questions matching the scheme for argument from practical reasoning. So this
+relationship could be described by saying that argument from negative consequences
+is a counterargument, a rebuttal or undercutter that can defeat an argument from
+practical reasoning in a given case, provided that the negative consequences can be
+specified, and provided that it can be shown that these consequences are indeed
+negative.
+Already from these remarks one relationship emerges. Argument from negative
+consequences is based on argument from values, and is a species of argument from
+values. Another relationship already shown above, is that value-based practical
+reasoningisamorecomplexformofargumentthaninstrumentalpracticalreasoning.
+Value-based practical reasoning is a species of instrumental practical reasoning with
+argument from values added on to it.
+Another relationship that emerges is that the slippery slope type of argument
+is clearly a subtype and special instance of argument from negative consequences.
+It is less evident that the slippery slope argument is also a species of value-based
+practical reasoning. However, it can be seen that it is. In the case of the slippery
+slope argument, the agent doing the decision-making must be assumed to have some
+goals and values in mind that the other party, the agent attacking its argument,
+can appeal to when mounting a slippery slope argument. Let’s call the two parties
+the agent and critic. The slippery slope type of argument is inherently negative.
+The critic is using the argument to warn the agent that if he takes a first step, or
+continues a series of steps that he has already started, these steps will lead to a
+loss of control that cannot be anticipated in advance so that the sequence of actions
+will ultimately result in a catastrophic outcome. The critic has to assume that the
+agent has some values that both of them share, so that they can both agree that the
+outcome warned of by the critic is catastrophic, that is highly negative and worth
+avoiding. The critic has to assume that the agent has some goals and is acting in a
+rational manner so that it is trying to either achieve or at least be consistent with
+these goals as it carries out an action supposedly designed to fulfill them. Otherwise
+the critic’s argument is not going to have much force and will be unlikely to deter
+the agent from moving ahead.
+What especially distinguishes the slippery slope as a distinctive type of argument
+are three premises, the recursive premise, the grey zone premise and the loss of
+control premise. Given these observations, we can see how the value-based practical
+reasoning argument is embedded into the basic slippery slope argument and is a part
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+ofit. As shownin Figure 8, the basic slippery slopetypeofargument, representedby
+the scheme formulated above, is at the center of a cluster of other related schemes.
+Figure 8: Cluster of Schemes
+The basic slippery slope argument is derived from value-based practical rea-
+soning as its core argument structure, where value-based practical reasoning is a
+combination of instrumental practical reasoning and argument from values. So here
+it is shown how these schemes are structured together into a cluster. It is also
+shown that the basic slippery slope argument is a species of argument from negative
+consequences, as scheme that is in turn built partly from the scheme for argument
+from values. So these five schemes form a cluster. But the basic slippery slope argu-
+ment also has several subtypes, including the precedent slippery slope argument, the
+causal slippery slope argument, and the variety of slippery slope argument deriving
+from vagueness of a verbal criterion. According to the analysis of the slippery slope
+argument given in [Walton, 1992] these four species of the slippery slope argument
+are subtypes of a more general form of argument called the all-in slippery slope
+argument.
+Here we put forward the hypothesis that there is a basic, minimal type of slip-
+pery slope argument from which these other more specialized variants are derived.
+To indicate the existence of such connections in Figure 8, we have inserted the name
+of the scheme for the precedent slippery slope argument underneath the schemes
+for argument from precedent and the basic slippery slope argument. This classifica-
+tion indicates another aspect of the cluster of schemes surrounding the category of
+slippery slope arguments.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+7 Using argumentation schemes: Nets of Argumenta-
+tion Schemes
+Argumentation schemes are imperfect bridges between the logical (or quasi-logical)
+level and the conceptual one [Macagno and Walton, 2015; Macagno, 2015]. From
+a conceptual (material) point of view, schemes usually represent an inferential step
+from a specific type of premise to a specific type of conclusion. However, there is
+a crucial gap between the complexity of natural argumentation, characterized by
+several conceptual passages leading to a conclusion, and the schemes. In order to
+reason from consequences, we need to classify a state of aﬀairs, evaluate it positively
+or negatively, and then suggest a suitable course of action, which can lead to further
+reasoning steps, for example from commitment. A single argumentation scheme
+cannot capture the complexity of such real argumentation. For this reason, we need
+to conceive the relationship between arguments and schemes in a modular way, in
+terms of nets of schemes.
+A real argument can be described through interconnected and interdependent
+argumentation schemes, each of them bringing to light a single argumentative step
+that can be explicit, presupposed, or simply implied. In order to explain the idea of
+nets of schemes, we consider the following example taken from the debates during
+the conflict between Russia and Ukraine in 2014. In this case, the British Foreign
+secretaryWilliamHaguecommentedonRussia’sinterventioninCrimeaandUkraine
+as follows4:
+Example 7.1 (The Hague Speech). Be in no doubt, there will be consequences. The
+world cannot say it is OK to violate the sovereignty of other nations. This clearly
+is a violation of the sovereignty independence and territorial integrity of Ukraine. If
+Russia continues on this course we have to be clear this is not an acceptable way to
+conduct international relations.
+Thisexampleisapparentlyaneasycaseofargumentfromconsequences, inwhich
+Russia’s continuation of its military operations is depicted by the British Foreign
+Secretary as leading to undesirable consequences. However, this reasoning involves
+also a classification of Russia’s behavior as a“violation of the sovereignty indepen-
+dence and territorial integrity of Ukraine,” and a qualification of this behavior as
+unacceptable by the UK and the “world.” By pointing out the shared values to
+which the world countries are committed (the sovereignty of other nations cannot
+be violated), the speaker makes explicit the commitment against Russia’s behav-
+4Ukraine crisis: William Hague warns Russia of economic fallout. The Guardian, 3 March 2014.
+Retrieved from: https://is.gd/Kw8Vax. (Accessed on 15 May 2017)
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+ior, which is represented by the vague notion of “consequences.” We represent this
+structure in Figure 9.
+Russia should not continue
+on this course.
+Argument from
+Consequences
+Consequences against Russia
+brought about by the UK and the
+world are undesirable for Russia.
+Be in no doubt, there
+will be consequences.
+Undesirable consequences
+should be avoided.
+Argument from
+Commitment
+The world cannot say it is
+OK to violate the
+sovereignty of other nations.
+Russia violated the
+sovereignty of Ukraine.
+If Russia continues on this
+course we have to be clear this is
+not an acceptable way to
+conduct international relations.
+Argument from
+Verbal Classification
+This clearly is a violation of the
+sovereignty independence and
+territorial integrity of Ukraine.
+Russia intervened
+militarily in Crimea
+and annexed it.
+A hostile military intervention
+in another country is a
+violation of its sovereignty.
+Figure 9: Net of arguments in the Hague Example
+In Figure 9 the dotted boxes represent the tacit premises and the tacit ultimate
+conclusion, which are taken for granted by the speaker but are needed for recon-
+structing his reasoning. The classification, the reasoning from commitment, and the
+argument from consequences are deeply interconnected. The alleged world’s com-
+mitment to consequences against Russia depends on the classification of the state
+of aﬀairs [Macagno and Walton, 2014; Walton and Macagno, 2009], which fits into
+the value of “protecting nations’ sovereignty.” This commitment leads to an implicit
+threat, namely a consequence that is presupposed to be negatively evaluated by
+Russia.
+This analysis can be applied to the structure of a slippery slope argument, such
+as the one advanced by the Russian defense analysts in reply to the help provided
+by the United States to Ukraine (which includes weapons and hardware)5:
+Example 7.2 (The Global Escalation). U.S. provision of military aid to Ukraine
+would be seen by Moscow as a declaration of war and spark a global escalation of
+Ukraine’s separatist conflict, Russian defense analysts said.
+This argument stems from a classification (US provision of military help is a
+declaration of war), and leads to a chain of negative consequences (global escalation)
+5Russia Would See U.S. Moves to Arm Ukraine as Declaration of War. The Moscow Times, 9
+February 2015. Retrieved from: https://is.gd/hxO6MW (Accessed on 15 May 2017)
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+that ultimately are going to aﬀect the Western countries. Also in this case, the
+central argument (the slippery slope) is associated with other arguments (argument
+fromclassificationandfromvalues), resultinginthenetshowninthegraphinFigure
+10.
+The escalation is dangerous
+(Values) and should be
+avoided (Slippery slope).
+Argument from Values
+An escalation will
+affect also the U.S. and
+the Western countries.
+Military actions affecting
+other countries are
+dangerous.
+Moscow will react and there will
+be a global escalation
+of Ukraine's separatist conflict
+Slippery Slope
+Russia is going not to accept
+a tacit declaration of war.
+Argument from Values
+Russia is going to consider
+U.S. military aid as a
+declaration of war.
+A declaration of war is
+unacceptable by Russia.
+Argument from
+Verbal Classification
+U.S. provision of military aid
+to Ukraine would be seen
+by Moscow as a declaration of war.
+The U.S. intend to
+provide military aid.
+Figure 10: Net of arguments in the global escalation example
+In this case, the classification justifies the slippery slope, whose force partially
+depends on the fact that the escalation is claimed to be global, aﬀecting also other
+countries. The evaluation of this consequence therefore combines with the chain of
+events claimed by the analysts, and leads to the practical conclusion of avoiding the
+provision of military aid.
+A special feature of this example is its compressed style of presentation. Slippery
+slopeisacomplexformofargumentbuiltaroundaconnectedsequenceofactionsand
+consequences starting from an initial action or policy and then proceeding through
+a sequence to an eventual outcome. However in many examples, the intervening
+sequence is left implicit, concealing a chain of intervening propositions that have to
+be filled in as implicit assumptions of the argument. These implicit assumptions
+are needed to make it fit the scheme for the slippery slope type of argument. The
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+example really is a slippery slope argument, but in order to prove that it is, sev-
+eral implicit premises or conclusions have to be filled in that are essential. These
+intervening links are basically filled in by common knowledge concerning the normal
+way we expect military inventions to take place and to have consequences. By using
+an argument map that reveals the network of argumentation into which the given
+slippery slope argument fits, the puzzle of unraveling the network of argumentation
+using a cluster can be solved in any given case of argument interpretation.
+On the perspective presented in this section, we notice that argumentation
+schemes appear in nets instead of in clear and independent occurrences. A scheme
+can capture only one passage of reasoning, while the nets can map a more complex
+argumentative strategy, involving distinct and interdependent steps.
+8 Using Argumentation Schemes in AI and law
+In the sections above we have shown how argumentation schemes have been devel-
+oped theoretically, providing a system of classification and representation thereof.
+One of the most important areas of application of the schemes is computing, and
+in particular artificial intelligence. In this section, we will show very briefly how
+argumentation schemes have been used in AI and AI and Law, and in particular the
+principles guiding the formalization thereof. It is far from a complete survey, but
+merely attempts to show how schemes are currently being applied and modeled. It
+also tries to convey very briefly how schemes have evolved as they have been used
+for diﬀerent purposes in diﬀerent AI systems and areas. The discussion includes
+the problem of how to model critical questions matching each scheme, and how
+schemes are being used in AI and Law in argument mining, case-based reasoning
+and statutory interpretation.
+The paper that introduced argumentation schemes to the AI and law commu-
+nity was [Verheij, 2003b]. This paper proposed the use of argumentation schemes,
+as a main tool for analysis in AI and law, stating [Verheij, 2003b, p.168] that the
+argumentation scheme is “a concept borrowed from the field of argumentation the-
+ory.” Verheij investigated how argumentation schemes could be formalized for use
+in computational settings. He proposed [Verheij, 2003b, p.176] that any argumen-
+tation scheme can be expressed in the following format: Premise 1, Premise 2,...,
+Premise n, therefore Conclusion. Verheij visually represented the graph structure
+of an argumentation scheme by building an argument mapping software tool called
+ArguMed.
+A formal analysis of argumentation schemes of Reed and Walton [Reed and
+Walton, 2005] defined a set of attributes, T, associated with propositions by a typing
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+relation that associates every proposition to a set of attributes called a type. On this
+analysis a scheme is comprised of a set of tuples <SName, SConclusion, SPremises>
+where SName is some arbitrary token [Reed and Walton, 2005, p.179]. The gist of
+the analysis is that a particular scheme is given a unique name which is associated
+with a conclusion type and a set of premise types. An instantiation of a scheme of
+a type represented by a unique name must have a conclusion of the right type, and
+each premise must also be of the right type.
+Prakken[Prakken, 2005, p.34]remarkedthatschemesactverymuchliketherules
+used in rule-based computer systems. The problem was that AI systems, as well as
+argument mapping tools of the kind used in argumentation theory, including the
+software systems developed in AI to assist with the building of argument diagrams,
+use a model of argument where the premises and conclusions are propositions. Along
+these lines, the structure is basically a graph with arcs joining the various points
+representing the propositions that can be identified as premises or conclusions. So
+far then it seemed that schemes were amenable to being fitted into AI systems
+without undue diﬃculty, but the central problem posed at that point was how to
+model the distinctive set of critical questions matching each scheme. One proposal,
+commented on below, is to model the critical questions as additional premises of an
+argument fitting a scheme.
+Buttherewasabigproblemwiththiswayofproceedingbecausediﬀerentcritical
+questions act in diﬀerent ways in this regard. Sometimes merely asking a critical
+question is enough to defeat the target argument, whereas in other instances the
+asking of the question does not defeat the target argument unless some evidence is
+oﬀered. The issue turned out to be one of burden of proof [Gordon et al., 2007].
+In some instances, merely asking a critical question is enough to shift the burden
+of proof onto the proponent who put forward the argument. In other instances,
+the burden of proof does not shift unless the questioner can provide some backup
+evidence to support the question.
+Verheij [Verheij, 2003b] noted that there were variations on how the critical ques-
+tions work in this regard. He noted that critical questions that point to exceptions
+to a general rule only undercut an argument while others could be seen refuting the
+argument in one of two diﬀerent ways. One way is to deny an implicit assumption
+on which the argument depends. Another is to point to counter-arguments that can
+be used to attack the given argument. Verheij [Verheij, 2003b, p.180] showed that
+critical questions can perform four distinctively diﬀerent kinds of roles:
+1. They can be used to question whether a premise of a scheme holds.
+2. They can point to exceptional situations in which a scheme defaults.
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+3. They can frame conditions for the proper use of a scheme.
+4. They can indicate other arguments that might be used to attack the scheme.
+It is currently widely assumed in AI that there are three ways you can attack an
+argument. You can attack one or more of the premises (premise attack), you can
+attack the conclusion (conclusion attack), or you can attack the inferential link
+joining the premises to the conclusion (for example by arguing that an exception
+applies). Thelastmodeofattackiscalledundercutting[Pollock, 1995]. Thefirstrole
+wouldbethat ofapremiseattack. Thesecondandthirdroleswouldbeundercutting
+attacks. The fourth role might refer to an undercutter but could also perhaps be
+taken to refer to a conclusion attack. So here the problem is posed of how to model
+critical questions given that critical questions can perform more than one function.
+ASPIC+ [Prakken, 2010] is a formal argumentation system that consists of a
+logical language L with a binary contrariness relation that operates like negation
+alongwithtwokindsofinferencerules,strictanddefeasible,definedoverL. ASPIC+
+isbasedontheabstractargumentationframework(Dung,1995)whichcanbedefined
+as a pair (Args, R), where Args is a set of arguments and a binary relation R on
+Args is called the attack relation. The underlying idea of the formalism is that
+each argument in a sequence of argumentation forming a directed graph structure
+can be defeated by other arguments so that a2 defeats a1, a3 defeats a2, . . . , and
+defeats an−1. Arguments in the graph can be labeled as “in” or “out”. An argument
+is rejected (out) if it is attacked by any other argument that is in. An argument
+is accepted if it is not attacked by any other argument that is “in”. Note that
+the notions of argument and argument attack are taken as primitive in an abstract
+argumentation system, so that such a system by itself provides no way of modeling
+the premises and the conclusion.
+In the system developed in [Prakken et al., 2015] for case-based reasoning, pref-
+erences among factors are established in the present case, and then these preferences
+can be applied to the current case. One of the argumentation schemes (CS1) of can
+be used to briefly explain how such schemes are meant to be used in legal arguments
+from precedent. In all these schemes, for purposes of presentation, it is assumed
+that the arguer is putting forward the current argument (curr) to support the side
+of the plaintiﬀ.
+commonPfactors(curr; prec) = p,
+commonDfactors(curr; prec) = d,
+preferred(p; d)
+———————————
+outcome(curr) = Plaintiﬀ
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+According to this scheme, the current argument should be decided for the plaintiﬀ
+because the common p factors were preferred to the common d factors in the prece-
+dent argument. [Prakken et al., 2015] uses a running example to illustrate how an
+argument fitting a scheme can be attacked by other arguments in the formal system
+representing the argumentation in a legal case.
+Argument schemes are being used in AI and Law for argument mining. Moens,
+Mochales Palau, Boiy and Reed devised techniques for automatically classifying
+arguments in legal texts by using indicators of rhetorical structure expressed by
+conjunctions and adverbial groupings [Moens et al., 2007, p.226]. They identify
+words, pairs of successive words, sequences of three successive words, adverbs, verbs
+and modal auxiliary verbs. This work has been applied to legal argumentative texts
+[Mochales Palau and Moens, 2009; Mochales Palau and Moens, 2011]. By classifying
+types of arguments using argumentation schemes they built a system for searching
+for arguments in legal cases [Mochales Palau and Moens, 2008]. The project used
+human annotators supervised by legally trained personnel to identify arguments in
+texts of the European Court of Human Rights [Mochales Palau and Ieven, 2009].
+Their results suggested that it would help to have additional criteria that can be
+applied to judge whether a given argument fits a particular scheme.
+Rahwan et al. [Rahwan et al., 2011] carried forward research on the automated
+identification of particular schemes by developing an OWL-based ontology of argu-
+mentation schemes in description logic that showed how description logic inference
+techniques can be used to reason about automatic argument classification. Their
+method of identifying schemes has been implemented in a web-based system called
+Avicenna [Rahwan et al., 2011, pp. 11–13]. A user can search arguments by using
+schemes along with other tools.
+Gordon and Walton [Gordon and Walton, 2006] proposed a solution to the prob-
+lem of how to model critical questions by using three kinds of premises (ordinary
+premises, assumptions and exceptions) in the Carneades Argumentation System
+(CAS). This solution used information about the dialectical status of statements
+(undisputed, at issue, accepted or rejected) to model critical questions in such a way
+as to allow the burden of proof to be allocated to the proponent of the argument or
+the critical questioner as appropriate for the case in point. On this way of proceed-
+ing, ordinary premises need to be supported by further arguments even if they have
+not been questioned. In the case of exceptions, however, the critical questioner is the
+one who has to oﬀer evidential support to make his criticism defeat the argument.
+Version 4 is the current implemented formal and computational system of CAS,
+based on the formal model of argument [Gordon and Walton, 2016] called CAS2.
+CAS2 provides support for cumulative arguments, cyclic argument graphs, practical
+reasoning, and multi-criteria decision analysis. The source code of all four versions
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+canbeaccessedontheInternet6. Carneades4isnowonline7. CAS2,asimplemented
+in version 4 of Carneades, provides a formal model that uses argumentation schemes.
+In the CAS2 model [Gordon and Walton, 2016] an argumentation scheme is
+defined as a tuple (e, v, g), where e is a function for weighing arguments which
+instantiate a scheme, v is a function for validating arguments, to test whether they
+properly instantiate an argumentation scheme, and g is a function for generating
+arguments by instantiating the scheme. The validation function tells us whether
+the argument instantiates a particular scheme, but then, once a set of schemes has
+been specified, the system can apply their validation functions to given argument to
+whether that scheme is instantiated, or not, by the given argument.
+Anargumentisdefinedasatuple(S, P, C, U ), whereS istheschemeinstantiated
+by the argument; P , a finite subset of L, is the set of premises of the argument; c,
+a member of L, is the conclusion of the argument. U is an undercutter of the
+argument [Pollock, 1995]. In version 4 of CAS an issue is defined as a tuple (O, F ),
+where O represents the options (called the alternative positions) of the issue, and F
+is the proof standard of the issue. Argument graphs in CAS version 4 are tripartite,
+ratherthanbipartite, asinthepreviousversions, withseparatenodesforstatements,
+argumentsandissues. Argumentdiagramsinversion4areextendedwithanewnode
+type, diamonds, for representing issues. There can be any number of issues you like
+in a single diagram. Argument evaluation is carried out by labeling statements
+in, out or undecided. A statement is in if and only if it has been assumed to be
+acceptable to a rational audience, or has been derived from such assumptions via
+the application of the arguments, argument weighing functions and proof standards
+used in CAS. A statement is out if and only if it is neither assumed nor supported
+by arguments and would therefore be rejected by a rational audience. A statement
+is undecided if it is neither in nor out.
+Carneades 3 uses backwards-chaining, in a goal-directed way, whereas Carneades
+4 uses forwards-reasoning to derive arguments from argumentation schemes and
+assumptions. Both strategies, forwards and backwards reasoning, have their ad-
+vantages. Forwards reasoning allows CAS to invent arguments using argumentation
+schemes, such as the scheme for argument from expert opinion, where the conclusion
+isasecond-ordervariablerangingoverpropositions. OnlyCarneades4canconstruct
+arguments using formalizations of all of the twenty or so schemes currently built into
+the system.
+Case-based reasoning (CBR) is vitally important for AI and Law and for un-
+derstanding legal reasoning generally. CBR evaluates an argument in a given case
+6Retrieved from: https://github.com/carneades
+7Retrieved from: http://carneades.fokus.fraunhofer.de/carneades
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+by comparing and contrasting its features to those of prior cases that have already
+been evaluated [Aleven, 1997]. These prior cases are stored in a knowledge base
+which supplies similar precedent cases that can be pro or con the evaluation being
+considered in the given case. In some systems widely known in AI and law [Ashley,
+1990], judgments of similarity between a pair of cases are decided by the factors that
+they share. Special argumentation schemes have been built to model arguments
+from precedent using factors in case-based reasoning [Gordon and Walton, 2009;
+Wyner and Bench-Capon, 2007; Wyner et al., 2011]. Prakken et al. [Prakken et al.,
+2015] oﬀered a formal version of these legal case-based argumentation schemes using
+ASPIC+.
+Walton, Sartor and Macagno [Walton et al., 2016] showed how canons of inter-
+pretation can be translated into argumentation schemes. This project was carried
+out by by analyzing the most common types of statutory arguments found in legal
+examplesandcertainkeyformsofinterpretivelegalargumentationfoundinthework
+of Tarello [Tarello, 1980] and McCormick and Summers [MacCormick and Summers,
+1991]. Steps were carries out to show how these legally recognizable forms of argu-
+ment can be formulated as argumentation schemes. Among the schemes modeled
+are argument from ordinary meaning, argument from technical meaning, argument
+from precedent, argument from purpose, a contrario argument, historical argument
+and the non-redundancy argument. It was shown using classical examples of statu-
+tory interpretation in law how these schemes (and others) can be incorporated into
+computational argumentation systems such as CAS and APSIC+ and applied to
+displaying the pro-contra structure argumentation in legal cases using argument
+mapping tools.
+In the following sections we will illustrate shortly two other computational appli-
+cations of argumentation schemes, namely their role in argument mining and formal
+ontologies.
+9 Using Schemes for Argument Mining
+Argumentation schemes also have an important role to play in a major new area of
+computational research into argumentation: argument mining. Argument mining
+focuses on the development of algorithms and techniques for the automatic extrac-
+tion of argument structure from natural language text. Though it has connections
+to areas such as sentiment analysis and opinion mining, it represents a substan-
+tially more demanding task. There are two features that make argument mining
+so diﬃcult. The first concerns the availability of data and the second, the limits of
+statistical approaches to language understanding.
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+Many approaches to mining syntactic and semantic structure from unrestricted
+naturallanguagehave, sincethelate1990s, beenbasedheavilyinstatisticalanalysis:
+essentially,modellingtheregularitiesinlanguagebyexaminingandcomparingmany,
+many diﬀerent examples. The most robust syntactic parsers, for example, are based
+not on theoretical linguistic analysis — which proved on the whole to be too limited
+and too brittle — but on statistical models based on corpora typically comprising
+millions of examples [Koehn et al., 2003]. Though the machine learning mechanisms
+upon which such techniques depend vary, one feature that they share is the need
+for such large datasets from which to draw regularities. If, therefore, argument
+mining is to be able to deploy the same techniques, it requires large datasets, and
+datasets not just of argumentation per se, by argumentation that has been analysed
+for its structure. As anyone involved in the teaching of critical thinking skills will
+attest, such analysis of argument structure is both demanding and extremely time
+consuming. Until very recently there were few datasets, and those that did exist
+were available in idiosyncratic representation languages, with little re-use between
+research teams and projects — so what eﬀort was invested in data collection and
+analysis was regularly lost. Two approaches have started to change this.
+First, there have been attempts to collect datasets specifically for community
+use. The first example is the Internet Argument Corpus, IAC [Walker et al., 2012],
+which collects 390,000 examples. The problem facing the IAC is that it is designed
+primarily from a text-processing viewpoint, with little argumentation theory sit-
+ting behind it. As a result, the conception of argument that it embodies is very
+thin and more or less unrecognisable to researchers from argumentation theory and
+computational models of argument, viz., quote-response pairs with associated po-
+larity (additional features including sarcasm and nastiness are marked for subsets).
+A second example is more directly rooted in informed models of argumentation.
+The Potsdam Microtext Corpus [Peldszus and Stede, 2016] provides artificially con-
+strained — but completely human-generated, natural language — arguments that
+are structured according to the work of Freeman [Freeman, 1991] with explicit dis-
+tinction between, for example, linked and convergent arguments, undercutting and
+rebutting attacks and so on. Another unique advantage of the Microtext Corpus is
+that it has been professionally translated so that both English and German versions
+exist: to our knowledge this is the first parallel corpus of argumentation. On the
+other hand, the fact that every argument is required to contain a total of five compo-
+nents (premises and conclusions), whilst providing a vitally useful “laboratory” for
+testing techniques, risks placing a severe limitation on the subsequent generalizabil-
+ity of those techniques to unrestricted arguments in the wild. The limited size of the
+corpus — just 130 examples — also places limitations on what can be accomplished
+using traditional statistical machine learning techniques.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+Thesecondapproachhasbeentoprovideinfrastructurespecificallyforcollecting,
+publishing, sharing and re-using corpora. Whilst there are now several platforms
+for online analysis of argument (argunet8, debategraph9, AGORA-net10, Rationale-
+Online11, etc.) none provide open access to the data in machine processable ways,
+except, as far as we are aware, for the infrastructure oﬀered by the Argument Web
+[Rahwan et al., 2011; Bex et al., 2013]. The Argument Web is a vision for an inter-
+connected web of arguments and debates, regardless of the software used to create
+them, analyse them or extract them, and regardless, too, of the uses — academic,
+social or commercial — to which they might be put. The vision supports, for ex-
+ample, the academic analysis of an argument presented in a political broadcast; the
+automated analysis of responses to it on social media; the deployment of automated
+dialogue games for online users to interact with both original and responses; the
+automated summary of the status of the debate to a government policy department;
+and the delivery of a corpus comprising the debate to researchers in argument min-
+ing. Argumentation schemes in the style of [Walton et al., 2008] form a cornerstone
+of the Argument Web, as a way of providing a rich ontology of reasoning forms.
+Further details of this ontology occur in the next section; here we focus on the tools
+and the ways in which they can be used to develop corpora.
+Though the first publicly available corpus of argumentation was developed using
+Araucaria (viz. AraucariaDB, see [Reed and Walton, 2005]), the software itself is
+now very old and virtually obsolete. Though it remains the only software to handle
+large analyses, such as the ones developed by Wigmore for mapping cases, and the
+only to interchange between Wigmore, Toulmin and Freeman styles of analysis, it
+has been superseded in its core functionality by the Online Visualisation of Argu-
+ment tool, OVA [Janier et al., 2014]. OVA provides a simple-to-use interface for
+analysing existing argumentation in both monologue and, in the extended OVA+,
+also dialogue. It supports enthymeme reconstruction; argumentation scheme analy-
+sis; critical question processing; serial, linked, convergent and divergent structures;
+undercutting, rebutting and undermining attacks; and in OVA+, locution analy-
+sis; dialogue game rule analysis; illocutionary force identification; the role of ethos
+[Duthie et al., 2016] and personal attacks; and ultimately, full Inference Anchoring
+Theory analysis [Budzysnka and Reed, 2011]. Analyses from OVA can be stored
+in AIFdb, a database infrastructure fabric for storing and accessing argument data
+[Lawrence et al., 2012].
+8Retrieved from: http://www.argunet.org/ (Accessed on 10 May 2016)
+9Retrievedfrom: http://debategraph.org/Stream.aspx?nid=61932&vt=ngraph&dc=focus(Ac-
+cessed on 10 May 2016)
+10http://agora.gatech.edu/ (Accessed on 10 May 2016)
+11https://www.rationaleonline.com/ (Accessed on 10 May 2016)
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+One side eﬀect of using AIFdb is that the data is easily transportable to other
+forms, both representational (in being able to convert to formats required for
+Carneades [Walton and Gordon, 2012] and Rationale [van Gelder, 2007], for exam-
+ple), and processable — in being able to convert via ASPIC+ [Modgil and Prakken,
+2013] to abstract frameworks [Dung, 1995] via formal equivalences established in
+[Bex et al., 2013]. More importantly for our current purposes, sets of analyses in
+AIFdb can be configured to constitute a corpus using the AIFdb corpus management
+tools [Lawrence and Reed, 2015] available online at corpora.aifdb.org, and AIFdb
+current constitutes the largest publicly available dataset of analysed argumenta-
+tion. These tools enable research teams to define corpora comprising both analysed
+argumentation and raw text; both argumentative and non-argumentative source ma-
+terial; both raw data and metadata. Corpora themselves are aggregable providing
+flexible structuring options to manage dependencies between teams, projects, and
+objectives. The original AraucariaDB corpus is available on this infrastructure, but
+so too are smaller datasets focusing specifically on argumentation schemes, such as
+the Argument Schemes in the Moral Maze, comprising excerpts from the BBC Moral
+Maze radio programme that involve 35 instances of argumentation schemes and the
+ExpertOpinion-PositiveConsequences corpus comprising 71 examples of just these
+two schemes.
+With the availability of appropriate datasets becoming less of an impediment,
+various approaches to automatically recognising argument structure have been de-
+veloped. The majority have been focused specifically on statistical models, which
+brings us to the second major challenge facing argument mining: the limits of such
+models. Whilst it is certainly the case that statistical approaches are starting to de-
+liver results for argument mining, and will undoubtedly continue to do so, it is also
+the case that the more sophisticated conceptions of argument developed in argumen-
+tation theory remain extraordinarily demanding. The reason for this lies precisely in
+their sophistication. With so many patterns of argumentation, so many structures,
+so many ways in which components can be left implicit, so many types of reasoning,
+the amount of data required to train statistical models becomes not just unwieldy
+but unreasonable and, quite probably, unattainable.
+Consider a comparison with syntactic analysis, where statistical models have
+been so successful. The number of rules governing how diﬀerent parts of speech can
+be legally combined run in theoretical linguistics to tens of examples. In statistical
+models, it is hundreds (which is why they are so successful). The number of rules
+governing how argument components can be assembled (and left implicit) runs, by
+combination across argumentation schemes, to thousands or more. So whilst we
+might expect statistically oriented techniques to deliver us good results on simple
+and strongly generalizable aspects of argument recognition, for the type of analysis
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+that is typically taught to students of critical thinking classes, more is required. It is
+looking increasingly likely that having strong, well defined conceptions of argument,
+dialogue and argument schemes provide exactly the sort of additional information
+required to guide machine learning processes by acting, in essence, as priors to that
+process: defining expectations about what is likely to be seen. This combination
+of statistical and structural approaches is looking very promising. In particular, we
+provide examples here that tap in specifically to structure provided by argument
+schemes.
+Feng and Hirst [Wei Feng and Hirst, 2011] aimed to classify arguments into the
+type of scheme employed. Like some of the earliest work in argument mining, such
+as [Moens and Mochales Palau, 2007], they also used the AraucariaDB corpus as a
+starting point, because it was the only dataset at that time with annotated examples
+of argumentation schemes. They used the 65 argumentation schemes from [Walton
+et al., 2008], but emphasized the importance of the five schemes they found to be
+the most commonly used ones in their corpus: argument from example, argument
+from cause to eﬀect, practical reasoning, argument from consequences and argument
+from verbal classification [Wei Feng and Hirst, 2011]. The number of occurrences
+of these most common five schemes constituted 61% of the kinds of arguments
+identified in their database [Wei Feng and Hirst, 2011, p.998]. They used a variety
+of features with which to train the machine learning classifiers including key words
+and phrases as textual indicators of argumentation schemes. They identified, for
+example, twenty-eightkeywordsandphrasesassociatedwiththeschemeforpractical
+reasoning, including “want”, “aim”, “objective”, and modal verbs like “should”,
+“must” and “need” [Wei Feng and Hirst, 2011, p.991]. Their results were extremely
+promising, providing classification accuracies ranging from 0.64 to 0.98.
+Building on this approach, Lawrence and Reed ([Lawrence and Reed, 2015] ex-
+tended the model to use argumentation schemes not just as a target for machine
+learning but to aid the very process of identifying argumentative structure (rather
+than presupposing it as input, as in Feng and Hirst). The intuition is that argu-
+mentation schemes do not connect propositions that are all alike, but rather are
+associated with particular types of propositions. In this way, arguments from pos-
+itive consequence will typically conclude with a normative statement in the sub-
+junctive mood; arguments from expert opinion will typically have a premise which
+reports, either directly or indirectly, the speech of another; arguments from analogy
+will include a premise which attributes some property to some individual; and so
+on. If it is possible to identify instances of some of these types, it will constrain
+the potential argument structures that can be reassembled. If, for example, an au-
+tomatic algorithm can spot the lexeme said, there is a reasonable chance that we
+have reported speech, which in turn increases the chance that it is part of an expert
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+opinion argument. If we can find the lexeme expert in a sentence close by, we can
+be even more sure we have argument from expert opinion and can start looking
+nearby for a conclusion — and that conclusion is likely to be a sentence which has
+strong semantic similarity with the clause that follows “said”. In this way, knowing
+a priori about argumentation scheme structure helps to constrain the problem of
+automatically recognising the argument structure. It turns out that this hypothesis
+is borne out by results.
+Lawrence and Reed report (ibid.) results ranging from an F1 performance of
+0.59 to 0.91 for detecting scheme components and of 0.62 to 0.88 for identifying
+scheme instances. Operationalising argumentation scheme structure in this way de-
+pends, however, upon “knowledge engineering”, or, more specifically, “ontology en-
+gineering” — the construction of explicit computational models that capture scheme
+structureandthecommonalities, similaritiesandclassificatoryrelationshipsbetween
+schemes. It is to this question that we turn next.
+10 Schemes in Formal Ontologies
+The Argument Interchange Format, AIF, is not just a representation language for
+argument structure; it also has a formal definition rooted in description logic; that
+is to say, it provides a core ontology for describing argument (though that core is
+rather compact, it admits of extension using “adjunct ontologies” that extend it to
+handle features such as dialogical interaction, user- and social-oriented features, and
+so on). The AIF was laid out initially in [Chesñevar et al., 2006] and extended in its
+description logic specification in [Rahwan et al., 2007]. Given this basis, it is then
+rather straightforward to extend it to further specify not just that two propositions
+might be linked by an application of a rule of inference (or “RA”), but to also specify
+the diﬀerent types of such rules of inference, that is to define an ontology of argu-
+mentation schemes. This ontology not only describes the structure of argumentation
+schemesinmachine-processableform, butalsodefinesrelationshipsbetweenschemes
+(such as generalisation-specification relationships) and relationships between scheme
+components (such as that knowledge assertions occur as premises in several diﬀer-
+ent schemes). By way of example, snippets of the ontology concerned with the
+argumentation scheme from expert opinion are shown in Figure 11 below.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+Figure 11: Snippet of Argumentation Scheme Ontology
+In the first stanza, the conclusion and premises concerning the knowledge asser-
+tion (that the expert said something) and the field expertise (that the speaker is
+indeed an expert) are set up. In the second stanza, the remaining premises (those
+captured as presumptions and exceptions) are added in, covering credibility, backup
+evidence, consistency between experts and expert reliability. The third stanza shows
+how one of these, consistency between experts, can be used to drive a stereotypi-
+cal way of attacking this inference — i.e. the posing of a critical question (see
+[Reed and Walton, 2005] for the mechanics of operationalizing critical questions in
+this way). The aim here is just to give a flavour of how all the important com-
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+ponents of argumentation schemes — structure, description and critical questions
+— can be captured in a formal ontology. The full ontology is available online at
+http://arg.tech/aif.owl, and is used by many of the Argument Web online services.
+Two benefits of this approach are demonstrated in [Rahwan et al., 2011]. The
+first is an economy in specification, that allows more specific schemes to be defined
+in terms of minor additions to more general ones. The second, much more im-
+portantly, is that these structures support automated reasoning, in three distinct
+ways. First, it becomes possible to reason across argument structures, identifying,
+for example, transitivity of inferences, so that if X is used to infer Y , and Y to
+infer Z, the dependence of X on Z can be inferred automatically. Of course such
+reasoning is not at all unique to ontologically based systems, but is a convenient
+side benefit. An ontologically more interesting way of performing automated rea-
+soning is to perform automatic classification. This is where formal ontologies, and
+the reasoning systems constructed on top of them, excel. Rahwan et al., exemplify
+this technique by showing how fear appeal arguments are naturally classifiable as a
+subset of negative consequence arguments. The third and final way of performing
+automated reasoning is also of use in designing and implementing dialogue systems.
+By virtue of hierarchical relationships between schemes that are represented in, or
+inferable from, the ontology, it also becomes possible to infer appropriate critical
+questions that might be asked of a given argument. Thus, for example, all of the
+critical questions of a superclass can be asked of an instance of a sub-class of argu-
+mentation schemes. In these ways, formal representation of argumentation schemes
+in an explicit ontology can contribute to the computational techniques for analysing,
+processing and interacting with arguments.
+11 Conclusions
+Argumentation schemes represent the abstract structures of the most common and
+stereotypical arguments used in everyday conversation and specific fields, such as
+law, science and politics. They appear as a set of premises having an abstract form
+with variables and constants, leading to an abstract conclusion. They are abstract
+in the sense that they provide a form for structuring inferential relation between
+the premises and the conclusion. Some schemes are based on the most abstract
+relations (classification, cause, authority), while others specify the most abstract
+premises including some further detail (negative consequences; expert opinion ad
+populum argument) [Walton et al., 2008].
+The abstract nature of the schemes allows the analyst to detect the structure
+of natural arguments, and recognize patterns occurring in everyday reasoning. This
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+paper has shown how they can be applied to real arguments in natural language
+discourse, and in technical discourse as well, for that matter. In this paper, it has
+been shown how these schemes, at their current state of development can be used
+as tools to identify kinds of arguments in a text, and beyond that how they can
+be an important part of argument evaluation. Throughout the history of logic and
+rhetoric there has always been some uncertainty about the role of the topics [Bird,
+1962]. Some have seen them as forms of logical inference that can be used to show
+that arguments are valid, where the term “valid” is used in a wider sense that can
+include not only deductively valid arguments but also defeasible arguments that
+have an identifiable structure as fitting a particular topic. Others have seen the
+topics of as having a search function that can be used to find arguments to prove
+a designated conclusion. The search function is supposed to help an arguer select
+arguments that have premises accepted by the audience to whom the argument is
+directed [Kienpointner and Kindt, 1997].
+Schemes can also be used for argument construction. As we saw in this paper,
+an argumentation scheme is taken to have a warranting function that enables an
+inference to be drawn from a set of premises to a conclusion. This practical way of
+justifying schemes indicates their usefulness not only for argument evaluation, but
+also for argument construction, also called argument invention in the long history of
+thesubjecttracingbacktotheSophistsandAristotle. Anargumentinventiondevice
+would enable an arguer to search for an argument that could be used to support a
+claim s/he wants to prove [Kienpointner, 1987]. When viewed in this way, topics
+can be seen to have a use as components of an argument construction function, for
+use in a system for finding arguments. The schemes can be used as instruments for
+producing arguments, allowing the user to decide the type of argument he considers
+the most applicable to his purpose, and then develop a specific line of reasoning
+from the premises or evidential facts he has to the conclusion he needs to prove. In
+this guise, the schemes are dialectical instruments for use in the task of argument
+construction.
+The advent of IBM’s new Watson Debater tool [Aharoni et al., 2014] is a leap
+forward for argument invention because it enables a user to quickly search through
+a database such as Wikpedia and find useful pro and con arguments supporting or
+attacking a designated claim. Once this tool comes onto the market, it will greatly
+stimulate research on argument invention in argumentation studies. The Debater
+tool does not (so far) use argumentation schemes, but there is a formal and com-
+putational argumentation system, the Carneades Argumentation System (CAS)12
+.
+By inputting information into the CAS find arguments assistant, a user who has a
+12https://carneades.github.io/ (Accessed on 10 May 2016)
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+database containing propositions recording the commitments of the audience, the
+automated assistant constructs a chain of argumentation where the conclusion of the
+chain is the proposition is the goal proposition that the speaker wants to persuade
+the audience to accept, called the arguer’s ultimate claim, or ultimate probandum,
+the proposition to be proved, in the language of the ancient stasis theory [Walton
+and Gordon, 2012]. The argument assistant searches through the commitments of
+the audience and uses a repository of argumentation schemes in its knowledge base
+to collect a set of arguments moving from these premises to the ultimate claim. If
+there are such arguments available the assistant gives that information, but may
+suggest a partial way forward.
+Argumentation schemes are instruments that can be used in diﬀerent ways to
+many disciplines addressing the analysis of discourse in general, and reasoned dis-
+course in particular. The current research on schemes can improve noticeably the
+field of application and make this tool crucial for a deeper analysis of argumenta-
+tive exchanges. To this purpose, argumentation schemes need first to be integrated
+within a theory of discourse interpretation. Schemes can be powerful instruments
+for representing arguments and relations between sentences. However, at present
+they presuppose an interpretation of discourse. This line of research could show
+how schemes can represent interpretation, and how they can be used to assess what
+interpretation is the best one [Macagno, 2012]. A second challenge in this area is to
+link the theory of dialogue types and discourse moves (utterances) to argumentation
+schemes [Macagno and Bigi, 2017]. By showing how certain schemes are the most
+adequate to pursue specific dialogical ends, it is possible to map not only a set of
+useful tools for argument production, but also a set of presumptions for interpreting
+and classifying arguments based on the type of dialogue.
+Acknowledgments
+Fabrizio Macagno would like to thank the FundaÃğÃčo para a CiÃłncia e a Tecnologia for
+the research grants no. IF/00945/2013, PTDC/IVC-HFC/1817/2014, and PTDC/MHC-
+FIL/0521/2014.
+Douglas Walton would like to thank the Social Sciences and Humanities Research Coun-
+cil of Canada for Insight Grant 435-2012-0104.
+References
+[Abaelardus, 1970] Petrus Abaelardus. Dialectica. Van Gorcum, Assen, 1970.
+[Aharoni et al., 2014] Ehud Aharoni, Carlos Alzate, Roy Bar-Haim, Yonatan Bilu, Lena
+Dankin, Iris Eiron, Daniel Hershcovich, and Shay Hummel. Claims on demand–an initial
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+demonstration of a system for automatic detection and polarity identification of context
+dependentclaimsinmassivecorpora. InCOLING 2014, the 25th International Conference
+on Computational Linguistics: System Demonstrations, pages 6–9, 2014.
+[Aleven, 1997] Vincent Aleven. Teaching case-based argumentation through a model and
+examples. PhD thesis, University of Pittsburgh, 1997.
+[Aristotle, 1991a] Aristotle. Rhetoric. In Jonathan Barnes, editor, The complete works of
+Aristotle, vol. I. Princeton University Press, Princeton, 1991.
+[Aristotle, 1991b] Aristotle. Topics. In Jonathan Barnes, editor, The complete works of
+Aristotle, vol. I. Princeton University Press, Princeton, 1991.
+[Ashley, 1990] Kevin Ashley. Modeling Legal Argument: Reasoning with Cases and Hypo-
+theticals. MIT Press, Cambridge, Mass., 1990.
+[Atkinson et al., 2005] KatieAtkinson, TrevorBench-Capon, andPeterMcBurney. Arguing
+about cases as practical reasoning. In Giovanni Sartor, editor, Proceedings of the 10th
+international conference on Artificial intelligence and law, pages 35–44, New York, 2005.
+ACM Press.
+[Bench-Capon, 2003] Trevor Bench-Capon. Persuasion in practical argument using value-
+based argumentation frameworks. Journal of Logic and Computation, 13(3):429–448,
+2003.
+[Bex and Reed, 2011] Floris Bex and Christopher Reed. Schemes of inference, conflict,
+and preference in a computational model of argument. Studies in Logic, Grammar and
+Rhetoric, 23(36):39–58, 2011.
+[Bex et al., 2013] Floris Bex, John Lawrence, Mark Snaith, and Chris Reed. Implementing
+the argument web. Communications of the ACM, 56(10):66–73, oct 2013.
+[Bird, 1960] Otto Bird. The formalizing of the topics in mediaeval logic. Notre Dame
+Journal of Formal Logic, 1(4):138–149, 1960.
+[Bird, 1962] Otto Bird. The tradition of the logical Topics: Aristotle to Ockham. Journal
+of the History of Ideas, 23(3):307–323., 1962.
+[Brockriede and Ehninger, 1963] Wayne Brockriede and Douglas Ehninger. Decision by de-
+bate. Dodd, Mead & Co„ New York, 1963.
+[Budzysnka and Reed, 2011] Katarzyna Budzysnka and Chris Reed. Speech acts of argu-
+mentation: Inference anchors and peripheral cues in dialogue. In Computational models
+of natural argument: Papers from the 2011 AAAI workshop, pages 3–10, Menlo Park,
+2011. AAAI Press.
+[Chesñevar et al., 2006] Carlos Chesñevar, Sanjay Modgil, Iyad Rahwan, Chris Reed,
+Guillermo Simari, Matthew South, Gerard Vreeswijk, and Steven Willmott. Towards
+an argument interchange format. The Knowledge Engineering Review, 21(4):293–316, dec
+2006.
+[Christensen, 1988] Johnny Christensen. The formal character of koinoi topoi in Aristotle’s
+rhetoric and dialectic. Illustrated by the list in Rhetorica II, 23. Cahiers de l’institut du
+moyen âge grec et latin, (57):3–10, 1988.
+[Cicero, 2003] Marcus Tullius Cicero. Topica. Oxford University Press, Oxford, 2003.
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+[De Pater, 1965] Wilhelm A De Pater. Les Topiques d’Aristote et la dialectique platonici-
+enne. Éditions de St. Paul, Fribourg, 1965.
+[Drehe, 2011] Iovan Drehe. The Aristotelian dialectical topos. Argumentum, 9(2):129–139,
+2011.
+[Dung, 1995] Phan Minh Dung. On the acceptability of arguments and its fundamental
+role in nonmonotonic reasoning, logic programming and n-person games. Artificial Intel-
+ligence, 77(2):321–357, 1995.
+[Duschl et al., 1999] Richard Duschl, Kirsten Ellenbogen, and Sibel Erduran. Promoting
+argumentation in middle school science classrooms: A project SEPIA evaluation. In
+Annual Meeting of the National Association for Research in Science Teaching, pages 1–
+19, Boston, 1999. ERIC Document Reproduction Service No.ED453050.
+[Duthie et al., 2016] Rory Duthie, Katarzyna Budzysnka, and Chris Reed. Mining ethos in
+political debate. In Proceedings of the Sixth International Conference on Computational
+Models of Argument, pages 299–310, Amsterdam, 2016. IOS Press.
+[Erduran and Jimenez-Aleixandre, 2007] Sibel Erduran and M Pilar Jimenez-Aleixandre,
+editors. Argumentation in science education: perspectives from classroom-based research.
+Springer, Dordrecht, 2007.
+[Erduran and Jiménez Aleixandre, 2012] Sibel Erduran and Maria Pilar Jiménez Aleixan-
+dre. Argumentation in science education research. In Doris Jorde and Justin Dillon,
+editors, Science Education Research and Practice in Europe: Retrospective and Prospec-
+tive, pages 253–289. SensePublishers, Rotterdam, 2012.
+[Freeman, 1991] JamesFreeman. Dialectics and the Macrostructure of Arguments. A Theory
+of Argument Structure. Foris, Berlin/New York, 1991.
+[Gabbay and Woods, 2008] Dov Gabbay and John Woods, editors. Handbook of the history
+of logic. Volume 2. Mediaeval and Renaissance Logic. Elsevier, Amsterdam, 2008.
+[Garssen, 2001] Bart Garssen. Argumentation schemes. In Frans Van Eemeren, editor,
+Crucial concepts in argumentation theory, pages 81–99. Amsterdam University Press,
+Amsterdam, 2001.
+[Gordon and Walton, 2006] Thomas F. Gordon and Douglas Walton. The Carneades argu-
+mentation framework: Using presumptions and exceptions to model critical questions. In
+Proceedings of the 2006 conference on Computational Models of Argument: Proceedings
+of COMMA 2006, pages 195–207, Amsterdam, 2006. IOS Press.
+[Gordon and Walton, 2009] Thomas F. Gordon and Douglas Walton. Legal reasoning with
+argumentation schemes. In Carole D. Hafner, editor, Proceedings of the 12th International
+Conference on Artificial Intelligence and Law, pages 137–146, New York, 2009. ACM.
+[Gordon and Walton, 2016] ThomasF.GordonandDouglasWalton. FormalizingBalancing
+Arguments. In Proceedings of the 2016 Conference on Computational Models of Argument
+(COMMA 2016), pages 327–338, Amsterdam, 2016. IOS Press.
+[Gordon et al., 2007] Thomas F. Gordon, Henry Prakken, and Douglas Walton. The
+Carneadesmodel of argumentand burden ofproof. Artificial Intelligence, 171(10-15):875–
+896, jul 2007.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+[Green-Pedersen, 1984] Niels Jørgen Green-Pedersen. The tradition of the Topics in the
+Middle Ages: The commentaries on Aristotle’s and Boethius’ Topics. Philosophia, Mu-
+nich, 1984.
+[Green-Pedersen, 1987] Niels Jørgen Green-Pedersen. The topics in medieval logic. Argu-
+mentation, 1(4):407–417, 1987.
+[Grennan, 1997] Wayne Grennan. Informal logic. McGill-Queen’s University Press, Mon-
+treal, Quebec, 1997.
+[Hastings, 1963] Arthur Hastings. A reformulation of the modes of reasoning in argumen-
+tation. Ph.D. Dissertation, Northwestern University, Evanston, Illinois, 1963.
+[Heath, 1994] Malcolm Heath. The Substructure of stasis-theory from Hermagoras to Her-
+mogenes. The Classical Quarterly, 44(01):114, may 1994.
+[Janier et al., 2014] MathildeJanier, JohnLawrence, andChrisReed. OVA+: Anargument
+analysis interface. In Proceedings of the Fifth International Conference on Computational
+Models of Argument (COMMA 2014), pages 463–464, Amsterdam, 2014. IOS Press.
+[Katzav and Reed, 2004a] Joel Katzav and Chris Reed. A Classification System for Argu-
+ments. Technical report, University of Dundee, Dundee, 2004.
+[Katzav and Reed, 2004b] Joel Katzav and Chris Reed. On argumentation schemes and the
+natural classification of arguments. Argumentation, 18(2):239–259, 2004.
+[Kennedy, 1963] George Kennedy. The art of persuasion in ancient Greece. Princeton Uni-
+versity Press, Princeton, 1963.
+[Kienpointner and Kindt, 1997] Manfred Kienpointner and Walther Kindt. On the problem
+ofbiasinpoliticalargumentation: Aninvestigationintodiscussionsaboutpoliticalasylum
+in Germany and Austria. Journal of Pragmatics, 27(5):555–585, 1997.
+[Kienpointner, 1987] Manfred Kienpointner. Towards a typology of argumentative schemes.
+In Frans van Eemeren, Rob Grootendorst, Anthony Blair, and Charles Willard, editors,
+Argumentation: Across the lines of discipline, pages 275–287. Foris, Dordrech, 1987.
+[Kienpointner, 1992] Manfred Kienpointner. Alltagslogik: Struktur und Funktion von Argu-
+mentationsmustern. Fromman-Holzboog, Stuttgart, Germany, 1992.
+[Kim et al., 2010] Mijung Kim, Robert Anthony, and David Blades. Argumentation as
+a Tool to Understand Complexity of Knowledge Integration. In Proceedings of the 2nd
+International STEM in Education Conference — Beijing, China — 24-27 November 2012,
+pages 154–160, Beijing, 2010. Beijing Normal University.
+[Koehn et al., 2003] Philipp Koehn, Franz Josef Och, and Daniel Marcu. Statistical phrase-
+basedtranslation. InProceedings of the 2003 Conference of the North American Chapter of
+the Association for Computational Linguistics on Human Language Technology - NAACL
+’03, volume 1, pages 48–54, Morristown, NJ, USA, 2003. Association for Computational
+Linguistics.
+[Lawrence and Reed, 2015] John Lawrence and Chris Reed. Combining Argument Mining
+Techniques. In Proceedings of the 2nd Workshop on Argumentation Mining, pages 127–
+136, Stroudsburg, PA, USA, 2015. Association for Computational Linguistics.
+[Lawrence et al., 2012] John Lawrence, Floris Bex, Chris Reed, and Mark Snaith. AIFdb:
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+Infrastructure for the argument web. In Proceedings of the Fourth International Confer-
+ence on Computational Models of Argument (COMMA 2012), pages515–516, Amsterdam,
+2012. IOS Press.
+[Lawson, 1885] John Lawson. The law of presumptive evidence. Bancroft & Co., San Fran-
+cisco, 1885.
+[Macagno and Bigi, 2017] FabrizioMacagnoandSarahBigi. Analyzingthepragmaticstruc-
+ture of dialogues. Discourse Studies, 19(2):148–168, apr 2017.
+[Macagno and Konstantinidou, 2013] Fabrizio Macagno and Aikaterini Konstantinidou.
+What students’ arguments can tell us: Using argumentation schemes in science education.
+Argumentation, 27(3):225–243, 2013.
+[Macagno and Walton, 2014] Fabrizio Macagno and Douglas Walton. Emotive Language in
+Argumentation. Cambridge University Press, Cambridge, 2014.
+[Macagno and Walton, 2015] Fabrizio Macagno and Douglas Walton. Classifying the pat-
+terns of natural arguments. Philosophy and Rhetoric, 48(1):26–53, 2015.
+[Macagno et al., 2014] Fabrizio Macagno, Douglas Walton, and Christopher Tindale. Ana-
+logical reasoning and semantic rules of inference. Revue internationale de philosophie,
+270(4):419–432, 2014.
+[Macagno et al., 2016] Fabrizio Macagno, Douglas Walton, and Christopher Tindale. Ana-
+logical Arguments: Inferential Structures and Defeasibility Conditions. Argumentation,
+pages 1–23, 2016.
+[Macagno, 2012] Fabrizio Macagno. Presumptive reasoning in interpretation. Implicatures
+and conflicts of presumptions. Argumentation, 26(2):233–265, 2012.
+[Macagno, 2015] Fabrizio Macagno. A means-end classification of argumentation schemes.
+In Frans van Eemeren and Bart Garssen, editors, Reflections on theoretical issues in
+argumentation theory, pages 183–201. Springer, Cham, 2015.
+[MacCormick and Summers, 1991] Neil MacCormick and Robert Summers. Interpreting
+Statutes: A Comparative Study. Dartmouth, Aldershot, 1991.
+[Mochales Palau and Ieven, 2009] Raquel Mochales Palau and Aagje Ieven. Creating an
+argumentation corpus: do theories apply to real arguments?: a case study on the legal
+argumentation of the ECHR. In Proceedings of the 12th International Conference on
+Artificial Intelligence and Law, pages 21– 30, New York, 2009. ACM Press.
+[Mochales Palau and Moens, 2008] Raquel Mochales Palau and Marie-Francine Moens.
+Study on the structure of argumentation in case law. In Enrico Francesconi, Giovanni Sar-
+tor, and Daniela Tiscornia, editors, Proceedings of the 2008 Conference on Legal Knowl-
+edge and Information Systems, pages 11–20, Amsterdam, 2008. IOS Press.
+[Mochales Palau and Moens, 2009] Raquel Mochales Palau and Marie Francine Moens. Ar-
+gumentation Mining: the detection, classification and structuring of arguments in text. In
+Belgian/Netherlands Artificial Intelligence Conference, pages 351–352, New York, 2009.
+ACM.
+[Mochales Palau and Moens, 2011] Raquel Mochales Palau and Marie Francine Moens. Ar-
+gumentation mining. Artificial Intelligence and Law, 19(1):1–22, 2011.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+[Modgil and Prakken, 2013] Sanjay Modgil and Henry Prakken. A general account of argu-
+mentation with preferences. Artificial Intelligence, 195:361–397, 2013.
+[Moens and Mochales Palau, 2007] Marie-Francine Moens and Raquel Mochales Palau.
+StudyonSentenceRelationsintheAutomaticDetectionofArgumentationinLegalCases.
+In Arno Lodder and Laurens Mommers, editors, Legal Knowledge and Information Sys-
+tems: JURIX 2007, pages 89–98, Amsterdam, 2007. IOS Press.
+[Moens et al., 2007] Marie-Francine Moens, Erik Boiy, Raquel Mochales Palau, and Chris
+Reed. Automatic detection of arguments in legal texts. In Proceedings of the 11th in-
+ternational conference on Artificial intelligence and law, pages 225–230, New York, 2007.
+ACM Press.
+[Nussbaum and Edwards, 2011] Michael Nussbaum and Ordene V. Edwards. Critical ques-
+tions and argument stratagems: A framework for enhancing and analyzing students’
+reasoning practices. Journal of the Learning Sciences, 20(3):443–488, 2011.
+[Ozdem et al., 2013] Yasemin Ozdem, Hamide Ertepinar, Jale Cakiroglu, and Sibel Erdu-
+ran. The nature of pre-service science teachers’ argumentation in inquiry-oriented labo-
+ratory contex. International Journal of Science Education, 35(15):2559–2586, 2013.
+[Peldszus and Stede, 2016] Andreas Peldszus and Manfred Stede. An annotated corpus
+of argumentative microtexts. In Argumentation and Reasoned Action: Proceedings of
+the 1st European Conference on Argumentation, pages 801–815, London, 2016. College
+Publications.
+[Perelman and Olbrechts-Tyteca, 1969] Chaim Perelman and Lucie Olbrechts-Tyteca. The
+New Rhetoric: A treatise on argumentation. University of Notre Dame Press, Notre
+Dame, Ind., 1969.
+[Pollock, 1995] John Pollock. Cognitive Carpentry. MIT Press, Cambridge, Mass., 1995.
+[Prakken et al., 2015] Henry Prakken, Adam Wyner, Trevor Bench-Capon, and Katie
+Atkinson. A formalization of argumentation schemes for legal case-based reasoning in
+ASPIC+. Journal of Logic and Computation, 25(5):1141–1166, oct 2015.
+[Prakken, 2005] Henry Prakken. AI & Law, logic and argument schemes. Argumentation,
+19(3):303–320, 2005.
+[Prakken, 2010] Henry Prakken. An abstract framework for argumentation with structured
+arguments. Argument & Computation, 1(2):93–124, 2010.
+[Rahwan et al., 2007] Iyad Rahwan, Fouad Zablith, and Chris Reed. Laying the foundations
+for a World Wide Argument Web. Artificial Intelligence, 171(10-15):897–921, jul 2007.
+[Rahwan et al., 2011] Iyad Rahwan, Bita Banihashemi, Christopher Reed, Douglas Walton,
+and Sherief Abdallah. Representing and classifying arguments on the semantic web. The
+Knowledge Engineering Review, 26(04):487–511, 2011.
+[Rapanta and Macagno, 2016] Chrysi Rapanta and Fabrizio Macagno. Argumentation
+methods in educational contexts: Introduction to the special issue. International Journal
+of Educational Research, 79:online first, 2016.
+[Rapanta and Walton, 2016] Chrysi Rapanta and Douglas Walton. The use of argument
+maps as an assessment tool in higher education. International Journal of Educational
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+Research, 79:211–221, 2016.
+[Rapanta et al., 2013] Chrysi Rapanta, Merce Garcia-Mila, and Sandra Gilabert. What is
+meant by argumentative competence? An integrative review of methods of analysis and
+assessment in education. Review of Educational Research, 83(4):483–520, 2013.
+[Reed and Walton, 2005] Chris Reed and Douglas Walton. Towards a Formal and Imple-
+mented Model of Argumentation Schemes. In Iyad Rahwan, Pavlos Moraitis, and Chris
+Reed, editors, Agent Communication, Argumentation in Multi-Agent Systems, pages 19–
+30. Springer-Verlag, Berlin/Heidelberg, 2005.
+[Reed et al., 2007] Christopher Reed, Douglas Walton, and Fabrizio Macagno. Argument
+diagramming in logic, law and artificial intelligence. Knowledge Engineering Review,
+22(1):87–109, 2007.
+[Rowe et al., 2006] Glenn Rowe, Fabrizio Macagno, Christopher Reed, and Douglas Walton.
+Araucaria as a tool for diagramming arguments in teaching and studying philosophy.
+Teaching Philosophy, 29(2):111–124, 2006.
+[Rubinelli, 2009] Sara Rubinelli. Ars Topica: The classical technique of constructing argu-
+ments from Aristotle to Cicero, volume 15. Springer, Amsterdam, 2009.
+[Schiappa, 1999] Edward Schiappa. The Beginnings of Rhetorical Theory in Classical
+Greece. Yale University Press, New Haven & London, 1999.
+[Slomkowski, 1997] Paul Slomkowski. Aristotele’s Topics. Brill, Leiden, 1997.
+[Stump, 1982] Eleonore Stump. Topics: their development and absorption into conse-
+quences. In Norman Kretzmann, Anthony Kenny, and Jan Pinborg, editors, Cambridge
+History of Later Medieval Philosophy, pages 273–299. Cambridge University Press, Cam-
+bridge, 1982.
+[Stump, 1989] Eleonore Stump. Dialectic and its place in the development of Medieval logic.
+Cornell University Press, Ithaca and London, 1989.
+[Stump, 2004] Eleonore Stump. Boethius’s "De topicis diﬀerentiis". Cornell University
+Press, Ithaca and London, 2004.
+[Tarello, 1980] Giovanni Tarello. L’interpretazione della legge. Giuﬀrè, Milano, 1980.
+[Tindale, 2010] Christopher Tindale. Reason’s Dark Champions: Constructive Strategies of
+Sophistical Argument. University of South Carolina Press, Columbia, 2010.
+[Toulmin et al., 1984] Stephen Toulmin, Richard Rieke, and Allan Janik. An introduction
+to reasoning. Number Sirsi) i9780024211606. Macmillan Publishing Company, New York,
+1984.
+[Van Eemeren and Grootendorst, 1992] Frans Van Eemeren and Rob Grootendorst. Argu-
+mentation, communication and fallacies. Erlbaum, Hillsdale, NJ, 1992.
+[van Gelder, 2007] Tim van Gelder. The rationale for RationaleTM. Law, Probability and
+Risk, 6(1-4):23–42, oct 2007.
+[Verheij, 2003a] Bart Verheij. Deflog: on the logical interpretation of prima facie justified
+assumptions. Journal of Logic and Computation, 13(3):319–346, 2003.
+[Verheij, 2003b] Bart Verheij. Dialectical argumentation with argumentation schemes. Ar-
+tificial Intelligence and Law, 11(2):167–195, 2003.
+Electronic copy available at: https://ssrn.com/abstract=3092491Argumentation Schemes
+[Walker et al., 2012] Marilyn Walker, Jean Fox Tree, Pranav Anand, Rob Abbott, and
+Joseph King. A Corpus for Research on Deliberation and Debate. In Nicoletta Cal-
+zolari, Khalid Choukri, Thierry Declerck, Mehmet UÄ§ur DoÄ§an, Bente Maegaard,
+Joseph Mariani, Asuncion Moreno Piperidis, Jan Odijk, and Stelios Piperidis, editors,
+Proceedings of the 8th International Conference on Language Resources and Evaluation
+(LREC),, pages 812–817. European Language Resources Association, 2012.
+[Walton and Gordon, 2012] Douglas Walton and Thomas Gordon. The Carneades model of
+argument invention. Pragmatics & Cognition, 20(1):1–26, 2012.
+[Walton and Macagno, 2009] Douglas Walton and Fabrizio Macagno. Reasoning from clas-
+sifications and definitions. Argumentation, 23(1):81–107, 2009.
+[Walton and Macagno, 2015] Douglas Walton and Fabrizio Macagno. A classification sys-
+tem for argumentation schemes. Argument and Computation, 6(3):219–245, 2015.
+[Walton and Sartor, 2013] Douglas Walton and Giovanni Sartor. Teleological Justification
+of Argumentation Schemes. Argumentation, 27(2):111–142, 2013.
+[Walton et al., 2008] Douglas Walton, Christopher Reed, and Fabrizio Macagno. Argumen-
+tation Schemes. Cambridge University Press, New York, 2008.
+[Walton et al., 2016] Douglas Walton, Giovanni Sartor, and Fabrizio Macagno. An argu-
+mentationframeworkforcontestedcasesofstatutoryinterpretation. Artificial Intelligence
+and Law, 24(1):51–91, mar 2016.
+[Walton, 1989] Douglas Walton. Informal logic. Cambridge University Press, New York,
+1989.
+[Walton, 1992] Douglas Walton. Slippery Slope Arguments. Oxford University Press, Ox-
+ford, 1992.
+[Walton, 1995] Douglas Walton. Argumentation Schemes for Presumptive Reasoning. Rout-
+ledge, Mahwah, dec 1995.
+[Walton, 2012] Douglas Walton. Using argumentation schemes for argument extraction: a
+bottom-up method . International Journal of Cognitive Informatics and Natural Intelli-
+gence, 6(3):33–61, 2012.
+[Wei Feng and Hirst, 2011] Vanessa Wei Feng and Graeme Hirst. Classifying arguments by
+scheme. In Proceedings of the 49th Annual Meeting of the Association for Computational
+Linguistics: Human Language Technologies-Volume 1, pages 987–996, Stroudsburg, 2011.
+Association for Computational Linguistics.
+[Westberg, 2002] Daniel Westberg. Right practical reason: Aristotle, action, and prudence
+in Aquinas. Clarendon Press, Oxford, 2002.
+[Wyner and Bench-Capon, 2007] Adam Wyner and Trevor Bench-Capon. Argument
+Schemes for Legal Case-based Reasoning. In Arno Lodder and Laurens Mommers, edi-
+tors, Proceedings of the 2007 Conference on Legal Knowledge and Information Systems:
+JURIX 2007: The Twentieth Annual Conference, pages 139–149, Amsterdam, 2007. IOS
+Press.
+[Wyner et al., 2011] Adam Wyner, Trevor Bench-Capon, and Katie Atkinson. Towards for-
+malising argumentation about legal cases. In ICAIL ’11 Proceedings of the 13th Interna-
+Electronic copy available at: https://ssrn.com/abstract=3092491Macagno, Walton and Reed
+tional Conference on Artificial Intelligence and Law, pages 1–10, New York, 2011. ACM
+Press.
+Received 2 February 2017
+Electronic copy available at: https://ssrn.com/abstract=3092491

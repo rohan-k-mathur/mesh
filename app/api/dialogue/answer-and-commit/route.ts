@@ -10,7 +10,10 @@ import { emitBus } from "@/lib/server/bus";
 /**
  * Create an AIF Argument node from a GROUNDS response.
  * This makes GROUNDS a first-class argument that can be attacked/defended.
- * (Copied from dialogue/move/route.ts for consistency)
+ * 
+ * Enhanced to include:
+ * - ArgumentPremise: Links target claim as a premise of the GROUNDS argument
+ * - ArgumentSupport: Formally records that this argument supports the target claim
  */
 async function createArgumentFromGrounds(payload: {
   deliberationId: string;
@@ -43,10 +46,62 @@ async function createArgumentFromGrounds(payload: {
       }
     });
 
+    // Create ArgumentPremise: The target claim is referenced as a premise
+    // This allows the GROUNDS argument to be attacked on its premise
+    try {
+      await prisma.argumentPremise.create({
+        data: {
+          argumentId: arg.id,
+          claimId: payload.targetClaimId,
+          isImplicit: false,
+          isAxiom: false,
+          groupKey: null,
+        }
+      });
+      console.log("[answer-and-commit] Created ArgumentPremise linking target claim as premise");
+    } catch (premiseError) {
+      console.error("[answer-and-commit] Failed to create ArgumentPremise:", premiseError);
+      // Non-fatal - argument still exists
+    }
+
+    // Create ArgumentSupport: Formally record that this argument supports the target claim
+    // This is used in evidential reasoning and ASPIC+ evaluation
+    try {
+      await prisma.argumentSupport.upsert({
+        where: {
+          arg_support_unique: {
+            claimId: payload.targetClaimId,
+            argumentId: arg.id,
+            mode: "product",
+          }
+        },
+        create: {
+          deliberationId: payload.deliberationId,
+          claimId: payload.targetClaimId,
+          argumentId: arg.id,
+          mode: "product",
+          strength: 0.7, // Default confidence for GROUNDS arguments
+          composed: false,
+          rationale: `GROUNDS response to ${payload.cqId}`,
+          base: 0.7,
+        },
+        update: {
+          strength: 0.7,
+          rationale: `GROUNDS response to ${payload.cqId}`,
+        }
+      });
+      console.log("[answer-and-commit] Created/updated ArgumentSupport");
+    } catch (supportError) {
+      console.error("[answer-and-commit] Failed to create ArgumentSupport:", supportError);
+      // Non-fatal - argument still exists
+    }
+
     console.log("[answer-and-commit] Created argument from GROUNDS:", {
       argId: arg.id,
       cqId: payload.cqId,
-      schemeKey: payload.schemeKey
+      schemeKey: payload.schemeKey,
+      hasPremise: true,
+      hasSupport: true,
     });
 
     return arg.id;

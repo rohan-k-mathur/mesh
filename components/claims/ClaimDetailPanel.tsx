@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { Activity, Link as LinkIcon, Tag, Swords } from "lucide-react";
 import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
 import { AttackCreationModal } from "@/components/aspic/AttackCreationModal";
+import { mutate } from "swr";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -316,8 +317,8 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
           onClose={() => setShowAttackModal(false)}
           onCreated={() => {
             setShowAttackModal(false);
-            // Optionally trigger a refresh of the data
-            window.location.reload(); // Simple refresh for now
+            // Invalidate SWR cache to refetch data
+            mutate((key) => typeof key === 'string' && key.includes('/api/'));
           }}
         />
       )}

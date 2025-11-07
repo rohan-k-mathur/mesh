@@ -84,7 +84,7 @@ async function main() {
     const arguments_count = await prisma.argument.count();
     info(`Found ${arguments_count} arguments`);
 
-    const schemes = await prisma.argumentationScheme.findMany({ take: 5 });
+    const schemes = await prisma.ArgumentScheme.findMany({ take: 5 });
     info(`Found ${schemes.length} argumentation schemes`);
 
     if (schemes.length > 0) {
