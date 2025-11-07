@@ -587,6 +587,7 @@ export function ArgumentCardV2({
                 <ClaimDetailPanel 
                   claimId={conclusion.id}
                   deliberationId={deliberationId}
+                  claimText={conclusion.text}
                   className="mt-2"
                 />
               </div>
@@ -803,6 +804,7 @@ export function ArgumentCardV2({
                         <ClaimDetailPanel 
                           claimId={p.id}
                           deliberationId={deliberationId}
+                          claimText={p.text}
                           className="mt-2"
                         />
                       </div>

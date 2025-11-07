@@ -2,6 +2,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { Activity, Link as LinkIcon, Tag } from "lucide-react";
+import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -9,6 +10,7 @@ type ClaimDetailPanelProps = {
   claimId: string;
   deliberationId: string;
   className?: string;
+  claimText?: string; // Optional: Claim text for contraries manager
 };
 
 /**
@@ -28,7 +30,7 @@ type ClaimDetailPanelProps = {
  * - Critical Question completion percentage
  * - Citations with links
  */
-export function ClaimDetailPanel({ claimId, deliberationId, className = "" }: ClaimDetailPanelProps) {
+export function ClaimDetailPanel({ claimId, deliberationId, className = "", claimText }: ClaimDetailPanelProps) {
   const [expanded, setExpanded] = React.useState(false);
 
   // Fetch CEG data for this specific claim (includes label, confidence, metrics)
@@ -253,6 +255,15 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "" }: Cl
               )}
             </div>
           )}
+
+          {/* Contrary Claims (ASPIC+ Phase D-1) */}
+          <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
+            <ClaimContraryManager
+              deliberationId={deliberationId}
+              claimId={claimId}
+              claimText={claimText || cegNode?.text || ""}
+            />
+          </div>
 
           {/* Citations */}
           {citations.length > 0 && (

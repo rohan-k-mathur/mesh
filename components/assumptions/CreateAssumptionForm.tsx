@@ -15,6 +15,9 @@ interface CreateAssumptionFormProps {
  * Form for creating new assumptions (propositions accepted for argument's sake).
  * Assumptions are submitted with PROPOSED status and must be accepted before use.
  * 
+ * Phase A: ASPIC+ Assumptions (K_a) - Weak premises subject to automatic defeat
+ * Assumptions in ASPIC+ are uncertain premises where undermining attacks always succeed.
+ * 
  * Phase 3.4.4: Assumption Creation Form
  */
 export function CreateAssumptionForm({
@@ -25,6 +28,8 @@ export function CreateAssumptionForm({
   const [content, setContent] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [role, setRole] = React.useState("background");
+  const [weight, setWeight] = React.useState<number>(0.5); // Phase A: Assumption weight (0-1)
+  const [confidence, setConfidence] = React.useState<number>(0.5); // Phase A: Confidence (0-1)
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -49,6 +54,8 @@ export function CreateAssumptionForm({
           description: description.trim() || undefined,
           role: role,
           status: "PROPOSED", // New assumptions start as proposed
+          weight, // Phase A: Include weight
+          confidence, // Phase A: Include confidence
         }),
       });
 
@@ -63,6 +70,8 @@ export function CreateAssumptionForm({
       setContent("");
       setDescription("");
       setRole("background");
+      setWeight(0.5);
+      setConfidence(0.5);
       
       onCreated?.(assumption);
     } catch (err: any) {
@@ -77,6 +86,8 @@ export function CreateAssumptionForm({
     setContent("");
     setDescription("");
     setRole("background");
+    setWeight(0.5);
+    setConfidence(0.5);
     setError(null);
     onCancel?.();
   };
@@ -156,6 +167,48 @@ export function CreateAssumptionForm({
           />
         </div>
 
+        {/* Phase A: Weight Slider */}
+        <div>
+          <label htmlFor="assumption-weight" className="block text-xs font-medium text-slate-700 mb-1">
+            Weight: {weight.toFixed(2)}
+          </label>
+          <input
+            id="assumption-weight"
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={weight}
+            onChange={(e) => setWeight(parseFloat(e.target.value))}
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            disabled={loading}
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            Relative importance of this assumption (0 = weak, 1 = strong)
+          </p>
+        </div>
+
+        {/* Phase A: Confidence Slider */}
+        <div>
+          <label htmlFor="assumption-confidence" className="block text-xs font-medium text-slate-700 mb-1">
+            Confidence: {confidence.toFixed(2)}
+          </label>
+          <input
+            id="assumption-confidence"
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={confidence}
+            onChange={(e) => setConfidence(parseFloat(e.target.value))}
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            disabled={loading}
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            How certain are you about this assumption? (0 = uncertain, 1 = very certain)
+          </p>
+        </div>
+
         {/* Error Message */}
         {error && (
           <div className="p-3 text-xs text-red-700 bg-red-50 rounded-md border border-red-200">
@@ -186,10 +239,15 @@ export function CreateAssumptionForm({
           )}
         </div>
 
-        {/* Info Note */}
-        <div className="text-[10px] text-slate-500 bg-blue-50 p-2 rounded border border-blue-200">
-          <strong>Note:</strong> New assumptions start with PROPOSED status.
-          They must be accepted by participants before being used in arguments.
+        {/* Info Note - Phase A: ASPIC+ Context */}
+        <div className="text-[10px] text-slate-700 bg-amber-50 p-3 rounded border border-amber-200 space-y-1.5">
+          <div>
+            <strong>Status Flow:</strong> New assumptions start as PROPOSED and must be accepted before use in arguments.
+          </div>
+          <div className="pt-1 border-t border-amber-200">
+            <strong>ASPIC+ Integration (K_a):</strong> Accepted assumptions become part of the knowledge base as "weak premises."
+            Unlike ordinary premises or axioms, undermining attacks against assumptions always succeed, reflecting their uncertain nature.
+          </div>
         </div>
       </div>
     </form>

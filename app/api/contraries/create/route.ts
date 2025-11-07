@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/serverutils";
 
 /**
  * POST /api/contraries/create
@@ -12,8 +11,8 @@ import { authOptions } from "@/lib/auth";
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = await getCurrentUserId().catch(() => null);
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -93,26 +92,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validation 5: Well-formedness check - cannot target axioms
-    // (Future: check if contraryId is an axiom when Phase B implemented)
+    // Validation 5: Well-formedness check - cannot target axioms (Phase B)
     const contraryPremises = await prisma.argumentPremise.findMany({
       where: {
         claimId: contraryId,
       },
       select: {
-        id: true,
-        // isAxiom field will be added in Phase B
+        isAxiom: true,
       },
     });
 
-    // TODO Phase B: Uncomment when isAxiom field exists
-    // const isAxiom = contraryPremises.some(p => p.isAxiom);
-    // if (isAxiom) {
-    //   return NextResponse.json(
-    //     { error: "Cannot create contrary to an axiom" },
-    //     { status: 400 }
-    //   );
-    // }
+    // Phase B: Axioms cannot be targeted by contraries (well-formedness)
+    const isAxiom = contraryPremises.some((p) => p.isAxiom);
+    if (isAxiom) {
+      return NextResponse.json(
+        {
+          error: "Cannot create contrary to an axiom",
+          details:
+            "Well-formedness violation: Contraries cannot target axioms (K_n). The target claim is used as an axiom in one or more arguments.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Create the contrary relationship
     const contrary = await prisma.claimContrary.create({
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
         claimId,
         contraryId,
         isSymmetric,
-        createdById: BigInt(session.user.id),
+        createdById: BigInt(userId),
         status: "ACTIVE",
         reason,
       },

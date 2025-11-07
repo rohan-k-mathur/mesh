@@ -144,12 +144,26 @@ export function AssumptionCard({
             {displayText}
           </div>
 
-          {/* Metadata */}
+          {/* Phase A: ASPIC+ Metadata */}
           {(weight !== null || confidence !== null) && (
-            <div className="flex items-center gap-3 mt-2 text-xs text-slate-600">
-              {weight !== null && weight !== undefined && <span>Weight: {(weight * 100).toFixed(0)}%</span>}
+            <div className="flex items-center gap-3 mt-2">
+              {weight !== null && weight !== undefined && (
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-50 border border-indigo-200">
+                  <span className="text-[10px] font-medium text-indigo-700">WEIGHT</span>
+                  <span className="text-xs font-semibold text-indigo-900">{(weight * 100).toFixed(0)}%</span>
+                </div>
+              )}
               {confidence !== null && confidence !== undefined && (
-                <span>Confidence: {(confidence * 100).toFixed(0)}%</span>
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-50 border border-purple-200">
+                  <span className="text-[10px] font-medium text-purple-700">CONFIDENCE</span>
+                  <span className="text-xs font-semibold text-purple-900">{(confidence * 100).toFixed(0)}%</span>
+                </div>
+              )}
+              {status === "ACCEPTED" && (
+                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-900">K_a</span>
+                  <span className="text-[10px] text-amber-700">Weak Premise</span>
+                </div>
               )}
             </div>
           )}

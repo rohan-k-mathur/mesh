@@ -256,9 +256,9 @@ export default function CriticalQuestionsV3({
     globalMutate(cqsKey, { ...oldData, schemes: updatedSchemes }, false);
 
     try {
-      // NEW: Create WHY DialogueMove when marking as unsatisfied (Phase 4)
+      // Create WHY DialogueMove when marking as unsatisfied (Option A: Generic dialogue move)
       if (!satisfied && deliberationId) {
-        const moveRes = await fetch("/api/cqs/dialogue-move", {
+        const moveRes = await fetch("/api/dialogue/move", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -267,14 +267,16 @@ export default function CriticalQuestionsV3({
             targetId,
             kind: "WHY",
             payload: {
-              cqId: cqKey,
+              cqKey,
+              cqText: `Critical question: ${cqKey}`,
               locusPath: "0",
             },
           }),
         });
         
         if (!moveRes.ok) {
-          console.warn("[CriticalQuestionsV3] Failed to create WHY move:", moveRes.status);
+          const errorData = await moveRes.json().catch(() => ({}));
+          console.warn("[CriticalQuestionsV3] Failed to create WHY move:", moveRes.status, errorData);
           // Continue anyway to update CQStatus
         }
       }
@@ -326,9 +328,9 @@ export default function CriticalQuestionsV3({
     globalMutate(cqsKey, { ...oldData, schemes: updatedSchemes }, false);
 
     try {
-      // NEW: Create GROUNDS DialogueMove first (Phase 4)
+      // Create GROUNDS DialogueMove first (Option A: Generic dialogue move)
       if (deliberationId) {
-        const moveRes = await fetch("/api/cqs/dialogue-move", {
+        const moveRes = await fetch("/api/dialogue/move", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -337,7 +339,7 @@ export default function CriticalQuestionsV3({
             targetId,
             kind: "GROUNDS",
             payload: {
-              cqId: cqKey,
+              cqKey,
               brief: grounds,
               locusPath: "0",
             },
@@ -345,7 +347,8 @@ export default function CriticalQuestionsV3({
         });
         
         if (!moveRes.ok) {
-          console.warn("[CriticalQuestionsV3] Failed to create GROUNDS move:", moveRes.status);
+          const errorData = await moveRes.json().catch(() => ({}));
+          console.warn("[CriticalQuestionsV3] Failed to create GROUNDS move:", moveRes.status, errorData);
           // Continue anyway to update CQStatus
         }
       }

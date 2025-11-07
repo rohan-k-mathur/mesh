@@ -2419,6 +2419,12 @@ model ArgumentPremise {
   argumentId String
   claimId    String
   isImplicit Boolean  @default(false)
+  
+  // ASPIC+ Phase B: Axioms Designation
+  // Marks premise as axiom (K_n) vs ordinary premise (K_p)
+  // Axioms cannot be undermined (attack restriction)
+  isAxiom    Boolean  @default(false)
+  
   argument   Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
   groupKey   String?
   claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)

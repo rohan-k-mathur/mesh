@@ -252,12 +252,20 @@ export async function GET(req: NextRequest) {
       for (const premise of arg.premises) {
         const premiseNodeId = `I:${premise.claim.id}`;
         if (!nodeIds.has(premiseNodeId)) {
+          // Phase B: Tag I-nodes with role (axiom vs premise) for KB stratification
+          const premiseRole = premise.isAxiom ? 'axiom' : 'premise';
+          
           nodes.push({
             id: premiseNodeId,
             nodeType: "I",
             content: premise.claim.text,
             claimText: premise.claim.text,
             debateId: deliberationId,
+            // Phase B: Add metadata for ASPIC+ KB classification
+            metadata: {
+              role: premiseRole, // 'axiom' (K_n) or 'premise' (K_p)
+              isAxiom: premise.isAxiom,
+            },
           });
           nodeIds.add(premiseNodeId);
         }
@@ -466,6 +474,20 @@ export async function GET(req: NextRequest) {
     // Step 4: Translate AIF → ASPIC+ theory (with explicit contraries)
     const theory = aifToASPIC(aifGraph, explicitContraries as any);
 
+    // Step 4.5: Validate rationality postulates (Phase B)
+    const { validateAxiomConsistency, validateWellFormedness } = await import(
+      "@/lib/aspic/validation"
+    );
+    const axiomCheck = validateAxiomConsistency(theory);
+    const wellFormednessCheck = validateWellFormedness(theory);
+
+    if (!axiomCheck.valid || !wellFormednessCheck.valid) {
+      console.warn("[ASPIC API] Rationality violations detected:", {
+        axioms: axiomCheck,
+        wellFormedness: wellFormednessCheck,
+      });
+    }
+
     // Step 5: Compute ASPIC+ semantics
     const semantics = computeAspicSemantics(theory);
 
@@ -536,13 +558,16 @@ export async function GET(req: NextRequest) {
         justificationStatus: Object.fromEntries(semantics.justificationStatus),
       },
       rationality: {
-        wellFormed: true, // TODO: Implement rationality checks
-        violations: [],
+        wellFormed: axiomCheck.valid && wellFormednessCheck.valid,
+        violations: [
+          ...(axiomCheck.errors || []),
+          ...(wellFormednessCheck.errors || []),
+        ],
         postulates: {
-          subArgumentClosure: true,
-          strictClosure: true,
-          directConsistency: true,
-          indirectConsistency: true,
+          axiomConsistency: axiomCheck.valid,
+          wellFormedness: wellFormednessCheck.valid,
+          subArgumentClosure: true, // Phase C: Implement with strict rules
+          transpositionClosure: true, // Phase C: Implement with strict rules
         },
       },
     };

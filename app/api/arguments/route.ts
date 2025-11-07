@@ -67,7 +67,7 @@ async function validateSlotsAgainstScheme(params: {
 export async function POST(req: NextRequest) {
   const b = await req.json().catch(()=> ({}));
   
-  const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text } = b ?? {};
+  const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text, premisesAreAxioms } = b ?? {};
   const user = await getUserFromCookies();
   if (!user) return null;
 
@@ -126,10 +126,23 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
       });
     }
     
+   // Phase B: Create ArgumentPremise records with optional axiom designation
    const premData =
       Array.isArray(premises) && premises.length
-        ? premises.map((p:any) => ({ argumentId: a.id, claimId: p.claimId, groupKey: p.groupKey ?? null, isImplicit:false }))
-        : (premiseClaimIds ?? []).map((cid:string) => ({ argumentId: a.id, claimId: cid, groupKey: null, isImplicit:false }));
+        ? premises.map((p:any) => ({ 
+            argumentId: a.id, 
+            claimId: p.claimId, 
+            groupKey: p.groupKey ?? null, 
+            isImplicit: false,
+            isAxiom: premisesAreAxioms ?? false  // Phase B: Mark as axiom if checkbox checked
+          }))
+        : (premiseClaimIds ?? []).map((cid:string) => ({ 
+            argumentId: a.id, 
+            claimId: cid, 
+            groupKey: null, 
+            isImplicit: false,
+            isAxiom: premisesAreAxioms ?? false  // Phase B: Mark as axiom if checkbox checked
+          }));
     await tx.argumentPremise.createMany({ data: premData, skipDuplicates:true });
     
     // NEW: Create ArgumentSchemeInstance if scheme is provided

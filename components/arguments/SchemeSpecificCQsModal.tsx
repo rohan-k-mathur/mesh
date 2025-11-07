@@ -143,9 +143,9 @@ export function SchemeSpecificCQsModal({
 
   const handleAskCQ = async (cqKey: string) => {
     try {
-      // Phase 5: Create WHY DialogueMove before updating CQStatus
-      if (deliberationId) {
-        const moveRes = await fetch("/api/cqs/dialogue-move", {
+      // Create WHY DialogueMove before updating CQStatus (Option A: Generic dialogue move)
+      if (deliberationId && authorId) {
+        const moveRes = await fetch("/api/dialogue/move", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -157,7 +157,8 @@ export function SchemeSpecificCQsModal({
           }),
         });
         if (!moveRes.ok) {
-          console.warn("[SchemeSpecificCQsModal] Failed to create WHY move:", moveRes.status);
+          const errorData = await moveRes.json().catch(() => ({}));
+          console.warn("[SchemeSpecificCQsModal] Failed to create WHY move:", moveRes.status, errorData);
         }
       }
 
@@ -188,8 +189,8 @@ export function SchemeSpecificCQsModal({
         }
 
         // Phase 5: Create GROUNDS DialogueMove before CA
-        if (deliberationId) {
-          const moveRes = await fetch("/api/cqs/dialogue-move", {
+        if (deliberationId && authorId) {
+          const moveRes = await fetch("/api/dialogue/move", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -201,7 +202,8 @@ export function SchemeSpecificCQsModal({
             }),
           });
           if (!moveRes.ok) {
-            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status);
+            const errorData = await moveRes.json().catch(() => ({}));
+            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status, errorData);
           }
         }
 
@@ -233,8 +235,8 @@ export function SchemeSpecificCQsModal({
         }
 
         // Phase 5: Create GROUNDS DialogueMove before CA
-        if (deliberationId) {
-          const moveRes = await fetch("/api/cqs/dialogue-move", {
+        if (deliberationId && authorId) {
+          const moveRes = await fetch("/api/dialogue/move", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -246,7 +248,8 @@ export function SchemeSpecificCQsModal({
             }),
           });
           if (!moveRes.ok) {
-            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status);
+            const errorData = await moveRes.json().catch(() => ({}));
+            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status, errorData);
           }
         }
 
@@ -298,8 +301,8 @@ export function SchemeSpecificCQsModal({
         }
 
         // Phase 5: Create GROUNDS DialogueMove before CA
-        if (deliberationId) {
-          const moveRes = await fetch("/api/cqs/dialogue-move", {
+        if (deliberationId && authorId) {
+          const moveRes = await fetch("/api/dialogue/move", {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
@@ -311,7 +314,8 @@ export function SchemeSpecificCQsModal({
             }),
           });
           if (!moveRes.ok) {
-            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status);
+            const errorData = await moveRes.json().catch(() => ({}));
+            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status, errorData);
           }
         }
 

@@ -28,6 +28,9 @@ interface AssumptionData {
  * Displays all active (accepted) assumptions for a deliberation.
  * Fetches from /api/deliberations/[id]/assumptions/active endpoint.
  * 
+ * Phase A: ASPIC+ Assumptions (K_a) - Shows accepted assumptions that form
+ * the weak premise knowledge base. Undermining attacks against these always succeed.
+ * 
  * Phase 3.4.2: Active Assumptions Panel
  */
 export function ActiveAssumptionsPanel({
@@ -129,6 +132,23 @@ export function ActiveAssumptionsPanel({
 
   return (
     <div className="space-y-4">
+      {/* Phase A: ASPIC+ Context Banner */}
+      <div className="p-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
+        <div className="flex items-start gap-2">
+          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center mt-0.5">
+            <span className="text-[10px] font-bold text-amber-900">K_a</span>
+          </div>
+          <div className="flex-1 text-xs text-amber-900">
+            <strong>ASPIC+ Assumptions (Weak Premises)</strong>
+            <p className="text-amber-700 mt-1 leading-relaxed">
+              These assumptions form part of the knowledge base as uncertain premises.
+              In ASPIC+ semantics, undermining attacks against assumptions <em>always succeed</em>,
+              reflecting their tentative nature compared to ordinary premises (K_p) or axioms (K_n).
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Header with Stats */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200">
         <div>

@@ -167,11 +167,22 @@ export function aifToASPIC(
     }
   }
 
-  // KB premises: I-nodes with no incoming edges
+  // Phase B: KB premises classification - separate axioms (K_n) from ordinary premises (K_p)
+  // I-nodes with no incoming edges are initial premises
   for (const n of graph.nodes) {
     if (n.nodeType !== 'I') continue;
     const incoming = incomingByTarget.get(n.id) ?? 0;
-    if (incoming === 0) premises.add((n as any).content ?? (n as any).text ?? n.id);
+    if (incoming === 0) {
+      const content = (n as any).content ?? (n as any).text ?? n.id;
+      const metadata = (n as any).metadata ?? {};
+      const role = metadata.role ?? 'premise'; // default to ordinary premise
+      
+      if (role === 'axiom' || metadata.isAxiom === true) {
+        axioms.add(content);
+      } else {
+        premises.add(content);
+      }
+    }
   }
 
   // Assumptions: I-nodes linked via presumption edges to RA-nodes

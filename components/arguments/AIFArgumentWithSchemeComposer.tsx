@@ -98,6 +98,9 @@ export function AIFArgumentWithSchemeComposer({
   >([]);
   const [err, setErr] = React.useState<string | null>(null);
   const [pendingCitations, setPendingCitations] = React.useState<PendingCitation[]>([]);
+  
+  // Phase B: Axioms designation - mark all premises as axioms (indisputable)
+  const [premisesAreAxioms, setPremisesAreAxioms] = React.useState(false);
 
   // NEW: drafts for inline creation
   const [conclusionDraft, setConclusionDraft] = React.useState(
@@ -354,6 +357,8 @@ export function AIFArgumentWithSchemeComposer({
         premiseClaimIds,
         schemeId: selected?.id ?? null,
         implicitWarrant: notes ? { text: notes } : null,
+        // Phase B: Pass axiom designation to API
+        premisesAreAxioms,
         // harmless extra; server will just ignore if not using it yet
         ...(slots ? { slots } : {}),
       });
@@ -652,6 +657,27 @@ export function AIFArgumentWithSchemeComposer({
         {/* Conditional rendering: Show structured major/minor inputs when scheme has formalStructure */}
         {selected && selected.formalStructure && selected.formalStructure.majorPremise && selected.formalStructure.minorPremise ? (
           <div className="mt-2 space-y-4">
+            {/* Phase B: Axiom designation checkbox */}
+            <div className="p-3 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={premisesAreAxioms}
+                  onChange={(e) => setPremisesAreAxioms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500"
+                />
+                <div className="flex-1">
+                  <span className="text-sm font-semibold text-amber-900">
+                    Mark premises as axioms (indisputable)
+                  </span>
+                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                    Axioms are foundational premises that cannot be undermined and must be consistent with other axioms. 
+                    Use for claims that are beyond dispute in this deliberation.
+                  </p>
+                </div>
+              </label>
+            </div>
+            
             <div className="text-sm font-medium text-indigo-900 flex items-center gap-2">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -783,6 +809,27 @@ export function AIFArgumentWithSchemeComposer({
         ) : (
           /* Fallback: Freeform premises (original behavior) */
           <div className="mt-2">
+            {/* Phase B: Axiom designation checkbox */}
+            <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={premisesAreAxioms}
+                  onChange={(e) => setPremisesAreAxioms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500"
+                />
+                <div className="flex-1">
+                  <span className="text-sm font-semibold text-amber-900">
+                    Mark premises as axioms (indisputable)
+                  </span>
+                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                    Axioms are foundational premises that cannot be undermined and must be consistent with other axioms. 
+                    Use for claims that are beyond dispute in this deliberation (e.g., established facts, definitions, or shared assumptions).
+                  </p>
+                </div>
+              </label>
+            </div>
+            
             <div className="flex items-center justify-start gap-3">
               <span className="text-sm text-gray-800">Premises</span>
               <button
