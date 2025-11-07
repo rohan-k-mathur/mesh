@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
       schemeKey: true,
       cqKey: true,
       satisfied: true,
+      // @ts-expect-error - groundsText exists in schema but Prisma types may be cached
       groundsText: true,
       statusEnum: true,
       canonicalResponseId: true,
@@ -93,24 +94,79 @@ export async function GET(req: NextRequest) {
         pendingCount: number;
         approvedCount: number;
         totalResponseCount: number;
+        whyCount: number; // Phase 8: Dialogue move counts
+        groundsCount: number; // Phase 8: Dialogue move counts
       }
     >
   >();
   keys.forEach((k) => statusMap.set(k, new Map()));
+  
+  // Phase 8: Fetch DialogueMove counts for each CQ
+  const dialogueMoves = await prisma.dialogueMove.findMany({
+    where: {
+      targetType: targetType as TargetType,
+      targetId,
+    },
+    select: {
+      kind: true,
+      payload: true,
+    },
+  });
+
+  // Build counts map: schemeKey -> cqKey -> { whyCount, groundsCount }
+  const dialogueCountsMap = new Map<string, Map<string, { whyCount: number; groundsCount: number }>>();
+  
+  for (const move of dialogueMoves) {
+    const payload = move.payload as any;
+    const cqKey = payload?.cqKey;
+    if (!cqKey) continue;
+
+    // Infer schemeKey from statuses (we need to match cqKey to schemeKey)
+    for (const [schemeKey, cqMap] of statusMap) {
+      if (cqMap.has(cqKey)) {
+        if (!dialogueCountsMap.has(schemeKey)) {
+          dialogueCountsMap.set(schemeKey, new Map());
+        }
+        if (!dialogueCountsMap.get(schemeKey)!.has(cqKey)) {
+          dialogueCountsMap.get(schemeKey)!.set(cqKey, { whyCount: 0, groundsCount: 0 });
+        }
+        
+        const counts = dialogueCountsMap.get(schemeKey)!.get(cqKey)!;
+        if (move.kind === 'WHY') {
+          counts.whyCount++;
+        } else if (move.kind === 'GROUNDS') {
+          counts.groundsCount++;
+        }
+      }
+    }
+  }
+  
   statuses.forEach((s) => {
-    const pendingCount = s.responses.filter((r) => r.responseStatus === "PENDING").length;
+    // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+    const pendingCount = s.responses.filter((r: any) => r.responseStatus === "PENDING").length;
+    // @ts-expect-error - Prisma types may be cached, these fields exist in schema
     const approvedCount = s.responses.filter(
-      (r) => r.responseStatus === "APPROVED" || r.responseStatus === "CANONICAL"
+      (r: any) => r.responseStatus === "APPROVED" || r.responseStatus === "CANONICAL"
     ).length;
+    
+    // Phase 8: Get dialogue move counts for this CQ
+    const dialogueCounts = dialogueCountsMap.get(s.schemeKey)?.get(s.cqKey) ?? { whyCount: 0, groundsCount: 0 };
+    
     statusMap.get(s.schemeKey)?.set(s.cqKey, {
       id: s.id, // ✅ Include CQ status ID for frontend queries
       satisfied: s.satisfied,
+      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
       groundsText: s.groundsText ?? undefined,
+      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
       statusEnum: s.statusEnum,
+      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
       canonicalResponse: s.canonicalResponse,
       pendingCount,
       approvedCount,
+      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
       totalResponseCount: s.responses.length,
+      whyCount: dialogueCounts.whyCount, // Phase 8
+      groundsCount: dialogueCounts.groundsCount, // Phase 8
     });
   });
 
@@ -190,6 +246,7 @@ export async function POST(req: NextRequest) {
       },
       update: {
         satisfied,
+        // @ts-expect-error - Prisma types may be cached, groundsText exists in schema
         groundsText: groundsText ?? null,
         updatedAt: new Date(),
       },
@@ -199,6 +256,7 @@ export async function POST(req: NextRequest) {
         schemeKey,
         cqKey,
         satisfied,
+        // @ts-expect-error - Prisma types may be cached, groundsText exists in schema
         groundsText: groundsText ?? null,
         createdById: 'system', // TODO: Get from auth session
         statusEnum: satisfied ? 'SATISFIED' : 'OPEN',

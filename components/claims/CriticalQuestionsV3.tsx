@@ -66,6 +66,8 @@ type CQ = {
   satisfied: boolean;
   groundsText?: string;
   suggestion?: Suggestion;
+  whyCount?: number; // Phase 8: Dialogue move counts
+  groundsCount?: number; // Phase 8: Dialogue move counts
 };
 
 type Scheme = {
@@ -232,7 +234,6 @@ export default function CriticalQuestionsV3({
     cqKey: string,
     satisfied: boolean
   ) => {
-    const url = `/api/cqs`;
     const oldData = cqData;
 
     // Optimistic update
@@ -255,7 +256,31 @@ export default function CriticalQuestionsV3({
     globalMutate(cqsKey, { ...oldData, schemes: updatedSchemes }, false);
 
     try {
-      const r = await fetch(url, {
+      // NEW: Create WHY DialogueMove when marking as unsatisfied (Phase 4)
+      if (!satisfied && deliberationId) {
+        const moveRes = await fetch("/api/cqs/dialogue-move", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType,
+            targetId,
+            kind: "WHY",
+            payload: {
+              cqId: cqKey,
+              locusPath: "0",
+            },
+          }),
+        });
+        
+        if (!moveRes.ok) {
+          console.warn("[CriticalQuestionsV3] Failed to create WHY move:", moveRes.status);
+          // Continue anyway to update CQStatus
+        }
+      }
+
+      // Update CQStatus
+      const r = await fetch("/api/cqs", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -265,11 +290,14 @@ export default function CriticalQuestionsV3({
           cqKey,
           satisfied,
           groundsText: satisfied ? groundsInput[cqKey] || "" : undefined,
+          deliberationId, // Include for potential move creation
         }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      
       await globalMutate(cqsKey);
       window.dispatchEvent(new CustomEvent("cqs:changed"));
+      window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
     } catch (err) {
       console.error("[CriticalQuestionsV3] toggleCQ error:", err);
       globalMutate(cqsKey, oldData, false);
@@ -283,7 +311,6 @@ export default function CriticalQuestionsV3({
   ) => {
     if (!grounds.trim()) return;
 
-    const url = `/api/cqs`;
     const oldData = cqData;
 
     const updatedSchemes = oldData?.schemes.map((s) => {
@@ -299,7 +326,32 @@ export default function CriticalQuestionsV3({
     globalMutate(cqsKey, { ...oldData, schemes: updatedSchemes }, false);
 
     try {
-      const r = await fetch(url, {
+      // NEW: Create GROUNDS DialogueMove first (Phase 4)
+      if (deliberationId) {
+        const moveRes = await fetch("/api/cqs/dialogue-move", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType,
+            targetId,
+            kind: "GROUNDS",
+            payload: {
+              cqId: cqKey,
+              brief: grounds,
+              locusPath: "0",
+            },
+          }),
+        });
+        
+        if (!moveRes.ok) {
+          console.warn("[CriticalQuestionsV3] Failed to create GROUNDS move:", moveRes.status);
+          // Continue anyway to update CQStatus
+        }
+      }
+
+      // Then update CQStatus
+      const r = await fetch("/api/cqs", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -309,11 +361,15 @@ export default function CriticalQuestionsV3({
           cqKey,
           satisfied: true,
           groundsText: grounds,
+          deliberationId, // Include for potential move creation
         }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      
       await globalMutate(cqsKey);
       window.dispatchEvent(new CustomEvent("cqs:changed"));
+      window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
+      
       setGroundsInput((prev) => ({ ...prev, [cqKey]: "" }));
       setExpandedCQ(null);
     } catch (err) {
@@ -592,6 +648,24 @@ export default function CriticalQuestionsV3({
                               {attached.length} counter-claim
                               {attached.length !== 1 ? "s" : ""} attached
                             </span>
+                          </div>
+                        )}
+                        {/* Phase 8: Dialogue Move count badges */}
+                        {deliberationId && ((cq.whyCount ?? 0) > 0 || (cq.groundsCount ?? 0) > 0) && (
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <MessageCircle className="w-4 h-4 text-purple-500" />
+                            <div className="flex gap-1.5">
+                              {(cq.whyCount ?? 0) > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+                                  {cq.whyCount} WHY
+                                </span>
+                              )}
+                              {(cq.groundsCount ?? 0) > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                                  {cq.groundsCount} GROUNDS
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

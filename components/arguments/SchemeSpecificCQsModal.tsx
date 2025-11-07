@@ -22,6 +22,7 @@ import {
   Sparkles,
   Zap,
   MessageSquare,
+  MessageCircle,
   Activity,
   Send,
 } from "lucide-react";
@@ -43,6 +44,8 @@ type CQItem = {
   sourceSchemeId?: string; // Phase 6: Parent scheme ID
   sourceSchemeName?: string; // Phase 6: Parent scheme name
   sourceSchemeKey?: string; // Phase 6: Parent scheme key
+  whyCount?: number; // Phase 8: WHY dialogue move count
+  groundsCount?: number; // Phase 8: GROUNDS dialogue move count
 };
 
 type AifMeta = {
@@ -140,10 +143,31 @@ export function SchemeSpecificCQsModal({
 
   const handleAskCQ = async (cqKey: string) => {
     try {
+      // Phase 5: Create WHY DialogueMove before updating CQStatus
+      if (deliberationId) {
+        const moveRes = await fetch("/api/cqs/dialogue-move", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType: "argument",
+            targetId: argumentId,
+            kind: "WHY",
+            payload: { cqKey, locusPath: "0" },
+          }),
+        });
+        if (!moveRes.ok) {
+          console.warn("[SchemeSpecificCQsModal] Failed to create WHY move:", moveRes.status);
+        }
+      }
+
       await askCQ(argumentId, cqKey, { authorId, deliberationId });
       setLocalCqs((prev) =>
         prev.map((c) => (c.cqKey === cqKey ? { ...c, status: "open" } : c))
       );
+
+      // Phase 5: Fire dialogue moves refresh event
+      window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } } as any));
     } catch (err) {
       console.error("[SchemeSpecificCQsModal] Failed to ask CQ:", err);
     }
@@ -161,6 +185,24 @@ export function SchemeSpecificCQsModal({
         if (!claim) {
           alert("Please select a counter-claim");
           return;
+        }
+
+        // Phase 5: Create GROUNDS DialogueMove before CA
+        if (deliberationId) {
+          const moveRes = await fetch("/api/cqs/dialogue-move", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              deliberationId,
+              targetType: "argument",
+              targetId: argumentId,
+              kind: "GROUNDS",
+              payload: { cqKey, brief: `Rebut: ${claim.text}`, locusPath: "0" },
+            }),
+          });
+          if (!moveRes.ok) {
+            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status);
+          }
         }
 
         await fetch("/api/ca", {
@@ -188,6 +230,24 @@ export function SchemeSpecificCQsModal({
         if (!text) {
           alert("Please enter an exception or rule-defeater");
           return;
+        }
+
+        // Phase 5: Create GROUNDS DialogueMove before CA
+        if (deliberationId) {
+          const moveRes = await fetch("/api/cqs/dialogue-move", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              deliberationId,
+              targetType: "argument",
+              targetId: argumentId,
+              kind: "GROUNDS",
+              payload: { cqKey, brief: text, locusPath: "0" },
+            }),
+          });
+          if (!moveRes.ok) {
+            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status);
+          }
         }
 
         // Create exception claim
@@ -237,6 +297,24 @@ export function SchemeSpecificCQsModal({
           return;
         }
 
+        // Phase 5: Create GROUNDS DialogueMove before CA
+        if (deliberationId) {
+          const moveRes = await fetch("/api/cqs/dialogue-move", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              deliberationId,
+              targetType: "argument",
+              targetId: argumentId,
+              kind: "GROUNDS",
+              payload: { cqKey, brief: `Undermine: ${claim.text}`, locusPath: "0" },
+            }),
+          });
+          if (!moveRes.ok) {
+            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status);
+          }
+        }
+
         await fetch("/api/ca", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -263,6 +341,7 @@ export function SchemeSpecificCQsModal({
       // Success: fire events and refresh
       window.dispatchEvent(new CustomEvent("claims:changed", { detail: { deliberationId } } as any));
       window.dispatchEvent(new CustomEvent("arguments:changed", { detail: { deliberationId } } as any));
+      window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } } as any));
       
       setExpandedCQ(null);
       onRefresh();
@@ -327,6 +406,15 @@ export function SchemeSpecificCQsModal({
                 <div className="text-sm font-semibold text-slate-900">
                   {meta.scheme.name}
                 </div>
+                {/* Phase 5: Dialogue move tracking indicator */}
+                {deliberationId && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <MessageSquare className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium text-purple-700">
+                      Dialogue moves tracked
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="text-right">
                 <div className="text-xs text-slate-500 mb-1">Progress</div>
@@ -488,6 +576,25 @@ export function SchemeSpecificCQsModal({
                         >
                           {cq.text}
                         </p>
+
+                        {/* Phase 8: Dialogue Move count badges */}
+                        {((cq.whyCount ?? 0) > 0 || (cq.groundsCount ?? 0) > 0) && (
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <MessageCircle className="w-4 h-4 text-purple-500" />
+                            <div className="flex gap-1.5">
+                              {(cq.whyCount ?? 0) > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+                                  {cq.whyCount} WHY
+                                </span>
+                              )}
+                              {(cq.groundsCount ?? 0) > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                                  {cq.groundsCount} GROUNDS
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div

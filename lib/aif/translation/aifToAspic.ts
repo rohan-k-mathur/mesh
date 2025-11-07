@@ -171,7 +171,7 @@ export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
     (type === 'strict' ? strictRules : defeasibleRules).push(rule);
   }
 
-  // CA: contraries
+  // CA: contraries and exceptions (Phase 7: Enhanced with ASPIC+ metadata)
   for (const ca of graph.nodes.filter(n => n.nodeType === 'CA')) {
     const attackerE = graph.edges.find(e => e.targetId === ca.id && e.edgeType === 'conflicting');
     const attackedE = graph.edges.find(e => e.sourceId === ca.id && e.edgeType === 'conflicted');
@@ -187,8 +187,22 @@ export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
       ? ((attackedNode as any).content ?? (attackedNode as any).text ?? attackedNode.id)
       : attackedNode.id;
 
-    if (!contraries.has(attackerSymbol)) contraries.set(attackerSymbol, new Set());
-    contraries.get(attackerSymbol)!.add(attackedSymbol);
+    // Phase 7: Read ASPIC+ attack type from CA-node metadata (if available)
+    const caMetadata = (ca as any).metadata ?? {};
+    const aspicAttackType = (ca as any).aspicAttackType ?? caMetadata.aspicAttackType ?? null;
+
+    // Phase 7: Classify attack based on type
+    if (aspicAttackType === 'undercutting') {
+      // UNDERCUTS attacks are exceptions (attack the inference, not the conclusion)
+      // In ASPIC+, exceptions are represented in assumptions rather than contraries
+      // For now, we add to assumptions to mark them as defeasible inference blockers
+      assumptions.add(attackerSymbol);
+    } else {
+      // UNDERMINES and REBUTS are contraries (attack premises or conclusions)
+      // These represent contradictory propositions in ASPIC+
+      if (!contraries.has(attackerSymbol)) contraries.set(attackerSymbol, new Set());
+      contraries.get(attackerSymbol)!.add(attackedSymbol);
+    }
   }
 
   // PA: preferences (preferred over dispreferred)

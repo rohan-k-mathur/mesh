@@ -91,6 +91,39 @@ export function AttackMenuProV2({
           </p>
         </DialogHeader>
 
+        {/* Phase 6: Deprecation Warning Banner */}
+        <div className="px-4 py-3 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border-2 border-amber-300 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="p-1.5 rounded-lg bg-amber-200">
+              <AlertCircle className="w-5 h-5 text-amber-700" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-bold text-amber-900 mb-1 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4" />
+                Tip: Use Critical Questions for Scheme-Based Attacks
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                For arguments with defined argumentation schemes, we recommend using the{" "}
+                <strong>Critical Questions system</strong> instead. It provides scheme-specific guidance 
+                and creates properly structured dialogue moves with full ASPIC+ metadata.
+              </p>
+              <div className="mt-2 px-3 py-2 bg-white/60 rounded-lg border border-amber-200">
+                <p className="text-xs text-amber-900">
+                  <strong>💡 How to access:</strong> Close this menu and look for the{" "}
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 border border-indigo-300 text-indigo-700 font-semibold">
+                    <HelpCircle className="w-3 h-3 inline" />
+                    Critical Questions
+                  </span>{" "}
+                  button on the argument card.
+                </p>
+              </div>
+              <p className="text-xs text-amber-700 mt-2 italic">
+                This direct attack menu is best for ad-hoc challenges or arguments without schemes.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Target summary card */}
         <div className="px-4 py-3 bg-white rounded-xl border-2 border-indigo-300 shadow-md gap-4">
           <div className="flex items-start gap-3">
