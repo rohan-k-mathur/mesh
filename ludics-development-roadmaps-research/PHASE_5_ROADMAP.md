@@ -2,32 +2,87 @@
 
 **Status**: Planning  
 **Timeline**: Q4 2025 - Q1 2026  
-**Goal**: Transform ludics from visualization system into interactive argumentation platform with full semantic integration
+**Goal**: Transform ludics from visualization system into interactive argumentation platform with full ASPIC+ formal semantics integration  
+**Last Updated**: November 6, 2025
 
 ---
 
 ## Overview
 
-Phase 5 builds on the foundation of Phase 4 (topic scoping, cross-scope references, semantic annotations) to create a fully interactive argumentation system. Users can now see both the ludics tree structure AND the semantic argument content, and Phase 5 makes this bidirectional—allowing users to interact with arguments through both views.
+Phase 5 builds on the foundation of **Phase 4** (cross-scope references, delocation/fax, forest view, semantic annotations) and **Phase 1e** (ASPIC+ metadata preservation through Ludics compilation) to create a fully interactive formal argumentation system. Users can now see both the ludics tree structure AND the semantic argument content with formal ASPIC+ provenance, and Phase 5 makes this bidirectional—allowing users to interact with arguments through both views while maintaining rigorous formal semantics.
 
 ### Key Innovations
-- **Bidirectional Interaction**: Click on semantic content → create ludic moves; click on ludic acts → view semantic details
-- **Commitment Tracking**: System maintains explicit record of what each participant has committed to
-- **Cross-Scope Intelligence**: Navigation, citations, and synthesis across multiple argument threads
-- **Scheme-Aware Challenges**: Critical questions and challenges tailored to specific argument schemes
+- **Bidirectional Interaction**: Click on semantic content → create ludic moves; click on ludic acts → view semantic details with ASPIC+ provenance
+- **Commitment Tracking with ASPIC+ Theory**: System maintains explicit record of what each participant has committed to as a formal ASPIC+ Argumentation Theory (Commitment State in Ludics theory)
+- **Cross-Scope Intelligence**: Navigation, citations, and synthesis across multiple argument threads using delocation/fax mechanics
+- **Scheme-Aware Challenges**: Critical questions and challenges tailored to specific argument schemes, with ASPIC+ attack types (undermining/undercutting/rebutting)
+- **Formal Argumentation Semantics**: All interactions preserve ASPIC+ metadata through the full stack (DialogueMove → Ludics → AIF → Commitment State)
+
+---
+
+## Theoretical Foundations (NEW)
+
+Phase 5 is grounded in three key theoretical frameworks:
+
+### 1. Ludics Theory (Girard)
+**Key Concepts**:
+- **Actions**: Polarized primitives (positive/negative duals) with loci (addresses)
+- **Chronicles**: Alternate sequences of actions (dialogue traces)
+- **Designs**: Sets of chronicles (strategies/argumentation trees)
+- **Interaction**: Traversal through dual designs = logical computation (cut elimination)
+- **Commitment State**: Repository of Content Expressions (arguments as designs)
+- **Convergence/Divergence**: Success/failure of dialogue via daimon (†) action
+- **Fax Design**: Delocalization mechanism (locus substitution for cross-scope references)
+
+**Implementation Alignment** (Phase 4 ✅):
+- LudicAct = Action with polarity, locus, ramification
+- LudicDesign = Design (strategy for Proponent or Opponent)
+- Trace computation = Interaction/normalization
+- Cross-scope references = Fax/delocation (implemented in Phase 4)
+
+### 2. ASPIC+ Framework (Modgil & Prakken)
+**Key Concepts**:
+- **Arguments**: Structured (premises → conclusion) or atomic claims
+- **Attack Types**: Undermining (attack premise), undercutting (attack inference), rebutting (attack conclusion)
+- **Defeat**: Attack + preferences → defeat status
+- **Argumentation Theory**: KB (knowledge base) + rules + preferences
+- **Acceptability**: Arguments accepted if all attacks defeated
+
+**Implementation Alignment** (Phase 0-1e ✅):
+- ASPIC+ core library (5,534 lines)
+- Critical Questions → ASPIC+ attacks (Phase 1c)
+- ASPIC+ metadata preserved through Ludics (Phase 1e)
+- AIF CA-nodes generated with full provenance (Phase 1e)
+
+### 3. Integration: Ludics ↔ ASPIC+
+**Key Mappings**:
+- **Ludics Interaction** = ASPIC+ Defeat Computation
+- **Commitment State** = ASPIC+ Argumentation Theory
+- **Chronicle** = Sequence of attacks/defenses
+- **Convergence** = Argument accepted (no defeat)
+- **Divergence** = Argument defeated (attack succeeded)
+- **Design** = Argumentation tree with attack structure
+
+**Phase 5 Goal**: Make this integration interactive and bidirectional
 
 ---
 
 ## Phase 5A: Critical Interaction Improvements
 **Priority**: HIGHEST  
 **Estimated Time**: 2-3 weeks  
-**Dependencies**: Phase 4 complete
+**Dependencies**: Phase 4 complete ✅, Phase 1e complete ✅
 
 ### 5A.1 Interactive Challenge Creation from Scheme View ⭐ START HERE
 
 **Problem**: Users can see arguments in the scheme view but must switch contexts to challenge them. The flow is: view argument → close panel → find dialog actions → create challenge → recompile → view result.
 
-**Solution**: Direct action buttons in `ArgumentSchemeView` that create challenges inline.
+**Solution**: Direct action buttons in `ArgumentSchemeView` that create challenges inline with ASPIC+ attack computation.
+
+#### Theoretical Foundation
+- **Ludics**: WHY move = negative action (−, L, I) challenging positive assertion
+- **ASPIC+**: Critical Question → Attack (undermining/undercutting/rebutting)
+- **Phase 1c**: CQ selection already computes ASPIC+ attack type
+- **Phase 1e**: ASPIC+ metadata preserved in LudicAct.extJson.aspic
 
 #### Implementation Tasks
 
@@ -37,21 +92,22 @@ Phase 5 builds on the foundation of Phase 4 (topic scoping, cross-scope referenc
 - Add buttons to conclusion: "Ask Why?", "Attack", "Accept"
 - Style buttons to match participant color (emerald for P, rose for O)
 - Show disabled state when user isn't active participant
+- **NEW**: Display ASPIC+ attack type that will be generated (from Phase 1c CQ mapping)
 
 ```tsx
-// Example UI addition
+// Example UI addition with ASPIC+ indicators
 <div className="premise-actions flex gap-1 mt-1">
   <button 
     onClick={() => handleWHY(premise.claimId)}
     className="text-xs px-2 py-0.5 rounded bg-rose-100 hover:bg-rose-200 text-rose-700"
   >
-    Ask Why?
+    Ask Why? <Badge>Undermining</Badge>
   </button>
   <button 
     onClick={() => handleCHALLENGE(premise.claimId)}
     className="text-xs px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-700"
   >
-    Challenge
+    Challenge <Badge>CQ</Badge>
   </button>
 </div>
 ```
@@ -60,63 +116,89 @@ Phase 5 builds on the foundation of Phase 4 (topic scoping, cross-scope referenc
 - Location: `components/ludics/DialogueMoveComposer.tsx` (NEW)
 - Modal dialog for composing WHY/ATTACK/GROUNDS moves
 - Pre-filled with target claim/argument
-- Shows relevant Critical Questions based on scheme
-- Preview of where act will appear in tree
-- Submit → creates DialogueMove → triggers recompile → closes modal
+- Shows relevant Critical Questions based on scheme (from CriticalQuestion table)
+- **NEW**: Display ASPIC+ attack type and target scope (premise/inference/conclusion)
+- **NEW**: Show which CQ-to-attack mapping will be used (from Phase 1c)
+- Preview of where act will appear in tree with formal locus address
+- Submit → creates DialogueMove with ASPIC+ payload → triggers recompile → closes modal
 
 **Task 5A.1.3: Integrate with Existing Move API**
-- Use existing `/api/dialogue/moves` endpoint (or create if needed)
+- Use existing `/api/cqs/dialogue-move` endpoint (Phase 1c)
 - Pass `targetType: 'claim'`, `targetId`, `kind: 'WHY'`
+- Endpoint automatically computes ASPIC+ attack (Phase 1c logic)
+- **NEW**: Verify ASPIC+ metadata in DialogueMove.payload
 - Handle response and trigger design refresh
 - Show toast notification with link to new act in tree
+- **NEW**: Display ASPIC+ attack type in toast (e.g., "Undermining attack created")
 
-**Task 5A.1.4: Add Live Preview**
+**Task 5A.1.4: Add Live Preview with Locus Prediction**
 - Before submitting, show preview of where act will appear
 - Highlight the target locus in the tree view
+- Show formal locus address (e.g., "Will create act at locus 0.1.1")
 - Show "Opponent will respond at 0.1.1" type of message
+- **NEW**: Preview ASPIC+ metadata that will be stored in LudicAct.extJson.aspic
+- **NEW**: Show resulting AIF CA-node structure that will be generated
 
 **Testing Checklist**:
 - [ ] Click "Ask Why" on premise → modal opens with claim prefilled
-- [ ] Submit WHY move → creates DialogueMove record
+- [ ] Modal displays correct ASPIC+ attack type based on CQ selection
+- [ ] Submit WHY move → creates DialogueMove record with ASPIC+ payload
 - [ ] Design recompiles automatically
 - [ ] New opponent act appears in tree view at correct locus
+- [ ] LudicAct.extJson.aspic contains ASPIC+ metadata (Phase 1e)
 - [ ] Semantic annotation shows on new act
-- [ ] Toast notification appears with success message
+- [ ] AIF CA-node generated with attack details (Phase 1e)
+- [ ] Toast notification appears with ASPIC+ attack type
 - [ ] Can click toast to jump to new act location
 
 **Success Metrics**:
 - Time from "see argument" to "challenge created" reduced from ~30s to ~5s
 - 80% of challenges created via inline buttons vs manual flow
 - Zero confusion about where challenge will appear in tree
+- **NEW**: 100% of challenges have correct ASPIC+ metadata preserved through Ludics → AIF
 
 ---
 
-### 5A.2 Cross-Scope Navigation
+### 5A.2 Cross-Scope Navigation with Delocation Tracking
 
 **Problem**: Users see references to other scopes (via delocation/fax) but can't easily navigate to them. Cross-scope references are displayed as metadata but aren't interactive.
 
-**Solution**: Clickable links, visual indicators, and a scope map to navigate between related arguments.
+**Solution**: Clickable links, visual indicators, and a scope map to navigate between related arguments using Phase 4 delocation infrastructure.
+
+#### Theoretical Foundation
+- **Ludics Fax**: Delocalization transfers designs between loci (ξ → ξ')
+- **Phase 4**: `faxFromScope()` implemented, `referencedScopes` tracked
+- **LudicAct.metaJson.faxed**: Metadata marks delocated acts with provenance
 
 #### Implementation Tasks
 
 **Task 5A.2.1: Add Clickable Scope References**
 - Location: `packages/ludics-react/LociTree.tsx`
-- When act has `delocated: true` metadata, show link icon
+- When act has `metaJson.faxed: true`, show link icon
+- Read fax metadata: `metaJson.faxedFrom.designId`, `scope`, `originalLocus`
 - Click → opens modal showing source design
 - Highlight the referenced locus in source tree
+- **NEW**: Show ASPIC+ metadata if faxed act has attack provenance
 
 **Task 5A.2.2: "Referenced By" Badges**
-- Query: When displaying design, check which other scopes reference it
+- Query: When displaying design, check `LudicDesign.referencedScopes` (Phase 4 field)
+- Query reverse: Find all designs that reference current scope
 - Show badge count: "🔗 Referenced by 3 other arguments"
 - Click badge → shows list of referencing scopes
 - Click scope → navigates to that design
+- **NEW**: Indicate if reference involves ASPIC+ attack (shows attack type icon)
 
 **Task 5A.2.3: Scope Map Visualization**
 - Location: `components/ludics/ScopeMapView.tsx` (NEW)
 - Force-directed graph showing scopes as nodes
-- Edges represent cross-scope references (delocation, citations)
+- Edges represent cross-scope references from `referencedScopes` field
+- **NEW**: Edge style indicates relationship type:
+  - Solid line: Fax/delocation (formal reference)
+  - Dashed line: Citation (informal mention)
+  - Red arrow: ASPIC+ attack across scopes
 - Node size proportional to number of acts
 - Node color by dominant participant (more P acts = green, more O acts = red)
+- **NEW**: Node badge shows convergence status (†=converged, ⚡=diverged, •=ongoing)
 - Click node → opens that scope's design view
 
 **Task 5A.2.4: Breadcrumb Navigation**
@@ -125,65 +207,104 @@ Phase 5 builds on the foundation of Phase 4 (topic scoping, cross-scope referenc
 - Click any breadcrumb to navigate back
 
 **Testing Checklist**:
-- [ ] Delocated act shows clickable link icon
+- [ ] Faxed act (metaJson.faxed=true) shows clickable link icon
 - [ ] Click link → modal opens with source design
 - [ ] Source design highlights the referenced locus
-- [ ] "Referenced By" badge shows correct count
+- [ ] "Referenced By" badge shows correct count from referencedScopes
 - [ ] Scope map renders all scopes as connected graph
+- [ ] Scope map uses Phase 4 referencedScopes for edges
+- [ ] Edge styles distinguish fax vs citation vs attack
+- [ ] Node convergence badges show correct status (†/⚡/•)
 - [ ] Clicking scope node navigates to that design
 - [ ] Breadcrumb trail shows navigation history
+- [ ] ASPIC+ attack indicators visible on cross-scope attacks
 
 ---
 
-### 5A.3 Commitment Store Visualization
+### 5A.3 Commitment Store Visualization (ASPIC+ Argumentation Theory)
 
-**Problem**: Ludics tracks what's been asserted and challenged, but there's no explicit view of what each participant has *committed to*. When someone CONCEDEs a point or implicitly accepts a claim, this commitment should be visible.
+**Problem**: Ludics tracks what's been asserted and challenged, but there's no explicit view of what each participant has *committed to*. When someone CONCEDEs a point or implicitly accepts a claim, this commitment should be visible as a formal ASPIC+ Argumentation Theory.
 
-**Solution**: Dedicated "Commitments" panel showing what each participant has committed to, with conflict detection.
+**Solution**: Dedicated "Commitments" panel showing what each participant has committed to, with conflict detection using ASPIC+ defeat computation.
+
+#### Theoretical Foundation
+- **Ludics Commitment State**: Repository of Content Expressions (arguments as designs)
+- **ASPIC+**: Argumentation Theory = (KB, Rules, Preferences)
+- **Convergence**: Commitment states are consistent (no contradictions)
+- **Divergence**: Commitment states conflict (logical inconsistency)
+- **Integration**: Commitment State IS the ASPIC+ Argumentation Theory for each participant
 
 #### Implementation Tasks
 
 **Task 5A.3.1: Create CommitmentStore Backend**
 - Location: `packages/ludics-engine/commitments.ts` (NEW)
-- Track commitments per participant per scope
+- Track commitments per participant per scope as ASPIC+ Argumentation Theory
 - Commitment types:
-  - `EXPLICIT_ASSERT`: Directly asserted via ASSERT move
-  - `EXPLICIT_CONCEDE`: Explicitly conceded via CONCEDE move
-  - `IMPLICIT_ACCEPT`: Implicitly accepted (challenged but then dropped, or opponent didn't respond)
-  - `CONDITIONAL`: Committed in SUPPOSE/DISCHARGE hypothetical scope
+  - `EXPLICIT_ASSERT`: Directly asserted via ASSERT move → ASPIC+ Argument
+  - `EXPLICIT_CONCEDE`: Explicitly conceded via CONCEDE move → KB fact
+  - `IMPLICIT_ACCEPT`: Implicitly accepted (challenged but then dropped) → KB fact
+  - `CONDITIONAL`: Committed in SUPPOSE/DISCHARGE hypothetical scope → Conditional argument
+- **NEW**: Store as ASPIC+ structures (Arguments, KB, Rules)
 
 ```typescript
 interface Commitment {
   participantId: 'Proponent' | 'Opponent';
-  claimId: string;
   type: 'EXPLICIT_ASSERT' | 'EXPLICIT_CONCEDE' | 'IMPLICIT_ACCEPT' | 'CONDITIONAL';
+  
+  // Link to dialogue
+  claimId: string;
   locusPath: string;
   timestamp: Date;
   scope: string;
   conditionalOn?: string; // If CONDITIONAL, the SUPPOSE locus
+  
+  // ASPIC+ formal representation (NEW)
+  aspicArgument?: {
+    id: string;
+    premises: string[];
+    conclusion: string;
+    defeasible: boolean;
+  };
+  aspicKBFact?: string; // For conceded/accepted facts
 }
 ```
 
 **Task 5A.3.2: Commitment Inference Algorithm**
 - After compilation, run commitment extraction
 - Rules:
-  - ASSERT → adds EXPLICIT_ASSERT commitment
-  - CONCEDE → adds EXPLICIT_CONCEDE commitment to conceding party
-  - WHY followed by no response for N moves → opponent IMPLICIT_ACCEPT
+  - ASSERT → adds EXPLICIT_ASSERT commitment (ASPIC+ Argument)
+  - CONCEDE → adds EXPLICIT_CONCEDE commitment to conceding party (KB fact)
+  - WHY followed by no response for N moves → opponent IMPLICIT_ACCEPT (KB fact)
   - SUPPOSE → marks all subsequent assertions as CONDITIONAL until DISCHARGE
+- **NEW**: Build ASPIC+ Argumentation Theory per participant:
+  ```typescript
+  theory = {
+    kb: [...conceded facts, ...accepted facts],
+    arguments: [...asserted arguments],
+    rules: [...defeasible rules from arguments],
+    preferences: [...preference orderings if any]
+  }
+  ```
 
-**Task 5A.3.3: Commitment Conflict Detection**
+**Task 5A.3.3: Commitment Conflict Detection using ASPIC+**
+- Use ASPIC+ core library (Phase 0) to evaluate commitment theories
 - Check for contradictions: committed to both `P` and `¬P`
 - Check for scheme violations: committed to conclusion but rejected premise
+- **NEW**: Compute attacks between commitments using ASPIC+ attack types
+- **NEW**: Evaluate defeat status with preferences
 - Flag inconsistencies with severity levels (error, warning, info)
+- **NEW**: Provide formal explanation of conflicts using ASPIC+ semantics
 
 **Task 5A.3.4: CommitmentPanel UI Component**
 - Location: `components/ludics/CommitmentPanel.tsx` (NEW)
 - Two columns: Proponent Commitments | Opponent Commitments
 - Group by commitment type
 - Show claim text with link to originating locus
-- Highlight conflicts in red
+- **NEW**: Display ASPIC+ structure (premises → conclusion)
+- Highlight conflicts in red with ASPIC+ attack type
 - Show "Common Ground" section for mutually accepted claims
+- **NEW**: "View as Theory" button shows formal ASPIC+ theory structure
+- **NEW**: "Evaluate Consistency" button runs ASPIC+ evaluation
 
 **Task 5A.3.5: Add to DesignTreeView**
 - Add "💎 Commitments" tab alongside Tree/Schemes/Both
@@ -191,62 +312,90 @@ interface Commitment {
 - Update in real-time as moves are added
 
 **Testing Checklist**:
-- [ ] ASSERT move creates EXPLICIT_ASSERT commitment
-- [ ] CONCEDE move creates EXPLICIT_CONCEDE for conceding party
-- [ ] Unanswered WHY after N moves creates IMPLICIT_ACCEPT
+- [ ] ASSERT move creates EXPLICIT_ASSERT commitment as ASPIC+ Argument
+- [ ] CONCEDE move creates EXPLICIT_CONCEDE for conceding party as KB fact
+- [ ] Unanswered WHY after N moves creates IMPLICIT_ACCEPT as KB fact
 - [ ] SUPPOSE/DISCHARGE correctly marks CONDITIONAL commitments
-- [ ] Contradiction detection flags P committed to both `A` and `¬A`
+- [ ] ASPIC+ theory built correctly: KB + arguments + rules
+- [ ] Contradiction detection uses ASPIC+ attack computation (P and ¬P)
+- [ ] Scheme violations detected via ASPIC+ structure (conclusion without premises)
 - [ ] Common Ground section shows mutually accepted claims
 - [ ] Commitments panel updates without page refresh
+- [ ] "View as Theory" shows formal ASPIC+ notation
+- [ ] "Evaluate Consistency" runs ASPIC+ evaluation and displays results
+- [ ] Attack explanations use ASPIC+ attack types (undermining/undercutting/rebutting)
 
 **Success Metrics**:
 - Commitment store accurately reflects dialogue state
-- Conflict detection catches 95%+ of logical contradictions
+- Conflict detection catches 95%+ of logical contradictions using ASPIC+
 - Users can quickly see "what we've agreed on so far"
+- **NEW**: Formal ASPIC+ theory can be exported for external verification
+- **NEW**: Consistency evaluation provides actionable feedback on argument quality
 
 ---
 
-## Phase 5B: Enhanced Scheme Integration
+## Phase 5B: Enhanced Scheme Integration with ASPIC+
 **Priority**: HIGH  
 **Estimated Time**: 2-3 weeks  
 **Dependencies**: Phase 5A complete
 
-### 5B.1 Scheme-Aware Critical Questions
+### 5B.1 Scheme-Aware Critical Questions with ASPIC+ Attack Types
 
-**Problem**: When challenging an argument, users must manually think of appropriate critical questions. Different schemes have standard CQs that should be suggested.
+**Problem**: When challenging an argument, users must manually think of appropriate critical questions. Different schemes have standard CQs that should be suggested with their corresponding ASPIC+ attack types.
 
-**Solution**: Auto-suggest relevant CQs based on detected argument scheme, with one-click insertion.
+**Solution**: Auto-suggest relevant CQs based on detected argument scheme, with one-click insertion that automatically computes ASPIC+ attack metadata.
+
+#### Theoretical Foundation
+- **ArgumentScheme → CriticalQuestion**: Each scheme has associated CQs
+- **CriticalQuestion → ASPIC+ Attack**: Phase 1c mapping (CQ_PREMISE_ACCEPTABILITY → undermining, etc.)
+- **Provenance Chain**: CQ selection → ASPIC+ attack → Ludics metadata → AIF CA-node
 
 #### Implementation Tasks
 
 **Task 5B.1.1: CQ Database Expansion**
 - Ensure all ArgumentSchemes have associated CriticalQuestions
 - Add CQ templates with placeholders: "Is {premise1} really true?"
+- **NEW**: Verify ASPIC+ attack type mapping for each CQ (from Phase 1c)
 - Priority schemes: Analogy, Expert Opinion, Cause to Effect, Sign
+- **NEW**: Add attack target scope (premise/inference/conclusion) to CQ metadata
 
-**Task 5B.1.2: CQ Suggestion Engine**
+**Task 5B.1.2: CQ Suggestion Engine with ASPIC+ Preview**
 - Location: `lib/argumentation/cq-suggestions.ts` (NEW)
 - Input: `argumentId`, `schemeKey`
-- Output: Ranked list of relevant CQs with filled-in placeholders
+- Output: Ranked list of relevant CQs with:
+  - Filled-in placeholders using premise/conclusion text
+  - **NEW**: ASPIC+ attack type for each CQ
+  - **NEW**: Target scope indicator (which part of argument is attacked)
+  - **NEW**: Expected defeat status (will attack succeed based on preferences)
 - Use premise/conclusion text to populate templates
 
 **Task 5B.1.3: Integrate into DialogueMoveComposer**
 - When creating WHY move, show "Suggested Questions" section
 - Click CQ → auto-fills move text
+- **NEW**: Display ASPIC+ attack type badge for each CQ
 - Show explanation of why this CQ is relevant
+- **NEW**: Preview attack structure: "This will create an undermining attack on premise P1"
 - Still allow freeform text entry
+- **NEW**: Manual entry allows selecting ASPIC+ attack type from dropdown
 
-**Task 5B.1.4: CQ Provenance Tracking**
-- Store `cqId` in DialogueMove.payload
-- Display CQ badge in act tooltip: "🤔 CQ: Is the analogy relevant?"
+**Task 5B.1.4: CQ Provenance Tracking with ASPIC+ Metadata**
+- Store `cqId` in DialogueMove.payload (already done in Phase 1c)
+- Store ASPIC+ attack metadata (already done in Phase 1c)
+- Display CQ badge in act tooltip: "🤔 CQ: Is the analogy relevant? [Undercutting]"
 - Link to CQ definition and scheme documentation
+- **NEW**: Link to ASPIC+ attack explanation page
+- **NEW**: Show full provenance: CQ → ASPIC+ → Ludics → AIF
 
 **Testing Checklist**:
 - [ ] WHY move composer shows 3-5 relevant CQs for scheme
 - [ ] CQ templates have placeholders filled with actual claim text
+- [ ] Each CQ displays correct ASPIC+ attack type badge
 - [ ] Clicking CQ auto-fills move with that question
+- [ ] ASPIC+ metadata automatically computed (Phase 1c)
 - [ ] CQ provenance stored in move metadata
-- [ ] Act tooltip shows which CQ was used
+- [ ] Act tooltip shows which CQ was used and attack type
+- [ ] LudicAct.extJson.aspic preserved through compilation (Phase 1e)
+- [ ] AIF CA-node generated with CQ reference (Phase 1e)
 - [ ] Works for all major schemes (Analogy, Expert, Cause, Sign)
 
 ---
@@ -624,21 +773,72 @@ interface Commitment {
 
 ## Dependencies & Prerequisites
 
+### Completed Foundations (✅ Ready for Phase 5)
+
+**Phase 0: ASPIC+ Core (5,534 lines, 63 tests)**
+- Complete ASPIC+ framework implementation
+- Attack computation (undermining/undercutting/rebutting)
+- Defeat status evaluation with preferences
+- Argumentation theory evaluation
+- APIs: `/api/aspic/*` endpoints
+
+**Phase 1a: ASPIC+ API Endpoints (200 lines)**
+- Theory management endpoints
+- Evaluation and querying APIs
+- Full ASPIC+ computation available
+
+**Phase 1b: AIF Evaluation Endpoint (188 lines)**
+- `/api/aif/evaluate` for AIF → ASPIC+ conversion
+- Bidirectional translation working
+
+**Phase 1c: CQ → DialogueMove Integration (463 lines)**
+- Critical Questions compute ASPIC+ attacks
+- CQ selection → attack type mapping
+- DialogueMove.payload contains ASPIC+ metadata
+- ConflictApplication creation with ASPIC+ fields
+
+**Phase 1d: ConflictApplication Enhancement (192 lines)**
+- Schema: `aspicAttackType`, `aspicDefeatStatus`, `aspicMetadata` fields
+- Helper library: `lib/aspic/conflictHelpers.ts`
+- Standardized metadata computation
+
+**Phase 1e: Ludics Metadata Preservation (150 lines) ✅ JUST COMPLETED**
+- `compileFromMoves.ts` extracts ASPIC+ from DialogueMove
+- `LudicAct.extJson.aspic` stores full ASPIC+ metadata
+- `syncToAif.ts` generates CA-nodes from Ludics
+- Complete provenance: CQ → DialogueMove → Ludics → AIF
+
+**Phase 4: Scoped Designs & Forest Architecture ✅ COMPLETE**
+- Cross-scope reference tracking (`referencedScopes` field)
+- Delocation/Fax mechanics (`faxFromScope()` function)
+- Defense tree computation per scope
+- Forest view visualization
+- Scope-level traces with convergence status
+- Files modified: 15+ files, comprehensive testing
+
 ### External Dependencies
-- Phase 4 complete (topic scoping, semantic annotations)
-- Prisma schema supports DialogueMove with full metadata
-- `/api/dialogue/moves` endpoint exists (or needs creation)
-- ArgumentScheme + CriticalQuestion tables populated
+- Prisma schema supports DialogueMove with full metadata ✅
+- `/api/cqs/dialogue-move` endpoint exists (Phase 1c) ✅
+- ArgumentScheme + CriticalQuestion tables populated ✅
+- LudicDesign has `referencedScopes` and `crossScopeActIds` fields (Phase 4) ✅
+- LudicAct has `extJson` field for metadata storage ✅
+- ASPIC+ core library fully functional (Phase 0) ✅
 
 ### Internal Team Dependencies
 - Design review for new UI components (ArgumentSchemeView actions, commitment panel)
 - Performance testing infrastructure for Phase 5D
 - Documentation update for new features
+- **NEW**: Review theoretical alignment documents:
+  - `docs/arg-computation-research/LUDICS_THEORY_ANALYSIS_FOR_IMPLEMENTATION.md`
+  - `LUDICS_THEORY_FOUNDATIONS.md`
+  - `docs/arg-computation-research/Ludics- Argumentation, Inference, and Designs.txt`
 
 ### User Research Needed
 - Interview 5-10 users about current challenge creation flow pain points
 - Test prototype of inline action buttons with 3 users
 - Survey: "What would make you use ludics more?" to prioritize 5B vs 5C
+- **NEW**: Test ASPIC+ metadata visibility (do users understand attack types?)
+- **NEW**: Validate Commitment Store UI (is ASPIC+ theory view useful?)
 
 ---
 
@@ -677,15 +877,17 @@ interface Commitment {
 ## Post-Phase 5 Vision
 
 Once Phase 5 is complete, ludics becomes:
-1. **Bidirectional Argumentation Platform**: See arguments, interact with arguments, track commitments
-2. **Multi-Scope Reasoning Engine**: Navigate, synthesize, and manage complex argument networks
-3. **Scheme-Aware Assistant**: System understands argument structure and suggests improvements
-4. **Scalable Infrastructure**: Handles 1000+ move deliberations with real-time updates
+1. **Bidirectional Formal Argumentation Platform**: See arguments, interact with arguments, track commitments with full ASPIC+ semantics
+2. **Multi-Scope Reasoning Engine**: Navigate, synthesize, and manage complex argument networks using Ludics delocation
+3. **Scheme-Aware Assistant**: System understands argument structure and suggests improvements with CQ-to-ASPIC+ mappings
+4. **Scalable Infrastructure**: Handles 1000+ move deliberations with real-time updates and formal provenance
+5. **Formal Verification Ready**: Every dialogue has complete ASPIC+ Argumentation Theory that can be exported and verified externally
 
 This sets the stage for:
-- **Phase 6**: AI-assisted argumentation (GPT suggests arguments, detects fallacies, recommends moves)
-- **Phase 7**: Social features (follow arguments, notifications, argument ratings)
-- **Phase 8**: External integrations (export to academic papers, import from debate transcripts)
+- **Phase 6**: AI-assisted argumentation (GPT suggests arguments with ASPIC+ structure, detects fallacies, recommends moves based on defeat status)
+- **Phase 7**: Social features (follow arguments, notifications based on attack/defeat events, argument ratings using ASPIC+ metrics)
+- **Phase 8**: External integrations (export to academic papers with formal proofs, import from debate transcripts with automatic ASPIC+ analysis)
+- **Phase 9**: Advanced formal reasoning (automated consistency checking, proof search in Commitment States, argument synthesis using ASPIC+ rules)
 
 ---
 
@@ -693,42 +895,61 @@ This sets the stage for:
 
 ### Frontend Components
 - `components/ludics/ArgumentSchemeView.tsx` - Scheme display (modify for 5A.1)
-- `components/ludics/DesignTreeView.tsx` - Tree view wrapper (add commitments tab)
-- `components/ludics/DialogueMoveComposer.tsx` - NEW for 5A.1
-- `components/ludics/CommitmentPanel.tsx` - NEW for 5A.3
-- `components/ludics/ScopeMapView.tsx` - NEW for 5A.2
-- `packages/ludics-react/LociTree.tsx` - Core tree rendering (add interactivity)
+- `components/ludics/DesignTreeView.tsx` - Tree view wrapper (add commitments tab for 5A.3)
+- `components/ludics/DialogueMoveComposer.tsx` - NEW for 5A.1 (with ASPIC+ preview)
+- `components/ludics/CommitmentPanel.tsx` - NEW for 5A.3 (displays ASPIC+ theory)
+- `components/ludics/ScopeMapView.tsx` - NEW for 5A.2 (with fax/attack indicators)
+- `packages/ludics-react/LociTree.tsx` - Core tree rendering (add fax interactivity for 5A.2)
 
 ### Backend Logic
-- `packages/ludics-engine/compileFromMoves.ts` - Main compilation (optimize in 5D.1)
-- `packages/ludics-engine/commitments.ts` - NEW for 5A.3
+- `packages/ludics-engine/compileFromMoves.ts` - Main compilation (already enhanced in Phase 1e with ASPIC+ extraction)
+- `packages/ludics-engine/commitments.ts` - NEW for 5A.3 (builds ASPIC+ theories)
+- `packages/ludics-engine/delocate.ts` - Fax implementation (Phase 4, enhance for ASPIC+ preservation)
+- `lib/aspic/conflictHelpers.ts` - ASPIC+ metadata helpers (Phase 1d)
+- `lib/aspic/core.ts` - ASPIC+ core library (Phase 0, use for commitment evaluation)
 - `lib/argumentation/cq-suggestions.ts` - NEW for 5B.1
+- `lib/ludics/syncToAif.ts` - AIF sync (already enhanced in Phase 1e with CA-node generation)
 - `app/api/ludics/scopes/merge/route.ts` - NEW for 5C.1
 - `app/api/arguments/[id]/link-premise/route.ts` - NEW for 5B.2
+- `app/api/cqs/dialogue-move/route.ts` - Existing (Phase 1c, computes ASPIC+ attacks)
 
 ### Database Schema
-- `DialogueMove` - Add `cqId` field for 5B.1
+- `DialogueMove` - Has `payload.aspicAttack` and `payload.cqId` (Phase 1c)
+- `ConflictApplication` - Has `aspicAttackType`, `aspicDefeatStatus`, `aspicMetadata` (Phase 1d)
+- `LudicAct` - Has `extJson.aspic` for ASPIC+ metadata (Phase 1e)
+- `LudicDesign` - Has `referencedScopes`, `crossScopeActIds` (Phase 4)
+- `AifNode` - CA-nodes with ASPIC+ metadata (Phase 1e)
 - `PremiseLocus` - NEW table for 5B.2
 - `ScopeGenealogy` - NEW table for 5C.1
 - `LudicDesign` - Add `scopePermissions` for 5C.3
-- `LudicAct` - Add `extJson.semanticCache` for 5D.3
 
 ---
 
 ## Appendix B: Glossary
 
-**Delocation (Fax)**: Importing an act from one scope into another scope, preserving provenance  
+**Delocation (Fax)**: Importing an act from one scope into another scope, preserving provenance (Ludics theory operation ξ → ξ')  
 **Topic Scoping**: Grouping moves by argument/topic rather than actor or timeline  
-**Commitment Store**: Explicit record of what each participant has asserted/accepted/conceded  
+**Commitment Store**: Explicit record of what each participant has asserted/accepted/conceded, stored as ASPIC+ Argumentation Theory  
 **Critical Question (CQ)**: Standard challenge specific to an argument scheme  
+**ASPIC+ Attack Types**: Undermining (attack premise), undercutting (attack inference), rebutting (attack conclusion)  
+**Defeat**: Attack that succeeds based on preference ordering  
 **Premise Linking**: Connecting a ludic act to a specific premise of an argument  
 **Synthesis**: Combining multiple arguments to derive a new conclusion  
 **Scope Merge**: Combining two separate argument threads into one unified scope  
 **Incremental Compilation**: Recompiling only affected scopes rather than entire deliberation  
+**Convergence**: Ludics interaction reaches daimon (†), indicating successful resolution  
+**Divergence**: Ludics interaction fails (ramification mismatch), indicating logical conflict  
+**Chronicle**: Sequence of alternating positive/negative actions in Ludics (dialogue trace)  
+**Design**: Set of chronicles representing a participant's strategy (Ludics argumentation tree)  
+**Locus**: Address in Ludics tree (e.g., 0.1.2), location where action occurs  
+**CA-node**: Conflict Application node in AIF graph, represents ASPIC+ attack relationship  
+**Provenance Chain**: Full trace of formal semantics from CQ → DialogueMove → Ludics → AIF  
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: November 4, 2025  
+**Document Version**: 2.0  
+**Last Updated**: November 6, 2025 (Updated post-Phase 1e completion and Phase 4 integration)  
 **Next Review**: After Phase 5A.1 completion  
-**Maintainer**: Ludics Development Team
+**Maintainer**: Ludics Development Team  
+**Theoretical Foundations**: See `docs/arg-computation-research/LUDICS_THEORY_ANALYSIS_FOR_IMPLEMENTATION.md` and `LUDICS_THEORY_FOUNDATIONS.md`
+

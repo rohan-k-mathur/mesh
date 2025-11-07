@@ -12,7 +12,8 @@ import { extractAspicMetadataFromMove } from '@/lib/aspic/conflictHelpers';
 type Tx = Prisma.TransactionClient;
  type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
 
-type Move = {
+// Exported for testing
+export type Move = {
   id: string;
   kind: string;
   payload?: {
@@ -34,7 +35,8 @@ type Move = {
 
 // -- helper: materialize acts out of a move payload (new path)
 // Enhanced for Phase 1e: Extract ASPIC+ metadata and preserve in act metadata
-function expandActsFromMove(m: Move) {
+// Exported for testing purposes
+export function expandActsFromMove(m: Move) {
   const acts = m.payload?.acts ?? [];
   
   // Extract ASPIC+ metadata from DialogueMove payload (Phase 1e)
