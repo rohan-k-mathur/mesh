@@ -9,6 +9,69 @@ import { inferAndAssignScheme } from '@/lib/argumentation/schemeInference';
 import { ensureArgumentSupportInTx } from '@/lib/arguments/ensure-support';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
+/**
+ * GET /api/arguments?deliberationId=X&authorId=Y
+ * Fetch arguments for a deliberation (used by AttackCreationModal and DiscourseDashboard)
+ * Optional authorId parameter to filter by author
+ */
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const deliberationId = url.searchParams.get('deliberationId');
+  const authorId = url.searchParams.get('authorId');
+
+  if (!deliberationId) {
+    return NextResponse.json({ 
+      ok: false, 
+      error: 'deliberationId query parameter is required' 
+    }, { status: 400, ...NO_STORE });
+  }
+
+  try {
+    const where: any = { deliberationId };
+    
+    // Optional filter by author
+    if (authorId) {
+      where.authorId = authorId;
+    }
+
+    const args = await prisma.argument.findMany({
+      where,
+      select: {
+        id: true,
+        text: true,
+        conclusionClaimId: true,
+        createdAt: true,
+        claim: {
+          select: {
+            id: true,
+            text: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Format for AttackCreationModal dropdown
+    const formatted = args.map(arg => ({
+      id: arg.id,
+      text: arg.text || arg.claim?.text || 'Untitled Argument',
+      conclusion: arg.claim ? {
+        id: arg.claim.id,
+        text: arg.claim.text,
+      } : null,
+    }));
+
+    // Return in pagination format for consistency with claims endpoint
+    return NextResponse.json({ items: formatted, nextCursor: null }, NO_STORE);
+  } catch (err) {
+    console.error('[GET /api/arguments] Error:', err);
+    return NextResponse.json({
+      ok: false,
+      error: 'Failed to fetch arguments',
+    }, { status: 500, ...NO_STORE });
+  }
+}
+
 type SlotValidators = Record<string, { expects?: string; required?: boolean }>;
 type SlotsPayload   = Record<string, string>; // role -> claimId
 

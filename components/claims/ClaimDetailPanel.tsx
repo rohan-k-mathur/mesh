@@ -1,8 +1,9 @@
 "use client";
 import * as React from "react";
 import useSWR from "swr";
-import { Activity, Link as LinkIcon, Tag } from "lucide-react";
+import { Activity, Link as LinkIcon, Tag, Swords } from "lucide-react";
 import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
+import { AttackCreationModal } from "@/components/aspic/AttackCreationModal";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -32,6 +33,7 @@ type ClaimDetailPanelProps = {
  */
 export function ClaimDetailPanel({ claimId, deliberationId, className = "", claimText }: ClaimDetailPanelProps) {
   const [expanded, setExpanded] = React.useState(false);
+  const [showAttackModal, setShowAttackModal] = React.useState(false); // Phase F: Attack creation modal
 
   // Fetch CEG data for this specific claim (includes label, confidence, metrics)
   const { data: cegData } = useSWR(
@@ -265,6 +267,20 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             />
           </div>
 
+          {/* Phase F: Direct Attack Creation */}
+          <div className="px-3 py-2">
+            <button
+              onClick={() => setShowAttackModal(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
+            >
+              <Swords className="w-4 h-4" />
+              Create ASPIC+ Attack
+            </button>
+            <p className="text-[10px] text-slate-500 text-center mt-1">
+              Direct attack specification (undermine/rebut/undercut)
+            </p>
+          </div>
+
           {/* Citations */}
           {citations.length > 0 && (
             <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
@@ -288,6 +304,22 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             </div>
           )}
         </div>
+      )}
+
+      {/* Phase F: Attack Creation Modal */}
+      {showAttackModal && (
+        <AttackCreationModal
+          deliberationId={deliberationId}
+          targetType="claim"
+          targetId={claimId}
+          targetText={claimText || cegNode?.text || "Unknown claim"}
+          onClose={() => setShowAttackModal(false)}
+          onCreated={() => {
+            setShowAttackModal(false);
+            // Optionally trigger a refresh of the data
+            window.location.reload(); // Simple refresh for now
+          }}
+        />
       )}
     </div>
   );

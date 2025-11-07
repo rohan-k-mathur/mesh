@@ -45,7 +45,8 @@ export function ActiveAssumptionsPanel({
       setLoading(true);
       setError(null);
 
-      const res = await fetch(`/api/deliberations/${deliberationId}/assumptions/active`);
+      // Phase A: Fetch ALL assumptions (not just active) so users can accept PROPOSED ones
+      const res = await fetch(`/api/assumptions?deliberationId=${deliberationId}`);
       
       if (!res.ok) {
         const data = await res.json();
@@ -53,7 +54,7 @@ export function ActiveAssumptionsPanel({
       }
 
       const data = await res.json();
-      setAssumptions(data.assumptions || []);
+      setAssumptions(data.items || []);
     } catch (err: any) {
       console.error("Failed to fetch assumptions:", err);
       setError(err.message || "Failed to load assumptions");
@@ -73,9 +74,11 @@ export function ActiveAssumptionsPanel({
 
   // Count by status for stats (must be before early returns)
   const stats = React.useMemo(() => {
+    const proposed = assumptions.filter((a) => a.status === "PROPOSED").length;
     const accepted = assumptions.filter((a) => a.status === "ACCEPTED").length;
     const challenged = assumptions.filter((a) => a.status === "CHALLENGED").length;
-    return { accepted, challenged };
+    const retracted = assumptions.filter((a) => a.status === "RETRACTED").length;
+    return { proposed, accepted, challenged, retracted };
   }, [assumptions]);
 
   // Loading State
@@ -117,14 +120,13 @@ export function ActiveAssumptionsPanel({
       <div className="text-center p-12 bg-slate-50 rounded-lg border border-slate-200">
         <CheckCircle2 className="w-12 h-12 text-slate-400 mx-auto mb-3" />
         <h3 className="text-base font-semibold text-slate-900 mb-2">
-          No Active Assumptions
+          No Assumptions Yet
         </h3>
         <p className="text-sm text-slate-600 mb-1">
-          This deliberation currently has no accepted assumptions.
+          This deliberation currently has no assumptions.
         </p>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Assumptions are propositions accepted for the sake of argument.
-          When an argument relies on an assumption, it will appear here once accepted.
+          Create an assumption using the form above. Once created, you can accept it to add it to the ASPIC+ knowledge base (K_a).
         </p>
       </div>
     );
@@ -153,21 +155,31 @@ export function ActiveAssumptionsPanel({
       <div className="flex items-center justify-between pb-3 border-b border-slate-200">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">
-            Active Assumptions ({assumptions.length})
+            Assumptions ({assumptions.length})
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            These assumptions are currently accepted in this deliberation
+            Manage assumptions for this deliberation
           </p>
         </div>
 
         {/* Stats */}
         <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-slate-600">
-              {stats.accepted} Accepted
-            </span>
-          </div>
+          {stats.proposed > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-slate-600">
+                {stats.proposed} Proposed
+              </span>
+            </div>
+          )}
+          {stats.accepted > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-slate-600">
+                {stats.accepted} Accepted
+              </span>
+            </div>
+          )}
           {stats.challenged > 0 && (
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-red-500" />

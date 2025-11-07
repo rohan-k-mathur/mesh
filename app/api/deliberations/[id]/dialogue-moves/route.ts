@@ -1,0 +1,60 @@
+// app/api/deliberations/[id]/dialogue-moves/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prismaclient";
+
+const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
+
+/**
+ * GET /api/deliberations/[id]/dialogue-moves?actorId=X&kind=WHY
+ * 
+ * Fetch all dialogue moves by a specific user in a deliberation.
+ * Optionally filter by move kind (WHY, GROUNDS, CONCEDE, etc.).
+ * Used by DiscourseDashboard "My Engagements" panel.
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const deliberationId = params.id;
+  const actorId = req.nextUrl.searchParams.get("actorId");
+  const kind = req.nextUrl.searchParams.get("kind");
+
+  if (!actorId) {
+    return NextResponse.json(
+      { error: "actorId query parameter required" },
+      { status: 400, ...NO_STORE }
+    );
+  }
+
+  try {
+    const where: any = {
+      deliberationId,
+      actorId,
+    };
+
+    if (kind) {
+      where.kind = kind;
+    }
+
+    const moves = await prisma.dialogueMove.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        kind: true,
+        targetId: true,
+        targetType: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json(moves, NO_STORE);
+  } catch (err) {
+    console.error("[GET /api/deliberations/[id]/dialogue-moves] Error:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch dialogue moves" },
+      { status: 500, ...NO_STORE }
+    );
+  }
+}

@@ -71,30 +71,37 @@ export async function POST(request: NextRequest) {
       weight,
       confidence,
       metaJson,
+      content, // Phase A: Allow 'content' as alias for assumptionText
     } = body;
 
     // Validation
-    if (!deliberationId || !argumentId) {
+    if (!deliberationId) {
       return NextResponse.json(
-        { error: "deliberationId and argumentId are required" },
+        { error: "deliberationId is required" },
         { status: 400 }
       );
     }
 
-    if (!assumptionClaimId && !assumptionText) {
+    // Phase A: Allow standalone assumptions (no argumentId required)
+    // They can be linked to arguments later via /api/assumptions/[id]/link
+
+    if (!assumptionClaimId && !assumptionText && !content) {
       return NextResponse.json(
-        { error: "Either assumptionClaimId or assumptionText must be provided" },
+        { error: "Either assumptionClaimId, assumptionText, or content must be provided" },
         { status: 400 }
       );
     }
+
+    // Use content as fallback for assumptionText
+    const finalAssumptionText = assumptionText || content;
 
     // Create the assumption
     const assumption = await prisma.assumptionUse.create({
       data: {
         deliberationId,
-        argumentId,
+        argumentId: argumentId || null, // Phase A: Make argumentId optional
         assumptionClaimId,
-        assumptionText,
+        assumptionText: finalAssumptionText,
         role,
         weight,
         confidence,

@@ -64,6 +64,7 @@ import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
 import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPanel";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
 import { EvidenceList } from "@/components/evidence/EvidenceList";
+import { DiscourseDashboard } from "@/components/discourse/DiscourseDashboard";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -1877,6 +1878,19 @@ const {
 
           {/* ISSUES TAB */}
           <TabsContent value="admin" className="w-full min-w-0 h-screen space-y-4">
+            
+            {/* Discourse Dashboard */}
+            <SectionCard title="Discourse Dashboard">
+              <div className="text-sm text-neutral-600 mb-3">
+                Track your contributions, engagements, and actions taken on your work. 
+                Respond to challenges and attacks directly from this dashboard.
+              </div>
+              <DiscourseDashboard 
+                deliberationId={deliberationId} 
+                userId={currentUserId || authorId || ""} 
+              />
+            </SectionCard>
+
             <SectionCard
               title="Issues & Objections"
               action={

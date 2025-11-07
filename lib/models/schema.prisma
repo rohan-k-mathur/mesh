@@ -5368,7 +5368,7 @@ model ArgumentSupport {
 model AssumptionUse {
   id             String @id @default(cuid())
   deliberationId String
-  argumentId     String
+  argumentId     String? // Phase A: Make optional for standalone assumptions
 
   // Either tie to an existing claim…
   assumptionClaimId String? // FK to Claim.id (nullable)

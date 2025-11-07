@@ -16,7 +16,8 @@ import {
   StepForward,
   MessageSquare,
   Loader2,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Swords
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttackMenuPro } from "./AttackMenuPro";
@@ -380,6 +381,7 @@ export function ArgumentCardV2({
   const [schemeDialogOpen, setSchemeDialogOpen] = React.useState(false);
   const [citations, setCitations] = React.useState<any[]>([]);
   const [loadingCitations, setLoadingCitations] = React.useState(false);
+  const [showAttackModal, setShowAttackModal] = React.useState(false); // Phase F: Attack creation modal
   
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);

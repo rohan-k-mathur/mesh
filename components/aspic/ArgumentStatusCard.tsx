@@ -29,17 +29,17 @@ interface ArgumentStatusCardProps {
 export function ArgumentStatusCard({ argument, status, explanation }: ArgumentStatusCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Debug logging
-  console.log("[ArgumentStatusCard] Rendering with:", {
-    id: argument.id,
-    idType: typeof argument.id,
-    conclusion: argument.conclusion,
-    conclusionType: typeof argument.conclusion,
-    premises: argument.premises,
-    premisesType: typeof argument.premises,
-    premisesIsArray: Array.isArray(argument.premises),
-    status,
-  });
+//   // Debug logging
+//   console.log("[ArgumentStatusCard] Rendering with:", {
+//     id: argument.id,
+//     idType: typeof argument.id,
+//     conclusion: argument.conclusion,
+//     conclusionType: typeof argument.conclusion,
+//     premises: argument.premises,
+//     premisesType: typeof argument.premises,
+//     premisesIsArray: Array.isArray(argument.premises),
+//     status,
+//   });
 
   const statusConfig = {
     in: {
