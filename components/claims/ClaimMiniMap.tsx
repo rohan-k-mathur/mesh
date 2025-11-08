@@ -23,6 +23,7 @@ type ClaimRow = {
   text: string;
   moid?: string;
   createdAt: string;
+  createdById?: number | null;
   counts: { supports: number; rebuts: number };
   cq?: { required: number; satisfied: number };
   // AIF metadata
@@ -186,8 +187,8 @@ const swrConfig = {
   },
 };
 
-export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimClick }: 
-  { deliberationId: string; selectedClaimId?: string; onClaimClick?: (claimId: string) => void; }) {
+export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimClick, currentUserId }: 
+  { deliberationId: string; selectedClaimId?: string; onClaimClick?: (claimId: string) => void; currentUserId?: string; }) {
   
   // Core data fetching with enhanced endpoints
   const { data: summary, error, isLoading, mutate: mutateSummary } = useSWR(
@@ -639,7 +640,8 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                             <CriticalQuestionsV3
                               targetType="claim"
                               targetId={c.id}
-                              createdById="current"
+                              createdById={currentUserId}
+                              claimAuthorId={c.createdById ? String(c.createdById) : undefined}
                               deliberationId={deliberationId}
                             />
                           </div>
@@ -834,7 +836,8 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                     <CriticalQuestionsV3
                       targetType="claim"
                       targetId={cqOpenFor}
-                      createdById="current"
+                      createdById={currentUserId}
+                      claimAuthorId={enrichedClaims.find(c => c.id === cqOpenFor)?.createdById ? String(enrichedClaims.find(c => c.id === cqOpenFor)?.createdById) : undefined}
                       deliberationId={deliberationId}
                     />
                   </div>

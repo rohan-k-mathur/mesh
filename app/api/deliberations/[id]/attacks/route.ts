@@ -109,12 +109,13 @@ export async function GET(
 
     // Since we're fetching attacks by attackerId (user's own attacks), the attacker is always the user
     // But let's still fetch the user profile for consistency
-    const attackerProfile = await prisma.profile.findUnique({
-      where: { id: attackerId },
-      select: { displayName: true, username: true },
+    // Note: attackerId is the User.id (BigInt), not auth_id
+    const attackerProfile = await prisma.user.findUnique({
+      where: { id: BigInt(attackerId) },
+      select: { name: true, username: true },
     });
 
-    const attackerName = attackerProfile?.displayName || attackerProfile?.username || "You";
+    const attackerName = attackerProfile?.name || attackerProfile?.username || "You";
 
     // Format with target information
     const formatted = attacks.map((attack: any) => {

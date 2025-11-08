@@ -57,7 +57,12 @@ export async function GET(
       .filter(m => m.targetType === "argument" && m.targetId)
       .map(m => m.targetId!);
 
-    const [targetClaims, targetArguments] = await Promise.all([
+    // Fetch GROUNDS arguments (Arguments created by GROUNDS moves)
+    const groundsMoveIds = moves
+      .filter(m => m.kind === "GROUNDS")
+      .map(m => m.id);
+
+    const [targetClaims, targetArguments, groundsArguments] = await Promise.all([
       prisma.claim.findMany({
         where: { id: { in: claimTargetIds } },
         select: { id: true, text: true },
@@ -66,18 +71,35 @@ export async function GET(
         where: { id: { in: argumentTargetIds } },
         select: { id: true, text: true, claim: { select: { text: true } } },
       }),
+      prisma.argument.findMany({
+        where: { createdByMoveId: { in: groundsMoveIds } },
+        select: { id: true, text: true, createdByMoveId: true },
+      }),
     ]);
 
     const claimMap = new Map(targetClaims.map(c => [c.id, c.text]));
     const argumentMap = new Map(targetArguments.map(a => [a.id, a.claim?.text || a.text]));
+    const groundsArgumentMap = new Map(groundsArguments.map(a => [a.createdByMoveId!, a.text]));
 
-    // Add targetText to each move
-    const movesWithTargets = moves.map(move => ({
-      ...move,
-      targetText: move.targetType === "claim" 
-        ? claimMap.get(move.targetId!) 
-        : argumentMap.get(move.targetId!),
-    }));
+    // Add targetText and groundsText to each move
+    const movesWithTargets = moves.map(move => {
+      const baseMove = {
+        ...move,
+        targetText: move.targetType === "claim" 
+          ? claimMap.get(move.targetId!) 
+          : argumentMap.get(move.targetId!),
+      };
+
+      // For GROUNDS moves, add the argument text
+      if (move.kind === "GROUNDS") {
+        return {
+          ...baseMove,
+          groundsText: groundsArgumentMap.get(move.id),
+        };
+      }
+
+      return baseMove;
+    });
 
     return NextResponse.json(movesWithTargets, NO_STORE);
   } catch (err) {

@@ -276,7 +276,9 @@ function MyEngagementsPanel({ deliberationId, userId }: { deliberationId: string
     fetcher
   );
 
-  const totalAttacks = attacks?.length || 0;
+  // Ensure attacks is an array
+  const attacksArray = Array.isArray(attacks) ? attacks : [];
+  const totalAttacks = attacksArray.length;
   const whyMoves = dialogueMoves?.filter((m: any) => m.kind === "WHY") || [];
   const groundsMoves = dialogueMoves?.filter((m: any) => m.kind === "GROUNDS") || [];
   const totalChallenges = whyMoves.length;
@@ -348,7 +350,7 @@ function MyEngagementsPanel({ deliberationId, userId }: { deliberationId: string
 
       {/* Content */}
       <div className="space-y-3">
-        {(subTab === "all" || subTab === "attacks") && attacks?.map((attack: any) => (
+        {(subTab === "all" || subTab === "attacks") && attacksArray.map((attack: any) => (
           <EngagementCard
             key={attack.id}
             type="attack"
@@ -700,7 +702,7 @@ function EngagementCard({ type, data }: EngagementCardProps) {
           <p className="text-sm text-slate-700">
             {type === "attack" && `${data.legacyAttackType} attack on ${data.targetType}: "${data.targetText || "Unknown"}"`}
             {type === "challenge" && `Challenged: "${data.targetText || "Unknown"}"`}
-            {type === "response" && `Responded with GROUNDS: "${data.payload?.text || "..."}"`}
+            {type === "response" && `Responded with GROUNDS: "${data.groundsText || data.payload?.text || "..."}"`}
           </p>
         </div>
         <button className="text-indigo-600 hover:text-indigo-700 text-xs flex items-center gap-1">
@@ -749,6 +751,24 @@ function ActionOnMeCard({ type, data, deliberationId, userId }: ActionOnMeCardPr
             original: groundsText,
             commitOwner: "Proponent",
             commitPolarity: "pos",
+          }),
+        });
+      } else if (responseType === "CONCEDE") {
+        // Create CONCEDE dialogue move (accepts the challenge/attack)
+        await fetch("/api/dialogue/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType: data.targetType,
+            targetId: data.targetId,
+            kind: "ASSERT", // CONCEDE is represented as ASSERT with as:"CONCEDE" marker
+            actorId: userId,
+            payload: { 
+              locusPath: "0",
+              as: "CONCEDE", // Mark this ASSERT as a CONCEDE
+              expression: "I accept this challenge",
+            },
           }),
         });
       } else {
@@ -833,6 +853,7 @@ function ActionOnMeCard({ type, data, deliberationId, userId }: ActionOnMeCardPr
                 className="text-xs border border-slate-300 rounded px-2 py-1"
               >
                 <option value="GROUNDS">Provide GROUNDS (Defend)</option>
+                <option value="CONCEDE">CONCEDE (Accept)</option>
                 <option value="RETRACT">RETRACT (Withdraw)</option>
               </select>
               {!showGroundsInput && (

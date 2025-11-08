@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const [claims, edges] = await Promise.all([
    prisma.claim.findMany({ 
      where: { deliberationId }, 
-     select: { id: true, text: true, moid: true, createdAt: true },
+     select: { id: true, text: true, moid: true, createdAt: true, createdById: true },
      orderBy: { createdAt: 'desc' }
    }),
     prisma.claimEdge.findMany({ where: { deliberationId }, select: { fromClaimId: true, type: true } }),
@@ -44,6 +44,7 @@ claims: claims.map((c) => ({
      text: c.text,
      moid: c.moid,
      createdAt: c.createdAt,
+     createdById: c.createdById,
      counts: counts[c.id] ?? { supports: 0, rebuts: 0 },
      cq: cqById[c.id] ?? { required: 0, satisfied: 0 },
    })),  });

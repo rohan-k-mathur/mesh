@@ -107,13 +107,18 @@ export async function GET(
       ...conflictingArguments.map(a => a.authorId),
     ].filter(Boolean) as string[];
 
+    console.log("[attacks-on-user] Attacker user IDs:", attackerUserIds);
+
     // Fetch attacker user profiles
-    const attackerUsers = await prisma.profile.findMany({
-      where: { id: { in: attackerUserIds } },
-      select: { id: true, displayName: true, username: true },
+    // Note: createdById/authorId store the User.id (BigInt), not auth_id
+    const attackerUsers = await prisma.user.findMany({
+      where: { id: { in: attackerUserIds.map(id => BigInt(id)) } },
+      select: { id: true, name: true, username: true },
     });
 
-    const attackerUserMap = new Map(attackerUsers.map((u) => [u.id, u]));
+    console.log("[attacks-on-user] Found attacker users:", attackerUsers.length);
+
+    const attackerUserMap = new Map(attackerUsers.map((u) => [u.id.toString(), u]));
 
     // Create lookup maps
     const conflictingClaimMap = new Map(conflictingClaims.map((c) => [c.id, c]));
@@ -137,7 +142,11 @@ export async function GET(
 
       // Fetch attacker name
       const attackerUser = attackerId ? attackerUserMap.get(attackerId) : null;
-      const attackerName = attackerUser?.displayName || attackerUser?.username || "Unknown";
+      const attackerName = attackerUser?.name || attackerUser?.username || "Unknown";
+
+      if (!attackerUser && attackerId) {
+        console.log("[attacks-on-user] No user found for attackerId:", attackerId);
+      }
 
       // Determine target
       const conflictedClaim = attack.conflictedClaimId

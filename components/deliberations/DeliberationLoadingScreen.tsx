@@ -22,7 +22,7 @@ export function DeliberationLoadingScreen({ hostName }: { hostName?: string | nu
       <div className="relative z-10 mx-auto max-w-2xl px-4">
         {/* Title section - mimics the main page header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-medium tracking-wide text-slate-800 mb-4">
+          <h2 className="text-3xl font-medium font-mono uppercase tracking-wide text-slate-800 mb-4">
             {hostName ? `Deliberation for "${hostName}"` : "Deliberation"}
           </h2>
           <div className="mx-auto w-[100%] border-b border-slate-400/40" />

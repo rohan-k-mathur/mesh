@@ -188,24 +188,9 @@ export function SchemeSpecificCQsModal({
           return;
         }
 
-        // Phase 5: Create GROUNDS DialogueMove before CA
-        if (deliberationId && authorId) {
-          const moveRes = await fetch("/api/dialogue/move", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              deliberationId,
-              targetType: "argument",
-              targetId: argumentId,
-              kind: "GROUNDS",
-              payload: { cqKey, brief: `Rebut: ${claim.text}`, locusPath: "0" },
-            }),
-          });
-          if (!moveRes.ok) {
-            const errorData = await moveRes.json().catch(() => ({}));
-            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status, errorData);
-          }
-        }
+        // Note: We don't create a GROUNDS DialogueMove here because this is proactively
+        // creating an attack, not answering a WHY move. The ConflictApplication captures
+        // the objection sufficiently.
 
         await fetch("/api/ca", {
           method: "POST",
@@ -234,24 +219,9 @@ export function SchemeSpecificCQsModal({
           return;
         }
 
-        // Phase 5: Create GROUNDS DialogueMove before CA
-        if (deliberationId && authorId) {
-          const moveRes = await fetch("/api/dialogue/move", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              deliberationId,
-              targetType: "argument",
-              targetId: argumentId,
-              kind: "GROUNDS",
-              payload: { cqKey, brief: text, locusPath: "0" },
-            }),
-          });
-          if (!moveRes.ok) {
-            const errorData = await moveRes.json().catch(() => ({}));
-            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status, errorData);
-          }
-        }
+        // Note: We don't create a GROUNDS DialogueMove here because this is proactively
+        // creating an attack, not answering a WHY move. The ConflictApplication captures
+        // the objection sufficiently.
 
         // Create exception claim
         const r = await fetch("/api/claims", {
@@ -300,24 +270,9 @@ export function SchemeSpecificCQsModal({
           return;
         }
 
-        // Phase 5: Create GROUNDS DialogueMove before CA
-        if (deliberationId && authorId) {
-          const moveRes = await fetch("/api/dialogue/move", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              deliberationId,
-              targetType: "argument",
-              targetId: argumentId,
-              kind: "GROUNDS",
-              payload: { cqKey, brief: `Undermine: ${claim.text}`, locusPath: "0" },
-            }),
-          });
-          if (!moveRes.ok) {
-            const errorData = await moveRes.json().catch(() => ({}));
-            console.warn("[SchemeSpecificCQsModal] Failed to create GROUNDS move:", moveRes.status, errorData);
-          }
-        }
+        // Note: We don't create a GROUNDS DialogueMove here because this is proactively
+        // creating an attack, not answering a WHY move. The ConflictApplication captures
+        // the objection sufficiently.
 
         await fetch("/api/ca", {
           method: "POST",

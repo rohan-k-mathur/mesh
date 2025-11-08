@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unknown schemeKey' }, { status: 400 });
   }
 
-  // 1) Optional: attach suggested attack first (for the “Attach” CTA)
+  // 1) Optional: attach suggested attack first (for the "Attach" CTA)
   let edgeCreated = false;
   if (attachSuggestion && !satisfied) {
     const suggest = suggestionForCQ(schemeKey, cqKey);
@@ -81,6 +81,11 @@ export async function POST(req: NextRequest) {
       toClaimId: targetId,
       deliberationId,
       suggestion: suggest,
+      metaJson: {
+        cqKey,
+        schemeKey,
+        source: 'critical-questions-v3-attach',
+      },
     });
     edgeCreated = true;
   }
@@ -119,10 +124,12 @@ export async function POST(req: NextRequest) {
     }
   });
 
-  // 3) HARD GUARD: only when trying to set satisfied:true
+  // 3) SOFT GUARD (WARNING): Check proof obligation when marking satisfied:true
+  // Changed from hard block to soft suggestion to allow flexibility
   let hasEdge = false;
   let requiredAttack: 'rebut'|'undercut'|null = null;
   let nli: { relation: NliRel; score: number } | null = null;
+  let warning: string | null = null;
 
   if (satisfied === true) {
     const suggest = suggestionForCQ(schemeKey, cqKey); // may be null
@@ -187,35 +194,15 @@ export async function POST(req: NextRequest) {
       hasEdge = await anyInboundAttack();
     }
 
-    const allow =
+    const proofMet =
       hasEdge ||
       (requiredAttack === 'rebut' && nli?.relation === 'contradicts' && (nli?.score ?? 0) >= NLI_THRESHOLD);
 
-    if (!allow) {
-      // Revert optimistic update
-      await prisma.cQStatus.update({
-        where: {
-          targetType_targetId_schemeKey_cqKey: {
-            targetType: 'claim', targetId, schemeKey, cqKey
-          }
-        },
-        data: { satisfied: false, updatedAt: new Date() },
-      });
-
-      // Stable 409 payload your UI can map to a toast
-      return NextResponse.json({
-        ok: false,
-        blocked: true,
-        code: 'CQ_PROOF_OBLIGATION_NOT_MET',
-        message: 'This CQ can only be marked addressed after you attach the appropriate counter (rebut/undercut) or provide a strong contradiction.',
-        guard: {
-          requiredAttack,
-          hasEdge,
-          nliRelation: nli?.relation ?? null,
-          nliScore: nli?.score ?? null,
-          nliThreshold: NLI_THRESHOLD,
-        },
-      }, { status: 409 });
+    // ✅ SOFT GUARD: Set warning but allow operation to proceed
+    if (!proofMet) {
+      warning = requiredAttack 
+        ? `Suggestion: Consider attaching a ${requiredAttack === 'rebut' ? 'contradicting claim' : 'inference challenge'} to strengthen this answer.`
+        : 'Suggestion: Consider providing supporting evidence to strengthen this answer.';
     }
   }
   emitBus('dialogue:moves:refresh', { deliberationId });
@@ -223,9 +210,11 @@ export async function POST(req: NextRequest) {
     ok: true,
     status,
     edgeCreated,
+    warning, // ✅ Include warning message (null if proof met)
     guard: {
       requiredAttack,
       hasEdge,
+      proofMet, // ✅ Boolean indicating if proof obligation was met
       nliRelation: nli?.relation ?? null,
       nliScore: nli?.score ?? null,
       nliThreshold: NLI_THRESHOLD,

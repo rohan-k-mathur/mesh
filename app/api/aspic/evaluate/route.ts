@@ -175,6 +175,20 @@ export async function GET(req: NextRequest) {
 
     console.log(`[ASPIC API] Fetched ${conflictsList.length} ConflictApplications for deliberation ${deliberationId}`);
 
+    // Step 1c-2: Fetch ClaimEdges (from CriticalQuestionsV3) for ASPIC+ integration
+    const claimEdgesList = await prisma.claimEdge.findMany({
+      where: {
+        deliberationId,
+        attackType: { in: ["REBUTS", "UNDERCUTS", "UNDERMINES"] }, // Only attack edges
+      },
+      include: {
+        from: true,
+        to: true,
+      },
+    });
+
+    console.log(`[ASPIC API] Fetched ${claimEdgesList.length} ClaimEdges (attack edges) for deliberation ${deliberationId}`);
+
     // Step 1c: Fetch AssumptionUse records (ACCEPTED assumptions for K_a)
     const assumptionsList = await prisma.assumptionUse.findMany({
       where: {
@@ -288,6 +302,9 @@ export async function GET(req: NextRequest) {
       // Determine attack type for visualization
       const attackType = conflict.aspicAttackType || conflict.legacyAttackType || 'unknown';
       
+      // Extract metaJson for CQ provenance
+      const metaJson = conflict.metaJson as Record<string, any> || {};
+      
       // Create CA-node
       if (!nodeIds.has(caNodeId)) {
         nodes.push({
@@ -297,7 +314,10 @@ export async function GET(req: NextRequest) {
           debateId: deliberationId,
           conflictType: attackType.toLowerCase() as "rebut" | "undercut" | "undermine",
           metadata: {
-            schemeKey: conflict.scheme?.key,
+            cqKey: metaJson.cqKey,
+            cqText: metaJson.cqText,
+            schemeKey: conflict.scheme?.key || metaJson.schemeKey,
+            source: metaJson.source,
             createdByMoveId: conflict.createdByMoveId,
             aspicAttackType: conflict.aspicAttackType,
             aspicDefeatStatus: conflict.aspicDefeatStatus,
@@ -385,6 +405,79 @@ export async function GET(req: NextRequest) {
       }
 
       console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (${conflict.conflictingArgumentId || conflict.conflictingClaimId} → ${conflict.conflictedArgumentId || conflict.conflictedClaimId})`);
+    }
+
+    // Step 3b: Add CA-nodes for ClaimEdges (from CriticalQuestionsV3)
+    for (const edge of claimEdgesList) {
+      const caNodeId = `CA:ClaimEdge:${edge.id}`;
+      
+      // Determine attack type for visualization
+      const attackType = edge.attackType || 'rebuts';
+      
+      // Extract metaJson for CQ provenance
+      const metaJson = edge.metaJson as Record<string, any> || {};
+      
+      // Create CA-node
+      if (!nodeIds.has(caNodeId)) {
+        nodes.push({
+          id: caNodeId,
+          nodeType: "CA",
+          content: `${attackType} attack`,
+          debateId: deliberationId,
+          conflictType: attackType.toLowerCase() as "rebut" | "undercut" | "undermine",
+          metadata: {
+            cqKey: metaJson.cqKey,
+            schemeKey: metaJson.schemeKey,
+            source: metaJson.source || 'claim-edge',
+            attackType: edge.attackType,
+            targetScope: edge.targetScope,
+            claimEdgeId: edge.id,
+          },
+        });
+        nodeIds.add(caNodeId);
+      }
+
+      // Edge 1: Attacker claim → CA-node (conflicting edge)
+      const attackerNodeId = `I:${edge.fromClaimId}`;
+      if (!nodeIds.has(attackerNodeId)) {
+        nodes.push({
+          id: attackerNodeId,
+          nodeType: "I",
+          content: edge.from.text,
+          claimText: edge.from.text,
+          debateId: deliberationId,
+        });
+        nodeIds.add(attackerNodeId);
+      }
+      edges.push({
+        id: `${attackerNodeId}->${caNodeId}`,
+        sourceId: attackerNodeId,
+        targetId: caNodeId,
+        edgeType: "conflicting",
+        debateId: deliberationId,
+      });
+
+      // Edge 2: CA-node → Target claim (conflicted edge)
+      const targetNodeId = `I:${edge.toClaimId}`;
+      if (!nodeIds.has(targetNodeId)) {
+        nodes.push({
+          id: targetNodeId,
+          nodeType: "I",
+          content: edge.to.text,
+          claimText: edge.to.text,
+          debateId: deliberationId,
+        });
+        nodeIds.add(targetNodeId);
+      }
+      edges.push({
+        id: `${caNodeId}->${targetNodeId}`,
+        sourceId: caNodeId,
+        targetId: targetNodeId,
+        edgeType: "conflicted",
+        debateId: deliberationId,
+      });
+
+      console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (ClaimEdge ${edge.fromClaimId} → ${edge.toClaimId})`);
     }
 
     // Step 4: Add I-nodes for assumptions (K_a)

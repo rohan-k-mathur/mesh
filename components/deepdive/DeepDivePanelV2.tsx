@@ -1590,6 +1590,7 @@ const {
                 deliberationId={deliberationId}
                 selectedClaimId={selectedClaim?.id}
                 onClaimClick={handleClaimSelect}
+                currentUserId={currentUserId}
               />
             </SectionCard>
             <SectionCard>

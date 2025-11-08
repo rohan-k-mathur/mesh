@@ -118,6 +118,7 @@ export default function CriticalQuestionsV3({
   targetType,
   targetId,
   createdById,
+  claimAuthorId, // NEW: The actual author of the claim/argument being questioned
   deliberationId,
   roomId,
   currentLens,
@@ -127,7 +128,8 @@ export default function CriticalQuestionsV3({
 }: {
   targetType: "claim" | "argument";
   targetId: string;
-  createdById?: string;
+  createdById?: string; // Current user ID
+  claimAuthorId?: string; // NEW: Author of the claim/argument (who should answer CQs)
   deliberationId?: string;
   roomId?: string;
   currentLens?: string;
@@ -135,6 +137,8 @@ export default function CriticalQuestionsV3({
   selectedAttackerClaimId?: string;
   prefilterKeys?: string[];
 }) {
+  // Determine if current user is the author
+  const isAuthor = createdById && claimAuthorId && createdById === claimAuthorId;
   // UI State
   const [expandedCQ, setExpandedCQ] = useState<string | null>(null);
   const [expandedMoves, setExpandedMoves] = useState<string | null>(null);
@@ -295,7 +299,15 @@ export default function CriticalQuestionsV3({
           deliberationId, // Include for potential move creation
         }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        if (r.status === 403) {
+          alert(errorData.error || "You must be the claim author to mark CQs satisfied. Use the Community Responses feature instead.");
+          throw new Error("Permission denied");
+        }
+        throw new Error(`HTTP ${r.status}`);
+      }
       
       await globalMutate(cqsKey);
       window.dispatchEvent(new CustomEvent("cqs:changed"));
@@ -328,32 +340,16 @@ export default function CriticalQuestionsV3({
     globalMutate(cqsKey, { ...oldData, schemes: updatedSchemes }, false);
 
     try {
-      // Create GROUNDS DialogueMove first (Option A: Generic dialogue move)
-      if (deliberationId) {
-        const moveRes = await fetch("/api/dialogue/move", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            deliberationId,
-            targetType,
-            targetId,
-            kind: "GROUNDS",
-            payload: {
-              cqKey,
-              brief: grounds,
-              locusPath: "0",
-            },
-          }),
-        });
-        
-        if (!moveRes.ok) {
-          const errorData = await moveRes.json().catch(() => ({}));
-          console.warn("[CriticalQuestionsV3] Failed to create GROUNDS move:", moveRes.status, errorData);
-          // Continue anyway to update CQStatus
-        }
-      }
+      // Note: We do NOT create GROUNDS DialogueMoves for claim-level CQs.
+      // Reason: GROUNDS moves require a prior WHY move (R2_NO_OPEN_CQ validation rule).
+      // Claim-level CQs are answered directly by the author without formal WHY challenges.
+      // CQStatus is the canonical storage for claim-level CQ answers.
+      // 
+      // For argument-level dialogue, GROUNDS moves are created when responding to specific
+      // WHY challenges within the dialectical exchange. That flow is handled separately
+      // in the dialogue panel components.
 
-      // Then update CQStatus
+      // Update CQStatus (canonical storage for claim-level CQ answers)
       const r = await fetch("/api/cqs", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -367,7 +363,15 @@ export default function CriticalQuestionsV3({
           deliberationId, // Include for potential move creation
         }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({}));
+        if (r.status === 403) {
+          alert(errorData.error || "You must be the claim author to provide canonical answers. Use the Community Responses feature instead.");
+          throw new Error("Permission denied");
+        }
+        throw new Error(`HTTP ${r.status}`);
+      }
       
       await globalMutate(cqsKey);
       window.dispatchEvent(new CustomEvent("cqs:changed"));
@@ -568,7 +572,46 @@ export default function CriticalQuestionsV3({
   }
 
   return (
-    <div className="space-y-2 max-h-[600px] overflow-y-auto px-3 py-2 custom-scrollbar">
+    <div className="space-y-4 max-h-[600px] overflow-y-auto px-3 py-2 custom-scrollbar">
+      {/* Contextual Help Banner */}
+      <div className="bg-gradient-to-r from-indigo-50 to-sky-50 border border-indigo-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-indigo-100 shrink-0">
+            <Target className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-indigo-900">What are Critical Questions?</h3>
+            <p className="text-xs text-slate-700 leading-relaxed">
+              Critical Questions (CQs) test the strength of a claim by identifying potential weaknesses or missing information.
+            </p>
+            <div className="flex items-start gap-4 mt-3">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 bg-sky-200 text-sky-900 rounded-full font-semibold">AUTHOR</span>
+                  <span className="text-xs font-semibold text-slate-700">Your Role</span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  {isAuthor 
+                    ? "Answer CQs by providing grounds, then mark them satisfied once addressed."
+                    : "You are viewing this claim. Authors answer CQs; you can challenge via community responses."}
+                </p>
+              </div>
+              {!isAuthor && (
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full font-semibold">COMMUNITY</span>
+                    <span className="text-xs font-semibold text-slate-700">Challenge</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Attach contradicting claims to challenge assertions via WHY moves.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {filteredSchemes.map((scheme) => (
         <div key={scheme.key} className="space-y-2 border border-slate-200 p-2 rounded-xl">
           <div className="flex items-center gap-3 ">
@@ -687,123 +730,137 @@ export default function CriticalQuestionsV3({
 
                     {isExpanded && (
                       <div className="mt-2 space-y-2 animate-in slide-in-from-top-0 duration-400">
-                        {/* Quick Satisfaction Toggle */}
-                        <div className="flex items-center justify-between px-3 py-1.5 bg-white rounded-lg border border-indigo-200">
-                          <span className="text-sm font-medium text-slate-700">
-                            Mark as {cq.satisfied ? "unsatisfied" : "satisfied"}
-                          </span>
-                          <button
-                            onClick={() =>
-                              toggleCQ(scheme.key, cq.key, !cq.satisfied)
-                            }
-                            className={
-                              cq.satisfied
-                                ? "btnv2--ghost rounded-lg px-2 py-1 border-slate-300 bg-slate-100 text-slate-800 text-xs hover:bg-slate-200"
-                                : "btnv2--ghost rounded-lg px-2 py-1 text-xs "
-                            }
-                          >
-                            {cq.satisfied ? "Unmark" : "Mark Satisfied"}
-                          </button>
-                        </div>
+                        {/* Author-Only: Mark Satisfied + Provide Grounds */}
+                        {isAuthor && (
+                          <>
+                            {/* Quick Satisfaction Toggle (Author Only) */}
+                            <div className="flex items-center justify-between px-3 py-1.5 bg-sky-50 rounded-lg border border-sky-300">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs px-2 py-0.5 bg-sky-200 text-sky-900 rounded-full font-semibold">AUTHOR</span>
+                                <span className="text-sm font-medium text-slate-700">
+                                  Mark as {cq.satisfied ? "unsatisfied" : "satisfied"}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() =>
+                                  toggleCQ(scheme.key, cq.key, !cq.satisfied)
+                                }
+                                className={
+                                  cq.satisfied
+                                    ? "btnv2--ghost rounded-lg px-2 py-1 border-slate-300 bg-slate-100 text-slate-800 text-xs hover:bg-slate-200"
+                                    : "btnv2--ghost rounded-lg px-2 py-1 text-xs bg-sky-600 text-white hover:bg-sky-700"
+                                }
+                              >
+                                {cq.satisfied ? "Unmark" : "Mark Satisfied"}
+                              </button>
+                            </div>
 
-                        {/* Grounds Input */}
-                        {!cq.satisfied && (
-                          <div className="space-y-3">
+                            {/* Answer This Question (Grounds Input - Author Only) */}
+                            {!cq.satisfied && (
+                              <div className="space-y-3 bg-sky-50/50 p-3 rounded-lg border border-sky-200">
+                                <div className="flex items-center gap-2">
+                                  <MessageCircle className="w-4 h-4 text-sky-600" />
+                                  <label className="text-sm font-semibold text-sky-900">
+                                    Answer This Question
+                                  </label>
+                                  <span className="text-xs text-sky-700 ml-auto">
+                                    Explain how your claim satisfies this CQ
+                                  </span>
+                                </div>
+                                <Textarea
+                                  placeholder="Your answer..."
+                                  value={groundsInput[cq.key] || ""}
+                                  onChange={(e) =>
+                                    setGroundsInput((prev) => ({
+                                      ...prev,
+                                      [cq.key]: e.target.value,
+                                    }))
+                                  }
+                                  className="text-sm articlesearchfield resize-none"
+                                  rows={3}
+                                />
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-slate-500">
+                                    {(groundsInput[cq.key] || "").length} characters
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      resolveViaGrounds(
+                                        scheme.key,
+                                        cq.key,
+                                        groundsInput[cq.key] || ""
+                                      )
+                                    }
+                                    disabled={!(groundsInput[cq.key] || "").trim()}
+                                    className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700"
+                                  >
+                                    <Send className="w-4 h-4" />
+                                    Submit Answer & Mark Satisfied
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Community: Challenge With Evidence */}
+                        {!isAuthor && (
+                          <div className="space-y-2 pt-2 border-t border-amber-400/40 bg-amber-50/30 p-3 rounded-lg">
                             <div className="flex items-center gap-2">
-                              <MessageCircle className="w-4 h-4 text-indigo-600" />
-                              <label className="text-sm font-semibold text-slate-900">
-                                Provide Grounds
+                              <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full font-semibold">COMMUNITY</span>
+                              <Link2 className="w-4 h-4 text-amber-600" />
+                              <label className="text-sm font-semibold text-amber-900">
+                                Challenge With Evidence
                               </label>
                             </div>
-                            <Textarea
-                              placeholder="Explain why this question is satisfied..."
-                              value={groundsInput[cq.key] || ""}
-                              onChange={(e) =>
-                                setGroundsInput((prev) => ({
-                                  ...prev,
-                                  [cq.key]: e.target.value,
-                                }))
-                              }
-                              className="text-sm articlesearchfield resize-none"
-                              rows={3}
-                            />
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-slate-500">
-                                {(groundsInput[cq.key] || "").length} characters
-                              </span>
-                              <Button
-                                size="sm"
+                            <p className="text-xs text-amber-800">
+                              Attach a contradicting claim to question this assertion via WHY move
+                            </p>
+
+                            {attached.length > 0 && (
+                              <div className="space-y-2 mt-2">
+                                <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                                  Currently Attached
+                                </p>
+                                {attached.map((a) => (
+                                  <div
+                                    key={a.id}
+                                    className="p-3 bg-amber-100 border border-amber-300 rounded-lg"
+                                  >
+                                    <p className="text-sm text-amber-900">
+                                      {a.text}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
                                 onClick={() =>
-                                  resolveViaGrounds(
-                                    scheme.key,
-                                    cq.key,
-                                    groundsInput[cq.key] || ""
-                                  )
+                                  openQuickCompose(scheme.key, cq.key)
                                 }
-                                disabled={!(groundsInput[cq.key] || "").trim()}
-                                className="flex items-center gap-2"
+                                className="flex flex-1 btnv2--ghost bg-white
+                                rounded-lg px-3 py-2 text-sm border-amber-300 hover:bg-amber-50"
                               >
-                                <Send className="w-4 h-4" />
-                                Submit Grounds
-                              </Button>
+                                <Plus className="w-4 h-4 mr-2" />
+                                Create New Counter-Claim
+                              </button>
+                              <button
+                                onClick={() => openPicker(cq.key)}
+                                className="flex flex-1 btnv2--ghost bg-white
+                                rounded-lg px-3 py-2 text-sm border-amber-300 hover:bg-amber-50"
+                              >
+                                <Search className="w-4 h-4 mr-2" />
+                                Find Existing
+                              </button>
                             </div>
                           </div>
                         )}
 
-                        {/* Attach Counter-Claim */}
+                        {/* Shared: Community Responses (Visible to All) */}
                         <div className="space-y-2 pt-2 border-t border-slate-400/40">
-                          <div className="flex items-center gap-2">
-                            <Link2 className="w-4 h-4 text-indigo-600" />
-                            <label className="text-sm font-semibold text-slate-900">
-                              Attach Counter-Claim
-                            </label>
-                          </div>
-
-                          {attached.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">
-                                Currently Attached
-                              </p>
-                              {attached.map((a) => (
-                                <div
-                                  key={a.id}
-                                  className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg"
-                                >
-                                  <p className="text-sm text-indigo-900">
-                                    {a.text}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() =>
-                                openQuickCompose(scheme.key, cq.key)
-                              }
-                              className="flex flex-1 btnv2--ghost bg-white
-                              rounded-lg px-3 py-2 text-sm"
-                            >
-                              <div className="flex  items-center align-center ">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Create New
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => openPicker(cq.key)}
-                              className="flex btnv2--ghost flex-1 rounded-lg px-3 py-2 text-sm bg-white"
-                            >
-                              <div className="flex  items-center align-center ">
-                                <Search className="w-4 h-4 mr-2" />
-                                Find Existing
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Community Responses Section (NEW) */}
-                        <div className="space-y-2 pt-3 border-t border-slate-400/40">
                           <div className="flex items-center gap-2 mb-2">
                             <MessageSquarePlus className="w-4 h-4 text-sky-600" />
                             <label className="text-sm font-semibold text-slate-900">
@@ -859,7 +916,7 @@ export default function CriticalQuestionsV3({
                           </button>
                         </div>
 
-                        {/* Legal Moves (if available) */}
+                        {/* Legal Moves (Advanced - Collapsed by default) */}
                         {deliberationId && movesData && (
                           <div className="pt-3 border-t border-slate-200">
                             <button
@@ -868,9 +925,12 @@ export default function CriticalQuestionsV3({
                                   expandedMoves === cq.key ? null : cq.key
                                 )
                               }
-                              className="w-full flex items-center justify-between text-sm font-semibold text-slate-700 hover:text-slate-900"
+                              className="w-full flex items-center justify-between text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
                             >
-                              <span>Show Legal Moves</span>
+                              <div className="flex items-center gap-2">
+                                <span>Legal Moves</span>
+                                <span className="text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full font-semibold">ADVANCED</span>
+                              </div>
                               {expandedMoves === cq.key ? (
                                 <ChevronUp className="w-4 h-4" />
                               ) : (
@@ -878,7 +938,10 @@ export default function CriticalQuestionsV3({
                               )}
                             </button>
                             {expandedMoves === cq.key && (
-                              <div className="mt-3">
+                              <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                <p className="text-xs text-slate-600 mb-2">
+                                  Ludics dialogue protocol moves for structured debate
+                                </p>
                                 <LegalMoveChips
                                   deliberationId={deliberationId}
                                   targetType={targetType as TargetType}

@@ -102,26 +102,27 @@ export async function GET(req: NextRequest) {
   keys.forEach((k) => statusMap.set(k, new Map()));
   
   // Phase 8: Fetch DialogueMove counts for each CQ
-  const dialogueMoves = await prisma.dialogueMove.findMany({
-    where: {
-      targetType: targetType as TargetType,
-      targetId,
-    },
-    select: {
-      kind: true,
-      payload: true,
-    },
-  });
+  // Optimized: Use aggregated query instead of O(n*m) loop
+  const moveCounts = await prisma.$queryRaw<Array<{ cq_key: string; kind: string; count: bigint }>>`
+    SELECT 
+      payload->>'cqKey' as cq_key,
+      kind,
+      COUNT(*) as count
+    FROM "DialogueMove"
+    WHERE "targetType" = ${targetType as string}
+      AND "targetId" = ${targetId}
+      AND payload->>'cqKey' IS NOT NULL
+    GROUP BY payload->>'cqKey', kind
+  `;
 
-  // Build counts map: schemeKey -> cqKey -> { whyCount, groundsCount }
+  // Build counts map from aggregated results
   const dialogueCountsMap = new Map<string, Map<string, { whyCount: number; groundsCount: number }>>();
   
-  for (const move of dialogueMoves) {
-    const payload = move.payload as any;
-    const cqKey = payload?.cqKey;
+  for (const row of moveCounts) {
+    const cqKey = row.cq_key;
     if (!cqKey) continue;
 
-    // Infer schemeKey from statuses (we need to match cqKey to schemeKey)
+    // Find which schemeKey this cqKey belongs to
     for (const [schemeKey, cqMap] of statusMap) {
       if (cqMap.has(cqKey)) {
         if (!dialogueCountsMap.has(schemeKey)) {
@@ -132,11 +133,13 @@ export async function GET(req: NextRequest) {
         }
         
         const counts = dialogueCountsMap.get(schemeKey)!.get(cqKey)!;
-        if (move.kind === 'WHY') {
-          counts.whyCount++;
-        } else if (move.kind === 'GROUNDS') {
-          counts.groundsCount++;
+        const count = Number(row.count);
+        if (row.kind === 'WHY') {
+          counts.whyCount = count;
+        } else if (row.kind === 'GROUNDS') {
+          counts.groundsCount = count;
         }
+        break; // Found the scheme, no need to continue
       }
     }
   }
@@ -234,6 +237,39 @@ export async function POST(req: NextRequest) {
 
     const { targetType, targetId, schemeKey, cqKey, satisfied, groundsText } = parsed.data;
 
+    // ✅ AUTHOR-ONLY GUARD: Only claim/argument author can mark CQs satisfied (canonical answer)
+    const { getCurrentUserId } = await import('@/lib/serverutils');
+    const userId = await getCurrentUserId().catch(() => null);
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get target author
+    let targetAuthorId: string | null = null;
+    if (targetType === 'claim') {
+      const claim = await prisma.claim.findUnique({
+        where: { id: targetId },
+        select: { createdById: true }
+      });
+      targetAuthorId = claim ? String(claim.createdById) : null;
+    } else if (targetType === 'argument') {
+      const arg = await prisma.argument.findUnique({
+        where: { id: targetId },
+        select: { createdById: true }
+      });
+      targetAuthorId = arg ? String(arg.createdById) : null;
+    }
+
+    const isAuthor = targetAuthorId === String(userId);
+    
+    if (!isAuthor) {
+      return NextResponse.json({ 
+        error: 'Only the claim/argument author can mark CQs satisfied (canonical answer). Use the Community Responses feature to contribute.',
+        hint: 'community_response_feature'
+      }, { status: 403 });
+    }
+
     // Upsert CQStatus record
     const status = await prisma.cQStatus.upsert({
       where: {
@@ -258,7 +294,7 @@ export async function POST(req: NextRequest) {
         satisfied,
         // @ts-expect-error - Prisma types may be cached, groundsText exists in schema
         groundsText: groundsText ?? null,
-        createdById: 'system', // TODO: Get from auth session
+        createdById: String(userId), // ✅ Use actual user ID, not 'system'
         statusEnum: satisfied ? 'SATISFIED' : 'OPEN',
       },
     });

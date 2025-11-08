@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   ChevronDown,
   Search,
+  Swords,
   Filter,
   Link2,
   TrendingUp,
@@ -210,6 +211,48 @@ function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
   );
 }
 
+// ASPIC+ Attack Counts - Split by target level
+// - Claim-level attacks (REBUTS/UNDERMINES) shown in header with other metadata
+// - Argument-level attacks (UNDERCUTS) shown in footer (attacks inference/scheme)
+
+function ClaimLevelAttackCounts({ a }: { a?: AifMeta['attacks'] }) {
+  if (!a || (a.REBUTS === 0 && a.UNDERMINES === 0)) return null;
+
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      {a.REBUTS > 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium"
+          title="Rebuts (attacks conclusion claim)">
+          {a.REBUTS} Rebuts
+        </div>
+      )}
+      {a.UNDERMINES > 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium"
+          title="Undermines (attacks premise claims)">
+          {a.UNDERMINES} Undermines
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ArgumentLevelAttackCounts({ a }: { a?: AifMeta['attacks'] }) {
+  if (!a || a.UNDERCUTS === 0) return null;
+
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      {a.UNDERCUTS > 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
+          title="Undercuts (attacks inference/scheme of this argument)">
+          <Swords className="w-3 h-3" />
+          {a.UNDERCUTS} Undercuts
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Legacy component - kept for compatibility but use split versions above
 function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
   if (!a || (a.REBUTS === 0 && a.UNDERCUTS === 0 && a.UNDERMINES === 0)) return null;
 
@@ -582,13 +625,11 @@ function RowImpl({
                   )}
                 </div>
               )}
-                <div className="flex items-center flex-wrap gap-1.5 justify-end">
-              <PreferenceCounts p={meta?.preferences} />
-              <AttackCounts a={meta?.attacks} />
+              <div className="flex items-center flex-wrap gap-1.5 justify-end">
+                <PreferenceCounts p={meta?.preferences} />
+                <ClaimLevelAttackCounts a={meta?.attacks} />
+              </div>
             </div>
-
-            </div>
-          
           </div>
         </div>
 
@@ -653,6 +694,9 @@ function RowImpl({
 
 
         <footer className="flex flex-wrap items-center gap-2">
+          {/* Argument-Level Attacks (UNDERCUTS) - Attacks the inference/scheme */}
+          <ArgumentLevelAttackCounts a={meta?.attacks} />
+          
           <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} authorId={a.authorId} onDone={() => onRefreshRow(a.id)} />
 
           <AttackMenuProV2

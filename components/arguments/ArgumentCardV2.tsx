@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttackMenuPro } from "./AttackMenuPro";
+import { ArgumentAttackModal } from "./ArgumentAttackModal";
 import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
 import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
 import { SchemeBreakdownModal } from "./SchemeBreakdownModal";
@@ -683,6 +684,16 @@ export function ArgumentCardV2({
                 onMovePerformed={onAnyChange}
               />
               
+              {/* ASPIC+ Attack Button - Unified attack creation at argument level */}
+              <button
+                onClick={() => setShowAttackModal(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer text-xs font-medium text-indigo-700"
+                title="Create ASPIC+ attack (Rebut, Undermine, or Undercut)"
+              >
+                <Swords className="w-3 h-3" />
+                Attack
+              </button>
+              
               {argCqStatus && (
                 <CQStatusPill 
                   required={argCqStatus.required} 
@@ -1105,6 +1116,27 @@ export function ArgumentCardV2({
           }
         }}
       />
+      
+      {/* Argument-Level Attack Modal */}
+      {showAttackModal && (
+        <ArgumentAttackModal
+          deliberationId={deliberationId}
+          argumentId={id}
+          conclusion={conclusion}
+          premises={premises}
+          schemeKey={schemeKey || schemes[0]?.schemeKey}
+          schemeName={schemeName || schemes[0]?.schemeName}
+          onClose={() => setShowAttackModal(false)}
+          onCreated={() => {
+            onAnyChange?.();
+            // Refetch attacks if section is expanded
+            if (expandedSections.attacks) {
+              setLoading(true);
+              // Trigger refetch (component will reload)
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

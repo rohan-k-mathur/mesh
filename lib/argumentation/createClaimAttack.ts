@@ -11,8 +11,9 @@ export async function createClaimAttack(opts: {
   toClaimId: string;             // the target claim (the one with unmet CQ)
   deliberationId: string;        // resolved from the target claim
   suggestion: Suggestion;
+  metaJson?: Record<string, any>; // CQ provenance: { cqKey, schemeKey, source }
 }) {
-  const { fromClaimId, toClaimId, deliberationId, suggestion } = opts;
+  const { fromClaimId, toClaimId, deliberationId, suggestion, metaJson } = opts;
 
   // Map suggestion → ClaimEdge fields
   let type: ClaimEdgeType = 'rebuts';
@@ -46,6 +47,7 @@ export async function createClaimAttack(opts: {
       attackType,
       targetScope,
       deliberationId,
+      metaJson: metaJson ?? {}, // Store CQ provenance
       // createdAt added by default
     },
   });

@@ -2513,6 +2513,9 @@ model ConflictApplication {
 
   scheme ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
+  // CQ Enhancement: Back-reference to CQAttack linkage
+  cqAttacks CQAttack[]
+
   @@index([deliberationId])
   @@index([conflictingClaimId])
   @@index([conflictingArgumentId])
@@ -3312,8 +3315,14 @@ model ClaimEdge {
   deliberationId String?
   Deliberation   Deliberation? @relation(fields: [deliberationId], references: [id])
 
+  // CQ Enhancement: Metadata for provenance tracking (cqKey, schemeKey, source)
+  metaJson Json? @default("{}")
+
   from Claim @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
   to   Claim @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
+
+  // CQ Enhancement: Back-reference to CQAttack linkage
+  cqAttacks CQAttack[]
 
   @@unique([fromClaimId, toClaimId, type, attackType], name: "unique_from_to_type_attack")
   @@index([deliberationId, fromClaimId], name: "claimedge_delib_from") // NEW
@@ -3490,6 +3499,9 @@ model CQStatus {
   // Activity log
   activities CQActivityLog[]
 
+  // CQ Enhancement: Track attacks created from this CQ
+  attacks CQAttack[] @relation("CQAttacks")
+
   @@unique([targetType, targetId, schemeKey, cqKey])
   @@index([targetType, targetId, schemeKey])
   @@index([targetType, targetId])
@@ -3573,6 +3585,27 @@ model CQEndorsement {
   @@unique([responseId, userId])
   @@index([responseId])
   @@index([userId])
+}
+
+// CQ Enhancement: Explicit linkage between CQs and attacks for provenance tracking
+model CQAttack {
+  id        String   @id @default(cuid())
+  cqStatusId String
+  cqStatus  CQStatus @relation("CQAttacks", fields: [cqStatusId], references: [id], onDelete: Cascade)
+
+  // Exactly one of these should be set
+  conflictApplicationId String?
+  conflictApplication   ConflictApplication? @relation(fields: [conflictApplicationId], references: [id], onDelete: Cascade)
+
+  claimEdgeId String?
+  claimEdge   ClaimEdge? @relation(fields: [claimEdgeId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([cqStatusId])
+  @@index([conflictApplicationId])
+  @@index([claimEdgeId])
 }
 
 model CQActivityLog {
