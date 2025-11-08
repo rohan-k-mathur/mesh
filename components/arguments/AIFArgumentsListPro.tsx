@@ -43,6 +43,7 @@ import { ArgumentCardV2 } from './ArgumentCardV2';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { PreferenceAttackModal } from '@/components/agora/PreferenceAttackModal';
 import { DialogueMoveKind } from "@/components/aif/DialogueMoveNode";
+import { getUserFromCookies } from "@/lib/server/getUser";
 
 
 const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
@@ -479,6 +480,7 @@ function RowImpl({
   a,
   meta,
   deliberationId,
+  currentUserId,
   showPremises,
   onPromoted,
   onRefreshRow,
@@ -492,6 +494,7 @@ function RowImpl({
   a: AifRow;
   meta?: AifMeta;
   deliberationId: string;
+  currentUserId?: string | null;
   showPremises: boolean;
   onPromoted: () => void;
   onRefreshRow: (id: string) => void;
@@ -738,6 +741,7 @@ function RowImpl({
               argumentId={a.id}
               deliberationId={deliberationId}
               authorId={a.authorId}
+              currentUserId={currentUserId || undefined}
               cqs={cqs}
               meta={meta}
               onRefresh={() => {
@@ -861,6 +865,21 @@ export default function AIFArgumentsListPro({
   }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
 }) {
+  // Fetch current user ID for permission checks (using same approach as DeepDivePanelV2)
+  const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    getUserFromCookies()
+      .then((u) => {
+        const userId = u?.userId != null ? String(u.userId) : null;
+        console.log('[AIFArgumentsListPro] Fetched current user from cookies:', { userId, rawUser: u });
+        setCurrentUserId(userId);
+      })
+      .catch((err) => {
+        console.error('[AIFArgumentsListPro] Failed to fetch current user:', err);
+        setCurrentUserId(null);
+      });
+  }, []);
+
   // Confidence settings
   const { mode, tau } = useConfidence();
   const apiMode = mode === 'product' ? 'prod' : mode;
@@ -1206,6 +1225,7 @@ export default function AIFArgumentsListPro({
                 a={a}
                 meta={meta}
                 deliberationId={deliberationId}
+                currentUserId={currentUserId}
                 showPremises={showPremises}
                 onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } } as any))}
                 onRefreshRow={refreshAifForId}

@@ -58,6 +58,7 @@ export function SchemeSpecificCQsModal({
   argumentId,
   deliberationId,
   authorId,
+  currentUserId,
   cqs,
   meta,
   onRefresh,
@@ -66,11 +67,25 @@ export function SchemeSpecificCQsModal({
   argumentId: string;
   deliberationId: string;
   authorId: string;
+  currentUserId?: string;
   cqs: CQItem[];
   meta?: AifMeta;
   onRefresh: () => void;
   triggerButton?: React.ReactNode;
 }) {
+  // Role detection: is the current user the argument author?
+  // Convert both to strings to ensure type compatibility
+  const isAuthor = currentUserId && authorId && String(currentUserId) === String(authorId);
+  
+  // Debug logging
+  console.log('[SchemeSpecificCQsModal] Role detection:', {
+    currentUserId,
+    authorId,
+    isAuthor,
+    currentUserIdType: typeof currentUserId,
+    authorIdType: typeof authorId,
+    stringComparison: String(currentUserId) === String(authorId),
+  });
   const [open, setOpen] = React.useState(false);
   const [expandedCQ, setExpandedCQ] = React.useState<string | null>(null);
   const [localCqs, setLocalCqs] = React.useState<CQItem[]>(cqs);
@@ -142,6 +157,12 @@ export function SchemeSpecificCQsModal({
   }, [open, argumentId, cqs, provenanceData, loadingProvenance]);
 
   const handleAskCQ = async (cqKey: string) => {
+    // Author-only permission guard
+    if (!isAuthor) {
+      alert("Only the argument author can mark CQs as asked. Use the Community Responses feature to participate in the discussion.");
+      return;
+    }
+
     try {
       // Create WHY DialogueMove before updating CQStatus (Option A: Generic dialogue move)
       if (deliberationId && authorId) {
@@ -175,6 +196,12 @@ export function SchemeSpecificCQsModal({
   };
 
   const postObjection = async (cq: CQItem) => {
+    // Author-only permission guard
+    if (!isAuthor) {
+      alert("Only the argument author can post objections as canonical answers. Use the Community Responses feature to contribute to the discussion.");
+      return;
+    }
+
     if (posting) return;
 
     const cqKey = cq.cqKey;
@@ -349,6 +376,55 @@ export function SchemeSpecificCQsModal({
           <p className="text-sm text-slate-600 leading-relaxed">
             These questions test the strength of the argument scheme. Answer them as objections to challenge the argument.
           </p>
+
+          {/* Contextual Help Banner with Role-Based Guidance */}
+          <div className="mt-4 p-4 bg-gradient-to-br from-sky-50 to-indigo-50 rounded-xl border-2 border-sky-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-sky-100">
+                <HelpCircle className="w-5 h-5 text-sky-700" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-sky-900 mb-1">
+                  What are Critical Questions?
+                </div>
+                <div className="text-xs text-sky-800 leading-relaxed">
+                  CQs test the strength of an argument by identifying potential weaknesses in the reasoning scheme. 
+                  They challenge assumptions, premises, and inferences.
+                </div>
+              </div>
+            </div>
+
+            {/* Role-specific guidance */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              {isAuthor ? (
+                <div className="col-span-full p-3 bg-blue-50 rounded-lg border border-blue-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-900 rounded-full font-bold">
+                      AUTHOR
+                    </span>
+                    <span className="text-xs font-semibold text-blue-900">Your Role</span>
+                  </div>
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    <strong>Answer CQs</strong> by providing objections (rebuts, undercuts, undermines). 
+                    Mark questions as "asked" to enable community discussion. Your answers demonstrate the robustness of your argument.
+                  </p>
+                </div>
+              ) : (
+                <div className="col-span-full p-3 bg-amber-50 rounded-lg border border-amber-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full font-bold">
+                      COMMUNITY
+                    </span>
+                    <span className="text-xs font-semibold text-amber-900">Your Role</span>
+                  </div>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    <strong>Participate in discussion</strong> via Community Responses. 
+                    You can view how the author addresses each CQ and contribute your own perspective through responses and endorsements.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         {/* Scheme info */}
@@ -569,8 +645,8 @@ export function SchemeSpecificCQsModal({
                       </div>
                     </button>
 
-                    {/* Mark as asked button - outside the toggle button */}
-                    {cq.status === "open" && !isExpanded && (
+                    {/* Mark as asked button - AUTHOR ONLY */}
+                    {cq.status === "open" && !isExpanded && isAuthor && (
                       <div className="w-full pt-2">
                         <button
                           onClick={(e) => {
@@ -584,149 +660,215 @@ export function SchemeSpecificCQsModal({
                       </div>
                     )}
 
+                    {/* Community hint - shown when not author */}
+                    {cq.status === "open" && !isExpanded && !isAuthor && (
+                      <div className="w-full pt-2 px-2">
+                        <div className="text-xs text-slate-500 italic">
+                          Author can mark this CQ as asked. You can participate via Community Responses below.
+                        </div>
+                      </div>
+                    )}
+
                     {/* Expanded objection form */}
                     {isExpanded && (
                       <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300 pt-4 border-t border-slate-200">
-                        <div className="p-3 bg-white/70 rounded-lg border border-slate-200">
-                          <p className="text-xs text-slate-700 leading-relaxed">
-                            <strong>How to answer:</strong> Provide an objection that addresses this question.
-                            Your answer will be posted as a {cq.attackType.toLowerCase()} attacking the{" "}
-                            {cq.targetScope}.
-                          </p>
-                        </div>
+                        {/* AUTHOR SECTION: Answer CQ with Objection */}
+                        {isAuthor && (
+                          <div className="p-4 bg-blue-50 rounded-xl border-2 border-blue-300 space-y-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-900 rounded-full font-bold">
+                                AUTHOR
+                              </span>
+                              <span className="text-sm font-bold text-blue-900">
+                                Answer This Question
+                              </span>
+                            </div>
 
-                        {/* REBUTS form */}
-                        {cq.attackType === "REBUTS" && (
-                          <div className="space-y-3">
-                            <label className="block text-sm font-semibold text-slate-900">
-                              Select or Create Counter-Claim (contradicts conclusion)
-                            </label>
-                            <button
-                              onClick={() => setRebutClaimPickerOpen(cq.cqKey)}
-                              className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-indigo-200/50 hover:bg-indigo-400/20 transition-colors"
-                            >
-                              {rebutClaim[cq.cqKey]?.text || "Select or create counter-claim..."}
-                            </button>
-                            <ClaimPicker
-                              deliberationId={deliberationId}
-                              open={rebutClaimPickerOpen === cq.cqKey}
-                              onClose={() => setRebutClaimPickerOpen(null)}
-                              onPick={(claim) => {
-                                setRebutClaim((prev) => ({ ...prev, [cq.cqKey]: claim }));
-                                setRebutClaimPickerOpen(null);
-                              }}
-                              allowCreate={true}
-                            />
-                            {meta?.conclusion && (
-                              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                <div className="text-xs font-semibold text-slate-700 mb-1">
-                                  Target Conclusion
-                                </div>
-                                <div className="text-xs text-slate-600">{meta.conclusion.text}</div>
+                            <div className="p-3 bg-white/70 rounded-lg border border-blue-200">
+                              <p className="text-xs text-blue-800 leading-relaxed">
+                                <strong>How to answer:</strong> Provide an objection that addresses this question.
+                                Your answer will be posted as a {cq.attackType.toLowerCase()} attacking the{" "}
+                                {cq.targetScope}.
+                              </p>
+                            </div>
+
+                            {/* REBUTS form */}
+                            {cq.attackType === "REBUTS" && (
+                              <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-blue-900">
+                                  Select or Create Counter-Claim
+                                </label>
+                                <p className="text-xs text-blue-700">
+                                  Choose a claim that contradicts the conclusion to demonstrate this weakness
+                                </p>
+                                <button
+                                  onClick={() => setRebutClaimPickerOpen(cq.cqKey)}
+                                  className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 transition-colors"
+                                >
+                                  {rebutClaim[cq.cqKey]?.text || "Select or create counter-claim..."}
+                                </button>
+                                <ClaimPicker
+                                  deliberationId={deliberationId}
+                                  open={rebutClaimPickerOpen === cq.cqKey}
+                                  onClose={() => setRebutClaimPickerOpen(null)}
+                                  onPick={(claim) => {
+                                    setRebutClaim((prev) => ({ ...prev, [cq.cqKey]: claim }));
+                                    setRebutClaimPickerOpen(null);
+                                  }}
+                                  allowCreate={true}
+                                />
+                                {meta?.conclusion && (
+                                  <div className="p-3 bg-blue-100/50 rounded-lg border border-blue-200">
+                                    <div className="text-xs font-semibold text-blue-800 mb-1">
+                                      Target Conclusion
+                                    </div>
+                                    <div className="text-xs text-blue-700">{meta.conclusion.text}</div>
+                                  </div>
+                                )}
                               </div>
                             )}
+
+                            {/* UNDERCUTS form */}
+                            {cq.attackType === "UNDERCUTS" && (
+                              <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-blue-900">
+                                  Exception or Rule-Defeater
+                                </label>
+                                <p className="text-xs text-blue-700">
+                                  Explain why the inference doesn't hold in this case
+                                </p>
+                                <textarea
+                                  value={undercutText[cq.cqKey] || ""}
+                                  onChange={(e) =>
+                                    setUndercutText((prev) => ({ ...prev, [cq.cqKey]: e.target.value }))
+                                  }
+                                  placeholder="Explain why the inference doesn't hold in this case..."
+                                  className="
+                                    w-full px-3 py-2 rounded-lg border-2 border-blue-300 bg-white
+                                    focus:border-blue-400 focus:ring-2 focus:ring-blue-100
+                                    transition-all duration-200 text-sm resize-none
+                                  "
+                                  rows={3}
+                                />
+                                <div className="text-xs text-blue-600">
+                                  {(undercutText[cq.cqKey] || "").length} characters
+                                </div>
+                              </div>
+                            )}
+
+                            {/* UNDERMINES form */}
+                            {cq.attackType === "UNDERMINES" && (
+                              <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-blue-900">
+                                  Select Premise to Undermine
+                                </label>
+                                <p className="text-xs text-blue-700">
+                                  Choose which premise you want to challenge
+                                </p>
+                                <select
+                                  value={underminePremise[cq.cqKey] || meta?.premises?.[0]?.id || ""}
+                                  onChange={(e) =>
+                                    setUnderminePremise((prev) => ({ ...prev, [cq.cqKey]: e.target.value }))
+                                  }
+                                  className="
+                                    w-full px-3 py-2 rounded-lg border-2 border-blue-300 bg-white
+                                    focus:border-blue-400 focus:ring-2 focus:ring-blue-100
+                                    transition-all duration-200 text-sm
+                                  "
+                                >
+                                  {(meta?.premises || []).map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.text}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <label className="block text-sm font-semibold text-blue-900 mt-3">
+                                  Select Contradicting Claim
+                                </label>
+                                <p className="text-xs text-blue-700">
+                                  Choose a claim that contradicts the selected premise
+                                </p>
+                                <button
+                                  onClick={() => setUndermineClaimPickerOpen(cq.cqKey)}
+                                  className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 transition-colors"
+                                >
+                                  {undermineClaim[cq.cqKey]?.text || "Select or create contradicting claim..."}
+                                </button>
+                                <ClaimPicker
+                                  deliberationId={deliberationId}
+                                  open={undermineClaimPickerOpen === cq.cqKey}
+                                  onClose={() => setUndermineClaimPickerOpen(null)}
+                                  onPick={(claim) => {
+                                    setUndermineClaim((prev) => ({ ...prev, [cq.cqKey]: claim }));
+                                    setUndermineClaimPickerOpen(null);
+                                  }}
+                                  allowCreate={true}
+                                />
+                              </div>
+                            )}
+
+                            {/* Submit button */}
+                            <button
+                              className="
+                                w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
+                                text-sm font-bold shadow-md hover:shadow-lg
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                                transition-all duration-200 active:scale-95
+                                bg-blue-600 hover:bg-blue-700 text-white
+                              "
+                              disabled={
+                                isPosting ||
+                                (cq.attackType === "REBUTS" && !rebutClaim[cq.cqKey]) ||
+                                (cq.attackType === "UNDERCUTS" && !undercutText[cq.cqKey]?.trim()) ||
+                                (cq.attackType === "UNDERMINES" &&
+                                  (!undermineClaim[cq.cqKey] || !underminePremise[cq.cqKey]))
+                              }
+                              onClick={() => postObjection(cq)}
+                            >
+                              {isPosting ? (
+                                <>
+                                  <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                  Posting answer...
+                                </>
+                              ) : (
+                                <>
+                                  Submit Answer & Post {cq.attackType}
+                                </>
+                              )}
+                            </button>
                           </div>
                         )}
 
-                        {/* UNDERCUTS form */}
-                        {cq.attackType === "UNDERCUTS" && (
-                          <div className="space-y-3">
-                            <label className="block text-sm font-semibold text-slate-900">
-                              Exception or Rule-Defeater
-                            </label>
-                            <textarea
-                              value={undercutText[cq.cqKey] || ""}
-                              onChange={(e) =>
-                                setUndercutText((prev) => ({ ...prev, [cq.cqKey]: e.target.value }))
-                              }
-                              placeholder="Explain why the inference doesn't hold in this case..."
-                              className="
-                                w-full px-3 py-2 rounded-lg border-2 border-slate-300 bg-white
-                                focus:border-amber-400 focus:ring-2 focus:ring-amber-100
-                                transition-all duration-200 text-sm resize-none
-                              "
-                              rows={3}
-                            />
-                            <div className="text-xs text-slate-500">
-                              {(undercutText[cq.cqKey] || "").length} characters
+                        {/* COMMUNITY SECTION: View Only + Participate via Responses */}
+                        {!isAuthor && (
+                          <div className="p-4 bg-amber-50 rounded-xl border-2 border-amber-300 space-y-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full font-bold">
+                                COMMUNITY
+                              </span>
+                              <span className="text-sm font-bold text-amber-900">
+                                Viewing CQ Details
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-white/70 rounded-lg border border-amber-200">
+                              <p className="text-xs text-amber-800 leading-relaxed">
+                                <strong>Author's responsibility:</strong> The argument author addresses this CQ by posting {cq.attackType.toLowerCase()} objections.
+                                You can participate by submitting responses, endorsing answers, and contributing to the discussion below.
+                              </p>
+                            </div>
+
+                            <div className="p-3 bg-amber-100/50 rounded-lg border border-amber-200">
+                              <div className="text-xs font-semibold text-amber-800 mb-1">
+                                Attack Type: {cq.attackType}
+                              </div>
+                              <div className="text-xs text-amber-700">
+                                Target: {cq.targetScope}
+                              </div>
                             </div>
                           </div>
                         )}
-
-                        {/* UNDERMINES form */}
-                        {cq.attackType === "UNDERMINES" && (
-                          <div className="space-y-3">
-                            <label className="block text-sm font-semibold text-slate-900">
-                              Select Premise to Undermine
-                            </label>
-                            <select
-                              value={underminePremise[cq.cqKey] || meta?.premises?.[0]?.id || ""}
-                              onChange={(e) =>
-                                setUnderminePremise((prev) => ({ ...prev, [cq.cqKey]: e.target.value }))
-                              }
-                              className="
-                                w-full px-3 py-2 rounded-lg border-2 border-slate-300 bg-white
-                                focus:border-slate-400 focus:ring-2 focus:ring-slate-100
-                                transition-all duration-200 text-sm
-                              "
-                            >
-                              {(meta?.premises || []).map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.text}
-                                </option>
-                              ))}
-                            </select>
-
-                            <label className="block text-sm font-semibold text-slate-900 mt-3">
-                              Select Contradicting Claim
-                            </label>
-                            <button
-                              onClick={() => setUndermineClaimPickerOpen(cq.cqKey)}
-                              className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-indigo-200/50 hover:bg-indigo-400/20 transition-colors"
-                            >
-                              {undermineClaim[cq.cqKey]?.text || "Select or create contradicting claim..."}
-                            </button>
-                            <ClaimPicker
-                              deliberationId={deliberationId}
-                              open={undermineClaimPickerOpen === cq.cqKey}
-                              onClose={() => setUndermineClaimPickerOpen(null)}
-                              onPick={(claim) => {
-                                setUndermineClaim((prev) => ({ ...prev, [cq.cqKey]: claim }));
-                                setUndermineClaimPickerOpen(null);
-                              }}
-                              allowCreate={true}
-                            />
-                          </div>
-                        )}                        {/* Submit button */}
-                        <button
-                          className={`
-                            w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                            text-sm font-bold shadow-md hover:shadow-lg
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                            transition-all duration-200 active:scale-95
-                            ${t.button}
-                          `}
-                          disabled={
-                            isPosting ||
-                            (cq.attackType === "REBUTS" && !rebutClaim[cq.cqKey]) ||
-                            (cq.attackType === "UNDERCUTS" && !undercutText[cq.cqKey]?.trim()) ||
-                            (cq.attackType === "UNDERMINES" &&
-                              (!undermineClaim[cq.cqKey] || !underminePremise[cq.cqKey]))
-                          }
-                          onClick={() => postObjection(cq)}
-                        >
-                          {isPosting ? (
-                            <>
-                              <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                              Posting objection...
-                            </>
-                          ) : (
-                            <>
-                              
-                              Post {cq.attackType} Objection
-                            </>
-                          )}
-                        </button>
 
                         {/* Phase 3 Community Response System */}
                         {cq.id && (

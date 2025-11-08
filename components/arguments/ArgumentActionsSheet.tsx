@@ -18,6 +18,7 @@ interface ArgumentActionsSheetProps {
   onOpenChange: (open: boolean) => void;
   deliberationId: string;
   authorId: string; // Add author ID for creating attacks/defenses
+  currentUserId?: string; // Current logged-in user ID for permission checks
   // Selected argument context
   selectedArgument?: {
     id: string;
@@ -48,6 +49,7 @@ export function ArgumentActionsSheet({
   onOpenChange,
   deliberationId,
   authorId,
+  currentUserId,
   selectedArgument,
   onRefresh,
 }: ArgumentActionsSheetProps) {
@@ -600,6 +602,7 @@ function CQsPanel({ deliberationId, authorId, argument, onRefresh }: CQsPanelPro
                 argumentId={argument.id}
                 deliberationId={deliberationId}
                 authorId={authorId}
+                currentUserId={currentUserId}
                 cqs={cqs}
                 meta={meta}
                 onRefresh={handleRefresh}

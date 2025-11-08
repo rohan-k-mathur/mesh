@@ -13,6 +13,102 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Helper to format ASPIC+ argument structure for human readability
+function formatArgumentStructure(structureStr: string): React.ReactNode {
+  try {
+    const structure = typeof structureStr === "string" ? JSON.parse(structureStr) : structureStr;
+    
+    if (structure.type === "premise") {
+      // Premise structure: {"type":"premise","formula":"...", "source":"axiom"|"premise"}
+      const sourceIcon = structure.source === "axiom" ? "⚡" : "📋";
+      const sourceLabel = structure.source === "axiom" ? "Axiom" : "Premise";
+      return (
+        <div className="flex items-start gap-2">
+          <span className="text-base">{sourceIcon}</span>
+          <div>
+            <span className="font-semibold text-gray-700">{sourceLabel}:</span>{" "}
+            <span className="font-mono text-sm">{structure.formula}</span>
+          </div>
+        </div>
+      );
+    }
+    
+    if (structure.type === "inference") {
+      // Inference structure: {"type":"inference","rule":{...},"subArguments":[...],"conclusion":"..."}
+      const ruleId = structure.rule?.id || "unknown";
+      const ruleType = structure.rule?.type || "unknown";
+      const shortRuleId = ruleId.length > 20 ? ruleId.slice(0, 20) + "..." : ruleId;
+      const conclusion = structure.conclusion || "?";
+      const subArgs = structure.subArguments || [];
+      
+      // Extract antecedent formulas from the rule
+      const antecedents = structure.rule?.antecedents || [];
+      
+      return (
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="text-base">🔗</span>
+            <div className="flex-1">
+              <div>
+                <span className="font-semibold text-gray-700">Inference</span>{" "}
+                <Badge variant="outline" className="text-xs">
+                  {ruleType === "defeasible" ? "⇒ defeasible" : "→ strict"}
+                </Badge>
+              </div>
+              <div className="text-xs text-gray-600 mt-1 font-mono">
+                Rule: {shortRuleId}
+              </div>
+            </div>
+          </div>
+          
+          {antecedents.length > 0 && (
+            <div className="ml-6 pl-3 border-l-2 border-gray-200">
+              <div className="text-xs font-semibold text-gray-600 mb-1">From:</div>
+              <div className="space-y-1">
+                {antecedents.map((ant: string, idx: number) => (
+                  <div key={idx} className="text-xs font-mono text-gray-700">
+                    • {ant}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="ml-6 flex items-start gap-2">
+            <span className="text-gray-500">→</span>
+            <div>
+              <span className="text-xs font-semibold text-gray-600">Conclusion:</span>{" "}
+              <span className="text-xs font-mono text-gray-900">{conclusion}</span>
+            </div>
+          </div>
+          
+          {subArgs.length > 0 && (
+            <div className="ml-6 pl-3 border-l-2 border-gray-200">
+              <div className="text-xs text-gray-500">
+                Built from {subArgs.length} sub-argument{subArgs.length > 1 ? "s" : ""}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Fallback for unknown structure types
+    return (
+      <div className="text-xs font-mono text-gray-600">
+        {JSON.stringify(structure, null, 2)}
+      </div>
+    );
+  } catch (e) {
+    // If parsing fails, show the raw string
+    return (
+      <div className="text-xs font-mono text-gray-600 break-all">
+        {String(structureStr)}
+      </div>
+    );
+  }
+}
+
 interface ArgumentStatusCardProps {
   argument: {
     id: string;
@@ -173,12 +269,10 @@ export function ArgumentStatusCard({ argument, status, explanation }: ArgumentSt
 
           {/* Structure */}
           <div>
-            <div className="text-xs font-semibold text-gray-600 mb-1">Structure:</div>
-            <Badge variant="outline" className="text-xs">
-              {typeof argument.structure === "string" 
-                ? argument.structure 
-                : JSON.stringify(argument.structure)}
-            </Badge>
+            <div className="text-xs font-semibold text-gray-600 mb-2">Structure:</div>
+            <div className="p-3 bg-white rounded border border-gray-200">
+              {formatArgumentStructure(argument.structure)}
+            </div>
           </div>
 
           {/* Explanation */}
