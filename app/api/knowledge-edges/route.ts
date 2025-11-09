@@ -31,6 +31,26 @@ export async function POST(req: NextRequest) {
 
   const { deliberationId, fromWorkId, fromClaimId, toWorkId, toClaimId, kind, meta } = parsed.data;
 
+
+  async function upsertEdge(a?: string, b?: string) {
+    if (!(a && b)) return null;
+    return prisma.knowledgeEdge.upsert({
+      where: { // add a unique on (deliberationId, kind, fromWorkId, toWorkId)
+        deliberationId_kind_fromWorkId_toWorkId: { deliberationId, kind, fromWorkId: a, toWorkId: b }
+      },
+      update: { meta: meta ?? {} },
+      create: { deliberationId, kind, fromWorkId: a, toWorkId: b, meta: meta ?? {} },
+      select: { id:true }
+    });
+  }
+
+  if (kind === 'ALTERNATIVE_TO') {
+    const e1 = await upsertEdge(fromWorkId, toWorkId);
+    const e2 = await upsertEdge(toWorkId, fromWorkId);
+    return NextResponse.json({ ok:true, edges:[e1,e2] });
+  }
+
+  
   // Optional de-dupe (same from/to/kind)
   const exists = await prisma.knowledgeEdge.findFirst({
     where: { deliberationId, fromWorkId, fromClaimId, toWorkId, toClaimId, kind },

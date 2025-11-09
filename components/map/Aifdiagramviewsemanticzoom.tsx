@@ -1,3 +1,4 @@
+//components/map/Aifdiagramviewsemanticzoom.tsx
 /**
  * Phase 3: AIF Diagram Viewer with Semantic Zoom
  * 

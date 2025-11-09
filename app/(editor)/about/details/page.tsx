@@ -18,7 +18,7 @@ import {
   Map,
   BookOpen,
   Share2,
-  Sparkles
+  FerrisWheel
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -144,7 +144,7 @@ function HeroSection() {
         >
           <Terminal className="h-3.5 w-3.5 text-indigo-500" />
           <span>v1.0.0-alpha</span>
-          <Sparkles className="h-3 w-3 text-indigo-400" />
+          <FerrisWheel className="h-3 w-3 text-indigo-400" />
         </motion.div>
 
         <motion.h1 
@@ -1197,7 +1197,7 @@ function AccessSection() {
           <div className="absolute inset-0 bg-gradient-to-r from-rose-400 to-pink-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           <span className="relative flex items-center gap-2">
             Request Alpha Access
-            <Sparkles className="h-4 w-4" />
+            <FerrisWheel className="h-4 w-4" />
           </span>
         </motion.button>
       </div>

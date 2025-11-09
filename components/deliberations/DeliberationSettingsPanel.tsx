@@ -20,6 +20,7 @@ interface DeliberationSettingsPanelProps {
  * Phase 2.5: Includes NLI threshold slider.
  * Phase 3.2.3: Includes temporal decay configuration (enable, half-life, min confidence).
  */
+
 export function DeliberationSettingsPanel({
   deliberationId,
   initialSettings,

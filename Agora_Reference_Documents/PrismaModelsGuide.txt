@@ -36,7 +36,7 @@ Deliberation
 1) Social Substrate: Propositions → Claims
 
 Proposition — lightweight assertion layer
-Model: Proposition Purpose: A pre-claim contribution that can be workshopped, voted on, tagged, and replied to before promotion. Fields:
+Model: PropositionPurpose: A pre-claim contribution that can be workshopped, voted on, tagged, and replied to before promotion.Fields:
 * deliberationId, authorId, text, mediaType/mediaUrl
 * status: DRAFT | PUBLISHED | CLAIMED | ARCHIVED
 * promotedClaimId (unique, nullable): links to the canonical Claim when promoted
@@ -57,7 +57,7 @@ Typical flow:
 2) Claims and Their Graph
 
 Claim — canonical atomic proposition
-Model: Claim Purpose: The fundamental unit of assertion; structured, persistent, and semantically labeled. Fields:
+Model: ClaimPurpose: The fundamental unit of assertion; structured, persistent, and semantically labeled.Fields:
 * text, createdById, moid (unique ID), claimType (Agent, Assertion, Domain, etc.)
 * deliberationId (nullable): can exist across deliberations
 * canonicalClaimId: links to a CanonicalClaim family (cross-room equivalence)
@@ -80,7 +80,7 @@ Cognitive role: The "thing asserted"—truth-apt, citable, label-able, and wired
 
 
 ClaimEdge — claim-to-claim relation
-Model: ClaimEdge Purpose: Links claims with typed relations (supports, rebuts) and refined attack types. Fields:
+Model: ClaimEdgePurpose: Links claims with typed relations (supports, rebuts) and refined attack types.Fields:
 * fromClaimId, toClaimId
 * type: ClaimEdgeType (supports | rebuts)
 * attackType: ClaimAttackType? (SUPPORTS | REBUTS | UNDERCUTS | UNDERMINES)
@@ -103,7 +103,7 @@ Families & Labeling
 
 3) Arguments and Their Graph
 Argument — authored line of reasoning
-Model: Argument Purpose: A narrative unit of reasoning, potentially linking multiple premises to a conclusion. Fields:
+Model: ArgumentPurpose: A narrative unit of reasoning, potentially linking multiple premises to a conclusion.Fields:
 * deliberationId, authorId, text, sources (JSON), confidence
 * isImplicit: whether premises are assumed background knowledge
 * schemeId: optional link to ArgumentScheme
@@ -125,7 +125,7 @@ Cognitive role: The authored, narrative container—can be structured or free-fo
 
 
 ArgumentEdge — argument-to-argument relation
-Model: ArgumentEdge Purpose: Typed link between arguments (support, rebut, undercut, concede, CA). Fields:
+Model: ArgumentEdgePurpose: Typed link between arguments (support, rebut, undercut, concede, CA).Fields:
 * deliberationId, fromArgumentId, toArgumentId
 * type: EdgeType (support | rebut | undercut | concede | CA)
 * attackSubtype: ArgumentAttackSubtype? (SUPPORT_ATTACK, CONSEQUENCE_ATTACK, JUSTIFICATION_ATTACK, UNDERMINE, REBUT, UNDERCUT, OVERCUT)
@@ -137,7 +137,7 @@ Cognitive role: Argument-to-argument relations, including warrant attacks (under
 
 Conflict & Preference Schemes (NEW)
 ConflictScheme & ConflictApplication
-Purpose: Generalize and make explicit different types of conflicts beyond the basic attack types. Fields (ConflictScheme):
+Purpose: Generalize and make explicit different types of conflicts beyond the basic attack types.Fields (ConflictScheme):
 * key, name, description
 * legacyAttackType, legacyTargetScope (for AF compatibility)
 Fields (ConflictApplication):
@@ -149,7 +149,7 @@ Cognitive role: A first-class, extensible way to represent conflicts (rebuttals,
 
 
 PreferenceScheme & PreferenceApplication
-Purpose: Model preferences between information, inferences, or schemes. Fields (PreferenceScheme):
+Purpose: Model preferences between information, inferences, or schemes.Fields (PreferenceScheme):
 * key, name, description, scope (info | inference | scheme | mixed)
 Fields (PreferenceApplication):
 * deliberationId, schemeId, createdById
@@ -158,23 +158,23 @@ Fields (PreferenceApplication):
 Cognitive role: Encodes orderings (e.g., "trust source A over source B", "prefer modus ponens over abductive inference") explicitly in the graph.
 
 DefaultRule
-Purpose: Compact defeasible rule (α, β, γ) bound to an argument. Fields: workId, argumentId, role (premise | claim), antecedent, justification, consequent, meta
+Purpose: Compact defeasible rule (α, β, γ) bound to an argument.Fields: workId, argumentId, role (premise | claim), antecedent, justification, consequent, meta
 
 ArgumentPremise — premise join table
-Model: ArgumentPremise Purpose: Links Argument to multiple Claim premises. Fields: argumentId, claimId, isImplicit, groupKey PK: [argumentId, claimId]
+Model: ArgumentPremisePurpose: Links Argument to multiple Claim premises.Fields: argumentId, claimId, isImplicit, groupKeyPK: [argumentId, claimId]
 
 ArgumentApproval — user endorsements
-Model: ArgumentApproval Unique: [argumentId, userId] Cognitive role: Signals community support.
+Model: ArgumentApprovalUnique: [argumentId, userId]Cognitive role: Signals community support.
 
 ArgumentSupport — strength of support for a claim
-Model: ArgumentSupport Purpose: Tracks how strongly an argument supports a claim (hom(I, φ) in formal AF terms). Fields:
+Model: ArgumentSupportPurpose: Tracks how strongly an argument supports a claim (hom(I, φ) in formal AF terms).Fields:
 * deliberationId, claimId, argumentId
 * mode (product | min | custom), strength (0..1), composed (if chained)
 * rationale, base, provenanceJson (if imported)
-Unique: [claimId, argumentId, mode] Cognitive role: Quantifies argument strength; supports multi-criteria aggregation and imported line filtering.
+Unique: [claimId, argumentId, mode]Cognitive role: Quantifies argument strength; supports multi-criteria aggregation and imported line filtering.
 
 AssumptionUse — track implicit assumptions
-Model: AssumptionUse Purpose: Tag assumptions (explicit or freeform text) that an argument relies on. Fields:
+Model: AssumptionUsePurpose: Tag assumptions (explicit or freeform text) that an argument relies on.Fields:
 * deliberationId, argumentId
 * assumptionClaimId (nullable), assumptionText (nullable)
 * role (premise | warrant | value | ...), weight, confidence, metaJson
@@ -182,7 +182,7 @@ Cognitive role: Makes hidden premises explicit and trackable.
 
 4) Argument Internals (Diagram-Level Detail)
 ArgumentDiagram — micro-graph of statements & inferences
-Model: ArgumentDiagram Purpose: A two-level drill-down: the argument is the narrative unit; the diagram is the logical structure. Fields: title, statements, inferences, cqStatus (JSON), evidence, createdById Relations:
+Model: ArgumentDiagramPurpose: A two-level drill-down: the argument is the narrative unit; the diagram is the logical structure.Fields: title, statements, inferences, cqStatus (JSON), evidence, createdByIdRelations:
 * statements: Statement[]
 * inferences: Inference[]
 * evidence: EvidenceLink[]
@@ -190,12 +190,12 @@ Model: ArgumentDiagram Purpose: A two-level drill-down: the argument is the na
 Cognitive role: Lets you target warrants (inferences), represent logical shape, attach evidence at fine granularity.
 
 Statement — atomic text unit in a diagram
-Model: Statement Fields: diagramId, text, role (premise | intermediate | conclusion | assumption | question | warrant), lang, tags Relations:
+Model: StatementFields: diagramId, text, role (premise | intermediate | conclusion | assumption | question | warrant), lang, tagsRelations:
 * conclusionFor: Inference[] (back-relation)
 * InferencePremise[]
 
 Inference — inferential step
-Model: Inference Purpose: An inference rule application inside a diagram. Fields:
+Model: InferencePurpose: An inference rule application inside a diagram.Fields:
 * diagramId, kind (presumptive | deductive | inductive | abductive | defeasible | analogy)
 * conclusionId (exactly one conclusion Statement)
 * schemeKey (optional), cqKeys (critical questions)
@@ -208,39 +208,39 @@ PK: [inferenceId, statementId]
 
 5) Schemes & Critical Questions
 ArgumentScheme — library of schemes
-Model: ArgumentScheme Purpose: Templates for argument patterns (expert opinion, analogy, consequence, etc.). Fields:
+Model: ArgumentSchemePurpose: Templates for argument patterns (expert opinion, analogy, consequence, etc.).Fields:
 * key, name, description, title, summary, cq (JSON)
 * Macagno taxonomy fields: purpose, source, materialRelation, reasoningType, ruleForm, conclusionType, slotHints (JSON), validators (JSON)
 Relations:
 * SchemeInstance[], variants: SchemeVariant[], cqs: CriticalQuestion[], Argument[]
 
 SchemeVariant
-Purpose: Variants of a base scheme (e.g., positive vs. negative consequence). Fields: schemeId, key, name, notes
+Purpose: Variants of a base scheme (e.g., positive vs. negative consequence).Fields: schemeId, key, name, notes
 
 SchemeInstance — applied scheme
-Model: SchemeInstance Purpose: Apply a scheme to a target (card | claim) with slot-filling data. Fields: targetType, targetId, schemeId, data (JSON), createdById Relations: CriticalQuestion[]
+Model: SchemeInstancePurpose: Apply a scheme to a target (card | claim) with slot-filling data.Fields: targetType, targetId, schemeId, data (JSON), createdByIdRelations: CriticalQuestion[]
 
 CQStatus — critical question tracking
-Model: CQStatus Purpose: Per-target per-scheme CQ satisfaction. Fields:
+Model: CQStatusPurpose: Per-target per-scheme CQ satisfaction.Fields:
 * targetType (argument | claim | card | warrant | rebuttal), targetId, argumentId
 * schemeKey, cqKey, satisfied, status (open | answered)
 * roomId (denormalized for RLS)
-Unique: [targetType, targetId, schemeKey, cqKey] Cognitive role: CQs make attack surfaces explicit and machine-trackable.
+Unique: [targetType, targetId, schemeKey, cqKey]Cognitive role: CQs make attack surfaces explicit and machine-trackable.
 
 CriticalQuestion — persisted open question
-Model: CriticalQuestion Fields:
+Model: CriticalQuestionFields:
 * instanceId, schemeId, cqKey, cqId, text
 * attackKind (UNDERMINES | UNDERCUTS | REBUTS), status (open | addressed | counter-posted)
 * openedById, resolvedById
 * attackType, targetScope (for automation)
-Unique: [schemeId, cqKey] Cognitive role: Turn CQs into trackable "open issues" that can trigger undercuts.
+Unique: [schemeId, cqKey]Cognitive role: Turn CQs into trackable "open issues" that can trigger undercuts.
 
 6) Evidence as First-Class
 EvidenceNode — distinct resource
-Model: EvidenceNode Fields: url, title, citation, kind, reliability, addedById, addedAt Relations: links: EvidenceLink[]
+Model: EvidenceNodeFields: url, title, citation, kind, reliability, addedById, addedAtRelations: links: EvidenceLink[]
 
 EvidenceLink — attach evidence to targets
-Model: EvidenceLink Purpose: Link evidence to argument | claim | sheet with locators. Fields:
+Model: EvidenceLinkPurpose: Link evidence to argument | claim | sheet with locators.Fields:
 * evidenceId, targetKind, targetId
 * selectors (JSON: annotation anchors), note, uri, snapshotKey
 * argumentDiagramId (nullable)
@@ -248,7 +248,7 @@ Cognitive role: Uniform provenance objects; citable, filterable, reusable.
 
 7) Sheet-Level Mapping (Debate Visualization)
 DebateSheet — curated or auto-generated map
-Model: DebateSheet Purpose: A navigable, zoomable debate map (two-level: nodes ↔ internal diagrams). Fields:
+Model: DebateSheetPurpose: A navigable, zoomable debate map (two-level: nodes ↔ internal diagrams).Fields:
 * title, scope, roles, rulesetJson
 * deliberationId (nullable), roomId (nullable)
 Relations:
@@ -277,14 +277,14 @@ LocusStatus, SheetAcceptance, UnresolvedCQ, Outcome
 
 8) Clusters, Viewpoints, and Bridges
 Cluster — topic/affinity grouping
-Model: Cluster Fields: deliberationId, type (affinity | topic), label, createdAt Relations:
+Model: ClusterFields: deliberationId, type (affinity | topic), label, createdAtRelations:
 * users: UserCluster[] (userId, score)
 * arguments: ArgumentCluster[] (argumentId, score)
 * bridgeRequestsTargeting: BridgeRequest[]
 Cognitive role: Surface "camps" or themes; enable viewpoint extraction.
 
 ViewpointSelection — k-viewpoint extraction
-Model: ViewpointSelection Purpose: Snapshot of k representatives under a rule (utilitarian | harmonic | maxcov). Fields:
+Model: ViewpointSelectionPurpose: Snapshot of k representatives under a rule (utilitarian | harmonic | maxcov).Fields:
 * deliberationId, rule, k, coverageAvg, coverageMin, jrSatisfied, explainJson, createdById
 Relations:
 * viewpointArgs: ViewpointArgument[] (argumentId, viewpoint index 0..k-1)
@@ -297,7 +297,7 @@ Bridge Builder
 Cognitive role: Incentivize syntheses that connect opposing clusters.
 
 AmplificationEvent
-Purpose: Track viewpoint creation, bridge assignments, etc. Fields: deliberationId, hostType, hostId, eventType, reason, payload, createdById, viewpointSelectionId
+Purpose: Track viewpoint creation, bridge assignments, etc.Fields: deliberationId, hostType, hostId, eventType, reason, payload, createdById, viewpointSelectionId
 
 9) Governance, Moderation, and Audit
 Enums
@@ -316,31 +316,31 @@ Cognitive role: Traceable decisions and status across polymorphic content; suita
 
 10) Briefs & Issues
 Brief — publishable synthesis
-Model: Brief Fields: roomId, title, slug, status (draft | published), visibility, createdById, currentVersionId Relations:
+Model: BriefFields: roomId, title, slug, status (draft | published), visibility, createdById, currentVersionIdRelations:
 * currentVersion: 1:1 to BriefVersion
 * versions: 1:N to BriefVersion
 
 BriefVersion — versioned snapshot
-Fields: briefId, number, compiledFromDeliberationId, sectionsJson, citations, createdById Relations:
+Fields: briefId, number, compiledFromDeliberationId, sectionsJson, citations, createdByIdRelations:
 * links: BriefLink[] (sourceType: card | argument | post | claim; sourceId)
 Cognitive role: From debate → publication; cites source atoms.
 
 Issue — tracked problem/question
-Model: Issue Fields: deliberationId, label, description, state (open | pending | closed), createdById, closedById, closedAt, kind (general | cq | moderation | evidence | structural | governance), key, assigneeId Relations:
+Model: IssueFields: deliberationId, label, description, state (open | pending | closed), createdById, closedById, closedAt, kind (general | cq | moderation | evidence | structural | governance), key, assigneeIdRelations:
 * links: IssueLink[] (targetType, targetId, role: related | blocks | depends_on | warrant | evidence)
 Cognitive role: Collect and route technical debt or open problems; cross-reference with arguments/claims.
 
 11) Dialogue Moves and Burden Modes
 DialogueMove — formal turn-taking
-Model: DialogueMove Purpose: Dialogue-game events (ASSERT | WHY | GROUNDS | RETRACT | CONCEDE | CLOSE, etc.). Fields:
+Model: DialogueMovePurpose: Dialogue-game events (ASSERT | WHY | GROUNDS | RETRACT | CONCEDE | CLOSE, etc.).Fields:
 * authorId, type/kind, illocution (Assert | Question | Argue | Concede | Retract | Close)
 * deliberationId, targetType, targetId, payload, actorId
 * replyToMoveId, replyTarget (claim | argument | premise | link | presupposition)
 * polarity (P | O), locusId, endsWithDaimon, argumentId, signature (unique per deliberation)
-Unique: [deliberationId, signature] (prevents duplicate moves) Cognitive role: Formal turn-taking & legality checking for "ask-why / give-grounds / concede / close" workflows.
+Unique: [deliberationId, signature] (prevents duplicate moves)Cognitive role: Formal turn-taking & legality checking for "ask-why / give-grounds / concede / close" workflows.
 
 ProofMode on Deliberation
-Enum: symmetric | asymmetric Purpose: Burden differences (stricter for Proponent in asymmetric mode).
+Enum: symmetric | asymmetricPurpose: Burden differences (stricter for Proponent in asymmetric mode).
 
 12) Ludics (Deep Dialogical Traces)
 Purpose: Proof-style interaction substrate for precise argumentative gameplay and commitment tracking.
@@ -360,12 +360,12 @@ Cognitive role: Proof-style interaction; commitment tracking; enables rigorous "
 
 13) Voting
 VoteSession — approval or RCV voting
-Fields: deliberationId, subjectType (option | view | claim), subjectId, method (approval | rcv), optionsJson, quorumMinCount, quorumMinPct, closesAt, closedAt, tallyJson, winnerId Relations: ballots: VoteBallot[] (unique per [sessionId, voterId])
+Fields: deliberationId, subjectType (option | view | claim), subjectId, method (approval | rcv), optionsJson, quorumMinCount, quorumMinPct, closesAt, closedAt, tallyJson, winnerIdRelations: ballots: VoteBallot[] (unique per [sessionId, voterId])
 Cognitive role: Decision procedures layered over debates and viewpoints.
 
 14) Works (Theory Frames) & Knowledge Links
 TheoryWork — longform philosophical/scientific works
-Model: TheoryWork Purpose: Structured theory development (DN/IH/TC/OP frameworks). Fields:
+Model: TheoryWorkPurpose: Structured theory development (DN/IH/TC/OP frameworks).Fields:
 * slug, title, authorId, theoryType (DN | IH | TC | OP), summary, body, standardOutput
 * deliberationId (nullable: provenance, not container), kbPageId (KB anchoring)
 * integrityChecks (JSON), integrityValid, status (DRAFT | ACTIVE | PUBLISHED | ARCHIVED), visibility, publishedAt, lastExport
@@ -411,17 +411,17 @@ Cognitive role: Explicit theory scaffolds and knowledge edges; debates connect t
 
 15) Social Discussion Substrate & Upgrades
 Discussion — forum thread with upgrade path
-Model: Discussion Purpose: Light-weight discourse that can promote into structured deliberations. Fields: slug, title, description, createdById, visibility, conversationId (link to existing chat), attachedToType/Id (polymorphic), replyCount, viewCount, lastActiveAt Relations:
+Model: DiscussionPurpose: Light-weight discourse that can promote into structured deliberations.Fields: slug, title, description, createdById, visibility, conversationId (link to existing chat), attachedToType/Id (polymorphic), replyCount, viewCount, lastActiveAtRelations:
 * conversation: 1:1 with chat Conversation
 * upgradedToDeliberation: nullable back-link to Deliberation
 * messages: DiscussionMessage[], participants: DiscussionParticipant[]
 * subscriptions: DiscussionSubscription[], forumComments: ForumComment[], deliberations: DiscussionDeliberation[]
 
 DiscussionMessage — threaded messages
-Fields: discussionId, parentId, authorId, kind (text | media | system | poll | note), text, richJson, isPinned, isEphemeral, expiresAt Relations: replies, reactions: DiscussionReaction[]
+Fields: discussionId, parentId, authorId, kind (text | media | system | poll | note), text, richJson, isPinned, isEphemeral, expiresAtRelations: replies, reactions: DiscussionReaction[]
 
 ForumComment — promoted comments
-Purpose: Cross-post from chat → forum. Fields: discussionId, parentId, authorId, body (tiptap JSON), bodyText, sourceMessageId, sourceConversationId, score, isDeleted, isRemoved Unique: [discussionId, sourceMessageId] (prevents duplicate promotion)
+Purpose: Cross-post from chat → forum.Fields: discussionId, parentId, authorId, body (tiptap JSON), bodyText, sourceMessageId, sourceConversationId, score, isDeleted, isRemovedUnique: [discussionId, sourceMessageId] (prevents duplicate promotion)
 
 DiscussionDeliberation — upgrade bridge
 Unique: [discussionId, deliberationId]
@@ -432,20 +432,20 @@ ForumVote & ForumSave
 
 16) Inter-Room / Cross-Debate Graph
 AgoraRoom — organizational container
-Fields: id, slug, title, summary, visibility, createdAt, updatedAt Relations: sheets: DebateSheet[], deliberations: Deliberation[]
+Fields: id, slug, title, summary, visibility, createdAt, updatedAtRelations: sheets: DebateSheet[], deliberations: Deliberation[]
 
 StackReference — when a stack references another room
-Fields: fromDeliberationId, toDeliberationId, stackId, relation (attached | cites | embeds | ...) Unique: [fromDeliberationId, toDeliberationId, stackId, relation]
+Fields: fromDeliberationId, toDeliberationId, stackId, relation (attached | cites | embeds | ...)Unique: [fromDeliberationId, toDeliberationId, stackId, relation]
 
 ArgumentImport — import/restatement edges
-Fields: fromDeliberationId, toDeliberationId, fromArgumentId, toArgumentId, kind (import | restatement | quote | ...), fromClaimId, toClaimId, baseAtImport, fingerprint (unique SHA1), metaJson Unique: [fromArgumentId, toArgumentId, kind]
+Fields: fromDeliberationId, toDeliberationId, fromArgumentId, toArgumentId, kind (import | restatement | quote | ...), fromClaimId, toClaimId, baseAtImport, fingerprint (unique SHA1), metaJsonUnique: [fromArgumentId, toArgumentId, kind]
 Cognitive role: The graph-of-graphs; work travels and composes across rooms while preserving provenance.
 
 SharedAuthorRoomEdge — weak ties
-Fields: fromId, toId, strength (count or weighted score) Unique: [fromId, toId] (canonicalize fromId < toId in app code)
+Fields: fromId, toId, strength (count or weighted score)Unique: [fromId, toId] (canonicalize fromId < toId in app code)
 
 RoomFunctor — claimed mapping
-Fields: fromRoomId, toRoomId, claimMapJson (JSON), notes, createdById Unique: [fromRoomId, toRoomId]
+Fields: fromRoomId, toRoomId, claimMapJson (JSON), notes, createdByIdUnique: [fromRoomId, toRoomId]
 
 AgoraFollow — user following
 PK: [userId, kind, targetId] (kind: room | tag)
@@ -454,7 +454,7 @@ AgoraOutbox — event outbox
 Fields: ts, topic, roomId, deliberationId, targetType, targetId, payload, delivered
 
 XRef — cross-references
-Purpose: Polymorphic link (fromType, fromId, toType, toId, relation: cites | evidence-for | discusses | originates-from | replies-to | cross-claim | ...) Unique: [fromType, fromId, toType, toId, relation]
+Purpose: Polymorphic link (fromType, fromId, toType, toId, relation: cites | evidence-for | discusses | originates-from | replies-to | cross-claim | ...)Unique: [fromType, fromId, toType, toId, relation]
 
 17) Knowledge Base & Wiki
 KB (Curated Pages with Live Transclusions)
@@ -479,7 +479,7 @@ Wiki
 
 19) GitChat: Proposal Signals (Approve/Block)
 ProposalSignal
-Purpose: Lightweight approve/block signals on proposal facets. Fields: conversation_id, message_id, facet_id, user_id, kind (APPROVE | BLOCK), created_at Unique: [facet_id, user_id]
+Purpose: Lightweight approve/block signals on proposal facets.Fields: conversation_id, message_id, facet_id, user_id, kind (APPROVE | BLOCK), created_atUnique: [facet_id, user_id]
 
 AgreementLock & AgreementAck
 * AgreementLock: message_id (unique), locked_by, locked_at

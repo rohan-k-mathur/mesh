@@ -115,6 +115,7 @@ export async function POST(req: Request) {
         text,
         createdById: createdById.toString(),
         moid,
+         claimType: typeof normalized?.claimType === 'string' ? normalized.claimType : null,
         ...(deliberationId ? { deliberation: { connect: { id: deliberationId } } } : {}),
         // If you have a Urn relation:
         urns: {

@@ -5,7 +5,7 @@ import {
   Lightbulb, 
   Target, 
   MousePointerClick, 
-  Sparkles,
+  FerrisWheel,
   CheckCircle2,
   ArrowRight,
   Info

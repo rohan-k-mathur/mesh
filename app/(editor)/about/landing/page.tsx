@@ -18,7 +18,7 @@ import {
   Map,
   BookOpen,
   Share2,
-  Sparkles,
+  FerrisWheel,
   Zap
 } from 'lucide-react'
 import Link from 'next/link'
@@ -153,7 +153,7 @@ function HeroSection() {
         >
           <Terminal className="h-3.5 w-3.5" />
           <span>v1.0.0-alpha</span>
-          <Sparkles className="h-3 w-3" />
+          <FerrisWheel className="h-3 w-3" />
         </motion.div>
         
         <motion.h1
@@ -281,7 +281,7 @@ function HeroSectionAlternate() {
         >
           <Terminal className="h-3.5 w-3.5" />
           <span>v1.0.0-alpha</span>
-          <Sparkles className="h-3 w-3" />
+          <FerrisWheel className="h-3 w-3" />
         </motion.div>
 
         <motion.h1 
@@ -402,7 +402,7 @@ function HeroSectionRevised() {
         >
           <Terminal className="h-3.5 w-3.5" />
           <span>v1.0.0-alpha</span>
-          <Sparkles className="h-3 w-3" />
+          <FerrisWheel className="h-3 w-3" />
         </motion.div>
 
         <motion.h1 
@@ -1675,7 +1675,7 @@ function AlphaSection() {
           transition={{ duration: 0.5 }}
           className="mb-8 text-2xl font-medium text-slate-900"
         >
-          IV. Alpha Participation Requirements
+          IV. Closed Launch Participation Requirements
         </motion.h2>
         <div className="mb-8 space-y-6">
           {[

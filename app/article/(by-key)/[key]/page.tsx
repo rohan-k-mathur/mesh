@@ -39,7 +39,24 @@ import { BlockStyleTokens } from "@/lib/tiptap/extensions/block-style-ssr";
 
 export default async function ArticlePage({ params }: { params: { key: string } }) {
   const where = /^[0-9a-f-]{36}$/i.test(params.key) ? { id: params.key } : { slug: params.key };
-  const article = await prisma.article.findUnique({ where });
+  const article = await prisma.article.findUnique({
+    where,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      authorId: true,
+      publishedAt: true,
+      template: true,
+      astJson: true,
+      heroImageKey: true,
+      deletedAt: true,
+      roomId: true, // <-- add this line
+    },
+  });
   if (!article) notFound();
 
   const userId = await getCurrentUserId().catch(() => null);

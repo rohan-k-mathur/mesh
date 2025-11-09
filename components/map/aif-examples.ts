@@ -1,4 +1,4 @@
-// lib/arguments/aif-examples.ts
+// components/map/aif-examples.ts
 // Example AIF graphs for testing, based on the AIF specification diagrams
 import type { AifNode } from "@/lib/arguments/diagram";
 import type { AifSubgraph } from "@/lib/arguments/diagram";

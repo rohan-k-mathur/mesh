@@ -252,7 +252,7 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
               </div>
             </div>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-900 transition-transform ${isMobileExpanded && 'rotate-180'}`} />
+          <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${isMobileExpanded && 'rotate-180'}`} />
         </button>
         
         {/* Progress Bar */}

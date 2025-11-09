@@ -8,16 +8,16 @@
 
 ## Executive Summary
 
-**Problem:** Current implementation creates exactly 2 designs per deliberation (Proponent + Opponent), collapsing all actors and all issues into monolithic meta-designs. This loses individual attribution and conflates independent dialogue threads.
+**Problem:** Current implementation creates exactly 2 designs per deliberation (Proponent + Opponent), collapsing all actors and all topics into monolithic meta-designs. This loses individual attribution and conflates independent dialogue threads.
 
-**Solution:** Introduce **scoped designs** where each logical dialogue unit (issue, actor pair, or argument thread) gets its own independent P/O design pair. The forest view then shows multiple independent ludics interactions per deliberation.
+**Solution:** Introduce **scoped designs** where each logical dialogue unit (topic, actor pair, or argument thread) gets its own independent P/O design pair. The forest view then shows multiple independent ludics interactions per deliberation.
 
 **Benefits:**
 - ✅ Individual actor attribution preserved
-- ✅ Independent issues get separate orthogonality checks
+- ✅ Independent topics get separate orthogonality checks
 - ✅ Scalable to N-party deliberations
 - ✅ More accurate to ludics theory (local interactions)
-- ✅ Better UX (see which issues converge/diverge)
+- ✅ Better UX (see which topics converge/diverge)
 - ✅ Backward compatible (legacy `scope=null` supported)
 
 ---
@@ -47,7 +47,7 @@ for (const move of moves) {
 
 ### Problems Illustrated
 
-**Scenario:** Environmental deliberation with 3 actors and 3 issues
+**Scenario:** Environmental deliberation with 3 actors and 3 topics
 
 ```
 Actors:
@@ -55,35 +55,35 @@ Actors:
 - Bob (pro-nuclear) 
 - Carol (anti-nuclear)
 
-Issues:
-- Issue A: Climate change is real
-- Issue B: Nuclear is safe
-- Issue C: Cars should be banned
+topics:
+- topic A: Climate change is real
+- topic B: Nuclear is safe
+- topic C: Cars should be banned
 
 Moves:
-1. Alice ASSERT "Climate change is real" (Issue A)
-2. Carol WHY "Climate change is real?" (Issue A)
-3. Bob ASSERT "Nuclear is safe" (Issue B)
-4. Carol WHY "Nuclear is safe?" (Issue B)
-5. Alice ASSERT "Ban cars" (Issue C)
+1. Alice ASSERT "Climate change is real" (topic A)
+2. Carol WHY "Climate change is real?" (topic A)
+3. Bob ASSERT "Nuclear is safe" (topic B)
+4. Carol WHY "Nuclear is safe?" (topic B)
+5. Alice ASSERT "Ban cars" (topic C)
 ```
 
 **Current Output:** ONE merged design per polarity
 ```
 Proponent Design (P):
-  0.1 ← Alice: climate (Issue A)
-  0.2 ← Bob: nuclear (Issue B)
-  0.3 ← Alice: cars (Issue C)
+  0.1 ← Alice: climate (topic A)
+  0.2 ← Bob: nuclear (topic B)
+  0.3 ← Alice: cars (topic C)
 
 Opponent Design (O):
-  0.1.1 ← Carol: WHY climate? (Issue A)
-  0.2.1 ← Carol: WHY nuclear? (Issue B)
+  0.1.1 ← Carol: WHY climate? (topic A)
+  0.2.1 ← Carol: WHY nuclear? (topic B)
 ```
 
 **Problems:**
 1. **Lost actor attribution:** Alice and Bob merged into "Proponent"
-2. **Conflated issues:** Climate, nuclear, and cars in same design
-3. **Misleading trace:** Issues A, B, C shouldn't interact, but they're in same tree
+2. **Conflated topics:** Climate, nuclear, and cars in same design
+3. **Misleading trace:** topics A, B, C shouldn't interact, but they're in same tree
 4. **Can't answer:** "Did Alice and Carol converge on climate?" (only global convergence)
 
 ---
@@ -102,7 +102,7 @@ Design {
   participantId: 'Proponent' | 'Opponent';
   
   // NEW: Scope identifier
-  scope: string | null;           // 'issue:A' | 'actor:alice:carol' | 'arg:arg123' | null
+  scope: string | null;           // 'topic:A' | 'actor:alice:carol' | 'arg:arg123' | null
   scopeMetadata: Json | null;     // { type, label, participants, ... }
   
   semantics: string;
@@ -113,21 +113,21 @@ Design {
 
 ### Three Scoping Strategies (Configurable)
 
-#### **Strategy 1: Issue-Based Scoping** (Recommended First)
+#### **Strategy 1: topic-Based Scoping** (Recommended First)
 
-**Scope Key:** `issue:<issueRootId>` or `issue:<topicSlug>`
+**Scope Key:** `topic:<topicRootId>` or `topic:<topicSlug>`
 
 **Grouping Logic:** All moves targeting the same root argument/claim
 
 ```typescript
 // Example scopes
-scope: "issue:climate-change"
-scope: "issue:nuclear-safety"  
-scope: "issue:car-ban"
+scope: "topic:climate-change"
+scope: "topic:nuclear-safety"  
+scope: "topic:car-ban"
 
 // Metadata
 scopeMetadata: {
-  type: "issue",
+  type: "topic",
   label: "Climate Change Debate",
   rootArgumentId: "arg_abc123",
   rootClaimText: "Climate change is anthropogenic"
@@ -138,19 +138,19 @@ scopeMetadata: {
 ```
 Deliberation Forest:
   
-  ┌─ Issue: Climate Change ────────────┐
+  ┌─ topic: Climate Change ────────────┐
   │  P_climate (Alice's assertions)    │
   │  O_climate (Carol's challenges)    │
   │  Trace: CONVERGENT ✓                │
   └────────────────────────────────────┘
   
-  ┌─ Issue: Nuclear Safety ────────────┐
+  ┌─ topic: Nuclear Safety ────────────┐
   │  P_nuclear (Bob's assertions)      │
   │  O_nuclear (Carol's challenges)    │
   │  Trace: DIVERGENT ✗                 │
   └────────────────────────────────────┘
   
-  ┌─ Issue: Car Ban ───────────────────┐
+  ┌─ topic: Car Ban ───────────────────┐
   │  P_cars (Alice's assertions)       │
   │  O_cars: (empty)                   │
   │  Trace: UNCHALLENGED                │
@@ -159,13 +159,13 @@ Deliberation Forest:
 
 **Pros:**
 - Natural grouping for multi-topic deliberations
-- Each issue gets independent orthogonality check
-- Easy to answer: "Which issues are resolved?"
-- Moderate complexity (issues are already tracked)
+- Each topic gets independent orthogonality check
+- Easy to answer: "Which topics are resolved?"
+- Moderate complexity (topics are already tracked)
 
 **Cons:**
-- Requires issue detection/tagging
-- Cross-issue references need special handling
+- Requires topic detection/tagging
+- Cross-topic references need special handling
 
 ---
 
@@ -281,19 +281,19 @@ Deliberation Forest (many small interactions):
 
 ## Recommended Approach: Hybrid Strategy
 
-### Phase 1: Issue-Based (Primary Scoping)
+### Phase 1: topic-Based (Primary Scoping)
 
-Start with **issue-based scoping** as the primary grouping:
+Start with **topic-based scoping** as the primary grouping:
 - Moderate complexity
 - High user value (see which topics converge)
 - Natural for deliberations
 
 ### Phase 2: Actor Attribution (Secondary Metadata)
 
-Within each issue scope, **track actor contributions** in metadata:
+Within each topic scope, **track actor contributions** in metadata:
 ```typescript
 scopeMetadata: {
-  type: "issue",
+  type: "topic",
   label: "Climate Change",
   actors: {
     proponent: ["alice", "bob"],
@@ -304,11 +304,11 @@ scopeMetadata: {
 
 ### Phase 3: Cross-Scope Linking (Advanced)
 
-Add **design references** for cross-issue connections:
+Add **design references** for cross-topic connections:
 ```typescript
 LudicDesign {
-  scope: "issue:climate",
-  referencedScopes: ["issue:energy-policy"],  // Climate cites energy
+  scope: "topic:climate",
+  referencedScopes: ["topic:energy-policy"],  // Climate cites energy
   crossScopeActs: [...],                      // Acts referencing other scopes
 }
 ```
@@ -330,9 +330,9 @@ model LudicDesign {
   participantId  String      // 'Proponent' | 'Opponent'
   
   // NEW: Scoping fields
-  scope          String?     // 'issue:<id>' | 'actors:<id1>:<id2>' | 'arg:<id>' | null (legacy)
-  scopeType      String?     // 'issue' | 'actor-pair' | 'argument' | null
-  scopeMetadata  Json?       // { label, actors, issueId, argumentId, ... }
+  scope          String?     // 'topic:<id>' | 'actors:<id1>:<id2>' | 'arg:<id>' | null (legacy)
+  scopeType      String?     // 'topic' | 'actor-pair' | 'argument' | null
+  scopeMetadata  Json?       // { label, actors, topicId, argumentId, ... }
   
   rootLocusId    String?
   rootLocus      LudicLocus? @relation(fields: [rootLocusId], references: [id])
@@ -382,7 +382,7 @@ UPDATE "LudicDesign" SET "scope" = NULL, "scopeType" = NULL WHERE "scope" IS NUL
 export async function compileFromMoves(
   dialogueId: string,
   options?: {
-    scopingStrategy?: 'legacy' | 'issue' | 'actor-pair' | 'argument';
+    scopingStrategy?: 'legacy' | 'topic' | 'actor-pair' | 'argument';
     forceRecompile?: boolean;
   }
 ): Promise<{ ok: true; designs: string[] }> {
@@ -451,18 +451,18 @@ export async function compileFromMoves(
 // Helper: Compute scope for each move based on strategy
 async function computeScopes(
   moves: DialogueMoveRow[],
-  strategy: 'legacy' | 'issue' | 'actor-pair' | 'argument'
+  strategy: 'legacy' | 'topic' | 'actor-pair' | 'argument'
 ): Promise<Array<DialogueMoveRow & { scope: string | null }>> {
   if (strategy === 'legacy') {
     return moves.map(m => ({ ...m, scope: null }));
   }
   
-  if (strategy === 'issue') {
+  if (strategy === 'topic') {
     // Group by target argument's root
     const rootByTargetId = await computeArgumentRoots(moves);
     return moves.map(m => ({
       ...m,
-      scope: `issue:${rootByTargetId.get(m.targetId) ?? m.targetId}`
+      scope: `topic:${rootByTargetId.get(m.targetId) ?? m.targetId}`
     }));
   }
   
@@ -521,10 +521,10 @@ function buildScopeMetadata(
 
 // Helper: Derive human-readable label
 function deriveScopeLabel(scopeKey: string, moves: DialogueMoveRow[]): string {
-  if (scopeKey.startsWith('issue:')) {
+  if (scopeKey.startsWith('topic:')) {
     // Look up argument text or use first ASSERT
     const firstAssert = moves.find(m => m.kind === 'ASSERT');
-    return firstAssert?.payload?.text ?? `Issue ${scopeKey.split(':')[1]}`;
+    return firstAssert?.payload?.text ?? `topic ${scopeKey.split(':')[1]}`;
   }
   
   if (scopeKey.startsWith('actors:')) {
@@ -540,7 +540,7 @@ function deriveScopeLabel(scopeKey: string, moves: DialogueMoveRow[]): string {
   return scopeKey;
 }
 
-// Helper: Find root arguments for issue grouping
+// Helper: Find root arguments for topic grouping
 async function computeArgumentRoots(
   moves: DialogueMoveRow[]
 ): Promise<Map<string, string>> {
@@ -641,7 +641,7 @@ export async function POST(req: NextRequest) {
   
   try {
     const result = await compileFromMoves(deliberationId, {
-      scopingStrategy: scopingStrategy ?? 'issue',  // Default to issue-based
+      scopingStrategy: scopingStrategy ?? 'topic',  // Default to topic-based
       forceRecompile: true
     });
     
@@ -692,10 +692,10 @@ type ScopeGroup = {
 
 export function LudicsForest({ 
   deliberationId,
-  defaultScopingStrategy = 'issue'
+  defaultScopingStrategy = 'topic'
 }: { 
   deliberationId: string;
-  defaultScopingStrategy?: 'legacy' | 'issue' | 'actor-pair' | 'argument';
+  defaultScopingStrategy?: 'legacy' | 'topic' | 'actor-pair' | 'argument';
 }) {
   const [viewMode, setViewMode] = React.useState<ViewMode>('forest');
   const [scopingStrategy, setScopingStrategy] = React.useState(defaultScopingStrategy);
@@ -788,7 +788,7 @@ export function LudicsForest({
             className="px-2 py-1 text-sm border rounded bg-white"
           >
             <option value="legacy">Legacy (1 pair)</option>
-            <option value="issue">By Issue</option>
+            <option value="topic">By topic</option>
             <option value="actor-pair">By Actor Pair</option>
             <option value="argument">By Argument</option>
           </select>
@@ -998,11 +998,11 @@ await compileFromMoves(deliberationId, { scopingStrategy: 'legacy' });
 // Expect: 2 designs with scope=null
 ```
 
-**Scenario B: Issue-Based Scoping**
+**Scenario B: topic-Based Scoping**
 ```typescript
-// Create deliberation with 3 independent issues
-// Each issue should get its own P/O pair
-await compileFromMoves(deliberationId, { scopingStrategy: 'issue' });
+// Create deliberation with 3 independent topics
+// Each topic should get its own P/O pair
+await compileFromMoves(deliberationId, { scopingStrategy: 'topic' });
 // Expect: 6 designs (3 scopes × 2 polarities)
 ```
 
@@ -1063,16 +1063,16 @@ async function testScopedDesigns() {
   console.assert(legacyDesigns.length === 2, 'Legacy should have 2 designs');
   console.log('✅ Legacy mode works\n');
   
-  // Test 2: Issue-based scoping
-  console.log('Test 2: Issue-based scoping...');
-  await compileFromMoves(testDelibId, { scopingStrategy: 'issue' });
-  const issueDesigns = await prisma.ludicDesign.findMany({
-    where: { deliberationId: testDelibId, scopeType: 'issue' }
+  // Test 2: topic-based scoping
+  console.log('Test 2: topic-based scoping...');
+  await compileFromMoves(testDelibId, { scopingStrategy: 'topic' });
+  const topicDesigns = await prisma.ludicDesign.findMany({
+    where: { deliberationId: testDelibId, scopeType: 'topic' }
   });
-  console.log(`Found ${issueDesigns.length} issue-scoped designs`);
+  console.log(`Found ${topicDesigns.length} topic-scoped designs`);
   
   // Group by scope to verify pairs
-  const grouped = groupBy(issueDesigns, d => d.scope);
+  const grouped = groupBy(topicDesigns, d => d.scope);
   for (const [scope, designs] of Object.entries(grouped)) {
     console.assert(designs.length === 2, `Scope ${scope} should have 2 designs`);
     console.assert(
@@ -1081,7 +1081,7 @@ async function testScopedDesigns() {
       `Scope ${scope} should have P and O`
     );
   }
-  console.log('✅ Issue scoping works\n');
+  console.log('✅ topic scoping works\n');
   
   // Test 3: Forest view can render
   console.log('Test 3: Forest view rendering...');
@@ -1095,7 +1095,7 @@ async function testScopedDesigns() {
 }
 
 async function createTestDeliberation(): Promise<string> {
-  // Create test delib with 3 issues, multiple actors
+  // Create test delib with 3 topics, multiple actors
   // Return deliberationId
   return 'test_delib_123';
 }
@@ -1119,11 +1119,11 @@ testScopedDesigns().catch(console.error);
 - Add `/api/ludics/compile` endpoint
 - Keep default behavior as `legacy` mode
 
-### Phase 2: Issue-Based Scoping (Week 2)
+### Phase 2: topic-Based Scoping (Week 2)
 - Implement `computeArgumentRoots` helper
-- Enable `scopingStrategy: 'issue'` in compilation
+- Enable `scopingStrategy: 'topic'` in compilation
 - Update forest UI to show grouped scopes
-- Test with multi-issue deliberations
+- Test with multi-topic deliberations
 - Deploy with feature flag
 
 ### Phase 3: Actor Attribution (Week 3)
@@ -1147,7 +1147,7 @@ testScopedDesigns().catch(console.error);
 
 ```bash
 # .env.local
-LUDICS_DEFAULT_SCOPING=issue     # 'legacy' | 'issue' | 'actor-pair' | 'argument'
+LUDICS_DEFAULT_SCOPING=topic     # 'legacy' | 'topic' | 'actor-pair' | 'argument'
 LUDICS_ENABLE_ACTOR_ATTRIBUTION=true
 LUDICS_ENABLE_CROSS_SCOPE=false  # Future feature
 ```
@@ -1159,7 +1159,7 @@ Store in deliberation metadata:
 Deliberation {
   extJson: {
     ludicsConfig: {
-      scopingStrategy: 'issue',
+      scopingStrategy: 'topic',
       autoRecompile: true,
       showScopeLabels: true
     }
@@ -1172,9 +1172,9 @@ Deliberation {
 ## Benefits Summary
 
 ### For Users
-1. **Clarity:** See which specific issues/arguments converge vs diverge
+1. **Clarity:** See which specific topics/arguments converge vs diverge
 2. **Attribution:** Know who said what within each scope
-3. **Scalability:** Handle deliberations with 10+ issues without confusion
+3. **Scalability:** Handle deliberations with 10+ topics without confusion
 4. **Debugging:** Isolate problematic argument threads
 
 ### For Developers
@@ -1194,7 +1194,7 @@ Deliberation {
 ## Open Questions & Future Work
 
 ### Q1: Cross-Scope References
-**Question:** How to handle when Issue A cites Issue B?
+**Question:** How to handle when topic A cites topic B?
 
 **Options:**
 - A) Create cross-scope acts (with `scope_ref` metadata)
@@ -1222,7 +1222,7 @@ Deliberation {
 
 **Options:**
 - A) Keep legacy as-is (`scope=null`)
-- B) Backfill with `issue` scoping
+- B) Backfill with `topic` scoping
 - C) Prompt users to choose scoping
 
 **Recommendation:** (A) for now, offer (C) as "upgrade deliberation" feature.
@@ -1245,14 +1245,14 @@ Deliberation {
 ### Week 1 (Backend Complete)
 - ✅ Schema migrated, no data loss
 - ✅ Legacy mode still works
-- ✅ Issue-based compilation produces correct scopes
+- ✅ topic-based compilation produces correct scopes
 - ✅ Unit tests pass for all scoping strategies
 
 ### Week 2 (UI Complete)
 - ✅ Forest view shows grouped scopes
 - ✅ Users can toggle scoping strategy
 - ✅ Interaction traces per scope
-- ✅ E2E test with 3+ issues passes
+- ✅ E2E test with 3+ topics passes
 
 ### Week 3 (Production Ready)
 - ✅ Deployed to staging
@@ -1287,7 +1287,7 @@ Deliberation {
 - Lazy-load traces
 
 ### Risk 3: Scope Detection Errors
-**Risk:** Issue grouping mis-identifies argument roots
+**Risk:** topic grouping mis-identifies argument roots
 
 **Mitigation:**
 - Fallback to `argument` scoping (fine-grained)
@@ -1308,7 +1308,7 @@ Deliberation {
 ## Next Steps
 
 1. **Review this document** with team
-2. **Approve scoping strategy** (recommend: issue-based first)
+2. **Approve scoping strategy** (recommend: topic-based first)
 3. **Create Prisma migration** for schema changes
 4. **Implement `computeScopes` helpers**
 5. **Update `compileFromMoves` with strategy parameter**

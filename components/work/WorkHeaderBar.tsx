@@ -11,6 +11,7 @@ export default function WorkHeaderBar({
   deliberationId
 }: { workId:string; title:string; theoryType:'DN'|'IH'|'TC'|'OP'; deliberationId:string }) {
   const [open, setOpen] = React.useState(false);
+  const [citeOpen, setCiteOpen] = React.useState(false);
 
   return (
     <div className="flex items-center justify-between border-b pb-2 mb-3">

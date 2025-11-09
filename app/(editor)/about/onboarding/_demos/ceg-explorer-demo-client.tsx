@@ -11,7 +11,7 @@ import {
   Info,
   Eye,
   Code,
-  Sparkles,
+  FerrisWheel,
   Target,
   Zap,
   TrendingUp,
@@ -390,7 +390,7 @@ export default function CegExplorerDemoClient({
         {/* Upgrade prompt */}
         <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
           <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+            <FerrisWheel className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-semibold text-indigo-900 mb-1">
                 Interactive Graph View Available
@@ -629,7 +629,7 @@ export default function CegExplorerDemoClient({
                 </span>
                 {selectedClaim.centrality >= 0.6 && (
                   <span className="flex items-center gap-1 text-purple-600 font-medium">
-                    <Sparkles className="h-4 w-4" />
+                    <FerrisWheel className="h-4 w-4" />
                     Hub node
                   </span>
                 )}

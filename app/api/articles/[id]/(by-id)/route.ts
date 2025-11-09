@@ -46,7 +46,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
   const a = await prisma.article.findUnique({ where: { id: params.id } })
-  if (!a || a.authorId !== user.userId.toString()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (
+    !a ||
+    !user.userId ||
+    a.authorId !== user.userId.toString()
+  ) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   return NextResponse.json({
     id: a.id,

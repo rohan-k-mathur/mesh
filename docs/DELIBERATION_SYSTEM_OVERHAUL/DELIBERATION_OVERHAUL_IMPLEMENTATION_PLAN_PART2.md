@@ -3975,3 +3975,2700 @@ Gradual rollout:
 ---
 
 *End of Phase 1.4. Ready for Phase 1.5 (SchemeSpecificCQsModal Updates) when you're ready.*
+
+---
+
+## Phase 1.5: SchemeSpecificCQsModal Updates
+**Effort**: 10-12 hours | **Priority**: 🔴 Critical | **Risk**: Medium
+
+### Context
+
+The existing `SchemeSpecificCQsModal` shows critical questions from a single scheme. With multi-scheme arguments, we need to:
+1. Compose CQs from all schemes in an argument
+2. Group CQs by their source scheme
+3. Show relationships between schemes' CQs
+4. Handle CQ interactions (attacks) across multiple schemes
+
+### Goals
+
+1. Display composed CQ sets from all schemes
+2. Visual grouping by source scheme
+3. Filter/toggle CQs by scheme
+4. Show which scheme each CQ attacks
+5. Maintain existing attack/response functionality
+6. Performance optimization for large CQ sets
+
+### Implementation
+
+#### Step 1: Composed CQ Data Structure (2 hours)
+
+**File**: `lib/types/composed-cqs.ts` (NEW)
+
+```typescript
+import type { CriticalQuestion, ArgumentSchemeInstance } from "@prisma/client";
+
+export interface ComposedCriticalQuestion extends CriticalQuestion {
+  // Source scheme info
+  sourceSchemeInstance: ArgumentSchemeInstance;
+  sourceSchemeName: string;
+  sourceSchemeRole: "primary" | "supporting" | "presupposed" | "implicit";
+  
+  // Targeting info
+  targetsSchemeRole?: "primary" | "supporting" | "presupposed" | "implicit";
+  
+  // Composition metadata
+  compositionOrder: number; // Order in composed set
+  isFromPrimaryScheme: boolean;
+  
+  // Relationships
+  relatedCQIds?: string[]; // CQs from other schemes that are related
+}
+
+export interface ComposedCQSet {
+  argumentId: string;
+  totalCQs: number;
+  
+  // CQs organized by source scheme
+  byScheme: {
+    schemeInstanceId: string;
+    schemeName: string;
+    schemeRole: "primary" | "supporting" | "presupposed" | "implicit";
+    cqs: ComposedCriticalQuestion[];
+  }[];
+  
+  // CQs organized by attack type
+  byAttackType: {
+    attackType: string;
+    cqs: ComposedCriticalQuestion[];
+  }[];
+  
+  // CQs organized by target (which scheme they attack)
+  byTarget: {
+    targetRole: "primary" | "supporting" | "presupposed" | "implicit";
+    cqs: ComposedCriticalQuestion[];
+  }[];
+  
+  // Statistics
+  stats: {
+    fromPrimary: number;
+    fromSupporting: number;
+    fromPresupposed: number;
+    fromImplicit: number;
+    byAttackType: Record<string, number>;
+  };
+}
+```
+
+#### Step 2: Compose CQs Helper (2 hours)
+
+**File**: `lib/utils/compose-critical-questions.ts` (NEW)
+
+```typescript
+import type { ArgumentWithSchemes } from "@/lib/types/argument-net";
+import type { ComposedCQSet, ComposedCriticalQuestion } from "@/lib/types/composed-cqs";
+
+export function composeCriticalQuestions(argument: ArgumentWithSchemes): ComposedCQSet {
+  const composedCQs: ComposedCriticalQuestion[] = [];
+  let order = 0;
+  
+  // Sort scheme instances by order (primary first)
+  const sortedInstances = [...argument.schemeInstances].sort((a, b) => {
+    // Primary always first
+    if (a.role === "primary") return -1;
+    if (b.role === "primary") return 1;
+    // Then by order
+    return a.order - b.order;
+  });
+  
+  // Compose CQs from each scheme
+  sortedInstances.forEach(instance => {
+    const cqs = instance.scheme?.criticalQuestions || [];
+    
+    cqs.forEach(cq => {
+      composedCQs.push({
+        ...cq,
+        sourceSchemeInstance: instance,
+        sourceSchemeName: instance.scheme?.name || "Unknown",
+        sourceSchemeRole: instance.role,
+        isFromPrimaryScheme: instance.role === "primary",
+        compositionOrder: order++,
+        // Determine what this CQ targets based on attack type
+        targetsSchemeRole: determineTargetRole(cq, instance)
+      });
+    });
+  });
+  
+  // Group by scheme
+  const byScheme = sortedInstances.map(instance => ({
+    schemeInstanceId: instance.id,
+    schemeName: instance.scheme?.name || "Unknown",
+    schemeRole: instance.role,
+    cqs: composedCQs.filter(cq => cq.sourceSchemeInstance.id === instance.id)
+  }));
+  
+  // Group by attack type
+  const attackTypes = new Set(composedCQs.map(cq => cq.attackType));
+  const byAttackType = Array.from(attackTypes).map(attackType => ({
+    attackType,
+    cqs: composedCQs.filter(cq => cq.attackType === attackType)
+  }));
+  
+  // Group by target role
+  const targetRoles: Array<"primary" | "supporting" | "presupposed" | "implicit"> = 
+    ["primary", "supporting", "presupposed", "implicit"];
+  const byTarget = targetRoles.map(role => ({
+    targetRole: role,
+    cqs: composedCQs.filter(cq => cq.targetsSchemeRole === role)
+  })).filter(group => group.cqs.length > 0);
+  
+  // Calculate statistics
+  const stats = {
+    fromPrimary: composedCQs.filter(cq => cq.sourceSchemeRole === "primary").length,
+    fromSupporting: composedCQs.filter(cq => cq.sourceSchemeRole === "supporting").length,
+    fromPresupposed: composedCQs.filter(cq => cq.sourceSchemeRole === "presupposed").length,
+    fromImplicit: composedCQs.filter(cq => cq.sourceSchemeRole === "implicit").length,
+    byAttackType: Object.fromEntries(
+      Array.from(attackTypes).map(type => [
+        type,
+        composedCQs.filter(cq => cq.attackType === type).length
+      ])
+    )
+  };
+  
+  return {
+    argumentId: argument.id,
+    totalCQs: composedCQs.length,
+    byScheme,
+    byAttackType,
+    byTarget,
+    stats
+  };
+}
+
+function determineTargetRole(
+  cq: any,
+  sourceInstance: any
+): "primary" | "supporting" | "presupposed" | "implicit" | undefined {
+  // CQs from supporting schemes typically target primary
+  if (sourceInstance.role === "supporting") {
+    return "primary";
+  }
+  
+  // CQs from primary scheme target the primary itself
+  if (sourceInstance.role === "primary") {
+    return "primary";
+  }
+  
+  // Presupposed/implicit CQs can target any scheme
+  // This would need more sophisticated logic based on CQ content
+  return undefined;
+}
+
+export function filterComposedCQs(
+  composedSet: ComposedCQSet,
+  filters: {
+    schemeInstanceIds?: string[];
+    attackTypes?: string[];
+    sourceRoles?: Array<"primary" | "supporting" | "presupposed" | "implicit">;
+    targetRoles?: Array<"primary" | "supporting" | "presupposed" | "implicit">;
+  }
+): ComposedCriticalQuestion[] {
+  let filtered = composedSet.byScheme.flatMap(group => group.cqs);
+  
+  if (filters.schemeInstanceIds?.length) {
+    filtered = filtered.filter(cq =>
+      filters.schemeInstanceIds!.includes(cq.sourceSchemeInstance.id)
+    );
+  }
+  
+  if (filters.attackTypes?.length) {
+    filtered = filtered.filter(cq =>
+      filters.attackTypes!.includes(cq.attackType)
+    );
+  }
+  
+  if (filters.sourceRoles?.length) {
+    filtered = filtered.filter(cq =>
+      filters.sourceRoles!.includes(cq.sourceSchemeRole)
+    );
+  }
+  
+  if (filters.targetRoles?.length) {
+    filtered = filtered.filter(cq =>
+      cq.targetsSchemeRole && filters.targetRoles!.includes(cq.targetsSchemeRole)
+    );
+  }
+  
+  return filtered;
+}
+```
+
+#### Step 3: Update SchemeSpecificCQsModal (4 hours)
+
+**File**: `components/arguments/SchemeSpecificCQsModal.tsx`
+
+Major refactor to handle composed CQs:
+
+```typescript
+import { useState, useMemo } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { MultiSchemeBadge } from "./MultiSchemeBadge";
+import { CriticalQuestionCard } from "./CriticalQuestionCard";
+import { composeCriticalQuestions, filterComposedCQs } from "@/lib/utils/compose-critical-questions";
+import { Filter, Layers, Target, AlertCircle } from "lucide-react";
+import type { ArgumentWithSchemes } from "@/lib/types/argument-net";
+import type { ComposedCriticalQuestion } from "@/lib/types/composed-cqs";
+
+interface SchemeSpecificCQsModalProps {
+  argument: ArgumentWithSchemes;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SchemeSpecificCQsModal({
+  argument,
+  open,
+  onOpenChange
+}: SchemeSpecificCQsModalProps) {
+  const [selectedTab, setSelectedTab] = useState<"byScheme" | "byAttack" | "byTarget">("byScheme");
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Filter state
+  const [selectedSchemeIds, setSelectedSchemeIds] = useState<string[]>([]);
+  const [selectedAttackTypes, setSelectedAttackTypes] = useState<string[]>([]);
+  const [selectedSourceRoles, setSelectedSourceRoles] = useState<string[]>([]);
+  
+  // Compose CQs from all schemes
+  const composedSet = useMemo(
+    () => composeCriticalQuestions(argument),
+    [argument]
+  );
+  
+  // Apply filters
+  const filteredCQs = useMemo(() => {
+    if (
+      selectedSchemeIds.length === 0 &&
+      selectedAttackTypes.length === 0 &&
+      selectedSourceRoles.length === 0
+    ) {
+      return composedSet.byScheme.flatMap(g => g.cqs);
+    }
+    
+    return filterComposedCQs(composedSet, {
+      schemeInstanceIds: selectedSchemeIds.length > 0 ? selectedSchemeIds : undefined,
+      attackTypes: selectedAttackTypes.length > 0 ? selectedAttackTypes : undefined,
+      sourceRoles: selectedSourceRoles.length > 0 
+        ? selectedSourceRoles as any 
+        : undefined
+    });
+  }, [composedSet, selectedSchemeIds, selectedAttackTypes, selectedSourceRoles]);
+  
+  const toggleSchemeFilter = (schemeId: string) => {
+    setSelectedSchemeIds(prev =>
+      prev.includes(schemeId)
+        ? prev.filter(id => id !== schemeId)
+        : [...prev, schemeId]
+    );
+  };
+  
+  const toggleAttackTypeFilter = (attackType: string) => {
+    setSelectedAttackTypes(prev =>
+      prev.includes(attackType)
+        ? prev.filter(t => t !== attackType)
+        : [...prev, attackType]
+    );
+  };
+  
+  const toggleSourceRoleFilter = (role: string) => {
+    setSelectedSourceRoles(prev =>
+      prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
+  };
+  
+  const clearFilters = () => {
+    setSelectedSchemeIds([]);
+    setSelectedAttackTypes([]);
+    setSelectedSourceRoles([]);
+  };
+  
+  const hasActiveFilters = 
+    selectedSchemeIds.length > 0 ||
+    selectedAttackTypes.length > 0 ||
+    selectedSourceRoles.length > 0;
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                Critical Questions
+                <Badge variant="secondary">
+                  {composedSet.totalCQs} total
+                </Badge>
+                {hasActiveFilters && (
+                  <Badge variant="outline">
+                    {filteredCQs.length} filtered
+                  </Badge>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                Composed from {argument.schemeInstances.length} argumentation scheme
+                {argument.schemeInstances.length !== 1 ? "s" : ""}
+              </DialogDescription>
+            </div>
+            
+            <Button
+              variant={showFilters ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+            </Button>
+          </div>
+        </DialogHeader>
+        
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold">Filter Critical Questions</h4>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear All
+                </Button>
+              )}
+            </div>
+            
+            {/* By Scheme */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">By Scheme</Label>
+              <div className="space-y-2">
+                {composedSet.byScheme.map(group => (
+                  <div key={group.schemeInstanceId} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`scheme-${group.schemeInstanceId}`}
+                      checked={selectedSchemeIds.includes(group.schemeInstanceId)}
+                      onCheckedChange={() => toggleSchemeFilter(group.schemeInstanceId)}
+                    />
+                    <Label
+                      htmlFor={`scheme-${group.schemeInstanceId}`}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <span className="text-sm">{group.schemeName}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {group.cqs.length} CQs
+                      </Badge>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* By Attack Type */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">By Attack Type</Label>
+              <div className="flex flex-wrap gap-2">
+                {composedSet.byAttackType.map(group => (
+                  <div key={group.attackType}>
+                    <Checkbox
+                      id={`attack-${group.attackType}`}
+                      checked={selectedAttackTypes.includes(group.attackType)}
+                      onCheckedChange={() => toggleAttackTypeFilter(group.attackType)}
+                      className="sr-only"
+                    />
+                    <Label
+                      htmlFor={`attack-${group.attackType}`}
+                      className={`
+                        inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs cursor-pointer
+                        border transition-colors
+                        ${selectedAttackTypes.includes(group.attackType)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted"
+                        }
+                      `}
+                    >
+                      {group.attackType}
+                      <Badge variant="secondary" className="text-xs">
+                        {group.cqs.length}
+                      </Badge>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <Separator />
+            
+            {/* By Source Role */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">By Source Role</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {["primary", "supporting", "presupposed", "implicit"].map(role => {
+                  const count = composedSet.stats[`from${role.charAt(0).toUpperCase() + role.slice(1)}` as keyof typeof composedSet.stats] as number;
+                  if (count === 0) return null;
+                  
+                  return (
+                    <div key={role} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`role-${role}`}
+                        checked={selectedSourceRoles.includes(role)}
+                        onCheckedChange={() => toggleSourceRoleFilter(role)}
+                      />
+                      <Label
+                        htmlFor={`role-${role}`}
+                        className="flex items-center gap-2 cursor-pointer capitalize"
+                      >
+                        <span className="text-sm">{role}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {count}
+                        </Badge>
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Tabs for different groupings */}
+        <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as any)}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="byScheme">
+              <Layers className="w-4 h-4 mr-2" />
+              By Scheme
+            </TabsTrigger>
+            <TabsTrigger value="byAttack">
+              <Target className="w-4 h-4 mr-2" />
+              By Attack Type
+            </TabsTrigger>
+            <TabsTrigger value="byTarget">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              By Target
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* By Scheme Tab */}
+          <TabsContent value="byScheme" className="space-y-4">
+            <Accordion type="multiple" defaultValue={composedSet.byScheme.map(g => g.schemeInstanceId)}>
+              {composedSet.byScheme.map(group => {
+                const visibleCQs = filteredCQs.filter(
+                  cq => cq.sourceSchemeInstance.id === group.schemeInstanceId
+                );
+                
+                if (hasActiveFilters && visibleCQs.length === 0) {
+                  return null;
+                }
+                
+                return (
+                  <AccordionItem key={group.schemeInstanceId} value={group.schemeInstanceId}>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant="outline"
+                            className={
+                              group.schemeRole === "primary"
+                                ? "bg-blue-100 text-blue-800 border-blue-300"
+                                : group.schemeRole === "supporting"
+                                ? "bg-green-100 text-green-800 border-green-300"
+                                : "bg-amber-100 text-amber-800 border-amber-300"
+                            }
+                          >
+                            {group.schemeName}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {visibleCQs.length} / {group.cqs.length} CQs
+                          </Badge>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2">
+                        {visibleCQs.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No critical questions match current filters
+                          </p>
+                        ) : (
+                          visibleCQs.map(cq => (
+                            <CriticalQuestionCard
+                              key={cq.id}
+                              criticalQuestion={cq}
+                              argumentId={argument.id}
+                              showSchemeSource={false} // Already grouped by scheme
+                              showAttackType={true}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </TabsContent>
+          
+          {/* By Attack Type Tab */}
+          <TabsContent value="byAttack" className="space-y-4">
+            <Accordion type="multiple" defaultValue={composedSet.byAttackType.map(g => g.attackType)}>
+              {composedSet.byAttackType.map(group => {
+                const visibleCQs = filteredCQs.filter(
+                  cq => cq.attackType === group.attackType
+                );
+                
+                if (hasActiveFilters && visibleCQs.length === 0) {
+                  return null;
+                }
+                
+                return (
+                  <AccordionItem key={group.attackType} value={group.attackType}>
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{group.attackType}</span>
+                        <Badge variant="secondary">
+                          {visibleCQs.length} / {group.cqs.length} CQs
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2">
+                        {visibleCQs.map(cq => (
+                          <CriticalQuestionCard
+                            key={cq.id}
+                            criticalQuestion={cq}
+                            argumentId={argument.id}
+                            showSchemeSource={true} // Show which scheme it's from
+                            showAttackType={false} // Already grouped by attack type
+                          />
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </TabsContent>
+          
+          {/* By Target Tab */}
+          <TabsContent value="byTarget" className="space-y-4">
+            <Accordion type="multiple" defaultValue={composedSet.byTarget.map(g => g.targetRole)}>
+              {composedSet.byTarget.map(group => {
+                const visibleCQs = filteredCQs.filter(
+                  cq => cq.targetsSchemeRole === group.targetRole
+                );
+                
+                if (hasActiveFilters && visibleCQs.length === 0) {
+                  return null;
+                }
+                
+                return (
+                  <AccordionItem key={group.targetRole} value={group.targetRole}>
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium capitalize">
+                          Targets {group.targetRole} Scheme
+                        </span>
+                        <Badge variant="secondary">
+                          {visibleCQs.length} / {group.cqs.length} CQs
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2">
+                        {visibleCQs.map(cq => (
+                          <CriticalQuestionCard
+                            key={cq.id}
+                            criticalQuestion={cq}
+                            argumentId={argument.id}
+                            showSchemeSource={true}
+                            showAttackType={true}
+                          />
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </TabsContent>
+        </Tabs>
+        
+        {/* Summary footer */}
+        <div className="pt-4 border-t">
+          <div className="grid grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold">{composedSet.stats.fromPrimary}</p>
+              <p className="text-xs text-muted-foreground">From Primary</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{composedSet.stats.fromSupporting}</p>
+              <p className="text-xs text-muted-foreground">From Supporting</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{composedSet.stats.fromPresupposed}</p>
+              <p className="text-xs text-muted-foreground">From Presupposed</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{composedSet.totalCQs}</p>
+              <p className="text-xs text-muted-foreground">Total CQs</p>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+#### Step 4: Update CriticalQuestionCard (1 hour)
+
+**File**: `components/arguments/CriticalQuestionCard.tsx`
+
+Add scheme source indicator:
+
+```typescript
+import { Badge } from "@/components/ui/badge";
+import { MultiSchemeBadge } from "./MultiSchemeBadge";
+import type { ComposedCriticalQuestion } from "@/lib/types/composed-cqs";
+
+interface CriticalQuestionCardProps {
+  criticalQuestion: ComposedCriticalQuestion;
+  argumentId: string;
+  showSchemeSource?: boolean;
+  showAttackType?: boolean;
+}
+
+export function CriticalQuestionCard({
+  criticalQuestion,
+  argumentId,
+  showSchemeSource = true,
+  showAttackType = true
+}: CriticalQuestionCardProps) {
+  return (
+    <div className="p-4 border rounded-lg space-y-3">
+      {/* Header with metadata */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 space-y-2">
+          {/* Scheme source */}
+          {showSchemeSource && (
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={
+                  criticalQuestion.sourceSchemeRole === "primary"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : criticalQuestion.sourceSchemeRole === "supporting"
+                    ? "bg-green-50 text-green-700 border-green-200"
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                }
+              >
+                {criticalQuestion.sourceSchemeName}
+              </Badge>
+              {criticalQuestion.isFromPrimaryScheme && (
+                <Badge variant="secondary" className="text-xs">
+                  Primary
+                </Badge>
+              )}
+            </div>
+          )}
+          
+          {/* Attack type */}
+          {showAttackType && (
+            <Badge variant="outline" className="text-xs">
+              {criticalQuestion.attackType}
+            </Badge>
+          )}
+        </div>
+        
+        {/* Target indicator */}
+        {criticalQuestion.targetsSchemeRole && (
+          <Badge variant="outline" className="text-xs">
+            → {criticalQuestion.targetsSchemeRole}
+          </Badge>
+        )}
+      </div>
+      
+      {/* Question text */}
+      <p className="text-sm font-medium">{criticalQuestion.question}</p>
+      
+      {/* Existing attack/response UI */}
+      {/* ... rest of existing component ... */}
+    </div>
+  );
+}
+```
+
+#### Step 5: Performance Optimization (1 hour)
+
+**File**: `lib/utils/compose-critical-questions.ts`
+
+Add memoization for large CQ sets:
+
+```typescript
+import { useMemo } from "react";
+import { memoize } from "lodash-es";
+
+// Memoize composition for performance
+export const composeCriticalQuestionsMemoized = memoize(
+  composeCriticalQuestions,
+  (argument) => `${argument.id}-${argument.schemeInstances.map(si => si.id).join("-")}`
+);
+
+// Hook for easy use in components
+export function useComposedCriticalQuestions(argument: ArgumentWithSchemes) {
+  return useMemo(
+    () => composeCriticalQuestionsMemoized(argument),
+    [argument]
+  );
+}
+
+// Virtualization for large lists (if needed)
+export function getVisibleCQRange(
+  totalCQs: number,
+  scrollTop: number,
+  containerHeight: number,
+  itemHeight: number = 100
+): { start: number; end: number } {
+  const start = Math.floor(scrollTop / itemHeight);
+  const visibleCount = Math.ceil(containerHeight / itemHeight);
+  const end = Math.min(start + visibleCount + 5, totalCQs); // +5 for buffer
+  
+  return { start: Math.max(0, start - 5), end };
+}
+```
+
+#### Step 6: Testing (2 hours)
+
+**File**: `__tests__/lib/utils/compose-critical-questions.test.ts`
+
+```typescript
+import { composeCriticalQuestions, filterComposedCQs } from "@/lib/utils/compose-critical-questions";
+import type { ArgumentWithSchemes } from "@/lib/types/argument-net";
+
+describe("composeCriticalQuestions", () => {
+  const mockArgument: ArgumentWithSchemes = {
+    id: "arg1",
+    schemeInstances: [
+      {
+        id: "inst1",
+        role: "primary",
+        order: 0,
+        scheme: {
+          name: "Expert Opinion",
+          criticalQuestions: [
+            { id: "cq1", question: "Is the expert credible?", attackType: "undermining" },
+            { id: "cq2", question: "Is the expert biased?", attackType: "rebutting" }
+          ]
+        }
+      },
+      {
+        id: "inst2",
+        role: "supporting",
+        order: 1,
+        scheme: {
+          name: "Argument from Values",
+          criticalQuestions: [
+            { id: "cq3", question: "Is the value appropriate?", attackType: "undermining" }
+          ]
+        }
+      }
+    ],
+    dependencies: []
+  };
+  
+  it("composes CQs from all schemes", () => {
+    const composed = composeCriticalQuestions(mockArgument);
+    
+    expect(composed.totalCQs).toBe(3);
+    expect(composed.byScheme).toHaveLength(2);
+  });
+  
+  it("prioritizes primary scheme CQs", () => {
+    const composed = composeCriticalQuestions(mockArgument);
+    
+    const firstSchemeGroup = composed.byScheme[0];
+    expect(firstSchemeGroup.schemeRole).toBe("primary");
+  });
+  
+  it("calculates correct statistics", () => {
+    const composed = composeCriticalQuestions(mockArgument);
+    
+    expect(composed.stats.fromPrimary).toBe(2);
+    expect(composed.stats.fromSupporting).toBe(1);
+    expect(composed.stats.byAttackType.undermining).toBe(2);
+    expect(composed.stats.byAttackType.rebutting).toBe(1);
+  });
+  
+  it("filters by scheme instance", () => {
+    const composed = composeCriticalQuestions(mockArgument);
+    const filtered = filterComposedCQs(composed, {
+      schemeInstanceIds: ["inst1"]
+    });
+    
+    expect(filtered).toHaveLength(2);
+    expect(filtered.every(cq => cq.sourceSchemeInstance.id === "inst1")).toBe(true);
+  });
+  
+  it("filters by attack type", () => {
+    const composed = composeCriticalQuestions(mockArgument);
+    const filtered = filterComposedCQs(composed, {
+      attackTypes: ["undermining"]
+    });
+    
+    expect(filtered).toHaveLength(2);
+    expect(filtered.every(cq => cq.attackType === "undermining")).toBe(true);
+  });
+});
+```
+
+**File**: `__tests__/components/arguments/SchemeSpecificCQsModal.test.tsx`
+
+```typescript
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { SchemeSpecificCQsModal } from "@/components/arguments/SchemeSpecificCQsModal";
+
+describe("SchemeSpecificCQsModal", () => {
+  const mockArgument = {
+    id: "arg1",
+    schemeInstances: [
+      {
+        id: "inst1",
+        role: "primary",
+        order: 0,
+        scheme: {
+          name: "Expert Opinion",
+          criticalQuestions: [
+            { id: "cq1", question: "Is the expert credible?", attackType: "undermining" }
+          ]
+        }
+      },
+      {
+        id: "inst2",
+        role: "supporting",
+        order: 1,
+        scheme: {
+          name: "Values",
+          criticalQuestions: [
+            { id: "cq2", question: "Is the value appropriate?", attackType: "undermining" }
+          ]
+        }
+      }
+    ],
+    dependencies: []
+  };
+  
+  it("displays total CQ count", () => {
+    render(
+      <SchemeSpecificCQsModal
+        argument={mockArgument}
+        open={true}
+        onOpenChange={() => {}}
+      />
+    );
+    
+    expect(screen.getByText("2 total")).toBeInTheDocument();
+  });
+  
+  it("groups CQs by scheme", () => {
+    render(
+      <SchemeSpecificCQsModal
+        argument={mockArgument}
+        open={true}
+        onOpenChange={() => {}}
+      />
+    );
+    
+    expect(screen.getByText("Expert Opinion")).toBeInTheDocument();
+    expect(screen.getByText("Values")).toBeInTheDocument();
+  });
+  
+  it("filters CQs when scheme selected", async () => {
+    const user = userEvent.setup();
+    
+    render(
+      <SchemeSpecificCQsModal
+        argument={mockArgument}
+        open={true}
+        onOpenChange={() => {}}
+      />
+    );
+    
+    // Open filters
+    await user.click(screen.getByText("Filters"));
+    
+    // Select one scheme
+    const checkbox = screen.getByRole("checkbox", { name: /Expert Opinion/i });
+    await user.click(checkbox);
+    
+    // Should show filtered count
+    await waitFor(() => {
+      expect(screen.getByText("1 filtered")).toBeInTheDocument();
+    });
+  });
+});
+```
+
+---
+
+## Phase 1.5 Acceptance Criteria
+
+**Functionality**:
+- [ ] Modal displays composed CQ set from all schemes
+- [ ] CQs grouped by scheme with accordion UI
+- [ ] CQs grouped by attack type
+- [ ] CQs grouped by target role
+- [ ] Filters work for scheme/attack/role
+- [ ] Clear filters button resets all
+- [ ] Statistics shown in footer
+- [ ] Scheme source badges visible
+- [ ] Performance acceptable with 50+ CQs
+
+**Visual**:
+- [ ] Tabbed interface is intuitive
+- [ ] Filtering UI is discoverable
+- [ ] Scheme badges use consistent colors
+- [ ] Accordion states clear
+- [ ] Statistics footer readable
+
+**UX**:
+- [ ] Tabs switch smoothly
+- [ ] Filters provide immediate feedback
+- [ ] No lag with large CQ sets
+- [ ] Mobile responsive
+
+**Testing**:
+- [ ] Unit tests for composition logic
+- [ ] Unit tests for filtering
+- [ ] Component tests for modal
+- [ ] Integration tests for full flow
+
+---
+
+## Phase 1.5 Deployment Strategy
+
+### Stage 1: Internal Testing (Days 16-17)
+
+Test scenarios:
+1. Argument with 2 schemes, 10 CQs total
+2. Argument with 4 schemes, 30+ CQs total
+3. Filter by single scheme
+4. Filter by multiple attack types
+5. Switch between tabs
+6. Clear filters and verify reset
+
+### Stage 2: Beta Testing (Day 18)
+
+Metrics to track:
+- Most common tab used (by scheme vs by attack vs by target)
+- Filter usage rate
+- Average time in modal
+- Click-through rate on individual CQs
+
+### Stage 3: Production (Day 19)
+
+Rollout plan:
+1. Enable for arguments with 2 schemes (4 hours)
+2. Enable for all multi-scheme arguments (8 hours)
+3. Enable for single-scheme arguments (use new UI for consistency) (12 hours)
+
+**Monitor**:
+- Modal load time (target: <500ms for 50 CQs)
+- Filter interaction rate
+- Tab usage distribution
+- Error rates
+
+---
+
+## Phase 1.5 Complete Deliverables
+
+✅ **Data Structures**:
+- ComposedCriticalQuestion type with source metadata
+- ComposedCQSet with multiple groupings
+- Statistics calculation
+
+✅ **Logic**:
+- composeCriticalQuestions() with ordering
+- filterComposedCQs() with multiple criteria
+- Performance optimization with memoization
+
+✅ **UI Components**:
+- Refactored SchemeSpecificCQsModal with tabs
+- Filter panel with checkboxes
+- CriticalQuestionCard with scheme badges
+- Statistics footer
+
+✅ **Testing**:
+- Composition logic tests
+- Filtering tests
+- Component integration tests
+
+---
+
+**What Users Experience After Phase 1.5**:
+
+🔍 **Before**: Single scheme's CQs shown  
+🔍 **After**: All CQs from all schemes, organized and filterable
+
+🎯 **Value**: Users can see complete attack surface and understand how schemes interact
+
+📊 **Metrics**:
+- Average CQs per multi-scheme argument (target: 15-25)
+- Filter usage rate (target: 30%+)
+- Tab distribution (expect 60% "by scheme", 25% "by attack", 15% "by target")
+
+---
+
+*End of Phase 1.5. Ready for Phase 1.6 (Testing & Deployment) when you're ready.*
+
+---
+
+## Phase 1.6: Testing & Deployment
+**Effort**: 12-16 hours | **Priority**: 🔴 Critical | **Risk**: High
+
+### Context
+
+Phase 1 (Multi-Scheme Arguments) is complete from an implementation perspective. Now we need comprehensive testing, deployment infrastructure, monitoring, and rollout strategy to ensure a smooth launch.
+
+### Goals
+
+1. Complete test coverage (unit, integration, E2E)
+2. Performance benchmarking and optimization
+3. Feature flag infrastructure
+4. Gradual rollout strategy
+5. Monitoring and alerting
+6. Rollback plan
+7. User documentation
+
+### Implementation
+
+#### Step 1: Comprehensive Test Suite (4 hours)
+
+**File**: `__tests__/features/multi-scheme-arguments.e2e.test.ts` (NEW)
+
+```typescript
+import { test, expect } from "@playwright/test";
+import { prisma } from "@/lib/prisma";
+
+test.describe("Multi-Scheme Arguments E2E", () => {
+  test.beforeEach(async ({ page }) => {
+    // Login as test user
+    await page.goto("/login");
+    await page.fill('[name="email"]', "test@example.com");
+    await page.fill('[name="password"]', "password");
+    await page.click('button[type="submit"]');
+    await page.waitForURL("/");
+  });
+  
+  test("User can create multi-scheme argument", async ({ page }) => {
+    // Navigate to deliberation
+    await page.goto("/deliberation/test-delib-id");
+    
+    // Create a claim
+    await page.click('button:has-text("Add Claim")');
+    await page.fill('[name="claimText"]', "Climate action is urgent");
+    await page.click('button:has-text("Submit")');
+    
+    // Add an argument
+    await page.click('button:has-text("Add Argument")');
+    await page.fill('[name="content"]', "97% of climate scientists agree");
+    
+    // Select primary scheme
+    await page.click('[data-testid="scheme-selector"]');
+    await page.fill('[placeholder="Search schemes..."]', "Expert Opinion");
+    await page.click('text=Argument from Expert Opinion');
+    
+    await page.click('button:has-text("Submit Argument")');
+    
+    // Verify argument created
+    await expect(page.locator('text=97% of climate scientists agree')).toBeVisible();
+    await expect(page.locator('text=Expert Opinion')).toBeVisible();
+    
+    // Add supporting scheme
+    await page.hover('text=97% of climate scientists agree');
+    await page.click('button[aria-label="Manage schemes"]');
+    await page.click('button:has-text("Add Scheme")');
+    
+    // Select supporting scheme
+    await page.click('[data-testid="scheme-selector"]');
+    await page.fill('[placeholder="Search schemes..."]', "Consequences");
+    await page.click('text=Argument from Consequences');
+    
+    // Set role to supporting
+    await page.click('input[value="supporting"]');
+    await page.click('button:has-text("Add Scheme")');
+    
+    // Verify multi-scheme badge
+    await expect(page.locator('text=Multi-Scheme')).toBeVisible();
+    await expect(page.locator('text=2 schemes')).toBeVisible();
+  });
+  
+  test("Critical questions composed from all schemes", async ({ page }) => {
+    // Navigate to argument with multiple schemes
+    await page.goto("/deliberation/test-delib-id/argument/multi-scheme-arg-id");
+    
+    // Open CQ modal
+    await page.click('button:has-text("Critical Questions")');
+    
+    // Verify composed count
+    await expect(page.locator('text=/\\d+ total/')).toBeVisible();
+    
+    // Verify tabs present
+    await expect(page.locator('text=By Scheme')).toBeVisible();
+    await expect(page.locator('text=By Attack Type')).toBeVisible();
+    await expect(page.locator('text=By Target')).toBeVisible();
+    
+    // Switch to "By Attack Type" tab
+    await page.click('text=By Attack Type');
+    
+    // Verify attack type groupings
+    await expect(page.locator('text=undermining')).toBeVisible();
+    
+    // Test filtering
+    await page.click('button:has-text("Filters")');
+    await page.click('text=Expert Opinion');
+    
+    // Verify filtered count
+    await expect(page.locator('text=/\\d+ filtered/')).toBeVisible();
+  });
+  
+  test("User can reorder schemes via drag-drop", async ({ page }) => {
+    await page.goto("/deliberation/test-delib-id/argument/multi-scheme-arg-id");
+    
+    // Open scheme management
+    await page.click('button:has-text("Manage Schemes")');
+    await page.click('button:has-text("Reorder")');
+    
+    // Drag second scheme to first position
+    const secondScheme = page.locator('[data-testid="scheme-item"]').nth(1);
+    const firstScheme = page.locator('[data-testid="scheme-item"]').nth(0);
+    
+    await secondScheme.dragTo(firstScheme);
+    
+    // Save order
+    await page.click('button:has-text("Save Order")');
+    
+    // Verify toast notification
+    await expect(page.locator('text=Order saved')).toBeVisible();
+  });
+  
+  test("Cannot create argument without primary scheme", async ({ page }) => {
+    await page.goto("/deliberation/test-delib-id");
+    
+    await page.click('button:has-text("Add Argument")');
+    await page.fill('[name="content"]', "Test argument");
+    
+    // Try to submit without scheme
+    await page.click('button:has-text("Submit Argument")');
+    
+    // Verify error message
+    await expect(page.locator('text=/primary scheme.*required/i')).toBeVisible();
+  });
+  
+  test("Cannot add duplicate scheme", async ({ page }) => {
+    await page.goto("/deliberation/test-delib-id/argument/single-scheme-arg-id");
+    
+    await page.click('button:has-text("Manage Schemes")');
+    await page.click('button:has-text("Add Scheme")');
+    
+    // Try to add the same scheme already in use
+    await page.click('[data-testid="scheme-selector"]');
+    await page.click('text=Expert Opinion'); // Already the primary
+    
+    // Should be disabled or show error
+    await page.click('button:has-text("Add Scheme")');
+    await expect(page.locator('text=/already in use/i')).toBeVisible();
+  });
+});
+```
+
+**File**: `__tests__/integration/multi-scheme-api.test.ts` (NEW)
+
+```typescript
+import { POST, GET, PATCH, DELETE } from "@/app/api/arguments/[id]/schemes/route";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+
+jest.mock("next-auth");
+jest.mock("@/lib/prisma", () => ({
+  prisma: {
+    argument: {
+      findUnique: jest.fn(),
+    },
+    argumentSchemeInstance: {
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      findFirst: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  },
+}));
+
+describe("Multi-Scheme API Integration", () => {
+  beforeEach(() => {
+    (getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: "user1", email: "test@example.com" },
+    });
+  });
+  
+  describe("POST /api/arguments/[id]/schemes", () => {
+    it("adds scheme to argument", async () => {
+      const mockArgument = {
+        id: "arg1",
+        schemeInstances: [],
+        claim: { deliberationId: "delib1" },
+      };
+      
+      (prisma.argument.findUnique as jest.Mock).mockResolvedValue(mockArgument);
+      (prisma.argumentSchemeInstance.create as jest.Mock).mockResolvedValue({
+        id: "inst1",
+        argumentId: "arg1",
+        schemeId: "scheme1",
+        role: "primary",
+        explicitness: "explicit",
+        order: 0,
+      });
+      
+      const req = new Request("http://localhost/api/arguments/arg1/schemes", {
+        method: "POST",
+        body: JSON.stringify({
+          schemeId: "scheme1",
+          role: "primary",
+          explicitness: "explicit",
+        }),
+      });
+      
+      const response = await POST(req, { params: { id: "arg1" } });
+      
+      expect(response.status).toBe(200);
+      expect(prisma.argumentSchemeInstance.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          argumentId: "arg1",
+          schemeId: "scheme1",
+          role: "primary",
+          explicitness: "explicit",
+          order: 0,
+        }),
+        include: { scheme: true },
+      });
+    });
+    
+    it("rejects duplicate primary scheme", async () => {
+      const mockArgument = {
+        id: "arg1",
+        schemeInstances: [{ id: "inst1", role: "primary" }],
+        claim: { deliberationId: "delib1" },
+      };
+      
+      (prisma.argument.findUnique as jest.Mock).mockResolvedValue(mockArgument);
+      
+      const req = new Request("http://localhost/api/arguments/arg1/schemes", {
+        method: "POST",
+        body: JSON.stringify({
+          schemeId: "scheme2",
+          role: "primary",
+          explicitness: "explicit",
+        }),
+      });
+      
+      const response = await POST(req, { params: { id: "arg1" } });
+      
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toMatch(/already has a primary scheme/i);
+    });
+  });
+  
+  describe("DELETE /api/arguments/[id]/schemes/[instanceId]", () => {
+    it("removes scheme instance", async () => {
+      (getServerSession as jest.Mock).mockResolvedValue({
+        user: { id: "user1" },
+      });
+      
+      (prisma.argumentSchemeInstance.delete as jest.Mock).mockResolvedValue({
+        id: "inst1",
+      });
+      
+      const req = new Request("http://localhost/api/arguments/arg1/schemes/inst1", {
+        method: "DELETE",
+      });
+      
+      const response = await DELETE(req, {
+        params: { id: "arg1", instanceId: "inst1" },
+      });
+      
+      expect(response.status).toBe(200);
+      expect(prisma.argumentSchemeInstance.delete).toHaveBeenCalledWith({
+        where: { id: "inst1" },
+      });
+    });
+  });
+});
+```
+
+#### Step 2: Performance Benchmarking (2 hours)
+
+**File**: `__tests__/performance/multi-scheme.bench.ts` (NEW)
+
+```typescript
+import { performance } from "perf_hooks";
+import { composeCriticalQuestions } from "@/lib/utils/compose-critical-questions";
+import type { ArgumentWithSchemes } from "@/lib/types/argument-net";
+
+describe("Multi-Scheme Performance", () => {
+  function generateMockArgument(schemeCount: number, cqsPerScheme: number): ArgumentWithSchemes {
+    const schemeInstances = Array.from({ length: schemeCount }, (_, i) => ({
+      id: `inst${i}`,
+      argumentId: "arg1",
+      schemeId: `scheme${i}`,
+      role: i === 0 ? "primary" as const : "supporting" as const,
+      explicitness: "explicit" as const,
+      order: i,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      scheme: {
+        id: `scheme${i}`,
+        name: `Scheme ${i}`,
+        description: `Test scheme ${i}`,
+        criticalQuestions: Array.from({ length: cqsPerScheme }, (_, j) => ({
+          id: `cq${i}-${j}`,
+          schemeId: `scheme${i}`,
+          question: `Question ${j} for scheme ${i}?`,
+          attackType: j % 2 === 0 ? "undermining" : "rebutting",
+          order: j,
+        })),
+      },
+    }));
+    
+    return {
+      id: "arg1",
+      claimId: "claim1",
+      content: "Test argument",
+      schemeInstances,
+      dependencies: [],
+    } as any;
+  }
+  
+  it("composes CQs for small argument (2 schemes, 5 CQs each) in <10ms", () => {
+    const arg = generateMockArgument(2, 5);
+    
+    const start = performance.now();
+    const composed = composeCriticalQuestions(arg);
+    const end = performance.now();
+    
+    expect(end - start).toBeLessThan(10);
+    expect(composed.totalCQs).toBe(10);
+  });
+  
+  it("composes CQs for medium argument (4 schemes, 10 CQs each) in <50ms", () => {
+    const arg = generateMockArgument(4, 10);
+    
+    const start = performance.now();
+    const composed = composeCriticalQuestions(arg);
+    const end = performance.now();
+    
+    expect(end - start).toBeLessThan(50);
+    expect(composed.totalCQs).toBe(40);
+  });
+  
+  it("composes CQs for large argument (6 schemes, 15 CQs each) in <100ms", () => {
+    const arg = generateMockArgument(6, 15);
+    
+    const start = performance.now();
+    const composed = composeCriticalQuestions(arg);
+    const end = performance.now();
+    
+    expect(end - start).toBeLessThan(100);
+    expect(composed.totalCQs).toBe(90);
+  });
+  
+  it("filters composed CQs in <5ms", () => {
+    const arg = generateMockArgument(4, 10);
+    const composed = composeCriticalQuestions(arg);
+    
+    const start = performance.now();
+    const filtered = composed.byScheme.flatMap(g => g.cqs).filter(
+      cq => cq.attackType === "undermining"
+    );
+    const end = performance.now();
+    
+    expect(end - start).toBeLessThan(5);
+    expect(filtered.length).toBeGreaterThan(0);
+  });
+});
+```
+
+#### Step 3: Feature Flag Infrastructure (2 hours)
+
+**File**: `lib/feature-flags.ts` (NEW)
+
+```typescript
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export type FeatureFlag = 
+  | "MULTI_SCHEME_ARGUMENTS"
+  | "MULTI_SCHEME_EDITING"
+  | "COMPOSED_CQS";
+
+interface FeatureFlagConfig {
+  enabled: boolean;
+  rolloutPercentage?: number; // 0-100
+  allowedUserIds?: string[];
+  allowedRoles?: string[];
+  requiresAuth?: boolean;
+}
+
+const featureFlags: Record<FeatureFlag, FeatureFlagConfig> = {
+  MULTI_SCHEME_ARGUMENTS: {
+    enabled: process.env.ENABLE_MULTI_SCHEME_ARGUMENTS === "true",
+    rolloutPercentage: parseInt(process.env.MULTI_SCHEME_ROLLOUT_PERCENT || "0"),
+    allowedRoles: ["admin", "moderator"],
+    requiresAuth: true,
+  },
+  MULTI_SCHEME_EDITING: {
+    enabled: process.env.ENABLE_MULTI_SCHEME_EDITING === "true",
+    rolloutPercentage: parseInt(process.env.MULTI_SCHEME_EDITING_ROLLOUT_PERCENT || "0"),
+    allowedRoles: ["admin", "moderator"],
+    requiresAuth: true,
+  },
+  COMPOSED_CQS: {
+    enabled: process.env.ENABLE_COMPOSED_CQS === "true",
+    rolloutPercentage: parseInt(process.env.COMPOSED_CQS_ROLLOUT_PERCENT || "0"),
+    allowedRoles: ["admin"],
+    requiresAuth: true,
+  },
+};
+
+export async function isFeatureEnabled(
+  flag: FeatureFlag,
+  userId?: string
+): Promise<boolean> {
+  const config = featureFlags[flag];
+  
+  // Feature disabled globally
+  if (!config.enabled) {
+    return false;
+  }
+  
+  // Requires auth but no user provided
+  if (config.requiresAuth && !userId) {
+    return false;
+  }
+  
+  // Check if user is in allowed list
+  if (config.allowedUserIds && userId) {
+    if (config.allowedUserIds.includes(userId)) {
+      return true;
+    }
+  }
+  
+  // Check user role
+  if (config.allowedRoles && userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    
+    if (user && config.allowedRoles.includes(user.role)) {
+      return true;
+    }
+  }
+  
+  // Rollout percentage (deterministic per user)
+  if (config.rolloutPercentage && config.rolloutPercentage > 0 && userId) {
+    const hash = hashUserId(userId);
+    const bucket = hash % 100;
+    return bucket < config.rolloutPercentage;
+  }
+  
+  return false;
+}
+
+export async function getFeatureFlagsForUser(userId?: string): Promise<Record<FeatureFlag, boolean>> {
+  const flags = {} as Record<FeatureFlag, boolean>;
+  
+  for (const flag of Object.keys(featureFlags) as FeatureFlag[]) {
+    flags[flag] = await isFeatureEnabled(flag, userId);
+  }
+  
+  return flags;
+}
+
+// Simple hash function for deterministic rollout
+function hashUserId(userId: string): number {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Client-side hook
+export function useFeatureFlag(flag: FeatureFlag): boolean {
+  const [enabled, setEnabled] = useState(false);
+  
+  useEffect(() => {
+    fetch(`/api/feature-flags/${flag}`)
+      .then(r => r.json())
+      .then(data => setEnabled(data.enabled))
+      .catch(() => setEnabled(false));
+  }, [flag]);
+  
+  return enabled;
+}
+```
+
+**File**: `app/api/feature-flags/[flag]/route.ts` (NEW)
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { isFeatureEnabled, type FeatureFlag } from "@/lib/feature-flags";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { flag: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+    
+    const enabled = await isFeatureEnabled(params.flag as FeatureFlag, userId);
+    
+    return NextResponse.json({ enabled });
+  } catch (error) {
+    return NextResponse.json({ enabled: false });
+  }
+}
+```
+
+#### Step 4: Monitoring & Alerting (2 hours)
+
+**File**: `lib/analytics/multi-scheme-events.ts` (NEW)
+
+```typescript
+import { analytics } from "@/lib/analytics";
+
+export function trackMultiSchemeEvent(
+  eventName: string,
+  properties: Record<string, any>
+) {
+  analytics.track(eventName, {
+    ...properties,
+    feature: "multi-scheme-arguments",
+    timestamp: new Date().toISOString(),
+  });
+}
+
+// Specific tracking functions
+
+export function trackSchemeAdded(data: {
+  argumentId: string;
+  schemeId: string;
+  role: string;
+  explicitness: string;
+  previousSchemeCount: number;
+}) {
+  trackMultiSchemeEvent("Scheme Added", data);
+}
+
+export function trackSchemeRemoved(data: {
+  argumentId: string;
+  schemeId: string;
+  role: string;
+  remainingSchemeCount: number;
+}) {
+  trackMultiSchemeEvent("Scheme Removed", data);
+}
+
+export function trackSchemesReordered(data: {
+  argumentId: string;
+  schemeCount: number;
+}) {
+  trackMultiSchemeEvent("Schemes Reordered", data);
+}
+
+export function trackComposedCQsViewed(data: {
+  argumentId: string;
+  totalCQs: number;
+  schemeCount: number;
+  viewMode: "byScheme" | "byAttack" | "byTarget";
+}) {
+  trackMultiSchemeEvent("Composed CQs Viewed", data);
+}
+
+export function trackCQFilterApplied(data: {
+  argumentId: string;
+  filterType: "scheme" | "attackType" | "sourceRole";
+  filterValue: string;
+  resultCount: number;
+}) {
+  trackMultiSchemeEvent("CQ Filter Applied", data);
+}
+
+export function trackMultiSchemeArgumentCreated(data: {
+  argumentId: string;
+  schemeCount: number;
+  primaryScheme: string;
+  supportingSchemes: string[];
+}) {
+  trackMultiSchemeEvent("Multi-Scheme Argument Created", data);
+}
+```
+
+**File**: `lib/monitoring/multi-scheme-metrics.ts` (NEW)
+
+```typescript
+import { prisma } from "@/lib/prisma";
+
+export async function getMultiSchemeMetrics() {
+  const [
+    totalArguments,
+    multiSchemeArguments,
+    averageSchemesPerArgument,
+    mostCommonSchemeCount,
+    argumentsBySchemeCount,
+  ] = await Promise.all([
+    // Total arguments
+    prisma.argument.count(),
+    
+    // Arguments with 2+ schemes
+    prisma.argument.count({
+      where: {
+        schemeInstances: {
+          some: {
+            id: { not: undefined },
+          },
+        },
+      },
+    }),
+    
+    // Average schemes per argument
+    prisma.argumentSchemeInstance.groupBy({
+      by: ["argumentId"],
+      _count: true,
+    }).then(results => {
+      const avg = results.reduce((sum, r) => sum + r._count, 0) / results.length;
+      return Math.round(avg * 100) / 100;
+    }),
+    
+    // Most common scheme count
+    prisma.argumentSchemeInstance.groupBy({
+      by: ["argumentId"],
+      _count: true,
+    }).then(results => {
+      const counts = results.map(r => r._count);
+      const mode = counts.sort((a, b) =>
+        counts.filter(v => v === a).length - counts.filter(v => v === b).length
+      ).pop();
+      return mode || 1;
+    }),
+    
+    // Distribution of arguments by scheme count
+    prisma.argumentSchemeInstance.groupBy({
+      by: ["argumentId"],
+      _count: true,
+    }).then(results => {
+      const distribution: Record<number, number> = {};
+      results.forEach(r => {
+        distribution[r._count] = (distribution[r._count] || 0) + 1;
+      });
+      return distribution;
+    }),
+  ]);
+  
+  return {
+    totalArguments,
+    multiSchemeArguments,
+    multiSchemePercentage: Math.round((multiSchemeArguments / totalArguments) * 100),
+    averageSchemesPerArgument,
+    mostCommonSchemeCount,
+    argumentsBySchemeCount,
+  };
+}
+
+export async function getSchemeUsageStats() {
+  const schemeUsage = await prisma.argumentSchemeInstance.groupBy({
+    by: ["schemeId", "role"],
+    _count: true,
+  });
+  
+  const schemes = await prisma.argumentationScheme.findMany({
+    where: {
+      id: {
+        in: schemeUsage.map(s => s.schemeId),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  
+  return schemeUsage.map(usage => ({
+    schemeId: usage.schemeId,
+    schemeName: schemes.find(s => s.id === usage.schemeId)?.name || "Unknown",
+    role: usage.role,
+    count: usage._count,
+  }));
+}
+```
+
+#### Step 5: Rollback Plan (1 hour)
+
+**File**: `scripts/rollback-multi-scheme.ts` (NEW)
+
+```typescript
+import { prisma } from "@/lib/prisma";
+
+/**
+ * Rollback script for multi-scheme arguments feature.
+ * 
+ * This script:
+ * 1. Migrates data back to single-scheme model
+ * 2. Keeps only primary scheme for each argument
+ * 3. Preserves data in backup tables
+ * 
+ * Usage: tsx scripts/rollback-multi-scheme.ts [--dry-run]
+ */
+
+async function rollbackMultiScheme(dryRun = false) {
+  console.log("Starting multi-scheme rollback...");
+  console.log(`Mode: ${dryRun ? "DRY RUN" : "LIVE"}`);
+  
+  // Step 1: Backup current state
+  if (!dryRun) {
+    console.log("\n1. Creating backup...");
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "ArgumentSchemeInstance_Backup_${Date.now()}" AS
+      SELECT * FROM "ArgumentSchemeInstance";
+    `;
+    console.log("✓ Backup created");
+  }
+  
+  // Step 2: Find arguments with multiple schemes
+  console.log("\n2. Finding multi-scheme arguments...");
+  const multiSchemeArgs = await prisma.argument.findMany({
+    where: {
+      schemeInstances: {
+        some: {},
+      },
+    },
+    include: {
+      schemeInstances: {
+        include: { scheme: true },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+  
+  console.log(`Found ${multiSchemeArgs.length} arguments with schemes`);
+  
+  // Step 3: Migrate to single scheme (keep primary)
+  console.log("\n3. Migrating to single scheme...");
+  let migratedCount = 0;
+  let errors = 0;
+  
+  for (const arg of multiSchemeArgs) {
+    const primaryScheme = arg.schemeInstances.find(si => si.role === "primary");
+    
+    if (!primaryScheme) {
+      console.warn(`⚠ Argument ${arg.id} has no primary scheme, using first scheme`);
+      const firstScheme = arg.schemeInstances[0];
+      
+      if (!dryRun && firstScheme) {
+        try {
+          await prisma.argument.update({
+            where: { id: arg.id },
+            data: { schemeId: firstScheme.schemeId },
+          });
+          migratedCount++;
+        } catch (error) {
+          console.error(`✗ Error migrating ${arg.id}:`, error);
+          errors++;
+        }
+      }
+    } else {
+      if (!dryRun) {
+        try {
+          await prisma.argument.update({
+            where: { id: arg.id },
+            data: { schemeId: primaryScheme.schemeId },
+          });
+          migratedCount++;
+        } catch (error) {
+          console.error(`✗ Error migrating ${arg.id}:`, error);
+          errors++;
+        }
+      } else {
+        console.log(`Would migrate ${arg.id} to scheme ${primaryScheme.scheme?.name}`);
+      }
+    }
+  }
+  
+  console.log(`\n✓ Migrated ${migratedCount} arguments`);
+  if (errors > 0) {
+    console.error(`✗ ${errors} errors occurred`);
+  }
+  
+  // Step 4: Archive scheme instances (don't delete)
+  if (!dryRun) {
+    console.log("\n4. Archiving scheme instances...");
+    const archived = await prisma.argumentSchemeInstance.updateMany({
+      data: {
+        // Add archived flag if schema supports it
+        // Otherwise they remain but are ignored
+      },
+    });
+    console.log(`✓ Archived ${archived.count} scheme instances`);
+  }
+  
+  console.log("\n✓ Rollback complete");
+  console.log("\nNote: Scheme instances are preserved in backup table");
+  console.log("To restore, run: restore-multi-scheme.ts");
+}
+
+// Run
+const dryRun = process.argv.includes("--dry-run");
+rollbackMultiScheme(dryRun)
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error("Rollback failed:", error);
+    process.exit(1);
+  });
+```
+
+#### Step 6: User Documentation (1 hour)
+
+**File**: `docs/user-guide/multi-scheme-arguments.md` (NEW)
+
+```markdown
+# Multi-Scheme Arguments User Guide
+
+## What are Multi-Scheme Arguments?
+
+In real-world reasoning, arguments rarely follow a single pattern. Multi-scheme arguments reflect how we naturally combine different types of reasoning:
+
+**Example**: Arguing for climate policy
+- **Primary**: Practical reasoning (we should take action)
+- **Supporting**: Argument from consequences (to avoid disaster)
+- **Supporting**: Argument from expert opinion (scientists agree)
+- **Presupposed**: Argument from values (we value future generations)
+
+## Creating Multi-Scheme Arguments
+
+### Basic Workflow
+
+1. **Create your argument** with a primary scheme
+   - Every argument must have exactly one primary scheme
+   - This is the main inferential pattern
+
+2. **Add supporting schemes** to strengthen your argument
+   - Click "Manage Schemes" on your argument
+   - Click "Add Scheme"
+   - Select scheme, set role, and provide evidence
+
+3. **View composed critical questions**
+   - Click "Critical Questions" to see all CQs from all schemes
+   - Filter by scheme, attack type, or source role
+
+### Scheme Roles Explained
+
+**Primary** (Required, exactly one)
+- The main pattern of inference
+- Example: "Practical Reasoning" for a policy recommendation
+
+**Supporting**
+- Enables or justifies premises of the primary scheme
+- Example: "Expert Opinion" supporting a factual claim
+
+**Presupposed**
+- Background assumptions necessary for the argument
+- Example: "Argument from Values" underlying a policy debate
+
+**Implicit**
+- Recoverable from context or common knowledge
+- Example: Unstated causal connections
+
+### Explicitness Levels
+
+**Explicit** (Solid border)
+- Clearly stated in the argument text
+- Provide text evidence to highlight where it appears
+
+**Presupposed** (Dashed border)
+- Necessary but unstated
+- Provide justification for why it's presupposed
+
+**Implied** (Dotted border)
+- Recoverable from context
+- Provide justification for the reconstruction
+
+## Best Practices
+
+### When to Use Multiple Schemes
+
+✅ **Good use cases**:
+- Complex policy arguments with multiple premises
+- Arguments combining factual and normative reasoning
+- Arguments with implicit background assumptions
+
+❌ **Avoid**:
+- Adding schemes just to inflate CQ count
+- Redundant schemes that don't add new dimensions
+- Mixing schemes that target unrelated conclusions
+
+### Composing CQs
+
+When you add multiple schemes, their critical questions are **composed**:
+
+- **By Scheme**: See which CQs come from which scheme
+- **By Attack Type**: See all undermining, rebutting, etc.
+- **By Target**: See which CQs target which scheme
+
+Use filters to focus on specific aspects of the attack surface.
+
+### Reordering Schemes
+
+The order of schemes affects display:
+1. Primary scheme always appears first
+2. Supporting schemes follow
+3. Implicit/presupposed schemes last
+
+Reorder schemes to reflect argumentative priority.
+
+## Examples
+
+### Example 1: Policy Argument
+
+**Claim**: "We should implement a carbon tax"
+
+**Schemes**:
+- **Primary**: Practical Reasoning
+  - Major premise: Carbon tax reduces emissions
+  - Minor premise: We should reduce emissions
+  - Conclusion: We should implement carbon tax
+
+- **Supporting**: Argument from Expert Opinion
+  - Supports: "Carbon tax reduces emissions"
+  - Evidence: "97% of economists agree..."
+
+- **Supporting**: Argument from Consequences
+  - Supports: "We should reduce emissions"
+  - Evidence: "Climate change will cause..."
+
+- **Presupposed**: Argument from Values
+  - Supports: Implicit value judgment
+  - Justification: "Assumes we value environmental sustainability"
+
+**Composed CQs**: 23 total
+- 8 from Practical Reasoning
+- 6 from Expert Opinion
+- 5 from Consequences
+- 4 from Values
+
+### Example 2: Factual Claim
+
+**Claim**: "Vitamin D deficiency causes depression"
+
+**Schemes**:
+- **Primary**: Argument from Correlation to Cause
+  - Studies show correlation between deficiency and depression
+
+- **Supporting**: Argument from Expert Opinion
+  - Supports the causal interpretation
+  - Psychiatrists support this link
+
+- **Implicit**: Argument from Sign
+  - Justification: "Assumes biological mechanisms (not explicit in text)"
+
+## Troubleshooting
+
+**Q: Why can't I add a second primary scheme?**
+A: Arguments can have only one primary scheme by design. To change the primary, first edit the existing primary to a supporting role, then promote the new one.
+
+**Q: Why are so many schemes presupposed or implicit?**
+A: Good argument reconstruction often reveals unstated reasoning. Be judicious and provide clear justification for each.
+
+**Q: How do I know which schemes to use?**
+A: Start with the primary (what's the main inference?), then ask what enables each premise. The system will suggest common patterns.
+
+## FAQ
+
+**Q: Do multi-scheme arguments have higher burden of proof?**
+A: No, burden is set at the claim level. However, each scheme's CQs must be addressed.
+
+**Q: Can I use the same scheme twice?**
+A: No, schemes cannot be duplicated within an argument.
+
+**Q: What happens to my CQ responses if I remove a scheme?**
+A: CQ responses are preserved but archived. If you re-add the scheme, they can be restored.
+```
+
+---
+
+## Phase 1.6 Deployment Checklist
+
+### Pre-Deployment
+
+- [ ] All tests passing (unit, integration, E2E)
+- [ ] Performance benchmarks meet targets (<100ms for 90 CQs)
+- [ ] Feature flags configured in environment
+- [ ] Monitoring dashboards created
+- [ ] Rollback script tested in staging
+- [ ] User documentation published
+- [ ] Team training completed
+
+### Deployment Stages
+
+**Stage 1: Internal Testing (Days 20-21)**
+- [ ] Deploy to dev with flags enabled for admins only
+- [ ] Manual testing of all flows
+- [ ] Performance testing with production-like data
+- [ ] Bug fixes if needed
+
+**Stage 2: Closed Beta (Days 22-24)**
+- [ ] Enable for 10-20 beta users
+- [ ] Monitor error rates (<1% target)
+- [ ] Collect qualitative feedback
+- [ ] Track key metrics (avg schemes/arg, CQ usage)
+
+**Stage 3: Gradual Rollout (Days 25-30)**
+- [ ] Day 25: Enable for moderators (10% of users)
+- [ ] Day 26: Increase to 25% of users
+- [ ] Day 27: Increase to 50% of users
+- [ ] Day 28: Increase to 75% of users
+- [ ] Day 29: Enable for all users
+- [ ] Day 30: Remove feature flag (fully deployed)
+
+### Post-Deployment
+
+- [ ] Monitor key metrics for 1 week
+- [ ] Address user feedback
+- [ ] Write postmortem/retrospective
+- [ ] Plan Phase 2 (Dependencies & Explicitness)
+
+---
+
+## Phase 1.6 Success Metrics
+
+### Technical Metrics
+
+**Performance**:
+- [ ] P50 CQ composition time: <20ms
+- [ ] P95 CQ composition time: <50ms
+- [ ] P99 CQ composition time: <100ms
+- [ ] Modal load time: <500ms
+- [ ] API endpoint latency: <200ms
+
+**Reliability**:
+- [ ] Error rate: <0.5%
+- [ ] Successful scheme additions: >98%
+- [ ] Successful deletions: >99%
+- [ ] Reorder success rate: >99%
+
+### User Metrics
+
+**Adoption**:
+- [ ] % multi-scheme arguments: >30% (target: 40%)
+- [ ] Avg schemes per multi-scheme arg: 2.5-3.5
+- [ ] % users who add 2nd scheme: >25%
+- [ ] % users who add 3+ schemes: >10%
+
+**Engagement**:
+- [ ] CQ modal open rate: >40%
+- [ ] Filter usage rate: >30%
+- [ ] Tab switch rate: >50%
+- [ ] Avg time in CQ modal: 2-5 minutes
+
+**Quality**:
+- [ ] % arguments with justified implicit schemes: >80%
+- [ ] % arguments with text evidence: >60%
+- [ ] Scheme removal rate (regret): <5%
+
+---
+
+## Phase 1.6 Complete Deliverables
+
+✅ **Testing**:
+- E2E test suite (6 major flows)
+- API integration tests
+- Performance benchmarks
+- Load testing scenarios
+
+✅ **Infrastructure**:
+- Feature flag system
+- Gradual rollout mechanism
+- Analytics tracking (6 events)
+- Monitoring dashboard
+
+✅ **Safety**:
+- Rollback script with backup
+- Error alerting
+- Performance monitoring
+- User-facing error messages
+
+✅ **Documentation**:
+- User guide with examples
+- Developer documentation
+- Troubleshooting guide
+- FAQ
+
+---
+
+**Phase 1 (Multi-Scheme Arguments) Complete Summary**:
+
+**Total Effort**: ~80 hours (2 weeks)
+
+**Deliverables**:
+- ✅ Data model (3 new tables)
+- ✅ Migration strategy (3-phase, backward compatible)
+- ✅ UI components (read + edit, 12 components)
+- ✅ API endpoints (4 new routes)
+- ✅ CQ composition system
+- ✅ Testing infrastructure
+- ✅ Feature flags
+- ✅ Monitoring
+- ✅ Documentation
+
+**User Value**:
+- Construct complex argumentative strategies
+- See complete attack surface
+- Understand scheme relationships
+- Better reflect real-world reasoning
+
+**Next**: Phase 2 (Dependencies & Explicitness) - Building the full ArgumentNet
+
+---
+
+*End of Phase 1. Ready to proceed with Phase 2 when you're ready.*
+
+---
+---
+
+# Phase 2: Dependencies & Explicitness (80 hours, 2 weeks)
+
+**Goal**: Complete the ArgumentNet model by adding dependency tracking, visualization, and explicitness styling throughout the UI. This phase transforms multi-scheme arguments from a collection of schemes into a structured **argumentative network** with explicit relationships.
+
+**Research Foundation**: Macagno & Walton (2017) - "Practical Reasoning Arguments: A Modular Approach"
+- Premise-conclusion dependencies
+- Presuppositional structures
+- Sequential reasoning chains
+- Support vs justificational roles
+
+**User Value**:
+- See how schemes connect to form coherent arguments
+- Understand implicit vs explicit reasoning
+- Recognize common argument patterns
+- Validate argument structure
+
+**Technical Scope**:
+- Dependency graph visualization
+- Automatic dependency detection
+- Global explicitness styling system
+- Pattern recognition and matching
+- Net validation rules
+- Enhanced testing and documentation
+
+
+## Phase 2.1: Dependency Graph Visualization (16 hours)
+
+**Goal**: Create interactive graph component showing ArgumentSchemeInstances as nodes and ArgumentDependencies as edges.
+
+**Key Deliverables**:
+- `ArgumentNetGraph.tsx` - React Flow component with hierarchical/force-directed layouts
+- `DependencyDetailModal.tsx` - Shows dependency details on edge click
+- Integration into `ArgumentDetailsPanel` with "Network View" tab
+- API endpoint `/api/arguments/[id]/dependencies` with cycle detection
+- Mini-map for navigation, legend for dependency types
+
+**Implementation Steps**:
+1. Install React Flow library (`yarn add reactflow`)
+2. Create ArgumentNetGraph component (6 hours)
+   - Node styling by role (blue=primary, green=supporting, purple=presupposed)
+   - Border styling by explicitness (solid/dashed/dotted)
+   - Edge styling by dependency type with Unicode symbols (⟶ ⊨ ↗ ∵ →)
+   - Layout algorithms (hierarchical arranges by order, force-directed spreads evenly)
+3. Integrate into ArgumentDetailsPanel (3 hours)
+   - Add "Network View" tab alongside "Schemes" and "CQs"
+   - Click scheme → highlight in network view
+   - Click node → show details
+4. Create DependencyDetailModal (3 hours)
+   - Show dependency type, description, justification
+   - Warn for implicit dependencies
+   - Display source/target schemes
+5. Update types for ArgumentDependency (1 hour)
+6. Add API endpoint with validation (2 hours)
+   - POST /api/arguments/[id]/dependencies
+   - Validate instances belong to argument
+   - Check for circular dependencies (BFS algorithm)
+   - Return created dependency with relations
+
+**Testing**:
+- Unit tests for ArgumentNetGraph (render, click handlers, highlighting)
+- API tests for dependency creation and cycle detection
+- Visual regression tests for graph rendering
+
+**Acceptance Criteria**:
+- [ ] Graph renders nodes and edges correctly
+- [ ] Click handlers work for navigation
+- [ ] Layouts arrange schemes logically
+- [ ] Cycle detection prevents invalid dependencies
+- [ ] All tests passing
+
+**Time**: 16 hours | **Complexity**: Medium | **Risk**: Low
+
+---
+
+## Phase 2.2: Automatic Dependency Detection (12 hours)
+
+**Goal**: Implement inference algorithm that automatically detects likely dependencies between schemes, reducing manual work.
+
+**Key Deliverables**:
+- `server/services/dependencyInference.ts` - 5 pattern detection algorithms
+- `DependencySuggestionsPanel.tsx` - UI for accepting/rejecting suggestions
+- API endpoint `/api/arguments/[id]/dependencies/infer`
+- Integration into ArgumentSchemeManagementPanel
+
+**Inference Patterns**:
+1. **Premise-Conclusion Chains** (confidence 0.7-1.0)
+   - Match scheme A's conclusion to scheme B's premise using textual similarity
+   - `calculateSimilarity()` uses word overlap
+   - Example: "X is true" (conclusion) → "X is true" (premise)
+
+2. **Presuppositional Dependencies** (confidence 0.9)
+   - Role-based: presupposed schemes → primary scheme
+   - Automatically inferred from role assignment
+
+3. **Support Relationships** (confidence 0.85)
+   - Role-based: supporting schemes → primary scheme
+   - Provides additional evidence
+
+4. **Sequential Reasoning** (confidence 0.7)
+   - Order-based: consecutive non-primary schemes form chains
+   - Scheme[i] → Scheme[i+1]
+
+5. **Justificational Dependencies** (confidence 0.8)
+   - Scheme-type based: Expert Opinion, Authority, Witness → other schemes
+   - Provides justification for claims
+
+**Implementation Steps**:
+1. Create dependency inference service (5 hours)
+   - `inferDependencies()` - main entry point
+   - 5 pattern detection functions
+   - `parseFormalStructure()` - extract premises/conclusions
+   - `findStructuralMatch()` - textual similarity scoring
+   - Deduplication and confidence sorting
+2. Create DependencySuggestionsPanel UI (4 hours)
+   - Display suggestions with confidence scores
+   - Accept/reject buttons
+   - Batch dismiss
+   - Color-coded by dependency type
+3. Add inference API endpoint (2 hours)
+   - GET /api/arguments/[id]/dependencies/infer
+   - Returns sorted suggestions
+4. Integrate into editing flow (1 hour)
+   - Show suggestions after adding 2+ schemes
+   - Accept → create ArgumentDependency with `isExplicit: false`
+   - Justification from inference reason
+
+**Testing**:
+- Unit tests for each pattern detection algorithm
+- Integration tests for inference service
+- E2E tests for suggestion acceptance flow
+
+**Acceptance Criteria**:
+- [ ] All 5 patterns detect correctly
+- [ ] Suggestions sorted by confidence
+- [ ] UI allows accept/reject with feedback
+- [ ] Accepted suggestions create dependencies
+- [ ] Inferred dependencies marked as implicit
+- [ ] All tests passing
+
+**Time**: 12 hours | **Complexity**: High | **Risk**: Medium (false positives possible)
+
+---
+
+## Phase 2.3: Global Explicitness Styling (12 hours)
+
+**Goal**: Establish consistent visual language for explicitness levels (explicit/presupposed/implied) across all components.
+
+**Key Deliverables**:
+- `styles/explicitness.css` - Global CSS utility classes
+- `lib/explicitnessUtils.ts` - Helper functions
+- Updated ArgumentCard, MultiSchemeBadge with explicitness borders
+- `ExplicitnessFilter.tsx` - Filter UI component
+- `ExplicitnessLegend.tsx` - Explanatory popover
+
+**Visual Language**:
+- **Explicit**: Solid borders (●), normal font, 100% opacity
+- **Presupposed**: Dashed borders (◐), italic font, 75% opacity  
+- **Implied**: Dotted borders (○), italic font, 50% opacity
+
+**Implementation Steps**:
+1. Create explicitness utilities (2 hours)
+   - CSS classes: `.explicitness-explicit/presupposed/implied`
+   - Helper functions: `getExplicitnessBorderClass()`, `getExplicitnessIcon()`, etc.
+   - Descriptions for each level
+2. Update ArgumentCard component (2 hours)
+   - Apply explicitness border to card
+   - Show explicitness icon
+   - Warning for implicit arguments
+3. Update MultiSchemeBadge component (2 hours)
+   - Add explicitness borders to badges
+   - Include explicitness icon
+4. Create ExplicitnessFilter component (3 hours)
+   - Checkbox for each level
+   - Icons and labels
+   - Filter arguments by primary scheme explicitness
+5. Create ExplicitnessLegend component (2 hours)
+   - Popover with "Understanding Explicitness" guide
+   - Visual examples (border styles)
+   - Tip about finding implicit reasoning
+6. Update ArgumentList with filter (1 hour)
+   - Sidebar with ExplicitnessFilter
+   - Header with ExplicitnessLegend button
+   - Filter applied to displayed arguments
+
+**Testing**:
+- Unit tests for utility functions
+- Visual regression tests for styling
+- Component tests for filter functionality
+
+**Acceptance Criteria**:
+- [ ] Consistent explicitness styling across all components
+- [ ] Filter works correctly
+- [ ] Legend explains visual language
+- [ ] Warning shown for implicit arguments
+- [ ] All tests passing
+
+**Time**: 12 hours | **Complexity**: Low | **Risk**: Low (visual changes)
+
+---
+
+## Phase 2.4: Pattern Recognition (16 hours)
+
+**Goal**: Identify and suggest common ArgumentNet patterns (policy arguments, legal precedents, etc.).
+
+**Key Deliverables**:
+- `SchemeNetPattern` seeding script with 10+ common patterns
+- `matchPattern()` function in dependencyInference service
+- Pattern badge/indicator in UI
+- Pattern suggestion during argument creation
+- Pattern library browser
+
+**Common Patterns to Seed**:
+1. **Policy Argument** (PR + Values + Consequences)
+2. **Legal Precedent** (Case-to-Case + Authority + Analogy)
+3. **Scientific Argument** (Sign + Expert + Correlation)
+4. **Value-Based PR** (Values + PR)
+5. **Slippery Slope** (Consequences chains)
+6. **Ethical Dilemma** (Values + Consequences + Counterargument)
+7. **Historical Analogy** (Example + Case-to-Case + Authority)
+8. **Causal Chain** (Sign + Cause-to-Effect sequences)
+9. **Burden Shift** (PR + Negative Consequences + Authority)
+10. **Compromise** (Multiple Values + Multiple PR)
+
+**Implementation Steps**:
+1. Seed SchemeNetPattern table (3 hours)
+   - Define 10+ patterns with:
+     - `name`, `description`, `domain`
+     - `schemeIds[]` - typical schemes used
+     - `typicalStructure` - JSON with roles and dependencies
+     - `usageCount` - track adoption
+2. Create pattern matching algorithm (5 hours)
+   - `matchPattern()` - compare argument structure to patterns
+   - Scoring: scheme overlap + dependency similarity + role alignment
+   - Return ranked matches with confidence scores
+3. Create PatternBadge component (2 hours)
+   - "This argument uses [Pattern Name]" indicator
+   - Click to see pattern details
+   - Confidence meter
+4. Add pattern suggestion to creation flow (3 hours)
+   - After adding 2+ schemes, suggest matching patterns
+   - "Complete this pattern?" prompt
+   - One-click to add remaining schemes
+5. Create pattern library browser (3 hours)
+   - Browse all patterns by domain
+   - See example arguments
+   - Filter by scheme types
+   - Usage statistics
+
+**Testing**:
+- Unit tests for pattern matching algorithm
+- Integration tests for pattern suggestions
+- E2E tests for pattern-based creation
+
+**Acceptance Criteria**:
+- [ ] 10+ patterns seeded with correct structures
+- [ ] Matching algorithm scores accurately
+- [ ] UI shows pattern badges
+- [ ] Suggestions work during creation
+- [ ] Pattern library browsable
+- [ ] All tests passing
+
+**Time**: 16 hours | **Complexity**: Medium | **Risk**: Medium (pattern definitions)
+
+---
+
+## Phase 2.5: Net Validation (12 hours)
+
+**Goal**: Implement validation rules to ensure ArgumentNet structural integrity.
+
+**Key Deliverables**:
+- `server/services/netValidation.ts` - Validation rules engine
+- Real-time validation during editing
+- Validation dashboard for admins
+- Auto-fix suggestions
+
+**Validation Rules**:
+1. **No Circular Dependencies**: Cycles break logical flow
+2. **Supporting Schemes Have Targets**: All supporting schemes must support something
+3. **Presupposed Schemes Have Dependents**: Presuppositions must be used
+4. **Explicit Dependencies Have Justification**: User must explain explicit connections
+5. **Primary Scheme Exists**: Every argument needs a primary inference
+6. **Orphaned Schemes**: No schemes disconnected from the net (except primary)
+7. **Dependency Type Consistency**: Edge types match scheme roles
+
+**Implementation Steps**:
+1. Create validation service (6 hours)
+   - `validateArgumentNet()` - main entry point
+   - Individual rule validators (7 functions)
+   - `ValidationResult` type with errors/warnings
+   - Severity levels (error, warning, info)
+2. Add real-time validation to UI (4 hours)
+   - Validate on scheme add/remove/edit
+   - Show errors in editing panel
+   - Block save if critical errors
+   - Allow warnings with confirmation
+3. Create auto-fix suggestions (2 hours)
+   - "Remove orphaned scheme X"
+   - "Add justification for dependency Y"
+   - "Convert presupposed role to supporting"
+   - One-click fixes where possible
+
+**Testing**:
+- Unit tests for each validation rule
+- Integration tests for validation service
+- E2E tests for error display and auto-fix
+
+**Acceptance Criteria**:
+- [ ] All 7 validation rules implemented
+- [ ] Real-time validation during editing
+- [ ] Errors displayed with helpful messages
+- [ ] Auto-fix suggestions work
+- [ ] Critical errors block save
+- [ ] All tests passing
+
+**Time**: 12 hours | **Complexity**: Medium | **Risk**: Low (clear rules)
+
+---
+
+## Phase 2.6: Testing & Documentation (12 hours)
+
+**Goal**: Comprehensive testing and documentation for Phase 2 features.
+
+**Key Deliverables**:
+- Unit tests for all Phase 2 services
+- Integration tests for API endpoints
+- E2E tests for user workflows
+- Performance tests for inference and validation
+- User documentation for dependencies and patterns
+- Developer documentation for extending patterns
+
+**Testing Scope**:
+
+**Unit Tests** (4 hours):
+- `dependencyInference.test.ts` - All 5 pattern detectors
+- `netValidation.test.ts` - All 7 validation rules
+- `explicitnessUtils.test.ts` - Utility functions
+- `patternMatching.test.ts` - Pattern algorithm
+
+**Integration Tests** (3 hours):
+- API endpoint tests with mocked Prisma
+- Dependency creation with cycle detection
+- Inference endpoint with various argument structures
+- Validation endpoint with rule checking
+
+**E2E Tests** (3 hours):
+- Create multi-scheme argument → see suggestions → accept → verify dependency
+- View network graph → click edge → see details
+- Filter by explicitness → verify results
+- Match pattern → complete pattern → verify structure
+
+**Performance Benchmarks** (1 hour):
+- Inference: <100ms for 6-scheme argument
+- Validation: <50ms for complex net
+- Graph rendering: <500ms for 10-node net
+- Pattern matching: <200ms for 10 patterns
+
+**Documentation** (1 hour):
+- User guide: Understanding Dependencies, Patterns, and Explicitness
+- Developer guide: Adding new patterns, extending inference
+- Admin guide: Reviewing nets, seeding patterns
+
+**Acceptance Criteria**:
+- [ ] 90%+ test coverage for Phase 2 code
+- [ ] All performance benchmarks met
+- [ ] User documentation published
+- [ ] Developer documentation complete
+- [ ] All tests passing in CI
+
+**Time**: 12 hours | **Complexity**: Low | **Risk**: Low
+
+---
+
+## Phase 2 Summary
+
+**Total Effort**: 80 hours (2 weeks)
+
+**Deliverables**:
+- ✅ Interactive dependency graph with React Flow
+- ✅ Automatic dependency detection (5 patterns)
+- ✅ Global explicitness styling system
+- ✅ Pattern recognition and matching (10+ patterns)
+- ✅ Net validation rules (7 rules)
+- ✅ Comprehensive testing and documentation
+
+**User Value**:
+- **Understand Structure**: See how schemes connect in argumentative networks
+- **Save Time**: Automatic dependency detection reduces manual work
+- **Identify Implicit Reasoning**: Explicitness styling reveals assumptions
+- **Leverage Patterns**: Recognize and use common argument structures
+- **Ensure Validity**: Validation catches structural errors
+
+**Technical Value**:
+- **Complete ArgumentNet Model**: Structure (Phase 1) + Semantics (Phase 2)
+- **Foundation for Visualization**: Dependency data enables advanced graph features
+- **Research Alignment**: Implements Macagno & Walton presuppositional structures
+- **Extensible Patterns**: Easy to add new patterns and inference rules
+
+**Next Steps**:
+After Phase 2, the ArgumentNet model is complete. Recommended next phases:
+- **Phase 3**: Multi-Entry Navigation (Weeks 5-8) - Dichotomic tree, cluster browser
+- **Phase 4**: Argument Generation (Weeks 9-12) - Attack/support suggestions, construction wizard
+- **Phase 5**: Advanced Visualization (Weeks 13-16) - Multi-net analysis, comparative views
+
+---
+
+## Phase 2 Deployment Checklist
+
+### Pre-Deployment
+- [ ] All Phase 2.1-2.6 tests passing
+- [ ] Performance benchmarks met (<100ms inference, <50ms validation)
+- [ ] Dependency graph renders correctly for 10+ node nets
+- [ ] Pattern library seeded with 10+ patterns
+- [ ] Validation rules tested with edge cases
+- [ ] Feature flags configured for gradual rollout
+- [ ] User documentation published
+- [ ] Team training on dependencies and patterns
+
+### Deployment (Days 31-40)
+
+**Stage 1: Internal Testing (Days 31-32)**
+- [ ] Deploy to dev environment
+- [ ] Test with internal arguments (5-10 complex cases)
+- [ ] Verify inference accuracy (>80% useful suggestions)
+- [ ] Check validation catches errors
+- [ ] Performance testing with production data
+
+**Stage 2: Beta Release (Days 33-35)**
+- [ ] Enable for 20-30 beta users
+- [ ] Monitor inference acceptance rate (target >50%)
+- [ ] Track pattern usage
+- [ ] Collect qualitative feedback
+- [ ] Fix critical bugs
+
+**Stage 3: Gradual Rollout (Days 36-40)**
+- [ ] Day 36: 25% of users
+- [ ] Day 37: 50% of users
+- [ ] Day 38: 75% of users
+- [ ] Day 39: 100% of users
+- [ ] Day 40: Remove feature flags
+
+### Post-Deployment
+- [ ] Monitor key metrics for 1 week:
+  - Dependency creation rate (manual + auto)
+  - Inference acceptance rate (target >50%)
+  - Pattern match accuracy
+  - Validation error frequency
+  - Graph view engagement
+- [ ] Address user feedback
+- [ ] Write postmortem
+- [ ] Plan Phase 3 (Multi-Entry Navigation)
+
+---
+
+## Phase 2 Success Metrics
+
+### Technical Metrics
+
+**Performance**:
+- [ ] Dependency inference: <100ms P95
+- [ ] Net validation: <50ms P95
+- [ ] Graph rendering: <500ms for 10 nodes
+- [ ] Pattern matching: <200ms P95
+
+**Reliability**:
+- [ ] Inference accuracy: >80% useful suggestions
+- [ ] Validation false positive rate: <5%
+- [ ] Graph rendering success: >99%
+- [ ] API error rate: <0.5%
+
+### User Metrics
+
+**Adoption**:
+- [ ] % arguments with dependencies: >40%
+- [ ] Avg dependencies per argument: 2-4
+- [ ] Inference acceptance rate: >50%
+- [ ] Pattern usage rate: >20% of multi-scheme args
+
+**Engagement**:
+- [ ] Network view open rate: >30%
+- [ ] Explicitness filter usage: >15%
+- [ ] Pattern library visits: >10% of users
+- [ ] Dependency editing: >25% of multi-scheme args
+
+**Quality**:
+- [ ] % arguments with validated nets: >90%
+- [ ] % implicit dependencies justified: >70%
+- [ ] % pattern matches accurate: >85%
+- [ ] Validation error fix rate: >95%
+
+---
+
+**Phase 2 Complete!**
+
+With Phase 2 complete, the ArgumentNet model is fully implemented:
+- **Phase 1**: Multi-scheme arguments (structure)
+- **Phase 2**: Dependencies & explicitness (semantics)
+
+**Ready for**: Phase 3 (Multi-Entry Navigation) - Help users discover and compose schemes through dichotomic trees, cluster browsing, and identification conditions.
+
+---
+
+*End of Phase 2. Ready for Phase 3 when you're ready.*
+

@@ -2,19 +2,19 @@ Fantastic—let’s turn those six focus areas into a fully‑fleshed, file‑aw
 
 1) Protocol hardening (Prakken) — make moves auditable
 Why (research)
-Prakken‑style persuasion games hinge on an explicit reply structure, with replies classified as attacks (keep a branch open) or surrenders (close it). Rules like “no duplicate reply,” “no attack after surrender,” and an explicit‑acceptance guard (“don’t concede the conclusion when the protocol requires accepting the argument”) keep the tree focused and public‑semantics auditable. Event‑Calculus implementations show how to maintain legality, turn and branch fluents declaratively and even add a stricter “relevance” layer when needed.  (These dialogical mechanics are also the backbone of our own “formal foundations” synthesis for Mesh/Agora.)
+Prakken‑style persuasion games hinge on an explicit reply structure, with replies classified as attacks (keep a branch open) or surrenders (close it). Rules like “no duplicate reply,” “no attack after surrender,” and an explicit‑acceptance guard (“don’t concede the conclusion when the protocol requires accepting the argument”) keep the tree focused and public‑semantics auditable. Event‑Calculus implementations show how to maintain legality, turn and branch fluents declaratively and even add a stricter “relevance” layer when needed. (These dialogical mechanics are also the backbone of our own “formal foundations” synthesis for Mesh/Agora.)
 What to change
-1.1 Add precise reply targeting (non‑breaking). Extend POST /api/dialogue/move body to accept:
+1.1 Add precise reply targeting (non‑breaking).Extend POST /api/dialogue/move body to accept:
 replyToMoveId?: string
 replyTarget?: 'claim'|'argument'|'premise'|'link'|'presupposition'
 This augments your current (targetType,targetId,locusPath) addressing used in app/api/dialogue/move/route.ts without breaking existing clients.
-1.2 Enforce R‑rules before insert. Add a small validator that blocks: R1 turn violations, R2 invalid shapes, R3 self‑reply, R4 duplicate reply, R5 attack after surrender, R6 invalid initial move, R7 require accept‑argument (not mere concede). Wire it immediately before the prisma.dialogueMove.create call in the same handler; fall back to the current signature‑based idempotency for WHY/GROUNDS.
-1.3 Annotate legal options with force & relevance; make them shape‑aware. Extend GET /api/dialogue/legal-moves to add:
+1.2 Enforce R‑rules before insert.Add a small validator that blocks: R1 turn violations, R2 invalid shapes, R3 self‑reply, R4 duplicate reply, R5 attack after surrender, R6 invalid initial move, R7 require accept‑argument (not mere concede). Wire it immediately before the prisma.dialogueMove.create call in the same handler; fall back to the current signature‑based idempotency for WHY/GROUNDS.
+1.3 Annotate legal options with force & relevance; make them shape‑aware.Extend GET /api/dialogue/legal-moves to add:
 force: 'ATTACK'|'SURRENDER'|'NEUTRAL'
 relevance: 'likely'|'unlikely'|null
-and use your existing shape detectors to pre‑compose targeted WHY options (conditional/∀/∃/∨/∧/presupposition).  You already compute †‑closable loci via stepper hints in this endpoint; just tag those CLOSEs as force:'SURRENDER'.
-1.4 Asymmetric burden (room pref). Expose a room/deliberation pref for asymmetric proof so outcome labels use strict defeat for proponents but plain defeat for opponents. That toggles evaluation in your AF layer (see lib/argumentation/afEngine.ts).
-1.5 Status endpoint (Right Rail + burst tiles). Add GET /api/dialogues/{id}/status → { turnHolders, openBranches[], terminatedFor? }. Populate from the stepper’s daimon/closable hints and last attack/surrender per locus. Surface in Agora’s feed “room bursts,” which already coalesce 'dialogue:changed' bus events within a window.
+and use your existing shape detectors to pre‑compose targeted WHY options (conditional/∀/∃/∨/∧/presupposition). You already compute †‑closable loci via stepper hints in this endpoint; just tag those CLOSEs as force:'SURRENDER'.
+1.4 Asymmetric burden (room pref).Expose a room/deliberation pref for asymmetric proof so outcome labels use strict defeat for proponents but plain defeat for opponents. That toggles evaluation in your AF layer (see lib/argumentation/afEngine.ts).
+1.5 Status endpoint (Right Rail + burst tiles).Add GET /api/dialogues/{id}/status → { turnHolders, openBranches[], terminatedFor? }. Populate from the stepper’s daimon/closable hints and last attack/surrender per locus. Surface in Agora’s feed “room bursts,” which already coalesce 'dialogue:changed' bus events within a window.
 How (surgical diffs & tests)
 API: update Zod schema in app/api/dialogue/move/route.ts to include replyToMoveId, replyTarget; reject on validator failures with reason codes; keep dedup path (P2002) as is.
 Lib: add lib/dialogue/validate.ts with R‑rule checks using (a) explicit replyToMoveId when present; (b) open‑CQ map (you already compute this in /open-cqs and /legal-moves) for WHY/GROUNDS; (c) recent surrenders for R5.
@@ -32,11 +32,11 @@ KPIs: % moves with replyToMoveId; % blocked by R‑rules; mean open‑branch cou
 
 2) Content & schemes (Toulmin/Walton) — make reasons legible
 Why (research)
-Walton’s argumentation schemes are stereotyped, defeasible patterns whose Critical Questions (CQs) locate attack surfaces; they line up with Toulmin layouts and can be read as “defeasible modus ponens” patterns.  For deliberative rooms we especially want Practical Inference (goal → means → ought), with five canonical CQs: conflicting goals, alternatives, efficiency, feasibility, consequences.
+Walton’s argumentation schemes are stereotyped, defeasible patterns whose Critical Questions (CQs) locate attack surfaces; they line up with Toulmin layouts and can be read as “defeasible modus ponens” patterns. For deliberative rooms we especially want Practical Inference (goal → means → ought), with five canonical CQs: conflicting goals, alternatives, efficiency, feasibility, consequences.
 What to change
-2.1 CQ‑driven WHY. When the user picks a scheme in ToulminBox/MonologicalToolbar, render that scheme’s CQs as pre‑wired WHY options with payload.cqId. Your /open-cqs and /legal-moves already compute open/answered CQ keys; just refuse PRO moves that bypass open CQs for a mild focus guard.
-2.2 Practical reasoning as first‑class scheme. Add “Practical Inference” to the scheme library (5 CQs above). Bind its Qualifier defaults via your Quantifier/Modality pickers so users don’t forget to set plausibility. (Your argument data carries quantifier/modality already.)
-2.3 Undercut vs rebut — expose scope clearly. Your Prisma distinguishes EdgeType (rebut|undercut|support) and targetScope (premise|inference|conclusion). Make that explicit in the UI: “Challenge warrant (undercut, inference)” vs “Dispute conclusion (rebut).” This is already derivable in claimEdgeHelpers.
+2.1 CQ‑driven WHY.When the user picks a scheme in ToulminBox/MonologicalToolbar, render that scheme’s CQs as pre‑wired WHY options with payload.cqId. Your /open-cqs and /legal-moves already compute open/answered CQ keys; just refuse PRO moves that bypass open CQs for a mild focus guard.
+2.2 Practical reasoning as first‑class scheme.Add “Practical Inference” to the scheme library (5 CQs above). Bind its Qualifier defaults via your Quantifier/Modality pickers so users don’t forget to set plausibility. (Your argument data carries quantifier/modality already.)
+2.3 Undercut vs rebut — expose scope clearly.Your Prisma distinguishes EdgeType (rebut|undercut|support) and targetScope (premise|inference|conclusion). Make that explicit in the UI: “Challenge warrant (undercut, inference)” vs “Dispute conclusion (rebut).” This is already derivable in claimEdgeHelpers.
 How
 UI:
 	•	In ToulminBox.tsx and MonologicalToolbar.tsx, surface a CQ checklist that writes/reads payload.cqId for WHY/GROUNDS; show a small badge per answered CQ.
@@ -53,8 +53,8 @@ KPIs: CQ coverage rate; avg # CQs satisfied per argument; ratio of undercuts to 
 Why (research)
 The dialogical system for first‑order logic is (almost) extensionally equivalent to classical validity, so dialogical inferences can stand in for standard entailment; Grail maps natural language sentences to DRS/FO formulas, which the paper demonstrates on FraCaS examples (see the DRS figure on p. 27).
 What to change
-4.1 Productize your existing endpoints. You already ship POST /api/entail/dialogical (with optional NLI‑assist) and /api/entail/dialogical/visualize which create temporary designs, seed premises as P‑ASSERTs (0.1, 0.2, …), add an O‑WHY for the hypothesis, and run the stepper. Expose it in the UI as “Check entailment → seed dialogue” on any card/article.
-4.2 Hook for structured inputs (DRS/FO). Leave a hidden structuredInput field (DRS/FO JSON) that bypasses NLI and directly seeds designs at specific loci—this keeps us compatible with grammar‑to‑logic parsers like Grail shown in the paper. (The DRS diagram on p. 27 shows exactly the structure you’d pass.)
+4.1 Productize your existing endpoints.You already ship POST /api/entail/dialogical (with optional NLI‑assist) and /api/entail/dialogical/visualize which create temporary designs, seed premises as P‑ASSERTs (0.1, 0.2, …), add an O‑WHY for the hypothesis, and run the stepper. Expose it in the UI as “Check entailment → seed dialogue” on any card/article.
+4.2 Hook for structured inputs (DRS/FO).Leave a hidden structuredInput field (DRS/FO JSON) that bypasses NLI and directly seeds designs at specific loci—this keeps us compatible with grammar‑to‑logic parsers like Grail shown in the paper. (The DRS diagram on p. 27 shows exactly the structure you’d pass.)
 How
 UI:
 	•	Add “Check entailment” action on article/claim cards; on success, deep‑link to the spawned dialogue thread with the O‑WHY branch open.
@@ -69,9 +69,9 @@ KPIs: % entailment checks that seed a dialogue; resolution rate of entailment‑
 Why (research + playbook)
 Your internal playbooks already call for process receipts, consensus visibility, and an amplification ledger that explains why an item is visible and throttles rage spikes until a synthesis appears. Agora already bundles “room bursts” and “citations bursts,” so we can extend that for calm routing and receipts.
 What to change
-5.1 Consensus Receipt card. Re‑use your DecisionReceipt/MergeReceipt and expose a “Consensus Receipt” on the Right Rail (links to a brief version). Models and relations already exist for receipts/locks/proposal signals.
-5.2 Keep “delocate” visible in moderator panels. You already publish a panel/confirm endpoint and a panel/delocate API that clones and shifts designs, with a procedural receipt. Keep this the recommended way to resolve structural collisions; surface it in panel UI.
-5.3 Amplification ledger & calm feed. Extend the Agora bundler to (a) attach “routing provenance” chips (preset, mod lens, jury excerpt), and (b) throttle “temperature” until a Synthesis appears. The bundler already coalesces dialogue:changed & citations:changed within 3/2‑minute windows; reuse these hooks.
+5.1 Consensus Receipt card.Re‑use your DecisionReceipt/MergeReceipt and expose a “Consensus Receipt” on the Right Rail (links to a brief version). Models and relations already exist for receipts/locks/proposal signals.
+5.2 Keep “delocate” visible in moderator panels.You already publish a panel/confirm endpoint and a panel/delocate API that clones and shifts designs, with a procedural receipt. Keep this the recommended way to resolve structural collisions; surface it in panel UI.
+5.3 Amplification ledger & calm feed.Extend the Agora bundler to (a) attach “routing provenance” chips (preset, mod lens, jury excerpt), and (b) throttle “temperature” until a Synthesis appears. The bundler already coalesces dialogue:changed & citations:changed within 3/2‑minute windows; reuse these hooks.
 How
 DB & API: no new tables required; the governance models already include DecisionReceipt, RoomLogbook, AmplificationEvent.
 UI:
@@ -81,10 +81,10 @@ KPIs: % public decisions with receipts; mirror/receipt views; feed items with ex
 
 6) Storage & integrity — small, targeted changes
 What to change
-6.1 Move dedup invariant. Ensure Prisma has @@unique([deliberationId, signature]) for dialogueMove. This matches your existing P2002 recovery path.
-6.2 Reply threading columns. Add replyToMoveId, replyTarget (nullable) to DialogueMove; backfill null; migrate your /api/dialogue/forum threader to use them instead of the current “nearest prior ASSERT with same locusId” heuristic.
-6.3 (Optional) Status cache. A tiny branch_status(deliberationId, locusPath, isOpen, updatedAt) materialized by the validator/stepper for dashboards; or compute on demand initially.
-6.4 Sheaf layers stay as‑is. No changes to your layered composer; governance receipts can be attached per layer when needed (your SheafComposer already handles multi‑audience facets and uploads cleanly).
+6.1 Move dedup invariant.Ensure Prisma has @@unique([deliberationId, signature]) for dialogueMove. This matches your existing P2002 recovery path.
+6.2 Reply threading columns.Add replyToMoveId, replyTarget (nullable) to DialogueMove; backfill null; migrate your /api/dialogue/forum threader to use them instead of the current “nearest prior ASSERT with same locusId” heuristic.
+6.3 (Optional) Status cache.A tiny branch_status(deliberationId, locusPath, isOpen, updatedAt) materialized by the validator/stepper for dashboards; or compute on demand initially.
+6.4 Sheaf layers stay as‑is.No changes to your layered composer; governance receipts can be attached per layer when needed (your SheafComposer already handles multi‑audience facets and uploads cleanly).
 Why this path is optimal
 They’re surgical; they align to the code you already have, and they reduce ambiguity in threading while keeping compatibility with today’s payloads.
 KPIs: de‑dup hit‑rate; % moves with explicit replyToMoveId; average forum threading accuracy (manual QA sample).
@@ -163,15 +163,15 @@ Goal: Allow DSS (dialogue system spec) profiles to be versioned and shared; supp
 2) Concrete implementation plan (by layer)
 Data model (Prisma)
 Add minimal types without breaking current routes:
-	•	DialogueMove (extend existing): id, deliberationId, kind, actorId, targetType, targetId, createdAt, payload, locusId, replyToMoveId, replyKind, signature. We already store several of these; add explicit replyToMoveId/replyKind. 
+	•	DialogueMove (extend existing):id, deliberationId, kind, actorId, targetType, targetId, createdAt, payload, locusId, replyToMoveId, replyKind, signature. We already store several of these; add explicit replyToMoveId/replyKind. 
 	•	New Commitment & CommitmentEvent:
 	•	Commitment: { id, deliberationId, ownerId, formula, entitled: boolean, createdAt }
-	•	CommitmentEvent: normalized log of adds/removes/entitlements, linked to a move. These mirror commitment stores in DSS; they can coexist with existing Argument/Claim entities and our knowledge edges (supports/rebuts/undercuts).
-	•	New Obligation: { id, deliberationId, debtorId, kind, aboutMoveId?, aboutFormula?, dueTurnOffset?, status }. This lets us model “WHY(P) ⇒ debtor owes GROUNDS(P)” and track discharge/violation. 
-	•	New Subdialogue: For reductio and other embeddings: { id, deliberationId, type ('RAA' | …), rootMoveId, status }. 
+	•	CommitmentEvent: normalized log of adds/removes/entitlements, linked to a move.These mirror commitment stores in DSS; they can coexist with existing Argument/Claim entities and our knowledge edges (supports/rebuts/undercuts).
+	•	New Obligation:{ id, deliberationId, debtorId, kind, aboutMoveId?, aboutFormula?, dueTurnOffset?, status }. This lets us model “WHY(P) ⇒ debtor owes GROUNDS(P)” and track discharge/violation. 
+	•	New Subdialogue:For reductio and other embeddings: { id, deliberationId, type ('RAA' | …), rootMoveId, status }. 
 Protocol DSL (server)
 	•	/api/dialogue/profiles (CRUD for DSS JSON) and /api/dialogue/legal-moves (compute legal moves + obligations for a given state).
-	•	DSL shape (JSON), inspired by DSS: {
+	•	DSL shape (JSON), inspired by DSS:{
 	•	  "name": "PPD0+RAA",
 	•	  "locutions": {
 	•	    "WHY": { "pre": { "anyOf": [{"hasAsserted":"P"}] },
@@ -183,7 +183,7 @@ Protocol DSL (server)
 	•	    "SELECT_CULPRIT": { "pre": {"hasContradiction":true}, "post": {"obligations":[{"kind":"RETRACT","about":"X"}]} }
 	•	  }
 	•	}
-	•	 This addresses Reed’s disjunction/temporal‑obligation needs explicitly. 
+	•	This addresses Reed’s disjunction/temporal‑obligation needs explicitly. 
 	•	Engine: Given (deliberationId, current turn), read commitments/obligations and last k moves, evaluate locution pre, return legal set; on commit, apply post to stores + obligations. (We already compute signatures for idempotency—reuse that.) 
 API surface (augment what we have)
 	•	POST /api/dialogue/move: validate against active DSS; update CommitmentEvent/Obligation; publish bus events as we do today. 
@@ -330,10 +330,10 @@ Why these anchors
 	•	Winning‑strategy semantics (validity ⇔ Proponent has a winning strategy) links dialogical games to logic and natural language, and also highlights the role of hidden axioms/lexical constraints in real arguments.
 
 1) Dialogue Phases and Objects (idealized)
-1.1 Formation Dialogues (well‑formedness / expression status) Before “reasons play” begins, an opponent can open a formation dialogue to challenge whether the thesis is a well‑formed proposition (or to check the components of complex statements). This phase has rule families per connective/quantifier (e.g., F∧1/F∧2; F∀1/F∀2) and supports initial concessions “for the sake of the argument”.
+1.1 Formation Dialogues (well‑formedness / expression status)Before “reasons play” begins, an opponent can open a formation dialogue to challenge whether the thesis is a well‑formed proposition (or to check the components of complex statements). This phase has rule families per connective/quantifier (e.g., F∧1/F∧2; F∀1/F∀2) and supports initial concessions “for the sake of the argument”.
 	•	Reference: Formation tables and worked examples for ∀, ∃, →, ⊥; plus the use of initial concessions to bypass material issues.
 	•	Delta in this pass: Make formation explicit and first‑class (not implicit). Treat “is φ a proposition?” and component checks as legal, trackable moves.
-1.2 Reason Dialogues (analysis/synthesis of local reasons) Replace generic “give reasons” with local reasons that are explicit objects. Analysis/synthesis rules decompose/assemble reasons with instructions (e.g., (L^{\supset}(p)), (R^{\supset}(p)) for →), and parties may force resolution of instructions to expose the real justificatory structure.
+1.2 Reason Dialogues (analysis/synthesis of local reasons)Replace generic “give reasons” with local reasons that are explicit objects. Analysis/synthesis rules decompose/assemble reasons with instructions (e.g., (L^{\supset}(p)), (R^{\supset}(p)) for →), and parties may force resolution of instructions to expose the real justificatory structure.
 	•	Reference: Immanent Reasoning’s analysis/synthesis of local reasons and instruction resolution.
 	•	Delta: Expose reasons as manipulable units; “why?” requests become typed challenges to a local reason (antecedent/consequent, witness, etc.).
 1.3 Closed vs. Open Mode (interaction vs. cognitive update)
@@ -341,9 +341,9 @@ Why these anchors
 	•	Open (cognitive): questions instantiate functions on cognitive bases that wait for answers; concessions copy content; conviction corresponds to cut‑elimination producing a new cut‑free justification.
 	•	Reference: Two‑tree surface model; copycat reception of answers; cut‑elimination as the driver of conviction (after Prawitz).
 	•	Delta: Model both levels explicitly (even if UI later chooses to hide open‑mode internals).
-1.4 Explicit Reply Structure & Force Every move addresses a specific prior move (locus), and is typed as attack (keeps branch open) or surrender (closes branch). This underwrites legal replies, branch status, and outcome.
+1.4 Explicit Reply Structure & ForceEvery move addresses a specific prior move (locus), and is typed as attack (keeps branch open) or surrender (closes branch). This underwrites legal replies, branch status, and outcome.
 	•	Reference: Protocol analyses emphasize explicit reply relations and attack/surrender classification in persuasion dialogues. 
-1.5 Role of Commitments (assertions vs. concessions) Dialogues regulate assertions, concessions, retractions, and the obligations they create. Some protocols also discuss hidden “dark‑side” commitments (not public, so unsuitable for our public‑semantics default).
+1.5 Role of Commitments (assertions vs. concessions)Dialogues regulate assertions, concessions, retractions, and the obligations they create. Some protocols also discuss hidden “dark‑side” commitments (not public, so unsuitable for our public‑semantics default).
 
 2) Move Taxonomy (ideal set)
 Category A — Formation Moves (pre‑reasoning)
@@ -362,12 +362,12 @@ Category D — Strategy & Resource Controls
 	•	Reference: Rank‑selection in formation examples. 
 
 3) Semantics & Outcomes
-3.1 Winning‑Strategy Semantics Adopt the dialogical completeness insight: for classical FOL in negation‑normal form, F is provable iff Proponent has a winning strategy. This gives a principled notion of “resolved”.
-3.2 Skeptical / Credulous Acceptance Expose grounded/preferred acceptance of arguments or assumptions (skeptical vs. credulous views) and let rooms pick which governs summaries/decisions.
+3.1 Winning‑Strategy SemanticsAdopt the dialogical completeness insight: for classical FOL in negation‑normal form, F is provable iff Proponent has a winning strategy. This gives a principled notion of “resolved”.
+3.2 Skeptical / Credulous AcceptanceExpose grounded/preferred acceptance of arguments or assumptions (skeptical vs. credulous views) and let rooms pick which governs summaries/decisions.
 	•	Reference: Dialogue‑guided argumentation with admissibility/extension notions; dialogue trees as state transformers, including Retract leading to ⊥ in the tree.
-3.3 Public Semantics Default Prefer protocols whose legality/outcomes are derivable from the public record; avoid designs that rely on participants’ private belief bases or “dark‑side” commitments for legality.
+3.3 Public Semantics DefaultPrefer protocols whose legality/outcomes are derivable from the public record; avoid designs that rely on participants’ private belief bases or “dark‑side” commitments for legality.
 	•	Reference: Review of PPD & related systems (nondeterministic, multi‑move, multi‑reply; no postponement; dark‑side commitments impede public semantics). 
-3.4 Hidden Axioms & Lexical Meaning Natural‑language claims often need lexical or world knowledge (axioms) to bridge steps (e.g., Killed ⇒ Murderer). Support explicit surfacing of such axioms and show how they enable a winning strategy.
+3.4 Hidden Axioms & Lexical MeaningNatural‑language claims often need lexical or world knowledge (axioms) to bridge steps (e.g., Killed ⇒ Murderer). Support explicit surfacing of such axioms and show how they enable a winning strategy.
 	•	Reference: The “David is a murderer” toy example (need for hidden Γ); even non‑provable formulas get non‑trivial interpretations via argumentative dialogues; dialogues act like an enumeration of meanings.
 
 4) Ergonomics & System Behaviors (ideal)
@@ -375,17 +375,17 @@ Category D — Strategy & Resource Controls
 	•	Surface: shows the formation stage distinctly from the reason stage; every move is anchored to a prior move (explicit reply), with attack/surrender force clearly marked.
 	•	Open: side panel exposing the cognitive base deltas for each move (what was copied/conceded; what instruction was resolved; what cut was eliminated).
 	•	Reference: Two mirrored trees and cognitive‑base updates; cut‑elimination as conviction.
-	0.	Typed “Why?” When a user presses Why?, offer shape‑aware prompts that match formation/reason rules (e.g., “Provide an instance for ∀”; “Give antecedent reason for →”; “Show A:prop”).
+	0.	Typed “Why?”When a user presses Why?, offer shape‑aware prompts that match formation/reason rules (e.g., “Provide an instance for ∀”; “Give antecedent reason for →”; “Show A:prop”).
 	•	Reference: Formation tables and instruction‑based analysis/synthesis of reasons.
-	0.	Initial Concessions Deck A dedicated UI affordance where either party can propose for‑the‑argument concessions to short‑circuit material disputes during formation; accepted items are recorded and later auditable.
+	0.	Initial Concessions DeckA dedicated UI affordance where either party can propose for‑the‑argument concessions to short‑circuit material disputes during formation; accepted items are recorded and later auditable.
 	•	Reference: Initial concessions mechanism in formation dialogues. 
-	0.	Repetition Rank Control At dialogue start (or per phase), force selection of a rank that caps repetitive challenges; show remaining “challenge credits”.
+	0.	Repetition Rank ControlAt dialogue start (or per phase), force selection of a rank that caps repetitive challenges; show remaining “challenge credits”.
 	•	Reference: Rank 1 vs. rank 2 effect on how many sides of a formation can be pressed. 
-	0.	Acceptance Views Toggle skeptical vs. credulous acceptance when summarizing where the dialogue stands; show which claims/assumptions are in under each semantics.
+	0.	Acceptance ViewsToggle skeptical vs. credulous acceptance when summarizing where the dialogue stands; show which claims/assumptions are in under each semantics.
 	•	Reference: Preferred/grounded extensions. 
-	0.	Axiom Surfacing & Lexical Hooks If an inference relies on unstated world/lexical knowledge, prompt: “state Γ for which Γ ∧ Premises ⇒ Claim,” and annotate how Γ changes the strategy tree.
+	0.	Axiom Surfacing & Lexical HooksIf an inference relies on unstated world/lexical knowledge, prompt: “state Γ for which Γ ∧ Premises ⇒ Claim,” and annotate how Γ changes the strategy tree.
 	•	Reference: Hidden axioms in the “murderer” example; lexical semantics as computable components tied to argumentation.
-	0.	Outcome Cards with Strategy Witness When a branch closes (†), issue a compact strategy witness: which instructions were resolved, which local reasons were accepted, and under what concessions.
+	0.	Outcome Cards with Strategy WitnessWhen a branch closes (†), issue a compact strategy witness: which instructions were resolved, which local reasons were accepted, and under what concessions.
 	•	Reference: Surrenders/closure and winning conditions in persuasion/dialogical logic. 
 
 5) What this pass adds over the previous brief (concise deltas)
@@ -526,26 +526,26 @@ B4. Outcomes (branch & dialogue)
 C. Canonical consolidated dev roadmap
 Structured to (1) harden the protocol, (2) ship the five UX flows, and (3) deepen analytics & decision‑making—while keeping everything auditable.
 Phase 1 — Protocol Hardening & APIs
-	0.	Extend POST /api/dialogue/move Add optional replyToMoveId, replyTarget in zod; normalize payload.locusPath; keep WHY TTL, signature, and act synthesis as is. Enforce R3/R4/R5/R7 at the boundary. Emit dialogue:changed on success. Acceptance: duplicate replies rejected; self‑reply blocked; concede‑without‑accept is converted to UI prompt. 
-	0.	Upgrade GET /api/dialogue/legal-moves Return force: ATTACK|SURRENDER|NEUTRAL, relevance hints, plus shape‑aware WHY options by inspecting target text; include † when closable at a provided locusPath. Acceptance: for a closed locus, only surrenders/neutral moves appear; for conditionals/quantifiers, the suggested attacks match shape. 
-	0.	Open CQ index Keep /api/dialogue/open-cqs as the source of truth for which CQs remain unanswered. Acceptance: asking WHY (CQ) → answering GROUNDS eliminates that CQ from the open set. 
-	0.	Status endpoint Add GET /api/dialogues/[id]/status exposing turn‑holders and open/closable/closed loci (derived from stepper or last trace). Acceptance: Formation Inspector reflects it; † buttons appear only on closable loci. 
-	0.	Instrument events Ensure room‑level events coalesce into readable Agora cards (“Room burst”, “sources attached”) for ambient awareness. Acceptance: users see informative bundles instead of event noise. 
+	0.	Extend POST /api/dialogue/moveAdd optional replyToMoveId, replyTarget in zod; normalize payload.locusPath; keep WHY TTL, signature, and act synthesis as is. Enforce R3/R4/R5/R7 at the boundary. Emit dialogue:changed on success. Acceptance: duplicate replies rejected; self‑reply blocked; concede‑without‑accept is converted to UI prompt. 
+	0.	Upgrade GET /api/dialogue/legal-movesReturn force: ATTACK|SURRENDER|NEUTRAL, relevance hints, plus shape‑aware WHY options by inspecting target text; include † when closable at a provided locusPath. Acceptance: for a closed locus, only surrenders/neutral moves appear; for conditionals/quantifiers, the suggested attacks match shape. 
+	0.	Open CQ indexKeep /api/dialogue/open-cqs as the source of truth for which CQs remain unanswered. Acceptance: asking WHY (CQ) → answering GROUNDS eliminates that CQ from the open set. 
+	0.	Status endpointAdd GET /api/dialogues/[id]/status exposing turn‑holders and open/closable/closed loci (derived from stepper or last trace). Acceptance: Formation Inspector reflects it; † buttons appear only on closable loci. 
+	0.	Instrument eventsEnsure room‑level events coalesce into readable Agora cards (“Room burst”, “sources attached”) for ambient awareness. Acceptance: users see informative bundles instead of event noise. 
 Phase 2 — Ship the Five Flows
-	0.	Formation Inspector Extend DialogicalPanel/Drawer: add Trace Ribbon, locus heatmap, CQ tabs, IN/OUT badges; enable † where legal. Acceptance: users can close a branch from the panel and watch status update immediately. 
-	0.	Local‑Reason Composer Wire legal-moves into chips and templates; integrate ToulminBox / MonologicalToolbar affordances and “Open in dialogue.” Acceptance: clicking a CQ renders a prefilled GROUNDS composer and posts a reply at the correct locus with scheme metadata. 
-	0.	Rank Control Expose semantics toggle; compute AF labels; install Viewpoint selection and display Γ/Δ with coverage stats. Acceptance: users switch semantics and watch badges and selected views update deterministically. 
-	0.	Axiom Surfacer In Toulmin/Monological views, show missing slots and one‑click Undercut/Rebut creators; ensure edges map to claim‑edges. Acceptance: creating an undercut on a warrant updates CQ guards and AF labels; evidence attach succeeds inline. 
-	0.	Strategy Witness Render decisive indices + commitments updated; “Create Receipt” → panel endpoint; receipt chips visible in Chat/Forum. Acceptance: any converged locus can mint a receipt with inputs (trace id, decisives, labels, CQ summary). 
+	0.	Formation InspectorExtend DialogicalPanel/Drawer: add Trace Ribbon, locus heatmap, CQ tabs, IN/OUT badges; enable † where legal. Acceptance: users can close a branch from the panel and watch status update immediately. 
+	0.	Local‑Reason ComposerWire legal-moves into chips and templates; integrate ToulminBox / MonologicalToolbar affordances and “Open in dialogue.” Acceptance: clicking a CQ renders a prefilled GROUNDS composer and posts a reply at the correct locus with scheme metadata. 
+	0.	Rank ControlExpose semantics toggle; compute AF labels; install Viewpoint selection and display Γ/Δ with coverage stats. Acceptance: users switch semantics and watch badges and selected views update deterministically. 
+	0.	Axiom SurfacerIn Toulmin/Monological views, show missing slots and one‑click Undercut/Rebut creators; ensure edges map to claim‑edges. Acceptance: creating an undercut on a warrant updates CQ guards and AF labels; evidence attach succeeds inline. 
+	0.	Strategy WitnessRender decisive indices + commitments updated; “Create Receipt” → panel endpoint; receipt chips visible in Chat/Forum. Acceptance: any converged locus can mint a receipt with inputs (trace id, decisives, labels, CQ summary). 
 Phase 3 — Commitments & Decisions
-	0.	Commitment Viewer Expose current CS per role (adapter around your commitments package); show deltas when GROUNDS land; allow Answer & Commit batch action. Acceptance: commitments list stays consistent with dialogue moves. 
-	0.	Decision Playbook integration Hook receipts into room banners and the reopen policy (new rebut/undercut/CQ‑unsatisfied triggers Under Review). Acceptance: reopening a resolved card creates a new receipt version. 
+	0.	Commitment ViewerExpose current CS per role (adapter around your commitments package); show deltas when GROUNDS land; allow Answer & Commit batch action. Acceptance: commitments list stays consistent with dialogue moves. 
+	0.	Decision Playbook integrationHook receipts into room banners and the reopen policy (new rebut/undercut/CQ‑unsatisfied triggers Under Review). Acceptance: reopening a resolved card creates a new receipt version. 
 Phase 4 — Ecosystem & authoring layers
-	0.	Layered authoring (Sheaf) Keep multi‑audience facets for proposals and evidence; ensure forwarding checks respect ACL recommendations. Acceptance: forwarding can be ALLOW/REDACT/FORBID per facet; view‑as bar previews visibility. 
-	0.	Event‑level ergonomics Tighten Chat/Forum bridges (“Promote to forum”), link receipts/decisions and locus anchors in the stream. Acceptance: promotion and receipts produce crisp, navigable state in ChatRoom/UI.
+	0.	Layered authoring (Sheaf)Keep multi‑audience facets for proposals and evidence; ensure forwarding checks respect ACL recommendations. Acceptance: forwarding can be ALLOW/REDACT/FORBID per facet; view‑as bar previews visibility. 
+	0.	Event‑level ergonomicsTighten Chat/Forum bridges (“Promote to forum”), link receipts/decisions and locus anchors in the stream. Acceptance: promotion and receipts produce crisp, navigable state in ChatRoom/UI.
 Phase 5 — Formal analysis, interop & scaling
-	0.	Semantics options (asymmetric proof) Add room‑level option for dialectical asymmetry (burden of proof), adjusting defeat tests in AF evaluation. Acceptance: Proponent’s claims require strict defeat where configured. 
-	0.	Interchange/export AIF‑JSON export for argument maps; receipts include links to AIF bundles. Acceptance: exports validate in AIF‑compliant tools. 
+	0.	Semantics options (asymmetric proof)Add room‑level option for dialectical asymmetry (burden of proof), adjusting defeat tests in AF evaluation. Acceptance: Proponent’s claims require strict defeat where configured. 
+	0.	Interchange/exportAIF‑JSON export for argument maps; receipts include links to AIF bundles. Acceptance: exports validate in AIF‑compliant tools. 
 
 D. Data models & integration notes (where things land)
 	•	Arguments/Edges/Views. Deliberation models already separate Argument, ArgumentEdge(type: rebut|undercut|support) and ViewpointSelection/ViewpointArgument; keep using helpers to derive ClaimEdge rows. 

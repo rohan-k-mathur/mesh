@@ -585,7 +585,7 @@ function ArgumentView({ argumentId }) {
 ### 10.3 Strategic Wins (1-2 months)
 
 7. **Citation-aware argumentation evaluation**
-   - Factor citation quality into confidence scores
+   - Factor citation quality into confidence scores 
    - Detect unsupported claims
    - Suggest citation opportunities
 

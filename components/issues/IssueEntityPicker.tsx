@@ -81,7 +81,7 @@ export function IssueEntityPicker({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center  justify-between border-b px-4 py-3">
           <h3 className="text-sm font-semibold text-neutral-900">
             Select {targetType}
           </h3>
@@ -112,7 +112,7 @@ export function IssueEntityPicker({
         </div>
 
         {/* Results */}
-        <div className="max-h-96 overflow-y-auto" style={{ pointerEvents: 'auto' }}>
+        <div className="max-h-96  overflow-y-auto" style={{ pointerEvents: 'auto' }}>
           {loading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />

@@ -1,4 +1,4 @@
-// src/lib/aif/types.ts
+//lib/aif/types.ts
 import type { AifNode, AifNodeKind } from '@/lib/arguments/diagram';
 
 

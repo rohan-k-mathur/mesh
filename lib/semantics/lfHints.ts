@@ -1,3 +1,4 @@
+
 export type ConditionalHint = { antecedent: string; consequent: string; spanA: [number, number]; spanB: [number, number] };
 export type QuantHint = { quant: 'every'|'some'|'no'|'most'|'many'|'at_least'|'at_most'; raw: string; start: number; end: number };
 

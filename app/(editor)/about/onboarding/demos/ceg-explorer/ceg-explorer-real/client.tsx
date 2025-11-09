@@ -12,7 +12,7 @@ import {
   AlertCircle,
   TrendingUp,
   Target,
-  Sparkles,
+  FerrisWheel,
   ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
@@ -294,7 +294,7 @@ export default function CegExplorerRealClient({
               </span>
               {selectedClaim.centrality >= 0.6 && (
                 <span className="flex items-center gap-1 text-purple-600 font-medium">
-                  <Sparkles className="h-4 w-4" />
+                  <FerrisWheel className="h-4 w-4" />
                   Hub node
                 </span>
               )}

@@ -1101,6 +1101,8 @@ export function CompositeSchemeBuilder({ argumentId }: { argumentId: string }) {
 
 ---
 
+## NOTE: --"also I am not sure if this was included in the survey but this is the current, active component used for argument with schemes cqs in the main AIFArugmentsListPro component: SchemeSpecificCQsModal.tsx"
+
 ## 📊 Priority Matrix
 
 | Gap | Priority | Effort | Impact | Blocking? |

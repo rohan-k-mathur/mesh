@@ -11,15 +11,15 @@ Principles
 * No dead ends. Every embedded artifact offers “open in context”: Room, Sheet, Diagram, or Transport.
 
 1) Primary use cases
-1. Topic pages (“What we know about X”) Blend text with a live claim bundle (φ, ψ, α…), the top supporting arguments, DS Bel/Pl, and links to active debates.
-2. Policy briefs / synthesis reports A curated narrative that imports the strongest lines from multiple rooms via Room Functor. Locally add undercuts and assumptions.
-3. Method & glossary Stable pages for canonical terms, schemes, and playbooks that can annotate live debates and validate their usage.
-4. Evidence dossiers Pages centered on an artifact (dataset, paper, video). Include claim annotations, reliability scores, and where the item was used.
-5. Decision logs A page per decision with the accepted claims, rationale diagrams, unresolved CQs, and links back to the debates.
+1. Topic pages (“What we know about X”)Blend text with a live claim bundle (φ, ψ, α…), the top supporting arguments, DS Bel/Pl, and links to active debates.
+2. Policy briefs / synthesis reportsA curated narrative that imports the strongest lines from multiple rooms via Room Functor. Locally add undercuts and assumptions.
+3. Method & glossaryStable pages for canonical terms, schemes, and playbooks that can annotate live debates and validate their usage.
+4. Evidence dossiersPages centered on an artifact (dataset, paper, video). Include claim annotations, reliability scores, and where the item was used.
+5. Decision logsA page per decision with the accepted claims, rationale diagrams, unresolved CQs, and links back to the debates.
 
 2) Concept model (no code—just the shape)
-* KB Space A container (org/team/private) with roles (owner, editor, commenter, reader), defaults, and governance rules.
-* KB Page Markdown/blocks + front‑matter (title, tags, summary, visibility, default lens). Pages are versioned.
+* KB SpaceA container (org/team/private) with roles (owner, editor, commenter, reader), defaults, and governance rules.
+* KB PageMarkdown/blocks + front‑matter (title, tags, summary, visibility, default lens). Pages are versioned.
 * Blocks (transclusions)
     * Text, heading, image, link, file
     * Claim block (single claim, with live Bel/Pl + source room)
@@ -31,9 +31,9 @@ Principles
     * Evidence list (citations with reliability)
     * CQ tracker (unresolved questions table)
     * Plexus tile (board card or tiny matrix cell for a room/cohort)
-* Citations & provenance Any typed block can carry a “citations[]” list (links to claims/evidence/import lineage), with copyable citation strings.
-* Snapshots Any block can be pinned (snapshot key or timestamp). Page snapshots freeze all pinned blocks for “as‑of” publishing.
-* Canonical concepts Optional “Concept” records (topics/terms) link to canonical claims (via moid/claim family) and to pages that cover them.
+* Citations & provenanceAny typed block can carry a “citations[]” list (links to claims/evidence/import lineage), with copyable citation strings.
+* SnapshotsAny block can be pinned (snapshot key or timestamp). Page snapshots freeze all pinned blocks for “as‑of” publishing.
+* Canonical conceptsOptional “Concept” records (topics/terms) link to canonical claims (via moid/claim family) and to pages that cover them.
 
 3) Authoring & reading experience
 Authoring
@@ -61,14 +61,14 @@ Rules of thumb
 * Policy briefs / publishables: mostly Pinned (with prominent “data is current as of …”).
 
 5) Structured linking & composition
-* Claim families / canonical claims A “canonical” handle groups paraphrases across rooms; pages target the canonical claim, but render room‑specific variants. Room Functor maps aid cross‑room embedding (“this φ in A corresponds to φ′ in B”).
+* Claim families / canonical claimsA “canonical” handle groups paraphrases across rooms; pages target the canonical claim, but render room‑specific variants.Room Functor maps aid cross‑room embedding (“this φ in A corresponds to φ′ in B”).
 * Lens presets (author’s choice per block)
     * Claim: “Statement only” / “Statement + Bel/Pl” / “Statement + Top 3 arguments”
     * Argument: “Diagram only” / “Diagram + text explanations” / “Compact bullets”
     * Room summary: “Top claims” / “By tag” / “By acceptance thresholds”
     * Sheet: “Node list” / “Node+edges list” / “Mini map”
     * Transport: “Map only” / “Map + import proposals”
-* Context parameters Blocks can carry evaluation parameters (mode = min/product/ds, τ threshold). They default to page/space settings.
+* Context parametersBlocks can carry evaluation parameters (mode = min/product/ds, τ threshold). They default to page/space settings.
 
 6) Permissions, moderation, and review
 * Roles per Space; optional per‑Page overrides.
@@ -123,11 +123,11 @@ Phase E — Advanced views & exports
 * Optional Graph/Matrix tiles for cohorts; concept glossary pages.
 
 11) Operational & technical notes (at-a-glance)
-* Storage model Pages store blocks as structured JSON with references to Agora IDs; snapshots store a pinned version map (kind, id, version/timestamp).
-* Rendering Server returns rich, normalized payloads for embedded artifacts; clients render via shared “transclusion” components.
-* Cache & performance Per-block caching keyed by (artifact id, mode, τ); page‑level revalidation on dependent artifact change.
-* Security Enforce RBAC at space and page levels; artifact transclusions honor source visibility (private rooms don’t leak).
-* Audit Page and block edit history; snapshot manifest includes hashes of transcluded payloads for verification.
+* Storage modelPages store blocks as structured JSON with references to Agora IDs; snapshots store a pinned version map (kind, id, version/timestamp).
+* RenderingServer returns rich, normalized payloads for embedded artifacts; clients render via shared “transclusion” components.
+* Cache & performancePer-block caching keyed by (artifact id, mode, τ); page‑level revalidation on dependent artifact change.
+* SecurityEnforce RBAC at space and page levels; artifact transclusions honor source visibility (private rooms don’t leak).
+* AuditPage and block edit history; snapshot manifest includes hashes of transcluded payloads for verification.
 
 12) Success criteria
 * Authors can build a high‑signal topic page in minutes by transcluding live claims/arguments rather than copy/paste.
@@ -243,7 +243,7 @@ KB_Block
 * createdAt, updatedAt
 KB_Snapshot
 * id (cuid), pageId (FK), titleAt?: string, takenAt (ISO)
-* manifestJson: {
+* manifestJson:{
 *   "blocks": [
 *     { "blockId": "...", "type": "claim", "ref": { "kind": "claim", "id": "..." }, "pinnedAt": "2025-10-03T12:00:00Z", "eval": { "mode":"product","tau":0.6 }, "payloadHash":"...", "extractedText":"..." }
 *   ],
@@ -253,7 +253,7 @@ KB_Snapshot
 * hash: short checksum of manifest for integrity
 * createdById, createdAt
 Citations (shape for citations arrays)
-* citations: Array<{ kind: "claim"|"argument"|"evidence"|"room"|"sheet"|"link", id?: string, uri?: string, note?: string }> (IDs map to Agora artifacts; uri for external sources.)
+* citations: Array<{ kind: "claim"|"argument"|"evidence"|"room"|"sheet"|"link", id?: string, uri?: string, note?: string }>(IDs map to Agora artifacts; uri for external sources.)
 
 3) Block props contracts (JSON you persist & render)
 Each block can be Live (default) or Pinned (pinnedAt on the block). All blocks inherit page‑level eval defaults (evalMode/tau) but can override in propsJson.eval.
@@ -390,7 +390,7 @@ room_summary viewModel
   "meta": { "nArgs": 123, "updatedAt":"..." },
   "eval": { "mode":"product", "tau":0.6 }
 }
-Error/skeleton convention Each block viewModel may include { error?: { code, message } }. Clients render a compact placeholder with retry.
+Error/skeleton conventionEach block viewModel may include { error?: { code, message } }. Clients render a compact placeholder with retry.
 
 6) Editor behavior & events (UI contracts)
 Block palette
@@ -488,11 +488,11 @@ QA / Fixtures
     * Export correctness (contains provenance & numerics).
 
 14) Open questions (resolve before implementation)
-1. Canonical claims: do we ship Phase A referencing only room‑specific claimId, or include a light canonicalId linker now? Recommendation: Defer to Phase B; keep canonicalId optional on the block to avoid migration.
-2. As‑of querying: do we want true historical queries for evidential/diagram endpoints (time travel), or store minimal snapshot numerics/text? Recommendation: Phase A stores minimal numerics/text in the snapshot manifest; add “as-of” queries in Phase B.
-3. Editor choice: Lexical vs Slate/Plate vs Tiptap. Recommendation: Lexical (best perf, clean custom nodes).
-4. Search backend: stick to Postgres FTS for Phase A? Recommendation: Yes. Plan for Meilisearch in Phase B; API remains stable.
-5. RBAC granularity: block‑level permissions now or Phase C? Recommendation: Page‑level in Phase A; block‑level in Phase C.
+1. Canonical claims: do we ship Phase A referencing only room‑specific claimId, or include a light canonicalId linker now?Recommendation: Defer to Phase B; keep canonicalId optional on the block to avoid migration.
+2. As‑of querying: do we want true historical queries for evidential/diagram endpoints (time travel), or store minimal snapshot numerics/text?Recommendation: Phase A stores minimal numerics/text in the snapshot manifest; add “as-of” queries in Phase B.
+3. Editor choice: Lexical vs Slate/Plate vs Tiptap.Recommendation: Lexical (best perf, clean custom nodes).
+4. Search backend: stick to Postgres FTS for Phase A?Recommendation: Yes. Plan for Meilisearch in Phase B; API remains stable.
+5. RBAC granularity: block‑level permissions now or Phase C?Recommendation: Page‑level in Phase A; block‑level in Phase C.
 
 If this spec looks right, I can turn each section into precise acceptance criteria (per endpoint and per UI component) so the team can sprint on it immediately.
 

@@ -1,3 +1,4 @@
+// app/%28editor%29/article/new/page.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'

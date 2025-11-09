@@ -94,6 +94,8 @@ async function togglePin(block:any, env:any) {
           items
         })
       });
+
+      
       const j = await res.json();
       if (!res.ok || j?.error) {
         setErr(j?.error || `HTTP ${res.status}`);

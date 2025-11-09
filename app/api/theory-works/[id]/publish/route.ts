@@ -91,7 +91,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
 
   // 1) Materialize claim set
   // Strategy A: linked (preferred)
-  let claimIds = work.relatedClaims.map(rc => rc.claimId);
+  let claimIds = work.claims.map(c => c.id );
   if (options.claimSource === 'extract' && claimIds.length === 0) {
     // OPTIONAL: extract claims from body (stub; replace with your extractor)
     // For now, we keep it no-op if none are linked.
@@ -108,12 +108,12 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   // 2) Build minimal edges from theses + rules/reasonpairs
   const edges: EdgeSpec[] = [];
   // Example mapping: theses imply a support to the "work’s main thesis" if present
-  const mainTheses = work.relatedClaims.filter(rc => rc.role === 'thesis').map(rc => rc.claimId);
+  const mainTheses = work.claims.filter(rc => rc.role === 'thesis').map(rc => rc.id);
   if (mainTheses.length >= 1) {
     const head = mainTheses[0];
     // Contribute IH/TC/OP/DN children as supports to head
-    for (const rc of work.relatedClaims.filter(rc => rc.role !== 'thesis')) {
-      edges.push({ fromClaimId: rc.claimId, toClaimId: head, type: 'supports', attackType: 'SUPPORTS' });
+    for (const rc of work.claims.filter(rc => rc.role !== 'thesis')) {
+      edges.push({ fromClaimId: rc.id, toClaimId: head, type: 'supports', attackType: 'SUPPORTS' });
     }
   }
  if (!options.dryRun) {

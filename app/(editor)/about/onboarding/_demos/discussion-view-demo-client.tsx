@@ -12,7 +12,7 @@ import {
   X,
   Code,
   Eye,
-  Sparkles
+  FerrisWheel
 } from 'lucide-react'
 import DiscussionView from '@/components/discussion/DiscussionViewGlass'
 import type { DiscussionData } from './types'
@@ -273,7 +273,7 @@ export default function DiscussionViewDemoClient({
             <>
               <ArrowUp className="h-5 w-5 group-hover:translate-y-[-2px] transition-transform" />
               Upgrade to Deliberation
-              <Sparkles className="h-4 w-4 group-hover:rotate-12 transition-transform" />
+              <FerrisWheel className="h-4 w-4 group-hover:rotate-12 transition-transform" />
             </>
           )}
         </button>
