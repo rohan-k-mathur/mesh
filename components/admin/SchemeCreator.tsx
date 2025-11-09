@@ -50,6 +50,10 @@ type CriticalQuestion = {
   text: string;
   attackType: "REBUTS" | "UNDERCUTS" | "UNDERMINES";
   targetScope: "conclusion" | "inference" | "premise";
+  // Phase 0.1: Burden of Proof fields
+  burdenOfProof?: "PROPONENT" | "CHALLENGER";
+  requiresEvidence?: boolean;
+  premiseType?: "ORDINARY" | "ASSUMPTION" | "EXCEPTION" | null;
 };
 
 type Premise = {
@@ -125,6 +129,9 @@ export default function SchemeCreator({
     text: "",
     attackType: "UNDERCUTS",
     targetScope: "inference",
+    burdenOfProof: "PROPONENT",
+    requiresEvidence: false,
+    premiseType: null,
   });
 
   // UI state
@@ -175,6 +182,9 @@ export default function SchemeCreator({
       text: "",
       attackType: "UNDERCUTS",
       targetScope: "inference",
+      burdenOfProof: "PROPONENT",
+      requiresEvidence: false,
+      premiseType: null,
     });
     setError(null);
   };
@@ -873,7 +883,7 @@ export default function SchemeCreator({
                     })
                   }
                 >
-                  <SelectTrigger className="text-sm mb-6 bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
+                  <SelectTrigger className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -882,6 +892,77 @@ export default function SchemeCreator({
                     <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="premise">Premise</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Phase 0.1: Burden of Proof Configuration */}
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-900/10">
+                <div>
+                  <Label htmlFor="burdenOfProof" className="text-xs font-medium text-slate-700">
+                    Burden of Proof
+                  </Label>
+                  <Select
+                    value={currentCQ.burdenOfProof || "PROPONENT"}
+                    onValueChange={(value) =>
+                      setCurrentCQ({
+                        ...currentCQ,
+                        burdenOfProof: value as "PROPONENT" | "CHALLENGER",
+                      })
+                    }
+                  >
+                    <SelectTrigger className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="PROPONENT">Proponent (argument author)</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="CHALLENGER">Challenger (questioner)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="premiseType" className="text-xs font-medium text-slate-700">
+                    Premise Type
+                  </Label>
+                  <Select
+                    value={currentCQ.premiseType || "none"}
+                    onValueChange={(value) =>
+                      setCurrentCQ({
+                        ...currentCQ,
+                        premiseType: value === "none" ? null : (value as "ORDINARY" | "ASSUMPTION" | "EXCEPTION"),
+                      })
+                    }
+                  >
+                    <SelectTrigger className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="none">None</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="ORDINARY">Ordinary (must be supported)</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="ASSUMPTION">Assumption (accepted unless questioned)</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="EXCEPTION">Exception (challenger proves)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="requiresEvidence"
+                  checked={currentCQ.requiresEvidence || false}
+                  onCheckedChange={(checked) =>
+                    setCurrentCQ({
+                      ...currentCQ,
+                      requiresEvidence: checked === true,
+                    })
+                  }
+                  className="border-slate-300"
+                />
+                <Label
+                  htmlFor="requiresEvidence"
+                  className="text-xs font-medium text-slate-700 cursor-pointer"
+                >
+                  Requires evidence (not just asking the question)
+                </Label>
               </div>
 
               <button

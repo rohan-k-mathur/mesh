@@ -1,4 +1,3 @@
-
 //components/claims/CriticalQuestionsV3.tsx
 "use client";
 
@@ -26,6 +25,14 @@ import CQAuthorDashboard from "./CQAuthorDashboard";
 import CQStatusBadge from "./CQStatusBadge";
 import CQActivityFeed from "./CQActivityFeed";
 import CQEndorseModal from "./CQEndorseModal";
+// Phase 0.1: Burden of Proof helpers
+import {
+  getBurdenBadgeText,
+  getBurdenBadgeColor,
+  getCQBurdenExplanation,
+  getCQEvidenceGuidance,
+  getPremiseTypeDisplay,
+} from "@/lib/utils/cq-burden-helpers";
 import {
   CheckCircle2,
   Circle,
@@ -68,6 +75,10 @@ type CQ = {
   suggestion?: Suggestion;
   whyCount?: number; // Phase 8: Dialogue move counts
   groundsCount?: number; // Phase 8: Dialogue move counts
+  // Phase 0.1: Burden of Proof metadata
+  burdenOfProof?: string;
+  requiresEvidence?: boolean;
+  premiseType?: string | null;
 };
 
 type Scheme = {
@@ -677,6 +688,26 @@ export default function CriticalQuestionsV3({
                         >
                           {cq.text}
                         </p>
+                        
+                        {/* Phase 0.1: Burden of Proof indicator */}
+                        {cq.burdenOfProof && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getBurdenBadgeColor(cq.burdenOfProof as any)}`}>
+                              {getBurdenBadgeText(cq.burdenOfProof as any)}
+                            </span>
+                            {cq.requiresEvidence && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
+                                Evidence required
+                              </span>
+                            )}
+                            {cq.premiseType && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+                                {getPremiseTypeDisplay(cq.premiseType as any)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {cq.satisfied && cq.groundsText && (
                           <div className="mt-2 p-3 bg-white rounded-lg border border-emerald-200">
                             <div className="flex items-start gap-2">

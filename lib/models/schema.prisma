@@ -3198,6 +3198,21 @@ enum AttackType {
 }
 
 // =====================
+// Phase 0.1: Burden of Proof Enums
+// =====================
+
+enum BurdenOfProof {
+  PROPONENT // Raising the question shifts burden to the argument's proponent
+  CHALLENGER // The challenger must provide evidence to support their challenge
+}
+
+enum PremiseType {
+  ORDINARY // Must always be supported
+  ASSUMPTION // Accepted unless questioned (Carneades)
+  EXCEPTION // Challenger must prove it applies (Carneades)
+}
+
+// =====================
 // M3: Attack-kind enum
 // =====================
 
@@ -3704,6 +3719,12 @@ model CriticalQuestion {
   // NEW: Module 8 - ASPIC+ attack formalization
   // Maps this CQ to specific ASPIC+ attack parameters
   aspicMapping Json? // { ruleId?: string, premiseIndex?: number, defeasibleRuleRequired?: boolean }
+
+  // NEW: Phase 0.1 - Burden of Proof Enhancement
+  // Different CQs function differently - some shift burden, others require evidence
+  burdenOfProof    BurdenOfProof @default(PROPONENT) // Who has burden to support their position
+  requiresEvidence Boolean       @default(false) // Must evidence be provided or does asking suffice
+  premiseType      PremiseType? // Carneades premise classification (ordinary | assumption | exception)
 
   @@unique([schemeId, cqKey])
   @@index([instanceId])

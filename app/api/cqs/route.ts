@@ -43,6 +43,43 @@ export async function GET(req: NextRequest) {
     .map((i) => i.scheme?.key)
     .filter(Boolean) as string[];
 
+  // Phase 0.1: Fetch burden of proof metadata for CQs
+  // @ts-expect-error - burdenOfProof, requiresEvidence, premiseType exist but Prisma types may be cached
+  const criticalQuestions = await prisma.criticalQuestion.findMany({
+    where: {
+      schemeId: { in: keys },
+    },
+    select: {
+      schemeId: true,
+      cqKey: true,
+      // @ts-expect-error - Phase 0.1 fields, Prisma types may be cached
+      burdenOfProof: true,
+      // @ts-expect-error - Phase 0.1 fields, Prisma types may be cached
+      requiresEvidence: true,
+      // @ts-expect-error - Phase 0.1 fields, Prisma types may be cached
+      premiseType: true,
+    },
+  });
+
+  // Build burden map: schemeKey -> cqKey -> burden metadata
+  const burdenMap = new Map<string, Map<string, { 
+    burdenOfProof: string; 
+    requiresEvidence: boolean; 
+    premiseType: string | null;
+  }>>();
+  
+  criticalQuestions.forEach((cq: any) => {
+    if (!cq.schemeId || !cq.cqKey) return;
+    if (!burdenMap.has(cq.schemeId)) {
+      burdenMap.set(cq.schemeId, new Map());
+    }
+    burdenMap.get(cq.schemeId)!.set(cq.cqKey, {
+      burdenOfProof: cq.burdenOfProof,
+      requiresEvidence: cq.requiresEvidence,
+      premiseType: cq.premiseType,
+    });
+  });
+
   // fetch current statuses with response data
   const statuses = await prisma.cQStatus.findMany({
     where: { 
@@ -183,6 +220,7 @@ export async function GET(req: NextRequest) {
 
     const merged = cqs.map((cq) => {
       const status = statusMap.get(key)?.get(cq.key);
+      const burden = burdenMap.get(key)?.get(cq.key);
       return {
         id: status?.id, // Include CQStatus ID
         key: cq.key,
@@ -190,6 +228,10 @@ export async function GET(req: NextRequest) {
         satisfied: status?.satisfied ?? false,
         groundsText: status?.groundsText, // Include stored grounds text
         suggestion: suggestionForCQ(key, cq.key),
+        // Phase 0.1: Burden of Proof metadata
+        burdenOfProof: burden?.burdenOfProof ?? 'PROPONENT',
+        requiresEvidence: burden?.requiresEvidence ?? false,
+        premiseType: burden?.premiseType ?? null,
       };
     });
 
