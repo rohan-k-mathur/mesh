@@ -4,6 +4,7 @@
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SchemeBreakdown } from "./SchemeBreakdown";
+import { SchemeManagementPanel } from "./SchemeManagementPanel";
 import { LayoutPanelTop, Sparkles } from "lucide-react";
 
 interface SchemeBreakdownModalProps {
@@ -11,6 +12,7 @@ interface SchemeBreakdownModalProps {
   onOpenChange: (open: boolean) => void;
   argumentId: string;
   argumentText?: string; // Optional: show the argument conclusion text in the header
+  enableEditing?: boolean; // If true, show SchemeManagementPanel instead of SchemeBreakdown
 }
 
 export function SchemeBreakdownModal({
@@ -18,6 +20,7 @@ export function SchemeBreakdownModal({
   onOpenChange,
   argumentId,
   argumentText,
+  enableEditing = false,
 }: SchemeBreakdownModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -31,6 +34,11 @@ export function SchemeBreakdownModal({
             <DialogTitle className="text-xl font-semibold text-indigo-900 flex items-center gap-2">
               <LayoutPanelTop className="w-5 h-5 text-indigo-600" />
               Argumentation Schemes
+              {enableEditing && (
+                <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                  Management Mode
+                </span>
+              )}
             </DialogTitle>
             {argumentText && (
               <p className="text-sm text-slate-600 mt-2 leading-relaxed">
@@ -40,7 +48,11 @@ export function SchemeBreakdownModal({
           </DialogHeader>
           
           <div className="mt-2 px-2">
-            <SchemeBreakdown argumentId={argumentId} />
+            {enableEditing ? (
+              <SchemeManagementPanel argumentId={argumentId} />
+            ) : (
+              <SchemeBreakdown argumentId={argumentId} />
+            )}
           </div>
         </div>
       </DialogContent>

@@ -113,6 +113,13 @@ export function isMultiSchemeArgument(arg: ArgumentWithSchemes): boolean {
 }
 
 /**
+ * Get total count of schemes
+ */
+export function getSchemeCount(arg: ArgumentWithSchemes): number {
+  return arg.argumentSchemes.length;
+}
+
+/**
  * Check if argument has a specific role
  */
 export function hasSchemeRole(
