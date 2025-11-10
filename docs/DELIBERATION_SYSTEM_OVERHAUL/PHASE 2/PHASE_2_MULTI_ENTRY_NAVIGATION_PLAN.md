@@ -4096,6 +4096,1489 @@ Week 7 implementation plan is complete with:
 
 ---
 
+## Week 8: Unified SchemeNavigator (Tasks 8.1 & 8.2)
+
+**Timeline**: 16 hours (of 40 total for Week 8)
+- Task 8.1: Integration Architecture (10 hours)
+- Task 8.2: Tab-Based Interface (6 hours)
+
+**Overview**: Week 8 brings together all three navigation modes (Dichotomic Tree, Cluster Browser, Identification Conditions) into a single, unified SchemeNavigator component. This week focuses on creating a cohesive user experience where users can seamlessly switch between different navigation approaches while maintaining context and state.
+
+**Key Principles**:
+- **Mode Independence**: Each navigation mode operates independently but shares common context
+- **State Preservation**: Switching modes preserves user progress and selections
+- **Consistent UX**: Unified header, consistent styling, shared navigation elements
+- **Performance**: Mode switching <100ms, lazy loading of inactive tabs
+
+---
+
+### Task 8.1: Integration Architecture (10 hours)
+
+**Objective**: Create the foundational architecture that combines all three navigation modes into a single component with unified state management, shared context, and seamless mode switching.
+
+**Implementation Details**:
+
+#### 8.1.1 Unified State Management
+
+**File**: `lib/schemes/navigation-state.ts` (~150 lines)
+
+```typescript
+// lib/schemes/navigation-state.ts
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { ArgumentScheme } from "@/types/schemes";
+
+/**
+ * Navigation modes available in SchemeNavigator
+ */
+export type NavigationMode = "tree" | "cluster" | "conditions" | "search";
+
+/**
+ * Shared state across all navigation modes
+ */
+export interface NavigationState {
+  // Current mode
+  currentMode: NavigationMode;
+  
+  // Selected scheme (shared across all modes)
+  selectedScheme: ArgumentScheme | null;
+  
+  // Recently viewed schemes (up to 10)
+  recentSchemes: ArgumentScheme[];
+  
+  // Favorited scheme keys
+  favoriteSchemeKeys: string[];
+  
+  // Mode-specific state
+  treeState: TreeNavigationState;
+  clusterState: ClusterNavigationState;
+  conditionsState: ConditionsNavigationState;
+  searchState: SearchNavigationState;
+}
+
+/**
+ * State specific to Dichotomic Tree mode
+ */
+export interface TreeNavigationState {
+  // Current wizard step (0 = purpose, 1 = source, 2 = results)
+  currentStep: number;
+  
+  // User selections
+  selectedPurpose: "action" | "state_of_affairs" | null;
+  selectedSource: "internal" | "external" | null;
+  
+  // Filtered results
+  filteredSchemes: ArgumentScheme[];
+  
+  // History for back navigation
+  history: Array<{
+    step: number;
+    purpose: "action" | "state_of_affairs" | null;
+    source: "internal" | "external" | null;
+  }>;
+}
+
+/**
+ * State specific to Cluster Browser mode
+ */
+export interface ClusterNavigationState {
+  // Currently selected cluster
+  selectedClusterId: string | null;
+  
+  // Schemes in the selected cluster
+  clusterSchemes: ArgumentScheme[];
+  
+  // Breadcrumb trail for navigation
+  breadcrumbs: Array<{
+    id: string;
+    label: string;
+  }>;
+}
+
+/**
+ * State specific to Identification Conditions mode
+ */
+export interface ConditionsNavigationState {
+  // Selected condition IDs
+  selectedConditions: string[];
+  
+  // Matched schemes with scores
+  matchedSchemes: Array<{
+    scheme: ArgumentScheme;
+    score: number;
+    matchedConditions: string[];
+  }>;
+  
+  // Expanded categories
+  expandedCategories: string[];
+  
+  // Tutorial visibility
+  showTutorial: boolean;
+}
+
+/**
+ * State specific to Search mode
+ */
+export interface SearchNavigationState {
+  // Current search query
+  query: string;
+  
+  // Search results
+  results: ArgumentScheme[];
+  
+  // Search filters
+  filters: {
+    clusters: string[];
+    hasEvidence: boolean | null;
+    minCriticalQuestions: number | null;
+  };
+}
+
+/**
+ * Actions for the navigation store
+ */
+export interface NavigationActions {
+  // Mode switching
+  setMode: (mode: NavigationMode) => void;
+  
+  // Scheme selection
+  selectScheme: (scheme: ArgumentScheme | null) => void;
+  addToRecent: (scheme: ArgumentScheme) => void;
+  toggleFavorite: (schemeKey: string) => void;
+  
+  // Tree mode actions
+  setTreeStep: (step: number) => void;
+  setTreePurpose: (purpose: "action" | "state_of_affairs" | null) => void;
+  setTreeSource: (source: "internal" | "external" | null) => void;
+  setTreeResults: (schemes: ArgumentScheme[]) => void;
+  resetTree: () => void;
+  
+  // Cluster mode actions
+  selectCluster: (clusterId: string | null) => void;
+  setClusterSchemes: (schemes: ArgumentScheme[]) => void;
+  addBreadcrumb: (id: string, label: string) => void;
+  resetCluster: () => void;
+  
+  // Conditions mode actions
+  toggleCondition: (conditionId: string) => void;
+  setMatchedSchemes: (matches: ConditionsNavigationState["matchedSchemes"]) => void;
+  toggleCategory: (categoryId: string) => void;
+  setShowTutorial: (show: boolean) => void;
+  resetConditions: () => void;
+  
+  // Search mode actions
+  setSearchQuery: (query: string) => void;
+  setSearchResults: (results: ArgumentScheme[]) => void;
+  setSearchFilters: (filters: Partial<SearchNavigationState["filters"]>) => void;
+  resetSearch: () => void;
+  
+  // Global reset
+  resetAll: () => void;
+}
+
+/**
+ * Initial state for the navigation store
+ */
+const initialState: NavigationState = {
+  currentMode: "tree",
+  selectedScheme: null,
+  recentSchemes: [],
+  favoriteSchemeKeys: [],
+  
+  treeState: {
+    currentStep: 0,
+    selectedPurpose: null,
+    selectedSource: null,
+    filteredSchemes: [],
+    history: [],
+  },
+  
+  clusterState: {
+    selectedClusterId: null,
+    clusterSchemes: [],
+    breadcrumbs: [],
+  },
+  
+  conditionsState: {
+    selectedConditions: [],
+    matchedSchemes: [],
+    expandedCategories: ["source_type", "reasoning_pattern"],
+    showTutorial: false,
+  },
+  
+  searchState: {
+    query: "",
+    results: [],
+    filters: {
+      clusters: [],
+      hasEvidence: null,
+      minCriticalQuestions: null,
+    },
+  },
+};
+
+/**
+ * Zustand store for unified navigation state
+ * Persists user preferences and recent schemes
+ */
+export const useNavigationStore = create<NavigationState & NavigationActions>()(
+  persist(
+    (set, get) => ({
+      ...initialState,
+      
+      // Mode switching
+      setMode: (mode) => {
+        set({ currentMode: mode });
+      },
+      
+      // Scheme selection
+      selectScheme: (scheme) => {
+        set({ selectedScheme: scheme });
+        if (scheme) {
+          get().addToRecent(scheme);
+        }
+      },
+      
+      addToRecent: (scheme) => {
+        set((state) => {
+          const recent = [
+            scheme,
+            ...state.recentSchemes.filter((s) => s.key !== scheme.key),
+          ].slice(0, 10);
+          return { recentSchemes: recent };
+        });
+      },
+      
+      toggleFavorite: (schemeKey) => {
+        set((state) => {
+          const favorites = state.favoriteSchemeKeys.includes(schemeKey)
+            ? state.favoriteSchemeKeys.filter((k) => k !== schemeKey)
+            : [...state.favoriteSchemeKeys, schemeKey];
+          return { favoriteSchemeKeys: favorites };
+        });
+      },
+      
+      // Tree mode actions
+      setTreeStep: (step) => {
+        set((state) => ({
+          treeState: { ...state.treeState, currentStep: step },
+        }));
+      },
+      
+      setTreePurpose: (purpose) => {
+        set((state) => ({
+          treeState: {
+            ...state.treeState,
+            selectedPurpose: purpose,
+            history: [
+              ...state.treeState.history,
+              {
+                step: state.treeState.currentStep,
+                purpose: state.treeState.selectedPurpose,
+                source: state.treeState.selectedSource,
+              },
+            ],
+          },
+        }));
+      },
+      
+      setTreeSource: (source) => {
+        set((state) => ({
+          treeState: {
+            ...state.treeState,
+            selectedSource: source,
+            history: [
+              ...state.treeState.history,
+              {
+                step: state.treeState.currentStep,
+                purpose: state.treeState.selectedPurpose,
+                source: state.treeState.selectedSource,
+              },
+            ],
+          },
+        }));
+      },
+      
+      setTreeResults: (schemes) => {
+        set((state) => ({
+          treeState: { ...state.treeState, filteredSchemes: schemes },
+        }));
+      },
+      
+      resetTree: () => {
+        set((state) => ({
+          treeState: initialState.treeState,
+        }));
+      },
+      
+      // Cluster mode actions
+      selectCluster: (clusterId) => {
+        set((state) => ({
+          clusterState: { ...state.clusterState, selectedClusterId: clusterId },
+        }));
+      },
+      
+      setClusterSchemes: (schemes) => {
+        set((state) => ({
+          clusterState: { ...state.clusterState, clusterSchemes: schemes },
+        }));
+      },
+      
+      addBreadcrumb: (id, label) => {
+        set((state) => ({
+          clusterState: {
+            ...state.clusterState,
+            breadcrumbs: [...state.clusterState.breadcrumbs, { id, label }],
+          },
+        }));
+      },
+      
+      resetCluster: () => {
+        set((state) => ({
+          clusterState: initialState.clusterState,
+        }));
+      },
+      
+      // Conditions mode actions
+      toggleCondition: (conditionId) => {
+        set((state) => {
+          const conditions = state.conditionsState.selectedConditions.includes(conditionId)
+            ? state.conditionsState.selectedConditions.filter((id) => id !== conditionId)
+            : [...state.conditionsState.selectedConditions, conditionId];
+          return {
+            conditionsState: {
+              ...state.conditionsState,
+              selectedConditions: conditions,
+            },
+          };
+        });
+      },
+      
+      setMatchedSchemes: (matches) => {
+        set((state) => ({
+          conditionsState: { ...state.conditionsState, matchedSchemes: matches },
+        }));
+      },
+      
+      toggleCategory: (categoryId) => {
+        set((state) => {
+          const categories = state.conditionsState.expandedCategories.includes(categoryId)
+            ? state.conditionsState.expandedCategories.filter((id) => id !== categoryId)
+            : [...state.conditionsState.expandedCategories, categoryId];
+          return {
+            conditionsState: {
+              ...state.conditionsState,
+              expandedCategories: categories,
+            },
+          };
+        });
+      },
+      
+      setShowTutorial: (show) => {
+        set((state) => ({
+          conditionsState: { ...state.conditionsState, showTutorial: show },
+        }));
+      },
+      
+      resetConditions: () => {
+        set((state) => ({
+          conditionsState: initialState.conditionsState,
+        }));
+      },
+      
+      // Search mode actions
+      setSearchQuery: (query) => {
+        set((state) => ({
+          searchState: { ...state.searchState, query },
+        }));
+      },
+      
+      setSearchResults: (results) => {
+        set((state) => ({
+          searchState: { ...state.searchState, results },
+        }));
+      },
+      
+      setSearchFilters: (filters) => {
+        set((state) => ({
+          searchState: {
+            ...state.searchState,
+            filters: { ...state.searchState.filters, ...filters },
+          },
+        }));
+      },
+      
+      resetSearch: () => {
+        set((state) => ({
+          searchState: initialState.searchState,
+        }));
+      },
+      
+      // Global reset
+      resetAll: () => {
+        set(initialState);
+      },
+    }),
+    {
+      name: "scheme-navigation-storage",
+      partialize: (state) => ({
+        // Only persist these fields
+        currentMode: state.currentMode,
+        recentSchemes: state.recentSchemes,
+        favoriteSchemeKeys: state.favoriteSchemeKeys,
+      }),
+    }
+  )
+);
+
+/**
+ * Hook to get current mode
+ */
+export const useCurrentMode = () => useNavigationStore((state) => state.currentMode);
+
+/**
+ * Hook to get selected scheme
+ */
+export const useSelectedScheme = () => useNavigationStore((state) => state.selectedScheme);
+
+/**
+ * Hook to get mode-specific state
+ */
+export const useTreeState = () => useNavigationStore((state) => state.treeState);
+export const useClusterState = () => useNavigationStore((state) => state.clusterState);
+export const useConditionsState = () => useNavigationStore((state) => state.conditionsState);
+export const useSearchState = () => useNavigationStore((state) => state.searchState);
+```
+
+**Key Features**:
+- Zustand store with persistence for user preferences
+- Separate state slices for each navigation mode
+- Shared state for selected scheme, recents, favorites
+- Type-safe actions for all state mutations
+- History management for tree wizard
+- Breadcrumb management for cluster browser
+
+---
+
+#### 8.1.2 Shared Context Provider
+
+**File**: `components/schemes/SchemeNavigationContext.tsx` (~100 lines)
+
+```typescript
+// components/schemes/SchemeNavigationContext.tsx
+
+"use client";
+
+import React, { createContext, useContext, useCallback } from "react";
+import type { ArgumentScheme } from "@/types/schemes";
+import { useNavigationStore, type NavigationMode } from "@/lib/schemes/navigation-state";
+import { useRouter } from "next/navigation";
+
+/**
+ * Context value for scheme navigation
+ */
+interface SchemeNavigationContextValue {
+  // Navigation
+  navigateToScheme: (scheme: ArgumentScheme) => void;
+  navigateToMode: (mode: NavigationMode) => void;
+  
+  // Actions
+  onSchemeSelect: (scheme: ArgumentScheme) => void;
+  onSchemeClose: () => void;
+  
+  // State access
+  currentMode: NavigationMode;
+  selectedScheme: ArgumentScheme | null;
+  recentSchemes: ArgumentScheme[];
+  favoriteSchemeKeys: string[];
+  
+  // Utilities
+  isFavorite: (schemeKey: string) => boolean;
+  toggleFavorite: (schemeKey: string) => void;
+}
+
+const SchemeNavigationContext = createContext<SchemeNavigationContextValue | null>(null);
+
+/**
+ * Provider for unified scheme navigation
+ */
+export function SchemeNavigationProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  
+  const {
+    currentMode,
+    selectedScheme,
+    recentSchemes,
+    favoriteSchemeKeys,
+    setMode,
+    selectScheme,
+    toggleFavorite: toggleFavoriteInStore,
+  } = useNavigationStore();
+  
+  /**
+   * Navigate to a specific scheme (opens detail view)
+   */
+  const navigateToScheme = useCallback(
+    (scheme: ArgumentScheme) => {
+      selectScheme(scheme);
+      // Optionally navigate to a dedicated scheme detail page
+      // router.push(`/schemes/${scheme.key}`);
+    },
+    [selectScheme]
+  );
+  
+  /**
+   * Navigate to a specific navigation mode
+   */
+  const navigateToMode = useCallback(
+    (mode: NavigationMode) => {
+      setMode(mode);
+    },
+    [setMode]
+  );
+  
+  /**
+   * Handle scheme selection (opens in sidebar or modal)
+   */
+  const onSchemeSelect = useCallback(
+    (scheme: ArgumentScheme) => {
+      selectScheme(scheme);
+    },
+    [selectScheme]
+  );
+  
+  /**
+   * Handle scheme detail close
+   */
+  const onSchemeClose = useCallback(() => {
+    selectScheme(null);
+  }, [selectScheme]);
+  
+  /**
+   * Check if a scheme is favorited
+   */
+  const isFavorite = useCallback(
+    (schemeKey: string) => favoriteSchemeKeys.includes(schemeKey),
+    [favoriteSchemeKeys]
+  );
+  
+  /**
+   * Toggle favorite status
+   */
+  const toggleFavorite = useCallback(
+    (schemeKey: string) => {
+      toggleFavoriteInStore(schemeKey);
+    },
+    [toggleFavoriteInStore]
+  );
+  
+  const value: SchemeNavigationContextValue = {
+    navigateToScheme,
+    navigateToMode,
+    onSchemeSelect,
+    onSchemeClose,
+    currentMode,
+    selectedScheme,
+    recentSchemes,
+    favoriteSchemeKeys,
+    isFavorite,
+    toggleFavorite,
+  };
+  
+  return (
+    <SchemeNavigationContext.Provider value={value}>
+      {children}
+    </SchemeNavigationContext.Provider>
+  );
+}
+
+/**
+ * Hook to use scheme navigation context
+ */
+export function useSchemeNavigation() {
+  const context = useContext(SchemeNavigationContext);
+  if (!context) {
+    throw new Error("useSchemeNavigation must be used within SchemeNavigationProvider");
+  }
+  return context;
+}
+```
+
+**Key Features**:
+- Context provider for shared navigation logic
+- Unified callbacks for scheme selection and navigation
+- Favorites management
+- Recent schemes tracking
+- Type-safe context value
+
+---
+
+#### 8.1.3 Integration Utilities
+
+**File**: `lib/schemes/navigation-integration.ts` (~80 lines)
+
+```typescript
+// lib/schemes/navigation-integration.ts
+
+import type { ArgumentScheme } from "@/types/schemes";
+import type { NavigationMode } from "./navigation-state";
+
+/**
+ * Get the appropriate navigation mode for a scheme
+ * based on its characteristics
+ */
+export function getSuggestedNavigationMode(scheme: ArgumentScheme): NavigationMode {
+  // If scheme has a clear semantic cluster, suggest cluster mode
+  if (scheme.semanticCluster) {
+    return "cluster";
+  }
+  
+  // If scheme has clear purpose/source metadata, suggest tree mode
+  if (scheme.purpose || scheme.sourceType) {
+    return "tree";
+  }
+  
+  // Default to conditions mode for complex schemes
+  return "conditions";
+}
+
+/**
+ * Get related schemes across all navigation modes
+ */
+export function getRelatedSchemes(
+  scheme: ArgumentScheme,
+  allSchemes: ArgumentScheme[]
+): {
+  byCluster: ArgumentScheme[];
+  bySimilarPurpose: ArgumentScheme[];
+  bySimilarConditions: ArgumentScheme[];
+} {
+  return {
+    // Same cluster
+    byCluster: allSchemes.filter(
+      (s) => s.key !== scheme.key && s.semanticCluster === scheme.semanticCluster
+    ),
+    
+    // Similar purpose and source
+    bySimilarPurpose: allSchemes.filter(
+      (s) =>
+        s.key !== scheme.key &&
+        s.purpose === scheme.purpose &&
+        s.sourceType === scheme.sourceType
+    ),
+    
+    // Similar identification conditions (placeholder - would need actual condition matching)
+    bySimilarConditions: allSchemes.filter(
+      (s) =>
+        s.key !== scheme.key &&
+        // Match based on scheme family or similar characteristics
+        s.key.split("_")[0] === scheme.key.split("_")[0]
+    ),
+  };
+}
+
+/**
+ * Generate breadcrumb trail for current navigation state
+ */
+export function generateBreadcrumbs(
+  mode: NavigationMode,
+  state: {
+    clusterId?: string | null;
+    purpose?: string | null;
+    source?: string | null;
+    conditions?: string[];
+  }
+): Array<{ label: string; path: string }> {
+  const breadcrumbs: Array<{ label: string; path: string }> = [
+    { label: "Schemes", path: "/schemes" },
+  ];
+  
+  switch (mode) {
+    case "tree":
+      if (state.purpose) {
+        breadcrumbs.push({
+          label: state.purpose === "action" ? "Action" : "State of Affairs",
+          path: `/schemes/tree?purpose=${state.purpose}`,
+        });
+      }
+      if (state.source) {
+        breadcrumbs.push({
+          label: state.source === "internal" ? "Internal" : "External",
+          path: `/schemes/tree?purpose=${state.purpose}&source=${state.source}`,
+        });
+      }
+      break;
+      
+    case "cluster":
+      if (state.clusterId) {
+        breadcrumbs.push({
+          label: state.clusterId.replace(/_/g, " "),
+          path: `/schemes/cluster/${state.clusterId}`,
+        });
+      }
+      break;
+      
+    case "conditions":
+      if (state.conditions && state.conditions.length > 0) {
+        breadcrumbs.push({
+          label: `${state.conditions.length} condition${state.conditions.length > 1 ? "s" : ""}`,
+          path: `/schemes/conditions?ids=${state.conditions.join(",")}`,
+        });
+      }
+      break;
+  }
+  
+  return breadcrumbs;
+}
+
+/**
+ * Format scheme count message for current mode
+ */
+export function formatSchemeCountMessage(
+  mode: NavigationMode,
+  count: number,
+  totalCount: number
+): string {
+  const percentage = Math.round((count / totalCount) * 100);
+  
+  switch (mode) {
+    case "tree":
+      return `${count} of ${totalCount} schemes match your criteria (${percentage}%)`;
+    case "cluster":
+      return `${count} schemes in this cluster`;
+    case "conditions":
+      return `${count} schemes match ${percentage >= 80 ? "strongly" : percentage >= 50 ? "moderately" : "weakly"}`;
+    case "search":
+      return `${count} search results`;
+    default:
+      return `${count} schemes`;
+  }
+}
+```
+
+**Key Features**:
+- Navigation mode suggestions based on scheme characteristics
+- Related schemes discovery across modes
+- Breadcrumb generation for current navigation state
+- User-friendly count messages
+
+---
+
+### Task 8.2: Tab-Based Interface (6 hours)
+
+**Objective**: Create a cohesive tab-based UI that allows users to switch between navigation modes while preserving context and providing consistent navigation elements.
+
+**Implementation Details**:
+
+#### 8.2.1 Main SchemeNavigator Component
+
+**File**: `components/schemes/SchemeNavigator.tsx` (~200 lines)
+
+```typescript
+// components/schemes/SchemeNavigator.tsx
+
+"use client";
+
+import React, { Suspense, lazy } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Star, Clock, Settings } from "lucide-react";
+import { useNavigationStore, type NavigationMode } from "@/lib/schemes/navigation-state";
+import { SchemeNavigationProvider } from "./SchemeNavigationContext";
+import SchemeDetailPanel from "./SchemeDetailPanel";
+import NavigationHeader from "./NavigationHeader";
+import RecentSchemesList from "./RecentSchemesList";
+import FavoritesPanel from "./FavoritesPanel";
+
+// Lazy load navigation mode components for better performance
+const DichotomicTreeWizard = lazy(() => import("./DichotomicTreeWizard"));
+const ClusterBrowser = lazy(() => import("./ClusterBrowser"));
+const IdentificationConditionsFilter = lazy(() => import("./IdentificationConditionsFilter"));
+const SchemeSearch = lazy(() => import("./SchemeSearch"));
+
+/**
+ * Loading fallback for lazy-loaded tabs
+ */
+function TabLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center h-96">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+    </div>
+  );
+}
+
+/**
+ * Unified SchemeNavigator with all navigation modes
+ */
+export default function SchemeNavigator() {
+  const { currentMode, setMode, selectedScheme, recentSchemes, favoriteSchemeKeys } =
+    useNavigationStore();
+  
+  const [showRecents, setShowRecents] = React.useState(false);
+  const [showFavorites, setShowFavorites] = React.useState(false);
+  
+  /**
+   * Handle tab change
+   */
+  const handleTabChange = (value: string) => {
+    setMode(value as NavigationMode);
+  };
+  
+  /**
+   * Get tab icon based on mode
+   */
+  const getTabIcon = (mode: NavigationMode) => {
+    switch (mode) {
+      case "tree":
+        return "🌳";
+      case "cluster":
+        return "🗂️";
+      case "conditions":
+        return "🔍";
+      case "search":
+        return "🔎";
+    }
+  };
+  
+  /**
+   * Get tab label based on mode
+   */
+  const getTabLabel = (mode: NavigationMode) => {
+    switch (mode) {
+      case "tree":
+        return "Tree Wizard";
+      case "cluster":
+        return "Cluster Browser";
+      case "conditions":
+        return "Identification";
+      case "search":
+        return "Search";
+    }
+  };
+  
+  return (
+    <SchemeNavigationProvider>
+      <div className="flex h-full">
+        {/* Main navigation area */}
+        <div className={`flex-1 flex flex-col ${selectedScheme ? "mr-96" : ""}`}>
+          {/* Header with utility buttons */}
+          <NavigationHeader
+            onShowRecents={() => setShowRecents(true)}
+            onShowFavorites={() => setShowFavorites(true)}
+            recentCount={recentSchemes.length}
+            favoriteCount={favoriteSchemeKeys.length}
+          />
+          
+          {/* Tab-based navigation */}
+          <Tabs value={currentMode} onValueChange={handleTabChange} className="flex-1">
+            <div className="border-b bg-white sticky top-0 z-10">
+              <TabsList className="grid w-full grid-cols-4 h-12">
+                <TabsTrigger value="tree" className="flex items-center gap-2">
+                  <span>{getTabIcon("tree")}</span>
+                  <span className="hidden sm:inline">{getTabLabel("tree")}</span>
+                </TabsTrigger>
+                
+                <TabsTrigger value="cluster" className="flex items-center gap-2">
+                  <span>{getTabIcon("cluster")}</span>
+                  <span className="hidden sm:inline">{getTabLabel("cluster")}</span>
+                </TabsTrigger>
+                
+                <TabsTrigger value="conditions" className="flex items-center gap-2">
+                  <span>{getTabIcon("conditions")}</span>
+                  <span className="hidden sm:inline">{getTabLabel("conditions")}</span>
+                </TabsTrigger>
+                
+                <TabsTrigger value="search" className="flex items-center gap-2">
+                  <span>{getTabIcon("search")}</span>
+                  <span className="hidden sm:inline">{getTabLabel("search")}</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            {/* Tab content areas */}
+            <div className="flex-1 overflow-auto">
+              <TabsContent value="tree" className="mt-0 h-full">
+                <Suspense fallback={<TabLoadingFallback />}>
+                  <DichotomicTreeWizard />
+                </Suspense>
+              </TabsContent>
+              
+              <TabsContent value="cluster" className="mt-0 h-full">
+                <Suspense fallback={<TabLoadingFallback />}>
+                  <ClusterBrowser />
+                </Suspense>
+              </TabsContent>
+              
+              <TabsContent value="conditions" className="mt-0 h-full">
+                <Suspense fallback={<TabLoadingFallback />}>
+                  <IdentificationConditionsFilter />
+                </Suspense>
+              </TabsContent>
+              
+              <TabsContent value="search" className="mt-0 h-full">
+                <Suspense fallback={<TabLoadingFallback />}>
+                  <SchemeSearch />
+                </Suspense>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+        
+        {/* Scheme detail panel (slides in from right when scheme selected) */}
+        {selectedScheme && (
+          <div className="w-96 border-l bg-white overflow-auto">
+            <SchemeDetailPanel scheme={selectedScheme} />
+          </div>
+        )}
+        
+        {/* Recents sidebar */}
+        {showRecents && (
+          <RecentSchemesList onClose={() => setShowRecents(false)} />
+        )}
+        
+        {/* Favorites sidebar */}
+        {showFavorites && (
+          <FavoritesPanel onClose={() => setShowFavorites(false)} />
+        )}
+      </div>
+    </SchemeNavigationProvider>
+  );
+}
+```
+
+**Key Features**:
+- Tab interface with 4 navigation modes
+- Lazy loading for performance (inactive tabs not loaded)
+- Responsive design (icons only on mobile)
+- Scheme detail panel slides in from right
+- Recents and favorites accessible from header
+- Sticky tab bar during scroll
+
+---
+
+#### 8.2.2 Navigation Header
+
+**File**: `components/schemes/NavigationHeader.tsx` (~120 lines)
+
+```typescript
+// components/schemes/NavigationHeader.tsx
+
+"use client";
+
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Clock,
+  Star,
+  Settings,
+  Info,
+  RotateCcw,
+  BookOpen,
+} from "lucide-react";
+import { useNavigationStore } from "@/lib/schemes/navigation-state";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+interface NavigationHeaderProps {
+  onShowRecents: () => void;
+  onShowFavorites: () => void;
+  recentCount: number;
+  favoriteCount: number;
+}
+
+/**
+ * Header with navigation utilities and quick actions
+ */
+export default function NavigationHeader({
+  onShowRecents,
+  onShowFavorites,
+  recentCount,
+  favoriteCount,
+}: NavigationHeaderProps) {
+  const { currentMode, resetAll } = useNavigationStore();
+  
+  /**
+   * Get mode-specific reset action
+   */
+  const handleReset = () => {
+    if (confirm("Reset all navigation state? This will clear your current progress.")) {
+      resetAll();
+    }
+  };
+  
+  /**
+   * Get help text for current mode
+   */
+  const getHelpText = () => {
+    switch (currentMode) {
+      case "tree":
+        return "Answer 2-3 questions to narrow down scheme options";
+      case "cluster":
+        return "Browse schemes organized by semantic categories";
+      case "conditions":
+        return "Select observable characteristics to identify schemes";
+      case "search":
+        return "Search schemes by name, description, or keywords";
+    }
+  };
+  
+  return (
+    <div className="border-b bg-white px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+      {/* Title and help */}
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-semibold">Argument Scheme Navigator</h1>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Info className="h-4 w-4" />
+                <span className="sr-only">Help</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">{getHelpText()}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      
+      {/* Utility buttons */}
+      <div className="flex items-center gap-2">
+        {/* Recent schemes */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onShowRecents}
+          className="flex items-center gap-2"
+        >
+          <Clock className="h-4 w-4" />
+          <span className="hidden sm:inline">Recent</span>
+          {recentCount > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {recentCount}
+            </Badge>
+          )}
+        </Button>
+        
+        {/* Favorites */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onShowFavorites}
+          className="flex items-center gap-2"
+        >
+          <Star className="h-4 w-4" />
+          <span className="hidden sm:inline">Favorites</span>
+          {favoriteCount > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {favoriteCount}
+            </Badge>
+          )}
+        </Button>
+        
+        {/* Documentation link */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" asChild>
+                <a
+                  href="/docs/argument-schemes"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  <span className="sr-only">Documentation</span>
+                </a>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View scheme documentation</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        {/* Reset */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={handleReset}>
+                <RotateCcw className="h-4 w-4" />
+                <span className="sr-only">Reset</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Reset navigation state</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        {/* Settings (placeholder for future preferences) */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Navigation preferences (coming soon)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </div>
+  );
+}
+```
+
+**Key Features**:
+- Mode-specific help text
+- Recent schemes and favorites with count badges
+- Reset button with confirmation
+- Documentation link
+- Settings placeholder for future preferences
+- Responsive design (hides text on mobile)
+
+---
+
+#### 8.2.3 Scheme Detail Panel
+
+**File**: `components/schemes/SchemeDetailPanel.tsx` (~150 lines)
+
+```typescript
+// components/schemes/SchemeDetailPanel.tsx
+
+"use client";
+
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { X, Star, ExternalLink, Copy, Check } from "lucide-react";
+import type { ArgumentScheme } from "@/types/schemes";
+import { useSchemeNavigation } from "./SchemeNavigationContext";
+
+interface SchemeDetailPanelProps {
+  scheme: ArgumentScheme;
+}
+
+/**
+ * Detailed view of a selected scheme
+ * Appears as a sidebar panel on the right
+ */
+export default function SchemeDetailPanel({ scheme }: SchemeDetailPanelProps) {
+  const { onSchemeClose, isFavorite, toggleFavorite } = useSchemeNavigation();
+  const [copied, setCopied] = React.useState(false);
+  
+  /**
+   * Copy scheme key to clipboard
+   */
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(scheme.key);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  const isSchemeFavorited = isFavorite(scheme.key);
+  
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-lg font-semibold">{scheme.name}</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleFavorite(scheme.key)}
+              className="h-6 w-6 p-0"
+            >
+              <Star
+                className={`h-4 w-4 ${isSchemeFavorited ? "fill-yellow-400 text-yellow-400" : ""}`}
+              />
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <code className="text-xs bg-gray-100 px-2 py-1 rounded">{scheme.key}</code>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopy}
+              className="h-6 w-6 p-0"
+            >
+              {copied ? (
+                <Check className="h-3 w-3 text-green-600" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+        </div>
+        
+        <Button variant="ghost" size="sm" onClick={onSchemeClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {/* Content */}
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6">
+          {/* Description */}
+          <div>
+            <h3 className="text-sm font-semibold mb-2">Description</h3>
+            <p className="text-sm text-gray-700">{scheme.description}</p>
+          </div>
+          
+          {/* Metadata */}
+          {scheme.semanticCluster && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Cluster</h3>
+              <Badge variant="secondary">{scheme.semanticCluster}</Badge>
+            </div>
+          )}
+          
+          {/* Premises */}
+          {scheme.premises && scheme.premises.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">
+                Premises ({scheme.premises.length})
+              </h3>
+              <ul className="space-y-2">
+                {scheme.premises.map((premise, idx) => (
+                  <li key={idx} className="text-sm">
+                    <span className="font-medium">P{idx + 1}:</span> {premise.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Conclusion */}
+          {scheme.conclusion && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Conclusion</h3>
+              <p className="text-sm">
+                <span className="font-medium">C:</span> {scheme.conclusion}
+              </p>
+            </div>
+          )}
+          
+          <Separator />
+          
+          {/* Critical Questions */}
+          {scheme.criticalQuestions && scheme.criticalQuestions.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">
+                Critical Questions ({scheme.criticalQuestions.length})
+              </h3>
+              <ul className="space-y-3">
+                {scheme.criticalQuestions.map((cq, idx) => (
+                  <li key={cq.id || idx} className="text-sm">
+                    <p className="font-medium">CQ{idx + 1}: {cq.question}</p>
+                    {cq.explanation && (
+                      <p className="text-gray-600 mt-1 text-xs">{cq.explanation}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Actions */}
+          <div className="pt-4">
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <a
+                href={`/schemes/${scheme.key}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Full Details
+              </a>
+            </Button>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+```
+
+**Key Features**:
+- Scheme name, key, and description
+- Favorite toggle with visual feedback
+- Copy scheme key to clipboard
+- Premises and conclusion display
+- Critical questions list
+- Link to full scheme details page
+- Scrollable content area
+
+---
+
+### Testing Checklist - Tasks 8.1 & 8.2
+
+#### Integration Architecture Testing (8.1)
+
+- [ ] **State Management**
+  - [ ] Zustand store initializes with correct default state
+  - [ ] State persists across page refreshes (mode, recents, favorites)
+  - [ ] Mode-specific state is isolated (changing tree state doesn't affect cluster state)
+  - [ ] Actions correctly update state (setMode, selectScheme, toggleFavorite)
+  - [ ] Recent schemes limited to 10 entries (FIFO)
+  - [ ] Favorite toggling works correctly (add/remove)
+
+- [ ] **Context Provider**
+  - [ ] Provider wraps SchemeNavigator correctly
+  - [ ] useSchemeNavigation hook throws error outside provider
+  - [ ] navigateToScheme adds to recent schemes
+  - [ ] navigateToMode updates currentMode
+  - [ ] isFavorite returns correct boolean
+  - [ ] onSchemeSelect and onSchemeClose work correctly
+
+- [ ] **Integration Utilities**
+  - [ ] getSuggestedNavigationMode returns correct mode for different scheme types
+  - [ ] getRelatedSchemes finds schemes by cluster, purpose, and conditions
+  - [ ] generateBreadcrumbs creates correct paths for each mode
+  - [ ] formatSchemeCountMessage displays appropriate messages
+
+#### Tab-Based Interface Testing (8.2)
+
+- [ ] **Main Navigator Component**
+  - [ ] All 4 tabs render correctly (Tree, Cluster, Conditions, Search)
+  - [ ] Tab switching updates currentMode in store
+  - [ ] Tab icons and labels display correctly
+  - [ ] Lazy loading works (inactive tabs not loaded)
+  - [ ] Loading fallback appears during lazy load
+  - [ ] Tab content preserves state when switching modes
+  - [ ] Responsive design: mobile shows icons only
+
+- [ ] **Navigation Header**
+  - [ ] Header sticks to top during scroll
+  - [ ] Help tooltip shows mode-specific text
+  - [ ] Recent button shows correct count badge
+  - [ ] Favorites button shows correct count badge
+  - [ ] Reset button confirms before clearing state
+  - [ ] Documentation link opens in new tab
+  - [ ] Settings button appears (placeholder)
+
+- [ ] **Scheme Detail Panel**
+  - [ ] Panel slides in from right when scheme selected
+  - [ ] Panel width is 384px (w-96)
+  - [ ] Close button clears selectedScheme
+  - [ ] Favorite toggle updates store
+  - [ ] Copy button copies scheme key to clipboard
+  - [ ] Copy feedback (checkmark) appears for 2 seconds
+  - [ ] Scheme metadata displays correctly
+  - [ ] Critical questions render with numbering
+  - [ ] "View Full Details" link navigates correctly
+  - [ ] Panel is scrollable for long content
+
+#### Performance Testing
+
+- [ ] **Load Performance**
+  - [ ] Initial load <1 second
+  - [ ] Tab switching <100ms
+  - [ ] Lazy-loaded tabs load <500ms
+
+- [ ] **State Performance**
+  - [ ] Store updates don't cause unnecessary re-renders
+  - [ ] Recent schemes updates are debounced
+  - [ ] Favorite toggle is instant (<50ms)
+
+#### Cross-Browser Testing
+
+- [ ] Chrome/Edge: All features work
+- [ ] Firefox: All features work
+- [ ] Safari: All features work
+- [ ] Mobile browsers: Responsive design works
+
+---
+
+### Success Criteria - Tasks 8.1 & 8.2
+
+#### Integration Architecture (8.1)
+
+✅ **Complete when**:
+- Zustand store manages state for all 4 navigation modes
+- State persistence works across sessions
+- Context provider enables shared navigation logic
+- Integration utilities provide helper functions
+- Mode-specific state is properly isolated
+
+#### Tab-Based Interface (8.2)
+
+✅ **Complete when**:
+- All 4 navigation modes accessible via tabs
+- Tab switching is instant (<100ms)
+- Lazy loading reduces initial bundle size
+- Scheme detail panel displays correctly
+- Navigation header provides quick access to utilities
+- Responsive design works on mobile/tablet/desktop
+
+#### Integration Between Tasks
+
+✅ **Complete when**:
+- SchemeNavigator uses Zustand store for state
+- Context provider wraps entire navigator
+- Tab content components use shared context
+- Detail panel updates from store
+- All navigation modes share common state (selected scheme, favorites, recents)
+
+---
+
+## File Structure Summary - Week 8 (Tasks 8.1 & 8.2)
+
+```
+lib/schemes/
+  ├── navigation-state.ts              # Zustand store (150 lines)
+  └── navigation-integration.ts        # Integration utilities (80 lines)
+
+components/schemes/
+  ├── SchemeNavigator.tsx              # Main component (200 lines)
+  ├── SchemeNavigationContext.tsx     # Context provider (100 lines)
+  ├── NavigationHeader.tsx             # Header with utilities (120 lines)
+  └── SchemeDetailPanel.tsx            # Detail sidebar (150 lines)
+
+Total new code: ~800 lines
+```
+
+---
+
+## Week 8 Tasks 8.1 & 8.2 Complete! ✅
+
+Tasks 8.1 and 8.2 implementation plan complete with:
+- **Unified state management** with Zustand store and persistence
+- **Shared context provider** for navigation logic
+- **Integration utilities** for cross-mode functionality
+- **Tab-based interface** with 4 navigation modes
+- **Navigation header** with recents, favorites, help
+- **Scheme detail panel** with favorite/copy/view actions
+- **~800 lines of code** across 6 files
+- **16 hours** of implementation work planned
+
+**Key Features**:
+- Lazy loading for performance optimization
+- State preservation across mode switches
+- Responsive design for mobile/tablet/desktop
+- Mode-specific help and utilities
+- Recent schemes and favorites tracking
+
+**Next**: Week 8 remaining tasks (8.3: User Preferences, 8.4: Search, 8.5: Testing)
+
+---
+
 **Created**: 2025-11-09  
-**Status**: Week 7 COMPLETE ✅  
+**Status**: Week 8 Tasks 8.1 & 8.2 COMPLETE ✅  
 **Next**: Week 8 - Unified SchemeNavigator

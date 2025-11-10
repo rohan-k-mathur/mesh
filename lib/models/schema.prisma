@@ -3569,10 +3569,15 @@ model ArgumentScheme {
   identificationConditions String[] @default([]) // Pattern-matching conditions: ["source expertise", "claim about future"]
   whenToUse                String?   @default("") // Natural language guidance: "Use when arguing from authority..."
 
+  // NEW: Phase 2 Week 6 - Semantic Clustering
+  // Organizes schemes by topic/domain for cluster browser navigation
+  semanticCluster String? // "authority" | "causality" | "decision_making" | "analogy" | "classification" | "values" | "evidence" | "opposition"
+
   @@index([parentSchemeId])
   @@index([clusterTag])
   @@index([epistemicMode])
   @@index([usageCount])
+  @@index([semanticCluster])
 }
 
 model CQStatus {
