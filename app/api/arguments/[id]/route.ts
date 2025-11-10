@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { buildDiagramForArgument, Diagram } from '@/lib/arguments/diagram';
+import { getArgumentWithSchemes } from '@/lib/db/argument-net-queries';
+import { normalizeArgumentSchemes } from '@/lib/utils/argument-scheme-compat';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -122,9 +124,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(response, NO_STORE);
   }
 
-  // Default: return the argument row
-  const arg = await prisma.argument.findUnique({ where: { id }, select: selectArg });
-  if (arg) return NextResponse.json({ argument: arg }, NO_STORE);
+  // Default: return the argument row with scheme information (Phase 1.2)
+  // Use new multi-scheme query with backward compatibility
+  const argWithSchemes = await getArgumentWithSchemes(id, {
+    includeScheme: true,
+    includeClaim: true,
+    includeConclusion: false,
+  });
+  
+  if (argWithSchemes) {
+    // Normalize to ensure backward compatibility
+    const normalized = normalizeArgumentSchemes(argWithSchemes);
+    return NextResponse.json({ argument: normalized }, NO_STORE);
+  }
 
   const alt = await prisma.argument.findFirst({
     where: { claimId: id },

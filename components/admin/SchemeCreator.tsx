@@ -79,6 +79,15 @@ type SchemeFormData = {
   reasoningType: string;
   ruleForm: string;
   conclusionType: string;
+  // Phase 0.2: Epistemic Mode
+  epistemicMode: string;
+  // Phase 0.3: Enhanced Metadata
+  tags: string[];
+  examples: string[];
+  difficulty: string;
+  // Phase 0.5: Identification Conditions
+  identificationConditions: string[];
+  whenToUse: string;
   premises: Premise[];
   conclusion: ConclusionTemplate | null;
   cqs: CriticalQuestion[];
@@ -106,6 +115,12 @@ const INITIAL_FORM: SchemeFormData = {
   reasoningType: "",
   ruleForm: "",
   conclusionType: "",
+  epistemicMode: "FACTUAL",
+  tags: [],
+  examples: [],
+  difficulty: "intermediate",
+  identificationConditions: [],
+  whenToUse: "",
   premises: [],
   conclusion: null,
   cqs: [],
@@ -478,6 +493,171 @@ export default function SchemeCreator({
                     <SelectItem value="is">Is (descriptive)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Phase 0.2: Epistemic Mode */}
+              <div>
+                <Label htmlFor="epistemicMode" className="text-sm font-medium text-slate-700">Epistemic Mode</Label>
+                <Select
+                  value={formData.epistemicMode}
+                  onValueChange={(value) => handleInputChange("epistemicMode", value)}
+                >
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
+                    <SelectValue placeholder="Select mode..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
+                    <SelectItem value="FACTUAL">
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-600">●</span>
+                        <span>Factual - Real events/states</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="HYPOTHETICAL">
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-600">●</span>
+                        <span>Hypothetical - Future scenarios</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="COUNTERFACTUAL">
+                      <div className="flex items-center gap-2">
+                        <span className="text-purple-600">●</span>
+                        <span>Counterfactual - What if...</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Kienpointner dimension: factual (real), hypothetical (possible), counterfactual (contrary-to-fact)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Phase 0.3: Enhanced Metadata */}
+          <div className="space-y-4 border-t border-slate-900/10 pt-6">
+            <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+              Enhanced Metadata (Discovery & Guidance)
+            </Label>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="tags" className="text-sm font-medium text-slate-700">Tags</Label>
+                <Input
+                  id="tags"
+                  placeholder="politics, science, ethics (comma-separated)"
+                  value={formData.tags.join(", ")}
+                  onChange={(e) => 
+                    setFormData({ 
+                      ...formData, 
+                      tags: e.target.value.split(",").map(t => t.trim()).filter(Boolean) 
+                    })
+                  }
+                  className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Searchable keywords for discovery (e.g., authority, causal, ethical)
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="difficulty" className="text-sm font-medium text-slate-700">Difficulty Level</Label>
+                <Select
+                  value={formData.difficulty}
+                  onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
+                >
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
+                    <SelectItem value="beginner">Beginner - Easy to understand</SelectItem>
+                    <SelectItem value="intermediate">Intermediate - Moderate complexity</SelectItem>
+                    <SelectItem value="advanced">Advanced - Expert reasoning required</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Helps users find schemes appropriate for their skill level
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="examples" className="text-sm font-medium text-slate-700">Usage Examples</Label>
+                <Textarea
+                  id="examples"
+                  placeholder="Example 1: &quot;Dr. Smith is a climate expert, so we should trust their analysis.&quot; (one per line)"
+                  value={formData.examples.join("\n")}
+                  onChange={(e) => 
+                    setFormData({ 
+                      ...formData, 
+                      examples: e.target.value.split("\n").filter(Boolean) 
+                    })
+                  }
+                  rows={3}
+                  className="min-h-[80px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Concrete examples help users understand when to apply this scheme
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Phase 0.5: Identification Conditions (Walton) */}
+          <div className="space-y-4 border-t border-slate-900/10 pt-6">
+            <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+              Identification Conditions (When to Use This Scheme)
+            </Label>
+            <p className="text-xs text-slate-500 mb-3">
+              Help users identify when this argumentation scheme applies to their situation
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="whenToUse" className="text-sm font-medium text-slate-700">When To Use This Scheme</Label>
+                <Textarea
+                  id="whenToUse"
+                  placeholder="Use this scheme when arguing based on expert testimony or authority credentials..."
+                  value={formData.whenToUse}
+                  onChange={(e) => setFormData({ ...formData, whenToUse: e.target.value })}
+                  rows={3}
+                  className="min-h-[80px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Natural language guidance explaining when to apply this scheme
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="identificationConditions" className="text-sm font-medium text-slate-700">
+                  Identification Patterns
+                </Label>
+                <Textarea
+                  id="identificationConditions"
+                  placeholder="source has expertise&#10;claim is about future event&#10;conclusion follows from authority (one per line)"
+                  value={formData.identificationConditions.join("\n")}
+                  onChange={(e) => 
+                    setFormData({ 
+                      ...formData, 
+                      identificationConditions: e.target.value.split("\n").map(c => c.trim()).filter(Boolean) 
+                    })
+                  }
+                  rows={4}
+                  className="min-h-[100px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg font-mono text-xs"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Pattern-matching conditions for automatic scheme suggestion (one per line)
+                </p>
+                <div className="mt-2 p-2 bg-sky-50 rounded-lg border border-sky-200">
+                  <p className="text-xs font-medium text-sky-900 mb-1">💡 Examples of good patterns:</p>
+                  <ul className="text-xs text-sky-800 space-y-0.5 ml-4">
+                    <li>• &quot;source has credentials&quot;</li>
+                    <li>• &quot;claim about causation&quot;</li>
+                    <li>• &quot;comparing two options&quot;</li>
+                    <li>• &quot;predicting future outcome&quot;</li>
+                    <li>• &quot;appealing to consequences&quot;</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>

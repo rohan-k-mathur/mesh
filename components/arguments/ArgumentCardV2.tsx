@@ -34,6 +34,12 @@ import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetai
 import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
+import { 
+  formatSchemeDisplay, 
+  shouldShowMultiSchemeUI, 
+  getSchemeBadgeVariant,
+  getSchemeTooltip 
+} from "@/lib/utils/argument-scheme-compat";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -653,14 +659,16 @@ export function ArgumentCardV2({
                 <button
                   onClick={() => setSchemeDialogOpen(true)}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer"
-                  title="View scheme breakdown"
+                  title={getSchemeTooltip({ schemeName, schemes })}
                 >
                   <span className="text-xs font-medium text-indigo-700">
-                    {schemes.length > 0 
-                      ? `${schemes.length} scheme${schemes.length > 1 ? 's' : ''}`
-                      : schemeName
-                    }
+                    {formatSchemeDisplay({ schemeName, schemes })}
                   </span>
+                  {shouldShowMultiSchemeUI({ schemeName, schemes }) && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-indigo-600 rounded-full">
+                      {schemes.length}
+                    </span>
+                  )}
                 </button>
               )}
               

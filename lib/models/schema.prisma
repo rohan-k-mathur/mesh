@@ -2338,13 +2338,23 @@ model Argument {
 }
 
 // Junction table for many-to-many Argument-ArgumentScheme relation with confidence scores
+// Phase 1.1: Enhanced for multi-scheme arguments with roles and explicitness
 model ArgumentSchemeInstance {
   id         String   @id @default(cuid())
   argumentId String
   schemeId   String
   confidence Float    @default(1.0) // Scheme inference confidence (0.0-1.0)
   isPrimary  Boolean  @default(false) // Marks the highest-confidence scheme
+  
+  // Phase 1.1: Multi-scheme support
+  role         String  @default("primary") // "primary" | "supporting" | "presupposed" | "implicit"
+  explicitness String  @default("explicit") // "explicit" | "presupposed" | "implied"
+  order        Int     @default(0) // Display order within role group
+  textEvidence String? @db.Text // For explicit schemes: text evidence showing scheme usage
+  justification String? @db.Text // For presupposed/implicit: justification for reconstruction
+  
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 
   argument Argument       @relation(fields: [argumentId], references: [id], onDelete: Cascade)
   scheme   ArgumentScheme @relation("ArgumentSchemeInstances", fields: [schemeId], references: [id], onDelete: Cascade)
@@ -2352,6 +2362,7 @@ model ArgumentSchemeInstance {
   @@unique([argumentId, schemeId])
   @@index([argumentId])
   @@index([schemeId])
+  @@index([argumentId, role, order])
 }
 
 // ============================
@@ -2403,6 +2414,60 @@ model SchemeNetStep {
   @@unique([netId, stepOrder])
   @@index([netId])
   @@index([schemeId])
+}
+
+// ============================
+// Phase 1.1: Argument Dependencies
+// (Tracks relationships between arguments and between schemes within arguments)
+// ============================
+
+model ArgumentDependency {
+  id             String   @id @default(cuid())
+  sourceArgId    String? // Source argument (null for intra-argument scheme dependencies)
+  targetArgId    String? // Target argument (null for intra-argument scheme dependencies)
+  sourceSchemeId String? // Source scheme instance (for scheme-to-scheme dependencies)
+  targetSchemeId String? // Target scheme instance (for scheme-to-scheme dependencies)
+  
+  dependencyType String // "premise_conclusion" | "enables_premise" | "supports_inference" | "presupposes" | "sequential"
+  description    String? @db.Text // User-provided explanation of dependency
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceArgId, targetArgId, dependencyType])
+  @@index([sourceArgId])
+  @@index([targetArgId])
+  @@index([sourceSchemeId])
+  @@index([targetSchemeId])
+  @@index([dependencyType])
+}
+
+// ============================
+// Phase 1.1: Scheme Net Patterns (Knowledge Base)
+// (Common patterns of multi-scheme arguments for discovery and templates)
+// ============================
+
+model SchemeNetPattern {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  description String   @db.Text
+  domain      String? // Application domain (e.g., "policy", "science", "ethics")
+  
+  // Pattern structure (JSON describing scheme roles and dependencies)
+  structure   Json // e.g., {"primary": "practical-reasoning", "supporting": ["expert-opinion", "consequences"]}
+  
+  // Usage statistics
+  usageCount  Int      @default(0)
+  
+  // Examples
+  examples    String[] @default([])
+  tags        String[] @default([])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([domain])
+  @@index([usageCount])
 }
 
 enum ArgumentAttackSubtype {
@@ -3213,6 +3278,16 @@ enum PremiseType {
 }
 
 // =====================
+// Phase 0.2: Epistemic Mode Enum
+// =====================
+
+enum EpistemicMode {
+  FACTUAL // Real events, actual states of affairs
+  HYPOTHETICAL // Future scenarios, possible situations
+  COUNTERFACTUAL // What-if reasoning, contrary-to-fact situations
+}
+
+// =====================
 // M3: Attack-kind enum
 // =====================
 
@@ -3478,8 +3553,26 @@ model ArgumentScheme {
   // Maps this scheme to ASPIC+ constructs for formal argumentation semantics
   aspicMapping Json? // { ruleType: 'strict' | 'defeasible', ruleId?: string, preferenceLevel?: number }
 
+  // NEW: Phase 0.2 - Epistemic Mode (Kienpointner dimension)
+  // Distinguishes factual, hypothetical, and counterfactual reasoning
+  epistemicMode EpistemicMode @default(FACTUAL)
+
+  // NEW: Phase 0.3 - Enhanced Scheme Metadata
+  // Better discovery, organization, and user guidance
+  tags       String[] @default([]) // Searchable tags: ["politics", "science", "ethics"]
+  examples   String[] @default([]) // Concrete usage examples
+  usageCount Int      @default(0) // Popularity tracking for recommendations
+  difficulty String   @default("intermediate") // "beginner" | "intermediate" | "advanced"
+
+  // NEW: Phase 0.5 - Identification Conditions (Walton)
+  // Help users identify when this scheme is applicable
+  identificationConditions String[] @default([]) // Pattern-matching conditions: ["source expertise", "claim about future"]
+  whenToUse                String?   @default("") // Natural language guidance: "Use when arguing from authority..."
+
   @@index([parentSchemeId])
   @@index([clusterTag])
+  @@index([epistemicMode])
+  @@index([usageCount])
 }
 
 model CQStatus {

@@ -1,6 +1,18 @@
 // app/api/arguments/[id]/schemes/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { getCurrentUserId } from "@/lib/serverutils";
+import { addSchemeToArgument } from "@/lib/db/argument-net-queries";
+import { z } from "zod";
+
+const AddSchemeSchema = z.object({
+  schemeId: z.string(),
+  role: z.enum(["primary", "supporting", "presupposed", "implicit"]).optional(),
+  explicitness: z.enum(["explicit", "presupposed", "implied"]).optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  textEvidence: z.string().optional(),
+  justification: z.string().optional(),
+});
 
 export async function GET(
   _: NextRequest,
@@ -87,6 +99,154 @@ export async function GET(
     console.error(`[GET /api/arguments/${params.id}/schemes] Error:`, error);
     return NextResponse.json(
       { error: "Failed to fetch schemes" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/arguments/[id]/schemes - Add scheme to argument (Phase 1.2)
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = await getCurrentUserId().catch(() => null);
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const argumentId = decodeURIComponent(String(params.id || "")).trim();
+    if (!argumentId) {
+      return NextResponse.json(
+        { error: "Missing argument ID" },
+        { status: 400 }
+      );
+    }
+
+    // Verify argument exists and user is author
+    const argument = await prisma.argument.findUnique({
+      where: { id: argumentId },
+      select: {
+        id: true,
+        authorId: true,
+        deliberationId: true,
+        argumentSchemes: {
+          select: {
+            id: true,
+            role: true,
+            schemeId: true,
+          },
+        },
+      },
+    });
+
+    if (!argument) {
+      return NextResponse.json(
+        { error: "Argument not found" },
+        { status: 404 }
+      );
+    }
+
+    // Authorization: Only author or deliberation members can modify
+    if (argument.authorId !== userId) {
+      // Check if user is a member of the deliberation
+      const membership = await prisma.participant.findFirst({
+        where: {
+          deliberationId: argument.deliberationId,
+          userId: BigInt(userId),
+        },
+      });
+
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Forbidden: Not argument author or deliberation member" },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Parse request body
+    const body = await req.json();
+    const parsed = AddSchemeSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { schemeId, role, explicitness, confidence, textEvidence, justification } = parsed.data;
+
+    // Validation: Check if scheme exists
+    const scheme = await prisma.argumentScheme.findUnique({
+      where: { id: schemeId },
+      select: { id: true, name: true },
+    });
+
+    if (!scheme) {
+      return NextResponse.json(
+        { error: "Scheme not found" },
+        { status: 404 }
+      );
+    }
+
+    // Validation: Check for duplicate scheme
+    const existingInstance = argument.argumentSchemes.find(
+      (inst) => inst.schemeId === schemeId
+    );
+
+    if (existingInstance) {
+      return NextResponse.json(
+        { error: "Scheme already added to this argument" },
+        { status: 409 }
+      );
+    }
+
+    // Validation: If adding primary scheme, check if one already exists
+    if (role === "primary") {
+      const existingPrimary = argument.argumentSchemes.find(
+        (inst) => inst.role === "primary"
+      );
+
+      if (existingPrimary) {
+        return NextResponse.json(
+          {
+            error: "Argument already has a primary scheme",
+            suggestion: "Remove or change the existing primary scheme first",
+            existingPrimaryId: existingPrimary.id,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Add scheme instance
+    const newInstance = await addSchemeToArgument(argumentId, schemeId, {
+      role: role || "supporting",
+      explicitness: explicitness || "explicit",
+      confidence: confidence || 1.0,
+      textEvidence,
+      justification,
+    });
+
+    return NextResponse.json(
+      {
+        ok: true,
+        instance: newInstance,
+        message: `${scheme.name} added as ${role || "supporting"} scheme`,
+      },
+      { status: 201, headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error: any) {
+    console.error("Error adding scheme to argument:", error);
+    return NextResponse.json(
+      { error: "Internal server error", details: error.message },
       { status: 500 }
     );
   }

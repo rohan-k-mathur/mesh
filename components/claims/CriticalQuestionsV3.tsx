@@ -814,8 +814,8 @@ export default function CriticalQuestionsV3({
                                   <span className="text-xs text-slate-500">
                                     {(groundsInput[cq.key] || "").length} characters
                                   </span>
-                                  <Button
-                                    size="sm"
+                                  <button
+                                   
                                     onClick={() =>
                                       resolveViaGrounds(
                                         scheme.key,
@@ -824,11 +824,11 @@ export default function CriticalQuestionsV3({
                                       )
                                     }
                                     disabled={!(groundsInput[cq.key] || "").trim()}
-                                    className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700"
+                                    className="flex btnv2 py-3 px-3 text-sm rounded-full items-center gap-2 bg-sky-300 "
                                   >
                                     <Send className="w-4 h-4" />
-                                    Submit Answer & Mark Satisfied
-                                  </Button>
+                                    Enter Answer & Mark as Satisfied
+                                  </button>
                                 </div>
                               </div>
                             )}

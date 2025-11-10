@@ -19,6 +19,23 @@ export async function GET(_: NextRequest) {
         ruleForm: true,
         conclusionType: true,
         slotHints: true,
+        // Phase 0.2: Epistemic Mode
+        // @ts-expect-error - Phase 0.2 field, Prisma types may be cached
+        epistemicMode: true,
+        // Phase 0.3: Enhanced Metadata
+        // @ts-expect-error - Phase 0.3 fields
+        tags: true,
+        // @ts-expect-error - Phase 0.3 fields
+        examples: true,
+        // @ts-expect-error - Phase 0.3 fields
+        usageCount: true,
+        // @ts-expect-error - Phase 0.3 fields
+        difficulty: true,
+        // Phase 0.5: Identification Conditions
+        // @ts-expect-error - Phase 0.5 fields
+        identificationConditions: true,
+        // @ts-expect-error - Phase 0.5 fields
+        whenToUse: true,
         premises: true,
         conclusion: true,
         cq: true, // Note: DB field is 'cq' not 'cqs'
@@ -138,6 +155,15 @@ export async function POST(req: NextRequest) {
         reasoningType: body.reasoningType || null,
         ruleForm: body.ruleForm || null,
         conclusionType: body.conclusionType || null,
+        // Phase 0.2: Epistemic Mode
+        epistemicMode: body.epistemicMode || "FACTUAL",
+        // Phase 0.3: Enhanced Metadata
+        tags: body.tags || [],
+        examples: body.examples || [],
+        difficulty: body.difficulty || "intermediate",
+        // Phase 0.5: Identification Conditions
+        identificationConditions: body.identificationConditions || [],
+        whenToUse: body.whenToUse || "",
         premises: body.premises || null, // Formal structure
         conclusion: body.conclusion || null, // Formal structure
         cq: body.cqs, // Store CQs in JSON field
