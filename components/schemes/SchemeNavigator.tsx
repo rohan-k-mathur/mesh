@@ -5,16 +5,24 @@
  * into a single tab-based interface with shared state and context.
  * 
  * Week 8, Task 8.2: Tab-Based Interface
+ * Updated in Task 8.3: Added user preferences (header, recents, favorites, settings)
+ * Updated in Task 8.4: Added search functionality
  */
 
 "use client";
 
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { GitBranch, Grid3x3, Filter, Search } from "lucide-react";
 import { useNavigationStore, type NavigationMode } from "@/lib/schemes/navigation-state";
 import { SchemeNavigationProvider } from "./SchemeNavigationContext";
+import NavigationHeader from "./NavigationHeader";
+import RecentSchemesPanel from "./RecentSchemesPanel";
+import FavoritesPanel from "./FavoritesPanel";
+import SettingsPanel from "./SettingsPanel";
+import SchemeDetailPanel from "./SchemeDetailPanel";
+import SchemeSearch from "./SchemeSearch";
 import type { ArgumentScheme } from "@prisma/client";
 
 // Lazy load navigation mode components for better performance
@@ -38,10 +46,22 @@ function TabLoadingFallback() {
  * Unified SchemeNavigator with all navigation modes
  */
 export default function SchemeNavigator() {
-  const { currentMode, setMode, selectedScheme } = useNavigationStore();
+  const { currentMode, setMode, selectedScheme, recentSchemes, favoriteSchemeKeys, selectScheme } = useNavigationStore();
+  
+  // Panel visibility state
+  const [showRecents, setShowRecents] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   const handleModeChange = (value: string) => {
     setMode(value as NavigationMode);
+  };
+  
+  const handleSchemeSelect = (scheme: ArgumentScheme) => {
+    selectScheme(scheme);
+    // Close panels when a scheme is selected
+    setShowRecents(false);
+    setShowFavorites(false);
   };
   
   return (
@@ -55,6 +75,40 @@ export default function SchemeNavigator() {
               Find the perfect argumentation scheme using different navigation approaches
             </p>
           </div>
+          
+          {/* Navigation Header with Utilities */}
+          <NavigationHeader
+            onShowRecents={() => setShowRecents(true)}
+            onShowFavorites={() => setShowFavorites(true)}
+            onShowSettings={() => setShowSettings(true)}
+            recentCount={recentSchemes.length}
+            favoriteCount={favoriteSchemeKeys.length}
+          />
+          
+          {/* Floating Panels */}
+          {showRecents && (
+            <div className="fixed top-20 right-4 w-96 z-40 animate-in slide-in-from-right">
+              <RecentSchemesPanel
+                onClose={() => setShowRecents(false)}
+                onSchemeSelect={handleSchemeSelect}
+              />
+            </div>
+          )}
+          
+          {showFavorites && (
+            <div className="fixed top-20 right-4 w-96 z-40 animate-in slide-in-from-right">
+              <FavoritesPanel
+                onClose={() => setShowFavorites(false)}
+                onSchemeSelect={handleSchemeSelect}
+              />
+            </div>
+          )}
+          
+          {showSettings && (
+            <div className="fixed top-20 right-4 w-96 z-40 animate-in slide-in-from-right">
+              <SettingsPanel onClose={() => setShowSettings(false)} />
+            </div>
+          )}
           
           {/* Tabbed Navigation */}
           <Tabs value={currentMode} onValueChange={handleModeChange} className="space-y-6">
@@ -140,35 +194,17 @@ export default function SchemeNavigator() {
                 </p>
               </Card>
               
-              <Card className="p-12 text-center">
-                <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Search Coming Soon</h3>
-                <p className="text-sm text-muted-foreground">
-                  Unified search functionality will be implemented in Task 8.4
-                </p>
-              </Card>
+              <SchemeSearch onSchemeSelect={handleSchemeSelect} />
             </TabsContent>
           </Tabs>
           
           {/* Selected Scheme Detail Panel (if scheme selected) */}
           {selectedScheme && (
-            <div className="fixed bottom-4 right-4 w-96 max-h-96 overflow-auto bg-white dark:bg-gray-900 border rounded-lg shadow-xl p-4">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="font-bold text-lg">{selectedScheme.name}</h3>
-                <button
-                  onClick={() => useNavigationStore.getState().selectScheme(null)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  ✕
-                </button>
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                <strong>Key:</strong> {selectedScheme.key}
-              </p>
-              {selectedScheme.summary && (
-                <p className="text-sm">{selectedScheme.summary}</p>
-              )}
-            </div>
+            <SchemeDetailPanel
+              scheme={selectedScheme}
+              onClose={() => selectScheme(null)}
+              onSchemeSelect={handleSchemeSelect}
+            />
           )}
         </div>
       </div>
