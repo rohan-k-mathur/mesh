@@ -53,15 +53,18 @@ export default function SchemeDetailPanel({
   };
 
   const handleViewFull = () => {
-    window.open(`/schemes/${scheme.key}`, "_blank");
+    // For now, just copy the key since the full detail page doesn't exist yet
+    navigator.clipboard.writeText(scheme.key);
+    alert(`Scheme key "${scheme.key}" copied to clipboard!`);
   };
 
   const handleSwitchMode = () => {
     setMode(suggestedMode);
+    onClose(); // Close the detail panel when switching modes
   };
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 max-h-[80vh] overflow-y-auto shadow-lg z-50">
+    <Card className="fixed bottom-4 right-4 w-96 max-h-[80vh] modalv2 overflow-y-auto shadow-lg z-50">
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
@@ -120,24 +123,33 @@ export default function SchemeDetailPanel({
           <div className="mb-4">
             <h4 className="text-sm font-semibold mb-2">Premises</h4>
             <ul className="space-y-1">
-              {(scheme.premises as string[]).map((premise: string, idx: number) => (
-                <li key={idx} className="text-xs text-muted-foreground">
-                  <span className="font-medium">P{idx + 1}:</span> {premise}
-                </li>
-              ))}
+              {(scheme.premises as any[]).map((premise: any, idx: number) => {
+                const premiseText = typeof premise === "string" 
+                  ? premise 
+                  : premise?.text || JSON.stringify(premise);
+                return (
+                  <li key={idx} className="text-xs text-muted-foreground">
+                    <span className="font-medium">P{idx + 1}:</span> {premiseText}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
 
-        {scheme.conclusion && typeof scheme.conclusion === "string" && (
+        {scheme.conclusion && (
           <div className="mb-4">
             <h4 className="text-sm font-semibold mb-2">Conclusion</h4>
-            <p className="text-xs text-muted-foreground">{scheme.conclusion}</p>
+            <p className="text-xs text-muted-foreground">
+              {typeof scheme.conclusion === "string" 
+                ? scheme.conclusion 
+                : (scheme.conclusion as any)?.text || JSON.stringify(scheme.conclusion)}
+            </p>
           </div>
         )}
 
         {/* Suggested Navigation */}
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 rounded">
+        <div className="mb-4 p-3 bg-sky-50 dark:bg-sky-950 rounded">
           <p className="text-xs font-medium mb-2">Suggested Navigation</p>
           <Button
             variant="outline"

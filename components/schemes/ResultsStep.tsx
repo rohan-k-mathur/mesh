@@ -47,7 +47,7 @@ export default function ResultsStep({
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600" />
         <p className="mt-4 text-gray-600">Loading schemes...</p>
       </div>
     );
@@ -108,16 +108,16 @@ export default function ResultsStep({
       {/* Results header */}
       <div className="text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-full">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-sky-50 rounded-full">
             <span className="text-xl">{purposeOptions[purpose].icon}</span>
-            <span className="text-sm font-medium text-blue-700">
+            <span className="text-sm font-medium text-sky-700">
               {purposeOptions[purpose].label}
             </span>
           </div>
           <span className="text-gray-400">+</span>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-full">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-sky-50 rounded-full">
             <span className="text-xl">{sourceOptions[source].icon}</span>
-            <span className="text-sm font-medium text-blue-700">
+            <span className="text-sm font-medium text-sky-700">
               {sourceOptions[source].label}
             </span>
           </div>
@@ -168,7 +168,7 @@ function SchemeResultCard({
 
   // Determine match quality
   const isPerfectMatch = scheme.purpose === purpose && scheme.source === source;
-  const matchColor = isPerfectMatch ? "green" : "blue";
+  const matchColor = isPerfectMatch ? "green" : "sky";
 
   return (
     <Card className="p-5 hover:shadow-md transition-shadow">
@@ -204,7 +204,7 @@ function SchemeResultCard({
           <div>
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700"
             >
               {showDetails ? (
                 <>

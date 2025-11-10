@@ -89,7 +89,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
   };
 
   return (
-    <Card className="p-6">
+    <Card className="p-6  panel-edge modalv2">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5" />
@@ -115,7 +115,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
               <SelectItem value="search">{getModeLabel("search")}</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-500-foreground">
             The navigator will open in this mode by default
           </p>
         </div>
@@ -175,20 +175,20 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
         <div className="space-y-3 pt-4 border-t">
           <h4 className="font-semibold text-sm">Data Management</h4>
           
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
+          <div className="flex items-center justify-between p-3 bg-white rounded">
             <div>
               <p className="text-sm font-medium">Favorites</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 {favoriteSchemeKeys.length} schemes saved
               </p>
             </div>
             <Badge variant="secondary">{favoriteSchemeKeys.length}</Badge>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
+          <div className="flex items-center justify-between p-3 bg-white rounded">
             <div>
               <p className="text-sm font-medium">Recent History</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 {recentSchemes.length} schemes in history
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
         </div>
 
         {/* About */}
-        <div className="pt-4 border-t text-center text-xs text-muted-foreground">
+        <div className="pt-4 border-t text-center text-xs text-slate-500">
           <p>Scheme Navigator v1.0</p>
           <p className="mt-1">
             Week 8: Unified Multi-Entry Navigation

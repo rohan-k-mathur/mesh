@@ -62,7 +62,7 @@ export function MatchQualityIndicator({
           )}
           {distribution.strong > 0 && (
             <div
-              className="bg-blue-500 dark:bg-blue-600 transition-all duration-300"
+              className="bg-sky-500 dark:bg-sky-600 transition-all duration-300"
               style={{ width: `${percentages.strong}%` }}
               title={`${distribution.strong} strong matches (${percentages.strong.toFixed(1)}%)`}
             />
@@ -98,7 +98,7 @@ export function MatchQualityIndicator({
           )}
           {distribution.strong > 0 && (
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-blue-500 dark:bg-blue-600" />
+              <div className="w-3 h-3 rounded bg-sky-500 dark:bg-sky-600" />
               <span>
                 Strong: <strong>{distribution.strong}</strong>{" "}
                 <span className="text-muted-foreground">
@@ -140,7 +140,7 @@ export function MatchQualityIndicator({
           </p>
         )}
         {distribution.perfect === 0 && distribution.strong > 0 && (
-          <p className="text-xs text-blue-700 dark:text-blue-400 pt-2 border-t">
+          <p className="text-xs text-sky-700 dark:text-sky-400 pt-2 border-t">
             Your best matches are strong - consider adding more conditions for
             more precise results
           </p>

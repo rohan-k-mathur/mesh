@@ -44,10 +44,10 @@ function getQualityColor(quality: string): {
       };
     case "strong":
       return {
-        badge: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300 dark:border-blue-700",
-        border: "border-blue-200 dark:border-blue-800",
-        bg: "bg-blue-50 dark:bg-blue-950",
-        text: "text-blue-700 dark:text-blue-400",
+        badge: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-300 dark:border-sky-700",
+        border: "border-sky-200 dark:border-sky-800",
+        bg: "bg-sky-50 dark:bg-sky-950",
+        text: "text-sky-700 dark:text-sky-400",
       };
     case "moderate":
       return {

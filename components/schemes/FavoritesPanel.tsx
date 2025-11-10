@@ -44,7 +44,7 @@ export default function FavoritesPanel({
   );
 
   return (
-    <Card className="p-6">
+    <Card className="cardv2 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
@@ -77,7 +77,8 @@ export default function FavoritesPanel({
           {sortedSchemes.map((scheme) => (
             <Card
               key={scheme.id}
-              className="p-3 hover:bg-muted/50 transition-colors"
+             
+              className=" bg-white btnv2--ghost menuv2--lite px-3 py-3 rounded-xl"
             >
               <div className="flex items-start justify-between gap-2">
                 <div

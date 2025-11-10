@@ -30,14 +30,14 @@ export default function PurposeStep({ onSelect, compact = false }: PurposeStepPr
           ([key, option]) => (
             <Card
               key={key}
-              className="p-6 hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group"
+              className="p-6 hover:shadow-lg hover:border-sky-400 transition-all cursor-pointer group"
               onClick={() => onSelect(key)}
             >
               <div className="flex flex-col h-full">
                 {/* Icon and label */}
                 <div className="flex items-center gap-3 mb-4">
                   <div className="text-4xl">{option.icon}</div>
-                  <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600">
+                  <h3 className="text-xl font-semibold text-gray-900 group-hover:text-sky-600">
                     {option.label}
                   </h3>
                 </div>
@@ -55,7 +55,7 @@ export default function PurposeStep({ onSelect, compact = false }: PurposeStepPr
                   <ul className="space-y-1.5">
                     {option.examples.map((example, idx) => (
                       <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                        <span className="text-blue-500 mt-1">•</span>
+                        <span className="text-sky-500 mt-1">•</span>
                         <span className="italic">&ldquo;{example}&rdquo;</span>
                       </li>
                     ))}

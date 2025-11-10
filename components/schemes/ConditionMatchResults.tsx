@@ -172,7 +172,7 @@ export function ConditionMatchResults({
           {qualityCounts.strong > 0 && (
             <Badge
               variant="outline"
-              className="bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-700"
+              className="bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-950 dark:text-sky-400 dark:border-sky-700"
             >
               {qualityCounts.strong} Strong
             </Badge>

@@ -24,7 +24,7 @@ interface ClusterCardProps {
 }
 
 const colorClasses: Record<string, string> = {
-  blue: "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900",
+  sky: "bg-sky-50 dark:bg-sky-950 border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900",
   green: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900",
   purple: "bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900",
   orange: "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900",

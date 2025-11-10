@@ -61,7 +61,7 @@ export default function WizardProgress({
                   className={`
                     w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold
                     transition-colors duration-200
-                    ${isActive ? "bg-blue-600 text-white ring-4 ring-blue-100" : ""}
+                    ${isActive ? "bg-sky-600 text-white ring-4 ring-sky-100" : ""}
                     ${isPast || isCompleted ? "bg-green-600 text-white" : ""}
                     ${!isActive && !isPast && !isCompleted ? "bg-gray-200 text-gray-600" : ""}
                   `}
@@ -76,7 +76,7 @@ export default function WizardProgress({
                 {/* Step label */}
                 {!compact && (
                   <div className="mt-2 text-center">
-                    <div className={`text-sm font-medium ${isActive ? "text-blue-600" : "text-gray-700"}`}>
+                    <div className={`text-sm font-medium ${isActive ? "text-sky-600" : "text-gray-700"}`}>
                       {step.label}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
@@ -105,9 +105,9 @@ export default function WizardProgress({
 
       {/* Current selection summary */}
       {!compact && (selections.purpose || selections.source) && (
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <div className="text-sm font-medium text-blue-900 mb-2">Your Selections:</div>
-          <div className="space-y-1 text-sm text-blue-700">
+        <div className="mt-6 p-4 bg-sky-50 rounded-lg">
+          <div className="text-sm font-medium text-sky-900 mb-2">Your Selections:</div>
+          <div className="space-y-1 text-sm text-sky-700">
             {selections.purpose && (
               <div className="flex items-center gap-2">
                 <span>{purposeOptions[selections.purpose].icon}</span>

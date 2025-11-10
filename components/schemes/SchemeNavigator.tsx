@@ -37,7 +37,7 @@ function TabLoadingFallback() {
   return (
     <Card className="p-12 text-center">
       <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-      <p className="text-muted-foreground">Loading navigation mode...</p>
+      <p className="text-slate-400">Loading navigation mode...</p>
     </Card>
   );
 }
@@ -71,7 +71,7 @@ export default function SchemeNavigator() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Scheme Navigator</h1>
-            <p className="text-muted-foreground">
+            <p className="text-slate-700">
               Find the perfect argumentation scheme using different navigation approaches
             </p>
           </div>
@@ -87,7 +87,7 @@ export default function SchemeNavigator() {
           
           {/* Floating Panels */}
           {showRecents && (
-            <div className="fixed top-20 right-4 w-96 z-40 animate-in slide-in-from-right">
+            <div className="fixed top-20 left-4 w-96 z-40 animate-in slide-in-from-right">
               <RecentSchemesPanel
                 onClose={() => setShowRecents(false)}
                 onSchemeSelect={handleSchemeSelect}
@@ -105,7 +105,7 @@ export default function SchemeNavigator() {
           )}
           
           {showSettings && (
-            <div className="fixed top-20 right-4 w-96 z-40 animate-in slide-in-from-right">
+            <div className="fixed top-10 right-4 w-96 z-40 animate-in slide-in-from-right">
               <SettingsPanel onClose={() => setShowSettings(false)} />
             </div>
           )}
@@ -133,7 +133,7 @@ export default function SchemeNavigator() {
             
             {/* Wizard Tab */}
             <TabsContent value="tree" className="space-y-6">
-              <Card className="p-4 bg-muted/50">
+              <Card className="p-4 bg-white/70">
                 <p className="text-sm">
                   <strong>Dichotomic Tree Wizard:</strong> Answer 2-3 questions to narrow down
                   to the most relevant schemes for your argument.
@@ -151,7 +151,7 @@ export default function SchemeNavigator() {
             
             {/* Cluster Browser Tab */}
             <TabsContent value="cluster" className="space-y-6">
-              <Card className="p-4 bg-muted/50">
+              <Card className="p-4 bg-white/70">
                 <p className="text-sm">
                   <strong>Cluster Browser:</strong> Browse schemes organized by semantic domain
                   (authority, causality, decision-making, etc.).
@@ -187,7 +187,7 @@ export default function SchemeNavigator() {
             
             {/* Search Tab */}
             <TabsContent value="search" className="space-y-6">
-              <Card className="p-4 bg-muted/50">
+              <Card className="p-4 bg-white/70">
                 <p className="text-sm">
                   <strong>Search:</strong> Search schemes by name, description, or keywords to
                   quickly find what you need.

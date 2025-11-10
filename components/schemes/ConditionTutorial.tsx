@@ -79,7 +79,7 @@ const tutorialSteps: TutorialStep[] = [
       "For our example, 'Expert Opinion' scheme would show as a perfect match because it strongly aligns with appeals to expert testimony.",
     tips: [
       "Perfect matches (green) are highly recommended",
-      "Strong matches (blue) are also good candidates",
+      "Strong matches (sky) are also good candidates",
       "Click 'Show matched conditions' to see why each scheme fits",
     ],
   },
@@ -119,7 +119,7 @@ export function ConditionTutorial({ onClose }: ConditionTutorialProps) {
   const step = tutorialSteps[currentStep];
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
+    <Card className="p-6 bg-gradient-to-br from-sky-50 to-purple-50 dark:from-sky-950 dark:to-purple-950 border-sky-200 dark:border-sky-800">
       <div className="space-y-4">
         {/* Progress */}
         <div className="flex items-center justify-between">
@@ -136,7 +136,7 @@ export function ConditionTutorial({ onClose }: ConditionTutorialProps) {
         {/* Progress Bar */}
         <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-300"
+            className="h-full bg-sky-600 dark:bg-sky-400 transition-all duration-300"
             style={{
               width: `${((currentStep + 1) / tutorialSteps.length) * 100}%`,
             }}
@@ -147,7 +147,7 @@ export function ConditionTutorial({ onClose }: ConditionTutorialProps) {
         <div className="bg-white dark:bg-gray-900 rounded-lg p-5 space-y-4">
           {/* Icon and Title */}
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg text-blue-600 dark:text-blue-400">
+            <div className="p-2 bg-sky-100 dark:bg-sky-900 rounded-lg text-sky-600 dark:text-sky-400">
               {step.icon}
             </div>
             <div className="flex-1">
@@ -211,7 +211,7 @@ export function ConditionTutorial({ onClose }: ConditionTutorialProps) {
                 onClick={() => setCurrentStep(idx)}
                 className={`w-2 h-2 rounded-full transition-all ${
                   idx === currentStep
-                    ? "bg-blue-600 dark:bg-blue-400 w-6"
+                    ? "bg-sky-600 dark:bg-sky-400 w-6"
                     : "bg-gray-300 dark:bg-gray-700"
                 }`}
                 aria-label={`Go to step ${idx + 1}`}

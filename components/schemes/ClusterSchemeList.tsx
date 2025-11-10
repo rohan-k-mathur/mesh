@@ -108,9 +108,15 @@ function SchemeCard({ scheme, onSelect, compact = false }: SchemeCardProps) {
     (scheme as any).cqs ||
     [];
 
-  // Cast JSON fields for TypeScript
-  const premises = Array.isArray(scheme.premises) ? scheme.premises as string[] : [];
-  const conclusion = typeof scheme.conclusion === "string" ? scheme.conclusion : "";
+  // Cast JSON fields for TypeScript - handle both string and object formats
+  const premises = Array.isArray(scheme.premises) 
+    ? (scheme.premises as any[]).map((p: any) => 
+        typeof p === "string" ? p : p?.text || JSON.stringify(p)
+      )
+    : [];
+  const conclusion = typeof scheme.conclusion === "string" 
+    ? scheme.conclusion 
+    : (scheme.conclusion as any)?.text || "";
 
   return (
     <Card className="p-4 hover:shadow-md transition-shadow">

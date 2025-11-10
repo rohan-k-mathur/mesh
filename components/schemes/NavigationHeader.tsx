@@ -93,19 +93,18 @@ export default function NavigationHeader({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="bg-slate-200 p-2 rouded">
               <p>Recently viewed schemes ({recentCount})</p>
             </TooltipContent>
           </Tooltip>
 
           {/* Favorites */}
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <Tooltip >
+            <TooltipTrigger asChild >
               <Button
-                variant="ghost"
-                size="sm"
+              
                 onClick={onShowFavorites}
-                className="relative"
+                className="relative bg-white"
               >
                 <Star className="w-4 h-4" />
                 <span className="hidden sm:inline ml-2">Favorites</span>
@@ -119,7 +118,7 @@ export default function NavigationHeader({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="bg-slate-200 p-2 rounded">
               <p>Your favorite schemes ({favoriteCount})</p>
             </TooltipContent>
           </Tooltip>

@@ -35,7 +35,7 @@ export function ConditionCheckbox({
     <div
       className={cn(
         "border rounded-lg transition-colors",
-        checked && "bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700",
+        checked && "bg-sky-50 dark:bg-sky-950 border-sky-300 dark:border-sky-700",
         !checked && "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
         compact ? "p-2" : "p-3"
       )}
@@ -98,7 +98,7 @@ export function ConditionCheckbox({
             {condition.examples.map((example, idx) => (
               <li
                 key={idx}
-                className="text-xs pl-4 border-l-2 border-blue-300 dark:border-blue-700"
+                className="text-xs pl-4 border-l-2 border-sky-300 dark:border-sky-700"
               >
                 &ldquo;{example}&rdquo;
               </li>

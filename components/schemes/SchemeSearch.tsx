@@ -46,18 +46,18 @@ export default function SchemeSearch({ onSchemeSelect }: SchemeSearchProps) {
     fetcher
   );
 
-  const [localQuery, setLocalQuery] = useState(searchState.query);
+  const [localQuery, setLocalQuery] = useState(searchState.query || "");
   const [showFilters, setShowFilters] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Update local query when store changes
   useEffect(() => {
-    setLocalQuery(searchState.query);
+    setLocalQuery(searchState.query || "");
   }, [searchState.query]);
 
   // Search logic
   const searchResults = useMemo(() => {
-    if (!allSchemes || !searchState.query.trim()) {
+    if (!allSchemes || !searchState.query?.trim()) {
       return [];
     }
 
@@ -84,19 +84,19 @@ export default function SchemeSearch({ onSchemeSelect }: SchemeSearchProps) {
     // Apply filters
     let filtered = results;
 
-    if (searchState.filters.purpose) {
+    if (searchState.filters?.purpose) {
       filtered = filtered.filter(
         (s) => s.purpose?.toLowerCase() === searchState.filters.purpose?.toLowerCase()
       );
     }
 
-    if (searchState.filters.source) {
+    if (searchState.filters?.source) {
       filtered = filtered.filter(
         (s) => s.source?.toLowerCase() === searchState.filters.source?.toLowerCase()
       );
     }
 
-    if (searchState.filters.cluster) {
+    if (searchState.filters?.cluster) {
       filtered = filtered.filter((s) => {
         const semanticCluster = (s as any).semanticCluster;
         return semanticCluster === searchState.filters.cluster;
@@ -172,9 +172,9 @@ export default function SchemeSearch({ onSchemeSelect }: SchemeSearchProps) {
   };
 
   const activeFiltersCount = [
-    searchState.filters.purpose,
-    searchState.filters.source,
-    searchState.filters.cluster,
+    searchState.filters?.purpose,
+    searchState.filters?.source,
+    searchState.filters?.cluster,
   ].filter(Boolean).length;
 
   return (
@@ -266,10 +266,10 @@ export default function SchemeSearch({ onSchemeSelect }: SchemeSearchProps) {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Purpose</label>
                 <Select
-                  value={searchState.filters.purpose || ""}
+                  value={searchState.filters?.purpose || ""}
                   onValueChange={(value) =>
                     setSearchFilters({
-                      ...searchState.filters,
+                      ...(searchState.filters || {}),
                       purpose: value ? (value as "action" | "state_of_affairs") : undefined,
                     })
                   }
@@ -291,10 +291,10 @@ export default function SchemeSearch({ onSchemeSelect }: SchemeSearchProps) {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Source</label>
                 <Select
-                  value={searchState.filters.source || ""}
+                  value={searchState.filters?.source || ""}
                   onValueChange={(value) =>
                     setSearchFilters({
-                      ...searchState.filters,
+                      ...(searchState.filters || {}),
                       source: value ? (value as "internal" | "external") : undefined,
                     })
                   }
@@ -316,10 +316,10 @@ export default function SchemeSearch({ onSchemeSelect }: SchemeSearchProps) {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Cluster</label>
                 <Select
-                  value={searchState.filters.cluster || ""}
+                  value={searchState.filters?.cluster || ""}
                   onValueChange={(value) =>
                     setSearchFilters({
-                      ...searchState.filters,
+                      ...(searchState.filters || {}),
                       cluster: value || undefined,
                     })
                   }
