@@ -30,7 +30,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     name: "Authority & Expertise",
     description: "Arguments based on expert testimony, institutional positions, or popular belief",
     icon: "§",
-    color: "blue",
+    color: "slate",
     schemeKeys: [
       "expert_opinion",
       "popular_opinion",
@@ -52,7 +52,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "causality",
     name: "Cause & Effect",
     description: "Arguments about causal relationships, consequences, and predictive reasoning",
-    icon: "⊨",
+    icon: "⇒",
     color: "green",
     schemeKeys: [
       "cause_to_effect",
@@ -77,7 +77,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "decision_making",
     name: "Practical Decision Making",
     description: "Arguments about what actions to take, policies to adopt, or decisions to make",
-    icon: "🎯",
+    icon: "𐂷",
     color: "purple",
     schemeKeys: [
       "practical_reasoning",
@@ -102,7 +102,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "analogy",
     name: "Analogy & Comparison",
     description: "Arguments based on similarity, precedent, or parallel cases",
-    icon: "∥",
+    icon: "∷",
     color: "orange",
     schemeKeys: [
       "analogy",
@@ -126,7 +126,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "classification",
     name: "Classification & Definition",
     description: "Arguments about what category something belongs to or what terms mean",
-    icon: "📋",
+    icon: "ሗ",
     color: "yellow",
     schemeKeys: [
       "verbal_classification",
@@ -152,7 +152,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "values",
     name: "Values & Ethics",
     description: "Arguments based on moral principles, ethical considerations, or value judgments",
-    icon: "⚖️",
+    icon: "◎",
     color: "red",
     schemeKeys: [
       "value_based_practical_reasoning",
@@ -174,7 +174,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "evidence",
     name: "Evidence & Proof",
     description: "Arguments about what counts as evidence and how strong the proof is",
-    icon: "📊",
+    icon: "∵",
     color: "indigo",
     schemeKeys: [
       "sign",
@@ -197,7 +197,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "opposition",
     name: "Opposition & Conflict",
     description: "Arguments based on inconsistency, hypocrisy, or conflicting commitments",
-    icon: "⚔️",
+    icon: "⊥",
     color: "gray",
     schemeKeys: [
       "inconsistent_commitment",
@@ -221,8 +221,8 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "meta",
     name: "Meta-Claims & Testing",
     description: "Arguments about the quality, clarity, or relevance of claims themselves",
-    icon: "🔍",
-    color: "slate",
+    icon: "*",
+    color: "sky",
     schemeKeys: [
       "bare_assertion",
       "claim_relevance",

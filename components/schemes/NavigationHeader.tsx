@@ -62,7 +62,7 @@ export default function NavigationHeader({
   const helpText = getModeHelpText(currentMode);
 
   return (
-    <div className="flex items-center justify-between gap-4 p-4 bg-white dark:bg-gray-900 border-b sticky top-0 z-10">
+    <div className="flex items-center rounded-b-xl mb-2 modalv2 justify-between gap-4 p-4  dark:bg-gray-900 border-b sticky top-0 z-10">
       {/* Left: Help Text */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />

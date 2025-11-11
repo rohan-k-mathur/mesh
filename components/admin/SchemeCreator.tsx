@@ -27,13 +27,15 @@ import { Plus, X, Save, Loader2, AlertCircle, CheckCircle2, PlusCircle } from "l
 import { generateCQsFromTaxonomy, type TaxonomyFields } from "@/lib/argumentation/cqGeneration";
 
 // Custom scrollbar styles for light mode
-const scrollbarStyles = `
+export const scrollbarStyles = `
   .custom-scrollbar-light::-webkit-scrollbar {
     width: 3px;
   }
   .custom-scrollbar-light::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
     border-radius: 4px;
+    margin-top: 20px;
+margin-bottom: 20px;
   }
   .custom-scrollbar-light::-webkit-scrollbar-thumb {
     background: rgba(56, 189, 248, 0.4);
@@ -41,6 +43,22 @@ const scrollbarStyles = `
   }
   .custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
     background: rgba(56, 189, 248, 0.6);
+  }
+       .custom-scrollbar-short::-webkit-scrollbar {
+       width: 1px;
+    height: 1px;
+    border-radius: 2px;
+  }
+  .custom-scrollbar-short::-webkit-scrollbar-track {
+     background: #5a5a7b6b;
+    border-radius: 50px;
+  }
+  .custom-scrollbar-short::-webkit-scrollbar-thumb {
+     background: #5d5d6d98;
+    border-radius: 50px;
+  }
+  .custom-scrollbar-short::-webkit-scrollbar-thumb:hover {
+    background: #7878a3;
   }
 `;
 

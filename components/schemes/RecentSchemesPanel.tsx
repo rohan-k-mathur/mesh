@@ -17,6 +17,47 @@ import { Clock, X } from "lucide-react";
 import type { ArgumentScheme } from "@prisma/client";
 import { useNavigationStore } from "@/lib/schemes/navigation-state";
 
+// Custom scrollbar styles for light mode
+export const scrollbarStyles = `
+  .custom-scrollbar-light::-webkit-scrollbar {
+    width: 3px;
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.4);
+    border-radius: 4px;
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.6);
+  }
+       .custom-scrollbar-short::-webkit-scrollbar {
+       width: 3px;
+    
+    border-radius: 3px;
+  }
+  .custom-scrollbar-short::-webkit-scrollbar-track {
+         width: 3px;
+margin-top: 20px;
+margin-bottom: 20px;
+     background: #5a5a7b6b;
+    border-radius: 50px;
+  }
+  .custom-scrollbar-short::-webkit-scrollbar-thumb {
+         width: 3px;
+
+     background: #5d5d6d98;
+    border-radius: 50px;
+  }
+  .custom-scrollbar-short::-webkit-scrollbar-thumb:hover {
+         width: 3px;
+
+    background: #7878a3;
+  }
+`;
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface RecentSchemesPanelProps {
@@ -43,7 +84,10 @@ export default function RecentSchemesPanel({
   });
 
   return (
-    <Card className="cardv2 p-6">
+    <div className="cardv2 p-0">
+              <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
+        
+    <Card className="p-6  max-h-[80vh] w-96 overflow-y-auto  custom-scrollbar-short">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5" />
@@ -93,5 +137,6 @@ export default function RecentSchemesPanel({
         </div>
       )}
     </Card>
+    </div>
   );
 }

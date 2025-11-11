@@ -212,6 +212,7 @@
     "react-pdf": "^10.1.0",
     "react-rnd": "^10.5.2",
     "react-virtuoso": "^4.14.0",
+    "reactflow": "^11.11.4",
     "remark-gfm": "^4.0.1",
     "sass": "^1.89.2",
     "server-only": "^0.0.1",

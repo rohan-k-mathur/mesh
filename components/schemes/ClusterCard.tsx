@@ -48,10 +48,10 @@ export function ClusterCard({
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-all duration-200 border-2",
-        "hover:shadow-lg hover:scale-105",
+        "cursor-pointer panelv2 transition-all duration-200 border-2",
+        "hover:shadow-md ",
         colorClass,
-        isHovered && "ring-2 ring-primary ring-offset-2",
+        isHovered && " ring-2 ring-primary ring-offset-0",
         compact ? "p-4" : "p-6"
       )}
       onClick={onClick}
@@ -99,6 +99,12 @@ export function ClusterCard({
           Click to explore →
         </div>
       )}
+       {!isHovered && !compact && (
+        <div className="text-center mt-3 opacity-0 text-sm font-medium text-primary">
+          Click to explore →
+        </div>
+      )}
+      
     </Card>
   );
 }
