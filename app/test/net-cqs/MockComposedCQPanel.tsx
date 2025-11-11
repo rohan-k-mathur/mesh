@@ -245,6 +245,44 @@ export function MockComposedCQPanel({
     "explicitness",
   ]);
 
+  // Helper functions
+  const calculateGroupPriority = (questions: any[]): "critical" | "high" | "medium" | "low" => {
+    if (questions.some((q) => q.priority === "critical")) return "critical";
+    if (questions.some((q) => q.priority === "high")) return "high";
+    if (questions.some((q) => q.priority === "medium")) return "medium";
+    return "low";
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "critical":
+        return "bg-red-100 text-red-800 border-red-300";
+      case "high":
+        return "bg-orange-100 text-orange-800 border-orange-300";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      case "low":
+        return "bg-blue-100 text-blue-800 border-blue-300";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
+
+  const getQuestionIcon = (type: string) => {
+    switch (type) {
+      case "scheme":
+        return <HelpCircle className="w-4 h-4" />;
+      case "dependency":
+        return <GitBranch className="w-4 h-4" />;
+      case "net-structure":
+        return <Network className="w-4 h-4" />;
+      case "explicitness":
+        return <Eye className="w-4 h-4" />;
+      default:
+        return <HelpCircle className="w-4 h-4" />;
+    }
+  };
+
   // Filter questions
   const filteredQuestions = useMemo(() => {
     return allQuestions.filter(
@@ -388,43 +426,6 @@ export function MockComposedCQPanel({
 
     return grouped;
   }, [filteredQuestions, groupBy]);
-
-  const calculateGroupPriority = (questions: any[]): "critical" | "high" | "medium" | "low" => {
-    if (questions.some((q) => q.priority === "critical")) return "critical";
-    if (questions.some((q) => q.priority === "high")) return "high";
-    if (questions.some((q) => q.priority === "medium")) return "medium";
-    return "low";
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "critical":
-        return "bg-red-100 text-red-800 border-red-300";
-      case "high":
-        return "bg-orange-100 text-orange-800 border-orange-300";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
-      case "low":
-        return "bg-blue-100 text-blue-800 border-blue-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
-  };
-
-  const getQuestionIcon = (type: string) => {
-    switch (type) {
-      case "scheme":
-        return <HelpCircle className="w-4 h-4" />;
-      case "dependency":
-        return <GitBranch className="w-4 h-4" />;
-      case "net-structure":
-        return <Network className="w-4 h-4" />;
-      case "explicitness":
-        return <Eye className="w-4 h-4" />;
-      default:
-        return <HelpCircle className="w-4 h-4" />;
-    }
-  };
 
   return (
     <div className="space-y-4">
