@@ -230,13 +230,13 @@ function SchemeResultCard({
         )}
 
         {/* Select button */}
-        <Button
+        <button
           onClick={() => onSelect(scheme)}
-          className="w-full"
-          variant="default"
+          className="w-full btnv2 px-3 py-2 text-sm rounded-lg"
+          
         >
           Select This Scheme
-        </Button>
+        </button>
       </div>
     </Card>
   );

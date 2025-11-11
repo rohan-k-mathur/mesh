@@ -73,7 +73,7 @@ export function IdentificationConditionsFilter({
   const categoryOrder = getCategoryOrder();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Tutorial */}
       {showTutorial && (
         <ConditionTutorial onClose={() => setShowTutorial(false)} />
@@ -99,7 +99,7 @@ export function IdentificationConditionsFilter({
       </div>
 
       {/* Instructions */}
-      <Card className="p-4 bg-muted/50">
+      <Card className="p-4 sidebarv2">
         <div className="flex items-start gap-3">
           <HelpCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div className="text-sm space-y-2">
@@ -118,7 +118,7 @@ export function IdentificationConditionsFilter({
 
       {/* Selection Summary */}
       {selectedConditions.length > 0 && (
-        <Card className="p-4">
+        <Card className="p-4 sidebarv2">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold">
@@ -176,7 +176,7 @@ export function IdentificationConditionsFilter({
       )}
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="sidebarv2 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Conditions by Category */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">

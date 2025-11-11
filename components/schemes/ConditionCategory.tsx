@@ -48,7 +48,7 @@ export function ConditionCategory({
   ).length;
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden panelv2 p-1">
       {/* Category Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -78,14 +78,10 @@ export function ConditionCategory({
             }}
             className="h-7 px-2"
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="items-centerw-4 h-4" />
           </Button>
 
-          {!compact && (
-            <span className="text-xs text-muted-foreground">
-              {isExpanded ? "Collapse" : "Expand"}
-            </span>
-          )}
+         
         </div>
       </button>
 

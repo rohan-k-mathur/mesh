@@ -34,9 +34,9 @@ export function ConditionCheckbox({
   return (
     <div
       className={cn(
-        "border rounded-lg transition-colors",
-        checked && "bg-sky-50 dark:bg-sky-950 border-sky-300 dark:border-sky-700",
-        !checked && "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
+        " shadow-md border bg-slate-50  rounded-lg transition-colors",
+        checked && "bg-sky-50 dark:bg-sky-950 border-sky-400 dark:border-sky-700",
+        !checked && "bg-slate-50 dark:bg-gray-900 border-gray-400 dark:border-gray-800",
         compact ? "p-2" : "p-3"
       )}
     >
@@ -46,7 +46,7 @@ export function ConditionCheckbox({
           id={condition.id}
           checked={checked}
           onCheckedChange={onToggle}
-          className="mt-1"
+          className="mt-1 border-gray-400 dark:border-gray-600"
         />
 
         {/* Content */}

@@ -119,7 +119,7 @@ export function ConditionTutorial({ onClose }: ConditionTutorialProps) {
   const step = tutorialSteps[currentStep];
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-sky-50 to-purple-50 dark:from-sky-950 dark:to-purple-950 border-sky-200 dark:border-sky-800">
+    <Card className="p-6 panelv2">
       <div className="space-y-4">
         {/* Progress */}
         <div className="flex items-center justify-between">

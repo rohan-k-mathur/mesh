@@ -44,7 +44,7 @@ export function MatchQualityIndicator({
   };
 
   return (
-    <Card className={`${compact ? "p-3" : "p-4"}`}>
+    <Card className={`${compact ? "p-3 panelv2" : "p-4 panelv2" }`}>
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold">Match Quality Distribution</span>

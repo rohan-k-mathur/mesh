@@ -32,7 +32,7 @@ export const purposeOptions = {
       "You ought to choose this option",
       "This action is morally wrong"
     ],
-    icon: "🎯"
+    icon: "𝒜"
   },
   state_of_affairs: {
     label: "Describe a State of Affairs",
@@ -42,7 +42,7 @@ export const purposeOptions = {
       "Y caused Z to happen",
       "This situation is similar to that one"
     ],
-    icon: "📊"
+    icon: "𝒮"
   }
 };
 
@@ -59,7 +59,7 @@ export const sourceOptions = {
       "This action will lead to Y",
       "It follows logically that..."
     ],
-    icon: "🧠"
+    icon: "∴"
   },
   external: {
     label: "External Evidence",
@@ -70,7 +70,7 @@ export const sourceOptions = {
       "We've always done it this way",
       "The evidence shows..."
     ],
-    icon: "📚"
+    icon: "∵"
   }
 };
 

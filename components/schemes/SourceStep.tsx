@@ -52,20 +52,20 @@ export default function SourceStep({ purpose, onSelect, onBack, compact = false 
           ([key, option]) => (
             <Card
               key={key}
-              className="p-6 hover:shadow-lg hover:border-sky-400 transition-all cursor-pointer group"
+              className="p-6 cardv2 cursor-pointer group"
               onClick={() => onSelect(key)}
             >
               <div className="flex flex-col h-full">
                 {/* Icon and label */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="text-4xl">{option.icon}</div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="text-3xl">{option.icon}</div>
                   <h3 className="text-xl font-semibold text-gray-900 group-hover:text-sky-600">
                     {option.label}
                   </h3>
                 </div>
 
                 {/* Help text */}
-                <p className="text-sm text-gray-600 mb-4 flex-grow">
+                <p className="text-sm text-gray-600 mb-2 flex-grow">
                   {option.helpText}
                 </p>
 
@@ -85,10 +85,10 @@ export default function SourceStep({ purpose, onSelect, onBack, compact = false 
                 </div>
 
                 {/* Select button (appears on hover) */}
-                <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button className="w-full" variant="default">
+                <div className="mt-4 opacity-90 group-hover:opacity-100 transition-opacity">
+                  <button className="w-full text-sm rounded-xl px-3 py-2 btnv2--ghost bg-white " >
                     Select {option.label}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </Card>

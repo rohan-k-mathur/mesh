@@ -99,7 +99,7 @@ export function ConditionMatchResults({
       <MatchQualityIndicator matches={matches} compact={compact} />
 
       {/* Controls */}
-      <Card className="p-4">
+      <Card className="p-4 panelv2">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Sort Control */}
           <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export function ConditionMatchResults({
       </Card>
 
       {/* Results List */}
-      <div className="space-y-3">
+      <div className="space-y-3 panelv2">
         {processedMatches.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-muted-foreground">

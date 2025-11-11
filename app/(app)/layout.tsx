@@ -1,4 +1,12 @@
 'use client';
+
+import '@/app/article.templates.css';   // <— single import
+// import './article.global.scss';
+import "@/app/article/editor.global.css";
+import "@/app/article/rhetoric.css";
+
+import "@/app/article/type-tokens.css";
+import '@/app/fonts/fonts.css';
 import { useEffect } from 'react';
 import { LiveEventsProvider } from '@/app/agora/LiveEventsProvider';
 

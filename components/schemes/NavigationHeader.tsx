@@ -131,7 +131,7 @@ export default function NavigationHeader({
                 <span className="hidden sm:inline ml-2">Settings</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="bg-slate-200 p-2 rounded">
               <p>Preferences and settings</p>
             </TooltipContent>
           </Tooltip>
@@ -150,7 +150,7 @@ export default function NavigationHeader({
                 </span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent className="bg-slate-200 p-2 rounded">
               <p>
                 {showResetConfirm
                   ? "Click again to confirm reset"

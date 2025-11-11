@@ -1505,50 +1505,467 @@ export class ArgumentGenerationService {
     return suggestions;
   }
 
+  // ============================================================================
+  // Template Generation Implementation (Step 3.1.4)
+  // ============================================================================
+
+  /**
+   * Build premise templates from scheme structure
+   * 
+   * Converts scheme premises into structured templates with variables,
+   * types, and evidence requirements.
+   */
   private buildPremiseTemplates(
     scheme: ArgumentScheme,
     prefilledData?: Record<string, string>
   ): PremiseTemplate[] {
-    // Implementation in Step 3.1.4
-    return [];
+    const templates: PremiseTemplate[] = [];
+    const premisesData = scheme.premises as any;
+
+    if (!premisesData) {
+      return templates;
+    }
+
+    // Parse premises (may be array or object)
+    let premiseArray: any[] = [];
+    if (Array.isArray(premisesData)) {
+      premiseArray = premisesData;
+    } else if (typeof premisesData === "object") {
+      // Convert object to array
+      premiseArray = Object.entries(premisesData).map(([key, value]) => ({
+        key,
+        ...(typeof value === "object" ? value : { text: value }),
+      }));
+    }
+
+    // Build template for each premise
+    premiseArray.forEach((premise, index) => {
+      const key = premise.key || `P${index + 1}`;
+      const content = this.extractPremiseContent(premise, prefilledData);
+      const type = this.determinePremiseType(premise);
+      const evidenceType = this.inferEvidenceType(content);
+
+      templates.push({
+        key,
+        content,
+        required: premise.required !== false,
+        type,
+        evidenceType,
+      });
+    });
+
+    return templates;
   }
 
+  /**
+   * Extract premise content with variable substitution
+   */
+  private extractPremiseContent(premise: any, prefilledData?: Record<string, string>): string {
+    let content = "";
+
+    // Get base content
+    if (typeof premise === "string") {
+      content = premise;
+    } else if (premise.text) {
+      content = premise.text;
+    } else if (premise.content) {
+      content = premise.content;
+    } else if (premise.template) {
+      content = premise.template;
+    } else {
+      content = JSON.stringify(premise);
+    }
+
+    // Substitute prefilled data
+    if (prefilledData) {
+      Object.entries(prefilledData).forEach(([varName, value]) => {
+        // Support both {varName} and {{varName}} syntax
+        const patterns = [
+          new RegExp(`\\{${varName}\\}`, "g"),
+          new RegExp(`\\{\\{${varName}\\}\\}`, "g"),
+        ];
+        patterns.forEach((pattern) => {
+          content = content.replace(pattern, value);
+        });
+      });
+    }
+
+    return content;
+  }
+
+  /**
+   * Determine premise type (ordinary, assumption, exception)
+   */
+  private determinePremiseType(premise: any): "ordinary" | "assumption" | "exception" {
+    if (premise.type) {
+      const type = premise.type.toLowerCase();
+      if (type === "assumption") return "assumption";
+      if (type === "exception") return "exception";
+    }
+
+    // Heuristic: check for assumption keywords
+    const content = (premise.text || premise.content || "").toLowerCase();
+    if (content.includes("assume") || content.includes("presumed") || content.includes("unless")) {
+      return "assumption";
+    }
+    if (content.includes("except") || content.includes("exception")) {
+      return "exception";
+    }
+
+    return "ordinary";
+  }
+
+  /**
+   * Infer evidence type from premise content
+   */
+  private inferEvidenceType(content: string): string | undefined {
+    const lower = content.toLowerCase();
+
+    if (lower.match(/expert|authority|study|research/)) {
+      return "expert-testimony";
+    }
+    if (lower.match(/statistic|data|number|percent/)) {
+      return "statistical-data";
+    }
+    if (lower.match(/witness|observed|saw|experienced/)) {
+      return "eyewitness-testimony";
+    }
+    if (lower.match(/document|report|record|publication/)) {
+      return "documentary-evidence";
+    }
+    if (lower.match(/example|case|instance/)) {
+      return "example";
+    }
+    if (lower.match(/cause|effect|leads to|results in/)) {
+      return "causal-evidence";
+    }
+
+    return "general-evidence";
+  }
+
+  /**
+   * Build attack conclusion based on attack type
+   * 
+   * Generates appropriate conclusion text for attacking arguments:
+   * - REBUTS: Direct contradiction
+   * - UNDERCUTS: Inference failure
+   * - UNDERMINES: Premise challenge
+   */
   private buildAttackConclusion(
     claim: any,
     attackType: string,
     targetCQ?: string
   ): string {
-    // Implementation in Step 3.1.4
-    return "";
+    const claimText = claim.text || claim.content || "";
+
+    switch (attackType) {
+      case "REBUTS":
+        // Direct contradiction of conclusion
+        return `Therefore, the claim "${claimText}" is false/incorrect`;
+
+      case "UNDERCUTS":
+        // Attack the inference/warrant
+        return `Therefore, the reasoning leading to "${claimText}" is flawed`;
+
+      case "UNDERMINES":
+        // Challenge a premise
+        return `Therefore, a key premise supporting "${claimText}" is questionable`;
+
+      default:
+        return `Therefore, "${claimText}" should be rejected`;
+    }
   }
 
+  /**
+   * Extract variables from scheme structure
+   * 
+   * Identifies template variables (like {agent}, {action}) and provides
+   * descriptions for user guidance.
+   */
   private extractVariables(scheme: ArgumentScheme): Record<string, string> {
-    // Implementation in Step 3.1.4
-    return {};
+    const variables: Record<string, string> = {};
+
+    // Extract from scheme metadata if available
+    if ((scheme as any).variables) {
+      return (scheme as any).variables;
+    }
+
+    // Extract from premises by finding {variable} patterns
+    const premisesData = scheme.premises as any;
+    const allText: string[] = [];
+
+    if (Array.isArray(premisesData)) {
+      premisesData.forEach((p: any) => {
+        const text = typeof p === "string" ? p : (p?.text || p?.content || "");
+        allText.push(text);
+      });
+    }
+
+    // Also check conclusion
+    if ((scheme as any).conclusion) {
+      allText.push((scheme as any).conclusion);
+    }
+
+    // Find all {variable} patterns
+    const varPattern = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+    allText.forEach((text) => {
+      let match;
+      while ((match = varPattern.exec(text)) !== null) {
+        const varName = match[1];
+        if (!variables[varName]) {
+          // Generate description from variable name
+          variables[varName] = this.generateVariableDescription(varName);
+        }
+      }
+    });
+
+    // Common scheme-specific variables
+    const schemeName = (scheme.name || scheme.key).toLowerCase();
+    if (schemeName.includes("expert")) {
+      variables["expert"] = variables["expert"] || "The expert or authority being cited";
+      variables["domain"] = variables["domain"] || "The expert's domain of expertise";
+      variables["position"] = variables["position"] || "The expert's position or finding";
+    }
+    if (schemeName.includes("cause") || schemeName.includes("consequence")) {
+      variables["cause"] = variables["cause"] || "The causal factor or event";
+      variables["effect"] = variables["effect"] || "The resulting effect or consequence";
+      variables["mechanism"] = variables["mechanism"] || "How the cause produces the effect";
+    }
+    if (schemeName.includes("practical")) {
+      variables["goal"] = variables["goal"] || "The desired goal or outcome";
+      variables["action"] = variables["action"] || "The action or means to achieve the goal";
+      variables["agent"] = variables["agent"] || "Who should perform the action";
+    }
+    if (schemeName.includes("analog")) {
+      variables["source_case"] = variables["source_case"] || "The source case or analogy";
+      variables["target_case"] = variables["target_case"] || "The target case being argued";
+      variables["similarity"] = variables["similarity"] || "The relevant similarity between cases";
+    }
+
+    return variables;
   }
 
+  /**
+   * Generate human-readable description from variable name
+   */
+  private generateVariableDescription(varName: string): string {
+    // Convert camelCase or snake_case to readable text
+    const readable = varName
+      .replace(/_/g, " ")
+      .replace(/([A-Z])/g, " $1")
+      .toLowerCase()
+      .trim();
+
+    // Capitalize first letter
+    return readable.charAt(0).toUpperCase() + readable.slice(1);
+  }
+
+  /**
+   * Prefill variables from claim and context
+   * 
+   * Auto-fills template variables using claim data and provided context.
+   */
   private prefillVariables(
     variables: Record<string, string>,
     claim: any,
     prefilledData?: Record<string, string>
   ): Record<string, string> {
-    // Implementation in Step 3.1.4
-    return {};
+    const prefilled: Record<string, string> = {};
+
+    // Start with explicitly provided data
+    if (prefilledData) {
+      Object.assign(prefilled, prefilledData);
+    }
+
+    // Auto-fill common variables from claim
+    if (variables["claim"] && !prefilled["claim"]) {
+      prefilled["claim"] = claim.text || claim.content || "";
+    }
+
+    // Try to extract subject/topic from claim
+    if (variables["topic"] && !prefilled["topic"]) {
+      // Simple extraction: first noun phrase
+      const claimText = claim.text || "";
+      const words = claimText.split(" ");
+      if (words.length > 0) {
+        prefilled["topic"] = words.slice(0, 3).join(" "); // First few words
+      }
+    }
+
+    // Extract position keywords if present
+    if (variables["position"] && !prefilled["position"]) {
+      const claimText = (claim.text || "").toLowerCase();
+      if (claimText.includes("should")) {
+        const shouldIndex = claimText.indexOf("should");
+        prefilled["position"] = claimText.slice(shouldIndex);
+      }
+    }
+
+    return prefilled;
   }
 
+  /**
+   * Generate step-by-step construction guidance
+   * 
+   * Provides user-friendly steps for building the argument.
+   */
   private generateConstructionSteps(
     scheme: ArgumentScheme,
     attackType?: string
   ): string[] {
-    // Implementation in Step 3.1.4
-    return [];
+    const steps: string[] = [];
+    const schemeName = (scheme.name || scheme.key).toLowerCase();
+
+    // Attack-specific steps
+    if (attackType) {
+      switch (attackType) {
+        case "REBUTS":
+          steps.push("1. Identify the claim you're contradicting");
+          steps.push("2. Provide counter-evidence or alternative interpretation");
+          steps.push("3. Explain why your position is stronger");
+          break;
+        case "UNDERCUTS":
+          steps.push("1. Identify the inference or reasoning you're challenging");
+          steps.push("2. Explain why the reasoning doesn't work");
+          steps.push("3. Show the logical gap or fallacy");
+          break;
+        case "UNDERMINES":
+          steps.push("1. Identify the premise you're challenging");
+          steps.push("2. Provide evidence against the premise");
+          steps.push("3. Explain the impact on the overall argument");
+          break;
+      }
+      steps.push("4. Consider potential responses");
+      steps.push("5. Submit your attack");
+      return steps;
+    }
+
+    // Support argument steps (scheme-specific)
+    if (schemeName.includes("expert") || schemeName.includes("authority")) {
+      steps.push("1. Identify the expert, authority, or study");
+      steps.push("2. Establish their expertise in the relevant domain");
+      steps.push("3. State their position or finding clearly");
+      steps.push("4. Connect their testimony to your claim");
+      steps.push("5. Address potential challenges to expertise");
+    } else if (schemeName.includes("cause") || schemeName.includes("consequence")) {
+      steps.push("1. Identify the cause and effect clearly");
+      steps.push("2. Explain the causal mechanism");
+      steps.push("3. Provide evidence of the causal relationship");
+      steps.push("4. Rule out alternative causes");
+      steps.push("5. Show correlation and temporal precedence");
+    } else if (schemeName.includes("practical")) {
+      steps.push("1. State the goal or desired outcome");
+      steps.push("2. Propose the action or means to achieve it");
+      steps.push("3. Explain how the action achieves the goal");
+      steps.push("4. Address negative side effects");
+      steps.push("5. Compare to alternative actions");
+    } else if (schemeName.includes("analog")) {
+      steps.push("1. Identify the source case (analogy)");
+      steps.push("2. Identify the target case (your situation)");
+      steps.push("3. Explain the relevant similarities");
+      steps.push("4. Show why the similarity supports your conclusion");
+      steps.push("5. Address relevant differences");
+    } else {
+      // Generic steps
+      steps.push("1. Review the required premises");
+      steps.push("2. Gather evidence for each premise");
+      steps.push("3. Fill in the template with your evidence");
+      steps.push("4. Ensure logical flow from premises to conclusion");
+      steps.push("5. Review and submit your argument");
+    }
+
+    return steps;
   }
 
+  /**
+   * Determine evidence requirements for premises
+   * 
+   * Analyzes premises to identify what types of evidence are needed.
+   */
   private determineEvidenceRequirements(premises: PremiseTemplate[]): string[] {
-    // Implementation in Step 3.1.4
-    return [];
+    const requirements: string[] = [];
+    const seenTypes = new Set<string>();
+
+    premises.forEach((premise) => {
+      const content = premise.content.toLowerCase();
+      const evidenceType = premise.evidenceType;
+
+      // Generate requirement based on evidence type
+      if (evidenceType && !seenTypes.has(evidenceType)) {
+        seenTypes.add(evidenceType);
+
+        switch (evidenceType) {
+          case "expert-testimony":
+            requirements.push(
+              "Expert testimony: Citations from qualified authorities, peer-reviewed studies, or recognized experts"
+            );
+            break;
+          case "statistical-data":
+            requirements.push(
+              "Statistical data: Numbers, percentages, or quantitative evidence from reliable sources"
+            );
+            break;
+          case "eyewitness-testimony":
+            requirements.push(
+              "Eyewitness testimony: First-hand accounts or direct observations"
+            );
+            break;
+          case "documentary-evidence":
+            requirements.push(
+              "Documentary evidence: Official documents, reports, publications, or records"
+            );
+            break;
+          case "example":
+            requirements.push("Examples: Specific cases, instances, or precedents");
+            break;
+          case "causal-evidence":
+            requirements.push(
+              "Causal evidence: Data showing correlation, mechanism, and temporal precedence"
+            );
+            break;
+          default:
+            if (!seenTypes.has("general-evidence")) {
+              seenTypes.add("general-evidence");
+              requirements.push(
+                "General evidence: Facts, data, or reasoning supporting the premises"
+              );
+            }
+        }
+      }
+
+      // Also check for specific requirement keywords in content
+      if (content.includes("must") || content.includes("required") || content.includes("need")) {
+        if (!requirements.some((r) => r.includes("Required"))) {
+          requirements.push("Required premises: These must be supported for the argument to work");
+        }
+      }
+    });
+
+    // If no specific requirements identified, add generic one
+    if (requirements.length === 0) {
+      requirements.push(
+        "Evidence: Provide facts, data, or reasoning to support each premise"
+      );
+    }
+
+    return requirements;
   }
 
+  // ============================================================================
+  // Confidence Scoring Implementation (Step 3.1.5)
+  // ============================================================================
+
+  /**
+   * Compute comprehensive argument quality score
+   * 
+   * Provides real-time assessment of argument quality across multiple dimensions:
+   * - Premise completeness (are all required premises filled?)
+   * - Evidence quality (is evidence strong/credible?)
+   * - Logical coherence (do premises support conclusion?)
+   * - Vulnerability (what attacks are possible?)
+   * 
+   * Returns overall score (0-100) plus detailed per-premise scores and improvement suggestions.
+   */
   private async computeArgumentScore(
     schemeId: string,
     filledPremises: Record<string, string>,
@@ -1559,13 +1976,357 @@ export class ArgumentGenerationService {
     missingElements: string[];
     suggestions: string[];
   }> {
-    // Implementation in Step 3.1.5
+    // 1. Get scheme structure
+    const scheme = await prisma.argumentScheme.findUnique({
+      where: { id: schemeId },
+      include: {
+        cqs: true,
+      },
+    });
+
+    if (!scheme) {
+      return {
+        overallScore: 0,
+        premiseScores: {},
+        missingElements: ["Scheme not found"],
+        suggestions: ["Select a valid argument scheme"],
+      };
+    }
+
+    // 2. Build premise templates to understand structure
+    const premiseTemplates = this.buildPremiseTemplates(scheme);
+
+    // 3. Score each premise
+    const premiseScores: Record<string, number> = {};
+    const missingElements: string[] = [];
+    let totalPremiseScore = 0;
+    let requiredPremiseCount = 0;
+
+    for (const template of premiseTemplates) {
+      const filled = filledPremises[template.key];
+      const score = this.scorePremise(template, filled);
+      premiseScores[template.key] = score;
+
+      if (template.required) {
+        requiredPremiseCount++;
+        if (!filled || filled.trim().length === 0) {
+          missingElements.push(`${template.key}: ${template.content}`);
+        }
+      }
+
+      totalPremiseScore += score;
+    }
+
+    // 4. Calculate completeness score (0-40 points)
+    const completenessScore =
+      premiseTemplates.length > 0
+        ? (totalPremiseScore / premiseTemplates.length) * 0.4
+        : 0;
+
+    // 5. Calculate evidence quality score (0-30 points)
+    const evidenceScore = this.scoreEvidenceQuality(filledPremises, premiseTemplates);
+
+    // 6. Calculate logical coherence score (0-20 points)
+    const coherenceScore = this.scoreLogicalCoherence(
+      filledPremises,
+      premiseTemplates,
+      scheme
+    );
+
+    // 7. Calculate vulnerability score (0-10 points for low vulnerability)
+    const vulnerabilityScore = await this.scoreVulnerability(scheme, filledPremises);
+
+    // 8. Combine scores
+    const overallScore = Math.round(
+      completenessScore + evidenceScore + coherenceScore + vulnerabilityScore
+    );
+
+    // 9. Generate improvement suggestions
+    const suggestions = this.generateImprovementSuggestions(
+      premiseScores,
+      missingElements,
+      filledPremises,
+      premiseTemplates,
+      scheme
+    );
+
     return {
-      overallScore: 0,
-      premiseScores: {},
-      missingElements: [],
-      suggestions: [],
+      overallScore: Math.min(100, Math.max(0, overallScore)),
+      premiseScores,
+      missingElements,
+      suggestions,
     };
+  }
+
+  /**
+   * Score individual premise quality (0-100)
+   */
+  private scorePremise(template: PremiseTemplate, filled?: string): number {
+    if (!filled || filled.trim().length === 0) {
+      return 0; // Empty premise
+    }
+
+    let score = 30; // Base score for having something
+
+    // Length check (substantive content)
+    const wordCount = filled.trim().split(/\s+/).length;
+    if (wordCount >= 5) score += 20; // Reasonable detail
+    if (wordCount >= 15) score += 10; // Good detail
+    if (wordCount >= 30) score += 5; // Excellent detail
+
+    // Evidence keywords (indicates research/support)
+    const lowerFilled = filled.toLowerCase();
+    if (
+      lowerFilled.match(/study|research|data|according to|expert|professor|dr\.|phd/i)
+    ) {
+      score += 15; // Expert evidence
+    }
+    if (lowerFilled.match(/\d+%|\d+ percent|statistic|survey|poll/i)) {
+      score += 10; // Statistical evidence
+    }
+    if (lowerFilled.match(/because|since|therefore|thus|consequently/i)) {
+      score += 10; // Logical connectives
+    }
+
+    // Check for citations/sources
+    if (lowerFilled.match(/\(.*\d{4}.*\)|https?:\/\/|doi:|isbn:/i)) {
+      score += 10; // Has citations
+    }
+
+    // Penalty for very short or placeholder text
+    if (wordCount < 3) {
+      score -= 20;
+    }
+    if (lowerFilled.match(/TODO|TBD|placeholder|fill this|enter text/i)) {
+      score -= 30; // Placeholder text
+    }
+
+    return Math.min(100, Math.max(0, score));
+  }
+
+  /**
+   * Score overall evidence quality (0-30 points)
+   */
+  private scoreEvidenceQuality(
+    filledPremises: Record<string, string>,
+    templates: PremiseTemplate[]
+  ): number {
+    let score = 0;
+    const allText = Object.values(filledPremises).join(" ").toLowerCase();
+
+    // Check for strong evidence types
+    if (allText.match(/study|research|experiment|trial/)) {
+      score += 10; // Scientific evidence
+    }
+    if (allText.match(/\d+%|\d+ percent|statistic/)) {
+      score += 8; // Quantitative evidence
+    }
+    if (allText.match(/expert|authority|professor|dr\./)) {
+      score += 7; // Expert testimony
+    }
+    if (allText.match(/\(.*\d{4}.*\)|https?:\/\//)) {
+      score += 5; // Citations present
+    }
+
+    // Check evidence distribution across premises
+    const premisesWithEvidence = Object.values(filledPremises).filter((text) => {
+      const lower = text.toLowerCase();
+      return (
+        lower.match(/study|research|data|expert|statistic|because|according to/i) !==
+        null
+      );
+    }).length;
+
+    const evidenceRatio = premisesWithEvidence / Math.max(1, templates.length);
+    if (evidenceRatio > 0.7) {
+      score += 5; // Most premises have evidence
+    }
+
+    return Math.min(30, score);
+  }
+
+  /**
+   * Score logical coherence (0-20 points)
+   */
+  private scoreLogicalCoherence(
+    filledPremises: Record<string, string>,
+    templates: PremiseTemplate[],
+    scheme: ArgumentScheme
+  ): number {
+    let score = 10; // Base coherence score
+
+    const allText = Object.values(filledPremises).join(" ").toLowerCase();
+
+    // Check for logical connectives
+    const connectives = [
+      "therefore",
+      "thus",
+      "consequently",
+      "because",
+      "since",
+      "if",
+      "then",
+      "when",
+      "implies",
+      "follows that",
+    ];
+    const connectiveCount = connectives.filter((c) => allText.includes(c)).length;
+    score += Math.min(5, connectiveCount); // Up to 5 points for connectives
+
+    // Check for consistency in terminology
+    const schemeName = (scheme.name || scheme.key).toLowerCase();
+    if (schemeName.includes("expert") && allText.includes("expert")) {
+      score += 2;
+    }
+    if (schemeName.includes("cause") && allText.match(/cause|effect|leads to/)) {
+      score += 2;
+    }
+    if (schemeName.includes("practical") && allText.match(/goal|achieve|action/)) {
+      score += 2;
+    }
+
+    // Penalty for contradictions or inconsistency markers
+    if (allText.match(/but|however|although|despite/)) {
+      score -= 1; // Potential contradiction (mild penalty)
+    }
+
+    return Math.min(20, Math.max(0, score));
+  }
+
+  /**
+   * Score vulnerability to attacks (0-10 points, lower vulnerability = higher score)
+   */
+  private async scoreVulnerability(
+    scheme: ArgumentScheme,
+    filledPremises: Record<string, string>
+  ): Promise<number> {
+    let score = 10; // Start with full points
+
+    const cqs = (scheme as any).cqs || [];
+    const allText = Object.values(filledPremises).join(" ").toLowerCase();
+
+    // Check for common vulnerabilities based on CQs
+    for (const cq of cqs) {
+      const cqText = (cq.text || "").toLowerCase();
+
+      // If the argument doesn't address a critical question, it's vulnerable
+      if (cqText.includes("expert") && !allText.match(/credential|qualif|expert/)) {
+        score -= 2; // Vulnerable on expertise
+      }
+      if (cqText.includes("bias") && !allText.match(/unbiased|objective|independent/)) {
+        score -= 1; // Vulnerable on bias
+      }
+      if (cqText.includes("alternative") && !allText.match(/alternative|other|only/)) {
+        score -= 1; // Hasn't addressed alternatives
+      }
+      if (cqText.includes("cause") && !allText.match(/mechanism|because|how/)) {
+        score -= 2; // Weak causal explanation
+      }
+    }
+
+    // Check for hedging language (good for defensibility)
+    if (allText.match(/likely|probably|suggests|may|might|could/)) {
+      score += 2; // Appropriate hedging
+    }
+
+    // Check for overconfidence (bad for defensibility)
+    if (allText.match(/always|never|impossible|certain|definitely|proves/)) {
+      score -= 2; // Overconfident claims are vulnerable
+    }
+
+    return Math.min(10, Math.max(0, score));
+  }
+
+  /**
+   * Generate actionable improvement suggestions
+   */
+  private generateImprovementSuggestions(
+    premiseScores: Record<string, number>,
+    missingElements: string[],
+    filledPremises: Record<string, string>,
+    templates: PremiseTemplate[],
+    scheme: ArgumentScheme
+  ): string[] {
+    const suggestions: string[] = [];
+
+    // 1. Address missing premises
+    if (missingElements.length > 0) {
+      suggestions.push(
+        `Fill in ${missingElements.length} missing premise(s) to complete the argument structure`
+      );
+    }
+
+    // 2. Strengthen weak premises
+    const weakPremises = Object.entries(premiseScores)
+      .filter(([key, score]) => score < 50 && filledPremises[key])
+      .map(([key]) => key);
+
+    if (weakPremises.length > 0) {
+      suggestions.push(
+        `Strengthen weak premises (${weakPremises.join(", ")}) with better evidence or more detail`
+      );
+    }
+
+    // 3. Add evidence
+    const allText = Object.values(filledPremises).join(" ").toLowerCase();
+    if (!allText.match(/study|research|data|expert/)) {
+      suggestions.push(
+        "Add citations, studies, or expert testimony to strengthen your evidence base"
+      );
+    }
+
+    // 4. Add quantitative evidence
+    if (!allText.match(/\d+%|\d+ percent|statistic/)) {
+      suggestions.push("Consider adding statistical data or quantitative evidence");
+    }
+
+    // 5. Improve logical flow
+    if (!allText.match(/therefore|thus|because|consequently/)) {
+      suggestions.push(
+        "Use logical connectives (therefore, because, thus) to improve argument flow"
+      );
+    }
+
+    // 6. Address critical questions
+    const cqs = (scheme as any).cqs || [];
+    const unaddressedCQs: string[] = [];
+
+    for (const cq of cqs.slice(0, 3)) {
+      // Check top 3 CQs
+      const cqText = (cq.text || "").toLowerCase();
+      if (cqText.includes("expert") && !allText.includes("expert")) {
+        unaddressedCQs.push("Establish expertise of your sources");
+      }
+      if (cqText.includes("bias") && !allText.includes("bias")) {
+        unaddressedCQs.push("Address potential bias concerns");
+      }
+      if (cqText.includes("alternative") && !allText.includes("alternative")) {
+        unaddressedCQs.push("Consider and address alternative explanations");
+      }
+    }
+
+    if (unaddressedCQs.length > 0) {
+      suggestions.push(...unaddressedCQs);
+    }
+
+    // 7. Avoid overconfidence
+    if (allText.match(/always|never|impossible|certain|proves/)) {
+      suggestions.push(
+        "Avoid absolute claims (always/never/proves); use appropriate hedging (likely/suggests)"
+      );
+    }
+
+    // 8. Length check
+    const totalWordCount = Object.values(filledPremises)
+      .join(" ")
+      .trim()
+      .split(/\s+/).length;
+    if (totalWordCount < 50) {
+      suggestions.push("Expand your argument with more detail and explanation");
+    }
+
+    // Limit to top 5-7 most actionable suggestions
+    return suggestions.slice(0, 7);
   }
 }
 

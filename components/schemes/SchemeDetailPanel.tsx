@@ -64,71 +64,70 @@ export default function SchemeDetailPanel({
   };
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 max-h-[80vh] modalv2 overflow-y-auto shadow-lg z-50">
-      <div className="p-4">
+    <Card className="fixed bottom-4 border border-slate-700 right-4 w-[500px] max-h-[87vh] rounded-none rounded-l-lg bg-white/60 p-2 shadow-lg shadow-slate-700/40 backdrop-blur-xl overflow-y-auto custom-scrollbar z-50">
+      <div className="p-2 space-y-2">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 pr-2">
-            <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <div className="flex items-center ">
               <h3 className="font-bold text-lg">{scheme.name}</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => toggleFavorite(scheme.key)}
-                className="p-0 h-6 w-6"
-              >
-                <Star
-                  className={`w-4 h-4 ${
-                    favorite ? "fill-yellow-400 text-yellow-400" : ""
-                  }`}
-                />
-              </Button>
+             
             </div>
             <p className="text-xs text-muted-foreground font-mono">
               {scheme.key}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <div className="flex gap-3">
+           <button
+               
+                onClick={() => toggleFavorite(scheme.key)}
+                className="flex"
+              >
+                <Star
+                  className={` flex w-4 h-4 ${
+                    favorite ? "fill-yellow-400 text-yellow-400" : ""
+                  }`}
+                />
+              </button>
+          <button onClick={onClose}>
             <X className="w-4 h-4" />
-          </Button>
+          </button>
+          </div>
         </div>
 
         {/* Description */}
-        <p className="text-sm mb-4">{scheme.description}</p>
+        <p className="text-sm mb-2 border  border-slate-600 rounded-lg px-2 py-1.5">{scheme.description}</p>
 
         {/* Quick Actions */}
-        <div className="flex gap-2 mb-4">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex gap-2 mb-2">
+          <button
             onClick={handleCopyKey}
-            className="flex-1"
+            className="flex-1 btnv2--ghost bg-indigo-50 text-xs px-3 py-2 rounded-xl flex items-center justify-center"
           >
             <Copy className="w-3 h-3 mr-1" />
             Copy Key
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+          </button>
+          <button   
+   
             onClick={handleViewFull}
-            className="flex-1"
+            className="flex-1 btnv2--ghost bg-indigo-50 text-xs px-3 py-2 rounded-xl flex items-center justify-center"
           >
             <ExternalLink className="w-3 h-3 mr-1" />
             Full Details
-          </Button>
+          </button>
         </div>
 
         {/* Premises & Conclusion */}
         {scheme.premises && Array.isArray(scheme.premises) && scheme.premises.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-sm font-semibold mb-2">Premises</h4>
+          <div className="mb-2">
+            <h4 className="text-md font-semibold mb-2 underline underline-offset-4">Premises</h4>
             <ul className="space-y-1">
               {(scheme.premises as any[]).map((premise: any, idx: number) => {
                 const premiseText = typeof premise === "string" 
                   ? premise 
                   : premise?.text || JSON.stringify(premise);
                 return (
-                  <li key={idx} className="text-xs text-muted-foreground">
+                  <li key={idx} className="text-sm text-muted-foreground">
                     <span className="font-medium">P{idx + 1}:</span> {premiseText}
                   </li>
                 );
@@ -138,9 +137,9 @@ export default function SchemeDetailPanel({
         )}
 
         {scheme.conclusion && (
-          <div className="mb-4">
-            <h4 className="text-sm font-semibold mb-2">Conclusion</h4>
-            <p className="text-xs text-muted-foreground">
+          <div className="mb-0">
+            <h4 className="text-md font-semibold mb-2 underline underline-offset-4">Conclusion</h4>
+            <p className="text-sm text-muted-foreground">
               {typeof scheme.conclusion === "string" 
                 ? scheme.conclusion 
                 : (scheme.conclusion as any)?.text || JSON.stringify(scheme.conclusion)}
@@ -149,20 +148,20 @@ export default function SchemeDetailPanel({
         )}
 
         {/* Suggested Navigation */}
-        <div className="mb-4 p-3 bg-sky-50 dark:bg-sky-950 rounded">
-          <p className="text-xs font-medium mb-2">Suggested Navigation</p>
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex py-1.5 px-2 my-1 bg-indigo-50 shadow-sm w-fit shadow-slate-600/50 rounded-lg gap-3 items-center">
+          <p className="flex text-sm items-center font-medium ">Suggested Navigation:</p>
+          <button
+      
             onClick={handleSwitchMode}
-            className="w-full"
+                      className="w-fit flex btnv2--ghost  text-xs px-5 py-2 rounded-xl flex gap-1 items-center justify-center"
+
           >
             {suggestedMode === "tree" && "Use Wizard"}
             {suggestedMode === "cluster" && "Browse Cluster"}
             {suggestedMode === "conditions" && "Filter by Conditions"}
             {suggestedMode === "search" && "Search Similar"}
-            <ChevronRight className="w-3 h-3 ml-1" />
-          </Button>
+            <ChevronRight className="w-3 h-3 " />
+          </button>
         </div>
 
         {/* Related Schemes */}
@@ -170,18 +169,18 @@ export default function SchemeDetailPanel({
           <div className="space-y-3">
             {relatedSchemes.byCluster.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold mb-2">
+                <h4 className="flex text-md underline underline-offset-4 font-semibold mb-3 ">
                   Same Cluster
                   <Badge variant="secondary" className="ml-2">
                     {relatedSchemes.byCluster.length}
                   </Badge>
                 </h4>
-                <div className="space-y-1">
+                <div className="space-y-3">
                   {relatedSchemes.byCluster.slice(0, 3).map((related) => (
                     <button
                       key={related.key}
                       onClick={() => onSchemeSelect(related)}
-                      className="w-full text-left p-2 text-xs rounded hover:bg-muted transition-colors"
+                      className="btnv2--ghost shadow-sm w-full text-left p-2 text-sm rounded-md bg-indigo-50 hover:bg-slate-100 transition-colors"
                     >
                       <div className="font-medium">{related.name}</div>
                       <div className="text-muted-foreground truncate">
@@ -195,18 +194,18 @@ export default function SchemeDetailPanel({
 
             {relatedSchemes.byPurposeSource.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold mb-2">
+                <h4 className="flex text-base font-semibold mb-3 underline underline-offset-4">
                   Similar Purpose/Source
                   <Badge variant="secondary" className="ml-2">
                     {relatedSchemes.byPurposeSource.length}
                   </Badge>
                 </h4>
-                <div className="space-y-1">
+                <div className="space-y-3">
                   {relatedSchemes.byPurposeSource.slice(0, 3).map((related) => (
                     <button
                       key={related.key}
                       onClick={() => onSchemeSelect(related)}
-                      className="w-full text-left p-2 text-xs rounded hover:bg-muted transition-colors"
+                      className="btnv2--ghost bg-indigo-50 shadow-sm w-full text-left p-2 text-sm rounded-md hover:bg-slate-100 transition-colors"
                     >
                       <div className="font-medium">{related.name}</div>
                       <div className="text-muted-foreground truncate">
