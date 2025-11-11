@@ -191,13 +191,13 @@ export function getSchemeCount(arg: ArgumentWithSchemes): number {
  */
 export function formatSchemeDisplay(arg: ArgumentWithSchemes): string {
   const normalized = normalizeArgumentSchemes(arg);
-  const count = normalized.argumentSchemes.length;
+  const count = normalized.argumentSchemes?.length ?? 0;
 
   if (count === 0) {
     return "No scheme";
   }
 
-  const primaryScheme = normalized.argumentSchemes.find(
+  const primaryScheme = normalized.argumentSchemes?.find(
     (si) => si.role === "primary" || si.isPrimary
   );
 
@@ -282,7 +282,7 @@ export function getMigrationStatus(arg: ArgumentWithSchemes): {
  */
 export function getSchemeTooltip(arg: ArgumentWithSchemes): string {
   const normalized = normalizeArgumentSchemes(arg);
-  const count = normalized.argumentSchemes.length;
+  const count = normalized.argumentSchemes?.length ?? 0;
 
   if (count === 0) {
     return "No argumentation scheme assigned";

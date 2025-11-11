@@ -13,6 +13,7 @@ interface NetGraphWithCQsProps {
   dependencyGraph: any;
   explicitnessAnalysis: any;
   layout?: "hierarchical" | "force" | "circular" | "tree";
+  argumentId?: string; // Optional: use this instead of net.id for CQ fetching
 }
 
 export function NetGraphWithCQs({
@@ -20,6 +21,7 @@ export function NetGraphWithCQs({
   dependencyGraph,
   explicitnessAnalysis,
   layout = "hierarchical",
+  argumentId,
 }: NetGraphWithCQsProps) {
   const [selectedSchemes, setSelectedSchemes] = useState<Set<string>>(new Set());
   const [highlightedDependencies, setHighlightedDependencies] = useState<
@@ -131,7 +133,7 @@ export function NetGraphWithCQs({
       {showCQPanel && (
         <div className="w-[450px] overflow-y-auto">
           <ComposedCQPanel
-            netId={net.id}
+            netId={argumentId || (net.id?.startsWith('net-') ? net.rootArgumentId : net.id)}
             onSchemeSelect={handleSchemeSelect}
             onDependencyHighlight={handleDependencyHighlight}
           />

@@ -113,21 +113,21 @@ export class NetAwareCQService {
 
     for (const scheme of net.schemes) {
       // Fetch scheme details from database
-      const schemeData = await prisma.argumentationScheme.findUnique({
+      const schemeData = await prisma.argumentScheme.findUnique({
         where: { id: scheme.schemeId },
-        include: { criticalQuestions: true },
+        include: { cqs: true },
       });
 
-      if (!schemeData || !schemeData.criticalQuestions) continue;
+      if (!schemeData || !schemeData.cqs) continue;
 
       // Convert scheme CQs to net-aware format
-      for (const cq of schemeData.criticalQuestions) {
+      for (const cq of schemeData.cqs) {
         questions.push({
           id: `cq-${cq.id}-${scheme.schemeId}`,
           type: "scheme",
           targetSchemeId: scheme.schemeId,
-          questionText: this.contextualizeQuestion(cq.questionText, scheme),
-          questionCategory: cq.category,
+          questionText: this.contextualizeQuestion(cq.text || "", scheme),
+          questionCategory: cq.cqKey || "general",
           priority: this.determinePriority(scheme, cq),
           context: {
             netId: net.id,
@@ -723,7 +723,7 @@ export class NetAwareCQService {
   ): "critical" | "high" | "medium" | "low" {
     // Primary schemes get higher priority
     if (scheme.role === "primary") {
-      return cq.category.includes("Exception") ? "critical" : "high";
+      return (cq.cqKey?.includes("exception") || cq.attackType === "UNDERCUTS") ? "critical" : "high";
     }
 
     // Low confidence schemes need more scrutiny
@@ -737,14 +737,20 @@ export class NetAwareCQService {
   private generateActions(cq: any, scheme: SchemeInstance): string[] {
     const actions: string[] = [];
 
-    if (cq.category.includes("Exception")) {
+    const cqKeyLower = (cq.cqKey || "").toLowerCase();
+    
+    if (cqKeyLower.includes("exception")) {
       actions.push("Identify potential exceptions");
       actions.push("Provide evidence exceptions don't apply");
     }
 
-    if (cq.category.includes("Source")) {
+    if (cqKeyLower.includes("source") || cqKeyLower.includes("expert")) {
       actions.push("Verify source credibility");
       actions.push("Check for bias");
+    }
+
+    if (cq.attackType === "UNDERCUTS") {
+      actions.push("Defend the reasoning process");
     }
 
     return actions;

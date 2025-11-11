@@ -40,6 +40,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
+import { ArgumentsTab } from "./v3/tabs/ArgumentsTab";
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import { useAuth } from "@/lib/AuthContext";
 import { getUserFromCookies } from "@/lib/server/getUser";
@@ -1430,96 +1431,24 @@ const {
 
           {/* MODELS TAB */}
           <TabsContent value="arguments" className="w-full min-w-0 space-y-4 mt-4">
-            {/* Phase 4: Scheme Breakdown for Selected Argument */}
-           
-
-            {/* <SectionCard title="Representative Viewpoints">
-              <RepresentativeViewpoints
-                selection={sel}
-                onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
-              />
-            </SectionCard> */}
-
-            {/* <SectionCard>
-              <Collapsible open={worksState.open} onOpenChange={worksState.setOpen}>
-                <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
-                  <span>{worksState.open ? "▼" : "▶"} Theoretical Models</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3 space-y-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <WorksCounts deliberationId={deliberationId} />
-                  </div>
-                  <WorksList deliberationId={deliberationId} currentUserId={authorId} />
-                </CollapsibleContent>
-              </Collapsible>
-            </SectionCard> */}
-
-            {/* <SectionCard title="Scheme Composer" className="w-full"> */}
-            <div className="flex flex-1 min-w-0 min-h-0  max-h-screen w-full h-full">
-<AIFAuthoringPanel
-  deliberationId={deliberationId}
-  authorId={authorId || ''} // or 'current' if you enable server fallback
-  conclusionClaim={hudTarget?.id
-    ? { id: hudTarget.id, text: topArg?.top?.text ?? '' }
-    : { id: '', text: '' } // panel will prompt to choose
-  }
-
-/>
-</div>
-  {/* </SectionCard> */}
-            <SectionCard title="Arguments List (Argument Interchange Format)" className=" w-full" padded={true}>
-              <AIFArgumentsListPro
-                key={refreshCounter}
-                deliberationId={deliberationId}
-                onVisibleTextsChanged={(texts) => {
-                  window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));
-                }}
-                dsMode={dsMode}
-                onArgumentClick={(argument) => {
-                  setSelectedArgumentForActions(argument);
-                  // Don't auto-open, just set badge notification
-                }}
-                onViewDialogueMove={(moveId, delibId) => {
-                  // Phase 3: Navigate to Dialogue tab with highlighted move
-                  setHighlightedDialogueMoveId(moveId);
-                  setTab('dialogue');
-                }}
-              />
-              <span className="block mt-2 text-xs text-neutral-500">
-                Note: This list shows all structured arguments in the deliberation&apos;s AIF database. Some arguments may not yet be linked to claims in the debate.
-              </span>
-            </SectionCard>
-{/* 
-   <SectionCard className="w-full">
-              <Collapsible open={diagnosticsState.open} onOpenChange={diagnosticsState.setOpen}>
-                <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
-                  <span>{diagnosticsState.open ? "▼" : "▶"} Diagnostics</span>
-                  <span className="text-xs text-neutral-500">Heat maps & topology</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3 space-y-3">
-                  <ApprovalsHeatStrip deliberationId={deliberationId} />
-                  <TopologyWidget deliberationId={deliberationId} />
-                </CollapsibleContent>
-              </Collapsible>
-            </SectionCard> */}
-            {/* <SectionCard>
-              <Collapsible open={schemeComposerState.open} onOpenChange={schemeComposerState.setOpen}>
-                <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
-                  <span>{schemeComposerState.open ? "▼" : "▶"} Scheme Composer</span>
-                  <span className="text-xs text-neutral-500">Build structured arguments</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3">
-                  <AIFAuthoringPanel
-                    deliberationId={deliberationId}
-                    authorId={authorId || ''}
-                    conclusionClaim={hudTarget?.id
-                      ? { id: hudTarget.id, text: topArg?.top?.text ?? '' }
-                      : { id: '', text: '' }
-                    }
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            </SectionCard> */}
+            <ArgumentsTab
+              deliberationId={deliberationId}
+              authorId={authorId || ""}
+              refreshCounter={refreshCounter}
+              dsMode={dsMode}
+              onArgumentClick={(argument) => {
+                setSelectedArgumentForActions(argument);
+              }}
+              onViewDialogueMove={(moveId, delibId) => {
+                setHighlightedDialogueMoveId(moveId);
+                setTab("dialogue");
+              }}
+              onVisibleTextsChanged={(texts) => {
+                // Event dispatch is handled inside ArgumentsTab
+              }}
+              onTabChange={setTab}
+              setHighlightedDialogueMoveId={setHighlightedDialogueMoveId}
+            />
           </TabsContent>
 
           {/* DIALOGUE TAB - Phase 3: Dialogue Visualization */}

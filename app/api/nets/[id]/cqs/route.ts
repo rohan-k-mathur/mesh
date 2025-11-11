@@ -146,8 +146,9 @@ export async function GET(
     return NextResponse.json({ questions });
   } catch (error) {
     console.error("Net CQ generation error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate critical questions";
     return NextResponse.json(
-      { error: "Failed to generate critical questions" },
+      { error: errorMessage, details: error instanceof Error ? error.stack : undefined },
       { status: 500 }
     );
   }

@@ -300,13 +300,14 @@ export function ArgumentNetAnalyzer({
             dependencyGraph={netData.dependencyGraph}
             explicitnessAnalysis={netData.explicitnessAnalysis}
             layout="hierarchical"
+            argumentId={argumentId}
           />
         </TabsContent>
 
         {/* Critical Questions Tab */}
         <TabsContent value="questions" className="mt-4">
           <ComposedCQPanel
-            netId={netData.id}
+            netId={netData.id.startsWith('net-') ? argumentId : netData.id}
             onSchemeSelect={(schemeId) => {
               // Switch to visualization tab and highlight scheme
               setActiveTab("visualization");

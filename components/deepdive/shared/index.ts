@@ -14,4 +14,7 @@ export type { ChipBarProps } from "./ChipBar";
 export { StickyHeader } from "./StickyHeader";
 export type { StickyHeaderProps } from "./StickyHeader";
 
+export { NestedTabs } from "./NestedTabs";
+export type { NestedTabsProps, NestedTab } from "./NestedTabs";
+
 export * from "./types";
