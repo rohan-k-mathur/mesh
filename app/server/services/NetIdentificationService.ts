@@ -38,6 +38,40 @@ export interface NetCandidate {
     type: "supports" | "depends-on" | "challenges" | "refines";
     strength: number;
   }>;
+  dependencyGraph: {
+    nodes: Array<{
+      schemeId: string;
+      schemeName: string;
+      schemeCategory: string;
+      role: string;
+      depth: number;
+    }>;
+    edges: Array<{
+      sourceSchemeId: string;
+      targetSchemeId: string;
+      type: string;
+      strength: number;
+      criticality: string;
+      explanation: string;
+    }>;
+    cycles: string[][];
+    criticalPath: string[];
+  };
+  explicitnessAnalysis: {
+    overallExplicitness: string;
+    confidence: number;
+    schemeExplicitness: Array<{
+      schemeId: string;
+      level: string;
+      confidence: number;
+    }>;
+    relationshipExplicitness: Array<{
+      sourceScheme: string;
+      targetScheme: string;
+      level: string;
+      confidence: number;
+    }>;
+  };
   detection: {
     method: "structural" | "semantic" | "hybrid";
     timestamp: Date;
@@ -60,6 +94,19 @@ export class NetIdentificationService {
       return null;
     }
 
+    // PRIORITY 1: Check for explicit SchemeNet in database (Phase 4+)
+    const explicitNet = await this.fetchExplicitSchemeNet(argumentId);
+    if (explicitNet) {
+      return explicitNet;
+    }
+
+    // PRIORITY 2: Check for multiple ArgumentSchemeInstance records (Phase 4+)
+    const schemeInstancesNet = await this.fetchSchemeInstancesAsNet(argumentId);
+    if (schemeInstancesNet) {
+      return schemeInstancesNet;
+    }
+
+    // PRIORITY 3: Heuristic detection (fallback for legacy arguments)
     // Step 1: Detect potential scheme instances
     const schemeInstances = await this.identifySchemeInstances(argument);
 
@@ -98,6 +145,40 @@ export class NetIdentificationService {
       complexity,
       confidence,
       relationships,
+      dependencyGraph: {
+        nodes: schemeInstances.map((s, index) => ({
+          schemeId: s.schemeId,
+          schemeName: s.schemeName,
+          schemeCategory: s.schemeCategory,
+          role: s.role,
+          depth: index,
+        })),
+        edges: relationships.map((r: any) => ({
+          sourceSchemeId: r.sourceScheme,
+          targetSchemeId: r.targetScheme,
+          type: r.type,
+          strength: r.strength,
+          criticality: "normal",
+          explanation: `${r.type} relationship`,
+        })),
+        cycles: [],
+        criticalPath: schemeInstances.map((s) => s.schemeId),
+      },
+      explicitnessAnalysis: {
+        overallExplicitness: "hybrid",
+        confidence: confidence,
+        schemeExplicitness: schemeInstances.map((s) => ({
+          schemeId: s.schemeId,
+          level: s.role === "primary" ? "explicit" : s.role === "supporting" ? "presupposed" : "implicit",
+          confidence: s.confidence,
+        })),
+        relationshipExplicitness: relationships.map((r: any) => ({
+          sourceScheme: r.sourceScheme,
+          targetScheme: r.targetScheme,
+          level: r.type === "supports" ? "presupposed" : "implicit",
+          confidence: r.strength * 100,
+        })),
+      },
       detection: {
         method: "hybrid",
         timestamp: new Date(),
@@ -131,6 +212,244 @@ export class NetIdentificationService {
 
     // Merge overlapping net candidates
     return this.mergeOverlappingNets(netCandidates);
+  }
+
+  // ============================================================================
+  // Private Methods: Explicit Net Detection (Phase 4+)
+  // ============================================================================
+
+  /**
+   * Check if argument has an explicit SchemeNet record in database
+   * This is the highest priority detection method for Phase 4+ arguments
+   */
+  private async fetchExplicitSchemeNet(
+    argumentId: string
+  ): Promise<NetCandidate | null> {
+    const schemeNet = await prisma.schemeNet.findUnique({
+      where: { argumentId },
+      include: {
+        steps: {
+          include: {
+            scheme: true,
+          },
+          orderBy: { stepOrder: "asc" },
+        },
+        argument: {
+          include: {
+            deliberation: true,
+          },
+        },
+      },
+    });
+
+    if (!schemeNet || schemeNet.steps.length <= 1) {
+      return null;
+    }
+
+    // Convert SchemeNet to NetCandidate format
+    const schemes: SchemeInstance[] = schemeNet.steps.map((step) => ({
+      schemeId: step.schemeId,
+      schemeName: step.scheme.name || "Unknown Scheme",
+      schemeCategory: this.extractCategory(step.scheme),
+      confidence: step.confidence * 100, // DB stores 0-1, we use 0-100
+      premises: [], // Will be populated from step text
+      conclusion: step.stepText || schemeNet.argument.text,
+      role: step.stepOrder === 1 ? "primary" : "supporting",
+      span: {
+        argumentId: argumentId,
+        premiseKeys: [],
+        conclusionKey: "conclusion",
+      },
+    }));
+
+    // Build relationships from sequential structure
+    const relationships: Array<{
+      sourceScheme: string;
+      targetScheme: string;
+      type: "supports" | "depends-on" | "challenges" | "refines";
+      strength: number;
+    }> = [];
+    for (let i = 0; i < schemeNet.steps.length - 1; i++) {
+      const currentStep = schemeNet.steps[i];
+      const nextStep = schemeNet.steps[i + 1];
+
+      relationships.push({
+        sourceScheme: currentStep.schemeId,
+        targetScheme: nextStep.schemeId,
+        type: "supports" as const,
+        strength: Math.min(currentStep.confidence, nextStep.confidence),
+      });
+    }
+
+    return {
+      id: schemeNet.id,
+      deliberationId: schemeNet.argument.deliberationId,
+      rootArgumentId: argumentId,
+      schemes,
+      netType: "serial", // Sequential composition is serial
+      complexity: Math.min(100, schemes.length * 20),
+      confidence: schemeNet.overallConfidence * 100,
+      relationships,
+      dependencyGraph: {
+        nodes: schemes.map((s, index) => ({
+          schemeId: s.schemeId,
+          schemeName: s.schemeName,
+          schemeCategory: s.schemeCategory,
+          role: s.role,
+          depth: index,
+        })),
+        edges: relationships.map((r) => ({
+          sourceSchemeId: r.sourceScheme,
+          targetSchemeId: r.targetScheme,
+          type: r.type,
+          strength: r.strength,
+          criticality: "normal",
+          explanation: `${r.type} relationship`,
+        })),
+        cycles: [],
+        criticalPath: schemes.map((s) => s.schemeId),
+      },
+      explicitnessAnalysis: {
+        overallExplicitness: "explicit",
+        confidence: schemes.reduce((sum, s) => sum + s.confidence, 0) / schemes.length,
+        schemeExplicitness: schemes.map((s) => ({
+          schemeId: s.schemeId,
+          level: "explicit",
+          confidence: s.confidence,
+        })),
+        relationshipExplicitness: relationships.map((r) => ({
+          sourceScheme: r.sourceScheme,
+          targetScheme: r.targetScheme,
+          level: "explicit",
+          confidence: r.strength * 100,
+        })),
+      },
+      detection: {
+        method: "structural",
+        timestamp: schemeNet.createdAt,
+        signals: [
+          `Explicit SchemeNet with ${schemes.length} steps`,
+          `Overall confidence: ${schemeNet.overallConfidence}`,
+          schemeNet.description || "",
+        ].filter(Boolean),
+      },
+    };
+  }
+
+  /**
+   * Check if argument has multiple ArgumentSchemeInstance records
+   * This is the second priority detection method for Phase 4+ arguments
+   */
+  private async fetchSchemeInstancesAsNet(
+    argumentId: string
+  ): Promise<NetCandidate | null> {
+    const argument = await prisma.argument.findUnique({
+      where: { id: argumentId },
+      include: {
+        argumentSchemes: {
+          include: {
+            scheme: true,
+          },
+          orderBy: { order: "asc" },
+        },
+        deliberation: true,
+      },
+    });
+
+    if (!argument || argument.argumentSchemes.length <= 1) {
+      return null;
+    }
+
+    // Convert ArgumentSchemeInstances to SchemeInstance format
+    const schemes: SchemeInstance[] = argument.argumentSchemes.map((instance) => ({
+      schemeId: instance.schemeId,
+      schemeName: instance.scheme.name || "Unknown Scheme",
+      schemeCategory: this.extractCategory(instance.scheme),
+      confidence: instance.confidence * 100,
+      premises: [], // Will be extracted from textEvidence if available
+      conclusion: argument.text,
+      role: instance.role as "primary" | "supporting" | "subordinate",
+      span: {
+        argumentId: argumentId,
+        premiseKeys: [],
+        conclusionKey: "conclusion",
+      },
+    }));
+
+    // Infer relationships from roles
+    const relationships: Array<{
+      sourceScheme: string;
+      targetScheme: string;
+      type: "supports" | "depends-on" | "challenges" | "refines";
+      strength: number;
+    }> = [];
+    const primaryScheme = schemes.find((s) => s.role === "primary");
+
+    if (primaryScheme) {
+      for (const scheme of schemes) {
+        if (scheme.role !== "primary") {
+          relationships.push({
+            sourceScheme: scheme.schemeId,
+            targetScheme: primaryScheme.schemeId,
+            type: "supports" as const,
+            strength: scheme.confidence / 100,
+          });
+        }
+      }
+    }
+
+    return {
+      id: `net-instances-${argumentId}`,
+      deliberationId: argument.deliberationId,
+      rootArgumentId: argumentId,
+      schemes,
+      netType: this.classifyNetType(schemes, relationships),
+      complexity: Math.min(100, schemes.length * 20),
+      confidence: schemes.reduce((sum, s) => sum + s.confidence, 0) / schemes.length,
+      relationships,
+      dependencyGraph: {
+        nodes: schemes.map((s, index) => ({
+          schemeId: s.schemeId,
+          schemeName: s.schemeName,
+          schemeCategory: s.schemeCategory,
+          role: s.role,
+          depth: index,
+        })),
+        edges: relationships.map((r) => ({
+          sourceSchemeId: r.sourceScheme,
+          targetSchemeId: r.targetScheme,
+          type: r.type,
+          strength: r.strength,
+          criticality: "normal",
+          explanation: `${r.type} relationship`,
+        })),
+        cycles: [],
+        criticalPath: schemes.map((s) => s.schemeId),
+      },
+      explicitnessAnalysis: {
+        overallExplicitness: "explicit",
+        confidence: schemes.reduce((sum, s) => sum + s.confidence, 0) / schemes.length,
+        schemeExplicitness: schemes.map((s) => ({
+          schemeId: s.schemeId,
+          level: "explicit",
+          confidence: s.confidence,
+        })),
+        relationshipExplicitness: relationships.map((r) => ({
+          sourceScheme: r.sourceScheme,
+          targetScheme: r.targetScheme,
+          level: "explicit",
+          confidence: r.strength * 100,
+        })),
+      },
+      detection: {
+        method: "structural",
+        timestamp: new Date(),
+        signals: [
+          `${schemes.length} ArgumentSchemeInstances`,
+          `Roles: ${schemes.map((s) => s.role).join(", ")}`,
+        ],
+      },
+    };
   }
 
   // ============================================================================
