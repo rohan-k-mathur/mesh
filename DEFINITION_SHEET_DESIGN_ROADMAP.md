@@ -12,7 +12,7 @@
 The **DefinitionSheet** is a collaborative glossary component that allows deliberation participants to propose, vote on, and agree upon shared definitions for key terms used in the debate. This reduces semantic confusion and builds common ground.
 
 ### Core Value Proposition
-
+-
 1. **Surface Hidden Disagreements** - Reveals when participants use same words with different meanings
 2. **Reduce Talking-Past-Each-Other** - Common in online discourse with context collapse
 3. **Create Accountability** - Participants commit to consistent term usage
