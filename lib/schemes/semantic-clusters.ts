@@ -29,7 +29,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "authority",
     name: "Authority & Expertise",
     description: "Arguments based on expert testimony, institutional positions, or popular belief",
-    icon: "👨‍🏫",
+    icon: "§",
     color: "blue",
     schemeKeys: [
       "expert_opinion",
@@ -52,7 +52,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "causality",
     name: "Cause & Effect",
     description: "Arguments about causal relationships, consequences, and predictive reasoning",
-    icon: "🔗",
+    icon: "⊨",
     color: "green",
     schemeKeys: [
       "cause_to_effect",
@@ -102,7 +102,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "analogy",
     name: "Analogy & Comparison",
     description: "Arguments based on similarity, precedent, or parallel cases",
-    icon: "🔄",
+    icon: "∥",
     color: "orange",
     schemeKeys: [
       "analogy",
