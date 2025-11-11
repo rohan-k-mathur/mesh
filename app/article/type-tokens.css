@@ -892,9 +892,9 @@ button.panel-edge:hover {
   /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
   box-shadow: inset 2px 2px 12px rgba(200, 210, 238, 0.35),
   inset -2px -2px 14px rgba(210, 224, 234, 0.35),
-    0px 0px 5px rgb(204, 199, 234,.35),
--1px 2px 7px rgba(120, 100, 180, 0.35);
-  border: .5px solid rgba(199, 201, 222, 0.725);
+    0px 0px 15px rgb(204, 199, 234,.35),
+-1px 4px 7px rgba(120, 100, 180, 0.35);
+  border: 3.5px solid rgba(199, 201, 222, 0.725);
 }
 
 .panel-edge-blue:hover,

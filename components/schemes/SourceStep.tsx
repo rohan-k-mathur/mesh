@@ -86,8 +86,8 @@ export default function SourceStep({ purpose, onSelect, onBack, compact = false 
 
                 {/* Select button (appears on hover) */}
                 <div className="mt-4 opacity-90 group-hover:opacity-100 transition-opacity">
-                  <button className="w-full text-sm rounded-xl px-3 py-2 btnv2--ghost bg-white " >
-                    Select {option.label}
+                  <button className="w-full text-sm rounded-xl px-3 py-2  bg-indigo-100/60" >
+                    Select: {option.label}
                   </button>
                 </div>
               </div>

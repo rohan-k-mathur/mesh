@@ -221,7 +221,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     id: "meta",
     name: "Meta-Claims & Testing",
     description: "Arguments about the quality, clarity, or relevance of claims themselves",
-    icon: "*",
+    icon: "⌖",
     color: "sky",
     schemeKeys: [
       "bare_assertion",

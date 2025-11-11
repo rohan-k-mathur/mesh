@@ -171,7 +171,7 @@ function SchemeResultCard({
   const matchColor = isPerfectMatch ? "green" : "sky";
 
   return (
-    <Card className="p-5 hover:shadow-md transition-shadow">
+    <Card className="p-5 cardv2  transition-shadow">
       <div className="space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
@@ -220,7 +220,7 @@ function SchemeResultCard({
             </button>
 
             {showDetails && (
-              <div className="mt-3 p-4 bg-gray-50 rounded-md">
+              <div className="mt-3 p-4 bg-white rounded-md">
                 <div className="text-sm text-gray-700 whitespace-pre-wrap">
                   {scheme.summary}
                 </div>
@@ -232,7 +232,7 @@ function SchemeResultCard({
         {/* Select button */}
         <button
           onClick={() => onSelect(scheme)}
-          className="w-full btnv2 px-3 py-2 text-sm rounded-lg"
+          className="w-full tracking-wide bg-white menuv2--lite px-3 py-2 text-sm rounded-lg"
           
         >
           Select This Scheme

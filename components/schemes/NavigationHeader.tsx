@@ -62,7 +62,8 @@ export default function NavigationHeader({
   const helpText = getModeHelpText(currentMode);
 
   return (
-    <div className="flex items-center rounded-b-xl mb-2 modalv2 justify-between gap-4 p-4  dark:bg-gray-900 border-b sticky top-0 z-10">
+    <div className="flex items-center rounded-b-xl mb-2 border border-indigo-400 bg-indigo-100/50 
+    backdrop-blur-xl justify-between gap-4 px-3 py-2 sticky top-0 z-10">
       {/* Left: Help Text */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -82,7 +83,7 @@ export default function NavigationHeader({
                 className="relative"
               >
                 <Clock className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">Recents</span>
+                <span className="hidden sm:inline ml-1">Recents</span>
                 {recentCount > 0 && (
                   <Badge
                     variant="secondary"
@@ -102,12 +103,12 @@ export default function NavigationHeader({
           <Tooltip >
             <TooltipTrigger asChild >
               <Button
-              
+                variant="ghost"
                 onClick={onShowFavorites}
-                className="relative bg-white"
+                className="relative "
               >
                 <Star className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">Favorites</span>
+                <span className="hidden sm:inline ml-1">Favorites</span>
                 {favoriteCount > 0 && (
                   <Badge
                     variant="secondary"
@@ -128,7 +129,7 @@ export default function NavigationHeader({
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" onClick={onShowSettings}>
                 <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">Settings</span>
+                <span className="hidden sm:inline ml-1">Settings</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent className="bg-slate-200 p-2 rounded">
@@ -145,7 +146,7 @@ export default function NavigationHeader({
                 onClick={handleReset}
               >
                 <RotateCcw className="w-4 h-4" />
-                <span className="hidden sm:inline ml-2">
+                <span className="hidden sm:inline ml-1">
                   {showResetConfirm ? "Confirm?" : "Reset"}
                 </span>
               </Button>

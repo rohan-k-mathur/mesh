@@ -67,9 +67,9 @@ export default function SchemeNavigator() {
   return (
     <SchemeNavigationProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-3 py-6">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-4">
             <h1 className="text-3xl font-bold mb-2">Scheme Navigator</h1>
             <p className="text-slate-700">
               Find the perfect argumentation scheme using different navigation approaches
@@ -132,8 +132,8 @@ export default function SchemeNavigator() {
             </TabsList>
             
             {/* Wizard Tab */}
-            <TabsContent value="tree" className="space-y-6">
-              <Card className="p-4 bg-white/70">
+            <TabsContent value="tree" className="space-y-6 ">
+              <Card className="px-3 py-2 cardv2 panel-edge-blue">
                 <p className="text-sm">
                   <strong>Dichotomic Tree Wizard:</strong> Answer 2-3 questions to narrow down
                   to the most relevant schemes for your argument.
@@ -151,7 +151,7 @@ export default function SchemeNavigator() {
             
             {/* Cluster Browser Tab */}
             <TabsContent value="cluster" className="space-y-6">
-              <Card className="p-4 bg-white/70">
+              <Card className="px-3 py-2 cardv2 panel-edge-blue">
                 <p className="text-sm">
                   <strong>Cluster Browser:</strong> Browse schemes organized by semantic domain
                   (authority, causality, decision-making, etc.).
@@ -169,7 +169,7 @@ export default function SchemeNavigator() {
             
             {/* Identification Conditions Tab */}
             <TabsContent value="conditions" className="space-y-6">
-              <Card className="p-4 bg-muted/50">
+              <Card className="px-3 py-2 cardv2 panel-edge-blue">
                 <p className="text-sm">
                   <strong>Identification Conditions:</strong> Select observable patterns in your
                   argument to filter schemes by identification conditions.
@@ -187,7 +187,7 @@ export default function SchemeNavigator() {
             
             {/* Search Tab */}
             <TabsContent value="search" className="space-y-6">
-              <Card className="p-4 bg-white/70">
+              <Card className="px-3 py-2 cardv2 panel-edge-blue">
                 <p className="text-sm">
                   <strong>Search:</strong> Search schemes by name, description, or keywords to
                   quickly find what you need.

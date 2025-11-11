@@ -160,7 +160,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
                 </span>
               )}
               {label !== "UNDEC" && (
-                <span className="text-[11px] px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium flex items-center gap-1">
+                <span className="text-[11px] px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium flex items-center gap-1">
                   <Tag className="w-3 h-3" />
                   {label}
                 </span>

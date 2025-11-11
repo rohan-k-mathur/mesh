@@ -102,7 +102,7 @@ export default function SchemeDetailPanel({
         <div className="flex gap-2 mb-2">
           <button
             onClick={handleCopyKey}
-            className="flex-1 btnv2--ghost bg-indigo-50 text-xs px-3 py-2 rounded-xl flex items-center justify-center"
+            className="flex-1 btnv2--ghost bg-indigo-100 text-xs px-3 py-1.5 rounded-xl font-medium flex items-center justify-center"
           >
             <Copy className="w-3 h-3 mr-1" />
             Copy Key
@@ -110,7 +110,7 @@ export default function SchemeDetailPanel({
           <button   
    
             onClick={handleViewFull}
-            className="flex-1 btnv2--ghost bg-indigo-50 text-xs px-3 py-2 rounded-xl flex items-center justify-center"
+            className="flex-1 btnv2--ghost font-medium bg-indigo-100 text-xs px-3 py-1.5 rounded-xl flex items-center justify-center"
           >
             <ExternalLink className="w-3 h-3 mr-1" />
             Full Details
@@ -148,12 +148,12 @@ export default function SchemeDetailPanel({
         )}
 
         {/* Suggested Navigation */}
-        <div className="flex py-1.5 px-2 my-1 bg-indigo-50 shadow-sm w-fit shadow-slate-600/50 rounded-lg gap-3 items-center">
-          <p className="flex text-sm items-center font-medium ">Suggested Navigation:</p>
+        <div className="flex py-1.5 px-2 my-1 bg-indigo-100 shadow-sm w-full shadow-slate-600/50 rounded-xl gap-3 items-center">
+          <p className="flex text-sm tracking-wide items-center w-fit whitespace-nowrap font-medium ">Suggested Navigation:</p>
           <button
       
             onClick={handleSwitchMode}
-                      className="w-fit flex btnv2--ghost  text-xs px-5 py-2 rounded-xl flex gap-1 items-center justify-center"
+                      className="w-full flex btnv2--ghost bg-white/50 text-sm px-4 py-1.5 rounded-xl flex gap-1 items-center justify-center"
 
           >
             {suggestedMode === "tree" && "Use Wizard"}
@@ -180,7 +180,7 @@ export default function SchemeDetailPanel({
                     <button
                       key={related.key}
                       onClick={() => onSchemeSelect(related)}
-                      className="btnv2--ghost shadow-sm w-full text-left p-2 text-sm rounded-md bg-indigo-50 hover:bg-slate-100 transition-colors"
+                      className="btnv2--ghost shadow-sm w-full text-left p-2 text-sm rounded-xl bg-indigo-100 hover:bg-slate-100 transition-colors"
                     >
                       <div className="font-medium">{related.name}</div>
                       <div className="text-muted-foreground truncate">
@@ -205,7 +205,7 @@ export default function SchemeDetailPanel({
                     <button
                       key={related.key}
                       onClick={() => onSchemeSelect(related)}
-                      className="btnv2--ghost bg-indigo-50 shadow-sm w-full text-left p-2 text-sm rounded-md hover:bg-slate-100 transition-colors"
+                      className="btnv2--ghost bg-indigo-100 shadow-sm w-full text-left p-2 text-sm rounded-xl hover:bg-slate-100 transition-colors"
                     >
                       <div className="font-medium">{related.name}</div>
                       <div className="text-muted-foreground truncate">

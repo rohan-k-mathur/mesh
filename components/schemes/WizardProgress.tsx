@@ -105,8 +105,8 @@ export default function WizardProgress({
 
       {/* Current selection summary */}
       {!compact && (selections.purpose || selections.source) && (
-        <div className="mt-6 p-4 bg-sky-50 rounded-lg">
-          <div className="text-sm font-medium text-sky-900 mb-2">Your Selections:</div>
+        <div className="mt-3 px-6 py-3 bg-sky-100/60 border rounded-lg">
+          <div className="text-sm font-medium text-sky-900 mb-1 ">Your Selections:</div>
           <div className="space-y-1 text-sm text-sky-700">
             {selections.purpose && (
               <div className="flex items-center gap-2">

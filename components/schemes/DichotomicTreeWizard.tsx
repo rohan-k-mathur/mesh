@@ -68,7 +68,7 @@ export default function DichotomicTreeWizard({
   };
 
   return (
-    <div className={`w-full ${compactMode ? "max-w-2xl" : "max-w-4xl"} mx-auto p-6`}>
+    <div className={`w-full panel-edge-blue rounded-xl ${compactMode ? "max-w-2xl" : "max-w-screen"} mx-auto p-5`}>
       {/* Progress indicator */}
       <WizardProgress
         currentStep={currentStep}
@@ -77,7 +77,7 @@ export default function DichotomicTreeWizard({
       />
 
       {/* Step content */}
-      <div className="mt-8">
+      <div className="mt-5">
         {currentStep === "purpose" && (
           <PurposeStep
             onSelect={handlePurposeSelect}
