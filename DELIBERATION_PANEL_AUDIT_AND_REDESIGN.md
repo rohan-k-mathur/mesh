@@ -1,20 +1,51 @@
 # Deliberation Panel Audit & Redesign Plan
 
-**Status**: 🎯 STRATEGIC PLANNING - Post Phase 1-4 Implementation  
+**Status**: 🎯 CANONICAL ROADMAP - V3 Migration + Overhaul Integration  
 **Current Component**: `DeepDivePanelV2.tsx` (2,128 LOC)  
-**Goal**: Modernize and consolidate deliberation UI with Phase 1-4 features integrated
+**Goal**: Modernize deliberation UI and integrate Phase 0-4 overhaul features  
+**Timeline**: 12 weeks (Weeks 1-4 complete, Weeks 5-12 planned)
+
+---
+
+## Quick Reference
+
+**Related Documents**:
+- `DEEPDIVEPANEL_V3_MIGRATION_TRACKER.md` - Progress tracking and metrics
+- `DEEPDIVEPANEL_WEEK4_PLAN.md` - Week 4 detailed implementation (✅ COMPLETE)
+- `DEEPDIVEPANEL_OVERHAUL_INTEGRATION_AUDIT.md` - Component inventory (~25 components)
+- `DEEPDIVEPANEL_V3_OVERHAUL_INTEGRATION_PLAN.md` - Detailed integration steps (Weeks 5-8)
+- `OVERHAUL_TEST_PAGES_AUDIT.md` - Test page validation (12 pages, all working)
+- `OVERHAUL_INTEGRATION_SUMMARY.md` - Executive summary
+
+**Quick Navigation**:
+- [Current State Analysis](#current-state-analysis) - What we have now
+- [Migration Timeline](#migration-strategy) - Week-by-week plan
+- [Phase 4: Overhaul Integration](#phase-4-overhaul-integration-weeks-5-8) - **Next Phase** (Weeks 5-8)
+- [UI/UX Redesign](#uiux-redesign-proposals) - Design proposals
+- [Performance](#performance-optimizations) - Optimization strategy
+- [Testing](#testing-strategy) - Test approach
 
 ---
 
 ## Executive Summary
 
-With Phases 1-4 successfully implemented (Argumentation Theory Integration, Scheme Detection, Multi-Scheme Nets, and Net Management), we now have a powerful foundation. The current DeepDivePanelV2 has grown organically to 2,128 lines and integrates many features, but needs strategic consolidation to:
+**Situation**: DeepDivePanelV2 has grown to 2,128 LOC and needs modernization. Simultaneously, **Phases 0-4 of the Deliberation System Overhaul are complete** with ~25 production-ready components, ~15 API endpoints, and 12 validated test pages.
 
-1. **Integrate Phase 1-4 features** into main deliberation flow
-2. **Modernize UI/UX patterns** with consistent design system
-3. **Improve performance** through better component architecture
-4. **Enhance discoverability** of advanced features
-5. **Maintain backward compatibility** while upgrading
+**Opportunity**: The V3 migration provides the perfect moment to integrate sophisticated argumentation features (nets, burden of proof, attack generation, scheme navigation) that have been built but not exposed to users.
+
+**Strategy**: 
+1. **Weeks 1-4** ✅ - Extract tabs and shared components from V2 (COMPLETE)
+2. **Weeks 5-8** 🎯 - Integrate overhaul features systematically (**NEXT**)
+3. **Weeks 9-10** - Finalize V3 architecture
+4. **Weeks 11-12** - Beta, rollout, cleanup
+
+**Key Insight**: We're not building new features in Weeks 5-8. We're **exposing 36 hours of integration work to unlock months of completed development**.
+
+**Total Migration Effort**: 
+- Weeks 1-4: ~24 hours (tab extraction)
+- Weeks 5-8: ~36 hours (overhaul integration) 
+- Weeks 9-12: ~20 hours (polish and rollout)
+- **Total**: ~80 hours over 12 weeks
 
 ---
 
@@ -232,29 +263,38 @@ Total: ~3,000 LOC (organized into 25+ focused files)
 
 ## UI/UX Redesign Proposals
 
-### 1. **Consolidated Tab Structure** (9 → 6 tabs)
+### 1. **Consolidated Tab Structure** (9 → 6 tabs with nested sub-tabs)
 
 **Current 9 Tabs**: Debate, Arguments, Dialogue, Ludics, Admin, Sources, Thesis, ASPIC, Analytics
 
-**Proposed 6 Tabs**:
+**Proposed 6 Tabs** (with nested structure):
 ```
 1. 💬 Debate         (Main discussion + Claims + Propositions)
 2. 🎯 Arguments      (Arguments + Schemes + Nets + ASPIC)
+   └─ Sub-tabs: Arguments, Schemes, Networks, ASPIC
 3. 🎮 Dialogue       (Dialogue + Ludics combined)
+   └─ Sub-tabs: Dialogue, Game Theory, Legal Moves
 4. 📚 Knowledge      (Sources + Thesis + Dictionary)
+   └─ Sub-tabs: Sources, Thesis, Glossary
 5. 📊 Analytics      (Metrics + Reports)
 6. ⚙️  Admin         (Settings + Moderation)
 ```
--- one note about the tabs issue: i think we should use the pattern of the nested tab-lists like the way the aspic tab is handled where there is one parent tab from the main panel tab list (ASPIC) and then
-there is another tablist within that tab with 4 tabs: Theory, Graph, Extension, Rationality
--- this way we can reduce the number of "global" tabs and have a more hierarchical visual structure
+
+**Design Pattern**: Use nested tab-lists like ASPIC tab currently does:
+- **ASPIC parent tab** contains **4 sub-tabs**: Theory, Graph, Extension, Rationality
+- This hierarchical visual structure reduces "global" tab count
+- Users see 6 main tabs, can drill into specialized sub-tabs
+- Preserves all functionality while simplifying navigation
+
 **Rationale**:
 - **Debate**: Primary activity, keep focused
-- **Arguments**: All argumentation features together
+- **Arguments**: All argumentation features together (overhaul components go here)
 - **Dialogue**: Game-theoretic features naturally grouped
 - **Knowledge**: Reference materials consolidated
 - **Analytics**: All metrics in one place
 - **Admin**: Management functions separated
+
+**Implementation Note**: The nested tab pattern already exists in ASPIC tab - replicate that structure for Arguments, Dialogue, and Knowledge tabs.
 
 ### 2. **Enhanced Argument Cards** (Phase 1-4 Integration)
 
@@ -455,7 +495,424 @@ const { data } = useSWR(
 - [ ] Update V2 to use tab components
 - [ ] Verify feature parity
 
-### Phase 4: Sheet Consolidation (Week 6)
+---
+
+## Phase 4: Overhaul Integration (Weeks 5-8)
+
+**Status**: 🎯 READY TO BEGIN  
+**Context**: Phases 0-4 of Deliberation System Overhaul are **fully implemented** with production-ready components, APIs, and services  
+**Opportunity**: Integrate sophisticated argumentation features into V3 tabs during migration  
+**Source Documents**: 
+- `DEEPDIVEPANEL_OVERHAUL_INTEGRATION_AUDIT.md` (component inventory)
+- `DEEPDIVEPANEL_V3_OVERHAUL_INTEGRATION_PLAN.md` (detailed implementation)
+- `OVERHAUL_TEST_PAGES_AUDIT.md` (validated test pages)
+
+### Overhaul Features Summary
+
+**What's Available** (Phases 0-4 Complete):
+
+**Phase 0 - Burden of Proof** ✅
+- `BurdenOfProofIndicators` components (badges, tooltips, comparisons)
+- Burden metadata in schema (`burdenOfProof`, `requiresEvidence`)
+- Educational guidance for evidence collection
+
+**Phase 1 - Multi-Scheme Arguments (Nets)** ✅
+- `ArgumentNetAnalyzer` - Full net analysis with tabs
+- Net detection APIs (`/api/nets/detect`, `/api/nets/[id]/*`)
+- Scheme composition tracking
+- Dependency analysis
+
+**Phase 2 - Multi-Entry Navigation** ✅
+- `SchemeNavigator` - Unified 4-mode interface (wizard, clusters, conditions, search)
+- `DichotomicTreeWizard` - Purpose/source filtering
+- `ClusterBrowser` - Semantic scheme discovery
+- `IdentificationConditionsFilter` - Expert-level filtering
+
+**Phase 3 - Argument Generation** ✅
+- `AttackSuggestions` + `AttackConstructionWizard` - AI-assisted attacks
+- `SupportSuggestions` + `SupportConstructionWizard` - Support generation
+- `EvidenceGuidance` - Requirements, validation, suggestions
+- Quality scoring and validation
+
+**Phase 4 - Net Visualization** ✅
+- `SchemeNetVisualization` - Interactive graph visualization
+- `NetGraphWithCQs` - Net-aware CQ display
+- `ComposedCQPanel` - Grouped CQs by scheme
+- Multiple layout algorithms (hierarchical, force-directed, circular)
+
+**Total Assets Ready**:
+- ~25 major components
+- ~15 API endpoints
+- 12 test/example pages validating features
+- Comprehensive documentation
+
+---
+
+### Week 5: Arguments Tab Enhancement (8 hours)
+
+**Goal**: Transform Arguments tab into intelligent net-aware platform  
+**Risk**: Low (all components exist and tested)  
+**Dependencies**: Week 4 complete (ArgumentsTab extracted)
+
+#### 5.1: ArgumentNetAnalyzer Integration (4 hours)
+
+**Current State**: Arguments show single-scheme CQs via SchemeSpecificCQsModal
+
+**Target State**: Multi-scheme net analysis with visualization
+
+**Implementation**:
+```typescript
+// File: components/deepdive/v3/tabs/ArgumentsTab.tsx
+import { ArgumentNetAnalyzer } from "@/components/argumentation/ArgumentNetAnalyzer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+// Add state
+const [netAnalyzerOpen, setNetAnalyzerOpen] = useState(false);
+const [selectedArgumentId, setSelectedArgumentId] = useState<string | null>(null);
+
+// Replace CQ modal trigger
+<Button onClick={() => {
+  setSelectedArgumentId(arg.id);
+  setNetAnalyzerOpen(true);
+}}>
+  Analyze Argument
+</Button>
+
+// Add dialog with analyzer
+<Dialog open={netAnalyzerOpen} onOpenChange={setNetAnalyzerOpen}>
+  <DialogContent className="max-w-6xl max-h-[90vh]">
+    {selectedArgumentId && (
+      <ArgumentNetAnalyzer
+        argumentId={selectedArgumentId}
+        deliberationId={deliberationId}
+        currentUserId={currentUserId}
+      />
+    )}
+  </DialogContent>
+</Dialog>
+```
+
+**Testing Checklist**:
+- [ ] Single-scheme arguments show CQs normally
+- [ ] Multi-scheme arguments show net visualization
+- [ ] Graph is interactive (click nodes/edges)
+- [ ] CQs grouped by scheme and attack type
+- [ ] Burden badges display correctly
+
+**Reference**: Test page at `app/test/net-analyzer/page.tsx`
+
+---
+
+#### 5.2: NetworksSection Integration (2 hours)
+
+**Current State**: No deliberation-level net overview
+
+**Target State**: Collapsible section showing all detected nets
+
+**Implementation**:
+```typescript
+// File: components/deepdive/v3/tabs/ArgumentsTab.tsx
+import { NetworksSection } from "@/components/deepdive/v3/sections/NetworksSection";
+
+// Add section below arguments list
+<div className="space-y-4">
+  <SectionCard title="Arguments" {...}>
+    {/* existing arguments */}
+  </SectionCard>
+  
+  {/* NEW: Networks overview */}
+  <NetworksSection deliberationId={deliberationId} />
+</div>
+```
+
+**Testing Checklist**:
+- [ ] Section appears below arguments list
+- [ ] Detects nets on load
+- [ ] Click "Analyze Net" opens ArgumentNetAnalyzer
+- [ ] Shows net type, complexity, confidence
+- [ ] Empty state when no nets
+
+**Reference**: Component at `components/deepdive/v3/sections/NetworksSection.tsx`
+
+---
+
+#### 5.3: Burden of Proof Badges (2 hours)
+
+**Current State**: CQs display without burden indicators
+
+**Target State**: Visual burden guidance on all CQs
+
+**Implementation**:
+```typescript
+// File: components/deepdive/v3/tabs/ArgumentsTab.tsx
+import { 
+  BurdenOfProofBadge, 
+  BurdenOfProofTooltip 
+} from "@/components/argumentation/BurdenOfProofIndicators";
+
+// In CQ rendering
+{cqs.map(cq => (
+  <div key={cq.id} className="flex items-start gap-2">
+    <div className="flex-1">
+      <p>{cq.text}</p>
+    </div>
+    <BurdenOfProofBadge 
+      burden={cq.burdenOfProof} 
+      requiresEvidence={cq.requiresEvidence}
+    />
+  </div>
+))}
+```
+
+**Testing Checklist**:
+- [ ] Badges appear on all CQs
+- [ ] Correct color for burden type
+- [ ] Tooltips explain burden meaning
+- [ ] "Requires Evidence" badge when applicable
+- [ ] Works in net analyzer and simple CQ view
+
+**Reference**: Test page at `app/(app)/examples/burden-indicators/page.tsx`
+
+**Week 5 Deliverables**:
+- ✅ Net-aware Arguments tab
+- ✅ Deliberation-level net detection
+- ✅ Burden of proof guidance
+- **Total**: 8 hours
+
+---
+
+### Week 6: Attack Generation Integration (10 hours)
+
+**Goal**: Add AI-assisted attack generation workflow  
+**Risk**: Medium (workflow changes, UX testing needed)  
+**Dependencies**: Week 5 complete
+
+#### 6.1: Attack Suggestions Integration (6 hours)
+
+**Current State**: Manual counterargument creation
+
+**Target State**: CQ-based strategic attack suggestions
+
+**Implementation**:
+```typescript
+// File: components/deepdive/v3/tabs/ArgumentsTab.tsx
+import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
+import { AttackConstructionWizard } from "@/components/argumentation/AttackConstructionWizard";
+
+// Add "Generate Attack" button
+<ArgumentCard {...}>
+  <Button 
+    variant="outline"
+    onClick={() => setAttackTargetId(arg.id)}
+  >
+    <Target className="w-4 h-4 mr-2" />
+    Generate Attack
+  </Button>
+</ArgumentCard>
+
+// Add suggestions dialog
+<Dialog open={!!attackTargetId} onOpenChange={() => setAttackTargetId(null)}>
+  <DialogContent className="max-w-4xl">
+    <AttackSuggestions
+      targetArgumentId={attackTargetId!}
+      deliberationId={deliberationId}
+      onSelectSuggestion={(suggestion) => {
+        setSelectedAttack(suggestion);
+        setWizardOpen(true);
+      }}
+    />
+  </DialogContent>
+</Dialog>
+
+// Add wizard dialog
+<Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+  <DialogContent className="max-w-6xl">
+    <AttackConstructionWizard
+      targetArgumentId={attackTargetId!}
+      selectedStrategy={selectedAttack}
+      deliberationId={deliberationId}
+      onComplete={(attackId) => {
+        // Refresh arguments list
+        mutate(`/api/arguments?delibId=${deliberationId}`);
+        setWizardOpen(false);
+      }}
+    />
+  </DialogContent>
+</Dialog>
+```
+
+**Testing Checklist**:
+- [ ] "Generate Attack" button on all arguments
+- [ ] Suggestions ranked by strategic value
+- [ ] Burden of proof shown for each strategy
+- [ ] Wizard opens with selected strategy
+- [ ] Quality validation enforced (40% minimum)
+- [ ] Evidence guidance integrated
+
+**Reference**: Test pages at `app/(app)/examples/attack-submission/page.tsx` and `app/(app)/examples/evidence-guidance/page.tsx`
+
+---
+
+#### 6.2: ArgumentActionsSheet Enhancement (3 hours)
+
+**Current State**: Basic action sheet
+
+**Target State**: Enhanced with attack generator trigger
+
+**Implementation**: Add "Strategic Attack" option to ArgumentActionsSheet with quality preview
+
+**Testing Checklist**:
+- [ ] Sheet shows attack quality estimate
+- [ ] Links to attack wizard
+- [ ] Preserves existing actions
+
+---
+
+#### 6.3: Visual Indicators (1 hour)
+
+**Current State**: No visual cues for attack opportunities
+
+**Target State**: Badge showing number of attack strategies available
+
+**Implementation**: Add badge to argument cards showing available CQs/attacks
+
+**Week 6 Deliverables**:
+- ✅ AI-assisted attack generation
+- ✅ Quality validation workflow
+- ✅ Evidence guidance integrated
+- **Total**: 10 hours
+
+---
+
+### Week 7: Navigation & Support Generation (10 hours)
+
+**Goal**: Enhance scheme discovery and add support generation  
+**Risk**: Low (symmetric to attack generation)  
+**Dependencies**: Week 6 complete
+
+#### 7.1: SchemeNavigator Integration (4 hours)
+
+**Current State**: Limited scheme selection interface
+
+**Target State**: Unified 4-mode scheme navigator
+
+**Implementation**: Replace scheme pickers with SchemeNavigator component (wizard, clusters, conditions, search modes)
+
+**Testing Checklist**:
+- [ ] All 4 modes accessible
+- [ ] Mode switching persists
+- [ ] Favorites and recents tracked
+- [ ] Search with filters works
+
+**Reference**: Test page at `app/test/scheme-navigator/page.tsx`
+
+---
+
+#### 7.2: SchemesSection Addition (2 hours)
+
+**Current State**: No scheme reference in main panel
+
+**Target State**: Educational "Argumentation Schemes" section
+
+**Implementation**: Add collapsible SchemesSection to Arguments or Knowledge tab
+
+**Reference**: Component at `components/deepdive/v3/sections/SchemesSection.tsx`
+
+---
+
+#### 7.3: Support Suggestions Integration (4 hours)
+
+**Current State**: No support generation workflow
+
+**Target State**: Symmetric to attack generation for supporting arguments
+
+**Implementation**: Add SupportArgumentFlow to Debate tab with 7-step wizard
+
+**Testing Checklist**:
+- [ ] Support suggestions by scheme
+- [ ] Evidence mapping to premises
+- [ ] Batch generation option
+- [ ] Quality validation
+
+**Reference**: Test page at `app/test/support-flow/page.tsx`
+
+**Week 7 Deliverables**:
+- ✅ Enhanced scheme discovery
+- ✅ Support argument generation
+- ✅ Educational scheme reference
+- **Total**: 10 hours
+
+---
+
+### Week 8: Polish & Advanced Features (8 hours)
+
+**Goal**: Complete integration with visualization and analytics  
+**Risk**: Low (polish work)  
+**Dependencies**: Week 7 complete
+
+#### 8.1: Net Visualization Enhancements (3 hours)
+
+**Implementation**: Add enhanced graph layouts, export to PNG/SVG, filtering options
+
+**Testing Checklist**:
+- [ ] Multiple layout algorithms
+- [ ] Node styling by explicitness
+- [ ] Edge labeling by relationship
+- [ ] Export functionality
+
+**Reference**: Test page at `app/test/net-visualization/page.tsx`
+
+---
+
+#### 8.2: Evidence Integration Polish (3 hours)
+
+**Implementation**: Refine evidence collection UI, add strength meters, improve validation
+
+**Reference**: Test page at `app/(app)/examples/evidence-guidance/page.tsx`
+
+---
+
+#### 8.3: Analytics Integration (2 hours)
+
+**Implementation**: Add net statistics to Analytics tab, scheme usage tracking, quality metrics
+
+**Week 8 Deliverables**:
+- ✅ Beautiful net visualizations
+- ✅ Polished evidence workflow
+- ✅ Comprehensive analytics
+- **Total**: 8 hours
+
+---
+
+### Overhaul Integration Summary
+
+**Total Effort**: 36 hours over 4 weeks  
+**Components Integrated**: ~25 major components  
+**APIs Used**: ~15 endpoints  
+**Risk**: Low (all components pre-tested)  
+**Value**: Months of development work exposed to users
+
+**Success Metrics**:
+- [ ] 80% of users discover net analyzer in first session
+- [ ] Average attack quality score increases 15%
+- [ ] CQ response rate increases 2x
+- [ ] Scheme discovery time reduced 50%
+
+**Feature Flags**:
+```typescript
+const OVERHAUL_FEATURES = {
+  ENABLE_NET_ANALYZER: true,        // Week 5
+  ENABLE_BURDEN_INDICATORS: true,   // Week 5
+  ENABLE_ATTACK_GENERATOR: false,   // Week 6 (gradual rollout)
+  ENABLE_SCHEME_NAVIGATOR: false,   // Week 7
+  ENABLE_SUPPORT_GENERATOR: false,  // Week 7
+  ENABLE_NET_VISUALIZATION: true,   // Week 8
+} as const;
+```
+
+---
+
+### Phase 5: Sheet Consolidation (Week 9)
 - [ ] Extract GraphExplorerSheet
 - [ ] Extract ActionsHudSheet
 - [ ] Extract GlossarySheet
@@ -463,7 +920,7 @@ const { data } = useSWR(
 - [ ] Update V2 to use sheet components
 - [ ] Verify no regressions
 
-### Phase 5: Create DeepDivePanelV3 (Week 7)
+### Phase 6: Create DeepDivePanelV3 (Week 10)
 - [ ] Create new V3 entry point
 - [ ] Wire up all extracted components
 - [ ] Implement state reducer
@@ -471,15 +928,7 @@ const { data } = useSWR(
 - [ ] Performance testing
 - [ ] A/B testing setup
 
-### Phase 6: Phase 1-4 Integration (Week 8-9)
-- [ ] Add ArgumentNetAnalyzer to Arguments tab
-- [ ] Add scheme badges to argument cards
-- [ ] Add "Analyze Net" buttons
-- [ ] Add CQ response dashboard to Admin
-- [ ] Add net visualization to sidebar
-- [ ] Add scheme detection indicators
-
-### Phase 7: Beta & Rollout (Week 10)
+### Phase 7: Beta & Rollout (Week 11)
 - [ ] Beta testing with select users
 - [ ] Gather feedback
 - [ ] Fix critical issues
@@ -487,7 +936,7 @@ const { data } = useSWR(
 - [ ] Monitor performance metrics
 - [ ] Full rollout
 
-### Phase 8: Cleanup (Week 11)
+### Phase 8: Cleanup (Week 12)
 - [ ] Remove DeepDivePanelV2 once V3 is stable
 - [ ] Update all imports across codebase
 - [ ] Archive old components

@@ -824,10 +824,10 @@ export default function CriticalQuestionsV3({
                                       )
                                     }
                                     disabled={!(groundsInput[cq.key] || "").trim()}
-                                    className="flex btnv2 py-3 px-3 text-sm rounded-full items-center gap-2 bg-sky-300 "
+                                    className="flex btnv2 py-2 px-3 text-xs rounded-full items-center gap-2 bg-sky-300 "
                                   >
-                                    <Send className="w-4 h-4" />
-                                    Enter Answer & Mark as Satisfied
+                                    <Send className="w-3 h-3" />
+                                    Submit Answer & Mark as Satisfied
                                   </button>
                                 </div>
                               </div>

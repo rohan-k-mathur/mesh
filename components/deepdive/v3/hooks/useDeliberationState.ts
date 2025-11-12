@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 /**
  * Tab type definition
@@ -249,7 +249,7 @@ export function useDeliberationState(
     });
   }, [initialTab, initialConfig]);
 
-  const actions: DeliberationStateActions = {
+  const actions: DeliberationStateActions = useMemo(() => ({
     setTab,
     setConfMode,
     setRule,
@@ -266,7 +266,24 @@ export function useDeliberationState(
     toggleDelibSettings,
     triggerRefresh,
     resetToDefaults,
-  };
+  }), [
+    setTab,
+    setConfMode,
+    setRule,
+    setDsMode,
+    toggleDsMode,
+    setCardFilter,
+    setPending,
+    setStatus,
+    clearStatus,
+    setHighlightedDialogueMoveId,
+    setReplyTarget,
+    clearReplyTarget,
+    setDelibSettingsOpen,
+    toggleDelibSettings,
+    triggerRefresh,
+    resetToDefaults,
+  ]);
 
   return { state, actions };
 }

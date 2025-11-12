@@ -40,8 +40,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { ArgumentsTab } from "./v3/tabs/ArgumentsTab";
-import { AnalyticsTab } from "./v3/tabs/AnalyticsTab";
+import { ArgumentsTab, AnalyticsTab, DebateTab } from "./v3/tabs";
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import { useAuth } from "@/lib/AuthContext";
 import { useSheetPersistence, useDeliberationState } from "./v3/hooks";
@@ -485,7 +484,8 @@ const {
       .then((r) => r.json())
       .then((d) => delibActions.setStatus(d.status))
       .catch(() => { });
-  }, [deliberationId, delibActions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliberationId]); // Only re-fetch when deliberationId changes
 
   useEffect(() => { compute(); }, [deliberationId]);
 
@@ -1254,6 +1254,18 @@ const {
                 <span className="flex items-center">Configure Argument Schemes</span>
               </button>
             </Link>
+            
+            {/* Dialogue Timeline Button - Week 4 Task 4.3 */}
+            <Link href={`/deliberation/${deliberationId}/dialoguetimeline`} target="_blank" rel="noopener noreferrer">
+              <button
+                className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white/50 hover:bg-white/70 rounded-md transition-colors menuv2--lite h-8"
+                title="Open Dialogue Timeline in new tab"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Dialogue Timeline</span>
+              </button>
+            </Link>
+            
             <DiscusHelpPage />
             {delibState.pending && <div className="text-xs text-neutral-500">Computing…</div>}
           </div>
@@ -1265,7 +1277,7 @@ const {
           <TabsList className="w-full  items-center justify-center flex flex-1 mb-2">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="arguments">Arguments</TabsTrigger>
-            <TabsTrigger value="dialogue">Dialogue</TabsTrigger>
+            {/* Dialogue tab removed - Week 4 Task 4.3: Access via "Dialogue Timeline" button in header */}
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
             <TabsTrigger value="admin">Admin</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
@@ -1277,60 +1289,13 @@ const {
 
           {/* DEBATE TAB */}
           <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
-            {delibState.delibSettingsOpen && (
-              <SectionCard><DeliberationSettingsPanel deliberationId={deliberationId} /></SectionCard>
-            )}
-            <SectionCard title="Compose Proposition">
-              {/* <PropositionComposer deliberationId={deliberationId} /> */}
-              <PropositionComposerPro deliberationId={deliberationId} />
-            </SectionCard>
-            
-            <SectionCard>
-              <PropositionsList deliberationId={deliberationId} />
-            </SectionCard>
-
-            <SectionCard >
-              <ClaimMiniMap
-                deliberationId={deliberationId}
-                selectedClaimId={selectedClaim?.id}
-                onClaimClick={handleClaimSelect}
-                currentUserId={currentUserId}
-              />
-            </SectionCard>
-            <SectionCard>
-              <DialogueInspector
-                deliberationId={deliberationId}
-                initialTargetType="claim"
-               
-                initialLocusPath="0"
-              />
-            </SectionCard>
-{/* 
-            <SectionCard title="Arguments">
-              <ArgumentsList
-                deliberationId={deliberationId}
-                selectedClaimId={selectedClaim?.id}
-                onClaimClick={handleClaimSelect}
-                onVisibleTextsChanged={(texts) => setRhetoricSample(texts.join(' '))}
-                onReplyTo={handleReplyTo}
-                onChanged={() => compute(sel?.rule)}
-              />
-            </SectionCard>
-
-            <SectionCard title="Compose Reply">
-              <DeliberationComposer
-                id="delib-composer-anchor"
-                deliberationId={deliberationId}
-                isReplyMode={!!delibState.replyTarget}
-                targetArgumentId={delibState.replyTarget?.id}
-                targetPreviewText={delibState.replyTarget?.preview}
-                onClearReply={delibActions.clearReplyTarget}
-                onPosted={() => {
-                  delibActions.clearReplyTarget();
-                  compute(sel?.rule);
-                }}
-              />
-            </SectionCard> */}
+            <DebateTab
+              deliberationId={deliberationId}
+              currentUserId={currentUserId}
+              delibSettingsOpen={delibState.delibSettingsOpen}
+              selectedClaimId={selectedClaim?.id}
+              onClaimClick={handleClaimSelect}
+            />
           </TabsContent>
 
           {/* MODELS TAB */}
@@ -1356,7 +1321,12 @@ const {
           </TabsContent>
 
           {/* DIALOGUE TAB - Phase 3: Dialogue Visualization */}
-          <TabsContent value="dialogue" className="w-full min-w-0 space-y-4 mt-4">
+          {/* DIALOGUE TAB - REMOVED Week 4 Task 4.3
+           * Dialogue Timeline now accessible via header button → opens left sheet
+           * Graph visualization removed (not essential for current workflow)
+           * See "Dialogue Timeline" button in StickyHeader above
+           */}
+          {/* <TabsContent value="dialogue" className="w-full min-w-0 space-y-4 mt-4">
             <SectionCard title="Dialogue Visualization" className="w-full" padded={true}>
               <div className="space-y-4">
                 <p className="text-sm text-slate-600">
@@ -1365,13 +1335,13 @@ const {
                 </p>
                 <div className="flex w-full h-fit items-center justify-center px-3 py-2 border rounded-lg panel-edge">
                 
-<a
-                  className="flex px-8 py-4 w-fit items-center text-base tracking-wide  text-center  rounded-full cardv2 bg-indigo-100/50"
-                  href={`/deliberation/${deliberationId}/dialoguetimeline`} target="_blank" rel="noopener noreferrer"
-                >
-                  <GalleryVerticalEnd className="w-5 h-5 mr-3 text-indigo-700" />
-                  Dialogue Timeline 
-                </a>
+                  <a
+                    className="flex px-8 py-4 w-fit items-center text-base tracking-wide  text-center  rounded-full cardv2 bg-indigo-100/50"
+                    href={`/deliberation/${deliberationId}/dialoguetimeline`} target="_blank" rel="noopener noreferrer"
+                  >
+                    <GalleryVerticalEnd className="w-5 h-5 mr-3 text-indigo-700" />
+                    Dialogue Timeline 
+                  </a>
                 </div>
                 <div className="min-h-[600px]">
                   <DialogueAwareGraphPanel
@@ -1380,7 +1350,6 @@ const {
                     highlightMoveId={delibState.highlightedDialogueMoveId}
                     className="w-full"
                     renderGraph={(nodes, edges) => {
-                      // Convert dialogue-aware nodes/edges to AIF format for visualization
                       const aifGraph = {
                         nodes: nodes.map(n => ({
                           id: n.id,
@@ -1402,7 +1371,7 @@ const {
                           id: e.id || `${e.source}-${e.target}`,
                           from: e.source,
                           to: e.target,
-                          role: (e.edgeType || 'premise') as any // Map edge types to AIF roles
+                          role: (e.edgeType || 'premise') as any
                         }))
                       };
                       
@@ -1424,7 +1393,7 @@ const {
                 </div>
               </div>
             </SectionCard>
-          </TabsContent>
+          </TabsContent> */}
 
           {/* LUDICS TAB */}
           <TabsContent value="ludics" className="w-full min-w-0 space-y-4">

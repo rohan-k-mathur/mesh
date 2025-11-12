@@ -405,6 +405,117 @@ interface NestedTabsProps {
 
 ---
 
+## Phase 4: Overhaul Integration (Weeks 5-8) 🆕 PLANNED
+
+**Timeline**: December 2-29, 2025 (4 weeks)  
+**Estimated Effort**: 36 hours  
+**📄 Detailed Plan**: See `DEEPDIVEPANEL_V3_OVERHAUL_INTEGRATION_PLAN.md`  
+**📄 Component Audit**: See `DEEPDIVEPANEL_OVERHAUL_INTEGRATION_AUDIT.md`
+
+### Context
+
+**Key Discovery**: Phases 0-4 of the Deliberation System Overhaul are **COMPLETE** with production-ready components, APIs, and services. All features just need to be wired into the V3 interface.
+
+**Components Available**:
+- ArgumentNetAnalyzer, NetworksSection (Phase 1 - multi-scheme nets)
+- SchemeNavigator, DichotomicTreeWizard, ClusterBrowser (Phase 2 - discovery)
+- AttackSuggestions, AttackConstructionWizard, SupportSuggestions (Phase 3 - generation)
+- BurdenOfProofIndicators, EvidenceGuidance (Phase 0 & 3 - theory support)
+- ~15 major components total, all tested and working
+
+**APIs Available**:
+- `/api/nets/*` (detection, analysis, CQs, reconstruction)
+- `/api/arguments/suggest-attacks` (strategic attack generation)
+- `/api/attacks/*` (attack creation and management)
+- `/api/schemes/all` (with cluster/dichotomic metadata)
+
+### Week 5: Arguments Tab - Net Analysis Foundation (8 hours)
+**Dates**: December 2-8, 2025  
+**Status**: ⏳ PLANNED
+
+**Goals**:
+- [ ] Integrate ArgumentNetAnalyzer (replaces simple CQ modal)
+- [ ] Add NetworksSection for deliberation-level net detection
+- [ ] Add burden of proof badges to all CQs
+- [ ] Transform Arguments tab into intelligent net-aware platform
+
+**Tasks**:
+- [ ] 5.1: ArgumentNetAnalyzer Integration (4h)
+- [ ] 5.2: NetworksSection Integration (2h)
+- [ ] 5.3: Burden of Proof Badges (2h)
+
+**Expected Outcome**: Arguments tab becomes net-aware with multi-scheme visualization
+
+### Week 6: Attack Generation Integration (10 hours)
+**Dates**: December 9-15, 2025  
+**Status**: ⏳ PLANNED
+
+**Goals**:
+- [ ] Add AI-assisted attack generation to Arguments tab
+- [ ] Strategic CQ-based attack suggestions
+- [ ] AttackConstructionWizard for guided creation
+- [ ] Visual indicators for attack opportunities
+
+**Tasks**:
+- [ ] 6.1: Attack Suggestions Component (6h)
+- [ ] 6.2: ArgumentActionsSheet Enhancement (3h)
+- [ ] 6.3: Visual Attack Indicators (1h)
+
+**Expected Outcome**: Transform from manual to AI-assisted attack creation
+
+### Week 7: Scheme Navigation & Support (10 hours)
+**Dates**: December 16-22, 2025  
+**Status**: ⏳ PLANNED
+
+**Goals**:
+- [ ] Replace simple scheme picker with intelligent navigator
+- [ ] Add educational scheme browser
+- [ ] Support argument generation (mirror of attacks)
+- [ ] Complete argumentation toolkit
+
+**Tasks**:
+- [ ] 7.1: SchemeNavigator Integration (4h)
+- [ ] 7.2: SchemesSection Addition (2h)
+- [ ] 7.3: Support Suggestions (4h)
+
+**Expected Outcome**: Intelligent scheme discovery + full attack/support toolkit
+
+### Week 8: Polish & Advanced Features (8 hours)
+**Dates**: December 23-29, 2025  
+**Status**: ⏳ PLANNED
+
+**Goals**:
+- [ ] Enhanced net visualization
+- [ ] Evidence integration in wizards
+- [ ] Analytics for argumentation metrics
+- [ ] Final polish and testing
+
+**Tasks**:
+- [ ] 8.1: Net Visualization Enhancements (3h)
+- [ ] 8.2: Evidence Integration (3h)
+- [ ] 8.3: Analytics Integration (2h)
+
+**Expected Outcome**: Polished, production-ready overhaul features
+
+### Overhaul Integration Impact
+
+**Features Unlocked**:
+- ✅ Multi-scheme net analysis with visualization
+- ✅ AI-assisted attack generation (CQ-based)
+- ✅ Intelligent scheme navigation (4 modes)
+- ✅ Support argument generation
+- ✅ Burden of proof guidance throughout
+- ✅ Evidence-aware composition
+- ✅ Argumentation analytics
+
+**User Impact**:
+- **Before**: Manual argument construction, single-scheme view, no guidance
+- **After**: AI-assisted, multi-scheme nets, strategic suggestions, theory-grounded
+
+**Risk**: Low-Medium (all components already tested, just integration work)
+
+---
+
 ## Progress Metrics
 
 ### Code Metrics
@@ -412,23 +523,31 @@ interface NestedTabsProps {
 - **After Week 1** (Shared Components): 1,926 (↓ 202 LOC / 9.5%)
 - **After Week 2** (Nested Tabs): 1,857 (↓ 69 LOC / 3.6%)
 - **After Week 3** (Custom Hooks): 1,852 (↓ 5 LOC, but 11 useState consolidated)
-- **After Task 4.2** (AnalyticsTab): 1,763 (↓ 89 LOC / 4.8%)
-- **Current LOC**: 1,763 ✅
-- **Target after Week 4**: ~1,200-1,400 (↓ 450-650 LOC / 24-35%)
-- **Target after Week 5**: ~800-1,000 (all tabs extracted)
+- **After Week 4** (Tab Extraction): 1,731 (↓ 121 LOC / 6.5%)
+- **Current LOC**: 1,731 ✅
+- **Progress**: 397 lines removed (18.7% reduction from start)
+- **Target after Week 5**: ~800-1,000 (all remaining tabs extracted)
 - **Final V3 Entry LOC**: ~150
 
 ### Feature Progress
 - **Shared Components**: 3/3 extracted (SectionCard, ChipBar, StickyHeader) ✅
 - **Custom Hooks**: 3/3 created (useSheetPersistence, useDeliberationState, useDeliberationData) ✅
-- **Tabs Extracted**: 1/8 completed (AnalyticsTab ✅, DebateTab in progress)
+- **Tabs Extracted**: 2/8 completed (AnalyticsTab ✅, DebateTab ✅)
+- **Tabs Removed**: 1/8 (Dialogue → header button) ✅
+- **Tabs Remaining**: 5 (Ludics, Admin, Sources, Thesis, Arguments already done in Week 2)
+- **Main Tab Count**: 7 tabs (reduced from original 8) ✅
+- **Barrel Exports**: v3/tabs/index.ts, v3/hooks/index.ts ✅
 - **Phase 1-4 Integration**: 2/4 features (Schemes, Networks via Week 2) ✅
 
 ### Deployment Status
 - **Week 1 Deploy**: ✅ Completed (Shared components)
 - **Week 2 Deploy**: ✅ Completed (Nested tabs + Phase 1-4 integration)
 - **Week 3 Deploy**: ✅ Completed (Custom hooks)
-- **Week 4 Deploy**: Planned (3 tabs extraction)
+### Deployment Status
+- **Week 1 Deploy**: ✅ Completed (Shared components)
+- **Week 2 Deploy**: ✅ Completed (Nested tabs + Phase 1-4 integration)
+- **Week 3 Deploy**: ✅ Completed (Custom hooks)
+- **Week 4 Deploy**: ✅ Completed (Tab extraction: Analytics, Debate) - 2 WEEKS AHEAD!
 - **Production Rollout**: Incremental per week
 
 ---
@@ -436,11 +555,7 @@ interface NestedTabsProps {
 ## Risk Register
 
 ### Active Risks
-1. **Tab State Dependencies** (Medium) - NEW
-   - DebateTab has complex state needs (reply, sheets, refresh)
-   - Mitigation: SheetAwareTabProps interface, careful prop drilling, extensive testing
-
-2. **Performance with More Components** (Low)
+1. **Performance with More Components** (Low)
    - More components = more React overhead?
    - Mitigation: React.memo on tabs, code splitting in Week 5
 
@@ -452,6 +567,10 @@ interface NestedTabsProps {
 2. ✅ **Hook Integration Issues** (Was: Medium)
    - Runtime testing caught all 15+ missed references
    - Resolution: Systematic grep searches + browser testing
+
+3. ✅ **Tab State Dependencies** (Was: Medium)
+   - DebateTab simpler than expected, clean prop interface
+   - Resolution: Minimal props needed, no complex state drilling required
 
 ---
 
