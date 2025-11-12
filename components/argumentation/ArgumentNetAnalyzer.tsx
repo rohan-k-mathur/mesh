@@ -48,6 +48,11 @@ interface NetData {
   complexity: number;
   confidence: number;
   isConfirmed?: boolean;
+  detection?: {
+    method: "structural" | "semantic" | "hybrid";
+    timestamp: Date;
+    signals: string[];
+  };
 }
 
 // ============================================================================
@@ -108,11 +113,22 @@ export function ArgumentNetAnalyzer({
         setNetData(data.net);
         setIsSingleScheme(false);
         onNetDetected?.(data.net.id);
+        
+        // Log detection details for debugging
+        console.log("[ArgumentNetAnalyzer] Net detected:", {
+          argumentId,
+          netId: data.net.id,
+          schemeCount: data.net.schemes?.length || 0,
+          netType: data.net.netType,
+          confidence: data.net.confidence,
+          detectionMethod: data.net.detection?.method,
+        });
       } else {
         // Single scheme argument
         setNetData(null);
         setIsSingleScheme(true);
         onNetDetected?.(null);
+        console.log("[ArgumentNetAnalyzer] Single-scheme argument:", argumentId);
       }
     } catch (err) {
       console.error("Net detection error:", err);
@@ -159,6 +175,9 @@ export function ArgumentNetAnalyzer({
       const response = await fetch(`/api/nets/${netData.id}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "confirmed",
+        }),
       });
 
       if (!response.ok) {
@@ -244,10 +263,10 @@ export function ArgumentNetAnalyzer({
   return (
     <div className={cn("space-y-4 ", compact && "space-y-2")}>
       {/* Header */}
-      <Card className={cn("p-4", compact && "p-3")}>
+      <Card className={cn("p-3", compact && "p-3")}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Network className="w-5 h-5 text-purple-600" />
+            <Network className="w-5 h-5 text-indigo-600" />
             <div>
               <h3 className="font-semibold">Multi-Scheme Argument Net</h3>
               <div className="flex items-center gap-2 mt-1">
@@ -258,26 +277,42 @@ export function ArgumentNetAnalyzer({
                 >
                   {netData.confidence}% confidence
                 </Badge>
+                {/* Week 5: Show detection method */}
+                {netData.detection?.method === "hybrid" && (
+                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                    Auto-detected
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
 
-          {needsConfirmation && (
-            <Button onClick={handleConfirmNet} size="sm">
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Confirm Net
-            </Button>
-          )}
-        </div>
 
-        {needsConfirmation && (
-          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
+
+
+
+           <div className="flex ">
+{needsConfirmation && (
+    <div className ="flex flex-col gap-2 items-end">
+          <div className=" px-1.5 py-1 w-fit bg-orange-50 border border-orange-200 rounded-md">
+            <p className="text-xs text-orange-800">
               This net was automatically detected. Please review the structure and confirm if
               it&apos;s correct.
             </p>
           </div>
-        )}
+    
+            <button onClick={handleConfirmNet} className="flex w-fit justify-end items-center bg-indigo-50 text-xs gap-2 btnv2--ghost px-2 py-1 rounded-md">
+              <CheckCircle2 className="flex items-center w-3 h-3 " />
+             <span className="flex items-center">Confirm Net</span>
+            </button>
+             </div>
+          )}
+         
+              </div>
+        </div>
+   
+
+        
       </Card>
 
       {/* Main Content Tabs */}

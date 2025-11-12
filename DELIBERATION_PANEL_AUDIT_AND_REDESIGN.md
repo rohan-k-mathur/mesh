@@ -552,13 +552,25 @@ const { data } = useSWR(
 
 **Goal**: Transform Arguments tab into intelligent net-aware platform  
 **Risk**: Low (all components exist and tested)  
-**Dependencies**: Week 4 complete (ArgumentsTab extracted)
+**Dependencies**: Week 4 complete (ArgumentsTab extracted) ✅  
+**Status**: 🎉 **Easier than planned!** NetworksSection already integrated in Week 2
+
+**Context Update (Nov 12, 2025)**:
+- ✅ ArgumentsTab already refactored with nested tabs (Week 2)
+- ✅ NetworksSection already integrated in Networks subtab
+- ✅ SchemesSection already in Schemes subtab
+- ✅ ASPIC moved to ASPIC subtab
+- ✅ Dialogue tab removed, button in header
+- **Result**: Week 5 reduced from 8h → ~6.5h (Task 5.2 already done!)
 
 #### 5.1: ArgumentNetAnalyzer Integration (4 hours)
 
-**Current State**: Arguments show single-scheme CQs via SchemeSpecificCQsModal
+**Current State**: 
+- ArgumentsTab has nested structure with 4 subtabs (List, Schemes, Networks, ASPIC)
+- AIFArgumentsListPro renders arguments without net analysis option
+- No ArgumentNetAnalyzer integration
 
-**Target State**: Multi-scheme net analysis with visualization
+**Target State**: Multi-scheme net analysis accessible from argument cards
 
 **Implementation**:
 ```typescript
@@ -674,10 +686,13 @@ import {
 **Reference**: Test page at `app/(app)/examples/burden-indicators/page.tsx`
 
 **Week 5 Deliverables**:
-- ✅ Net-aware Arguments tab
-- ✅ Deliberation-level net detection
-- ✅ Burden of proof guidance
-- **Total**: 8 hours
+- ✅ Net-aware Arguments tab (NetworksSection already integrated!)
+- ✅ ArgumentNetAnalyzer accessible from arguments
+- ✅ Burden of proof guidance on all CQs
+- **Total**: ~6.5 hours (NetworksSection already done = -1.5h)
+
+**Week 5 Summary**:
+Task 5.1 (ArgumentNetAnalyzer) + Task 5.2 (Verification only) + Task 5.3 (Burden badges) = ~6.5 hours instead of 8 hours due to Week 2 nested tabs work already completing NetworksSection integration.
 
 ---
 
@@ -1278,3 +1293,121 @@ The migration can be done incrementally over 11 weeks with feature flags ensurin
 - Aggressive timeline (11 weeks) vs conservative (16 weeks)
 
 Once these decisions are made, we can begin extraction and migration with confidence.
+
+---
+
+## Testing Learnings: Seed Scripts & Data Model Integration
+
+**Date**: November 2025  
+**Context**: Phase 1-4 feature testing with ArgumentNetAnalyzer and multi-scheme arguments
+
+### Issue: "Analyze Net" Button Not Appearing
+
+**Symptom**: Multi-scheme arguments (convergent, divergent, serial, hybrid nets) were not showing "Analyze Net" buttons in `AIFArgumentsListPro`, despite having `ArgumentSchemeInstance` records correctly created.
+
+**Root Cause**: 
+- `AIFArgumentsListPro` checks `meta?.scheme` condition (line 778) before showing button
+- `meta.scheme` comes from legacy `Argument.schemeId` field (single value, one-to-one)
+- Multi-scheme arguments were intentionally created **without** `schemeId` field because it can only hold one scheme ID
+- Phase 1-4 architecture uses `ArgumentSchemeInstance` table (many-to-many) for multi-scheme support
+- **Gap**: UI component still relied on legacy field, not new architecture
+
+**Detection Method**:
+1. Created seed data with `seed-multi-scheme-arguments-suite.ts` (890 LOC, 10 arguments)
+2. User tested in UI and reported mixed results (some args show button, others don't)
+3. Grep search found button condition: `{meta?.scheme && onAnalyzeArgument && (`
+4. Traced `meta.scheme` back to `Argument.schemeId` field
+5. Checked seed script - confirmed multi-scheme args had NO `schemeId`, only `ArgumentSchemeInstance` records
+
+**Solution Applied**:
+```typescript
+// Before (multi-scheme args):
+const climateArg = await prisma.argument.create({
+  data: {
+    id: "test-conv-climate-arg",
+    // ... other fields
+    // ❌ No schemeId field
+  }
+});
+
+// After (multi-scheme args):
+const climateArg = await prisma.argument.create({
+  data: {
+    id: "test-conv-climate-arg",
+    // ... other fields
+    schemeId: schemes.practicalReasoning?.id, // ✅ Primary scheme for legacy support
+  }
+});
+```
+
+**Fix Pattern**: For multi-scheme arguments, set `schemeId` to the **primary scheme** (identified by `isPrimary: true` in `ArgumentSchemeInstance` records). This maintains backward compatibility with legacy UI components while preserving full multi-scheme data in `ArgumentSchemeInstance`.
+
+### Verified Test Results (Post-Fix)
+
+✅ **Multi-scheme nets working**:
+- `test-conv-climate-arg` (4 schemes, convergent) - 88% confidence
+- `test-div-ai-arg` (3 schemes, divergent) - 85% confidence
+- `test-hybrid-education-arg` (3 schemes, hybrid) - 84% confidence
+- `test-multi-scheme-climate-arg` (3 schemes, serial) - from other seed
+
+✅ **Single-scheme fallback working**:
+- `test-single-space-arg` (Expert Opinion only)
+- `test-single-energy-arg` (Practical Reasoning only)
+
+✅ **Attack arguments working**:
+- `test-attack-climate-rebuttal` (REBUTS, Consequences scheme)
+- `test-attack-ai-undercut` (UNDERCUTS, Sign scheme)
+- `test-attack-energy-undermine` (UNDERMINES, Consequences scheme)
+
+### Key Learnings for Future Development
+
+1. **Legacy Field Migration**: When adding new data models (e.g., `ArgumentSchemeInstance`), audit ALL UI components that reference old fields (`Argument.schemeId`). Don't assume they've been updated.
+
+2. **Seed Script Best Practice**: Always populate legacy fields for backward compatibility, even when new architecture exists:
+   ```typescript
+   schemeId: primaryScheme?.id,  // Legacy support
+   // PLUS create ArgumentSchemeInstance records for full data
+   ```
+
+3. **Testing Order**: Test UI integration IMMEDIATELY after creating seed data. Don't build all seed data first, then test at end. User caught this early by testing incrementally.
+
+4. **Data Model Transition Pattern**: 
+   - **Phase 1**: Create new table (`ArgumentSchemeInstance`)
+   - **Phase 2**: Update APIs to read from both old and new
+   - **Phase 3**: Update UI components to prefer new data
+   - **Phase 4**: Migrate seed scripts and populate legacy fields
+   - **Phase 5**: Eventually deprecate legacy field (future)
+
+5. **Component Assumptions**: `AIFArgumentsListPro` assumes `meta?.scheme` exists. When adding features that create arguments programmatically (seed scripts, AI generation, bulk import), ensure ALL required fields are populated, not just new architecture.
+
+6. **Grep for Conditions**: When debugging "button not showing" issues, grep for the button text and read surrounding conditions. Often reveals field dependencies.
+
+### Related Files Modified
+
+- `scripts/seed-multi-scheme-arguments-suite.ts` - Added `schemeId` to lines 209, 334, 457 (multi-scheme args)
+- `scripts/seed-multi-scheme-arguments-suite.ts` - Added `schemeId` to lines 750, 801 (attack args)
+
+### API Endpoints Tested
+
+- ✅ `/api/nets/detect` - Multi-scheme net detection (convergent, divergent, serial, hybrid)
+- ✅ `/api/nets/[id]/cqs` - Critical Questions generation (18 CQs for serial net, 12 for convergent)
+- ✅ `ArgumentNetAnalyzer` component - Net visualization with React Flow
+- ✅ `AIFArgumentsListPro` - "Analyze Net" button display condition
+
+### Future Considerations
+
+**Option A** (Current): Keep populating `schemeId` for backward compatibility  
+**Option B** (Future): Update `AIFArgumentsListPro` to check `ArgumentSchemeInstance` count instead:
+```typescript
+// Future enhancement
+const hasScheme = meta?.scheme || (schemeInstances?.length > 0);
+{hasScheme && onAnalyzeArgument && (
+  <Button>Analyze Net</Button>
+)}
+```
+
+**Recommendation**: Keep Option A for now (populate legacy field). Defer Option B until full V3 migration when we can audit all components systematically and update them together.
+
+---
+
+````

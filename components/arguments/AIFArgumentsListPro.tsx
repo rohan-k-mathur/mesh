@@ -30,6 +30,7 @@ import {
   Triangle,
   ExternalLink,
   Scale,
+  Network, // Week 5 Task 5.1: For ArgumentNetAnalyzer button
 } from 'lucide-react';
 
 import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifApi';
@@ -490,6 +491,7 @@ function RowImpl({
   dsMode = false,
   onArgumentClick,
   onViewDialogueMove,
+  onAnalyzeArgument, // Week 5 Task 5.1: ArgumentNetAnalyzer callback
 }: {
   a: AifRow;
   meta?: AifMeta;
@@ -513,6 +515,7 @@ function RowImpl({
     premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
   }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
+  onAnalyzeArgument?: (argumentId: string) => void; // Week 5 Task 5.1: ArgumentNetAnalyzer callback
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -771,6 +774,22 @@ function RowImpl({
             />
           )}
 
+          {/* Week 5 Task 5.1: ArgumentNetAnalyzer button */}
+          {meta?.scheme && onAnalyzeArgument && (
+            <button
+              onClick={() => onAnalyzeArgument(a.id)}
+              className="
+                inline-flex items-center gap-2 px-3 py-1.5 btnv2 rounded-lg text-xs font-medium
+                bg-indigo-50 text-indigo-700 border border-indigo-200 
+                hover:bg-indigo-100 transition-all duration-200 shadow-sm hover:shadow
+              "
+              title="Analyze argument network and dependencies"
+            >
+              <Network className="w-4 h-4" />
+              Analyze Net
+            </button>
+          )}
+
           <div className="flex-1" />
 
           {meta?.conclusion?.id ? (
@@ -849,6 +868,7 @@ export default function AIFArgumentsListPro({
   dsMode = false,
   onArgumentClick,
   onViewDialogueMove,
+  onAnalyzeArgument, // Week 5 Task 5.1: ArgumentNetAnalyzer callback
 }: {
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
@@ -864,6 +884,7 @@ export default function AIFArgumentsListPro({
     premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
   }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
+  onAnalyzeArgument?: (argumentId: string) => void; // Week 5 Task 5.1: ArgumentNetAnalyzer callback
 }) {
   // Fetch current user ID for permission checks (using same approach as DeepDivePanelV2)
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
@@ -1235,6 +1256,7 @@ export default function AIFArgumentsListPro({
                 dsMode={dsMode}
                 onArgumentClick={onArgumentClick}
                 onViewDialogueMove={onViewDialogueMove}
+                onAnalyzeArgument={onAnalyzeArgument}
               />
               </div>
             );

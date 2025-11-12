@@ -662,7 +662,12 @@ export function ArgumentCardV2({
                   title={getSchemeTooltip({ schemeName, schemes })}
                 >
                   <span className="text-xs font-medium text-indigo-700">
-                    {formatSchemeDisplay({ schemeName, schemes })}
+                    {/* Week 5: Simple scheme display logic */}
+                    {schemes.length > 0 
+                      ? (schemes.length === 1 
+                          ? schemes[0].schemeName 
+                          : `${schemes[0].schemeName} + ${schemes.length - 1} more`)
+                      : (schemeName || "No scheme")}
                   </span>
                   {shouldShowMultiSchemeUI({ schemeName, schemes }) && (
                     <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-indigo-600 rounded-full">

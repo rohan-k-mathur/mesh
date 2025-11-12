@@ -6,7 +6,16 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+
     const { action, reason, modifications } = body;
 
     if (!action || !["confirmed", "rejected", "modified"].includes(action)) {

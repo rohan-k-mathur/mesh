@@ -1,11 +1,18 @@
 #!/usr/bin/env tsx
 /**
- * Seed Script: Create Multi-Scheme Test Argument for Week 16 Testing
+ * Seed Script: Serial Net - Climate Change (Phase 1-4 Test Suite)
  * 
- * Creates a climate change argument with a scheme net:
+ * Creates a SERIAL (chained) multi-scheme argument with explicit SchemeNet:
  * 1. Expert Opinion (primary) - Scientists agree on climate change
- * 2. Sign (supporting) - Rising temperatures as evidence
+ * 2. Sign (supporting) - Rising temperatures as evidence  
  * 3. Causal Reasoning (supporting) - CO2 causes warming
+ * 
+ * This creates an EXPLICIT SchemeNet record (not just ArgumentSchemeInstance).
+ * Complements seed-multi-scheme-arguments-suite.ts which creates convergent,
+ * divergent, and hybrid nets.
+ * 
+ * Part of: Phase 1-4 Deliberation System Overhaul Test Suite
+ * Deliberation: ludics-forest-demo
  * 
  * Usage:
  *   npx tsx scripts/seed-multi-scheme-test-argument.ts
@@ -35,15 +42,15 @@ async function main() {
 
   // 2. Get or create test deliberation
   const testDeliberation = await prisma.deliberation.upsert({
-    where: { id: "test-delib-week16" },
+    where: { id: "ludics-forest-demo" },
     update: {},
     create: {
-      id: "test-delib-week16",
+      id: "ludics-forest-demo",
       hostType: "free",
       hostId: "test-room-week16",
       createdById: testUser.id.toString(),
-      title: "Week 16 Test: Climate Change Deliberation",
-      tags: ["test", "week16", "climate"],
+      title: "Ludics Forest Demo",
+      tags: ["test", "week16", "climate", "ludics"],
     },
   });
   console.log(`✅ Test deliberation: ${testDeliberation.id}`);
@@ -103,19 +110,72 @@ async function main() {
   - Causal Reasoning: ${causalScheme.id}
 `);
 
-  // 4. Delete existing test argument if present (for clean re-runs)
-  const existingArg = await prisma.argument.findUnique({
+  // 4. Delete existing test argument and claims if present (for clean re-runs)
+  console.log("🔄 Cleaning up existing test data...");
+  
+  // Delete argument first (cascades to premises and relationships)
+  await prisma.argument.deleteMany({
     where: { id: "test-multi-scheme-climate-arg" },
   });
-  
-  if (existingArg) {
-    console.log("🔄 Deleting existing test argument for clean re-run...");
-    await prisma.argument.delete({
-      where: { id: "test-multi-scheme-climate-arg" },
-    });
-  }
 
-  // 5. Create multi-scheme argument
+  // Delete claims
+  await prisma.claim.deleteMany({
+    where: {
+      id: {
+        in: [
+          "test-claim-climate-conclusion",
+          "test-claim-climate-p1",
+          "test-claim-climate-p2",
+          "test-claim-climate-p3",
+        ],
+      },
+    },
+  });
+
+  // 5. Create Claims (conclusion + premises)
+  const conclusionClaim = await prisma.claim.create({
+    data: {
+      id: "test-claim-climate-conclusion",
+      text: "Human activity is causing dangerous global warming that requires immediate action",
+      createdById: testUser.id.toString(),
+      moid: `moid-${Date.now()}-conclusion`,
+      deliberationId: testDeliberation.id,
+    },
+  });
+
+  const premise1Claim = await prisma.claim.create({
+    data: {
+      id: "test-claim-climate-p1",
+      text: "Climate scientists overwhelmingly agree (97% consensus) that human activity is causing global warming",
+      createdById: testUser.id.toString(),
+      moid: `moid-${Date.now()}-p1`,
+      deliberationId: testDeliberation.id,
+    },
+  });
+
+  const premise2Claim = await prisma.claim.create({
+    data: {
+      id: "test-claim-climate-p2",
+      text: "Rising global temperatures over the past century, particularly the sharp increase since 1980, serve as clear evidence of warming",
+      createdById: testUser.id.toString(),
+      moid: `moid-${Date.now()}-p2`,
+      deliberationId: testDeliberation.id,
+    },
+  });
+
+  const premise3Claim = await prisma.claim.create({
+    data: {
+      id: "test-claim-climate-p3",
+      text: "Increased atmospheric CO2 from burning fossil fuels traps heat through the greenhouse effect",
+      createdById: testUser.id.toString(),
+      moid: `moid-${Date.now()}-p3`,
+      deliberationId: testDeliberation.id,
+    },
+  });
+
+  console.log(`✅ Created claims: conclusion + 3 premises`);
+
+  // 6. Create multi-scheme argument with proper structure
   const multiSchemeArg = await prisma.argument.create({
     data: {
       id: "test-multi-scheme-climate-arg",
@@ -125,6 +185,14 @@ async function main() {
       confidence: 0.95,
       isImplicit: false,
       mediaType: "text",
+      conclusionClaimId: conclusionClaim.id,
+      premises: {
+        create: [
+          { claimId: premise1Claim.id, isImplicit: false },
+          { claimId: premise2Claim.id, isImplicit: false },
+          { claimId: premise3Claim.id, isImplicit: false },
+        ],
+      },
       // Note: Legacy schemeId left null - this is a multi-scheme argument
     },
   });
@@ -276,6 +344,7 @@ Test with:
   - Argument ID: ${multiSchemeArg.id}
   - Deliberation ID: ${testDeliberation.id}
   - API: POST /api/nets/detect {"argumentId":"${multiSchemeArg.id}"}
+  - URL: /deliberation/ludics-forest-demo/board
   - Test Page: /test/net-analyzer
 `);
 

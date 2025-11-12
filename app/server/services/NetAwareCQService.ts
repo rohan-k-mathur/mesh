@@ -10,6 +10,7 @@ export interface NetCriticalQuestion {
   id: string;
   type: "scheme" | "dependency" | "net-structure" | "explicitness";
   targetSchemeId?: string;
+  targetSchemeName?: string; // Week 5: Add scheme name for better display
   targetDependencyId?: string;
   questionText: string;
   questionCategory: string;
@@ -126,6 +127,7 @@ export class NetAwareCQService {
           id: `cq-${cq.id}-${scheme.schemeId}`,
           type: "scheme",
           targetSchemeId: scheme.schemeId,
+          targetSchemeName: scheme.schemeName, // Week 5: Include scheme name
           questionText: this.contextualizeQuestion(cq.text || "", scheme),
           questionCategory: cq.cqKey || "general",
           priority: this.determinePriority(scheme, cq),
@@ -579,14 +581,18 @@ export class NetAwareCQService {
       }
     }
 
-    return Array.from(schemeMap.entries()).map(([schemeId, qs]) => ({
-      groupType: "scheme" as const,
-      groupLabel: `Questions for Scheme ${schemeId}`,
-      groupDescription: "Critical questions targeting this specific scheme",
-      targetSchemeId: schemeId,
-      questions: qs,
-      priority: this.calculateGroupPriority(qs),
-    }));
+    return Array.from(schemeMap.entries()).map(([schemeId, qs]) => {
+      // Week 5: Use scheme name from questions if available
+      const schemeName = qs[0]?.targetSchemeName || `Scheme ${schemeId}`;
+      return {
+        groupType: "scheme" as const,
+        groupLabel: `Questions for ${schemeName}`,
+        groupDescription: "Critical questions targeting this specific scheme",
+        targetSchemeId: schemeId,
+        questions: qs,
+        priority: this.calculateGroupPriority(qs),
+      };
+    });
   }
 
   private groupByDependency(questions: NetCriticalQuestion[]): NetCQGroup[] {

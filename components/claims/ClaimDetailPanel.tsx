@@ -160,7 +160,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
                 </span>
               )}
               {label !== "UNDEC" && (
-                <span className="text-[11px] px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 border border-indigo-200 font-medium flex items-center gap-1">
+                <span className="text-[11px] px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium flex items-center gap-1">
                   <Tag className="w-3 h-3" />
                   {label}
                 </span>
@@ -272,9 +272,9 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
           <div className="px-3 py-2">
             <button
               onClick={() => setShowAttackModal(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 btnv2 text-white text-sm font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
             >
-              <Swords className="w-4 h-4" />
+             
               Create ASPIC+ Attack
             </button>
             <p className="text-[10px] text-slate-500 text-center mt-1">

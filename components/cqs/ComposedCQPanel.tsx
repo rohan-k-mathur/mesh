@@ -32,6 +32,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BurdenBadge } from "@/components/argumentation/BurdenOfProofIndicators";
 
 // ============================================================================
 // Types
@@ -45,6 +46,8 @@ interface NetCriticalQuestion {
   questionText: string;
   questionCategory: string;
   priority: "critical" | "high" | "medium" | "low";
+  burdenOfProof?: "proponent" | "challenger" | "PROPONENT" | "CHALLENGER";
+  requiresEvidence?: boolean;
   context: {
     netId: string;
     schemeRole?: string;
@@ -383,9 +386,18 @@ function QuestionCard({
               </p>
             </div>
           </div>
-          <Badge className={cn("text-xs", getPriorityColor(question.priority))}>
-            {question.priority}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {question.burdenOfProof && (
+              <BurdenBadge 
+                burden={question.burdenOfProof} 
+                requiresEvidence={question.requiresEvidence}
+                className="shrink-0"
+              />
+            )}
+            <Badge className={cn("text-xs shrink-0", getPriorityColor(question.priority))}>
+              {question.priority}
+            </Badge>
+          </div>
         </div>
 
         {/* Context */}
@@ -414,7 +426,7 @@ function QuestionCard({
                   className="h-7 text-xs"
                 >
                   <Target className="w-3 h-3 mr-1" />
-                  Scheme {question.targetSchemeId}
+                  {(question as any).targetSchemeName || `Scheme ${question.targetSchemeId}`}
                 </Button>
               )}
               {question.type === "dependency" && question.relatedSchemes.length >= 2 && (

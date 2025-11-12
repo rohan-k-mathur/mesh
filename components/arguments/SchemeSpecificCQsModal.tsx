@@ -78,14 +78,14 @@ export function SchemeSpecificCQsModal({
   const isAuthor = currentUserId && authorId && String(currentUserId) === String(authorId);
   
   // Debug logging
-  console.log('[SchemeSpecificCQsModal] Role detection:', {
-    currentUserId,
-    authorId,
-    isAuthor,
-    currentUserIdType: typeof currentUserId,
-    authorIdType: typeof authorId,
-    stringComparison: String(currentUserId) === String(authorId),
-  });
+  // console.log('[SchemeSpecificCQsModal] Role detection:', {
+  //   currentUserId,
+  //   authorId,
+  //   isAuthor,
+  //   currentUserIdType: typeof currentUserId,
+  //   authorIdType: typeof authorId,
+  //   stringComparison: String(currentUserId) === String(authorId),
+  // });
   const [open, setOpen] = React.useState(false);
   const [expandedCQ, setExpandedCQ] = React.useState<string | null>(null);
   const [localCqs, setLocalCqs] = React.useState<CQItem[]>(cqs);
