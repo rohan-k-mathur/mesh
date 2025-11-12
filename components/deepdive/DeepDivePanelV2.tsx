@@ -41,8 +41,10 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { ArgumentsTab } from "./v3/tabs/ArgumentsTab";
+import { AnalyticsTab } from "./v3/tabs/AnalyticsTab";
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import { useAuth } from "@/lib/AuthContext";
+import { useSheetPersistence, useDeliberationState } from "./v3/hooks";
 import { getUserFromCookies } from "@/lib/server/getUser";
 import AIFArgumentsListPro from '@/components/arguments/AIFArgumentsListPro';
 import PropositionsList from "../propositions/PropositionsList";
@@ -61,7 +63,6 @@ import { ThesisRenderer } from "../thesis/ThesisRenderer";
 import { ThesisListView } from "../thesis/ThesisListView";
 import { ActiveAssumptionsPanel } from "@/components/assumptions/ActiveAssumptionsPanel";
 import { CreateAssumptionForm } from "@/components/assumptions/CreateAssumptionForm";
-import { HomSetComparisonChart } from "@/components/agora/HomSetComparisonChart";
 import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
 import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPanel";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
@@ -154,98 +155,6 @@ function usePersisted(key: string, def = true) {
   return { open, setOpen };
 }
 
-// Phase 3: Hom-Sets Tab with data fetching
-function HomSetsTab({ deliberationId }: { deliberationId: string }) {
-  const { data, error, isLoading } = useSWR(
-    `/api/deliberations/${deliberationId}/arguments/aif?limit=50`,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-
-  // Transform arguments to include hom-set confidence metrics
-  const argumentsWithHomSets = React.useMemo(() => {
-    if (!data?.items) return [];
-
-    return data.items
-      .filter((arg: any) => arg.aif?.conclusion?.id)
-      .map((arg: any) => {
-        // Categorical hom-set confidence: aggregate edge strengths via join operation
-        // Based on evidential closed category semantics (Ambler 1996)
-        
-        // Collect edge counts (proxies for confidence in absence of explicit scores)
-        const incomingCount = (arg.aif?.attacks?.REBUTS || 0) + 
-                              (arg.aif?.attacks?.UNDERCUTS || 0) + 
-                              (arg.aif?.attacks?.UNDERMINES || 0);
-        const outgoingCount = arg.aif?.outgoingAttacks || 0; // If available
-        const totalEdges = incomingCount + outgoingCount;
-        
-        // Compute hom-set confidence based on mode (default to 'product' if not specified)
-        // In future: use actual ArgumentEdge.confidence scores when available
-        let homSetConfidence = 0;
-        
-        if (totalEdges > 0) {
-          // Default edge confidence (can be refined when ArgumentEdge.confidence is added)
-          const defaultEdgeConfidence = 0.7;
-          
-          // Categorical join operation based on confidence mode:
-          // - 'min': Weakest-link (best single edge) - max of individual confidences
-          // - 'product': Independent accrual (noisy-OR) - 1 - ∏(1 - cᵢ)
-          // - 'ds': Dempster-Shafer (simplified as max for now)
-          
-          // For now, use simplified heuristic based on edge count
-          // Product mode (noisy-OR): confidence increases with more edges
-          homSetConfidence = 1 - Math.pow(1 - defaultEdgeConfidence, totalEdges);
-          
-          // Min mode would use: Math.max(...edgeConfidences) ≈ defaultEdgeConfidence
-          // (single edge = defaultEdgeConfidence, multiple = same)
-        }
-        
-        return {
-          id: arg.id,
-          title: arg.aif?.conclusion?.text || arg.text || 'Untitled Argument',
-          homSetConfidence,
-          incomingCount,
-          outgoingCount,
-        };
-      })
-      .slice(0, 20); // Limit to top 20 for performance
-  }, [data]);  return (
-    <SectionCard title="Categorical Analysis" isLoading={isLoading}>
-      <p className="text-sm text-slate-600 mb-4">
-        Comparative hom-set confidence analysis across arguments in this deliberation.
-      </p>
-      
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          Failed to load argument data: {error.message || 'Unknown error'}
-        </div>
-      )}
-      
-      {!isLoading && !error && argumentsWithHomSets.length === 0 && (
-        <div className="p-6 bg-slate-50 rounded-lg border border-slate-200 text-center">
-          <p className="text-sm text-slate-500">
-            No arguments with hom-set data available yet.
-          </p>
-        </div>
-      )}
-      
-      {!isLoading && !error && argumentsWithHomSets.length > 0 && (
-        <HomSetComparisonChart
-          arguments={argumentsWithHomSets}
-          onArgumentClick={(id) => {
-            // Scroll to argument in debate tab
-            window.location.hash = `arg-${id}`;
-            const el = document.getElementById(`arg-${id}`);
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
-        />
-      )}
-    </SectionCard>
-  );
-}
-
 export default function DeepDivePanel({
   deliberationId,
   containerClassName,
@@ -263,25 +172,22 @@ export default function DeepDivePanel({
 }) {
   const { proId, oppId, trace, loading } = useCompileStep(deliberationId);
 
+  // Week 3 Task 3.2: Consolidated deliberation state hook
+  const { state: delibState, actions: delibActions } = useDeliberationState({
+    initialTab: 'debate',
+    initialConfig: {
+      confMode: 'product',
+      rule: 'utilitarian',
+      dsMode: false,
+      cardFilter: 'all',
+    },
+  });
+
   const [sel, setSel] = useState<Selection | null>(null);
-  const [pending, setPending] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'arguments' | 'dialogue' | 'ludics' | 'admin' | 'sources' | 'thesis' | 'aspic' | 'analytics'>('debate');
-  const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
-  const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
-  const [dsMode, setDsMode] = React.useState(false); // Phase 3: Dempster-Shafer mode toggle
-  const [delibSettingsOpen, setDelibSettingsOpen] = React.useState(false);
-  // Phase 3: Dialogue Move Highlighting
-  const [highlightedDialogueMoveId, setHighlightedDialogueMoveId] = React.useState<string | null>(null);
-  
-  // Argument actions refresh counter
-  const [refreshCounter, setRefreshCounter] = React.useState(0);
   
   const { user } = useAuth();
   const authorId = user?.userId != null ? String(user.userId) : undefined;
   const [rhetoricSample, setRhetoricSample] = useState<string>('');
-  const [replyTarget, setReplyTarget] = React.useState<{ id: string; preview?: string } | null>(null);
-  const [cardFilter, setCardFilter] = useState<'all' | 'mine' | 'published'>('all');
 
   // Fetch current user ID for issues dashboard
   const [currentUserId, setCurrentUserId] = React.useState<string | undefined>(undefined);
@@ -299,10 +205,11 @@ export default function DeepDivePanel({
   const [commandActions, setCommandActions] = useState<CommandCardAction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Floating sheet state with persistence
-  const [leftSheetOpen, setLeftSheetOpen] = useState(false);
-  const [rightSheetOpen, setRightSheetOpen] = useState(false);
-  const [termsSheetOpen, setTermsSheetOpen] = useState(false);
+  // Floating sheet state with persistence (Week 3 Task 3.1: useSheetPersistence hook)
+  const { state: sheets, actions: sheetActions } = useSheetPersistence({
+    storageKey: `dd:sheets:${deliberationId}`,
+    defaultState: { left: false, right: false, terms: false },
+  });
   const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('claims');
   const [selectedTermId, setSelectedTermId] = useState<string | undefined>();
   const [selectedArgumentForActions, setSelectedArgumentForActions] = useState<{
@@ -327,37 +234,36 @@ const [issueTargetId, setIssueTargetId] = useState<string | null>(null);
   const [thesisViewerOpen, setThesisViewerOpen] = useState(false);
   const [viewedThesisId, setViewedThesisId] = useState<string | null>(null);
 
-
-  // Load sheet state from localStorage
+  // Note: Sheet persistence now handled by useSheetPersistence hook
+  // Load leftSheetTab from localStorage (other sheet state managed by hook)
   useEffect(() => {
     try {
       const saved = localStorage.getItem(`dd:sheets:${deliberationId}`);
       if (saved) {
-        const { left, right, leftTab } = JSON.parse(saved);
-        setLeftSheetOpen(left ?? false);
-        setRightSheetOpen(right ?? false);
+        const { leftTab } = JSON.parse(saved);
         setLeftSheetTab(leftTab ?? 'arguments');
       }
     } catch (error) {
-      console.error('Failed to load sheet state:', error);
+      console.error('Failed to load sheet tab state:', error);
     }
   }, [deliberationId]);
 
-  // Save sheet state to localStorage
+  // Save leftSheetTab to localStorage (sheet open/close state managed by hook)
   useEffect(() => {
     try {
+      const saved = localStorage.getItem(`dd:sheets:${deliberationId}`);
+      const existing = saved ? JSON.parse(saved) : {};
       localStorage.setItem(
         `dd:sheets:${deliberationId}`,
         JSON.stringify({
-          left: leftSheetOpen,
-          right: rightSheetOpen,
+          ...existing,
           leftTab: leftSheetTab,
         })
       );
     } catch (error) {
-      console.error('Failed to save sheet state:', error);
+      console.error('Failed to save sheet tab state:', error);
     }
-  }, [leftSheetOpen, rightSheetOpen, leftSheetTab, deliberationId]);
+  }, [leftSheetTab, deliberationId]);
 
   const [selectedClaim, setSelectedClaim] = useState<{
     id: string;
@@ -547,7 +453,7 @@ const {
     forcedRule?: "utilitarian" | "harmonic" | "maxcov",
     forcedK?: number
   ) => {
-    setPending(true);
+    delibActions.setPending(true);
     try {
       const res = await fetch(
         `/api/deliberations/${deliberationId}/viewpoints/select`,
@@ -555,7 +461,7 @@ const {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            rule: forcedRule ?? rule,
+            rule: forcedRule ?? delibState.rule,
             k: forcedK ?? sel?.k ?? 3,
           }),
           cache: "no-store",
@@ -568,7 +474,7 @@ const {
       const data = await res.json().catch(() => null);
       if (data?.selection) setSel(data.selection);
     } finally {
-      setPending(false);
+      delibActions.setPending(false);
     }
   };
 
@@ -577,9 +483,9 @@ const {
       `/api/content-status?targetType=deliberation&targetId=${deliberationId}`
     )
       .then((r) => r.json())
-      .then((d) => setStatus(d.status))
+      .then((d) => delibActions.setStatus(d.status))
       .catch(() => { });
-  }, [deliberationId]);
+  }, [deliberationId, delibActions]);
 
   useEffect(() => { compute(); }, [deliberationId]);
 
@@ -685,7 +591,7 @@ const {
   }, []);
 
   function handleReplyTo(id: string, preview?: string) {
-    setReplyTarget({ id, preview });
+    delibActions.setReplyTarget({ id, preview });
     requestAnimationFrame(() => {
       scrollIntoViewById("delib-composer-anchor", 80);
       window.dispatchEvent(new CustomEvent("mesh:composer:focus", { detail: { deliberationId } }));
@@ -722,8 +628,8 @@ const {
       {/* Floating Toggle Buttons */}
       <SheetToggleButton
         side="left"
-        open={leftSheetOpen}
-        onClick={() => setLeftSheetOpen(!leftSheetOpen)}
+        open={sheets.left}
+        onClick={sheetActions.toggleLeft}
         icon={
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -735,8 +641,8 @@ const {
 
       <SheetToggleButton
         side="right"
-        open={rightSheetOpen}
-        onClick={() => setRightSheetOpen(!rightSheetOpen)}
+        open={sheets.right}
+        onClick={sheetActions.toggleRight}
         icon={
          
           <svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" strokeLinejoin="round" className="lucide lucide-gamepad-directional-icon lucide-gamepad-directional"><path d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"/><path d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"/><path d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"/><path d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"/></svg>
@@ -747,8 +653,8 @@ const {
 
       <SheetToggleButton
         side="right"
-        open={termsSheetOpen}
-        onClick={() => setTermsSheetOpen(!termsSheetOpen)}
+        open={sheets.terms}
+        onClick={sheetActions.toggleTerms}
         offsetTop="top-40"
         icon={
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -760,8 +666,8 @@ const {
 
       {/* Left Floating Sheet - Graph Explorer */}
       <FloatingSheet
-        open={leftSheetOpen}
-        onOpenChange={setLeftSheetOpen}
+        open={sheets.left}
+        onOpenChange={sheetActions.setLeft}
         side="left"
         width={1000}
         title="Graph Explorer"
@@ -1053,20 +959,20 @@ const {
       {/* Right Floating Sheet - Actions & Diagram (Conditional) */}
       {selectedArgumentForActions ? (
         <ArgumentActionsSheet
-          open={rightSheetOpen}
-          onOpenChange={setRightSheetOpen}
+          open={sheets.right}
+          onOpenChange={sheetActions.setRight}
           deliberationId={deliberationId}
           authorId={authorId || ""}
           selectedArgument={selectedArgumentForActions}
           onRefresh={() => {
             // Increment refresh counter to force AIFArgumentsListPro revalidation
-            setRefreshCounter(c => c + 1);
+            delibActions.triggerRefresh();
           }}
         />
       ) : (
         <FloatingSheet
-          open={rightSheetOpen}
-          onOpenChange={setRightSheetOpen}
+          open={sheets.right}
+          onOpenChange={sheetActions.setRight}
           side="right"
           width={650}
           title="Actions & Diagram"
@@ -1248,8 +1154,8 @@ const {
 
       {/* Terms Glossary Sheet */}
       <FloatingSheet
-        open={termsSheetOpen}
-        onOpenChange={setTermsSheetOpen}
+        open={sheets.terms}
+        onOpenChange={sheetActions.setTerms}
         side="right"
         width={1000}
         title="Deliberation Dictionary"
@@ -1270,16 +1176,16 @@ const {
         <StickyHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {status && <StatusChip status={status} />}
+              {delibState.status && <StatusChip status={delibState.status} />}
 
               <ChipBar>
                 <label className="text-xs text-neutral-600 flex items-center gap-1">
                   Rule:
                   <select
                     className="text-xs menuv2--lite rounded px-2 py-0.5"
-                    value={rule}
+                    value={delibState.rule}
                     onChange={(e) => {
-                      setRule(e.target.value as any);
+                      delibActions.setRule(e.target.value as any);
                       compute(e.target.value as any);
                     }}
                   >
@@ -1295,8 +1201,8 @@ const {
                   Confidence:
                   <select
                     className="text-xs menuv2--lite rounded px-2 py-0.5"
-                    value={confMode}
-                    onChange={(e) => setConfMode(e.target.value as any)}
+                    value={delibState.confMode}
+                    onChange={(e) => delibActions.setConfMode(e.target.value as any)}
                   >
                     <option value="product">Product</option>
                     <option value="min">Min</option>
@@ -1307,32 +1213,32 @@ const {
               {/* Phase 3: DS Mode Toggle */}
             
                 <button
-                  onClick={() => setDsMode(!dsMode)}
+                  onClick={delibActions.toggleDsMode}
                   className={`
                     text-xs px-3 py-.5 rounded-md menuv2--lite transition-all duration-200
-                    ${dsMode 
+                    ${delibState.dsMode 
                       ? 'bg-indigo-100 border-indigo-300 text-indigo-700 hover:bg-indigo-200' 
                       : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
                     }
                   `}
                   title="Toggle Dempster-Shafer interval mode"
                 >
-                  DS Mode: {dsMode ? 'ON' : 'OFF'}
+                  DS Mode: {delibState.dsMode ? 'ON' : 'OFF'}
                 </button>
              
              
                 <button
-                  onClick={() => setDelibSettingsOpen(!delibSettingsOpen)}
+                  onClick={delibActions.toggleDelibSettings}
                   className={`
                     text-xs px-3 py-.5 rounded-md menuv2--lite transition-all duration-200
-                    ${delibSettingsOpen 
+                    ${delibState.delibSettingsOpen 
                       ? 'bg-indigo-100 border-indigo-300 text-indigo-700 hover:bg-indigo-200' 
                       : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
                     }
                   `}
                   title="Toggle Deliberation Settings Panel"
                 >
-                  Delib Settings: {delibSettingsOpen ? 'ON' : 'OFF'}
+                  Delib Settings: {delibState.delibSettingsOpen ? 'ON' : 'OFF'}
                 </button>
              
             </div>
@@ -1345,17 +1251,15 @@ const {
                   title="Manage Argumentation Schemes"
                 >
 
-                  <span className="flex items-center">Configure Argument Schemes</span>
-                </button>
-              </Link>
-              <DiscusHelpPage />
-              {pending && <div className="text-xs text-neutral-500">Computing…</div>}
-            </div>
+                <span className="flex items-center">Configure Argument Schemes</span>
+              </button>
+            </Link>
+            <DiscusHelpPage />
+            {delibState.pending && <div className="text-xs text-neutral-500">Computing…</div>}
           </div>
-        </StickyHeader>
-
-        {/* Main Tabs */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+        </div>
+      </StickyHeader>        {/* Main Tabs */}
+        <Tabs value={delibState.tab} onValueChange={(v) => delibActions.setTab(v as any)}>
                   <div className="flex w-full items-center justify-center mx-auto">
 
           <TabsList className="w-full  items-center justify-center flex flex-1 mb-2">
@@ -1366,14 +1270,14 @@ const {
             <TabsTrigger value="admin">Admin</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
             <TabsTrigger value="thesis">Thesis</TabsTrigger>
-            <TabsTrigger value="aspic">ASPIC</TabsTrigger>
+            {/* ASPIC moved to Arguments → ASPIC nested tab (Week 2 Task 2.5) */}
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
           </div>
 
           {/* DEBATE TAB */}
           <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
-            {delibSettingsOpen && (
+            {delibState.delibSettingsOpen && (
               <SectionCard><DeliberationSettingsPanel deliberationId={deliberationId} /></SectionCard>
             )}
             <SectionCard title="Compose Proposition">
@@ -1417,12 +1321,12 @@ const {
               <DeliberationComposer
                 id="delib-composer-anchor"
                 deliberationId={deliberationId}
-                isReplyMode={!!replyTarget}
-                targetArgumentId={replyTarget?.id}
-                targetPreviewText={replyTarget?.preview}
-                onClearReply={() => setReplyTarget(null)}
+                isReplyMode={!!delibState.replyTarget}
+                targetArgumentId={delibState.replyTarget?.id}
+                targetPreviewText={delibState.replyTarget?.preview}
+                onClearReply={delibActions.clearReplyTarget}
                 onPosted={() => {
-                  setReplyTarget(null);
+                  delibActions.clearReplyTarget();
                   compute(sel?.rule);
                 }}
               />
@@ -1434,20 +1338,20 @@ const {
             <ArgumentsTab
               deliberationId={deliberationId}
               authorId={authorId || ""}
-              refreshCounter={refreshCounter}
-              dsMode={dsMode}
+              refreshCounter={delibState.refreshCounter}
+              dsMode={delibState.dsMode}
               onArgumentClick={(argument) => {
                 setSelectedArgumentForActions(argument);
               }}
               onViewDialogueMove={(moveId, delibId) => {
-                setHighlightedDialogueMoveId(moveId);
-                setTab("dialogue");
+                delibActions.setHighlightedDialogueMoveId(moveId);
+                delibActions.setTab("dialogue");
               }}
               onVisibleTextsChanged={(texts) => {
                 // Event dispatch is handled inside ArgumentsTab
               }}
-              onTabChange={setTab}
-              setHighlightedDialogueMoveId={setHighlightedDialogueMoveId}
+              onTabChange={delibActions.setTab}
+              setHighlightedDialogueMoveId={delibActions.setHighlightedDialogueMoveId}
             />
           </TabsContent>
 
@@ -1473,7 +1377,7 @@ const {
                   <DialogueAwareGraphPanel
                     deliberationId={deliberationId}
                     initialShowDialogue={true}
-                    highlightMoveId={highlightedDialogueMoveId}
+                    highlightMoveId={delibState.highlightedDialogueMoveId}
                     className="w-full"
                     renderGraph={(nodes, edges) => {
                       // Convert dialogue-aware nodes/edges to AIF format for visualization
@@ -1549,27 +1453,27 @@ const {
               action={
                 <div className="flex gap-2">
                   <button
-                    className={clsx("px-3 py-1 text-xs rounded", cardFilter === 'all' ? "bg-slate-200" : "bg-slate-100")}
-                    onClick={() => setCardFilter('all')}
+                    className={clsx("px-3 py-1 text-xs rounded", delibState.cardFilter === 'all' ? "bg-slate-200" : "bg-slate-100")}
+                    onClick={() => delibActions.setCardFilter('all')}
                   >
                     All
                   </button>
                   <button
-                    className={clsx("px-3 py-1 text-xs rounded", cardFilter === 'mine' ? "bg-slate-200" : "bg-slate-100")}
-                    onClick={() => setCardFilter('mine')}
+                    className={clsx("px-3 py-1 text-xs rounded", delibState.cardFilter === 'mine' ? "bg-slate-200" : "bg-slate-100")}
+                    onClick={() => delibActions.setCardFilter('mine')}
                   >
                     Mine
                   </button>
                   <button
-                    className={clsx("px-3 py-1 text-xs rounded", cardFilter === 'published' ? "bg-slate-200" : "bg-slate-100")}
-                    onClick={() => setCardFilter('published')}
+                    className={clsx("px-3 py-1 text-xs rounded", delibState.cardFilter === 'published' ? "bg-slate-200" : "bg-slate-100")}
+                    onClick={() => delibActions.setCardFilter('published')}
                   >
                     Published
                   </button>
                 </div>
               }
             >
-              {cardFilter === 'all' && (
+              {delibState.cardFilter === 'all' && (
                 <CardListVirtuoso
                   deliberationId={deliberationId}
                   filters={{
@@ -1580,7 +1484,7 @@ const {
                   }}
                 />
               )}
-              {cardFilter === 'mine' && (
+              {delibState.cardFilter === 'mine' && (
                 <CardListVirtuoso
                   deliberationId={deliberationId}
                   filters={{
@@ -1589,7 +1493,7 @@ const {
                   }}
                 />
               )}
-              {cardFilter === 'published' && (
+              {delibState.cardFilter === 'published' && (
                 <CardListVirtuoso
                   deliberationId={deliberationId}
                   filters={{
@@ -1824,13 +1728,17 @@ const {
           </TabsContent>
 
           {/* ASPIC TAB  */}
-          <TabsContent value="aspic" className="w-full min-w-0 mt-4 space-y-4">
+          {/* ASPIC TAB - Migrated to Arguments → ASPIC nested tab (Week 2 Task 2.5) */}
+          {/* <TabsContent value="aspic" className="w-full min-w-0 mt-4 space-y-4">
             <AspicTheoryPanel deliberationId={deliberationId} />
-          </TabsContent>
+          </TabsContent> */}
 
           {/* HOM-SETS TAB - Phase 3 Integration */}
           <TabsContent value="analytics" className="w-full min-w-0 mt-4 space-y-4">
-            <HomSetsTab deliberationId={deliberationId} />
+            <AnalyticsTab 
+              deliberationId={deliberationId}
+              currentUserId={authorId}
+            />
           </TabsContent>
         </Tabs>
       </div>

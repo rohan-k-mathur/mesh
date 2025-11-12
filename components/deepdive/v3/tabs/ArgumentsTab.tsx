@@ -7,6 +7,7 @@ import { SectionCard } from "@/components/deepdive/shared";
 import AIFArgumentsListPro from "@/components/arguments/AIFArgumentsListPro";
 import { SchemesSection } from "../sections/SchemesSection";
 import { NetworksSection } from "../sections/NetworksSection";
+import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
 
 interface ArgumentsTabProps {
   deliberationId: string;
@@ -103,29 +104,7 @@ export function ArgumentsTab({
           value: "aspic",
           label: "ASPIC",
           icon: <Shield className="size-3.5" />,
-          content: (
-            <SectionCard 
-              title="ASPIC Theory Analysis" 
-              subtitle="Abstract argumentation semantics"
-              className="w-full" 
-              padded={true}
-            >
-              <div className="rounded-lg border border-purple-200 bg-purple-50 p-6 text-center">
-                <Shield className="mx-auto mb-3 size-12 text-purple-600" />
-                <h3 className="mb-2 text-lg font-semibold text-purple-900">
-                  ASPIC Section - To Be Migrated
-                </h3>
-                <p className="text-sm text-purple-700">
-                  This will contain the existing ASPIC tab content with nested sub-tabs.
-                  <br />
-                  Sub-tabs: Graph | Extension | Rationality
-                </p>
-                <p className="mt-3 text-xs text-purple-600">
-                  Task 2.5: Migrate ASPIC content from parent tab
-                </p>
-              </div>
-            </SectionCard>
-          ),
+          content: <AspicTheoryPanel deliberationId={deliberationId} />,
         },
       ]}
     />
