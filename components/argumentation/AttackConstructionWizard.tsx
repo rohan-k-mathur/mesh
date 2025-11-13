@@ -56,8 +56,12 @@ export function AttackConstructionWizard({
   // State
   const [currentStep, setCurrentStep] = useState<WizardStep>("overview");
   const [template, setTemplate] = useState<ArgumentTemplate | null>(null);
+  
+  // Simplified state for CQ-based attacks
+  const [attackText, setAttackText] = useState<string>("");
+  const [evidenceLinks, setEvidenceLinks] = useState<string[]>([]);
+  
   const [filledPremises, setFilledPremises] = useState<Record<string, string>>({});
-  const [evidenceLinks, setEvidenceLinks] = useState<Record<string, string[]>>({});
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +75,16 @@ export function AttackConstructionWizard({
 
   // Load template on mount
   useEffect(() => {
-    loadTemplate();
+    // If suggestion already has template, use it directly
+    if (suggestion.template) {
+      setTemplate(suggestion.template);
+      if (suggestion.template.prefilledPremises) {
+        setFilledPremises(suggestion.template.prefilledPremises);
+      }
+    } else {
+      // Otherwise, fetch from API
+      loadTemplate();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suggestion]);
 
@@ -416,10 +429,10 @@ function OverviewStep({ suggestion, template, onNext, onCancel }: OverviewStepPr
         <div className="space-y-3">
           <h3 className="font-medium">Construction Steps</h3>
           <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-            {template.constructionSteps.slice(0, 3).map((step, idx) => (
+            {(template.constructionSteps || []).slice(0, 3).map((step, idx) => (
               <li key={idx}>{step}</li>
             ))}
-            {template.constructionSteps.length > 3 && (
+            {(template.constructionSteps || []).length > 3 && (
               <li className="text-xs italic">
                 +{template.constructionSteps.length - 3} more steps
               </li>
@@ -433,10 +446,10 @@ function OverviewStep({ suggestion, template, onNext, onCancel }: OverviewStepPr
         <div className="space-y-3">
           <h3 className="font-medium">Evidence You&apos;ll Need</h3>
           <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-            {template.evidenceRequirements.slice(0, 3).map((req, idx) => (
+            {(template.evidenceRequirements || []).slice(0, 3).map((req, idx) => (
               <li key={idx}>{req}</li>
             ))}
-            {template.evidenceRequirements.length > 3 && (
+            {(template.evidenceRequirements || []).length > 3 && (
               <li className="text-xs italic">
                 +{template.evidenceRequirements.length - 3} more types
               </li>

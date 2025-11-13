@@ -15,6 +15,8 @@ export interface NetCriticalQuestion {
   questionText: string;
   questionCategory: string;
   priority: "critical" | "high" | "medium" | "low";
+  burdenOfProof?: "proponent" | "challenger" | "PROPONENT" | "CHALLENGER"; // Week 5 Task 5.3
+  requiresEvidence?: boolean; // Week 5 Task 5.3
   context: {
     netId: string;
     schemeRole?: string;
@@ -123,6 +125,8 @@ export class NetAwareCQService {
 
       // Convert scheme CQs to net-aware format
       for (const cq of schemeData.cqs) {
+        const burden = this.determineBurden(cq, scheme); // Week 5 Task 5.3
+        
         questions.push({
           id: `cq-${cq.id}-${scheme.schemeId}`,
           type: "scheme",
@@ -131,6 +135,8 @@ export class NetAwareCQService {
           questionText: this.contextualizeQuestion(cq.text || "", scheme),
           questionCategory: cq.cqKey || "general",
           priority: this.determinePriority(scheme, cq),
+          burdenOfProof: burden.burdenOfProof, // Week 5 Task 5.3
+          requiresEvidence: burden.requiresEvidence, // Week 5 Task 5.3
           context: {
             netId: net.id,
             schemeRole: scheme.role,
@@ -738,6 +744,54 @@ export class NetAwareCQService {
     }
 
     return "medium";
+  }
+
+  /**
+   * Week 5 Task 5.3: Determine burden of proof for a CQ
+   * 
+   * Burden logic:
+   * - "proponent": Asking the question alone shifts burden back (easy for challenger)
+   * - "challenger": Requires evidence to make the challenge stick (hard for challenger)
+   */
+  private determineBurden(
+    cq: any,
+    scheme: SchemeInstance
+  ): { burdenOfProof: "proponent" | "challenger"; requiresEvidence: boolean } {
+    const cqKeyLower = (cq.cqKey || "").toLowerCase();
+    
+    // CQs that require evidence (challenger bears burden)
+    if (
+      cqKeyLower.includes("bias") ||
+      cqKeyLower.includes("inconsistent") ||
+      cqKeyLower.includes("conflict") ||
+      cqKeyLower.includes("exception") ||
+      cq.attackType === "UNDERMINES"
+    ) {
+      return {
+        burdenOfProof: "challenger",
+        requiresEvidence: true,
+      };
+    }
+
+    // CQs that are challenging but don't require hard evidence (moderate)
+    if (
+      cqKeyLower.includes("plausible") ||
+      cqKeyLower.includes("acceptable") ||
+      cqKeyLower.includes("relevant") ||
+      scheme.confidence < 60
+    ) {
+      return {
+        burdenOfProof: "challenger",
+        requiresEvidence: false,
+      };
+    }
+
+    // Default: Proponent bears burden (question alone shifts burden back)
+    // These are "advantage" questions for the challenger
+    return {
+      burdenOfProof: "proponent",
+      requiresEvidence: false,
+    };
   }
 
   private generateActions(cq: any, scheme: SchemeInstance): string[] {

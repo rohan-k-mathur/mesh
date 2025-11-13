@@ -272,7 +272,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
           <div className="px-3 py-2">
             <button
               onClick={() => setShowAttackModal(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 btnv2 text-white text-sm font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2  btnv2 text-slate-700 text-sm font-medium rounded-lg "
             >
              
               Create ASPIC+ Attack

@@ -262,7 +262,7 @@ function SectionHeader({
   );
 }
 
-function AttackItem({ attack }: { attack: any }) {
+function AttackItem({ attack, deliberationId, onAnyChange }: { attack: any; deliberationId: string; onAnyChange?: () => void }) {
   const attackType = ATTACK_TYPES[attack.attackType as keyof typeof ATTACK_TYPES];
   const Icon = attackType?.icon || Shield;
   
@@ -297,13 +297,9 @@ function AttackItem({ attack }: { attack: any }) {
 
   return (
     <div 
-      className={`
-        flex items-start justify-between gap-3 p-3 rounded-lg border
-        ${state.bgClass} ${state.borderClass}
-        transition-all duration-200
-      `}
+      className="flex flex-col gap-2 p-3 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors"
     >
-      <div className="flex items-start gap-2 flex-1">
+      <div className="flex items-start gap-2">
         <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${attackType?.textClass || "text-slate-600"}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -322,10 +318,29 @@ function AttackItem({ attack }: { attack: any }) {
                 ⚔️ {aspicStyle.label}
               </span>
             )}
+            {/* Dialogue State Badge */}
+            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${state.badgeClass}`}>
+              <StateIcon className="w-3 h-3" />
+              {state.label}
+            </span>
           </div>
-          {/* <p className={`text-xs ${state.textClass} leading-relaxed`}>
-            {attackType?.description || "Attack on argument"}
-          </p> */}
+          {/* Display claim text if available */}
+          {attack.claimText && (
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {attack.claimText}
+            </p>
+          )}
+          
+          {/* Collapsible Claim Details */}
+          {attack.fromClaimId && (
+            <ClaimDetailPanel 
+              claimId={attack.fromClaimId}
+              deliberationId={deliberationId}
+              claimText={attack.claimText || ""}
+              className="mt-2"
+            />
+          )}
+          
           {(attack.whyCount > 0 || attack.groundsCount > 0) && (
             <div className="flex items-center gap-2 mt-1.5">
               {attack.whyCount > 0 && (
@@ -341,12 +356,17 @@ function AttackItem({ attack }: { attack: any }) {
             </div>
           )}
         </div>
-      </div>
-      <div className="shrink-0">
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${state.badgeClass}`}>
-          <StateIcon className="w-3 h-3" />
-          {state.label}
-        </span>
+        {/* Dialogue Actions for Attack Claim */}
+        {attack.fromClaimId && (
+          <DialogueActionsButton
+            deliberationId={deliberationId}
+            targetType="claim"
+            targetId={attack.fromClaimId}
+            locusPath="0"
+            variant="icon"
+            onMovePerformed={onAnyChange}
+          />
+        )}
       </div>
     </div>
   );
@@ -383,6 +403,7 @@ export function ArgumentCardV2({
   });
   const [loading, setLoading] = React.useState(false);
   const [attacks, setAttacks] = React.useState<any[]>([]);
+  const [attackCount, setAttackCount] = React.useState<number>(0); // Track count separately
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
   const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
   const [schemeDialogOpen, setSchemeDialogOpen] = React.useState(false);
@@ -508,6 +529,69 @@ export function ArgumentCardV2({
     return () => window.removeEventListener("citations:changed", handler);
   }, [id]);
 
+  // Fetch attack count (always, not just when expanded)
+  React.useEffect(() => {
+    const fetchAttackCount = async () => {
+      try {
+        const [edgesRes, caRes] = await Promise.all([
+          fetch(`/api/arguments/${id}/attacks`, { cache: "no-store" }),
+          fetch(`/api/ca?targetArgumentId=${id}`, { cache: "no-store" })
+        ]);
+
+        const edgesData = edgesRes.ok ? await edgesRes.json() : { items: [] };
+        const caData = caRes.ok ? await caRes.json() : { items: [] };
+
+        const edgeCount = (edgesData.items || []).length;
+        const caCount = (caData.items || []).filter((ca: any) => 
+          ca.conflictedArgumentId === id && ca.legacyAttackType
+        ).length;
+
+        setAttackCount(edgeCount + caCount);
+      } catch (err) {
+        console.error("Failed to fetch attack count:", err);
+      }
+    };
+
+    fetchAttackCount();
+  }, [id]);
+
+  // Listen for changes that should trigger attack count refresh
+  React.useEffect(() => {
+    const handler = () => {
+      // Re-trigger attack count fetch
+      (async () => {
+        try {
+          const [edgesRes, caRes] = await Promise.all([
+            fetch(`/api/arguments/${id}/attacks`, { cache: "no-store" }),
+            fetch(`/api/ca?targetArgumentId=${id}`, { cache: "no-store" })
+          ]);
+
+          const edgesData = edgesRes.ok ? await edgesRes.json() : { items: [] };
+          const caData = caRes.ok ? await caRes.json() : { items: [] };
+
+          const edgeCount = (edgesData.items || []).length;
+          const caCount = (caData.items || []).filter((ca: any) => 
+            ca.conflictedArgumentId === id && ca.legacyAttackType
+          ).length;
+
+          setAttackCount(edgeCount + caCount);
+        } catch (err) {
+          console.error("Failed to refresh attack count:", err);
+        }
+      })();
+    };
+    
+    window.addEventListener("claims:changed", handler);
+    window.addEventListener("arguments:changed", handler);
+    window.addEventListener("dialogue:moves:refresh", handler);
+    
+    return () => {
+      window.removeEventListener("claims:changed", handler);
+      window.removeEventListener("arguments:changed", handler);
+      window.removeEventListener("dialogue:moves:refresh", handler);
+    };
+  }, [id]);
+
   // Fetch attacks when attacks section is expanded
   React.useEffect(() => {
     if (!expandedSections.attacks) return;
@@ -534,22 +618,42 @@ export function ArgumentCardV2({
           source: "edge"
         }));
 
-        const caAttacks = (caData.items || [])
-          .filter((ca: any) => ca.conflictedArgumentId === id && ca.legacyAttackType)
-          .map((ca: any) => ({
-            id: ca.id,
-            attackType: ca.legacyAttackType,
-            targetScope: ca.legacyTargetScope,
-            fromArgumentId: ca.conflictingArgumentId,
-            fromClaimId: ca.conflictingClaimId,
-            aspicAttackType: ca.aspicAttackType, // Phase 8: ASPIC+ attack type
-            whyCount: 0,
-            groundsCount: 0,
-            dialogueStatus: "neutral",
-            source: "ca"
-          }));
+        const filteredCAs = (caData.items || [])
+          .filter((ca: any) => ca.conflictedArgumentId === id && ca.legacyAttackType);
 
-        setAttacks([...edgeAttacks, ...caAttacks]);
+        // Fetch claim text for CA attacks
+        const caAttacksWithText = await Promise.all(
+          filteredCAs.map(async (ca: any) => {
+            let claimText = null;
+            if (ca.conflictingClaimId) {
+              try {
+                const claimRes = await fetch(`/api/claims/${ca.conflictingClaimId}`, { cache: "no-store" });
+                if (claimRes.ok) {
+                  const claimData = await claimRes.json();
+                  claimText = claimData.claim?.text || claimData.text || null;
+                }
+              } catch (err) {
+                console.error("Failed to fetch claim text:", err);
+              }
+            }
+
+            return {
+              id: ca.id,
+              attackType: ca.legacyAttackType,
+              targetScope: ca.legacyTargetScope,
+              fromArgumentId: ca.conflictingArgumentId,
+              fromClaimId: ca.conflictingClaimId,
+              claimText, // Add claim text
+              aspicAttackType: ca.aspicAttackType,
+              whyCount: 0,
+              groundsCount: 0,
+              dialogueStatus: "neutral",
+              source: "ca"
+            };
+          })
+        );
+
+        setAttacks([...edgeAttacks, ...caAttacksWithText]);
       } catch (err) {
         console.error("Failed to fetch attacks:", err);
       } finally {
@@ -559,6 +663,27 @@ export function ArgumentCardV2({
 
     fetchAttacks();
   }, [expandedSections.attacks, id]);
+
+  // Listen for changes that should trigger attack refresh
+  React.useEffect(() => {
+    const handler = () => {
+      if (expandedSections.attacks) {
+        // Re-trigger attack fetch when claims or arguments change
+        setExpandedSections(prev => ({ ...prev, attacks: false }));
+        setTimeout(() => setExpandedSections(prev => ({ ...prev, attacks: true })), 100);
+      }
+    };
+    
+    window.addEventListener("claims:changed", handler);
+    window.addEventListener("arguments:changed", handler);
+    window.addEventListener("dialogue:moves:refresh", handler);
+    
+    return () => {
+      window.removeEventListener("claims:changed", handler);
+      window.removeEventListener("arguments:changed", handler);
+      window.removeEventListener("dialogue:moves:refresh", handler);
+    };
+  }, [expandedSections.attacks]);
 
   const handleRefresh = React.useCallback(() => {
     if (expandedSections.attacks) {
@@ -753,7 +878,14 @@ export function ArgumentCardV2({
                 </>
               )}
 
-              {totalAttacks > 0 && (
+              {/* Attack badges - show simple count when collapsed, detailed when expanded */}
+              {attackCount > 0 && !expandedSections.attacks && (
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+                  <Shield className="w-3 h-3" />
+                  <span>{attackCount} {attackCount === 1 ? "Challenge" : "Challenges"}</span>
+                </div>
+              )}
+              {totalAttacks > 0 && expandedSections.attacks && (
                 <>
                   {rebutAttacks.length > 0 && (
                     <AttackBadge 
@@ -1038,7 +1170,7 @@ export function ArgumentCardV2({
           <SectionHeader
             title="Challenges"
             icon={Shield}
-            count={totalAttacks}
+            count={attackCount}
             expanded={expandedSections.attacks}
             onToggle={() => toggleSection("attacks")}
           />
@@ -1052,13 +1184,28 @@ export function ArgumentCardV2({
               ) : attacks.length > 0 ? (
                 <>
                   {rebutAttacks.map(attack => (
-                    <AttackItem key={attack.id} attack={attack} />
+                    <AttackItem 
+                      key={attack.id} 
+                      attack={attack} 
+                      deliberationId={deliberationId}
+                      onAnyChange={onAnyChange}
+                    />
                   ))}
                   {undercutAttacks.map(attack => (
-                    <AttackItem key={attack.id} attack={attack} />
+                    <AttackItem 
+                      key={attack.id} 
+                      attack={attack} 
+                      deliberationId={deliberationId}
+                      onAnyChange={onAnyChange}
+                    />
                   ))}
                   {undermineAttacks.map(attack => (
-                    <AttackItem key={attack.id} attack={attack} />
+                    <AttackItem 
+                      key={attack.id} 
+                      attack={attack} 
+                      deliberationId={deliberationId}
+                      onAnyChange={onAnyChange}
+                    />
                   ))}
                 </>
               ) : (

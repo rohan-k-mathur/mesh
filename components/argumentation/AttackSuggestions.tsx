@@ -40,6 +40,7 @@ type FilterOption = "all" | "REBUTS" | "UNDERCUTS" | "UNDERMINES";
 interface AttackSuggestionsProps {
   targetClaimId: string;
   targetArgumentId?: string;
+  userId: string;
   onAttackSelect: (suggestion: AttackSuggestion) => void;
   className?: string;
 }
@@ -51,6 +52,7 @@ interface AttackSuggestionsProps {
 export function AttackSuggestions({
   targetClaimId,
   targetArgumentId,
+  userId,
   onAttackSelect,
   className = "",
 }: AttackSuggestionsProps) {
@@ -64,11 +66,20 @@ export function AttackSuggestions({
 
   // Load suggestions on mount
   useEffect(() => {
-    loadSuggestions();
+    if (userId) {
+      loadSuggestions();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetClaimId, targetArgumentId]);
+  }, [targetClaimId, targetArgumentId, userId]);
 
   async function loadSuggestions() {
+    if (!userId) {
+      console.error("[AttackSuggestions] Missing userId:", { userId, targetClaimId, targetArgumentId });
+      setError("User ID is required");
+      return;
+    }
+
+    console.log("[AttackSuggestions] Loading suggestions with:", { userId, targetClaimId, targetArgumentId });
     setIsLoading(true);
     setError(null);
 
@@ -79,6 +90,7 @@ export function AttackSuggestions({
         body: JSON.stringify({
           targetClaimId,
           targetArgumentId,
+          userId,
         }),
       });
 

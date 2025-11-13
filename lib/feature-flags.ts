@@ -42,7 +42,7 @@ export const featureFlags = {
    * Default: false (not yet implemented)
    * Environment: NEXT_PUBLIC_ENABLE_ARGUMENT_NET
    */
-  ENABLE_ARGUMENT_NET: process.env.NEXT_PUBLIC_ENABLE_ARGUMENT_NET === "true",
+  ENABLE_ARGUMENT_NET: process.env.NEXT_PUBLIC_ENABLE_ARGUMENT_NET !== "false",
 
   /**
    * Enable scheme pattern suggestions (Phase 3)

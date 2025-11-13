@@ -144,6 +144,7 @@ export type SchemePremise = {
 // Extended types for internal use
 type ArgumentWithSchemes = Argument & {
   claim: any;
+  conclusion?: any; // New relation using conclusionClaimId
   argumentSchemes?: any[];
 };
 
@@ -364,7 +365,8 @@ export class ArgumentGenerationService {
     const argument = await prisma.argument.findUnique({
       where: { id: argumentId },
       include: {
-        claim: true,
+        conclusion: true, // Use conclusion relation (conclusionClaimId)
+        claim: true,      // Keep old claim relation for backwards compatibility
         argumentSchemes: {
           include: {
             scheme: {
@@ -568,9 +570,28 @@ export class ArgumentGenerationService {
   ): Promise<AttackSuggestion> {
     // 1. Generate template for attacking via this CQ
     const attackSchemeId = this.getAttackSchemeForCQ(cq, scheme);
+    
+    // Get claimId - prefer conclusion (new), fall back to claim (old), then direct fields
+    const claimId = 
+      targetArgument.conclusion?.id ||
+      targetArgument.conclusionClaimId ||
+      targetArgument.claim?.id || 
+      targetArgument.claimId;
+      
+    if (!claimId) {
+      console.error("[buildAttackSuggestion] No claimId found for argument:", {
+        argumentId: targetArgument.id,
+        hasConclusionRelation: !!targetArgument.conclusion,
+        conclusionClaimId: targetArgument.conclusionClaimId,
+        hasClaimRelation: !!targetArgument.claim,
+        claimId: targetArgument.claimId,
+      });
+      throw new Error(`Argument ${targetArgument.id} has no associated claim`);
+    }
+    
     const template = await this.generateTemplate({
       schemeId: attackSchemeId,
-      claimId: targetArgument.claimId!,
+      claimId,
       attackType: cq.attackType as any,
       targetCQ: cq.id,
     });

@@ -305,17 +305,6 @@ const {
     maxNodes: 400,
   });
 
-   // Debug: Log when data changes
-  useEffect(() => {
-    console.log('Minimap data updated:', {
-      nodes: minimapNodes?.length,
-      edges: minimapEdges?.length,
-      loading: minimapLoading,
-      error: minimapError
-    });
-  }, [minimapNodes, minimapEdges, minimapLoading, minimapError]);
-
-
   // Fetch diagram data when node is selected
   useEffect(() => {
     if (!selectedNodeId) {

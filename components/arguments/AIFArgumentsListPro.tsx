@@ -492,6 +492,7 @@ function RowImpl({
   onArgumentClick,
   onViewDialogueMove,
   onAnalyzeArgument, // Week 5 Task 5.1: ArgumentNetAnalyzer callback
+  onGenerateAttack, // Week 6 Task 6.1: Attack generation callback
 }: {
   a: AifRow;
   meta?: AifMeta;
@@ -516,6 +517,7 @@ function RowImpl({
   }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
   onAnalyzeArgument?: (argumentId: string) => void; // Week 5 Task 5.1: ArgumentNetAnalyzer callback
+  onGenerateAttack?: (argumentId: string, claimId: string) => void; // Week 6 Task 6.1: Attack generation callback - receives both IDs
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -705,7 +707,7 @@ function RowImpl({
           
           <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} authorId={a.authorId} onDone={() => onRefreshRow(a.id)} />
 
-          <AttackMenuProV2
+          {/* <AttackMenuProV2
             deliberationId={deliberationId}
             authorId={a.authorId ?? 'current'}
             target={{
@@ -714,7 +716,7 @@ function RowImpl({
               premises: meta?.premises ?? [],
             }}
             onDone={() => onRefreshRow(a.id)}
-          />
+          /> */}
 
           <CommunityDefenseMenu
             deliberationId={deliberationId}
@@ -787,6 +789,22 @@ function RowImpl({
             >
               <Network className="w-4 h-4" />
               Analyze Net
+            </button>
+          )}
+
+          {/* Week 6 Task 6.1: Generate Attack button */}
+          {onGenerateAttack && meta?.conclusion?.id && (
+            <button
+              onClick={() => onGenerateAttack(a.id, meta.conclusion!.id)}
+              className="
+                inline-flex items-center gap-2 px-3 py-1.5 btnv2 rounded-lg text-xs font-medium
+                bg-rose-50 text-rose-700 border border-rose-200 
+                hover:bg-rose-100 transition-all duration-200 shadow-sm hover:shadow
+              "
+              title="Generate strategic attacks for this argument"
+            >
+              <Swords className="w-4 h-4" />
+              Generate Attack
             </button>
           )}
 
@@ -869,6 +887,7 @@ export default function AIFArgumentsListPro({
   onArgumentClick,
   onViewDialogueMove,
   onAnalyzeArgument, // Week 5 Task 5.1: ArgumentNetAnalyzer callback
+  onGenerateAttack, // Week 6 Task 6.1: Attack generation callback
 }: {
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
@@ -885,6 +904,7 @@ export default function AIFArgumentsListPro({
   }) => void;
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
   onAnalyzeArgument?: (argumentId: string) => void; // Week 5 Task 5.1: ArgumentNetAnalyzer callback
+  onGenerateAttack?: (argumentId: string, claimId: string) => void; // Week 6 Task 6.1: Attack generation callback - receives both argument ID and claim ID
 }) {
   // Fetch current user ID for permission checks (using same approach as DeepDivePanelV2)
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
@@ -1257,6 +1277,7 @@ export default function AIFArgumentsListPro({
                 onArgumentClick={onArgumentClick}
                 onViewDialogueMove={onViewDialogueMove}
                 onAnalyzeArgument={onAnalyzeArgument}
+                onGenerateAttack={onGenerateAttack}
               />
               </div>
             );

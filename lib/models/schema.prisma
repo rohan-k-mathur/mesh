@@ -2365,6 +2365,7 @@ model ArgumentSchemeInstance {
   @@index([argumentId, role, order])
 }
 
+
 // ============================
 // Phase 5: Nets of Argumentation Schemes
 // (Sequential composition of schemes for complex multi-step arguments)

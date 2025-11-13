@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
 import { List, Network, GitFork, Shield } from "lucide-react";
 import { SectionCard } from "@/components/deepdive/shared";
@@ -9,7 +9,11 @@ import { SchemesSection } from "../sections/SchemesSection";
 import { NetworksSection } from "../sections/NetworksSection";
 import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
 import { ArgumentNetAnalyzer } from "@/components/argumentation/ArgumentNetAnalyzer";
+import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
+import { AttackArgumentWizard } from "@/components/argumentation/AttackArgumentWizard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
+import { getUserFromCookies } from "@/lib/server/getUser";
 
 interface ArgumentsTabProps {
   deliberationId: string;
@@ -46,9 +50,31 @@ export function ArgumentsTab({
   onTabChange,
   setHighlightedDialogueMoveId,
 }: ArgumentsTabProps) {
+  // Week 6 Task 6.1: Fetch current user ID for attack generation
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    getUserFromCookies()
+      .then((u) => {
+        const userId = u?.userId != null ? String(u.userId) : null;
+        console.log("[ArgumentsTab] Fetched current user:", { userId, rawUser: u });
+        setCurrentUserId(userId);
+      })
+      .catch((err) => {
+        console.error("[ArgumentsTab] Failed to fetch current user:", err);
+        setCurrentUserId(null);
+      });
+  }, []);
+
   // Week 5 Task 5.1: ArgumentNetAnalyzer state
   const [netAnalyzerOpen, setNetAnalyzerOpen] = useState(false);
   const [selectedArgumentId, setSelectedArgumentId] = useState<string | null>(null);
+
+  // Week 6 Task 6.1: Attack generation state
+  const [attackTargetId, setAttackTargetId] = useState<string | null>(null); // This will be the argumentId
+  const [attackTargetClaimId, setAttackTargetClaimId] = useState<string | null>(null); // Conclusion claimId
+  const [selectedAttack, setSelectedAttack] = useState<AttackSuggestion | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [attackRefreshKey, setAttackRefreshKey] = useState(0);
 
   return (
     <>
@@ -93,6 +119,11 @@ export function ArgumentsTab({
                     setSelectedArgumentId(argId);
                     setNetAnalyzerOpen(true);
                   }}
+                  onGenerateAttack={(argId, claimId) => {
+                    // Week 6 Task 6.1: Open attack generation for this argument
+                    setAttackTargetId(argId);
+                    setAttackTargetClaimId(claimId);
+                  }}
                 />
                 <span className="block mt-2 text-xs text-neutral-500">
                   Note: This list shows all structured arguments in the deliberation&apos;s AIF database. 
@@ -135,6 +166,66 @@ export function ArgumentsTab({
               argumentId={selectedArgumentId}
               deliberationId={deliberationId}
               currentUserId={authorId}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Week 6 Task 6.1: Attack Suggestions Dialog */}
+      <Dialog 
+        open={!!attackTargetId && !wizardOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setAttackTargetId(null);
+            setAttackTargetClaimId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl bg-white max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generate Strategic Attack</DialogTitle>
+          </DialogHeader>
+          {attackTargetId && attackTargetClaimId && currentUserId && (
+            <AttackSuggestions
+              targetClaimId={attackTargetClaimId}
+              targetArgumentId={attackTargetId}
+              userId={currentUserId}
+              onAttackSelect={(suggestion) => {
+                console.log("[ArgumentsTab] Attack selected:", { suggestion, currentUserId });
+                setSelectedAttack(suggestion);
+                setWizardOpen(true);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Week 6 Task 6.1: Attack Construction Wizard Dialog */}
+      <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+        <DialogContent className="max-w-6xl bg-white max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Construct Attack</DialogTitle>
+          </DialogHeader>
+          {attackTargetId && attackTargetClaimId && selectedAttack && currentUserId && (
+            <AttackArgumentWizard
+              suggestion={selectedAttack}
+              targetArgumentId={attackTargetId}
+              targetClaimId={attackTargetClaimId}
+              deliberationId={deliberationId}
+              currentUserId={currentUserId}
+              onComplete={(attackClaimId) => {
+                console.log("[ArgumentsTab] Attack completed, claim ID:", attackClaimId);
+                // Refresh arguments list
+                setAttackRefreshKey((prev) => prev + 1);
+                setWizardOpen(false);
+                setAttackTargetId(null);
+                setAttackTargetClaimId(null);
+                setSelectedAttack(null);
+              }}
+              onCancel={() => {
+                setWizardOpen(false);
+                setSelectedAttack(null);
+              }}
             />
           )}
         </DialogContent>

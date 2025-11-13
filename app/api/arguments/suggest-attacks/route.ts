@@ -10,9 +10,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { argumentGenerationService } from "@/app/server/services/ArgumentGenerationService";
+import { getUserFromCookies } from "@/lib/serverutils";
 
 export async function POST(request: NextRequest) {
   try {
+    // 0. Check authentication
+    const user = await getUserFromCookies();
+    if (!user || !user.userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - please log in" },
+        { status: 401 }
+      );
+    }
+
     // 1. Parse request body
     const body = await request.json();
     const {
@@ -29,18 +39,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
+    // Use authenticated user's ID if not provided
+    const effectiveUserId = userId || String(user.userId);
 
     // 2. Generate suggestions
     const suggestions = await argumentGenerationService.suggestAttacks({
       targetClaimId,
       targetArgumentId,
-      userId,
+      userId: effectiveUserId,
       context,
     });
 
