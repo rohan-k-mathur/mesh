@@ -21,18 +21,27 @@ import {
   ArrowLeft,
   ArrowRight,
   Save,
+  BookOpenText,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   FileText,
   Edit,
   Upload,
   Eye,
   Clock,
   Loader2,
+  List,
+  Network,
+  GitFork,
+  Shield,
+  Plus,
   X,
 } from "lucide-react";
+
 import { useArgumentScoring } from "@/hooks/useArgumentScoring";
+import CitationCollector, { type PendingCitation } from "@/components/citations/CitationCollector";
+import { createClaim } from "@/lib/client/aifApi";
+import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
 
 // ============================================================================
 // Types
@@ -40,6 +49,12 @@ import { useArgumentScoring } from "@/hooks/useArgumentScoring";
 
 export type ArgumentMode = "attack" | "support" | "general";
 export type WizardStep = "scheme" | "template" | "premises" | "evidence" | "review";
+
+export type AttackContext =
+  | { mode: "REBUTS"; targetClaimId: string; hint?: string }
+  | { mode: "UNDERCUTS"; targetArgumentId: string; hint?: string }
+  | { mode: "UNDERMINES"; targetPremiseId: string; hint?: string }
+  | null;
 
 export interface AttackSuggestion {
   attackType: "REBUTS" | "UNDERCUTS" | "UNDERMINES";
@@ -66,6 +81,11 @@ export interface ArgumentTemplate {
   variables: Record<string, string>;
   constructionSteps: string[];
   evidenceRequirements: string[];
+  formalStructure?: {
+    majorPremise?: string;
+    minorPremise?: string;
+    conclusion?: string;
+  };
 }
 
 export interface ArgumentDraft {
@@ -82,8 +102,10 @@ interface ArgumentConstructorProps {
   mode: ArgumentMode;
   targetId: string; // claimId or argumentId
   deliberationId: string;
+  currentUserId: string; // NEW: Required for creating claims
   // For attack mode
   suggestion?: AttackSuggestion;
+  attackContext?: AttackContext; // NEW: Structured attack context for CA creation
   // For support mode
   supportSuggestion?: SupportSuggestion;
   // Callbacks
@@ -100,7 +122,9 @@ export function ArgumentConstructor({
   mode,
   targetId,
   deliberationId,
+  currentUserId,
   suggestion,
+  attackContext,
   supportSuggestion,
   onComplete,
   onCancel,
@@ -118,17 +142,29 @@ export function ArgumentConstructor({
   const [template, setTemplate] = useState<ArgumentTemplate | null>(null);
   const [filledPremises, setFilledPremises] = useState<Record<string, string>>({});
   const [evidenceLinks, setEvidenceLinks] = useState<Record<string, string[]>>({});
+  const [pendingCitations, setPendingCitations] = useState<PendingCitation[]>([]);
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false); // Disabled until drafts API is implemented
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Claim picker state
+  const [showClaimPicker, setShowClaimPicker] = useState<string | null>(null); // premise key or "conclusion"
+  const [pickedClaimIds, setPickedClaimIds] = useState<Record<string, string>>({}); // premise key -> claim ID
+
+  // Structured premises state (for schemes with formalStructure)
+  const [usesStructuredPremises, setUsesStructuredPremises] = useState(false);
+  const [majorPremise, setMajorPremise] = useState<{ id?: string; text: string } | null>(null);
+  const [minorPremise, setMinorPremise] = useState<{ id?: string; text: string } | null>(null);
+
   // Real-time scoring
+  // For general mode, we don't have a targetClaimId yet, so pass null
+  const scoringTargetId = mode === "general" ? null : targetId;
   const { score, isScoring } = useArgumentScoring(
     selectedScheme || "",
-    targetId,
+    scoringTargetId,
     filledPremises
   );
 
@@ -166,6 +202,18 @@ export function ArgumentConstructor({
       const data = await response.json();
       setTemplate(data.template);
 
+      // Detect if scheme uses structured premises (major/minor)
+      const hasFormalStructure = 
+        data.template.formalStructure?.majorPremise && 
+        data.template.formalStructure?.minorPremise;
+      setUsesStructuredPremises(!!hasFormalStructure);
+      
+      console.log("[ArgumentConstructor] Template loaded:", {
+        schemeName: data.template.schemeName,
+        hasFormalStructure,
+        premisesCount: data.template.premises.length
+      });
+
       // Initialize variables
       if (data.template.variables) {
         setVariables(data.template.variables);
@@ -178,6 +226,10 @@ export function ArgumentConstructor({
   }, [selectedScheme, targetId, mode, suggestion]);
 
   const loadDraft = useCallback(async () => {
+    // Disabled until drafts API is implemented
+    return;
+    
+    /* eslint-disable-next-line no-unreachable */
     try {
       const response = await fetch(
         `/api/arguments/drafts?targetId=${targetId}&mode=${mode}`
@@ -199,6 +251,10 @@ export function ArgumentConstructor({
   }, [targetId, mode]);
 
   const saveDraft = useCallback(async () => {
+    // Disabled until drafts API is implemented
+    return;
+    
+    /* eslint-disable-next-line no-unreachable */
     if (!selectedScheme) return;
 
     setIsSaving(true);
@@ -303,6 +359,30 @@ export function ArgumentConstructor({
     }
   }
 
+  // Claim picker handler
+  function handleClaimPicked(item: { id: string; label: string }, premiseKey: string) {
+    // Store the picked claim ID
+    setPickedClaimIds(prev => ({ ...prev, [premiseKey]: item.id }));
+    // Fill the premise text with the claim's text
+    setFilledPremises(prev => ({ ...prev, [premiseKey]: item.label }));
+    // Close picker
+    setShowClaimPicker(null);
+  }
+
+  // Helper to create ConflictApplication record for attacks
+  async function postCA(body: any) {
+    const response = await fetch("/api/ca", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result?.ok === false) {
+      throw new Error(result?.error || `HTTP ${response.status}`);
+    }
+    return result;
+  }
+
   // Submission
   async function handleSubmit() {
     if (!template) return;
@@ -311,20 +391,74 @@ export function ArgumentConstructor({
     setError(null);
 
     try {
-      const argumentText = generateArgumentText();
+      console.log("[ArgumentConstructor] Starting argument creation...");
+      
+      // Step 1: Create Claims for premises (or use picked claims)
+      const premiseClaimIds: string[] = [];
+      for (const premise of template.premises) {
+        const premiseText = filledPremises[premise.key];
+        if (!premiseText || !premiseText.trim()) {
+          throw new Error(`Missing required premise: ${premise.key}`);
+        }
+        
+        // Check if user picked an existing claim for this premise
+        if (pickedClaimIds[premise.key]) {
+          console.log(`[ArgumentConstructor] Using picked claim for premise ${premise.key}:`, pickedClaimIds[premise.key]);
+          premiseClaimIds.push(pickedClaimIds[premise.key]);
+        } else {
+          // Create new claim
+          console.log(`[ArgumentConstructor] Creating claim for premise ${premise.key}:`, premiseText);
+          const claimId = await createClaim({
+            deliberationId,
+            authorId: currentUserId,
+            text: premiseText.trim(),
+          });
+          premiseClaimIds.push(claimId);
+        }
+      }
+      
+      console.log("[ArgumentConstructor] Premise claims:", premiseClaimIds);
 
+      // Step 2: Create or get conclusion Claim
+      let conclusionClaimId: string;
+      const conclusionText = template.conclusion.trim();
+      
+      // For attack/support modes, conclusion might already exist or be derived
+      if (mode === "attack" || mode === "support") {
+        // For now, create a new claim for the conclusion
+        // TODO: In future, may want to reference existing target claim
+        console.log("[ArgumentConstructor] Creating conclusion claim:", conclusionText);
+        conclusionClaimId = await createClaim({
+          deliberationId,
+          authorId: currentUserId,
+          text: conclusionText,
+        });
+      } else {
+        // General mode: create conclusion claim
+        console.log("[ArgumentConstructor] Creating conclusion claim:", conclusionText);
+        conclusionClaimId = await createClaim({
+          deliberationId,
+          authorId: currentUserId,
+          text: conclusionText,
+        });
+      }
+      
+      console.log("[ArgumentConstructor] Created conclusion claim:", conclusionClaimId);
+
+      // Step 3: Create argument with claim IDs
+      const argumentText = generateArgumentText();
+      console.log("[ArgumentConstructor] Creating argument with", premiseClaimIds.length, "premises");
+      
       const response = await fetch("/api/arguments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode,
           deliberationId,
-          targetId,
+          authorId: currentUserId,
+          conclusionClaimId,
+          premiseClaimIds,
           schemeId: selectedScheme,
           text: argumentText,
-          premises: filledPremises,
-          evidenceLinks,
-          score: score?.overallScore || 0,
           attackType: mode === "attack" ? suggestion?.attackType : undefined,
         }),
       });
@@ -334,15 +468,160 @@ export function ArgumentConstructor({
       }
 
       const data = await response.json();
+      const argumentId = data.argument.id;
+      console.log("[ArgumentConstructor] Created argument:", argumentId);
 
-      // Delete draft after successful submission
-      try {
-        await fetch(`/api/arguments/drafts?targetId=${targetId}&mode=${mode}`, {
-          method: "DELETE",
-        });
-      } catch (err) {
-        console.error("Failed to delete draft:", err);
+      // Step 4: Create ConflictApplication if this is an attack
+      if (attackContext || (mode === "attack" && suggestion)) {
+        console.log("[ArgumentConstructor] Creating ConflictApplication for attack");
+        
+        try {
+          // Determine attack details from attackContext or suggestion
+          const attackType = attackContext?.mode || suggestion?.attackType;
+          
+          if (attackContext?.mode === "REBUTS") {
+            await postCA({
+              deliberationId,
+              conflictingClaimId: conclusionClaimId,
+              conflictedClaimId: attackContext.targetClaimId,
+              legacyAttackType: "REBUTS",
+              legacyTargetScope: "conclusion",
+            });
+            console.log("[ArgumentConstructor] Created REBUTS ConflictApplication");
+          } else if (attackContext?.mode === "UNDERCUTS") {
+            await postCA({
+              deliberationId,
+              conflictingClaimId: conclusionClaimId,
+              conflictedArgumentId: attackContext.targetArgumentId,
+              legacyAttackType: "UNDERCUTS",
+              legacyTargetScope: "inference",
+            });
+            console.log("[ArgumentConstructor] Created UNDERCUTS ConflictApplication");
+          } else if (attackContext?.mode === "UNDERMINES") {
+            await postCA({
+              deliberationId,
+              conflictingClaimId: conclusionClaimId,
+              conflictedClaimId: attackContext.targetPremiseId,
+              legacyAttackType: "UNDERMINES",
+              legacyTargetScope: "premise",
+            });
+            console.log("[ArgumentConstructor] Created UNDERMINES ConflictApplication");
+          } else if (mode === "attack" && suggestion?.attackType) {
+            // Fallback to suggestion-based attack (using targetId)
+            // Assume targetId is the claim or argument being attacked
+            const isArgumentAttack = suggestion.attackType === "UNDERCUTS";
+            
+            await postCA({
+              deliberationId,
+              conflictingClaimId: conclusionClaimId,
+              ...(isArgumentAttack 
+                ? { conflictedArgumentId: targetId }
+                : { conflictedClaimId: targetId }
+              ),
+              legacyAttackType: suggestion.attackType,
+              legacyTargetScope: 
+                suggestion.attackType === "REBUTS" ? "conclusion" :
+                suggestion.attackType === "UNDERCUTS" ? "inference" :
+                "premise",
+            });
+            console.log(`[ArgumentConstructor] Created ${suggestion.attackType} ConflictApplication (fallback)`);
+          }
+        } catch (caError) {
+          console.error("[ArgumentConstructor] Failed to create ConflictApplication:", caError);
+          // Don't fail the whole submission if CA creation fails
+          setError(`Warning: Argument created but attack link failed: ${caError instanceof Error ? caError.message : "Unknown error"}`);
+        }
       }
+
+      // Attach citations to the argument (if any)
+      if (pendingCitations.length > 0) {
+        console.log("[ArgumentConstructor] Attaching citations to argument:", argumentId);
+        await Promise.allSettled(
+          pendingCitations.map(async (citation, idx) => {
+            try {
+              console.log(`[ArgumentConstructor] Processing citation ${idx + 1}:`, citation);
+              
+              // Validate citation has required fields
+              if (!citation || !citation.type || !citation.value) {
+                console.warn(`[ArgumentConstructor] Citation ${idx + 1} missing required fields, skipping`);
+                return;
+              }
+              
+              // First resolve the source
+              let resolvePayload: any = {};
+              if (citation.type === "url") {
+                resolvePayload = { url: citation.value, meta: { title: citation.title } };
+              } else if (citation.type === "doi") {
+                resolvePayload = { doi: citation.value };
+              } else if (citation.type === "library") {
+                resolvePayload = { libraryPostId: citation.value, meta: { title: citation.title } };
+              } else {
+                console.warn(`[ArgumentConstructor] Unknown citation type: ${citation.type}, skipping`);
+                return;
+              }
+
+              const resolveRes = await fetch("/api/citations/resolve", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(resolvePayload),
+              });
+              
+              if (!resolveRes.ok) {
+                console.error(`[ArgumentConstructor] Resolve failed:`, resolveRes.status);
+                return;
+              }
+              
+              const resolveData = await resolveRes.json();
+              console.log(`[ArgumentConstructor] Resolve response:`, resolveData);
+              
+              const source = resolveData?.source;
+              if (!source || !source.id) {
+                console.warn(`[ArgumentConstructor] No valid source returned for citation ${idx + 1}`);
+                return;
+              }
+
+              // Then attach the citation to the argument
+              const attachPayload = {
+                targetType: "argument",
+                targetId: argumentId,
+                sourceId: source.id,
+                locator: citation.locator || undefined,
+                quote: citation.quote || "",
+                note: citation.note || undefined,
+              };
+              
+              const attachRes = await fetch("/api/citations/attach", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(attachPayload),
+              });
+              
+              if (!attachRes.ok) {
+                console.error(`[ArgumentConstructor] Attach failed:`, attachRes.status);
+                return;
+              }
+              
+              console.log(`[ArgumentConstructor] Citation ${idx + 1} attached successfully`);
+            } catch (citErr) {
+              console.error(`[ArgumentConstructor] Failed to attach citation ${idx + 1}:`, citErr);
+            }
+          })
+        );
+        
+        console.log("[ArgumentConstructor] All citations processed");
+        setPendingCitations([]);
+        window.dispatchEvent(new CustomEvent("citations:changed", { detail: { targetType: "argument", targetId: argumentId } } as any));
+      }
+
+      // Note: Draft deletion disabled until drafts API is implemented
+      // Delete draft after successful submission
+      // try {
+      //   await fetch(`/api/arguments/drafts?targetId=${targetId}&mode=${mode}`, {
+      //     method: "DELETE",
+      //   });
+      // } catch (err) {
+      //   console.error("Failed to delete draft:", err);
+      // }
 
       onComplete?.(data.argument.id);
     } catch (err: any) {
@@ -395,32 +674,36 @@ export function ArgumentConstructor({
               </CardDescription>
             </div>
             <div className="flex items-center gap-3">
-              {/* Auto-save indicator */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Saving...</span>
-                  </>
-                ) : lastSaved ? (
-                  <>
-                    <Clock className="h-3 w-3" />
-                    <span>Saved {formatRelativeTime(lastSaved)}</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-3 w-3" />
-                    <span>Not saved</span>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={() => saveDraft()}
-                className="flex items-center gap-2 py-1.5 px-3 rounded border border-sky-200 bg-white hover:bg-sky-50 text-sky-700 text-sm transition-colors"
-              >
-                <Save className="h-3.5 w-3.5" />
-                Save Draft
-              </button>
+              {/* Auto-save indicator - hidden until drafts API is implemented */}
+              {autoSaveEnabled && (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : lastSaved ? (
+                      <>
+                        <Clock className="h-3 w-3" />
+                        <span>Saved {formatRelativeTime(lastSaved)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-3 w-3" />
+                        <span>Not saved</span>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => saveDraft()}
+                    className="flex items-center gap-2 py-1.5 px-3 rounded border border-sky-200 bg-white hover:bg-sky-50 text-sky-700 text-sm transition-colors"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    Save Draft
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -464,9 +747,11 @@ export function ArgumentConstructor({
           <PremisesFillingStep
             template={template}
             filledPremises={filledPremises}
+            pickedClaimIds={pickedClaimIds}
             onPremiseChange={(key, value) =>
               setFilledPremises((prev) => ({ ...prev, [key]: value }))
             }
+            onPickExistingClaim={(premiseKey) => setShowClaimPicker(premiseKey)}
             score={score}
             isScoring={isScoring}
             onNext={nextStep}
@@ -479,9 +764,11 @@ export function ArgumentConstructor({
           <EvidenceCollectionStep
             template={template}
             evidenceLinks={evidenceLinks}
+            pendingCitations={pendingCitations}
             onEvidenceChange={(key, links) =>
               setEvidenceLinks((prev) => ({ ...prev, [key]: links }))
             }
+            onCitationsChange={setPendingCitations}
             onNext={nextStep}
             onBack={previousStep}
           />
@@ -493,6 +780,7 @@ export function ArgumentConstructor({
             template={template}
             filledPremises={filledPremises}
             evidenceLinks={evidenceLinks}
+            pendingCitations={pendingCitations}
             score={score}
             isSubmitting={isLoading}
             error={error}
@@ -502,6 +790,16 @@ export function ArgumentConstructor({
           />
         )}
       </Card>
+
+      {/* Claim Picker Modal */}
+      {showClaimPicker && (
+        <SchemeComposerPicker
+          kind="claim"
+          open={showClaimPicker !== null}
+          onClose={() => setShowClaimPicker(null)}
+          onPick={(item) => handleClaimPicked(item, showClaimPicker)}
+        />
+      )}
     </div>
   );
 }
@@ -530,10 +828,10 @@ function WizardProgress({
     WizardStep,
     { label: string; icon: React.ComponentType<any> }
   > = {
-    scheme: { label: "Select Scheme", icon: Sparkles },
+    scheme: { label: "Select Scheme", icon: GitFork },
     template: { label: "Customize", icon: FileText },
     premises: { label: "Fill Premises", icon: Edit },
-    evidence: { label: "Add Evidence", icon: Upload },
+    evidence: { label: "Add Evidence", icon: BookOpenText },
     review: { label: "Review", icon: Eye },
   };
 
@@ -672,7 +970,26 @@ function SchemeSelectionStep({
                       : "border-gray-200 hover:border-sky-300"
                   }`}
                 >
-                  <div className="font-medium">{scheme.name}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{scheme.name}</div>
+                    <div className="flex gap-1.5">
+                      {scheme.materialRelation && (
+                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300">
+                          {scheme.materialRelation}
+                        </Badge>
+                      )}
+                      {scheme.reasoningType && (
+                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-300">
+                          {scheme.reasoningType}
+                        </Badge>
+                      )}
+                      {scheme.clusterTag && (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                          {scheme.clusterTag.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                   {scheme.description && (
                     <div className="text-sm text-muted-foreground mt-1">
                       {scheme.description}
@@ -760,7 +1077,7 @@ function TemplateCustomizationStep({
       <CardContent className="space-y-6">
         {/* Template info */}
         <Alert>
-          <Sparkles className="h-4 w-4" />
+          
           <AlertDescription>
             <div className="font-medium mb-1">Using: {template.schemeName}</div>
             <div className="text-sm">
@@ -768,6 +1085,59 @@ function TemplateCustomizationStep({
             </div>
           </AlertDescription>
         </Alert>
+
+        {/* Formal Structure Display (if available) */}
+        {template.formalStructure && (
+          <div className="space-y-3 p-4 rounded-lg bg-gradient-to-br from-indigo-50 via-purple-50 to-sky-50 border border-indigo-200">
+            <div className="flex items-center gap-2 text-sm font-semibold text-indigo-900">
+              <div className="h-2 w-2 rounded-full bg-indigo-600" />
+              Formal Argument Structure
+            </div>
+            
+            {/* Major Premise */}
+            {template.formalStructure.majorPremise && (
+              <div className="space-y-1 p-3 rounded-md bg-white/60 border border-purple-200">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
+                    Major Premise
+                  </Badge>
+                </div>
+                <div className="text-sm text-gray-700 pl-2">
+                  {template.formalStructure.majorPremise}
+                </div>
+              </div>
+            )}
+
+            {/* Minor Premise */}
+            {template.formalStructure.minorPremise && (
+              <div className="space-y-1 p-3 rounded-md bg-white/60 border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+                    Minor Premise
+                  </Badge>
+                </div>
+                <div className="text-sm text-gray-700 pl-2">
+                  {template.formalStructure.minorPremise}
+                </div>
+              </div>
+            )}
+
+            {/* Conclusion */}
+            {template.formalStructure.conclusion && (
+              <div className="space-y-1 p-3 rounded-md bg-white/60 border border-indigo-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-indigo-600">∴</span>
+                  <Badge variant="outline" className="text-xs bg-indigo-100 text-indigo-700 border-indigo-300">
+                    Conclusion
+                  </Badge>
+                </div>
+                <div className="text-sm text-gray-700 pl-2">
+                  {template.formalStructure.conclusion}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Variables */}
         {templateVariables.length > 0 ? (
@@ -830,7 +1200,9 @@ function TemplateCustomizationStep({
 interface PremisesFillingStepProps {
   template: ArgumentTemplate;
   filledPremises: Record<string, string>;
+  pickedClaimIds: Record<string, string>;
   onPremiseChange: (key: string, value: string) => void;
+  onPickExistingClaim: (premiseKey: string) => void;
   score: any;
   isScoring: boolean;
   onNext: () => void;
@@ -841,46 +1213,133 @@ interface PremisesFillingStepProps {
 function PremisesFillingStep({
   template,
   filledPremises,
+  pickedClaimIds,
   onPremiseChange,
+  onPickExistingClaim,
   score,
   isScoring,
   onNext,
   onBack,
   canProceed,
 }: PremisesFillingStepProps) {
+  // Check if this scheme has formal structure (major/minor premises)
+  const hasFormalStructure = 
+    template.formalStructure?.majorPremise && 
+    template.formalStructure?.minorPremise;
+
   return (
     <>
       <CardHeader>
         <CardTitle>Fill Premises</CardTitle>
-        <CardDescription>Complete each premise for your argument</CardDescription>
+        <CardDescription>
+          {hasFormalStructure 
+            ? "Complete the major and minor premises for this formal argument"
+            : "Complete each premise for your argument"}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {template.premises.map((premise) => (
-          <div key={premise.key} className="space-y-2">
-            <Label htmlFor={premise.key} className="capitalize">
-              {premise.text}
-              {premise.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <Textarea
-              id={premise.key}
-              value={filledPremises[premise.key] || ""}
-              onChange={(e) => onPremiseChange(premise.key, e.target.value)}
-              placeholder={`Enter ${premise.text.toLowerCase()}`}
-              rows={3}
-            />
-            {score?.premiseScores?.[premise.key] !== undefined && (
-              <div className="flex items-center gap-2 text-sm">
-                <Progress
-                  value={score.premiseScores[premise.key]}
-                  className="h-1.5 flex-1"
-                />
-                <span className="text-muted-foreground">
-                  {score.premiseScores[premise.key]}%
-                </span>
+        {hasFormalStructure ? (
+          // Structured premise mode (major/minor)
+          <>
+            <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-indigo-50 to-sky-50 border border-indigo-200">
+              <div className="flex items-center gap-2 text-sm font-medium text-indigo-900">
+                <div className="h-2 w-2 rounded-full bg-indigo-600" />
+                Formal Argument Structure
               </div>
-            )}
-          </div>
-        ))}
+              <div className="text-xs text-indigo-700">
+                This scheme uses classical logical form with major and minor premises
+              </div>
+            </div>
+
+            {/* Major Premise */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="major-premise" className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                    Major Premise
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {template.formalStructure.majorPremise}
+                  </span>
+                  <span className="text-red-500">*</span>
+                </Label>
+              </div>
+              <Textarea
+                id="major-premise"
+                value={filledPremises["major"] || ""}
+                onChange={(e) => onPremiseChange("major", e.target.value)}
+                placeholder="Enter the major (universal) premise..."
+                rows={3}
+                className="border-purple-200 focus:border-purple-400"
+              />
+            </div>
+
+            {/* Minor Premise */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="minor-premise" className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                    Minor Premise
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {template.formalStructure.minorPremise}
+                  </span>
+                  <span className="text-red-500">*</span>
+                </Label>
+              </div>
+              <Textarea
+                id="minor-premise"
+                value={filledPremises["minor"] || ""}
+                onChange={(e) => onPremiseChange("minor", e.target.value)}
+                placeholder="Enter the minor (specific) premise..."
+                rows={3}
+                className="border-blue-200 focus:border-blue-400"
+              />
+            </div>
+          </>
+        ) : (
+          // Standard premise mode (list)
+          template.premises.map((premise) => (
+            <div key={premise.key} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={premise.key} className="capitalize">
+                  {premise.text}
+                  {premise.required && <span className="text-red-500 ml-1">*</span>}
+                  {pickedClaimIds[premise.key] && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      Using Existing Claim
+                    </Badge>
+                  )}
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => onPickExistingClaim(premise.key)}
+                  className="text-xs text-sky-600 hover:text-sky-700 font-medium"
+                >
+                  {pickedClaimIds[premise.key] ? "Change Claim" : "Pick Existing"}
+                </button>
+              </div>
+              <Textarea
+                id={premise.key}
+                value={filledPremises[premise.key] || ""}
+                onChange={(e) => onPremiseChange(premise.key, e.target.value)}
+                placeholder={`Enter ${premise.text.toLowerCase()} or pick an existing claim`}
+                rows={3}
+              />
+              {score?.premiseScores?.[premise.key] !== undefined && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Progress
+                    value={score.premiseScores[premise.key]}
+                    className="h-1.5 flex-1"
+                  />
+                  <span className="text-muted-foreground">
+                    {score.premiseScores[premise.key]}%
+                  </span>
+                </div>
+              )}
+            </div>
+          ))
+        )}
 
         {score && (
           <Alert>
@@ -931,7 +1390,9 @@ function PremisesFillingStep({
 interface EvidenceCollectionStepProps {
   template: ArgumentTemplate;
   evidenceLinks: Record<string, string[]>;
+  pendingCitations: PendingCitation[];
   onEvidenceChange: (key: string, links: string[]) => void;
+  onCitationsChange: (citations: PendingCitation[]) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -939,7 +1400,9 @@ interface EvidenceCollectionStepProps {
 function EvidenceCollectionStep({
   template,
   evidenceLinks,
+  pendingCitations,
   onEvidenceChange,
+  onCitationsChange,
   onNext,
   onBack,
 }: EvidenceCollectionStepProps) {
@@ -955,49 +1418,60 @@ function EvidenceCollectionStep({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Evidence strengthens your argument. Add links, citations, or sources.
+            Add credible sources from URLs, DOIs, or your library to strengthen your argument. Citations will automatically appear in the Sources tab.
           </AlertDescription>
         </Alert>
 
-        {template.premises.map((premise) => {
-          const links = evidenceLinks[premise.key] || [];
-          return (
-            <div key={premise.key} className="space-y-2">
-              <Label className="text-sm font-medium">{premise.text}</Label>
-              <div className="space-y-2">
-                {links.map((link, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <Input value={link} readOnly className="flex-1" />
-                    <button
-                      onClick={() =>
-                        onEvidenceChange(
-                          premise.key,
-                          links.filter((_, i) => i !== idx)
-                        )
-                      }
-                      className="p-2 rounded border border-gray-300 hover:bg-gray-50 text-gray-700 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={() => {
-                    const newLink = prompt("Enter evidence link or citation:");
-                    if (newLink) {
-                      onEvidenceChange(premise.key, [...links, newLink]);
-                    }
-                  }}
-                  className="w-full py-2 px-3 rounded border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 text-sm transition-colors"
-                >
-                  + Add Evidence
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {/* New: CitationCollector for unified citation management */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Evidence & Citations</Label>
+          <CitationCollector
+            citations={pendingCitations}
+            onChange={onCitationsChange}
+          />
+        </div>
 
         <Separator />
+
+        {/* Legacy: Keep evidenceLinks for backward compatibility */}
+        {Object.keys(evidenceLinks).length > 0 && (
+          <>
+            <div className="space-y-4">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Legacy Evidence Links (deprecated)
+              </Label>
+              {template.premises.map((premise) => {
+                const links = evidenceLinks[premise.key] || [];
+                if (links.length === 0) return null;
+                return (
+                  <div key={premise.key} className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">{premise.text}</Label>
+                    <div className="space-y-2">
+                      {links.map((link, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <Input value={link} readOnly className="flex-1 text-sm" />
+                          <button
+                            onClick={() =>
+                              onEvidenceChange(
+                                premise.key,
+                                links.filter((_, i) => i !== idx)
+                              )
+                            }
+                            className="p-2 rounded border border-gray-300 hover:bg-gray-50 text-gray-700 transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <Separator />
+          </>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={onBack}
@@ -1024,6 +1498,7 @@ interface ReviewSubmitStepProps {
   template: ArgumentTemplate;
   filledPremises: Record<string, string>;
   evidenceLinks: Record<string, string[]>;
+  pendingCitations: PendingCitation[];
   score: any;
   isSubmitting: boolean;
   error: string | null;
@@ -1037,6 +1512,7 @@ function ReviewSubmitStep({
   template,
   filledPremises,
   evidenceLinks,
+  pendingCitations,
   score,
   isSubmitting,
   error,
@@ -1103,12 +1579,23 @@ function ReviewSubmitStep({
 
         {/* Evidence preview */}
         <div className="space-y-2">
-          <h4 className="font-medium">
-            Evidence ({Object.values(evidenceLinks).flat().length} items)
-          </h4>
-          {Object.values(evidenceLinks).flat().length > 0 ? (
+          <h4 className="font-medium">Evidence & Citations</h4>
+          {pendingCitations.length > 0 ? (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                {pendingCitations.length} citation(s) will be attached after submission
+              </div>
+              {pendingCitations.filter(cit => cit && cit.type).map((cit, idx) => (
+                <div key={idx} className="p-2 border rounded bg-muted text-sm">
+                  <div className="font-medium">{cit.type?.toUpperCase() || 'CITATION'}: {cit.title || cit.value || 'No title'}</div>
+                  {cit.locator && <div className="text-xs text-muted-foreground">Locator: {cit.locator}</div>}
+                  {cit.note && <div className="text-xs text-muted-foreground">Note: {cit.note}</div>}
+                </div>
+              ))}
+            </div>
+          ) : Object.values(evidenceLinks).flat().length > 0 ? (
             <div className="text-sm text-muted-foreground">
-              {Object.values(evidenceLinks).flat().length} evidence links added
+              {Object.values(evidenceLinks).flat().length} legacy evidence links added
             </div>
           ) : (
             <div className="text-sm text-muted-foreground italic">

@@ -24,7 +24,7 @@ import {
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 import CitationCollector, { type PendingCitation } from "@/components/citations/CitationCollector";
 import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
-
+import { Textarea } from "../ui/textarea";
 // ============================================================================
 // Types
 // ============================================================================
@@ -108,7 +108,7 @@ export function AttackArgumentWizard({
       case "evidence":
         return true; // Evidence is optional
       case "review":
-        return textQuality >= 40; // Minimum 40% quality
+        return textQuality >= 20; // Minimum 20% quality
       default:
         return false;
     }
@@ -120,6 +120,8 @@ export function AttackArgumentWizard({
     setError(null);
 
     try {
+      console.log("[AttackArgumentWizard] Starting submission with citations:", pendingCitations);
+      
       // Step 1: Create claim from attack text
       const claimRes = await fetch("/api/claims", {
         method: "POST",
@@ -138,12 +140,16 @@ export function AttackArgumentWizard({
 
       const claimData = await claimRes.json();
       const attackClaimId = claimData.claim?.id || claimData.id;
+      console.log("[AttackArgumentWizard] Created claim:", attackClaimId);
 
       // Step 2: Attach citations to the claim (if any)
       if (pendingCitations.length > 0) {
+        console.log("[AttackArgumentWizard] Attaching", pendingCitations.length, "citations to claim:", attackClaimId);
         await Promise.all(
-          pendingCitations.map(async (citation) => {
+          pendingCitations.map(async (citation, idx) => {
             try {
+              console.log(`[AttackArgumentWizard] Processing citation ${idx + 1}:`, citation);
+              
               // First resolve the source
               let resolvePayload: any = {};
               if (citation.type === "url") {
@@ -154,34 +160,56 @@ export function AttackArgumentWizard({
                 resolvePayload = { libraryPostId: citation.value, meta: { title: citation.title } };
               }
 
+              console.log(`[AttackArgumentWizard] Resolving source with payload:`, resolvePayload);
               const resolveRes = await fetch("/api/citations/resolve", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify(resolvePayload),
               });
+              
+              if (!resolveRes.ok) {
+                const errorText = await resolveRes.text();
+                console.error(`[AttackArgumentWizard] Resolve failed:`, resolveRes.status, errorText);
+                throw new Error(`Failed to resolve source: ${resolveRes.status}`);
+              }
+              
               const { source } = await resolveRes.json();
+              console.log(`[AttackArgumentWizard] Resolved source:`, source?.id);
 
               if (!source?.id) throw new Error("Failed to resolve source");
 
               // Then attach the citation
-              await fetch("/api/citations/attach", {
+              const attachPayload = {
+                targetType: "claim",
+                targetId: attackClaimId,
+                sourceId: source.id,
+                locator: citation.locator || undefined,
+                quote: citation.quote || "", // API requires string, not null
+                note: citation.note || undefined,
+              };
+              console.log(`[AttackArgumentWizard] Attaching citation with payload:`, attachPayload);
+              
+              const attachRes = await fetch("/api/citations/attach", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                  targetType: "claim",
-                  targetId: attackClaimId,
-                  sourceId: source.id,
-                  locator: citation.locator,
-                  quote: citation.quote,
-                  note: citation.note,
-                }),
+                body: JSON.stringify(attachPayload),
               });
+              
+              if (!attachRes.ok) {
+                const errorText = await attachRes.text();
+                console.error(`[AttackArgumentWizard] Attach failed:`, attachRes.status, errorText);
+                throw new Error(`Failed to attach citation: ${attachRes.status}`);
+              }
+              
+              const attachData = await attachRes.json();
+              console.log(`[AttackArgumentWizard] Citation ${idx + 1} attached successfully:`, attachData);
             } catch (citErr) {
-              console.error("Failed to attach citation:", citErr);
+              console.error(`[AttackArgumentWizard] Failed to attach citation ${idx + 1}:`, citErr);
               // Continue with other citations even if one fails
             }
           })
         );
+        console.log("[AttackArgumentWizard] All citations processed");
         // Clear citations after successful attachment
         setPendingCitations([]);
         // Notify listeners that citations changed
@@ -209,15 +237,14 @@ export function AttackArgumentWizard({
         // Undercuts target the argument's inference
         caPayload.conflictedArgumentId = targetArgumentId;
       } else if (suggestion.attackType === "REBUTS") {
-        // Rebuts target the conclusion claim
+        // Rebuts target the conclusion claim only (not the argument)
         caPayload.conflictedClaimId = targetClaimId;
-        caPayload.conflictedArgumentId = targetArgumentId; // Include for context
       } else {
         // UNDERMINES - would need premise selection, default to conclusion for now
         caPayload.conflictedClaimId = targetClaimId;
-        caPayload.conflictedArgumentId = targetArgumentId;
       }
 
+      console.log("[AttackArgumentWizard] Creating ConflictApplication with payload:", caPayload);
       const caRes = await fetch("/api/ca", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -275,6 +302,8 @@ export function AttackArgumentWizard({
             deliberationId={deliberationId}
             expandedComposer={expandedComposer}
             onExpandedChange={setExpandedComposer}
+            pendingCitations={pendingCitations}
+            onCitationsChange={setPendingCitations}
           />
         )}
 
@@ -371,8 +400,8 @@ function WizardProgress({ currentStep, onStepClick, quality }: WizardProgressPro
         <div className="flex items-center justify-center gap-2">
           <span className="text-sm text-muted-foreground">Response Quality:</span>
           <Badge
-            variant={quality >= 70 ? "default" : quality >= 40 ? "secondary" : "destructive"}
-            className={quality >= 70 ? "bg-green-600" : quality >= 40 ? "bg-amber-600" : ""}
+            variant={quality >= 70 ? "default" : quality >= 20 ? "secondary" : "destructive"}
+            className={quality >= 70 ? "bg-green-600" : quality >= 20 ? "bg-amber-600" : ""}
           >
             {Math.round(quality)}%
           </Badge>
@@ -505,6 +534,8 @@ interface ResponseStepProps {
   deliberationId: string;
   expandedComposer: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  pendingCitations: PendingCitation[];
+  onCitationsChange: (citations: PendingCitation[]) => void;
 }
 
 function ResponseStep({
@@ -518,8 +549,62 @@ function ResponseStep({
   deliberationId,
   expandedComposer,
   onExpandedChange,
+  pendingCitations,
+  onCitationsChange,
 }: ResponseStepProps) {
   const cqQuestion = (suggestion.cq as any).question || (suggestion.cq as any).text;
+
+  /**
+   * Handle proposition creation from expanded composer
+   * Fetches citations from the created proposition and merges them into our pending list
+   */
+  async function handlePropositionCreated(prop: any) {
+    // Extract text
+    onTextChange(prop.text);
+    
+    // Fetch citations attached to this proposition
+    try {
+      const response = await fetch(`/api/propositions/${prop.id}/citations`);
+      if (response.ok) {
+        const data = await response.json();
+        const propCitations = data.citations || [];
+        
+        // Convert proposition citations to pending citations format
+        const convertedCitations: PendingCitation[] = propCitations.map((cit: any) => {
+          // Determine citation type from source
+          let type: "url" | "doi" | "library" = "url";
+          if (cit.doi) {
+            type = "doi";
+          } else if (cit.platform === "library") {
+            type = "library";
+          }
+          
+          return {
+            type,
+            value: cit.doi || cit.url || cit.id,
+            title: cit.title,
+            locator: cit.locator,
+            quote: cit.quote || cit.text,
+            note: cit.note,
+          };
+        });
+        
+        // Merge with existing pending citations (avoid duplicates)
+        const existingValues = new Set(pendingCitations.map(c => c.value));
+        const newCitations = convertedCitations.filter(c => !existingValues.has(c.value));
+        
+        if (newCitations.length > 0) {
+          onCitationsChange([...pendingCitations, ...newCitations]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch proposition citations:", error);
+      // Non-fatal - continue with just the text
+    }
+    
+    // Close modal
+    onExpandedChange(false);
+  }
 
   return (
     <>
@@ -532,10 +617,10 @@ function ResponseStep({
 
       <CardContent className="space-y-6">
         {/* Question reminder */}
-        <Alert>
-          <Lightbulb className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Question:</strong> {cqQuestion}
+        <Alert className="flex gap-2 items-center">
+          <Lightbulb className="flex h-4 w-4" />
+          <AlertDescription className="flex gap-1.5">
+            <span className="flex font-semibold">Question:</span><span className="flex">{cqQuestion}</span> 
           </AlertDescription>
         </Alert>
 
@@ -546,8 +631,8 @@ function ResponseStep({
               value={attackText}
               onChange={(e) => onTextChange(e.target.value)}
               placeholder="Write your response to this critical question... Be specific and provide reasoning."
-              rows={8}
-              className="resize-none pr-24"
+              rows={5}
+              className="resize-none pr-24 articlesearchfield text-sm"
             />
             <button
               onClick={() => onExpandedChange(true)}
@@ -572,8 +657,8 @@ function ResponseStep({
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Response Quality</span>
             <Badge
-              variant={textQuality >= 70 ? "default" : textQuality >= 40 ? "secondary" : "destructive"}
-              className={textQuality >= 70 ? "bg-green-600" : textQuality >= 40 ? "bg-amber-600" : ""}
+              variant={textQuality >= 70 ? "default" : textQuality >= 20 ? "secondary" : "destructive"}
+              className={textQuality >= 70 ? "bg-green-600" : textQuality >= 20 ? "bg-amber-600" : ""}
             >
               {textQuality}%
             </Badge>
@@ -583,12 +668,12 @@ function ResponseStep({
             className={`h-2 ${
               textQuality >= 70
                 ? "[&>*]:bg-green-600"
-                : textQuality >= 40
+                : textQuality >= 20
                 ? "[&>*]:bg-amber-600"
                 : "[&>*]:bg-red-600"
             }`}
           />
-          {textQuality < 40 && (
+          {textQuality < 20 && (
             <p className="text-xs text-muted-foreground">
               Add more detail to improve quality. Aim for at least 200 characters.
             </p>
@@ -631,10 +716,7 @@ function ResponseStep({
           <div className="py-4">
             <PropositionComposerPro
               deliberationId={deliberationId}
-              onCreated={(prop) => {
-                onTextChange(prop.text);
-                onExpandedChange(false);
-              }}
+              onCreated={handlePropositionCreated}
               placeholder={`Write your response to: ${cqQuestion}`}
             />
           </div>
@@ -751,16 +833,16 @@ function ReviewStep({
                 className={`h-2 ${
                   textQuality >= 70
                     ? "[&>*]:bg-green-600"
-                    : textQuality >= 40
+                    : textQuality >= 20
                     ? "[&>*]:bg-amber-600"
                     : "[&>*]:bg-red-600"
                 }`}
               />
             </div>
             <Badge
-              variant={textQuality >= 70 ? "default" : textQuality >= 40 ? "secondary" : "destructive"}
+              variant={textQuality >= 70 ? "default" : textQuality >= 20 ? "secondary" : "destructive"}
               className={`text-lg px-3 py-1 ${
-                textQuality >= 70 ? "bg-green-600" : textQuality >= 40 ? "bg-amber-600" : ""
+                textQuality >= 70 ? "bg-green-600" : textQuality >= 20 ? "bg-amber-600" : ""
               }`}
             >
               {textQuality}%
@@ -768,10 +850,10 @@ function ReviewStep({
           </div>
 
           {textQuality < 70 && (
-            <Alert variant={textQuality < 40 ? "destructive" : "default"}>
+            <Alert variant={textQuality < 20 ? "destructive" : "default"}>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {textQuality < 40
+                {textQuality < 20
                   ? "Your response needs more work before submission. Go back and add more detail."
                   : "Your response is acceptable but could be stronger. Consider adding more detail or evidence."}
               </AlertDescription>
@@ -866,7 +948,7 @@ function ReviewStep({
 
         {!canSubmit && !isSubmitting && (
           <p className="text-sm text-muted-foreground text-center">
-            Improve your response quality to at least 40% before submitting
+            Improve your response quality to at least 20% before submitting
           </p>
         )}
       </CardContent>

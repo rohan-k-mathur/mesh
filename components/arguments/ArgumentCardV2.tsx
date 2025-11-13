@@ -34,6 +34,7 @@ import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetai
 import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
+import { GlossaryText } from "@/components/glossary/GlossaryText";
 import { 
   formatSchemeDisplay, 
   shouldShowMultiSchemeUI, 
@@ -326,9 +327,9 @@ function AttackItem({ attack, deliberationId, onAnyChange }: { attack: any; deli
           </div>
           {/* Display claim text if available */}
           {attack.claimText && (
-            <p className="text-sm text-slate-700 leading-relaxed">
-              {attack.claimText}
-            </p>
+            <div className="text-sm text-slate-700 leading-relaxed">
+              <GlossaryText text={attack.claimText} />
+            </div>
           )}
           
           {/* Collapsible Claim Details */}

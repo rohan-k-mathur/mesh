@@ -22,6 +22,10 @@ export async function GET(
             id: true,
             url: true,
             title: true,
+            authorsJson: true,
+            doi: true,
+            platform: true,
+            kind: true,
           },
         },
       },
@@ -38,6 +42,10 @@ export async function GET(
       text: citation.quote || null,
       locator: citation.locator || null,
       note: citation.note || null,
+      doi: citation.source?.doi || null,
+      platform: citation.source?.platform || null,
+      kind: citation.source?.kind || null,
+      authors: citation.source?.authorsJson || null,
       createdAt: citation.createdAt,
     }));
 

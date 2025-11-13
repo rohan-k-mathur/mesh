@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
-import { List, Network, GitFork, Shield } from "lucide-react";
+import { List, Network, GitFork, Shield, Plus } from "lucide-react";
 import { SectionCard } from "@/components/deepdive/shared";
 import AIFArgumentsListPro from "@/components/arguments/AIFArgumentsListPro";
 import { SchemesSection } from "../sections/SchemesSection";
@@ -11,6 +11,8 @@ import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
 import { ArgumentNetAnalyzer } from "@/components/argumentation/ArgumentNetAnalyzer";
 import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
 import { AttackArgumentWizard } from "@/components/argumentation/AttackArgumentWizard";
+import { ArgumentConstructor } from "@/components/argumentation/ArgumentConstructor";
+import type { ArgumentMode } from "@/components/argumentation/ArgumentConstructor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
 import { getUserFromCookies } from "@/lib/server/getUser";
@@ -32,12 +34,16 @@ interface ArgumentsTabProps {
  * 
  * Structure:
  * - List: All arguments (existing AIFArgumentsListPro)
+ * - Create: Build new arguments (ArgumentConstructor integration)
  * - Schemes: Browse detected schemes (Phase 1 integration)
  * - Networks: Explore multi-scheme nets (Phase 4 integration)
  * - ASPIC: ASPIC theory analysis (migrated from parent tab)
  * 
  * Week 5 Enhancement:
  * - ArgumentNetAnalyzer integration for multi-scheme net analysis
+ * Week 6 Enhancement:
+ * - AttackArgumentWizard integration for CQ-based attacks
+ * - ArgumentConstructor integration for general argument creation
  */
 export function ArgumentsTab({
   deliberationId,
@@ -75,6 +81,11 @@ export function ArgumentsTab({
   const [selectedAttack, setSelectedAttack] = useState<AttackSuggestion | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [attackRefreshKey, setAttackRefreshKey] = useState(0);
+
+  // ArgumentConstructor state
+  const [constructorMode, setConstructorMode] = useState<ArgumentMode>("general");
+  const [constructorTargetId, setConstructorTargetId] = useState<string | null>(null);
+  const [showConstructor, setShowConstructor] = useState(false);
 
   return (
     <>
@@ -129,6 +140,44 @@ export function ArgumentsTab({
                   Note: This list shows all structured arguments in the deliberation&apos;s AIF database. 
                   Some arguments may not yet be linked to claims in the debate.
                 </span>
+              </SectionCard>
+            ),
+          },
+          {
+            value: "create",
+            label: "Create Argument",
+            icon: <Plus className="size-3.5" />,
+            content: (
+              <SectionCard 
+                title="Build New Argument" 
+                className="w-full" 
+                padded={true}
+              >
+                <div className="mb-4 text-sm text-muted-foreground">
+                  Construct a new argument using argumentation schemes. Your argument will be validated against
+                  critical questions and integrated with AIF, ASPIC+, and dialogue systems.
+                </div>
+                {currentUserId ? (
+                  <ArgumentConstructor
+                    mode="general"
+                    targetId={deliberationId} // Use deliberationId as targetId for general arguments
+                    deliberationId={deliberationId}
+                    currentUserId={currentUserId}
+                    onComplete={(argumentId) => {
+                      console.log("[ArgumentsTab] Argument created:", argumentId);
+                      // Refresh arguments list and switch to list tab
+                      setAttackRefreshKey((prev) => prev + 1);
+                      // TODO: Switch to list tab and scroll to new argument
+                    }}
+                    onCancel={() => {
+                      // User cancelled - could show a message or just stay on tab
+                    }}
+                  />
+                ) : (
+                  <div className="p-6 text-center text-muted-foreground">
+                    Loading user session...
+                  </div>
+                )}
               </SectionCard>
             ),
           },

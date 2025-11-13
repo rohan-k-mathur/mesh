@@ -497,6 +497,7 @@ export function SupportConstructionWizard({
               mode="support"
               targetId={targetArgumentId}
               deliberationId={deliberationId}
+              currentUserId={currentUserId}
               supportSuggestion={
                 selectedScheme
                   ? {

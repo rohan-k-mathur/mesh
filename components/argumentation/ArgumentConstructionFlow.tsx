@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArgumentConstructor } from "./ArgumentConstructor";
+import { ArgumentConstructor, type AttackContext } from "./ArgumentConstructor";
 import { TemplateLibrary } from "./TemplateLibrary";
 import { EvidenceMatchingVisualizer } from "./EvidenceMatchingVisualizer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,7 +31,9 @@ interface ArgumentConstructionFlowProps {
   mode: "attack" | "support" | "general";
   targetId: string;
   deliberationId: string;
+  currentUserId: string;
   suggestion?: any;
+  attackContext?: AttackContext;
   supportSuggestion?: any;
   onComplete?: (argumentId: string) => void;
   onCancel?: () => void;
@@ -58,7 +60,9 @@ export function ArgumentConstructionFlow({
   mode,
   targetId,
   deliberationId,
+  currentUserId,
   suggestion,
+  attackContext,
   supportSuggestion,
   onComplete,
   onCancel,
@@ -249,7 +253,9 @@ export function ArgumentConstructionFlow({
           mode={mode}
           targetId={targetId}
           deliberationId={deliberationId}
+          currentUserId={currentUserId}
           suggestion={suggestion}
+          attackContext={attackContext}
           supportSuggestion={supportSuggestion}
           onComplete={onComplete}
           onCancel={onCancel}

@@ -600,10 +600,10 @@ export function AttackSubmission({
 
     return {
       allPremisesFilled: filledPremises.length === premiseCount,
-      minimumQuality: attack.overallScore >= 40,
+      minimumQuality: attack.overallScore >= 20,
       hasEvidence: attack.evidence.length > 0,
       canSubmit:
-        filledPremises.length === premiseCount && attack.overallScore >= 40,
+        filledPremises.length === premiseCount && attack.overallScore >= 20,
     };
   }, [attack]);
 
@@ -644,7 +644,7 @@ export function AttackSubmission({
             />
             <ValidationCheck
               passed={checks.minimumQuality}
-              label="Quality score ≥ 40%"
+              label="Quality score ≥ 20%"
             />
             <ValidationCheck
               passed={checks.hasEvidence}

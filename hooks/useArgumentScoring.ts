@@ -27,7 +27,7 @@ interface UseArgumentScoringResult {
 
 export function useArgumentScoring(
   schemeId: string,
-  claimId: string,
+  claimId: string | null | undefined, // Made optional for general argument creation
   premises: Record<string, string>,
   debounceMs: number = 500
 ): UseArgumentScoringResult {
@@ -41,8 +41,8 @@ export function useArgumentScoring(
 
   // Fetch score
   async function fetchScore(signal?: AbortSignal) {
-    // Don't score if no scheme or claim
-    if (!schemeId || !claimId) {
+    // Don't score if no scheme
+    if (!schemeId) {
       setScore(null);
       return;
     }
@@ -60,12 +60,19 @@ export function useArgumentScoring(
     setError(null);
 
     try {
+      console.log("[useArgumentScoring] Fetching score:", {
+        schemeId,
+        claimId: claimId || "none (general mode)",
+        premisesCount: Object.keys(debouncedPremises).length,
+        filledCount: Object.values(debouncedPremises).filter(p => p && p.trim()).length
+      });
+      
       const response = await fetch("/api/arguments/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schemeId,
-          claimId,
+          claimId: claimId || undefined, // Pass undefined if null
           premises: debouncedPremises,
         }),
         signal,
@@ -76,6 +83,7 @@ export function useArgumentScoring(
       }
 
       const data = await response.json();
+      console.log("[useArgumentScoring] Score received:", data.score);
       setScore(data.score);
     } catch (err: any) {
       if (err.name === "AbortError") {
