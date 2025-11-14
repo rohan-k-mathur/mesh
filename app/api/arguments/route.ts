@@ -149,7 +149,13 @@ export async function POST(req: NextRequest) {
   
   const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text, premisesAreAxioms } = b ?? {};
   const user = await getUserFromCookies();
-  if (!user) return null;
+  if (!user) {
+    console.error('[POST /api/arguments] No authenticated user');
+    return NextResponse.json({ 
+      ok: false, 
+      error: 'Authentication required' 
+    }, { status: 401, ...NO_STORE });
+  }
 
   // // Allow 'current' or empty → resolve from session
   // if (!authorId || authorId === 'current') {
@@ -166,7 +172,19 @@ if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
 }
 
   if (!deliberationId || !authorId || !conclusionClaimId || !Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
-    return NextResponse.json({ ok:false, error:'Invalid payload' }, { status:400, ...NO_STORE });
+    // Better error message showing what's missing
+    const missing = [];
+    if (!deliberationId) missing.push('deliberationId');
+    if (!authorId) missing.push('authorId');
+    if (!conclusionClaimId) missing.push('conclusionClaimId');
+    if (!Array.isArray(premiseClaimIds)) missing.push('premiseClaimIds (not array)');
+    else if (premiseClaimIds.length === 0) missing.push('premiseClaimIds (empty)');
+    
+    console.error('[POST /api/arguments] Invalid payload:', { missing, received: b });
+    return NextResponse.json({ 
+      ok: false, 
+      error: `Invalid payload: missing or invalid fields: ${missing.join(', ')}`
+    }, { status: 400, ...NO_STORE });
   }
   // const slots = b?.slots;
 let { schemeId, slots } = b; // assuming clients may send a role->claimId map when using a scheme
@@ -231,8 +249,11 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
         data: {
           argumentId: a.id,
           schemeId: schemeId,
+          role: "primary",
+          explicitness: "explicit",
           confidence: 1.0,
           isPrimary: true,
+          order: 0,
         },
       });
     }

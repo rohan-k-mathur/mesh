@@ -153,21 +153,18 @@ export async function POST(
     }
 
     // Authorization: Only author or deliberation members can modify
-    if (argument.authorId !== userId) {
-      // Check if user is a member of the deliberation
-      const membership = await prisma.participant.findFirst({
-        where: {
-          deliberationId: argument.deliberationId,
-          userId: BigInt(userId),
-        },
+    if (argument.authorId !== String(userId)) {
+      // For now, only allow author to modify
+      // TODO: Check deliberation membership when Participant/Member model is clarified
+      console.log('[POST /api/arguments/[id]/schemes] Authorization failed:', {
+        argumentAuthorId: argument.authorId,
+        currentUserId: userId,
+        currentUserIdString: String(userId)
       });
-
-      if (!membership) {
-        return NextResponse.json(
-          { error: "Forbidden: Not argument author or deliberation member" },
-          { status: 403 }
-        );
-      }
+      return NextResponse.json(
+        { error: "Forbidden: Only argument author can add schemes" },
+        { status: 403 }
+      );
     }
 
     // Parse request body

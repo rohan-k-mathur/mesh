@@ -18,6 +18,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   ArrowRight,
   Save,
@@ -36,12 +44,14 @@ import {
   Shield,
   Plus,
   X,
+  Maximize2,
 } from "lucide-react";
 
 import { useArgumentScoring } from "@/hooks/useArgumentScoring";
 import CitationCollector, { type PendingCitation } from "@/components/citations/CitationCollector";
 import { createClaim } from "@/lib/client/aifApi";
 import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
+import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 
 // ============================================================================
 // Types
@@ -85,6 +95,20 @@ export interface ArgumentTemplate {
     majorPremise?: string;
     minorPremise?: string;
     conclusion?: string;
+  };
+  schemeMetadata?: {
+    materialRelation?: string;
+    reasoningType?: string;
+    clusterTag?: string;
+    purpose?: string;
+    source?: string;
+    slotHints?: Record<string, string>;
+    premisesWithVariables?: Array<{
+      id: string;
+      type: "major" | "minor" | "general";
+      text: string;
+      variables: string[];
+    }>;
   };
 }
 
@@ -159,6 +183,15 @@ export function ArgumentConstructor({
   const [majorPremise, setMajorPremise] = useState<{ id?: string; text: string } | null>(null);
   const [minorPremise, setMinorPremise] = useState<{ id?: string; text: string } | null>(null);
 
+  // Justification field (optional warrant explanation)
+  const [justification, setJustification] = useState<string>("");
+
+  // Expanded composer state for PropositionComposerPro modals
+  const [expandedComposer, setExpandedComposer] = useState<{
+    type: "major" | "minor" | "premise" | "conclusion" | "justification" | null;
+    key?: string;
+  }>({ type: null });
+
   // Real-time scoring
   // For general mode, we don't have a targetClaimId yet, so pass null
   const scoringTargetId = mode === "general" ? null : targetId;
@@ -201,6 +234,14 @@ export function ArgumentConstructor({
 
       const data = await response.json();
       setTemplate(data.template);
+
+      // Initialize conclusion from template
+      if (data.template.conclusion) {
+        setFilledPremises((prev) => ({
+          ...prev,
+          conclusion: data.template.conclusion
+        }));
+      }
 
       // Detect if scheme uses structured premises (major/minor)
       const hasFormalStructure = 
@@ -421,7 +462,8 @@ export function ArgumentConstructor({
 
       // Step 2: Create or get conclusion Claim
       let conclusionClaimId: string;
-      const conclusionText = template.conclusion.trim();
+      // Use edited conclusion from filledPremises if available, otherwise fall back to template
+      const conclusionText = (filledPremises.conclusion || template.conclusion).trim();
       
       // For attack/support modes, conclusion might already exist or be derived
       if (mode === "attack" || mode === "support") {
@@ -460,6 +502,7 @@ export function ArgumentConstructor({
           schemeId: selectedScheme,
           text: argumentText,
           attackType: mode === "attack" ? suggestion?.attackType : undefined,
+          implicitWarrant: justification.trim() ? { text: justification.trim() } : null,
         }),
       });
 
@@ -737,9 +780,20 @@ export function ArgumentConstructor({
             onVariableChange={(key, value) =>
               setVariables((prev) => ({ ...prev, [key]: value }))
             }
+            conclusion={filledPremises.conclusion || template.conclusion || ""}
+            onConclusionChange={(value) =>
+              setFilledPremises((prev) => ({ ...prev, conclusion: value }))
+            }
+            justification={justification}
+            onJustificationChange={setJustification}
             onNext={nextStep}
             onBack={previousStep}
             canProceed={canProceed()}
+            deliberationId={deliberationId}
+            expandedComposer={expandedComposer}
+            onExpandedChange={setExpandedComposer}
+            pendingCitations={pendingCitations}
+            onCitationsChange={setPendingCitations}
           />
         )}
 
@@ -757,6 +811,11 @@ export function ArgumentConstructor({
             onNext={nextStep}
             onBack={previousStep}
             canProceed={canProceed()}
+            deliberationId={deliberationId}
+            expandedComposer={expandedComposer}
+            onExpandedChange={setExpandedComposer}
+            pendingCitations={pendingCitations}
+            onCitationsChange={setPendingCitations}
           />
         )}
 
@@ -1041,18 +1100,36 @@ interface TemplateCustomizationStepProps {
   template: ArgumentTemplate | null;
   variables: Record<string, string>;
   onVariableChange: (key: string, value: string) => void;
+  conclusion: string;
+  onConclusionChange: (value: string) => void;
+  justification: string;
+  onJustificationChange: (value: string) => void;
   onNext: () => void;
   onBack: () => void;
   canProceed: boolean;
+  deliberationId: string;
+  expandedComposer: { type: "major" | "minor" | "premise" | "conclusion" | "justification" | null; key?: string };
+  onExpandedChange: (state: { type: "major" | "minor" | "premise" | "conclusion" | "justification" | null; key?: string }) => void;
+  pendingCitations: PendingCitation[];
+  onCitationsChange: (citations: PendingCitation[]) => void;
 }
 
 function TemplateCustomizationStep({
   template,
   variables,
   onVariableChange,
+  conclusion,
+  onConclusionChange,
+  justification,
+  onJustificationChange,
   onNext,
   onBack,
   canProceed,
+  deliberationId,
+  expandedComposer,
+  onExpandedChange,
+  pendingCitations,
+  onCitationsChange,
 }: TemplateCustomizationStepProps) {
   if (!template) {
     return (
@@ -1139,6 +1216,54 @@ function TemplateCustomizationStep({
           </div>
         )}
 
+        {/* Editable Conclusion */}
+        <div className="space-y-2">
+          <Label htmlFor="conclusion" className="text-sm font-semibold">
+            Conclusion
+          </Label>
+          <div className="relative">
+            <Textarea
+              id="conclusion"
+              value={conclusion}
+              onChange={(e) => onConclusionChange(e.target.value)}
+              placeholder="Enter the conclusion your premises will support..."
+              rows={3}
+              className="resize-none pr-24 articlesearchfield text-sm"
+            />
+            <button
+              onClick={() => onExpandedChange({ type: "conclusion" })}
+              className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-white hover:bg-accent hover:text-accent-foreground h-8 px-3"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              Expand
+            </button>
+          </div>
+        </div>
+
+        {/* Justification / Warrant */}
+        <div className="space-y-2">
+          <Label htmlFor="justification" className="text-sm font-medium text-gray-700">
+            Justification <span className="text-xs text-gray-500">(optional)</span>
+          </Label>
+          <div className="relative">
+            <Textarea
+              id="justification"
+              value={justification}
+              onChange={(e) => onJustificationChange(e.target.value)}
+              placeholder="Explain why your premises support the conclusion (e.g., 'If [premises], then [conclusion] unless [exception]')"
+              rows={3}
+              className="resize-none pr-24 articlesearchfield text-sm"
+            />
+            <button
+              onClick={() => onExpandedChange({ type: "justification" })}
+              className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-white hover:bg-accent hover:text-accent-foreground h-8 px-3"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              Expand
+            </button>
+          </div>
+        </div>
+
         {/* Variables */}
         {templateVariables.length > 0 ? (
           <div className="space-y-4">
@@ -1186,6 +1311,87 @@ function TemplateCustomizationStep({
           </button>
         </div>
       </CardContent>
+
+      {/* Expanded composer modal */}
+      {expandedComposer.type && (
+        <Dialog
+          open={expandedComposer.type === "conclusion" || expandedComposer.type === "justification"}
+          onOpenChange={(open) => !open && onExpandedChange({ type: null })}
+        >
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white">
+            <DialogHeader>
+              <DialogTitle>
+                {expandedComposer.type === "conclusion" ? "Compose Conclusion" : "Compose Justification"}
+              </DialogTitle>
+              <DialogDescription>
+                {expandedComposer.type === "conclusion"
+                  ? "Use the rich editor to write your conclusion with glossary linking and citations"
+                  : "Explain the warrant connecting your premises to the conclusion"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <PropositionComposerPro
+                deliberationId={deliberationId}
+                onCreated={async (prop: any) => {
+                  // Extract text
+                  if (expandedComposer.type === "conclusion") {
+                    onConclusionChange(prop.text);
+                  } else if (expandedComposer.type === "justification") {
+                    onJustificationChange(prop.text);
+                  }
+
+                  // Fetch citations attached to this proposition
+                  try {
+                    const response = await fetch(`/api/propositions/${prop.id}/citations`);
+                    if (response.ok) {
+                      const data = await response.json();
+                      const propCitations = data.citations || [];
+
+                      // Convert proposition citations to pending citations format
+                      const convertedCitations: PendingCitation[] = propCitations.map((cit: any) => {
+                        let type: "url" | "doi" | "library" = "url";
+                        if (cit.doi) {
+                          type = "doi";
+                        } else if (cit.platform === "library") {
+                          type = "library";
+                        }
+
+                        return {
+                          type,
+                          value: cit.doi || cit.url || cit.id,
+                          title: cit.title,
+                          locator: cit.locator,
+                          quote: cit.quote || cit.text,
+                          note: cit.note,
+                        };
+                      });
+
+                      // Merge with existing pending citations (avoid duplicates)
+                      const existingValues = new Set(pendingCitations.map(c => c.value));
+                      const newCitations = convertedCitations.filter(c => !existingValues.has(c.value));
+
+                      if (newCitations.length > 0) {
+                        onCitationsChange([...pendingCitations, ...newCitations]);
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Failed to fetch proposition citations:", error);
+                    // Non-fatal - continue with just the text
+                  }
+
+                  // Close modal
+                  onExpandedChange({ type: null });
+                }}
+                placeholder={
+                  expandedComposer.type === "conclusion"
+                    ? "Write your conclusion..."
+                    : "Explain why the premises support the conclusion..."
+                }
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
@@ -1208,6 +1414,11 @@ interface PremisesFillingStepProps {
   onNext: () => void;
   onBack: () => void;
   canProceed: boolean;
+  deliberationId: string;
+  expandedComposer: { type: "major" | "minor" | "premise" | "conclusion" | "justification" | null; key?: string };
+  onExpandedChange: (state: { type: "major" | "minor" | "premise" | "conclusion" | "justification" | null; key?: string }) => void;
+  pendingCitations: PendingCitation[];
+  onCitationsChange: (citations: PendingCitation[]) => void;
 }
 
 function PremisesFillingStep({
@@ -1221,6 +1432,11 @@ function PremisesFillingStep({
   onNext,
   onBack,
   canProceed,
+  deliberationId,
+  expandedComposer,
+  onExpandedChange,
+  pendingCitations,
+  onCitationsChange,
 }: PremisesFillingStepProps) {
   // Check if this scheme has formal structure (major/minor premises)
   const hasFormalStructure = 
@@ -1263,6 +1479,15 @@ function PremisesFillingStep({
                   </span>
                   <span className="text-red-500">*</span>
                 </Label>
+                <button
+                  type="button"
+                  onClick={() => onExpandedChange({ type: "major" })}
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                  title="Expand to full editor"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                  Expand
+                </button>
               </div>
               <Textarea
                 id="major-premise"
@@ -1286,6 +1511,15 @@ function PremisesFillingStep({
                   </span>
                   <span className="text-red-500">*</span>
                 </Label>
+                <button
+                  type="button"
+                  onClick={() => onExpandedChange({ type: "minor" })}
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                  title="Expand to full editor"
+                >
+                  <Maximize2 className="h-3 w-3" />
+                  Expand
+                </button>
               </div>
               <Textarea
                 id="minor-premise"
@@ -1299,46 +1533,87 @@ function PremisesFillingStep({
           </>
         ) : (
           // Standard premise mode (list)
-          template.premises.map((premise) => (
-            <div key={premise.key} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor={premise.key} className="capitalize">
-                  {premise.text}
-                  {premise.required && <span className="text-red-500 ml-1">*</span>}
-                  {pickedClaimIds[premise.key] && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      Using Existing Claim
-                    </Badge>
-                  )}
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => onPickExistingClaim(premise.key)}
-                  className="text-xs text-sky-600 hover:text-sky-700 font-medium"
-                >
-                  {pickedClaimIds[premise.key] ? "Change Claim" : "Pick Existing"}
-                </button>
-              </div>
-              <Textarea
-                id={premise.key}
-                value={filledPremises[premise.key] || ""}
-                onChange={(e) => onPremiseChange(premise.key, e.target.value)}
-                placeholder={`Enter ${premise.text.toLowerCase()} or pick an existing claim`}
-                rows={3}
-              />
-              {score?.premiseScores?.[premise.key] !== undefined && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Progress
-                    value={score.premiseScores[premise.key]}
-                    className="h-1.5 flex-1"
-                  />
-                  <span className="text-muted-foreground">
-                    {score.premiseScores[premise.key]}%
-                  </span>
+          template.premises.map((premise, index) => {
+            // Find matching premise with variables from schemeMetadata
+            const premiseWithVars = template.schemeMetadata?.premisesWithVariables?.find(
+              (p) => p.id === `P${index + 1}` || p.text.includes(premise.text.substring(0, 20))
+            );
+            const variables = premiseWithVars?.variables || [];
+            const slotHint = template.schemeMetadata?.slotHints?.[premise.key];
+
+            return (
+              <div key={premise.key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={premise.key} className="capitalize flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      {premise.text}
+                      {premise.required && <span className="text-red-500 ml-1">*</span>}
+                      {slotHint && (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
+                          {slotHint}
+                        </Badge>
+                      )}
+                      {pickedClaimIds[premise.key] && (
+                        <Badge variant="secondary" className="text-xs">
+                          Using Existing Claim
+                        </Badge>
+                      )}
+                    </div>
+                    {variables.length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        <span className="text-xs text-muted-foreground">Variables:</span>
+                        {variables.map((v) => (
+                          <Badge 
+                            key={v} 
+                            variant="outline" 
+                            className="text-xs bg-sky-50 text-sky-700 border-sky-300"
+                          >
+                            {v}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onExpandedChange({ type: "premise", key: premise.key })}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                      title="Expand to full editor"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      Expand
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onPickExistingClaim(premise.key)}
+                      className="text-xs text-sky-600 hover:text-sky-700 font-medium"
+                    >
+                      {pickedClaimIds[premise.key] ? "Change Claim" : "Pick Existing"}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))
+                <Textarea
+                  id={premise.key}
+                  value={filledPremises[premise.key] || ""}
+                  onChange={(e) => onPremiseChange(premise.key, e.target.value)}
+                  placeholder={`Enter ${premise.text.toLowerCase()} or pick an existing claim`}
+                  rows={3}
+                />
+                {score?.premiseScores?.[premise.key] !== undefined && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Progress
+                      value={score.premiseScores[premise.key]}
+                      className="h-1.5 flex-1"
+                    />
+                    <span className="text-muted-foreground">
+                      {score.premiseScores[premise.key]}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
 
         {score && (
@@ -1383,6 +1658,97 @@ function PremisesFillingStep({
           </button>
         </div>
       </CardContent>
+
+      {/* Expanded composer modal for premises */}
+      {expandedComposer.type && (expandedComposer.type === "major" || expandedComposer.type === "minor" || expandedComposer.type === "premise") && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => !open && onExpandedChange({ type: null })}
+        >
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-white">
+            <DialogHeader>
+              <DialogTitle>
+                {expandedComposer.type === "major"
+                  ? "Compose Major Premise"
+                  : expandedComposer.type === "minor"
+                  ? "Compose Minor Premise"
+                  : "Compose Premise"}
+              </DialogTitle>
+              <DialogDescription>
+                {expandedComposer.type === "major"
+                  ? template.formalStructure?.majorPremise
+                  : expandedComposer.type === "minor"
+                  ? template.formalStructure?.minorPremise
+                  : expandedComposer.key && template.premises.find(p => p.key === expandedComposer.key)?.text}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <PropositionComposerPro
+                deliberationId={deliberationId}
+                onCreated={async (prop: any) => {
+                  // Determine which premise to update
+                  const premiseKey = 
+                    expandedComposer.type === "major" ? "major" :
+                    expandedComposer.type === "minor" ? "minor" :
+                    expandedComposer.key || "";
+
+                  // Update premise text
+                  onPremiseChange(premiseKey, prop.text);
+
+                  // Fetch citations attached to this proposition
+                  try {
+                    const response = await fetch(`/api/propositions/${prop.id}/citations`);
+                    if (response.ok) {
+                      const data = await response.json();
+                      const propCitations = data.citations || [];
+
+                      // Convert proposition citations to pending citations format
+                      const convertedCitations: PendingCitation[] = propCitations.map((cit: any) => {
+                        let type: "url" | "doi" | "library" = "url";
+                        if (cit.doi) {
+                          type = "doi";
+                        } else if (cit.platform === "library") {
+                          type = "library";
+                        }
+
+                        return {
+                          type,
+                          value: cit.doi || cit.url || cit.id,
+                          title: cit.title,
+                          locator: cit.locator,
+                          quote: cit.quote || cit.text,
+                          note: cit.note,
+                        };
+                      });
+
+                      // Merge with existing pending citations (avoid duplicates)
+                      const existingValues = new Set(pendingCitations.map(c => c.value));
+                      const newCitations = convertedCitations.filter(c => !existingValues.has(c.value));
+
+                      if (newCitations.length > 0) {
+                        onCitationsChange([...pendingCitations, ...newCitations]);
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Failed to fetch proposition citations:", error);
+                    // Non-fatal - continue with just the text
+                  }
+
+                  // Close modal
+                  onExpandedChange({ type: null });
+                }}
+                placeholder={
+                  expandedComposer.type === "major"
+                    ? "Write the major (universal) premise..."
+                    : expandedComposer.type === "minor"
+                    ? "Write the minor (specific) premise..."
+                    : "Write this premise..."
+                }
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

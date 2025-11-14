@@ -71,7 +71,7 @@ export function DebateTab({
       <SectionCard title="Compose Proposition">
         <PropositionComposerPro deliberationId={deliberationId} />
       </SectionCard>
-
+    
       {/* Propositions List */}
       <SectionCard>
         <PropositionsList deliberationId={deliberationId} />

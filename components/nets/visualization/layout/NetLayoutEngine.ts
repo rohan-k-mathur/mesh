@@ -56,13 +56,55 @@ export class NetLayoutEngine {
       });
     });
 
-    // Add edges to dagre
+    // Validate edges before adding to dagre
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const validEdges: Edge[] = [];
+    const invalidEdges: Edge[] = [];
+
     edges.forEach((edge) => {
+      if (!nodeIds.has(edge.source)) {
+        console.warn(
+          `[NetLayoutEngine] Invalid edge: source node "${edge.source}" not found. Available nodes:`,
+          Array.from(nodeIds)
+        );
+        invalidEdges.push(edge);
+      } else if (!nodeIds.has(edge.target)) {
+        console.warn(
+          `[NetLayoutEngine] Invalid edge: target node "${edge.target}" not found. Available nodes:`,
+          Array.from(nodeIds)
+        );
+        invalidEdges.push(edge);
+      } else {
+        validEdges.push(edge);
+      }
+    });
+
+    if (invalidEdges.length > 0) {
+      console.error(
+        `[NetLayoutEngine] Found ${invalidEdges.length} invalid edges. These will be skipped to prevent layout errors.`
+      );
+    }
+
+    // Add only valid edges to dagre
+    validEdges.forEach((edge) => {
       dagreGraph.setEdge(edge.source, edge.target);
     });
 
     // Calculate layout
-    dagre.layout(dagreGraph);
+    try {
+      dagre.layout(dagreGraph);
+    } catch (error) {
+      console.error("[NetLayoutEngine] Dagre layout failed:", error);
+      console.log("Graph details:", {
+        nodeCount: nodes.length,
+        validEdgeCount: validEdges.length,
+        invalidEdgeCount: invalidEdges.length,
+        nodes: nodes.map((n) => n.id),
+        validEdges: validEdges.map((e) => `${e.source} → ${e.target}`),
+        invalidEdges: invalidEdges.map((e) => `${e.source} → ${e.target}`),
+      });
+      throw error;
+    }
 
     // Apply positions to nodes
     const layoutedNodes = nodes.map((node) => {
@@ -76,7 +118,8 @@ export class NetLayoutEngine {
       };
     });
 
-    return { nodes: layoutedNodes, edges };
+    // Return only valid edges that were actually laid out
+    return { nodes: layoutedNodes, edges: validEdges };
   }
 
   /**

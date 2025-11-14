@@ -17,7 +17,10 @@ import {
   MessageSquare,
   Loader2,
   Link as LinkIcon,
-  Swords
+  Swords,
+  Plus,
+  View,
+  PlusCircle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttackMenuPro } from "./AttackMenuPro";
@@ -34,6 +37,7 @@ import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetai
 import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
+import { Button } from "@/components/ui/button";
 import { GlossaryText } from "@/components/glossary/GlossaryText";
 import { 
   formatSchemeDisplay, 
@@ -41,6 +45,8 @@ import {
   getSchemeBadgeVariant,
   getSchemeTooltip 
 } from "@/lib/utils/argument-scheme-compat";
+import { SchemeAdditionDialog } from "@/components/argumentation/SchemeAdditionDialog";
+import { DependencyEditor } from "@/components/argumentation/DependencyEditor";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -411,6 +417,8 @@ export function ArgumentCardV2({
   const [citations, setCitations] = React.useState<any[]>([]);
   const [loadingCitations, setLoadingCitations] = React.useState(false);
   const [showAttackModal, setShowAttackModal] = React.useState(false); // Phase F: Attack creation modal
+  const [showSchemeAdditionDialog, setShowSchemeAdditionDialog] = React.useState(false); // Phase 2: Multi-scheme support
+  const [showDependencyEditor, setShowDependencyEditor] = React.useState(false); // Phase 2 Feature #2: Dependency editor
   
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
@@ -426,13 +434,38 @@ export function ArgumentCardV2({
   // Phase 4: Fetch multi-scheme data if not provided via props
   // Always fetch if we don't have scheme data, even when schemeName is provided (legacy support)
   const shouldFetchSchemes = (!propsSchemes || propsSchemes.length === 0) && id;
-  const { data: schemesData } = useSWR(
+  const { data: schemesData, mutate: mutateSchemes } = useSWR(
     shouldFetchSchemes ? `/api/arguments/${id}/schemes` : null,
     fetcher
   );
 
   // Use schemes from props or fetched data
-  const schemes = propsSchemes || schemesData?.schemes || [];
+  const schemes = React.useMemo(() => {
+    // Prioritize fetched data if available and non-empty
+    if (schemesData?.schemes && schemesData.schemes.length > 0) {
+      return schemesData.schemes;
+    }
+    // Fall back to props schemes if available and non-empty
+    if (propsSchemes && propsSchemes.length > 0) {
+      return propsSchemes;
+    }
+    // Default to empty array
+    return [];
+  }, [propsSchemes, schemesData?.schemes]);
+  
+  // Debug logging
+  React.useEffect(() => {
+    if (id) {
+      console.log('[ArgumentCardV2] Scheme data:', {
+        argumentId: id,
+        propsSchemes,
+        schemesData,
+        schemes,
+        schemeKey,
+        schemeName
+      });
+    }
+  }, [id, propsSchemes, schemesData, schemes, schemeKey, schemeName]);
 
   // Fetch CQ data for the conclusion claim (claim-level CQs)
   const { data: cqData } = useSWR(
@@ -1016,23 +1049,48 @@ export function ArgumentCardV2({
                 {/* Phase 4: Multi-scheme display */}
                 {schemes.length > 0 ? (
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm font-medium text-indigo-700">
-                        Argumentation Scheme{schemes.length > 1 ? "s" : ""}:
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm items-center font-medium text-indigo-700">
+                          Argumentation Scheme{schemes.length > 1 ? "s" : ""}:
+                        </div>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setSchemeDialogOpen(true)}
+                          className="flex items-center text-indigo-600 hover:text-indigo-800  "
+                        >
+                           <View className="h-3 w-3" />
+                          View scheme details 
+                        </Button>
                       </div>
-                      <button
-                        onClick={() => setSchemeDialogOpen(true)}
-                        className="flex text-sm text-indigo-600 hover:text-indigo-800 underline font-medium"
+                      <Button
+                      variant="ghost"
+                        onClick={() => setShowSchemeAdditionDialog(true)}
+                        className="flex items-center gap-1  text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md border border-indigo-200 transition-colors"
+                        title="Add supporting scheme"
                       >
-                        View full breakdown →
-                      </button>
+                        
+                        <PlusCircle className="h-3 w-3" />
+                        Add Scheme
+                      </Button>
+                      {schemes.length >= 2 && (
+                      <Button
+                          variant="ghost"
+                          onClick={() => setShowDependencyEditor(true)}
+                          className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md border border-purple-200 transition-colors"
+                          title="Edit scheme dependencies"
+                        >
+                          <LinkIcon className="h-3 w-3" />
+                          Edit Dependencies
+                        </Button>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-indigo-200">
                       {schemes.map((scheme: any) => (
                         <button
                           key={scheme.schemeId}
                           onClick={() => setSchemeDialogOpen(true)}
-                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all hover:scale-105 ${
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all  ${
                             scheme.isPrimary
                               ? "bg-indigo-100 border-indigo-300 text-indigo-800 hover:bg-indigo-200"
                               : "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
@@ -1298,6 +1356,67 @@ export function ArgumentCardV2({
           }}
         />
       )}
+      
+      {/* Phase 2: Multi-Scheme Addition Dialog */}
+      <SchemeAdditionDialog
+        open={showSchemeAdditionDialog}
+        onClose={() => setShowSchemeAdditionDialog(false)}
+        argumentId={id}
+        deliberationId={deliberationId}
+        existingSchemes={schemes.map((s: any) => ({
+          id: s.id || "",
+          schemeId: s.schemeId,
+          argumentId: id,
+          role: s.role || "supporting",
+          explicitness: s.explicitness || "explicit",
+          isPrimary: s.isPrimary,
+          confidence: s.confidence,
+          order: s.order || 0,
+          textEvidence: s.textEvidence,
+          justification: s.justification,
+          scheme: {
+            id: s.schemeId,
+            name: s.schemeName,
+            key: s.schemeKey,
+            category: s.category,
+            materialRelation: s.materialRelation,
+            reasoningType: s.reasoningType
+          }
+        }))}
+        onSchemeAdded={(schemeInstanceId) => {
+          console.log("Scheme added:", schemeInstanceId);
+          setShowSchemeAdditionDialog(false);
+          mutateSchemes(); // Refresh schemes data
+          onAnyChange?.(); // Notify parent of change
+        }}
+      />
+
+      {/* Phase 2 Feature #2: Dependency Editor */}
+      <DependencyEditor
+        open={showDependencyEditor}
+        onClose={() => setShowDependencyEditor(false)}
+        argumentId={id}
+        schemes={schemes.map((s: any) => ({
+          id: s.id || "",
+          schemeId: s.schemeId,
+          role: s.role || "supporting",
+          explicitness: s.explicitness || "explicit",
+          isPrimary: s.isPrimary,
+          confidence: s.confidence,
+          order: s.order || 0,
+          scheme: {
+            id: s.schemeId,
+            name: s.schemeName,
+            description: s.schemeSummary
+          }
+        }))}
+        onDependenciesUpdated={() => {
+          console.log("Dependencies updated");
+          setShowDependencyEditor(false);
+          mutateSchemes(); // Refresh to potentially trigger visualization update
+          onAnyChange?.(); // Notify parent of change
+        }}
+      />
     </div>
   );
 }

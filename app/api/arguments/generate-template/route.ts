@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     const {
       schemeId,
       claimId,
-      targetId, // For test mode
+      targetId, // For test mode or from ArgumentConstructor
+      mode, // attack, support, or general
       attackType,
       targetCQ,
       prefilledData,
@@ -29,8 +30,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use claimId or targetId (for test mode)
+    // Resolve the target claim ID
+    // Priority: claimId > targetId (both work)
     const resolvedTargetId = claimId || targetId;
+    
+    console.log("[generate-template] Request:", { 
+      schemeId, 
+      claimId, 
+      targetId, 
+      resolvedTargetId,
+      mode, 
+      attackType 
+    });
     
     // Mock templates for testing when service fails or test mode
     const mockTemplates: Record<string, any> = {
@@ -99,23 +110,33 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Try the service first, fall back to mock if it fails or in test mode
-    try {
-      if (resolvedTargetId && !resolvedTargetId.includes("test")) {
+    // Always try the real service first
+    // Only use mocks if explicitly in test mode or if service fails
+    const useTestMode = resolvedTargetId?.includes("test") || mode === "test";
+    
+    if (!useTestMode) {
+      try {
+        console.log("[generate-template] Calling ArgumentGenerationService.generateTemplate");
         const template = await argumentGenerationService.generateTemplate({
           schemeId,
-          claimId: resolvedTargetId,
+          claimId: resolvedTargetId, // Can be undefined for general mode
           attackType,
           targetCQ,
           prefilledData,
         });
+        console.log("[generate-template] Service returned template:", {
+          schemeName: template.schemeName,
+          conclusion: template.conclusion?.substring(0, 50),
+          premisesCount: template.premises.length
+        });
         return NextResponse.json({ template }, { status: 200 });
+      } catch (serviceError: any) {
+        console.warn("[generate-template] Service failed, using mock template:", serviceError.message);
       }
-    } catch (serviceError) {
-      console.warn("Service failed, using mock template:", serviceError);
     }
 
-    // Use mock template
+    // Use mock template (test mode or service failed)
+    console.log("[generate-template] Using mock template for scheme:", schemeId);
     const mockTemplate = mockTemplates[schemeId] || {
       schemeId: schemeId,
       schemeName: "General Argument",

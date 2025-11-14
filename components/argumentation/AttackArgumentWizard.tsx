@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
@@ -634,13 +635,13 @@ function ResponseStep({
               rows={5}
               className="resize-none pr-24 articlesearchfield text-sm"
             />
-            <button
+            <Button
               onClick={() => onExpandedChange(true)}
-              className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-white hover:bg-accent hover:text-accent-foreground h-8 px-3"
+              variant="ghost"
             >
               <Maximize2 className="h-3.5 w-3.5" />
               Expand
-            </button>
+            </Button>
           </div>
 
           {/* Character count */}

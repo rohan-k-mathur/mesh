@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import LibrarySearchModal from "@/components/citations/LibrarySearchModal";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Link as LinkIcon, BookOpen } from "lucide-react";
 
 /** Simplified citation data for collection before target exists */
 export type PendingCitation = {
@@ -11,19 +13,75 @@ export type PendingCitation = {
   quote?: string;
   note?: string;
   title?: string; // for display
+  quality?: "strong" | "moderate" | "weak"; // estimated quality
 };
 
 type Props = {
   citations: PendingCitation[];
   onChange: (citations: PendingCitation[]) => void;
   className?: string;
+  showQualityHints?: boolean; // Show quality guidance for citations
 };
+
+// Helper to get citation icon
+function getCitationIcon(type: "url" | "doi" | "library") {
+  switch (type) {
+    case "url":
+      return <LinkIcon className="h-3 w-3" />;
+    case "doi":
+      return <FileText className="h-3 w-3" />;
+    case "library":
+      return <BookOpen className="h-3 w-3" />;
+  }
+}
+
+// Helper to estimate citation quality (basic heuristic)
+function estimateCitationQuality(citation: PendingCitation): "strong" | "moderate" | "weak" {
+  // DOIs and library items tend to be more reliable
+  if (citation.type === "doi") return "strong";
+  if (citation.type === "library") return "strong";
+  
+  // URLs: check domain quality (basic heuristic)
+  if (citation.type === "url") {
+    const url = citation.value.toLowerCase();
+    // Academic/institutional domains
+    if (url.includes(".edu") || url.includes(".gov") || url.includes("scholar.google") || 
+        url.includes("arxiv.org") || url.includes(".ac.")) {
+      return "strong";
+    }
+    // News/established media
+    if (url.includes("wikipedia.org") || url.includes("britannica.com")) {
+      return "moderate";
+    }
+    // General web
+    return "moderate";
+  }
+  
+  return "moderate";
+}
+
+// Helper to get quality badge color
+function getQualityBadgeClass(quality: "strong" | "moderate" | "weak"): string {
+  switch (quality) {
+    case "strong":
+      return "bg-green-100 text-green-800 border-green-200";
+    case "moderate":
+      return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    case "weak":
+      return "bg-orange-100 text-orange-800 border-orange-200";
+  }
+}
 
 /**
  * CitationCollector - Collects citation metadata before the target entity exists
  * This allows users to add evidence during composition, which gets attached after creation
  */
-export default function CitationCollector({ citations, onChange, className }: Props) {
+export default function CitationCollector({ 
+  citations, 
+  onChange, 
+  className,
+  showQualityHints = true 
+}: Props) {
   const [tab, setTab] = React.useState<"url" | "doi" | "library">("url");
   const [showForm, setShowForm] = React.useState(false);
 
@@ -249,20 +307,40 @@ export default function CitationCollector({ citations, onChange, className }: Pr
           </div>
           <div className="flex flex-wrap  gap-2 ">
     
-          {citations.map((cit, idx) => (
+          {citations.map((cit, idx) => {
+            const quality = cit.quality || estimateCitationQuality(cit);
+            const icon = getCitationIcon(cit.type);
+            
+            return (
             <div
               key={idx}
-              className="flex  items-start w-fit gap-2 text-xs bg-white shadow-md border border-indigo-200  rounded-lg px-2 py-1.5"
+              className="flex  items-start w-fit max-w-[50%] gap-2 text-xs bg-white shadow-md border
+               border-indigo-200  rounded-lg px-2 py-1.5 "
             >
-              <div className="flex-1 min-w-0">
-                <div className="truncate font-medium">
-                  {cit.type.toUpperCase()}: {cit.title || cit.value}
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="truncate font-medium flex items-center gap-1">
+                    {icon}
+                    {cit.type.toUpperCase()}: {cit.title || cit.value}
+                  </div>
                 </div>
+                {showQualityHints && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`text-[10px] h-4 ${getQualityBadgeClass(quality)}`}>
+                      {quality} source
+                    </Badge>
+                    {quality === "weak" && (
+                      <span className="text-[10px] text-orange-700">
+                        Consider stronger sources
+                      </span>
+                    )}
+                  </div>
+                )}
                 {cit.locator && (
                   <div className="text-[10px] text-slate-500">Locator: {cit.locator}</div>
                 )}
                 {cit.quote && (
-                  <div className="text-[10px] text-slate-500 truncate">
+                  <div className="text-[10px] text-slate-500 truncate max-w-full">
                     Quote: {cit.quote}
                   </div>
                 )}
@@ -276,7 +354,7 @@ export default function CitationCollector({ citations, onChange, className }: Pr
                 ×
               </button>
             </div>
-          ))}
+          )})}
         </div>
         </div>
       )}

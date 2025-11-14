@@ -29,6 +29,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
+import { Button } from "../ui/button";
 
 // ============================================================================
 // Types
@@ -175,14 +176,12 @@ export function AttackSuggestions({
                 <Target className="h-5 w-5" />
                 Attack Suggestions
               </CardTitle>
-              <CardDescription>
-                AI-generated attacks ranked by strategic value
-              </CardDescription>
+             
             </div>
             <div className="flex items-center gap-2">
               {/* Sort selector */}
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] flex">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,14 +211,14 @@ export function AttackSuggestions({
                   </SelectItem>
                 </SelectContent>
               </Select>
-
+    
               {/* Refresh button */}
-              <button
+              <Button
+              
                 onClick={loadSuggestions}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
               >
                 <RefreshCw className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -374,13 +373,9 @@ function AttackSuggestionCard({
 
         {/* Select button */}
         <button
-          className={`w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 ${
-            isSelected
-              ? "bg-sky-600 text-white hover:bg-sky-700"
-              : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-          }`}
+          className={"w-full flex btnv2--ghost text-sm text-center items-center py-3 px-4 rounded-lg "}
         >
-          {isSelected ? "Selected" : "Use This Attack"}
+          Use This Attack
         </button>
       </CardContent>
     </Card>

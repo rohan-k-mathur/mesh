@@ -11,8 +11,7 @@ import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
 import { ArgumentNetAnalyzer } from "@/components/argumentation/ArgumentNetAnalyzer";
 import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
 import { AttackArgumentWizard } from "@/components/argumentation/AttackArgumentWizard";
-import { ArgumentConstructor } from "@/components/argumentation/ArgumentConstructor";
-import type { ArgumentMode } from "@/components/argumentation/ArgumentConstructor";
+import { AIFArgumentWithSchemeComposer } from "@/components/arguments/AIFArgumentWithSchemeComposer";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
 import { getUserFromCookies } from "@/lib/server/getUser";
@@ -34,7 +33,7 @@ interface ArgumentsTabProps {
  * 
  * Structure:
  * - List: All arguments (existing AIFArgumentsListPro)
- * - Create: Build new arguments (ArgumentConstructor integration)
+ * - Create: Build new arguments (AIFArgumentWithSchemeComposer integration)
  * - Schemes: Browse detected schemes (Phase 1 integration)
  * - Networks: Explore multi-scheme nets (Phase 4 integration)
  * - ASPIC: ASPIC theory analysis (migrated from parent tab)
@@ -43,7 +42,7 @@ interface ArgumentsTabProps {
  * - ArgumentNetAnalyzer integration for multi-scheme net analysis
  * Week 6 Enhancement:
  * - AttackArgumentWizard integration for CQ-based attacks
- * - ArgumentConstructor integration for general argument creation
+ * - AIFArgumentWithSchemeComposer for general argument creation (simplified from ArgumentConstructor)
  */
 export function ArgumentsTab({
   deliberationId,
@@ -81,11 +80,6 @@ export function ArgumentsTab({
   const [selectedAttack, setSelectedAttack] = useState<AttackSuggestion | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [attackRefreshKey, setAttackRefreshKey] = useState(0);
-
-  // ArgumentConstructor state
-  const [constructorMode, setConstructorMode] = useState<ArgumentMode>("general");
-  const [constructorTargetId, setConstructorTargetId] = useState<string | null>(null);
-  const [showConstructor, setShowConstructor] = useState(false);
 
   return (
     <>
@@ -158,19 +152,15 @@ export function ArgumentsTab({
                   critical questions and integrated with AIF, ASPIC+, and dialogue systems.
                 </div>
                 {currentUserId ? (
-                  <ArgumentConstructor
-                    mode="general"
-                    targetId={deliberationId} // Use deliberationId as targetId for general arguments
+                  <AIFArgumentWithSchemeComposer
                     deliberationId={deliberationId}
-                    currentUserId={currentUserId}
-                    onComplete={(argumentId) => {
+                    authorId={currentUserId}
+                    conclusionClaim={null}
+                    onCreated={(argumentId) => {
                       console.log("[ArgumentsTab] Argument created:", argumentId);
                       // Refresh arguments list and switch to list tab
                       setAttackRefreshKey((prev) => prev + 1);
                       // TODO: Switch to list tab and scroll to new argument
-                    }}
-                    onCancel={() => {
-                      // User cancelled - could show a message or just stay on tab
                     }}
                   />
                 ) : (

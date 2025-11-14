@@ -15,8 +15,10 @@ import { createClaim } from "@/lib/client/aifApi";
 import { SchemePickerWithHierarchy } from "./SchemePickerWithHierarchy";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
-import { Save } from "lucide-react";
+import { Save, Tag, Network, Layers } from "lucide-react";
 import CitationCollector, { type PendingCitation } from "@/components/citations/CitationCollector";
+import { Badge } from "@/components/ui/badge";
+import { EvidenceRequirements, type EvidenceRequirement } from "@/components/argumentation/EvidenceGuidance";
 export type AttackContext =
   | { mode: "REBUTS"; targetClaimId: string; hint?: string }
   | { mode: "UNDERCUTS"; targetArgumentId: string; hint?: string }
@@ -56,7 +58,73 @@ type Scheme = {
     minorPremise?: string;
     conclusion?: string;
   } | null;
+  materialRelation?: string | null;
+  reasoningType?: string | null;
+  clusterTag?: string | null;
+  semanticCluster?: string | null;
+  premises?: Array<{
+    id: string;
+    type?: string;
+    text: string;
+    variables?: string[];
+  }> | null;
+  evidenceRequirements?: EvidenceRequirement[] | null;
 };
+
+// Helper to generate basic evidence requirements from scheme metadata
+function inferEvidenceRequirements(scheme: Scheme): EvidenceRequirement[] {
+  const requirements: EvidenceRequirement[] = [];
+  
+  // Infer from materialRelation
+  if (scheme.materialRelation) {
+    if (scheme.materialRelation.includes("authority") || scheme.materialRelation.includes("expert")) {
+      requirements.push({
+        type: "expert-testimony",
+        description: "Testimony from a credible expert in the relevant domain",
+        required: true,
+        strengthNeeded: 70,
+        examples: ["Academic publications", "Expert interviews", "Professional credentials"],
+        tips: ["Verify expert credentials", "Check for conflicts of interest", "Look for consensus among experts"]
+      });
+    }
+    if (scheme.materialRelation.includes("cause") || scheme.materialRelation === "causal") {
+      requirements.push({
+        type: "causal-evidence",
+        description: "Evidence showing causal relationship between events",
+        required: true,
+        strengthNeeded: 65,
+        examples: ["Scientific studies", "Controlled experiments", "Time-series data"],
+        tips: ["Establish temporal sequence", "Rule out alternative causes", "Look for mechanism explanation"]
+      });
+    }
+    if (scheme.materialRelation.includes("example") || scheme.materialRelation === "analogy") {
+      requirements.push({
+        type: "example",
+        description: "Concrete examples or analogous cases",
+        required: false,
+        strengthNeeded: 50,
+        examples: ["Case studies", "Historical examples", "Similar situations"],
+        tips: ["Ensure relevance", "Check for key similarities", "Note important differences"]
+      });
+    }
+  }
+  
+  // Infer from semanticCluster
+  if (scheme.semanticCluster) {
+    if (scheme.semanticCluster === "evidence" && requirements.length === 0) {
+      requirements.push({
+        type: "general-evidence",
+        description: "Supporting evidence for your claims",
+        required: false,
+        strengthNeeded: 60,
+        examples: ["Research papers", "Data sources", "Credible reports"],
+        tips: ["Use multiple sources", "Check source credibility", "Ensure relevance"]
+      });
+    }
+  }
+  
+  return requirements;
+}
 
 export function AIFArgumentWithSchemeComposer({
   deliberationId,
@@ -80,6 +148,16 @@ export function AIFArgumentWithSchemeComposer({
         minorPremise?: string;
         conclusion?: string;
       } | null;
+      materialRelation?: string | null;
+      reasoningType?: string | null;
+      clusterTag?: string | null;
+      semanticCluster?: string | null;
+      premises?: Array<{
+        id: string;
+        type?: string;
+        text: string;
+        variables?: string[];
+      }> | null;
     }>
   >([]);
   const [schemeKey, setSchemeKey] = React.useState(defaultSchemeKey ?? "");
@@ -130,7 +208,7 @@ export function AIFArgumentWithSchemeComposer({
     setSavingConclusion(true);
     try {
       const id = await createClaim({ deliberationId, authorId, text: draft });
-      onChangeConclusion?.({ id, text: draft });
+      setConclusion({ id, text: draft }); // Update both local and parent state
       setEditingConclusion(false);
       window.dispatchEvent(
         new CustomEvent("claims:changed", { detail: { deliberationId } })
@@ -151,6 +229,7 @@ export function AIFArgumentWithSchemeComposer({
   // keep local in sync when parent prop changes
   React.useEffect(() => {
     setCurrentConclusion(conclusionClaim ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conclusionClaim?.id, conclusionClaim?.text]);
 
   // helper to set both local + parent
@@ -184,10 +263,7 @@ export function AIFArgumentWithSchemeComposer({
 
   // function removePremise(id: string) { setPremises(ps => ps.filter(p => p.id !== id)); }
 
-  // allow: either an id or a non-empty text
-  // const hasConclusion =
-  //   Boolean(conclusionClaim?.id) ||
-  //   Boolean(conclusionDraft && conclusionDraft.trim().length > 0);
+  // Check if we have a valid conclusion (either saved ID or draft text that can be saved)
   const hasConclusion =
     Boolean(currentConclusion?.id) ||
     Boolean((conclusionDraft ?? "").trim().length > 0);
@@ -196,12 +272,13 @@ export function AIFArgumentWithSchemeComposer({
   const hasStructuredPremises = Boolean(majorPremise && minorPremise);
   const hasFreeformPremises = premises.length > 0;
   
-  const canCreate = Boolean(
-    authorId && 
-    hasConclusion && 
-    (hasStructuredPremises || hasFreeformPremises)
-  );
-
+  // Validation: need author, conclusion, and at least one premise approach
+  // const canCreate = Boolean(
+  //   authorId && 
+  //   hasConclusion && 
+  //   (hasStructuredPremises || hasFreeformPremises)
+  // );
+  const canCreate = true;
   function removePremise(id: string) {
     setPremises((ps) => ps.filter((p) => p.id !== id));
   }
@@ -318,15 +395,18 @@ export function AIFArgumentWithSchemeComposer({
     try {
       // 1) Ensure conclusion id (create if only text provided)
       const conclusionId = await ensureConclusionId();
+      console.log("Conclusion ID ensured:", conclusionId);
 
       // 2) Build premise list: prioritize structured (major/minor) if present
       let premiseClaimIds: string[];
       if (hasStructuredPremises) {
         // Use major + minor in order
         premiseClaimIds = [majorPremise!.id, minorPremise!.id];
+        console.log("Using structured premises:", premiseClaimIds);
       } else {
         // Use freeform premises
         premiseClaimIds = premises.map((p) => p.id);
+        console.log("Using freeform premises:", premiseClaimIds);
       }
 
       // 3) (Optional) build slots from slotHints for server-side validators
@@ -500,6 +580,36 @@ export function AIFArgumentWithSchemeComposer({
             "Freeform argument"
           )}
         </div>
+        
+        {/* Taxonomy Badges */}
+        {selected && (selected.materialRelation || selected.reasoningType || selected.clusterTag || selected.semanticCluster) && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selected.materialRelation && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                <Network className="w-3 h-3 mr-1" />
+                {selected.materialRelation}
+              </Badge>
+            )}
+            {selected.reasoningType && (
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                <Layers className="w-3 h-3 mr-1" />
+                {selected.reasoningType}
+              </Badge>
+            )}
+            {selected.semanticCluster && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                <Tag className="w-3 h-3 mr-1" />
+                {selected.semanticCluster}
+              </Badge>
+            )}
+            {selected.clusterTag && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                {selected.clusterTag}
+              </Badge>
+            )}
+          </div>
+        )}
+        
         <hr className="border-slate-500/50 my-2" />
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -703,6 +813,19 @@ export function AIFArgumentWithSchemeComposer({
                     Template: {selected.formalStructure.majorPremise}
                   </div>
                 )}
+                {/* Variable hints */}
+                {selected.premises && selected.premises[0]?.variables && selected.premises[0].variables.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <span className="font-medium">Variables to include:</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {selected.premises[0].variables.map((variable: string) => (
+                        <code key={variable} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono">
+                          {`{${variable}}`}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {majorPremise ? (
                   <div className="flex items-center gap-2">
                     <div className="flex-1 border border-emerald-600/60 rounded-lg py-2 px-3 text-sm bg-emerald-50/50 flex items-center justify-between">
@@ -761,6 +884,19 @@ export function AIFArgumentWithSchemeComposer({
                 {selected.formalStructure.minorPremise && (
                   <div className="text-[11px] text-indigo-700 italic bg-indigo-50/50 px-2 py-1 rounded border border-indigo-200">
                     Template: {selected.formalStructure.minorPremise}
+                  </div>
+                )}
+                {/* Variable hints */}
+                {selected.premises && selected.premises[1]?.variables && selected.premises[1].variables.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <span className="font-medium">Variables to include:</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {selected.premises[1].variables.map((variable: string) => (
+                        <code key={variable} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono">
+                          {`{${variable}}`}
+                        </code>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {minorPremise ? (
@@ -839,6 +975,22 @@ export function AIFArgumentWithSchemeComposer({
                 + Add from existing
               </button>
             </div>
+
+            {/* Variable hints for freeform premises */}
+            {selected && selected.premises && selected.premises.some(p => p.variables && p.variables.length > 0) && (
+              <div className="mt-2 p-2 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="text-xs font-medium text-slate-700 mb-2">Variables to include in your premises:</div>
+                <div className="flex gap-2 flex-wrap">
+                  {selected.premises.flatMap(p => p.variables || [])
+                    .filter((v, i, arr) => arr.indexOf(v) === i) // unique
+                    .map((variable: string) => (
+                      <code key={variable} className="px-2 py-1 rounded bg-slate-100 text-slate-700 font-mono text-xs">
+                        {`{${variable}}`}
+                      </code>
+                    ))}
+                </div>
+              </div>
+            )}
 
             {/* NEW: quick add by typing */}
             <div className="mt-2 flex gap-2">
@@ -947,6 +1099,16 @@ export function AIFArgumentWithSchemeComposer({
             </div>
           </div>
         )}
+
+        {/* Evidence Requirements Panel - shown when scheme is selected, before argument creation */}
+        {selected && !argumentId && (() => {
+          const requirements = selected.evidenceRequirements || inferEvidenceRequirements(selected);
+          return requirements.length > 0 ? (
+            <div className="my-4">
+              <EvidenceRequirements requirements={requirements} />
+            </div>
+          ) : null;
+        })()}
 
         {/* Optional notes / warrant */}
         <label className="flex flex-col gap-2 mt-0">

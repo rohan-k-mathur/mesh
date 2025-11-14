@@ -108,6 +108,29 @@ export type ArgumentTemplate = {
   // Guidance
   constructionSteps: string[];
   evidenceRequirements: string[];
+  
+  // Formal Structure (Walton-style)
+  formalStructure?: {
+    majorPremise?: string;
+    minorPremise?: string;
+    conclusion?: string;
+  };
+  
+  // Scheme Metadata (from admin page integration)
+  schemeMetadata?: {
+    materialRelation?: string;
+    reasoningType?: string;
+    clusterTag?: string;
+    purpose?: string;
+    source?: string;
+    slotHints?: Record<string, string>; // Premise key → role hint
+    premisesWithVariables?: Array<{
+      id: string;
+      type: "major" | "minor" | "general";
+      text: string;
+      variables: string[];
+    }>;
+  };
 };
 
 /**
@@ -279,7 +302,7 @@ export class ArgumentGenerationService {
    */
   async generateTemplate(params: {
     schemeId: string;
-    claimId: string;
+    claimId?: string; // Optional - undefined for general mode
     attackType?: "REBUTS" | "UNDERCUTS" | "UNDERMINES";
     targetCQ?: string; // If attacking via specific CQ
     prefilledData?: Record<string, string>;
@@ -296,32 +319,47 @@ export class ArgumentGenerationService {
 
     if (!scheme) throw new Error("Scheme not found");
 
-    // 2. Get claim
-    const claim = await prisma.claim.findUnique({
-      where: { id: claimId },
-    });
+    // 2. Get claim (optional - for attack/support modes)
+    let claim = null;
+    if (claimId) {
+      claim = await prisma.claim.findUnique({
+        where: { id: claimId },
+      });
 
-    if (!claim) throw new Error("Claim not found");
+      if (!claim) throw new Error("Claim not found");
+    }
 
     // 3. Build premise templates
     const premises = this.buildPremiseTemplates(scheme, prefilledData);
 
-    // 4. Determine conclusion based on attack type
-    const conclusion = attackType
-      ? this.buildAttackConclusion(claim, attackType, targetCQ)
-      : claim.text;
+    // 4. Determine conclusion based on mode
+    let conclusion: string;
+    if (attackType && claim) {
+      // Attack mode: conclusion attacks the claim
+      conclusion = this.buildAttackConclusion(claim, attackType, targetCQ);
+    } else if (claim) {
+      // Support mode: conclusion is the claim itself
+      conclusion = claim.text;
+    } else {
+      // General mode: build conclusion from scheme structure
+      conclusion = this.buildGeneralConclusion(scheme);
+    }
 
     // 5. Extract variables and prefill what we can
     const variables = this.extractVariables(scheme);
-    const prefilledVariables = this.prefillVariables(
-      variables,
-      claim,
-      prefilledData
-    );
+    const prefilledVariables = claim 
+      ? this.prefillVariables(variables, claim, prefilledData)
+      : {};
 
     // 6. Generate construction guidance
     const constructionSteps = this.generateConstructionSteps(scheme, attackType);
     const evidenceRequirements = this.determineEvidenceRequirements(premises);
+
+    // 7. Extract formal structure (if available)
+    const formalStructure = this.extractFormalStructure(scheme);
+
+    // 8. Build scheme metadata for UI enhancements
+    const schemeMetadata = this.buildSchemeMetadata(scheme);
 
     return {
       schemeId: scheme.id,
@@ -333,6 +371,8 @@ export class ArgumentGenerationService {
       prefilledVariables,
       constructionSteps,
       evidenceRequirements,
+      formalStructure,
+      schemeMetadata,
     };
   }
 
@@ -1698,6 +1738,54 @@ export class ArgumentGenerationService {
   }
 
   /**
+   * Build a conclusion template from scheme structure (for general mode)
+   * Uses the scheme's formal structure if available, otherwise generates generic template
+   */
+  private buildGeneralConclusion(scheme: ArgumentScheme): string {
+    // Try to extract conclusion from formal structure
+    const premisesData = scheme.premises as any;
+    
+    if (Array.isArray(premisesData)) {
+      // Look for a conclusion premise
+      const conclusionPremise = premisesData.find((p: any) => 
+        p.type === "conclusion" || 
+        (typeof p === "object" && p.text && p.text.toLowerCase().includes("therefore"))
+      );
+      
+      if (conclusionPremise) {
+        return typeof conclusionPremise === "string" 
+          ? conclusionPremise 
+          : conclusionPremise.text || conclusionPremise.content || "";
+      }
+    }
+
+    // Check if scheme has a dedicated conclusion field
+    if ((scheme as any).conclusion) {
+      const conclusionData = (scheme as any).conclusion;
+      if (typeof conclusionData === "string") {
+        return conclusionData;
+      } else if (conclusionData.text) {
+        return conclusionData.text;
+      }
+    }
+
+    // Fallback: generate from scheme name/description
+    const schemeName = scheme.name || scheme.key;
+    if (schemeName.toLowerCase().includes("expert")) {
+      return "Therefore, the claim is credible based on expert testimony";
+    } else if (schemeName.toLowerCase().includes("cause")) {
+      return "Therefore, the effect is likely to occur";
+    } else if (schemeName.toLowerCase().includes("analogy")) {
+      return "Therefore, the target case is similar to the source case";
+    } else if (schemeName.toLowerCase().includes("consequence")) {
+      return "Therefore, the action should be pursued/avoided based on its consequences";
+    }
+
+    // Generic fallback
+    return "Therefore, the conclusion follows from the premises";
+  }
+
+  /**
    * Extract variables from scheme structure
    * 
    * Identifies template variables (like {agent}, {action}) and provides
@@ -2348,6 +2436,91 @@ export class ArgumentGenerationService {
 
     // Limit to top 5-7 most actionable suggestions
     return suggestions.slice(0, 7);
+  }
+
+  /**
+   * Extract formal structure (major/minor premises) from scheme
+   * Phase 2: Admin Integration
+   */
+  private extractFormalStructure(scheme: ArgumentScheme): {
+    majorPremise?: string;
+    minorPremise?: string;
+    conclusion?: string;
+  } | undefined {
+    const premises = (scheme as any).premises;
+    if (!premises || !Array.isArray(premises)) {
+      return undefined;
+    }
+
+    const majorPremise = premises.find((p: any) => p.type === "major");
+    const minorPremise = premises.find((p: any) => p.type === "minor");
+    const conclusion = (scheme as any).conclusion;
+
+    if (majorPremise && minorPremise) {
+      return {
+        majorPremise: majorPremise.text || majorPremise.content,
+        minorPremise: minorPremise.text || minorPremise.content,
+        conclusion: conclusion?.text || undefined,
+      };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Build scheme metadata for UI enhancements
+   * Phase 2: Admin Integration
+   */
+  private buildSchemeMetadata(scheme: ArgumentScheme): {
+    materialRelation?: string;
+    reasoningType?: string;
+    clusterTag?: string;
+    purpose?: string;
+    source?: string;
+    slotHints?: Record<string, string>;
+    premisesWithVariables?: Array<{
+      id: string;
+      type: "major" | "minor" | "general";
+      text: string;
+      variables: string[];
+    }>;
+  } {
+    const metadata: any = {};
+
+    // Extract Macagno & Walton taxonomy fields
+    if ((scheme as any).materialRelation) {
+      metadata.materialRelation = (scheme as any).materialRelation;
+    }
+    if ((scheme as any).reasoningType) {
+      metadata.reasoningType = (scheme as any).reasoningType;
+    }
+    if ((scheme as any).clusterTag) {
+      metadata.clusterTag = (scheme as any).clusterTag;
+    }
+    if ((scheme as any).purpose) {
+      metadata.purpose = (scheme as any).purpose;
+    }
+    if ((scheme as any).source) {
+      metadata.source = (scheme as any).source;
+    }
+
+    // Extract slot hints (for authority schemes)
+    if ((scheme as any).slotHints) {
+      metadata.slotHints = (scheme as any).slotHints;
+    }
+
+    // Extract premises with variables
+    const premises = (scheme as any).premises;
+    if (premises && Array.isArray(premises)) {
+      metadata.premisesWithVariables = premises.map((p: any) => ({
+        id: p.id || "P" + (premises.indexOf(p) + 1),
+        type: p.type || "general",
+        text: p.text || p.content || "",
+        variables: p.variables || [],
+      }));
+    }
+
+    return metadata;
   }
 }
 

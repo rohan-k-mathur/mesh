@@ -353,6 +353,7 @@ export class NetIdentificationService {
           orderBy: { order: "asc" },
         },
         deliberation: true,
+        schemeNet: true, // Include SchemeNet to check for custom dependencies
       },
     });
 
@@ -376,24 +377,61 @@ export class NetIdentificationService {
       },
     }));
 
-    // Infer relationships from roles
+    // Check for custom dependencies from SchemeNet (Phase 2 Feature #2)
+    let customDependencies: Array<{
+      from: string;
+      to: string;
+      type: string;
+      explanation?: string;
+    }> = [];
+    
+    if (argument.schemeNet?.description) {
+      try {
+        const parsed = JSON.parse(argument.schemeNet.description);
+        customDependencies = parsed.dependencies || [];
+      } catch {
+        // Not JSON or no dependencies, that's okay
+      }
+    }
+
+    // Build relationships: prioritize custom dependencies, fall back to role-based inference
     const relationships: Array<{
       sourceScheme: string;
       targetScheme: string;
       type: "supports" | "depends-on" | "challenges" | "refines";
       strength: number;
     }> = [];
-    const primaryScheme = schemes.find((s) => s.role === "primary");
 
-    if (primaryScheme) {
-      for (const scheme of schemes) {
-        if (scheme.role !== "primary") {
-          relationships.push({
-            sourceScheme: scheme.schemeId,
-            targetScheme: primaryScheme.schemeId,
-            type: "supports" as const,
-            strength: scheme.confidence / 100,
-          });
+    if (customDependencies.length > 0) {
+      // Use custom dependencies
+      for (const dep of customDependencies) {
+        // Map custom types to service types
+        const mappedType = 
+          dep.type === "sequential" || dep.type === "support" ? "supports" :
+          dep.type === "presuppositional" || dep.type === "justificational" ? "depends-on" :
+          "supports"; // default
+        
+        relationships.push({
+          sourceScheme: dep.from,
+          targetScheme: dep.to,
+          type: mappedType as "supports" | "depends-on",
+          strength: 0.9, // High strength for manually defined dependencies
+        });
+      }
+    } else {
+      // Fall back to role-based inference
+      const primaryScheme = schemes.find((s) => s.role === "primary");
+
+      if (primaryScheme) {
+        for (const scheme of schemes) {
+          if (scheme.role !== "primary") {
+            relationships.push({
+              sourceScheme: scheme.schemeId,
+              targetScheme: primaryScheme.schemeId,
+              type: "supports" as const,
+              strength: scheme.confidence / 100,
+            });
+          }
         }
       }
     }
@@ -415,14 +453,21 @@ export class NetIdentificationService {
           role: s.role,
           depth: index,
         })),
-        edges: relationships.map((r) => ({
-          sourceSchemeId: r.sourceScheme,
-          targetSchemeId: r.targetScheme,
-          type: r.type,
-          strength: r.strength,
-          criticality: "normal",
-          explanation: `${r.type} relationship`,
-        })),
+        edges: relationships.map((r) => {
+          // Find custom explanation if it exists
+          const customDep = customDependencies.find(
+            (d) => d.from === r.sourceScheme && d.to === r.targetScheme
+          );
+          
+          return {
+            sourceSchemeId: r.sourceScheme,
+            targetSchemeId: r.targetScheme,
+            type: r.type,
+            strength: r.strength,
+            criticality: "normal",
+            explanation: customDep?.explanation || `${r.type} relationship`,
+          };
+        }),
         cycles: [],
         criticalPath: schemes.map((s) => s.schemeId),
       },
