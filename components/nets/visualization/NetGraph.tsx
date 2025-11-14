@@ -146,11 +146,84 @@ export function NetGraph({
     [onEdgeClick]
   );
 
-  // Export as image
+  // Export/Debug: Log complete graph structure
   const handleExport = useCallback(() => {
-    // Implementation for exporting graph as PNG/SVG
-    console.log("Export graph");
-  }, []);
+    const graphData = {
+      metadata: {
+        netId: net.id,
+        netType: net.netType,
+        complexity: net.complexity,
+        confidence: net.confidence,
+        overallExplicitness: explicitnessAnalysis.overallExplicitness,
+        schemeCount: net.schemes.length,
+        edgeCount: dependencyGraph.edges.length,
+        cycleCount: dependencyGraph.cycles.length,
+        criticalPathLength: dependencyGraph.criticalPath.length,
+      },
+      schemes: net.schemes.map((scheme) => ({
+        schemeId: scheme.schemeId,
+        schemeName: scheme.schemeName,
+        schemeCategory: scheme.schemeCategory,
+        confidence: scheme.confidence,
+        role: scheme.role,
+        explicitness: explicitnessAnalysis.schemeExplicitness.find(
+          (e) => e.schemeId === scheme.schemeId
+        ),
+      })),
+      dependencies: dependencyGraph.edges.map((edge) => ({
+        source: edge.sourceSchemeId,
+        target: edge.targetSchemeId,
+        type: edge.type,
+        strength: edge.strength,
+        criticality: edge.criticality,
+        explanation: edge.explanation,
+        explicitness: explicitnessAnalysis.relationshipExplicitness.find(
+          (e) => e.sourceScheme === edge.sourceSchemeId && e.targetScheme === edge.targetSchemeId
+        ),
+      })),
+      graph: {
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: node.data,
+        })),
+        edges: edges.map((edge) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          animated: edge.animated,
+          data: edge.data,
+        })),
+      },
+      analysis: {
+        criticalPath: dependencyGraph.criticalPath,
+        cycles: dependencyGraph.cycles,
+        relationships: net.relationships,
+      },
+    };
+
+    console.log("╔══════════════════════════════════════════════════════════════╗");
+    console.log("║           ARGUMENT NET GRAPH - COMPLETE STRUCTURE            ║");
+    console.log("╚══════════════════════════════════════════════════════════════╝");
+    console.log("\n📊 METADATA:");
+    console.table(graphData.metadata);
+    console.log("\n🔷 SCHEMES:");
+    console.table(graphData.schemes);
+    console.log("\n➡️  DEPENDENCIES:");
+    console.table(graphData.dependencies);
+    console.log("\n📈 GRAPH STRUCTURE:");
+    console.log("Nodes:", graphData.graph.nodes);
+    console.log("Edges:", graphData.graph.edges);
+    console.log("\n🔍 ANALYSIS:");
+    console.log("Critical Path:", graphData.analysis.criticalPath);
+    console.log("Cycles:", graphData.analysis.cycles);
+    console.log("Relationships:", graphData.analysis.relationships);
+    console.log("\n📋 FULL DATA (copy-paste for export):");
+    console.log(JSON.stringify(graphData, null, 2));
+    console.log("\n✅ Graph data logged to console!");
+  }, [net, dependencyGraph, explicitnessAnalysis, nodes, edges]);
 
   // Highlight critical path
   const highlightCriticalPath = useCallback(() => {
