@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
-import { List, Network, GitFork, Shield, Plus } from "lucide-react";
+import { List, Network, GitFork, Shield, Plus, Workflow } from "lucide-react";
 import { SectionCard } from "@/components/deepdive/shared";
 import AIFArgumentsListPro from "@/components/arguments/AIFArgumentsListPro";
 import { SchemesSection } from "../sections/SchemesSection";
@@ -15,6 +15,7 @@ import { AIFArgumentWithSchemeComposer } from "@/components/arguments/AIFArgumen
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
 import { getUserFromCookies } from "@/lib/server/getUser";
+import { NetsTab } from "@/components/nets/NetsTab";
 
 interface ArgumentsTabProps {
   deliberationId: string;
@@ -184,6 +185,20 @@ export function ArgumentsTab({
             icon: <GitFork className="size-3.5" />,
             // TODO: Add badge with net count
             content: <NetworksSection deliberationId={deliberationId} />,
+          },
+          {
+            value: "create-net",
+            label: "Create Argument Net",
+            icon: <Workflow className="size-3.5" />,
+            content: (
+              <SectionCard 
+                title="Argument Nets" 
+                className="w-full" 
+                padded={false}
+              >
+                <NetsTab deliberationId={deliberationId} />
+              </SectionCard>
+            ),
           },
           {
             value: "aspic",

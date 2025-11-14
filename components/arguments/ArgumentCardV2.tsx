@@ -47,6 +47,7 @@ import {
 } from "@/lib/utils/argument-scheme-compat";
 import { SchemeAdditionDialog } from "@/components/argumentation/SchemeAdditionDialog";
 import { DependencyEditor } from "@/components/argumentation/DependencyEditor";
+import { ArgumentNetBuilder } from "@/components/argumentation/ArgumentNetBuilder";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -419,6 +420,7 @@ export function ArgumentCardV2({
   const [showAttackModal, setShowAttackModal] = React.useState(false); // Phase F: Attack creation modal
   const [showSchemeAdditionDialog, setShowSchemeAdditionDialog] = React.useState(false); // Phase 2: Multi-scheme support
   const [showDependencyEditor, setShowDependencyEditor] = React.useState(false); // Phase 2 Feature #2: Dependency editor
+  const [showNetBuilder, setShowNetBuilder] = React.useState(false); // Phase 4 Feature #4: Net builder
   
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
@@ -1074,15 +1076,26 @@ export function ArgumentCardV2({
                         Add Scheme
                       </Button>
                       {schemes.length >= 2 && (
-                      <Button
-                          variant="ghost"
-                          onClick={() => setShowDependencyEditor(true)}
-                          className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md border border-purple-200 transition-colors"
-                          title="Edit scheme dependencies"
-                        >
-                          <LinkIcon className="h-3 w-3" />
-                          Edit Dependencies
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setShowDependencyEditor(true)}
+                            className="flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-md border border-purple-200 transition-colors"
+                            title="Edit scheme dependencies"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            Edit Dependencies
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setShowNetBuilder(true)}
+                            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md border border-blue-200 transition-colors"
+                            title="Build explicit scheme net"
+                          >
+                            <StepForward className="h-3 w-3" />
+                            Build Net
+                          </Button>
+                        </>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-indigo-200">
@@ -1414,6 +1427,19 @@ export function ArgumentCardV2({
           console.log("Dependencies updated");
           setShowDependencyEditor(false);
           mutateSchemes(); // Refresh to potentially trigger visualization update
+          onAnyChange?.(); // Notify parent of change
+        }}
+      />
+
+      {/* Phase 4 Feature #4: Argument Net Builder */}
+      <ArgumentNetBuilder
+        open={showNetBuilder}
+        onClose={() => setShowNetBuilder(false)}
+        argumentId={id}
+        onComplete={(netId) => {
+          console.log("Net created:", netId);
+          setShowNetBuilder(false);
+          mutateSchemes(); // Refresh to show net
           onAnyChange?.(); // Notify parent of change
         }}
       />
