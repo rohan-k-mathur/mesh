@@ -354,7 +354,7 @@ function NetCard({ net, onView, onEdit, onDelete }: NetCardProps) {
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <div>{net.stepCount} steps</div>
         <div>•</div>
-        <div>Weakest: {Math.round(net.weakestStep.confidence * 100)}%</div>
+        <div>Weakest: {Math.round((net.weakestStep?.confidence || net.overallConfidence) * 100)}%</div>
       </div>
 
       {/* Steps Preview */}

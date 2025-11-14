@@ -108,34 +108,6 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Fetch net details
-  useEffect(() => {
-    async function fetchNet() {
-      if (!open || !netId) return;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(`/api/scheme-nets/${netId}`);
-        if (!response.ok) throw new Error("Failed to fetch net details");
-
-        const data = await response.json();
-        setNet(data);
-
-        // Build graph visualization
-        buildGraph(data);
-      } catch (err) {
-        console.error("[NetDetailView] Error fetching net:", err);
-        setError(err instanceof Error ? err.message : "Failed to load net");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void fetchNet();
-  }, [open, netId, buildGraph]);
-
   // Build ReactFlow graph from net structure
   const buildGraph = useCallback((netData: NetDetail) => {
     const newNodes: Node[] = [];
@@ -206,6 +178,34 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
     setNodes(newNodes);
     setEdges(newEdges);
   }, [setNodes, setEdges]);
+
+  // Fetch net details
+  useEffect(() => {
+    async function fetchNet() {
+      if (!open || !netId) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/scheme-nets/${netId}`);
+        if (!response.ok) throw new Error("Failed to fetch net details");
+
+        const data = await response.json();
+        setNet(data);
+
+        // Build graph visualization
+        buildGraph(data);
+      } catch (err) {
+        console.error("[NetDetailView] Error fetching net:", err);
+        setError(err instanceof Error ? err.message : "Failed to load net");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void fetchNet();
+  }, [open, netId, buildGraph]);
 
   // Export net as JSON
   const handleExport = () => {

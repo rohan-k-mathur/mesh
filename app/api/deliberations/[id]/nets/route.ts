@@ -22,47 +22,49 @@ export async function GET(
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const order = searchParams.get("order") || "desc";
 
-    // Fetch all arguments in deliberation with their nets
-    const argumentsWithNets = await prisma.argument.findMany({
+    // Fetch all SchemeNets in this deliberation
+    const schemeNets = await prisma.schemeNet.findMany({
       where: {
-        deliberationId,
-        schemeNet: {
-          isNot: null, // Only arguments with nets
+        argument: {
+          deliberationId,
         },
       },
       include: {
-        schemeNet: {
-          include: {
-            steps: {
-              include: {
-                scheme: {
-                  select: {
-                    id: true,
-                    name: true,
-                    materialRelation: true,
-                    reasoningType: true,
-                  },
-                },
+        argument: {
+          select: {
+            id: true,
+            text: true,
+            authorId: true,
+            conclusion: {
+              select: {
+                id: true,
+                text: true,
               },
-              orderBy: { stepOrder: "asc" },
             },
           },
         },
-        conclusion: {
-          select: {
-            id: true,
-            propositionText: true,
+        steps: {
+          include: {
+            scheme: {
+              select: {
+                id: true,
+                name: true,
+                materialRelation: true,
+                reasoningType: true,
+              },
+            },
           },
+          orderBy: { stepOrder: "asc" },
         },
       },
     });
 
-    // Fetch authors separately for better performance
-    const authorIds = [...new Set(argumentsWithNets.map(arg => arg.authorId))];
+    // Fetch authors separately
+    const authorIds = [...new Set(schemeNets.map(net => net.argument.authorId))];
     const authors = await prisma.user.findMany({
       where: {
         id: {
-          in: authorIds,
+          in: authorIds as any, // BigInt[] type
         },
       },
       select: {
@@ -72,14 +74,11 @@ export async function GET(
         image: true,
       },
     });
-    const authorMap = new Map(authors.map(a => [a.id, a]));
+    const authorMap = new Map(authors.map(a => [String(a.id), a]));
 
     // Transform to net-centric view
-    let nets = argumentsWithNets
-      .filter((arg) => arg.schemeNet) // Type guard
-      .map((arg) => {
-        const net = arg.schemeNet!;
-        const author = authorMap.get(arg.authorId);
+    let nets = schemeNets.map((net) => {
+        const author = authorMap.get(String(net.argument.authorId));
         
         // Infer net type from steps structure
         let inferredNetType = "serial"; // default
@@ -98,8 +97,8 @@ export async function GET(
 
         return {
           id: net.id,
-          argumentId: arg.id,
-          argumentConclusion: arg.conclusion?.propositionText || arg.conclusion?.id || "Untitled",
+          argumentId: net.argumentId,
+          argumentConclusion: net.argument.conclusion?.text || net.argument.text || "Untitled",
           description: net.description,
           netType: inferredNetType,
           overallConfidence: net.overallConfidence,
@@ -107,10 +106,10 @@ export async function GET(
           createdAt: net.createdAt,
           updatedAt: net.updatedAt,
           author: {
-            id: arg.author?.id,
-            username: arg.author?.username,
-            name: arg.author?.name,
-            image: arg.author?.image,
+            id: String(author?.id || net.argument.authorId),
+            username: author?.username || "Unknown",
+            name: author?.name || null,
+            image: author?.image || null,
           },
           steps: net.steps.map((step) => ({
             id: step.id,
@@ -121,10 +120,12 @@ export async function GET(
             confidence: step.confidence,
             inputFromStep: step.inputFromStep,
           })),
-          // Calculate weakest link
-          weakestStep: net.steps.reduce((min, step) =>
-            step.confidence < min.confidence ? step : min
-          , net.steps[0]),
+          // Calculate weakest link (handle empty steps gracefully)
+          weakestStep: net.steps.length > 0 
+            ? net.steps.reduce((min, step) =>
+                step.confidence < min.confidence ? step : min
+              , net.steps[0])
+            : null,
         };
       });
 
