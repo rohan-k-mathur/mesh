@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -29,12 +28,12 @@ import {
   Network,
   Plus,
   Trash2,
-  GripVertical,
   Info,
   Eye,
   ChevronRight,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NetStepCard, type NetStep as ImportedNetStep, type Scheme } from "@/components/argumentation/NetStepCard";
 
 // ============================
 // Types
@@ -42,17 +41,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type NetType = "serial" | "convergent" | "divergent" | "hybrid";
 
-interface NetStep {
-  id: string;
-  schemeId: string;
-  schemeName?: string;
-  label: string;
-  stepText: string;
-  confidence: number;
-  order: number;
-  inputFromStep: number | null;
-  inputSlotMapping: Record<string, string> | null;
-}
+// Re-export imported types
+type NetStep = ImportedNetStep;
 
 interface ArgumentNetBuilderProps {
   open: boolean;
@@ -60,12 +50,6 @@ interface ArgumentNetBuilderProps {
   argumentId?: string; // Now optional for standalone mode
   onComplete: (netId: string) => void;
   deliberationId?: string; // Required for standalone mode
-}
-
-interface Scheme {
-  id: string;
-  name: string;
-  description?: string;
 }
 
 // ============================
@@ -145,10 +129,15 @@ export function ArgumentNetBuilder({
       
       setLoadingArguments(true);
       try {
-        const response = await fetch(`/api/deliberations/${deliberationId}/arguments`);
+        const response = await fetch(`/api/deliberations/${deliberationId}/arguments/aif?limit=100`);
         if (!response.ok) throw new Error("Failed to fetch arguments");
         const data = await response.json();
-        setAvailableArguments(data.arguments || []);
+        // Extract arguments from paginated response
+        const args = (data.items || []).map((item: any) => ({
+          id: item.id,
+          conclusion: item.aif?.conclusion?.propositionText || item.text || `Argument ${item.id}`,
+        }));
+        setAvailableArguments(args);
       } catch (err) {
         console.error("[ArgumentNetBuilder] Error fetching arguments:", err);
         setError("Failed to load arguments");
@@ -247,28 +236,15 @@ export function ArgumentNetBuilder({
     setError(null);
     
     try {
-      const response = await fetch(`/api/deliberations/${deliberationId}/arguments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conclusion: newArgumentConclusion.trim(),
-          premises: [],
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-        throw new Error(errorData.error || "Failed to create argument");
-      }
-      
-      const { argumentId: newArgId } = await response.json();
-      console.log("[ArgumentNetBuilder] Created argument:", newArgId);
-      setArgumentId(newArgId);
-      setCurrentTab("type");
+      // For now, show a helpful message instead of creating
+      // Full argument creation requires claims, premises, etc.
+      setError(
+        "Creating new arguments requires using the full argument composer. " +
+        "Please select an existing argument or create one using the 'Create Argument' tab first."
+      );
       setCreateNewArgument(false);
-      setNewArgumentConclusion("");
     } catch (err) {
-      console.error("[ArgumentNetBuilder] Error creating argument:", err);
+      console.error("[ArgumentNetBuilder] Error:", err);
       setError(err instanceof Error ? err.message : "Failed to create argument");
     } finally {
       setCreatingArgument(false);
@@ -592,7 +568,7 @@ export function ArgumentNetBuilder({
                   ) : (
                     <div className="space-y-3">
                       {steps.map((step, index) => (
-                        <StepCard
+                        <NetStepCard
                           key={step.id}
                           step={step}
                           index={index}
@@ -742,86 +718,6 @@ export function ArgumentNetBuilder({
 // ============================
 // Sub-Components
 // ============================
-
-interface StepCardProps {
-  step: NetStep;
-  index: number;
-  schemes: Scheme[];
-  onUpdate: (updates: Partial<NetStep>) => void;
-  onRemove: () => void;
-}
-
-function StepCard({ step, index, schemes, onUpdate, onRemove }: StepCardProps) {
-  return (
-    <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
-      <div className="flex items-center gap-2">
-        <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-        <Badge variant="outline">Step {step.order}</Badge>
-        <div className="flex-1" />
-        <Button variant="ghost" size="sm" onClick={onRemove}>
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </div>
-
-      {/* Scheme Selector */}
-      <div className="space-y-2">
-        <Label>Argumentation Scheme *</Label>
-        <Select value={step.schemeId} onValueChange={(val) => onUpdate({ schemeId: val })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a scheme..." />
-          </SelectTrigger>
-          <SelectContent>
-            {schemes.map((scheme) => (
-              <SelectItem key={scheme.id} value={scheme.id}>
-                {scheme.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Label */}
-      <div className="space-y-2">
-        <Label>Step Label *</Label>
-        <Input
-          placeholder="e.g., Expert Consensus, Classification, etc."
-          value={step.label}
-          onChange={(e) => onUpdate({ label: e.target.value })}
-        />
-      </div>
-
-      {/* Step Text */}
-      <div className="space-y-2">
-        <Label>Step Text (Optional)</Label>
-        <Textarea
-          placeholder="Quote or text excerpt that shows this inferential step..."
-          value={step.stepText}
-          onChange={(e) => onUpdate({ stepText: e.target.value })}
-          rows={2}
-        />
-      </div>
-
-      {/* Confidence Slider */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label>Confidence</Label>
-          <span className="text-sm font-medium">{Math.round(step.confidence * 100)}%</span>
-        </div>
-        <Slider
-          value={[step.confidence]}
-          onValueChange={([val]) => onUpdate({ confidence: val })}
-          min={0}
-          max={1}
-          step={0.01}
-          className="w-full"
-        />
-        <p className="text-xs text-muted-foreground">
-          How confident are you that this inferential step is valid?
-        </p>
-      </div>
-    </div>
-  );
-}
 
 interface DependencyRowProps {
   step: NetStep;
