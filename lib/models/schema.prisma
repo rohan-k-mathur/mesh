@@ -108,6 +108,10 @@ model User {
   // ASPIC+ Explicit Contraries - Phase D-1
   claimContraries ClaimContrary[]
 
+  // ArgumentChain relations
+  createdArgumentChains     ArgumentChain[]     @relation
+  addedChainNodes           ArgumentChainNode[]
+
   @@map("users")
 }
 
@@ -2332,6 +2336,9 @@ model Argument {
   // Thesis relations
   thesisProngArguments ThesisProngArgument[] @relation("ThesisProngArguments")
 
+  // ArgumentChain relations
+  chainNodes ArgumentChainNode[]
+
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
@@ -4009,6 +4016,9 @@ model Deliberation {
 
   // ASPIC+ Explicit Contraries - Phase D-1
   claimContraries ClaimContrary[]
+
+  // ArgumentChain relations
+  argumentChains ArgumentChain[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -6233,4 +6243,124 @@ model AifEdge {
   @@index([targetId])
   @@index([causedByMoveId])
   @@map("aif_edges")
+}
+
+// ============================================================================
+// ArgumentChain: Deliberation-Level Argument Chains
+// Phase 6: Cross-Argument Chains (Nov 2025)
+// Based on ArgumentChain design proposal
+// ============================================================================
+
+enum ArgumentChainType {
+  SERIAL       // A → B → C (linear chain)
+  CONVERGENT   // A → C, B → C (multiple premises for one conclusion)
+  DIVERGENT    // A → B, A → C (one premise for multiple conclusions)
+  TREE         // Hierarchical (premise-conclusion tree)
+  GRAPH        // General DAG (complex interdependencies)
+}
+
+enum ChainNodeRole {
+  PREMISE      // Provides foundational claim
+  EVIDENCE     // Supports with data/facts
+  CONCLUSION   // Final claim being argued for
+  OBJECTION    // Challenges another argument
+  REBUTTAL     // Responds to objection
+  QUALIFIER    // Adds conditions/scope
+}
+
+enum ArgumentChainEdgeType {
+  SUPPORTS        // A supports B (conclusion → premise)
+  ENABLES         // A enables B (makes B's claim possible)
+  PRESUPPOSES     // B presupposes A (A must be true for B)
+  REFUTES         // A challenges B (attack relation)
+  QUALIFIES       // A adds conditions to B
+  EXEMPLIFIES     // A is example of B's general claim
+  GENERALIZES     // A abstracts from B's specific case
+}
+
+model ArgumentChain {
+  id             String   @id @default(cuid())
+  deliberationId String
+  
+  // Metadata
+  name           String   @db.VarChar(255)
+  description    String?  @db.Text
+  purpose        String?  @db.Text
+  
+  // Structure
+  chainType      ArgumentChainType @default(SERIAL)
+  rootNodeId     String?
+  
+  // Ownership & Permissions
+  createdBy      BigInt
+  isPublic       Boolean  @default(false)
+  isEditable     Boolean  @default(false)
+  
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  deliberation   Deliberation        @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  creator        User                @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  nodes          ArgumentChainNode[]
+  edges          ArgumentChainEdge[]
+  
+  @@index([deliberationId])
+  @@index([createdBy])
+}
+
+model ArgumentChainNode {
+  id           String   @id @default(cuid())
+  chainId      String
+  argumentId   String
+  
+  // Position in chain
+  nodeOrder    Int
+  role         ChainNodeRole?
+  
+  // Visual layout
+  positionX    Float?
+  positionY    Float?
+  
+  // Contribution metadata
+  addedBy      BigInt
+  addedAt      DateTime @default(now())
+  
+  // Relations
+  chain        ArgumentChain       @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  argument     Argument            @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  contributor  User                @relation(fields: [addedBy], references: [id])
+  
+  outgoingEdges ArgumentChainEdge[] @relation("SourceNode")
+  incomingEdges ArgumentChainEdge[] @relation("TargetNode")
+  
+  @@unique([chainId, argumentId])
+  @@index([chainId])
+  @@index([argumentId])
+}
+
+model ArgumentChainEdge {
+  id             String   @id @default(cuid())
+  chainId        String
+  sourceNodeId   String
+  targetNodeId   String
+  
+  // Relationship semantics
+  edgeType       ArgumentChainEdgeType @default(SUPPORTS)
+  strength       Float    @default(1.0)
+  
+  // Mapping details
+  description    String?  @db.Text
+  slotMapping    Json?
+  
+  createdAt      DateTime @default(now())
+  
+  // Relations
+  chain          ArgumentChain     @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  sourceNode     ArgumentChainNode @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode     ArgumentChainNode @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  
+  @@unique([chainId, sourceNodeId, targetNodeId])
+  @@index([chainId])
 }
