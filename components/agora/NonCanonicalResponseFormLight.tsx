@@ -30,22 +30,7 @@ const scrollbarStyles = `
     background: rgba(12, 61, 139, 0.4);
     border-radius: 4px;
   }
-      .custom-scrollbar-short::-webkit-scrollbar {
-       width: 3px;
-    height: 3px;
-    border-radius: 2px;
-  }
-  .custom-scrollbar-short::-webkit-scrollbar-track {
-     background: #5a5a7b6b;
-    border-radius: 50px;
-  }
-  .custom-scrollbar-short::-webkit-scrollbar-thumb {
-     background: #5d5d6d98;
-    border-radius: 50px;
-  }
-  .custom-scrollbar-short::-webkit-scrollbar-thumb:hover {
-    background: #7878a3;
-  }
+   
 `;
 
 // ============================================================================

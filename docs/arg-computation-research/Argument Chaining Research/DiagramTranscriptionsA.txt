@@ -2,7 +2,7 @@ Below is a clean, structured transcription + explanation of each diagram you sup
 I break it into five sections, one per diagram.
 
 1. Diagram: “Purposes or Functions of Arguments” (Fig. 1)
-Overall purpose: A hierarchical concept map classifying the intended functions of arguments (not accidental effects). It distinguishes cognitive and epistemological purposes, then breaks these down into communicative, self-directed, and joint functions, and finally into specific tasks such as supporting thinking, collaborative learning, coping with complexity, etc.
+Overall purpose:A hierarchical concept map classifying the intended functions of arguments (not accidental effects). It distinguishes cognitive and epistemological purposes, then breaks these down into communicative, self-directed, and joint functions, and finally into specific tasks such as supporting thinking, collaborative learning, coping with complexity, etc.
 Top Node
 	•	“Purposes or functions of arguments (covers only intended effects, not possible effects)”
 This node splits into:
@@ -42,11 +42,11 @@ Goal:
 
 Secondary and tertiary effects
 At the bottom, under the arrow “includes” branching from communicative/self-directed functions:
-	•	Secondary effects (Pinto) “Relating to attitudes of an audience, e.g., believing that the conclusion is true. They are a precondition for achieving tertiary effects.” 
-	•	Tertiary effects “Apparent effects of an argument, e.g., confirming the acceptance of an argument’s conclusion.” 
+	•	Secondary effects (Pinto)“Relating to attitudes of an audience, e.g., believing that the conclusion is true. They are a precondition for achieving tertiary effects.”
+	•	Tertiary effects“Apparent effects of an argument, e.g., confirming the acceptance of an argument’s conclusion.”
 
 2. Diagram: Walton & Bex – Argumentation and Explanation in Dialogue (Fig. 1)
-Purpose: Shows the relation between dialogue moves (speech acts), illocutionary relations, and the reasoning structure being built beneath them.
+Purpose:Shows the relation between dialogue moves (speech acts), illocutionary relations, and the reasoning structure being built beneath them.
 Dialogue sequence (top row of boxes)
 	1	Allen: “The warehouses should be preserved.”
 	◦	This is an assertion.
@@ -68,11 +68,11 @@ Arrows connect dialogue acts to reasoning nodes:
 
 Reasoning structure (bottom layer)
 Nodes:
-	1	The warehouses should be preserved. (Conclusion) Supported by:
-	2	The warehouses are valuable architecturally. (Intermediate conclusion) Supported by either:
+	1	The warehouses should be preserved.(Conclusion)Supported by:
+	2	The warehouses are valuable architecturally.(Intermediate conclusion)Supported by either:
 	◦	Arg: argument connector
 	◦	Arg/Expl: ambiguous connector indicating an argumentative or explanatory relation
-	3	The older buildings lend the town its distinctive character. (Further reason/explanation)
+	3	The older buildings lend the town its distinctive character.(Further reason/explanation)
 
 General point of diagram
 Walton & Bex illustrate how dialogue moves (speech acts) create and modify an underlying structure of reasons. The same dialogue turn may function as:
@@ -81,15 +81,15 @@ Walton & Bex illustrate how dialogue moves (speech acts) create and modify an un
 	•	or ambiguous between the two.
 
 3. Diagram: Mixed Version of the Warehouse Example (Fig. 3)
-Purpose: Shows a hybrid argumentative–explanatory chain.
+Purpose:Shows a hybrid argumentative–explanatory chain.
 Nodes:
-	1	The warehouses should be preserved. ← (Arg link)
-	2	The warehouses are valuable architecturally Supported by:
+	1	The warehouses should be preserved.← (Arg link)
+	2	The warehouses are valuable architecturallySupported by:
 	◦	An Arg link from the above.
 	◦	An Arg link from the next node.
-	3	The older buildings lend the town its distinctive character. Provides a reason to believe that the warehouses are architecturally valuable.
+	3	The older buildings lend the town its distinctive character.Provides a reason to believe that the warehouses are architecturally valuable.
 Additionally:
-	•	A horizontal Explain link also runs from “The older buildings lend the town its distinctive character.” → “The warehouses are valuable architecturally.”
+	•	A horizontal Explain link also runs from“The older buildings lend the town its distinctive character.”→ “The warehouses are valuable architecturally.”
 Interpretation
 The diagram represents a mixed structure where one move serves both:
 	•	Argumentative support, and
@@ -97,7 +97,7 @@ The diagram represents a mixed structure where one move serves both:
 The dual links reflect Walton & Bex’s claim that argumentation and explanation are distinct but often intertwined.
 
 4. Diagram: Explanation and Examination Dialogues Combined (Fig. 4)
-Purpose: Models the interaction between explanation dialogues and examination (evaluation) dialogues.
+Purpose:Models the interaction between explanation dialogues and examination (evaluation) dialogues.
 Speech-act rules given above the figure
 	1	Claim φ – A player asserts φ.
 	2	Argue ψ because φ – A player provides an argument using a scheme.
@@ -108,7 +108,7 @@ Sequence:
 	2	Explainer presents story.
 	3	Explainee finds anomaly in story.
 	4	Explainer explains anomaly.
-	5	Explainee accepts explanation. → STOP (terminal successful explanation)
+	5	Explainee accepts explanation. → STOP(terminal successful explanation)
 If the explainee is not satisfied, the process diverts into a deeper evaluation pathway:
 
 Examination Dialogue (lower box)
@@ -119,7 +119,7 @@ Sequence:
 	•	Examination dialogue successful.
 	•	The story holds up or is refuted. → STOP
 After this STOP, there is also:
-	•	Explanation evaluated. (Final assessment of whether the explanation is acceptable.)
+	•	Explanation evaluated.(Final assessment of whether the explanation is acceptable.)
 
 Interpretation
 The diagram differentiates two dialogue layers:
@@ -128,14 +128,14 @@ The diagram differentiates two dialogue layers:
 They interlock: if the explanation is inadequate, examination begins.
 
 5. Diagram: Challenger Explosion – Explanation Supported by Evidence (Fig. 5)
-Purpose: Presents a causal chain explanation, with evidence explicitly shown.
+Purpose:Presents a causal chain explanation, with evidence explicitly shown.
 Nodes in sequence (left → right)
-	1	Cold weather ↓ Contributed to:
-	2	Brittleness of the O-rings ↓
-	3	Boosters burned through ↓
-	4	Enabled the flames to leak out of the boosters through the seals ↓
-	5	Allowed flames to reach main fuel tank ↓
-	6	Challenger’s explosion (Final event)
+	1	Cold weather↓Contributed to:
+	2	Brittleness of the O-rings↓
+	3	Boosters burned through↓
+	4	Enabled the flames to leak out of the boosters through the seals↓
+	5	Allowed flames to reach main fuel tank↓
+	6	Challenger’s explosion(Final event)
 
 Evidence annotation
 Below the nodes is a box labeled:
@@ -148,5 +148,5 @@ This diagram distinguishes:
 	•	Causal structure (arrows left-to-right)
 	•	Evidential support (arrow from evidence indicating the source of information)
 It visually separates:
-	•	What caused what from
+	•	What caused whatfrom
 	•	What supports the claim that this causal relation is true.

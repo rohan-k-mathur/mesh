@@ -1288,7 +1288,7 @@ const {
           </TabsContent>
 
           {/* MODELS TAB */}
-          <TabsContent value="arguments" className="w-full min-w-0 space-y-8 py-8 mt-4">
+          <TabsContent value="arguments">
             <ArgumentsTab
               deliberationId={deliberationId}
               authorId={authorId || ""}

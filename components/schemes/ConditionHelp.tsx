@@ -24,23 +24,23 @@ export function ConditionHelp({ category, compact = false }: ConditionHelpProps)
   const help = getCategoryHelp(category);
 
   return (
-    <Card className={`${compact ? "p-3" : "p-4"} bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800`}>
+    <Card className={`${compact ? "p-3" : "p-4"} bg-sky-50 dark:bg-sky-950 border-sky-200 dark:border-sky-800`}>
       <div className="space-y-3">
         {/* Title */}
         <div className="flex items-center gap-2">
-          <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+          <HelpCircle className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+          <h4 className="font-semibold text-sky-900 dark:text-sky-100">
             About {help.title}
           </h4>
         </div>
 
         {/* Description */}
-        <p className="text-sm text-blue-800 dark:text-blue-200">
+        <p className="text-sm text-sky-800 dark:text-sky-200">
           {help.description}
         </p>
 
         {/* When to Use */}
-        <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-200 dark:border-blue-800">
+        <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-sky-200 dark:border-sky-800">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
             When to use
           </p>
@@ -51,7 +51,7 @@ export function ConditionHelp({ category, compact = false }: ConditionHelpProps)
         {help.examples.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <CheckCircle2 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Examples
               </p>
@@ -60,7 +60,7 @@ export function ConditionHelp({ category, compact = false }: ConditionHelpProps)
               {help.examples.map((example, idx) => (
                 <div
                   key={idx}
-                  className="text-sm bg-white dark:bg-gray-900 rounded p-2 border border-blue-100 dark:border-blue-900"
+                  className="text-sm bg-white dark:bg-gray-900 rounded p-2 border border-sky-100 dark:border-sky-900"
                 >
                   {example}
                 </div>

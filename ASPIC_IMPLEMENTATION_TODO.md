@@ -1,7 +1,7 @@
 # ASPIC+ Full Implementation TODO
 
 **Current Status**: Basic ASPIC theory panel integrated (Week 2 Task 2.5 ✅)  
-**Location**: Arguments → ASPIC nested tab  
+**Location**: ArgumentsTab → ASPIC nested tab  
 **Completion**: ~40% (theory viewer, extension panel, basic visualization)
 
 ---
@@ -54,7 +54,7 @@
 
 ---
 
-### Phase 2: Enhanced Attack Graph Visualization (SHELVED --IGNORE PHASE FOR NOW)
+### Phase 2: Enhanced Attack Graph Visualization 
 
 **Tasks**:
 - [ ] Complete AttackGraphVisualization component (currently disabled)
@@ -92,6 +92,7 @@
 - Integration with AspicTheoryPanel (currently disabled in tabs)
 
 ---
+
 
 ### Phase 4: Preference & Ordering System
 

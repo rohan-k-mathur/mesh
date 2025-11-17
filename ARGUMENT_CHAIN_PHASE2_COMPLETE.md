@@ -106,7 +106,7 @@ Phase 2 implemented a complete visual editor for ArgumentChain using ReactFlow, 
   1. Select role (7 options with descriptions)
   2. Search arguments from deliberation
   3. Click argument to add
-- Fetches arguments via `/api/deliberations/${deliberationId}/arguments`
+- Fetches arguments via `/api/deliberations/${deliberationId}/arguments/aif`
 - Creates node via `/api/argument-chains/${chainId}/nodes`
 - Smart positioning with `getNewNodePosition()`
 - **Props**: `deliberationId: string`

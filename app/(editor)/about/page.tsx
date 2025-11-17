@@ -131,7 +131,7 @@ function FlowDiagram() {
       <div className="flex items-center justify-between text-sm">
         <FlowNode icon={Lightbulb} label="Proposition" sublabel="workshop" color="amber" />
         <FlowArrow />
-        <FlowNode icon={FileText} label="Claim" sublabel="canonical" color="blue" />
+        <FlowNode icon={FileText} label="Claim" sublabel="canonical" color="sky" />
         <FlowArrow />
         <FlowNode icon={MessageSquare} label="Argument" sublabel="reasons" color="indigo" />
         <FlowArrow />
@@ -165,11 +165,11 @@ function FlowNode({ icon: Icon, label, sublabel, color }: {
   icon: any, 
   label: string, 
   sublabel: string,
-  color: 'amber' | 'blue' | 'indigo' | 'purple' | 'emerald' 
+  color: 'amber' | 'sky' | 'indigo' | 'purple' | 'emerald' 
 }) {
   const colorClasses = {
     amber: 'bg-amber-50 text-amber-600 border-amber-200',
-    blue: 'bg-blue-50 text-blue-600 border-blue-200',
+    sky: 'bg-sky-50 text-sky-600 border-sky-200',
     indigo: 'bg-indigo-50 text-indigo-600 border-indigo-200',
     purple: 'bg-purple-50 text-purple-600 border-purple-200',
     emerald: 'bg-emerald-50 text-emerald-600 border-emerald-200'
@@ -255,7 +255,7 @@ function MiniCaseSection() {
         How Digital Agora Works
       </h2>
 
-      <div className="kbcard p-8 bg-gradient-to-br from-indigo-50 to-blue-50">
+      <div className="kbcard p-8 bg-gradient-to-br from-indigo-50 to-sky-50">
         <div className="flex items-center gap-2 mb-4">
           <Workflow className="h-5 w-5 text-indigo-600" />
           <h3 className="text-lg font-medium text-slate-900">A Concrete Example (120-Second Walkthrough)</h3>
@@ -289,7 +289,7 @@ function ThreeLayersSection({
         number={1}
         title="From Social Substrate to Structured Claims"
         icon={GitCommit}
-        color="blue"
+        color="sky"
         isExpanded={expandedSections.socialSubstrate}
         onToggle={() => toggleSection('socialSubstrate')}
         summary={
@@ -349,20 +349,20 @@ function LayerCard({
   number: number
   title: string
   icon: any
-  color: 'blue' | 'indigo' | 'purple'
+  color: 'sky' | 'indigo' | 'purple'
   isExpanded: boolean
   onToggle: () => void
   summary: React.ReactNode
   expandedContent: React.ReactNode
 }) {
   const colorClasses = {
-    blue: 'from-blue-50 to-indigo-50 border-blue-200',
+    sky: 'from-sky-50 to-indigo-50 border-sky-200',
     indigo: 'from-indigo-50 to-purple-50 border-indigo-200',
     purple: 'from-purple-50 to-pink-50 border-purple-200'
   }
 
   const iconColorClasses = {
-    blue: 'text-blue-600',
+    sky: 'text-sky-600',
     indigo: 'text-indigo-600',
     purple: 'text-purple-600'
   }
@@ -545,7 +545,7 @@ function Layer2ExpandedContent() {
         <div className="kbcard p-4 bg-slate-50 font-mono text-xs space-y-2">
           <div className="flex items-start gap-2">
             <span className="text-slate-500">10:23</span>
-            <span className="text-blue-600">Alice:</span>
+            <span className="text-sky-600">Alice:</span>
             <span>[CLAIM] Policy X reduced poverty by 12%</span>
           </div>
           <div className="flex items-start gap-2">
@@ -555,7 +555,7 @@ function Layer2ExpandedContent() {
           </div>
           <div className="flex items-start gap-2">
             <span className="text-slate-500">10:45</span>
-            <span className="text-blue-600">Alice:</span>
+            <span className="text-sky-600">Alice:</span>
             <span>[GROUNDS] Study design [link] + robustness checks</span>
           </div>
         </div>

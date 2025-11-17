@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
       if (!claim) {
         claim = await prisma.claim.create({
           data: {
-            text,
+            text,    
             deliberationId,
             createdById: authorId,
             moid: `transposed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -249,12 +249,17 @@ export async function POST(req: NextRequest) {
 
     for (const transposedRule of transposedRules) {
       // Extract original argument ID from transposed rule ID
-      // Format: "originalArgId_transpose_0", "originalArgId_transpose_1", etc.
-      const originalArgId = transposedRule.id.replace(/_transpose_\d+$/, "");
-      const originalArg = argumentsList.find(a => a.id === originalArgId);
+      // Format: "RA:argumentId_transpose_0", "RA:argumentId_transpose_1", etc.
+      // First remove the transpose suffix, then remove the "RA:" prefix
+      let originalArgId = transposedRule.id.replace(/_transpose_\d+$/, "");
+      originalArgId = originalArgId.replace(/^RA:/, ""); // Strip RA: prefix
+      
+      const originalArg = argumentsList.find((a) => a.id === originalArgId);
 
       if (!originalArg) {
-        console.warn(`[Transposition Generate] Could not find original argument for ${originalArgId}`);
+        console.warn(
+          `[Transposition Generate] Could not find original argument for ${originalArgId} (from rule ${transposedRule.id})`
+        );
         continue;
       }
 

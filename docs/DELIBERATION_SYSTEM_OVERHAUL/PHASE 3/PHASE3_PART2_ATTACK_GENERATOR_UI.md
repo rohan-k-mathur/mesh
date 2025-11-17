@@ -57,6 +57,7 @@ This document details **Phase 3.2: Attack Generator UI**, building on the backen
 
 ---
 
+
 # Step 3.2.1: AttackSuggestions Component (10 hours)
 
 ## Overview
