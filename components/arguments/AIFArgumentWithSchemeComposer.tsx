@@ -162,7 +162,7 @@ export function AIFArgumentWithSchemeComposer({
   >([]);
   const [schemeKey, setSchemeKey] = React.useState(defaultSchemeKey ?? "");
   const [premises, setPremises] = React.useState<Prem[]>([]);
-  const [notes, setNotes] = React.useState("");
+  const [implicitWarrantText, setImplicitWarrantText] = React.useState("");
   const [creating, setCreating] = React.useState(false);
   const [argumentId, setArgumentId] = React.useState<string | null>(null);
   const [cqs, setCqs] = React.useState<
@@ -439,7 +439,7 @@ export function AIFArgumentWithSchemeComposer({
         conclusionClaimId: conclusionId,
         premiseClaimIds,
         schemeId: selected?.id ?? null,
-        implicitWarrant: notes ? { text: notes } : null,
+        implicitWarrant: implicitWarrantText ? { text: implicitWarrantText } : null,
         // Phase B: Pass axiom designation to API
         premisesAreAxioms,
         // Justification for scheme selection
@@ -1138,15 +1138,20 @@ export function AIFArgumentWithSchemeComposer({
           ) : null;
         })()}
 
-        {/* Optional notes / warrant */}
+        {/* Optional implicit warrant / unstated assumption */}
         <label className="flex flex-col gap-2 mt-0">
-          <span className="text-sm text-gray-800">Justification</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-800">Implicit Warrant (Optional)</span>
+            <span className="text-xs text-gray-500">
+              Missing premise that connects premises to conclusion
+            </span>
+          </div>
           <textarea
             className="w-full articlesearchfield rounded-lg text-xs px-2.5 py-2 mt-1"
             cols={3}
-            value={notes}
-            placeholder="If [premises], then [conclusion] (unless [exception])."
-            onChange={(e) => setNotes(e.target.value)}
+            value={implicitWarrantText}
+            placeholder="Missing premise or general rule (e.g., 'All X are Y', 'Experts in X are reliable', 'If P then Q')"
+            onChange={(e) => setImplicitWarrantText(e.target.value)}
           />
         </label>
 

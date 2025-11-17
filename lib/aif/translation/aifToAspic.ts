@@ -167,30 +167,50 @@ export function aifToASPIC(
     }
   }
 
-  // Phase B: KB premises classification - separate axioms (K_n) from ordinary premises (K_p)
+  // Phase B & A: KB premises classification - separate axioms (K_n), ordinary premises (K_p), and assumptions (K_a)
   // I-nodes with no incoming edges are initial premises
+  // ALSO check ALL I-nodes for role metadata (even if they have incoming edges)
   for (const n of graph.nodes) {
     if (n.nodeType !== 'I') continue;
+    
+    const content = (n as any).content ?? (n as any).text ?? n.id;
+    const metadata = (n as any).metadata ?? {};
+    const role = metadata.role ?? null;
+    
+    // Phase A: Check for assumption role FIRST (highest priority)
+    if (role === 'assumption') {
+      assumptions.add(content);
+      console.log(`[aifToAspic] Added assumption from I-node metadata: "${content}"`);
+      continue; // Don't add to premises or axioms
+    }
+    
+    // Phase B: Check for axiom role
+    if (role === 'axiom' || metadata.isAxiom === true) {
+      axioms.add(content);
+      console.log(`[aifToAspic] Added axiom from I-node metadata: "${content}"`);
+      continue; // Don't add to premises
+    }
+    
+    // Default: ordinary premise (K_p) - but only if no incoming edges (initial premise)
     const incoming = incomingByTarget.get(n.id) ?? 0;
-    if (incoming === 0) {
-      const content = (n as any).content ?? (n as any).text ?? n.id;
-      const metadata = (n as any).metadata ?? {};
-      const role = metadata.role ?? 'premise'; // default to ordinary premise
-      
-      if (role === 'axiom' || metadata.isAxiom === true) {
-        axioms.add(content);
-      } else {
-        premises.add(content);
-      }
+    if (incoming === 0 && role !== 'assumption' && role !== 'axiom') {
+      premises.add(content);
+      console.log(`[aifToAspic] Added ordinary premise: "${content}"`);
     }
   }
 
-  // Assumptions: I-nodes linked via presumption edges to RA-nodes
+  // Additional pass: I-nodes linked via presumption edges are also assumptions
+  // This catches assumptions created through edge relationships
   for (const e of graph.edges) {
     if (e.edgeType === 'presumption') {
       const assumptionNode = graph.nodes.find(n => n.id === e.sourceId);
       if (assumptionNode?.nodeType === 'I') {
-        assumptions.add((assumptionNode as any).content ?? (assumptionNode as any).text ?? assumptionNode.id);
+        const content = (assumptionNode as any).content ?? (assumptionNode as any).text ?? assumptionNode.id;
+        // Only add if not already in axioms or premises
+        if (!axioms.has(content) && !premises.has(content)) {
+          assumptions.add(content);
+          console.log(`[aifToAspic] Added assumption from presumption edge: "${content}"`);
+        }
       }
     }
   }
@@ -263,6 +283,18 @@ export function aifToASPIC(
       : dispNode.id;
     preferences.push({ preferred, dispreferred });
   }
+
+  // Summary logging for debugging
+  console.log(`[aifToAspic] Translation complete:`, {
+    language: language.size,
+    contraries: contraries.size,
+    strictRules: strictRules.length,
+    defeasibleRules: defeasibleRules.length,
+    axioms: axioms.size,
+    premises: premises.size,
+    assumptions: assumptions.size,
+    preferences: preferences.length,
+  });
 
   return { language, contraries, strictRules, defeasibleRules, axioms, premises, assumptions, preferences };
 }

@@ -54,7 +54,7 @@
 
 ---
 
-### Phase 2: Enhanced Attack Graph Visualization
+### Phase 2: Enhanced Attack Graph Visualization (SHELVED --IGNORE PHASE FOR NOW)
 
 **Tasks**:
 - [ ] Complete AttackGraphVisualization component (currently disabled)

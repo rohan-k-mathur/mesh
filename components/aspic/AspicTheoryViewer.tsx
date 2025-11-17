@@ -307,21 +307,34 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
                 <ChevronRight className="h-4 w-4" />
               )}
               <CardTitle className="text-base">
-                🔀 Contraries ({contrariesEntries.length} pairs)
+                ☍ Contraries ({contrariesEntries.length})
               </CardTitle>
             </button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() =>
-                copyToClipboard(
-                  JSON.stringify(Object.fromEntries(contrariesEntries), null, 2),
-                  "Contraries"
-                )
-              }
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-4">
+              {/* Legend */}
+              <div className="flex items-center gap-3 text-[10px] text-gray-500">
+                <span className="flex items-center gap-1">
+                  <span className="text-amber-600 font-mono">⊳</span>
+                  <span>asymmetric</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="text-red-600 font-mono">↮</span>
+                  <span>symmetric</span>
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  copyToClipboard(
+                    JSON.stringify(Object.fromEntries(contrariesEntries), null, 2),
+                    "Contraries"
+                  )
+                }
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         {expandedSections.has("contraries") && (
@@ -333,18 +346,50 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
                   const contrariesArray = Array.isArray(contrarySet) 
                     ? contrarySet 
                     : Array.from(contrarySet);
+                  
+                  // Build a map for reverse lookup to check symmetry
+                  const contrariesMap = new Map<string, Set<string>>(
+                    contrariesEntries.map(([f, cs]) => {
+                      const csArray = Array.isArray(cs) ? cs : Array.from(cs as Iterable<string>);
+                      return [f as string, new Set(csArray)];
+                    })
+                  );
+                  
                   return (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <Badge variant="outline" className="font-mono text-xs">
+                    <div key={idx} className="flex items-start gap-2 text-sm py-1">
+                      <Badge variant="outline" className="font-mono text-xs shrink-0">
                         {formula}
                       </Badge>
-                      <span className="text-gray-400">↔</span>
-                      <div className="flex flex-wrap gap-1">
-                        {contrariesArray.map((contrary: string, cIdx) => (
-                          <Badge key={cIdx} variant="outline" className="font-mono text-xs">
-                            {contrary}
-                          </Badge>
-                        ))}
+                      
+                      <div className="flex flex-col gap-1">
+                        {contrariesArray.map((contrary: string, cIdx) => {
+                          // Check if symmetric (contradictory) or asymmetric (contrary)
+                          const reverseContraries = contrariesMap.get(contrary);
+                          const isContradictory = reverseContraries?.has(formula) ?? false;
+                          
+                          return (
+                            <div key={cIdx} className="flex items-center gap-2">
+                              <span className={`text-xs font-mono ${
+                                isContradictory ? "text-red-600" : "text-amber-600"
+                              }`}>
+                                {isContradictory ? "↮" : "⊳"}
+                              </span>
+                              <Badge 
+                                variant="outline" 
+                                className={`font-mono text-xs ${
+                                  isContradictory 
+                                    ? "border-red-300 text-red-700 bg-red-50" 
+                                    : "border-amber-300 text-amber-700 bg-amber-50"
+                                }`}
+                              >
+                                {contrary}
+                              </Badge>
+                              <span className="text-[10px] text-gray-500 italic">
+                                {isContradictory ? "contradictory" : "contrary"}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );

@@ -1243,14 +1243,17 @@ function TemplateCustomizationStep({
         {/* Justification / Warrant */}
         <div className="space-y-2">
           <Label htmlFor="justification" className="text-sm font-medium text-gray-700">
-            Justification <span className="text-xs text-gray-500">(optional)</span>
+            Implicit Warrant <span className="text-xs text-gray-500">(optional)</span>
           </Label>
+          <div className="text-xs text-gray-600 mb-1">
+            Missing premise that connects premises to conclusion
+          </div>
           <div className="relative">
             <Textarea
               id="justification"
               value={justification}
               onChange={(e) => onJustificationChange(e.target.value)}
-              placeholder="Explain why your premises support the conclusion (e.g., 'If [premises], then [conclusion] unless [exception]')"
+              placeholder="Missing premise or general rule (e.g., 'All X are Y', 'Experts in X are reliable', 'If P then Q')"
               rows={3}
               className="resize-none pr-24 articlesearchfield text-sm"
             />

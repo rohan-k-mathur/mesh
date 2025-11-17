@@ -2344,6 +2344,12 @@ model Argument {
   @@index([deliberationId, claimId, createdAt])
 }
 
+// ASPIC+ RuleType enum for strict vs defeasible rules
+enum RuleType {
+  STRICT      // R_s: Strict rules (cannot rebut conclusions, sound deduction)
+  DEFEASIBLE  // R_d: Defeasible rules (rebuttable presumptive inference)
+}
+
 // Junction table for many-to-many Argument-ArgumentScheme relation with confidence scores
 // Phase 1.1: Enhanced for multi-scheme arguments with roles and explicitness
 model ArgumentSchemeInstance {
@@ -2359,6 +2365,10 @@ model ArgumentSchemeInstance {
   order        Int     @default(0) // Display order within role group
   textEvidence String? @db.Text // For explicit schemes: text evidence showing scheme usage
   justification String? @db.Text // For presupposed/implicit: justification for reconstruction
+  
+  // ASPIC+ Strict Rules Phase 1b
+  ruleType RuleType @default(DEFEASIBLE) // Strict rules cannot be rebutted
+  ruleName String? // Optional name for undercutting attacks (e.g., "Modus Ponens")
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt

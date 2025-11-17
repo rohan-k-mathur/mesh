@@ -487,6 +487,12 @@ export function ArgumentCardV2({
     fetcher
   );
 
+  // Fetch implicit warrant data
+  const { data: warrantData } = useSWR(
+    id ? `/api/arguments/${id}/assumptions` : null,
+    fetcher
+  );
+
   // Compute CQ status for claim
   const cqStatus = React.useMemo(() => {
     if (!cqData) return null;
@@ -1140,7 +1146,7 @@ export function ArgumentCardV2({
                       <span className="text-indigo-600 text-sm shrink-0">💭</span>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-semibold text-indigo-800 mb-1">
-                          Reconstruction Notes
+                          Argument Construction Notes
                         </h4>
                         <div className="space-y-2">
                           {schemes.map((scheme: any, idx: number) => (
@@ -1157,7 +1163,27 @@ export function ArgumentCardV2({
                           ))}
                         </div>
                         <p className="text-[10px] text-indigo-600 mt-2">
-                          Interpretive reasoning for this reconstruction choice
+                          Explanation of reasoning process used for argument construction.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Implicit Warrant Display - Toulmin Unstated Assumption */}
+                {warrantData?.implicitWarrant?.text && (
+                  <div className="mt-3 p-3 rounded-lg bg-amber-50/50 border border-amber-200">
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600 text-sm shrink-0" title="Logical Gap Indicator">⚠️</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-semibold text-amber-800 mb-1">
+                          Unstated Assumption (Implicit Warrant)
+                        </h4>
+                        <div className="text-xs text-amber-700 leading-relaxed">
+                          <span className="italic">{warrantData.implicitWarrant.text}</span>
+                        </div>
+                        <p className="text-[10px] text-amber-600 mt-2">
+                          Missing premise or general rule that bridges premises to conclusion (Toulmin warrant / enthymeme).
                         </p>
                       </div>
                     </div>
