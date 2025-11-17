@@ -1132,6 +1132,37 @@ export function ArgumentCardV2({
                     </button>
                   )
                 )}
+                
+                {/* Reconstruction Justification - NEW */}
+                {schemes.length > 0 && schemes.some((s: any) => s.justification) && (
+                  <div className="mt-3 p-3 rounded-lg bg-indigo-50/50 border border-indigo-200">
+                    <div className="flex items-start gap-2">
+                      <span className="text-indigo-600 text-sm shrink-0">💭</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-semibold text-indigo-800 mb-1">
+                          Reconstruction Notes
+                        </h4>
+                        <div className="space-y-2">
+                          {schemes.map((scheme: any, idx: number) => (
+                            scheme.justification && (
+                              <div key={idx} className="text-xs text-indigo-700 leading-relaxed">
+                                {schemes.length > 1 && (
+                                  <span className="font-medium">
+                                    {scheme.schemeName || `Scheme ${idx + 1}`}:
+                                  </span>
+                                )}{" "}
+                                <span className="italic">{scheme.justification}</span>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-indigo-600 mt-2">
+                          Interpretive reasoning for this reconstruction choice
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

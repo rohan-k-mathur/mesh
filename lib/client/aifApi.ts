@@ -96,6 +96,7 @@ export async function createArgument(payload: {
   implicitWarrant?: { text: string } | null;
   text?: string;
   premisesAreAxioms?: boolean;  // Phase B: Axiom designation
+  justification?: string;  // Justification for scheme selection
 }) {
   const res = await fetch('/api/arguments', {
     method: 'POST',

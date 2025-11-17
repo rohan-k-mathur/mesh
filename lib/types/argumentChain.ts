@@ -196,6 +196,8 @@ export interface ChainNodeData {
   };
   nodeOrder: number;
   isHighlighted?: boolean;
+  targetType?: "NODE" | "EDGE";
+  targetEdgeId?: string | null;
 }
 
 // ReactFlow edge data
@@ -204,5 +206,7 @@ export interface ChainEdgeData {
   strength: number;
   description?: string | null;
   slotMapping?: any;
+  isTargeted?: boolean;
+  attackCount?: number;
 }
 

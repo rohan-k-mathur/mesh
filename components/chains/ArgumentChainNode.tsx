@@ -14,6 +14,7 @@ const roleColors: Record<string, string> = {
   OBJECTION: "border-red-500",
   REBUTTAL: "border-orange-500",
   QUALIFIER: "border-purple-500",
+  COMMENT: "border-gray-400",
 };
 
 const roleBgColors: Record<string, string> = {
@@ -23,6 +24,7 @@ const roleBgColors: Record<string, string> = {
   OBJECTION: "bg-red-100 text-red-800",
   REBUTTAL: "bg-orange-100 text-orange-800",
   QUALIFIER: "bg-purple-100 text-purple-800",
+  COMMENT: "bg-gray-100 text-gray-600",
 };
 
 const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected }) => {

@@ -179,6 +179,9 @@ export function AIFArgumentWithSchemeComposer({
   
   // Phase B: Axioms designation - mark all premises as axioms (indisputable)
   const [premisesAreAxioms, setPremisesAreAxioms] = React.useState(false);
+  
+  // Justification for scheme selection (optional)
+  const [schemeJustification, setSchemeJustification] = React.useState("");
 
   // NEW: drafts for inline creation
   const [conclusionDraft, setConclusionDraft] = React.useState(
@@ -439,6 +442,8 @@ export function AIFArgumentWithSchemeComposer({
         implicitWarrant: notes ? { text: notes } : null,
         // Phase B: Pass axiom designation to API
         premisesAreAxioms,
+        // Justification for scheme selection
+        justification: schemeJustification || undefined,
         // harmless extra; server will just ignore if not using it yet
         ...(slots ? { slots } : {}),
       });
@@ -570,7 +575,7 @@ export function AIFArgumentWithSchemeComposer({
         Argument Composer
       </div>
 
-      <div className="rounded-xl panel-edge-blue bg-indigo-50 p-4 ">
+      <div className="rounded-xl panel-edge-sky bg-indigo-50 p-4 ">
         <div className="text-[14px] text-gray-700 ">
           {selected ? (
             <>
@@ -585,7 +590,7 @@ export function AIFArgumentWithSchemeComposer({
         {selected && (selected.materialRelation || selected.reasoningType || selected.clusterTag || selected.semanticCluster) && (
           <div className="mt-2 flex flex-wrap gap-2">
             {selected.materialRelation && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+              <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-xs">
                 <Network className="w-3 h-3 mr-1" />
                 {selected.materialRelation}
               </Badge>
@@ -787,6 +792,29 @@ export function AIFArgumentWithSchemeComposer({
                 </div>
               </label>
             </div>
+            
+            {/* Justification textarea - why this scheme? */}
+            {selected && (
+              <div className="p-3 rounded-lg bg-gradient-to-r from-indigo-50 to-sky-50 border border-indigo-200">
+                <label className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-indigo-600 text-sm">💭</span>
+                    <span className="text-sm font-semibold text-indigo-900">
+                      Explain your reconstruction (optional)
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-700 leading-relaxed">
+                    Why did you choose this scheme? What interpretive choices did you make?
+                  </p>
+                  <textarea
+                    value={schemeJustification}
+                    onChange={(e) => setSchemeJustification(e.target.value)}
+                    placeholder="E.g., 'I chose Expert Opinion because the author explicitly cites Dr. Smith's credentials. The major premise comes from paragraph 2, the minor from the conclusion...'"
+                    className="w-full min-h-[80px] px-3 py-2 text-sm rounded-lg border border-indigo-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+                  />
+                </label>
+              </div>
+            )}
             
             <div className="text-sm font-medium text-indigo-900 flex items-center gap-2">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

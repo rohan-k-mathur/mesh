@@ -6266,6 +6266,7 @@ enum ChainNodeRole {
   OBJECTION    // Challenges another argument
   REBUTTAL     // Responds to objection
   QUALIFIER    // Adds conditions/scope
+  COMMENT      // Lightweight annotation/note
 }
 
 enum ArgumentChainEdgeType {
@@ -6276,6 +6277,11 @@ enum ArgumentChainEdgeType {
   QUALIFIES       // A adds conditions to B
   EXEMPLIFIES     // A is example of B's general claim
   GENERALIZES     // A abstracts from B's specific case
+}
+
+enum ChainAttackTargetType {
+  NODE            // Attack targets another node (standard)
+  EDGE            // Attack targets a relationship/inference (recursive attack)
 }
 
 model ArgumentChain {
@@ -6319,6 +6325,10 @@ model ArgumentChainNode {
   nodeOrder    Int
   role         ChainNodeRole?
   
+  // Recursive attack support: Node can target either another node OR an edge
+  targetType   ChainAttackTargetType @default(NODE)
+  targetEdgeId String?                              // Only populated when targetType = EDGE
+  
   // Visual layout
   positionX    Float?
   positionY    Float?
@@ -6331,6 +6341,7 @@ model ArgumentChainNode {
   chain        ArgumentChain       @relation(fields: [chainId], references: [id], onDelete: Cascade)
   argument     Argument            @relation(fields: [argumentId], references: [id], onDelete: Cascade)
   contributor  User                @relation(fields: [addedBy], references: [id])
+  targetEdge   ArgumentChainEdge?  @relation("EdgeAttacks", fields: [targetEdgeId], references: [id], onDelete: SetNull)
   
   outgoingEdges ArgumentChainEdge[] @relation("SourceNode")
   incomingEdges ArgumentChainEdge[] @relation("TargetNode")
@@ -6338,6 +6349,7 @@ model ArgumentChainNode {
   @@unique([chainId, argumentId])
   @@index([chainId])
   @@index([argumentId])
+  @@index([targetEdgeId])
 }
 
 model ArgumentChainEdge {
@@ -6360,6 +6372,9 @@ model ArgumentChainEdge {
   chain          ArgumentChain     @relation(fields: [chainId], references: [id], onDelete: Cascade)
   sourceNode     ArgumentChainNode @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
   targetNode     ArgumentChainNode @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  
+  // Recursive attack support: Track nodes that attack this edge
+  attackingNodes ArgumentChainNode[] @relation("EdgeAttacks")
   
   @@unique([chainId, sourceNodeId, targetNodeId])
   @@index([chainId])

@@ -14,12 +14,14 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 import ArgumentChainNode from "./ArgumentChainNode";
 import ArgumentChainEdge from "./ArgumentChainEdge";
 import { getLayoutedElements } from "@/lib/utils/chainLayoutUtils";
 import { ChainAnalysisPanel } from "./ChainAnalysisPanel";
+import { EnablerPanel } from "./EnablerPanel";
 import AddNodeButton from "./AddNodeButton";
 import ConnectionEditor from "./ConnectionEditor";
 import ChainMetadataPanel from "./ChainMetadataPanel";
@@ -53,6 +55,7 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
   const [highlightedNodes, setHighlightedNodes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [edgeAttacks, setEdgeAttacks] = useState<Record<string, number>>({});
 
   const {
     nodes,
@@ -65,6 +68,11 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
     setNodes,
     setEdges,
     setChainMetadata,
+    edgeAttackMode,
+    targetedEdgeId,
+    enterEdgeAttackMode,
+    exitEdgeAttackMode,
+    setTargetedEdge,
   } = useChainEditorStore();
 
   // Initialize chain metadata in store
@@ -114,6 +122,15 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
           setNodes(loadedNodes);
           setEdges(loadedEdges);
 
+          // Count attacks per edge
+          const attackCounts: Record<string, number> = {};
+          loadedNodes.forEach((node: any) => {
+            if (node.data.targetType === "EDGE" && node.data.targetEdgeId) {
+              attackCounts[node.data.targetEdgeId] = (attackCounts[node.data.targetEdgeId] || 0) + 1;
+            }
+          });
+          setEdgeAttacks(attackCounts);
+
           // Auto-layout if nodes don't have positions
           if (loadedNodes.length > 0 && loadedNodes.every((n: any) => !n.data.positionX)) {
             setTimeout(() => {
@@ -153,12 +170,19 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
   // Handle edge selection
   const handleEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: any) => {
-      setSelectedEdge(edge.id);
+      if (edgeAttackMode) {
+        // In attack mode, selecting an edge targets it
+        setTargetedEdge(edge.id);
+      } else {
+        // Normal mode, just select the edge
+        setSelectedEdge(edge.id);
+      }
+      
       if (onEdgeClick) {
         onEdgeClick(edge.id);
       }
     },
-    [setSelectedEdge, onEdgeClick]
+    [setSelectedEdge, onEdgeClick, edgeAttackMode, setTargetedEdge]
   );
 
   // Handle connection start
@@ -230,7 +254,20 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
               isHighlighted: highlightedNodes.includes(node.id),
             },
           }))}
-          edges={edges}
+          edges={edges.map((edge) => ({
+            ...edge,
+            // Add targeted styling to edge data
+            data: {
+              ...edge.data,
+              isTargeted: targetedEdgeId === edge.id,
+              attackCount: edgeAttacks[edge.id] || 0,
+            },
+            // Update edge styling when targeted
+            ...(targetedEdgeId === edge.id && {
+              animated: true,
+              style: { stroke: "#ef4444", strokeWidth: 3 },
+            }),
+          }))}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={handleNodeClick}
@@ -281,6 +318,33 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
           {isEditable && (
             <Panel position="top-right" className="space-y-2">
               <div className="bg-white p-3 rounded-lg shadow-md space-y-2">
+                {/* Edge Attack Mode Toggle */}
+                {edgeAttackMode ? (
+                  <div className="bg-red-50 border border-red-200 rounded p-2">
+                    <p className="text-xs text-red-700 font-medium mb-2">
+                      🎯 Attack Mode: Click an edge to target it
+                    </p>
+                    <button
+                      onClick={exitEdgeAttackMode}
+                      className="w-full px-3 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded hover:bg-red-50 transition-colors"
+                    >
+                      Exit Attack Mode
+                    </button>
+                    {targetedEdgeId && (
+                      <p className="text-xs text-red-600 mt-2">
+                        Edge targeted. Add argument to attack this inference.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={enterEdgeAttackMode}
+                    className="w-full px-3 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+                  >
+                    🎯 Attack Edge
+                  </button>
+                )}
+                
                 <AddNodeButton deliberationId={deliberationId} />
                 <ChainMetadataPanel />
                 <ChainExportButton chainName={nodes.length > 0 ? "argument-chain" : undefined} />
@@ -315,10 +379,43 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
       {/* Analysis Panel Sidebar */}
       {showAnalysisPanel && (
         <div className="absolute top-0 right-0 w-96 h-full bg-white border-l border-gray-200 shadow-xl overflow-y-auto z-10">
-          <ChainAnalysisPanel
-            chainId={chainId}
-            onHighlightNodes={handleHighlightNodes}
-          />
+          <Tabs defaultValue="analysis" className="w-full">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              <TabsTrigger value="enablers">Enablers</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="analysis" className="mt-0">
+              <ChainAnalysisPanel
+                chainId={chainId}
+                onHighlightNodes={handleHighlightNodes}
+              />
+            </TabsContent>
+            
+            <TabsContent value="enablers" className="mt-0 p-4">
+              <EnablerPanel
+                nodes={nodes}
+                chainId={chainId}
+                onHighlightNode={(nodeId) => handleHighlightNodes([nodeId])}
+                onChallengeEnabler={(nodeId, schemeName, enablerText) => {
+                  // Select the node to highlight it
+                  setSelectedNode(nodeId);
+                  handleHighlightNodes([nodeId]);
+                  
+                  // Show informational alert about challenging
+                  alert(
+                    `Challenging Inference Assumption\n\n` +
+                    `Node: ${nodeId}\n` +
+                    `Scheme: ${schemeName}\n\n` +
+                    `Assumption to challenge:\n"${enablerText}"\n\n` +
+                    `To challenge this assumption, you would create an UNDERCUTS attack ` +
+                    `that targets the inference rule itself rather than the premises or conclusion.\n\n` +
+                    `This feature will be fully integrated with recursive attack support in the next phase.`
+                  );
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       )}
 

@@ -155,17 +155,21 @@ export async function POST(req: NextRequest) {
     const issueLabel = `Community Defense: ${moveType.replace(/_/g, " ")}`;
     const issueDescription = `Review community-submitted ${moveType.toLowerCase().replace(/_/g, " ")} for your content.`;
     
-    await prisma.$executeRaw`
-      INSERT INTO "issues" (
-        id, "deliberationId", label, description, kind, state,
-        "createdById", "assigneeId", "ncmId", "ncmStatus", "createdAt", "updatedAt"
-      ) VALUES (
-        ${issueId}, ${deliberationId}, ${issueLabel}, ${issueDescription},
-        'community_defense'::"IssueKind", 'pending'::"IssueState",
-        ${currentUserId?.toString()}, ${authorId}, ${ncmId}, 'PENDING'::"NCMStatus",
-        ${now}, ${now}
-      )
-    `;
+    // Use Prisma ORM instead of raw SQL to avoid table name mismatches
+    await prisma.issue.create({
+      data: {
+        id: issueId,
+        deliberationId,
+        label: issueLabel,
+        description: issueDescription,
+        kind: "community_defense",
+        state: "pending",
+        createdById: BigInt(currentUserId?.toString() || "0"),
+        assigneeId: BigInt(authorId),
+        ncmId,
+        ncmStatus: "PENDING",
+      }
+    });
 
     // Link the issue to the target
     await prisma.issueLink.create({

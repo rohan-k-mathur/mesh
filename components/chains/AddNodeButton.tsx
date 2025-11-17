@@ -27,6 +27,7 @@ const ROLE_OPTIONS = [
   { value: "OBJECTION", label: "Objection", description: "Challenges another argument" },
   { value: "REBUTTAL", label: "Rebuttal", description: "Responds to objection" },
   { value: "QUALIFIER", label: "Qualifier", description: "Adds conditions/scope" },
+  { value: "COMMENT", label: "Comment", description: "Lightweight annotation/note" },
 ];
 
 const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
@@ -36,7 +37,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
   const [argumentsList, setArgumentsList] = useState<Argument[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { nodes, addNode, chainId } = useChainEditorStore();
+  const { nodes, addNode, chainId, edgeAttackMode, targetedEdgeId, exitEdgeAttackMode } = useChainEditorStore();
 
   // Fetch arguments from deliberation
   const fetchArguments = useCallback(async () => {
@@ -81,38 +82,79 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
     }
 
     try {
-      // Call API to add node
-      const response = await fetch(`/api/argument-chains/${chainId}/nodes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          argumentId: argument.id,
-          role: selectedRole,
-        }),
-      });
+      // If in edge attack mode, use the edge attack endpoint
+      if (edgeAttackMode && targetedEdgeId) {
+        const response = await fetch(`/api/argument-chains/${chainId}/attack-edge`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            argumentId: argument.id,
+            edgeId: targetedEdgeId,
+            role: selectedRole,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to add node");
+        if (!response.ok) {
+          throw new Error("Failed to add edge attack");
+        }
+
+        const result = await response.json();
+        const nodeData = result.node;
+
+        // Calculate position for new node (near the targeted edge)
+        const position = getNewNodePosition(nodes, 280, 180);
+
+        // Add to local state with full node data from API
+        addNode({
+          id: nodeData.id,
+          type: "argumentNode",
+          position,
+          data: {
+            argument: nodeData.argument,
+            role: nodeData.role,
+            addedBy: nodeData.contributor,
+            nodeOrder: nodeData.nodeOrder,
+            targetType: "EDGE",
+            targetEdgeId: targetedEdgeId,
+          },
+        });
+
+        // Exit attack mode after adding
+        exitEdgeAttackMode();
+      } else {
+        // Normal node addition
+        const response = await fetch(`/api/argument-chains/${chainId}/nodes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            argumentId: argument.id,
+            role: selectedRole,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to add node");
+        }
+
+        const result = await response.json();
+        const nodeData = result.node;
+
+        // Calculate position for new node
+        const position = getNewNodePosition(nodes, 280, 180);
+
+        // Add to local state with full node data from API
+        addNode({
+          id: nodeData.id,
+          type: "argumentNode",
+          position,
+          data: {
+            argument: nodeData.argument,
+            role: nodeData.role,
+            addedBy: nodeData.contributor,
+            nodeOrder: nodeData.nodeOrder,
+          },
+        });
       }
-
-      const result = await response.json();
-      const nodeData = result.node;
-
-      // Calculate position for new node
-      const position = getNewNodePosition(nodes, 280, 180);
-
-      // Add to local state with full node data from API
-      addNode({
-        id: nodeData.id,
-        type: "argumentNode",
-        position,
-        data: {
-          argument: nodeData.argument,
-          role: nodeData.role,
-          addedBy: nodeData.contributor,
-          nodeOrder: nodeData.nodeOrder,
-        },
-      });
 
       setIsOpen(false);
       setSearchQuery("");
@@ -120,7 +162,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
     } catch (error) {
       console.error("Failed to add node:", error);
     }
-  }, [chainId, selectedRole, nodes, addNode]);
+  }, [chainId, selectedRole, nodes, addNode, edgeAttackMode, targetedEdgeId, exitEdgeAttackMode]);
 
   const filteredArguments = argumentsList.filter((arg) => {
     const query = searchQuery.toLowerCase();

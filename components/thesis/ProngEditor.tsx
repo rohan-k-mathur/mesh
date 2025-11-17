@@ -12,6 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -313,6 +319,28 @@ export function ProngEditor({
                           <span className="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-medium">
                             {arg.role}
                           </span>
+                          {/* Justification indicator */}
+                          {arg.argument.schemes && arg.argument.schemes.some((s: any) => s.justification) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <span className="text-teal-600 text-sm cursor-help">💭</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-sm">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold text-xs">Reconstruction Notes:</p>
+                                    {arg.argument.schemes
+                                      .filter((s: any) => s.justification)
+                                      .map((scheme: any, idx: number) => (
+                                        <p key={idx} className="text-xs italic">
+                                          {scheme.justification}
+                                        </p>
+                                      ))}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </div>
                         <div className="text-sm text-slate-700">{arg.argument.text}</div>
                       </div>

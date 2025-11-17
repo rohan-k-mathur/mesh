@@ -9,6 +9,10 @@ interface ChainEditorState {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   
+  // Recursive attack mode
+  edgeAttackMode: boolean;
+  targetedEdgeId: string | null;
+  
   // UI state
   showConnectionEditor: boolean;
   pendingConnection: {
@@ -40,6 +44,11 @@ interface ChainEditorState {
   setSelectedNode: (nodeId: string | null) => void;
   setSelectedEdge: (edgeId: string | null) => void;
   
+  // Recursive attack mode actions
+  enterEdgeAttackMode: () => void;
+  exitEdgeAttackMode: () => void;
+  setTargetedEdge: (edgeId: string | null) => void;
+  
   openConnectionEditor: (sourceId: string, targetId: string) => void;
   closeConnectionEditor: () => void;
   
@@ -59,6 +68,8 @@ const initialState = {
   edges: [],
   selectedNodeId: null,
   selectedEdgeId: null,
+  edgeAttackMode: false,
+  targetedEdgeId: null,
   showConnectionEditor: false,
   pendingConnection: null,
   chainId: null,
@@ -135,6 +146,18 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
   
   setSelectedEdge: (edgeId) => {
     set({ selectedEdgeId: edgeId, selectedNodeId: null });
+  },
+  
+  enterEdgeAttackMode: () => {
+    set({ edgeAttackMode: true, targetedEdgeId: null });
+  },
+  
+  exitEdgeAttackMode: () => {
+    set({ edgeAttackMode: false, targetedEdgeId: null });
+  },
+  
+  setTargetedEdge: (edgeId) => {
+    set({ targetedEdgeId: edgeId });
   },
   
   openConnectionEditor: (sourceId, targetId) => {
