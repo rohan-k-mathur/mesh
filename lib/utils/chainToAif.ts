@@ -1,0 +1,361 @@
+/**
+ * ArgumentChain to AIF (Argument Interchange Format) Conversion Utilities
+ * 
+ * Converts ArgumentChain data structures to W3C AIF JSON-LD format for
+ * interoperability with other argumentation tools (OVA, Carneades, AIFdb).
+ * 
+ * AIF Node Types:
+ * - I-nodes: Information nodes (claims, premises)
+ * - S-nodes: Scheme nodes (argumentation schemes)
+ * - RA-nodes: Rule Application nodes (inference steps)
+ * 
+ * References:
+ * - W3C AIF Ontology: http://www.arg.dundee.ac.uk/aif
+ * - Mesh AIF Guide: docs/AIF_ONTOLOGY_GUIDE.md
+ * - Task 3.8: ARGUMENT_CHAIN_TASK_3.8_COMPLETE.md
+ */
+
+import type { ArgumentChainWithRelations, ArgumentChainNodeWithArgument } from "@/lib/types/argumentChain";
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+export interface AifNode {
+  nodeID: string;
+  text: string;
+  type: "I" | "S" | "RA" | "CA" | "PA" | "MA";
+  timestamp?: string;
+}
+
+export interface AifEdge {
+  edgeID: string;
+  fromID: string;
+  toID: string;
+  formEdgeID?: string;
+}
+
+export interface AifDocument {
+  "@context": {
+    AIF: string;
+    [key: string]: string;
+  };
+  nodes: AifNode[];
+  edges: AifEdge[];
+  locutions: AifLocution[];
+  participants?: AifParticipant[];
+  schemeSets?: AifSchemeSet[];
+  metadata?: {
+    chainId: string;
+    chainName: string;
+    chainType?: string;
+    createdBy: string;
+    createdAt: string;
+    exportedAt: string;
+    nodeCount: number;
+    edgeCount: number;
+  };
+}
+
+export interface AifLocution {
+  nodeID: string;
+  personID: string;
+  timestamp: string;
+}
+
+export interface AifParticipant {
+  participantID: string;
+  firstname: string;
+  surname?: string;
+}
+
+export interface AifSchemeSet {
+  schemeID: string;
+  schemeName: string;
+  schemeDescription?: string;
+  criticalQuestions?: string[];
+}
+
+// ============================================================================
+// Main Conversion Function
+// ============================================================================
+
+/**
+ * Convert ArgumentChain to AIF JSON-LD format
+ * 
+ * Maps chain structure to AIF node-edge graph:
+ * - ChainNodes → I-nodes (information)
+ * - Arguments → RA-nodes (reasoning applications)
+ * - ChainEdges → AIF edges (connections)
+ * - Schemes → S-nodes (scheme references)
+ * 
+ * @param chain - Full ArgumentChain with relations
+ * @returns AIF JSON-LD document
+ */
+export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocument {
+  const nodes: AifNode[] = [];
+  const edges: AifEdge[] = [];
+  const locutions: AifLocution[] = [];
+  const participants = new Map<string, AifParticipant>();
+  const schemeSets = new Map<string, AifSchemeSet>();
+
+  // Track node mappings
+  const nodeIdMap = new Map<string, string>(); // ChainNode.id → AIF I-node ID
+  const argumentIdMap = new Map<string, string>(); // Argument.id → AIF RA-node ID
+
+  // ========================================================================
+  // Step 1: Convert ChainNodes to I-nodes
+  // ========================================================================
+  
+  for (const chainNode of chain.nodes) {
+    const argument = chainNode.argument;
+    
+    // Create I-node for the argument's claim/conclusion
+    const iNodeId = `I_${chainNode.id}`;
+    nodeIdMap.set(chainNode.id, iNodeId);
+    
+    // Safe date handling
+    const nodeTimestamp = chainNode.createdAt 
+      ? (chainNode.createdAt instanceof Date 
+          ? chainNode.createdAt.toISOString() 
+          : new Date(chainNode.createdAt).toISOString())
+      : new Date().toISOString();
+    
+    nodes.push({
+      nodeID: iNodeId,
+      text: argument.text || `[${chainNode.role}] ${argument.conclusionClaimId || 'No text'}`,
+      type: "I",
+      timestamp: nodeTimestamp,
+    });
+
+    // Create RA-node for the argument's inference
+    const raNodeId = `RA_${argument.id}`;
+    argumentIdMap.set(argument.id, raNodeId);
+    
+    const argTimestamp = argument.createdAt
+      ? (argument.createdAt instanceof Date
+          ? argument.createdAt.toISOString()
+          : new Date(argument.createdAt).toISOString())
+      : new Date().toISOString();
+    
+    nodes.push({
+      nodeID: raNodeId,
+      text: `Application of ${argument.argumentSchemes?.[0]?.scheme?.name || 'reasoning'}`,
+      type: "RA",
+      timestamp: argTimestamp,
+    });
+
+    // Link RA-node to I-node (RA → conclusion)
+    edges.push({
+      edgeID: `E_${raNodeId}_to_${iNodeId}`,
+      fromID: raNodeId,
+      toID: iNodeId,
+    });
+
+    // Create S-nodes for schemes (if available)
+    if (argument.argumentSchemes && argument.argumentSchemes.length > 0) {
+      for (const argScheme of argument.argumentSchemes) {
+        const scheme = argScheme.scheme;
+        if (!scheme) continue;
+
+        const sNodeId = `S_${scheme.id}`;
+        
+        // Add scheme to schemeSets (unique)
+        if (!schemeSets.has(scheme.id)) {
+          schemeSets.set(scheme.id, {
+            schemeID: sNodeId,
+            schemeName: scheme.name || scheme.key,
+            schemeDescription: scheme.description || scheme.summary || undefined,
+            criticalQuestions: scheme.cq?.map((cq: any) => cq.text) || undefined,
+          });
+
+          nodes.push({
+            nodeID: sNodeId,
+            text: scheme.name || scheme.key,
+            type: "S",
+          });
+        }
+
+        // Link RA-node to S-node (RA uses scheme)
+        edges.push({
+          edgeID: `E_${raNodeId}_scheme_${sNodeId}`,
+          fromID: raNodeId,
+          toID: sNodeId,
+          formEdgeID: sNodeId, // Indicates scheme application
+        });
+      }
+    }
+
+    // Track locution (who said this argument)
+    if (chainNode.contributor) {
+      const participantId = `P_${chainNode.contributor.id}`;
+      
+      if (!participants.has(chainNode.contributor.id.toString())) {
+        participants.set(chainNode.contributor.id.toString(), {
+          participantID: participantId,
+          firstname: chainNode.contributor.name || "Unknown",
+          surname: undefined,
+        });
+      }
+
+      locutions.push({
+        nodeID: iNodeId,
+        personID: participantId,
+        timestamp: nodeTimestamp,
+      });
+    }
+  }
+
+  // ========================================================================
+  // Step 2: Convert ChainEdges to AIF edges
+  // ========================================================================
+  
+  for (const chainEdge of chain.edges) {
+    const sourceINodeId = nodeIdMap.get(chainEdge.sourceNodeId);
+    const targetRANodeId = argumentIdMap.get(
+      chain.nodes.find((n: any) => n.id === chainEdge.targetNodeId)?.argument?.id || ""
+    );
+
+    if (sourceINodeId && targetRANodeId) {
+      // Source I-node → Target RA-node (premise to inference)
+      edges.push({
+        edgeID: `E_chain_${chainEdge.id}`,
+        fromID: sourceINodeId,
+        toID: targetRANodeId,
+      });
+    }
+  }
+
+  // ========================================================================
+  // Step 3: Build AIF Document
+  // ========================================================================
+
+  return {
+    "@context": {
+      AIF: "http://www.arg.dundee.ac.uk/aif#",
+      mesh: "http://mesh-platform.io/ontology/aif#",
+      nodeID: "AIF:nodeID",
+      text: "AIF:text",
+      type: "AIF:type",
+      timestamp: "AIF:timestamp",
+      fromID: "AIF:fromID",
+      toID: "AIF:toID",
+      formEdgeID: "AIF:formEdgeID",
+      personID: "AIF:personID",
+      participantID: "AIF:participantID",
+      firstname: "AIF:firstname",
+      surname: "AIF:surname",
+      schemeID: "AIF:schemeID",
+      schemeName: "AIF:schemeName",
+      schemeDescription: "AIF:schemeDescription",
+      criticalQuestions: "AIF:criticalQuestions",
+    },
+    nodes,
+    edges,
+    locutions,
+    participants: Array.from(participants.values()),
+    schemeSets: Array.from(schemeSets.values()),
+    metadata: {
+      chainId: chain.id,
+      chainName: chain.chainName || "Untitled Chain",
+      chainType: chain.chainType || undefined,
+      createdBy: chain.createdBy.toString(),
+      createdAt: chain.createdAt 
+        ? (chain.createdAt instanceof Date 
+            ? chain.createdAt.toISOString() 
+            : new Date(chain.createdAt).toISOString())
+        : new Date().toISOString(),
+      exportedAt: new Date().toISOString(),
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+    },
+  };
+}
+
+/**
+ * Convert ArgumentChain to AIF JSON-LD string
+ * 
+ * Wrapper around convertChainToAif that returns formatted JSON string
+ * suitable for file export or API response.
+ * 
+ * @param chain - Full ArgumentChain with relations
+ * @param pretty - Whether to format with indentation (default: true)
+ * @returns JSON string
+ */
+export function chainToAifJson(
+  chain: ArgumentChainWithRelations,
+  pretty: boolean = true
+): string {
+  const aifDoc = convertChainToAif(chain);
+  return JSON.stringify(aifDoc, null, pretty ? 2 : 0);
+}
+
+/**
+ * Convert ArgumentChain to AIF RDF/Turtle format (future extension)
+ * 
+ * TODO: Implement full RDF/Turtle serialization for deeper AIF compliance
+ * Currently returns JSON-LD which is RDF-compatible but not Turtle syntax.
+ * 
+ * @param chain - Full ArgumentChain with relations
+ * @returns RDF/Turtle string
+ */
+export function chainToAifTurtle(chain: ArgumentChainWithRelations): string {
+  // Placeholder: Convert JSON-LD to Turtle syntax
+  const aifDoc = convertChainToAif(chain);
+  
+  // For now, return JSON-LD with note
+  return `# AIF JSON-LD Export (Turtle conversion pending)\n# Convert using: jsonld-to-rdf tool\n\n${JSON.stringify(aifDoc, null, 2)}`;
+}
+
+/**
+ * Validate AIF document structure
+ * 
+ * Checks that AIF document conforms to basic format requirements:
+ * - Has required context
+ * - Nodes have unique IDs
+ * - Edges reference valid node IDs
+ * - Node types are valid AIF types
+ * 
+ * @param aifDoc - AIF document to validate
+ * @returns Validation result with errors
+ */
+export function validateAifDocument(aifDoc: AifDocument): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  
+  // Check context
+  if (!aifDoc["@context"] || !aifDoc["@context"].AIF) {
+    errors.push("Missing required @context.AIF");
+  }
+
+  // Check node IDs are unique
+  const nodeIds = new Set<string>();
+  for (const node of aifDoc.nodes) {
+    if (nodeIds.has(node.nodeID)) {
+      errors.push(`Duplicate node ID: ${node.nodeID}`);
+    }
+    nodeIds.add(node.nodeID);
+
+    // Check node type
+    if (!["I", "S", "RA", "CA", "PA", "MA"].includes(node.type)) {
+      errors.push(`Invalid node type: ${node.type} for node ${node.nodeID}`);
+    }
+  }
+
+  // Check edges reference valid nodes
+  for (const edge of aifDoc.edges) {
+    if (!nodeIds.has(edge.fromID)) {
+      errors.push(`Edge ${edge.edgeID} references unknown fromID: ${edge.fromID}`);
+    }
+    if (!nodeIds.has(edge.toID)) {
+      errors.push(`Edge ${edge.edgeID} references unknown toID: ${edge.toID}`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}

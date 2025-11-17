@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, TrendingUp, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { Loader2, TrendingUp, AlertTriangle, CheckCircle, Info, Network } from "lucide-react";
 
 interface CriticalPath {
   nodeIds: string[];
@@ -39,6 +39,15 @@ interface AnalysisResult {
   cycles: Cycle[];
   strength: ChainStrength;
   suggestions: any[];
+  schemeNetComplexity?: {
+    complexNodes: string[];
+    schemeNetNodes: Record<string, {
+      schemeCount: number;
+      hasSteps: boolean;
+      overallConfidence: number;
+      isPrimary: boolean;
+    }>;
+  };
   metadata: {
     analyzedAt: string;
     nodeCount: number;
@@ -302,6 +311,47 @@ export function ChainAnalysisPanel({
                     </Badge>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* SchemeNet Complexity Indicators (Task 3.6) */}
+            {analysis.schemeNetComplexity && analysis.schemeNetComplexity.complexNodes.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Network className="h-4 w-4 text-purple-600" />
+                  Multi-Scheme Arguments
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Arguments using complex multi-scheme structures (SchemeNet)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.schemeNetComplexity.complexNodes.map((nodeId) => {
+                    const nodeData = analysis.schemeNetComplexity!.schemeNetNodes[nodeId];
+                    return (
+                      <Badge
+                        key={nodeId}
+                        variant="outline"
+                        className="cursor-pointer border-purple-300 text-purple-700 hover:bg-purple-50"
+                        onClick={() => onHighlightNodes?.([nodeId])}
+                      >
+                        <Network className="h-3 w-3 mr-1" />
+                        {nodeId.slice(0, 8)}... ({nodeData?.schemeCount || 0} schemes)
+                      </Badge>
+                    );
+                  })}
+                </div>
+                <Alert className="bg-purple-50 border-purple-200">
+                  <Info className="h-4 w-4 text-purple-600" />
+                  <AlertDescription className="text-xs text-purple-900">
+                    These arguments use multiple argumentation schemes in coordinated structures.
+                    This indicates sophisticated reasoning but may also introduce complexity.
+                    {analysis.schemeNetComplexity.complexNodes.length > 2 && (
+                      <span className="block mt-1 font-medium">
+                        Your chain shows high argumentative sophistication with {analysis.schemeNetComplexity.complexNodes.length} multi-scheme nodes.
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
 

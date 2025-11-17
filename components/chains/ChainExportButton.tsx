@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Download, Image as ImageIcon, FileCode } from "lucide-react";
+import { Download, Image as ImageIcon, FileCode, Network } from "lucide-react";
 import { toPng, toSvg } from "html-to-image";
 import { useReactFlow } from "reactflow";
+import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 
 interface ChainExportButtonProps {
   chainName?: string;
@@ -13,6 +14,7 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
   const [isOpen, setIsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { getNodes, getEdges } = useReactFlow();
+  const { chainId } = useChainEditorStore();
 
   const handleExportPNG = async () => {
     setExporting(true);
@@ -96,6 +98,42 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
     }
   };
 
+  const handleExportAIF = async () => {
+    setExporting(true);
+    try {
+      if (!chainId) {
+        throw new Error("Chain ID not available");
+      }
+
+      const response = await fetch(`/api/argument-chains/${chainId}/export/aif`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to export AIF");
+      }
+
+      const aifData = await response.json();
+      const aifStr = JSON.stringify(aifData, null, 2);
+      const blob = new Blob([aifStr], { type: "application/ld+json" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.download = `${chainName}_aif.json`;
+      link.href = url;
+      link.click();
+
+      URL.revokeObjectURL(url);
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Failed to export AIF:", error);
+      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="relative">
       <button
@@ -156,6 +194,18 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
                 <div className="flex-1 text-left">
                   <div className="font-medium">JSON Data</div>
                   <div className="text-xs text-gray-500">Raw structured data</div>
+                </div>
+              </button>
+
+              <button
+                onClick={handleExportAIF}
+                disabled={exporting}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Network className="w-4 h-4 text-orange-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">AIF Format</div>
+                  <div className="text-xs text-gray-500">Argument Interchange (JSON-LD)</div>
                 </div>
               </button>
             </div>

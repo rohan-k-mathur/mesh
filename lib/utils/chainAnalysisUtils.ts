@@ -703,3 +703,99 @@ function calculateNodeLevels(
 
   return levels;
 }
+
+// ============================================================================
+// Task 3.6: SchemeNet Complexity Detection
+// ============================================================================
+
+/**
+ * Detect nodes with complex multi-scheme structures (SchemeNet indicators)
+ * 
+ * Identifies arguments that use multiple argumentation schemes in a coordinated
+ * structure, indicating sophisticated reasoning that may strengthen or complicate
+ * the overall argument chain.
+ * 
+ * @param nodes - ReactFlow nodes with argument data including schemeNet
+ * @returns Array of node IDs with complex SchemeNet structures
+ */
+export function detectSchemeNetComplexity(
+  nodes: Node<ChainNodeData>[]
+): {
+  complexNodes: string[];
+  schemeNetNodes: Map<string, {
+    schemeCount: number;
+    hasSteps: boolean;
+    overallConfidence: number;
+    isPrimary: boolean;
+  }>;
+} {
+  const complexNodes: string[] = [];
+  const schemeNetNodes = new Map();
+
+  for (const node of nodes) {
+    const argument = node.data.argument;
+    const hasSchemeNet = argument.schemeNet !== null && argument.schemeNet !== undefined;
+    const schemeCount = argument.argumentSchemes?.length || 0;
+    const hasSteps = hasSchemeNet && (argument.schemeNet?.steps?.length || 0) > 0;
+    
+    // Consider complex if:
+    // 1. Multiple schemes (2+)
+    // 2. Has SchemeNet with sequential steps
+    // 3. Has presupposed or supporting schemes (not just primary)
+    const hasMultipleSchemes = schemeCount >= 2;
+    const hasNonPrimarySchemes = argument.argumentSchemes?.some(
+      (s: any) => !s.isPrimary && (s.role === "supporting" || s.role === "presupposed")
+    );
+    
+    if (hasSchemeNet && (hasMultipleSchemes || hasSteps || hasNonPrimarySchemes)) {
+      complexNodes.push(node.id);
+      
+      schemeNetNodes.set(node.id, {
+        schemeCount,
+        hasSteps,
+        overallConfidence: argument.schemeNet?.overallConfidence || 1.0,
+        isPrimary: argument.argumentSchemes?.some((s: any) => s.isPrimary) || false,
+      });
+    }
+  }
+
+  return { complexNodes, schemeNetNodes };
+}
+
+/**
+ * Calculate SchemeNet strength contribution
+ * 
+ * Multi-scheme arguments may be stronger (convergent evidence) or weaker
+ * (complexity introduces vulnerabilities). This calculates a modifier based
+ * on SchemeNet structure.
+ * 
+ * @param schemeCount - Number of schemes in argument
+ * @param overallConfidence - SchemeNet overall confidence
+ * @param hasSteps - Whether SchemeNet has sequential steps
+ * @returns Strength modifier (0.8-1.2)
+ */
+export function calculateSchemeNetStrengthModifier(
+  schemeCount: number,
+  overallConfidence: number,
+  hasSteps: boolean
+): number {
+  // Base modifier: multiple schemes can strengthen argument
+  let modifier = 1.0;
+  
+  if (schemeCount >= 2) {
+    // More schemes = stronger, but diminishing returns
+    modifier += Math.min((schemeCount - 1) * 0.05, 0.2);
+  }
+  
+  // Confidence adjustment
+  modifier *= overallConfidence;
+  
+  // Sequential steps add complexity (slight penalty)
+  if (hasSteps) {
+    modifier *= 0.95;
+  }
+  
+  // Clamp to reasonable range
+  return Math.max(0.8, Math.min(1.2, modifier));
+}
+

@@ -5,6 +5,7 @@ import {
   findCriticalPath,
   detectCycles,
   calculateChainStrength,
+  detectSchemeNetComplexity,
   type CriticalPath,
   type Cycle,
   type ChainStrength,
@@ -137,12 +138,13 @@ export async function POST(
       },
     }));
 
-    // Run analysis algorithms (Tasks 3.1, 3.2, 3.3)
+    // Run analysis algorithms (Tasks 3.1, 3.2, 3.3, 3.6)
     const criticalPath = findCriticalPath(nodes, edges);
     const cycles = detectCycles(nodes, edges);
     const strength = calculateChainStrength(nodes, edges);
+    const schemeNetComplexity = detectSchemeNetComplexity(nodes);
 
-    // Task 3.4: AI suggestions (placeholder - will implement in separate task)
+    // Task 3.4: AI suggestions (placeholder - SHELVED)
     const suggestions: any[] = [];
 
     // Build response
@@ -150,6 +152,10 @@ export async function POST(
       criticalPath: serializeCriticalPath(criticalPath),
       cycles: cycles.map(serializeCycle),
       strength: serializeStrength(strength),
+      schemeNetComplexity: {
+        complexNodes: schemeNetComplexity.complexNodes,
+        schemeNetNodes: Object.fromEntries(schemeNetComplexity.schemeNetNodes),
+      },
       suggestions,
       metadata: {
         analyzedAt: new Date().toISOString(),
