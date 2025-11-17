@@ -312,14 +312,14 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
             </button>
             <div className="flex items-center gap-4">
               {/* Legend */}
-              <div className="flex items-center gap-3 text-[10px] text-gray-500">
+              <div className="flex items-center gap-3 text-[10px] text-gray-700">
                 <span className="flex items-center gap-1">
-                  <span className="text-amber-600 font-mono">⊳</span>
-                  <span>asymmetric</span>
+                  <span className="text-orange-600 font-medium  font-mono  text-sm">↝ ¬</span>
+                  <span>contrary (asymmetric attack)</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="text-red-600 font-mono">↮</span>
-                  <span>symmetric</span>
+                  <span className="text-red-600 font-semibold text-sm font-mono">⊥</span>
+                  <span>contradictory (mutual defeat)</span>
                 </span>
               </div>
               <Button
@@ -370,23 +370,23 @@ export function AspicTheoryViewer({ theory, highlightFormula }: AspicTheoryViewe
                           return (
                             <div key={cIdx} className="flex items-center gap-2">
                               <span className={`text-xs font-mono ${
-                                isContradictory ? "text-red-600" : "text-amber-600"
+                                isContradictory ? "text-red-600" : "text-orange-600"
                               }`}>
-                                {isContradictory ? "↮" : "⊳"}
+                                {isContradictory ? "⊥" : "↝ ¬"}
                               </span>
                               <Badge 
                                 variant="outline" 
                                 className={`font-mono text-xs ${
                                   isContradictory 
                                     ? "border-red-300 text-red-700 bg-red-50" 
-                                    : "border-amber-300 text-amber-700 bg-amber-50"
+                                    : "border-orange-300 text-orange-700 bg-orange-50"
                                 }`}
                               >
                                 {contrary}
                               </Badge>
-                              <span className="text-[10px] text-gray-500 italic">
+                              {/* <span className="text-[9px] text-gray-500 italic">
                                 {isContradictory ? "contradictory" : "contrary"}
-                              </span>
+                              </span> */}
                             </div>
                           );
                         })}

@@ -97,6 +97,8 @@ export async function createArgument(payload: {
   text?: string;
   premisesAreAxioms?: boolean;  // Phase B: Axiom designation
   justification?: string;  // Justification for scheme selection
+  ruleType?: 'STRICT' | 'DEFEASIBLE';  // ASPIC+ Phase 1b.3: Rule type
+  ruleName?: string;  // ASPIC+ Phase 1b.3: Optional rule name
 }) {
   const res = await fetch('/api/arguments', {
     method: 'POST',

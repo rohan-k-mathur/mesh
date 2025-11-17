@@ -18,6 +18,7 @@ import { PropositionComposerPro } from "@/components/propositions/PropositionCom
 import { Save, Tag, Network, Layers } from "lucide-react";
 import CitationCollector, { type PendingCitation } from "@/components/citations/CitationCollector";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { EvidenceRequirements, type EvidenceRequirement } from "@/components/argumentation/EvidenceGuidance";
 export type AttackContext =
   | { mode: "REBUTS"; targetClaimId: string; hint?: string }
@@ -179,6 +180,11 @@ export function AIFArgumentWithSchemeComposer({
   
   // Phase B: Axioms designation - mark all premises as axioms (indisputable)
   const [premisesAreAxioms, setPremisesAreAxioms] = React.useState(false);
+  
+  // ASPIC+ Phase 1b.3: Rule type designation (strict vs defeasible)
+  const [ruleType, setRuleType] = React.useState<'STRICT' | 'DEFEASIBLE'>('DEFEASIBLE');
+  const [ruleName, setRuleName] = React.useState("");
+  const [showRuleTypeHelp, setShowRuleTypeHelp] = React.useState(false);
   
   // Justification for scheme selection (optional)
   const [schemeJustification, setSchemeJustification] = React.useState("");
@@ -442,6 +448,9 @@ export function AIFArgumentWithSchemeComposer({
         implicitWarrant: implicitWarrantText ? { text: implicitWarrantText } : null,
         // Phase B: Pass axiom designation to API
         premisesAreAxioms,
+        // ASPIC+ Phase 1b.3: Pass rule type to API
+        ruleType,
+        ruleName: ruleName.trim() || undefined,
         // Justification for scheme selection
         justification: schemeJustification || undefined,
         // harmless extra; server will just ignore if not using it yet
@@ -1163,6 +1172,127 @@ export function AIFArgumentWithSchemeComposer({
             className="w-full"
           />
         </div>
+
+        {/* Phase 1b.3: Rule Type Selection (STRICT vs DEFEASIBLE) */}
+        {selected && (
+          <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+            <div className="flex items-start gap-2 mb-3">
+              <span className="text-blue-600 text-sm">⚖️</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-blue-900">
+                    Rule Type
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRuleTypeHelp(!showRuleTypeHelp)}
+                    className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  >
+                    {showRuleTypeHelp ? "Hide" : "Show"} explanation
+                  </button>
+                </div>
+                <p className="text-xs text-blue-700 mt-1">
+                  Choose whether this inference is logically guaranteed or open to rebuttal
+                </p>
+              </div>
+            </div>
+
+            {showRuleTypeHelp && (
+              <div className="mb-3 p-3 rounded-lg bg-white border border-blue-200">
+                <div className="space-y-2 text-xs text-slate-700">
+                  <div>
+                    <strong className="text-blue-900">Strict Rule:</strong> The conclusion follows logically from the premises. 
+                    If the premises are true, the conclusion <em>must</em> be true. Cannot be rebutted (only undercut by challenging premises).
+                    <div className="mt-1 text-slate-600 italic">Example: &ldquo;All humans are mortal. Socrates is human. Therefore, Socrates is mortal.&rdquo;</div>
+                  </div>
+                  <div>
+                    <strong className="text-slate-900">Defeasible Rule (default):</strong> The conclusion is <em>plausible</em> given the premises, 
+                    but could be false even if premises are true. Can be rebutted by showing an exception or alternative conclusion.
+                    <div className="mt-1 text-slate-600 italic">Example: &ldquo;Birds typically fly. Tweety is a bird. Therefore, Tweety flies.&rdquo; (Rebuttable: &ldquo;But Tweety is a penguin&rdquo;)</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <RadioGroup
+              value={ruleType}
+              onValueChange={(value) => setRuleType(value as 'STRICT' | 'DEFEASIBLE')}
+              className="space-y-2"
+            >
+              <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/50 transition-colors">
+                <RadioGroupItem value="DEFEASIBLE" id="defeasible" />
+                <label
+                  htmlFor="defeasible"
+                  className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900">Defeasible</span>
+                    <Badge variant="outline" className="text-xs font-normal bg-slate-50">
+                      Default
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 font-normal">
+                    Conclusion is plausible but rebuttable (most arguments)
+                  </p>
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/50 transition-colors">
+                <RadioGroupItem value="STRICT" id="strict" />
+                <label
+                  htmlFor="strict"
+                  className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-900">Strict</span>
+                    <Badge variant="outline" className="text-xs font-normal bg-blue-100 border-blue-300 text-blue-700">
+                      Logically guaranteed
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 font-normal">
+                    Conclusion follows necessarily from premises (e.g., modus ponens)
+                  </p>
+                </label>
+              </div>
+            </RadioGroup>
+
+            {ruleType === 'STRICT' && (
+              <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-600 text-sm">⚠️</span>
+                  <div className="flex-1">
+                    <p className="text-xs text-amber-900 font-medium">
+                      Strict rules require strong justification
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Ensure your inference pattern is truly <em>logically valid</em> (e.g., modus ponens, universal instantiation).
+                      Opponents cannot rebut strict conclusions directly—they can only undercut by challenging premises or the rule itself.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Optional rule name input for strict rules */}
+                <div className="mt-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-slate-700">
+                      Rule name (optional)
+                    </span>
+                    <input
+                      type="text"
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      placeholder="e.g., 'Modus Ponens', 'Universal Instantiation'"
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <span className="text-xs text-slate-600">
+                      Name the logical rule for reference in undercutting attacks
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 mt-4">
           <button

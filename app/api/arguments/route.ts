@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     }, NO_STORE);
   }
   
-  const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text, premisesAreAxioms } = b ?? {};
+  const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text, premisesAreAxioms, ruleType, ruleName } = b ?? {};
   const user = await getUserFromCookies();
   if (!user) {
     console.error('[POST /api/arguments] No authenticated user');
@@ -254,6 +254,8 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
           confidence: 1.0,
           isPrimary: true,
           order: 0,
+          ruleType: ruleType ?? "DEFEASIBLE", // Phase 1b.3: Accept ruleType from UI
+          ruleName: ruleName ?? null,          // Phase 1b.3: Optional rule name for strict rules
         },
       });
     }

@@ -228,9 +228,46 @@ export function aifToASPIC(
     const conclNode = graph.nodes.find(n => n.id === concl.targetId);
     if (!conclNode) continue;
 
-    const type = (ra as any).schemeType === 'deductive' ? 'strict' : 'defeasible';
-    const rule = { id: ra.id, antecedents, consequent: (conclNode as any).content ?? (conclNode as any).text ?? conclNode.id, type } as Rule;
-    (type === 'strict' ? strictRules : defeasibleRules).push(rule);
+    // ASPIC+ Phase 1b.2: Read ruleType from ArgumentSchemeInstance metadata
+    const raMetadata = (ra as any).metadata ?? {};
+    const schemeInstance = raMetadata.schemeInstance;
+    
+    // Determine rule type (priority order):
+    // 1. schemeInstance.ruleType (from ArgumentSchemeInstance - Phase 1b.2)
+    // 2. schemeType metadata (legacy support)
+    // 3. Default to 'defeasible'
+    let ruleType: 'strict' | 'defeasible' = 'defeasible';
+    
+    if (schemeInstance?.ruleType) {
+      // Phase 1b.2: Use ruleType from ArgumentSchemeInstance
+      ruleType = schemeInstance.ruleType.toLowerCase() as 'strict' | 'defeasible';
+    } else if ((ra as any).schemeType === 'deductive') {
+      // Legacy: infer from schemeType
+      ruleType = 'strict';
+    }
+    
+    const ruleName = schemeInstance?.ruleName || null;
+    
+    const rule = {
+      id: ra.id,
+      antecedents,
+      consequent: (conclNode as any).content ?? (conclNode as any).text ?? conclNode.id,
+      type: ruleType,
+    } as Rule;
+    
+    // Classify rule by type
+    if (ruleType === 'strict') {
+      strictRules.push(rule);
+      console.log(`[aifToAspic] ✅ Added STRICT rule: ${rule.id}`);
+      console.log(`  Antecedents: [${rule.antecedents.join(', ')}]`);
+      console.log(`  Consequent: ${rule.consequent}`);
+      if (ruleName) {
+        console.log(`  Rule name: "${ruleName}"`);
+      }
+    } else {
+      defeasibleRules.push(rule);
+      console.log(`[aifToAspic] Added defeasible rule: ${rule.id}`);
+    }
   }
 
   // CA: contraries and exceptions (Phase 7: Enhanced with ASPIC+ metadata)
@@ -285,16 +322,19 @@ export function aifToASPIC(
   }
 
   // Summary logging for debugging
-  console.log(`[aifToAspic] Translation complete:`, {
-    language: language.size,
-    contraries: contraries.size,
-    strictRules: strictRules.length,
-    defeasibleRules: defeasibleRules.length,
-    axioms: axioms.size,
-    premises: premises.size,
-    assumptions: assumptions.size,
-    preferences: preferences.length,
-  });
+  console.log(`\n${'='.repeat(70)}`);
+  console.log(`[aifToAspic] 📊 Translation Summary`);
+  console.log(`${'='.repeat(70)}`);
+  console.log(`Language:        ${language.size} formulas`);
+  console.log(`Contraries:      ${contraries.size} contrary pairs`);
+  console.log(`Strict Rules:    ${strictRules.length} (R_s)`);
+  console.log(`Defeasible Rules: ${defeasibleRules.length} (R_d)`);
+  console.log(`Total Rules:     ${strictRules.length + defeasibleRules.length}`);
+  console.log(`Axioms (K_n):    ${axioms.size}`);
+  console.log(`Premises (K_p):  ${premises.size}`);
+  console.log(`Assumptions (K_a): ${assumptions.size}`);
+  console.log(`Preferences:     ${preferences.length}`);
+  console.log(`${'='.repeat(70)}\n`);
 
   return { language, contraries, strictRules, defeasibleRules, axioms, premises, assumptions, preferences };
 }

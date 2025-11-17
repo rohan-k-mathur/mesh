@@ -9,6 +9,7 @@ import {
   ShieldX,
   ShieldAlert,
   Shield,
+  ShieldCheck,
   Target,
   AlertCircle,
   Sparkles,
@@ -68,6 +69,8 @@ interface ArgumentCardV2Props {
     schemeName: string;
     confidence: number;
     isPrimary: boolean;
+    ruleType?: 'STRICT' | 'DEFEASIBLE'; // Phase 1b.3: ASPIC+ strict rules
+    ruleName?: string | null;            // Phase 1b.3: Optional rule name for strict rules
   }>;
   createdAt?: string | Date;
   updatedAt?: string | Date;
@@ -1117,6 +1120,16 @@ export function ArgumentCardV2({
                           title={scheme.isPrimary ? "Primary scheme - click for details" : "Click for details"}
                         >
                           <span className="font-semibold">{scheme.schemeName}</span>
+                          {/* Phase 1b.3: Strict rule badge */}
+                          {scheme.ruleType === 'STRICT' && (
+                            <span 
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-blue-700 text-[10px] font-bold"
+                              title={`Strict rule${scheme.ruleName ? `: ${scheme.ruleName}` : ''} - Conclusion is logically guaranteed and cannot be rebutted`}
+                            >
+                              <ShieldCheck className="h-2.5 w-2.5" />
+                              STRICT
+                            </span>
+                          )}
                           <span className="text-xs opacity-75">
                             {Math.round(scheme.confidence * 100)}%
                           </span>

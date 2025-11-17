@@ -195,9 +195,6 @@ export async function GET(req: NextRequest) {
         deliberationId,
         status: "ACCEPTED", // Only accepted assumptions enter knowledge base
       },
-      include: {
-        // Include claim if tied to existing claim
-      },
     });
 
     console.log(`[ASPIC API] Fetched ${assumptionsList.length} ACCEPTED AssumptionUse records for deliberation ${deliberationId}`);
@@ -217,6 +214,29 @@ export async function GET(req: NextRequest) {
 
     console.log(`[ASPIC API] Fetched ${explicitContraries.length} explicit ClaimContrary records for deliberation ${deliberationId}`);
 
+    // Step 1e: Fetch ArgumentSchemeInstance records for ASPIC+ ruleType (Phase 1b.2)
+    // @ts-ignore - ArgumentSchemeInstance model exists, TypeScript server needs refresh
+    const schemeInstances = await prisma.argumentSchemeInstance.findMany({
+      where: {
+        argument: {
+          deliberationId,
+        },
+      },
+      include: {
+        scheme: true,
+      },
+    });
+    
+    // Build map: argumentId -> schemeInstance (use primary instance)
+    const schemeInstanceMap = new Map<string, any>();
+    for (const instance of schemeInstances) {
+      if (instance.isPrimary || !schemeInstanceMap.has(instance.argumentId)) {
+        schemeInstanceMap.set(instance.argumentId, instance);
+      }
+    }
+
+    console.log(`[ASPIC API] Fetched ${schemeInstances.length} ArgumentSchemeInstance records for deliberation ${deliberationId}`);
+
     // Step 2: Build AIFGraph from fetched data
     const nodes: AnyNode[] = [];
     const edges: Edge[] = [];
@@ -227,6 +247,9 @@ export async function GET(req: NextRequest) {
       // RA-node for the argument
       const raNodeId = `RA:${arg.id}`;
       if (!nodeIds.has(raNodeId)) {
+        // ASPIC+ Phase 1b.2: Attach scheme instance for ruleType
+        const schemeInstance = schemeInstanceMap.get(arg.id);
+        
         nodes.push({
           id: raNodeId,
           nodeType: "RA",
@@ -234,6 +257,15 @@ export async function GET(req: NextRequest) {
           debateId: deliberationId,
           inferenceType: "modus_ponens",
           schemeId: arg.schemeId || undefined,
+          // ASPIC+ Phase 1b.2: Add scheme instance metadata
+          metadata: {
+            schemeInstance: schemeInstance ? {
+              ruleType: schemeInstance.ruleType,
+              ruleName: schemeInstance.ruleName,
+              confidence: schemeInstance.confidence,
+              isPrimary: schemeInstance.isPrimary,
+            } : null,
+          },
         });
         nodeIds.add(raNodeId);
       }
