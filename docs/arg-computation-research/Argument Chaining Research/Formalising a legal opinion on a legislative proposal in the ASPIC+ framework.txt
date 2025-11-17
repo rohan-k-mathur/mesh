@@ -1,0 +1,1157 @@
+Formalising a legal opinion on a
+legislative proposal in the ASPIC+
+framework
+Henry Prakken
+Department of Information and Computing Sciences, University of Utrecht and Faculty
+of Law, University of Groningen, The Netherlands
+Abstract.
+This paper presents a case study in which an opinion of a legal scholar on
+a legislative proposal is formally reconstructed in the ASPIC+ framework for
+argumentation-based inference. The reconstruction uses a version of the argument
+scheme for good and bad consequences that does not refer to single but to sets of
+consequences, in order to model aggregation of reasons for and against proposals.
+The case study is intended to contribute to a comparison between various formal
+frameworks for argumentation by providing a new benchmark example. It also aims
+to illustrate the usefulness of two features of ASPIC+: its distinction between deductive and defeasible inference rules and its ability to express arbitrary preference
+orderings on arguments.
+1. Introduction
+In both general AI and AI & law several formal frameworks for argumentation-based inference have been proposed, such as assumption-based argumentation [5], classical argumentation [4], Carneades [7] and ASPIC+ [8]. This raises the question which framework
+is best suited for formalising natural, in particular legal arguments. The present paper
+contributes to this discussion with a case study in which an opinion of a legal scholar
+on a legislative proposal is reconstructed in ASPIC+. While this cannot decide which
+framework is the best, it helps in providing evidence and formulating benchmark examples. Compared to assumption-based and classical argumentation, the main distinguishing features of ASPIC+ are an explicit distinction between deductive and defeasible inference rules and an explicit preference ordering on arguments. Accordingly, a main aim
+of the present case study is to illustrate the usefulness of these features. Defeasible rules
+will be used to formulate the relevant argument schemes, while argument orderings will
+be used to apply [6]’s abstract argumentation frameworks for evaluating the justification
+status of arguments and their conclusions.
+The main argument schemes used in the case study are those of good and bad consequences of actions as proposed in [2, 3]. Unlike other formulations of these schemes,
+these formulations do not refer to single but to sets of consequences of actions, thus allowing for aggregation of reasons for and against proposals. The present paper’s main
+advance over [2, 3] is that it models an actual example of a legal argument in its full
+detail instead of modelling a simplified example that is more loosely based on actual textual material. The ASPIC+ framework has been applied earlier in a realistic case study
+in [9]; in that paper the main arguments were not about legislative proposals but about
+interpreting and applying legal concepts.
+This paper is organised as follows. In Section 2 abstract argumentation frameworks
+and ASPIC+ are reviewed. Then in Section 3 the Dutch legal opinion is presented, which
+is reconstructed in ASPIC+ in Section 4. The paper concludes in Section 5.
+2. The formalisms
+In this section we review abstract argumentation frameworks and the ASPIC+ framework. An abstract argumentation framework (AF) is a pair hArgs, Defi, where Args
+is a set of arguments and Def ⊆ Args×Args is a binary relation of defeat. A semantics
+for AFs returns sets of arguments called extensions, which are internally coherent and
+defend themselves against attack. One way to characterise the various semantics is with
+labellings, which assign to zero or more members of Args either the label in or out (but
+not both) satisfying the following constraints:
+1. an argument is in iff all arguments defeating it are out.
+2. an argument is out iff it is defeated by an argument that is in.
+Stable semantics labels all arguments, while grounded semantics minimises and preferred semantics maximises the set of arguments that are labelled in. In this paper preferred semantics is used, since it allows for alternative labellings and thus for alternative
+coherent positions. Relative to a semantics, an argument is justified on the basis of an
+AF if it is labelled in in all labellings, it is overruled if it is labelled out in all labellings,
+and it is defensible if it is neither justified nor overruled.
+The ASPIC+ framework [8] gives structure to Dung’s arguments and defeat relation.
+It defines arguments as inference trees formed by applying strict or defeasible inference
+rules to premises formulated in some logical language. Informally, if an inference rule’s
+antecedents are accepted, then if the rule is strict, its consequent must be accepted no
+matter what, while if the rule is defeasible, its consequent must be accepted if there are no
+good reasons not to accept it. Arguments can be attacked on their (non-axiom) premises
+and on their applications of defeasible inference rules. Some attacks succeed as defeats,
+which is partly determined by preferences. The acceptability status of arguments is then
+defined by applying any of [6] semantics for abstract argumentation frameworks to the
+resulting set of arguments with its defeat relation.
+ASPIC+ is not a system but a framework for specifying systems. It defines the notion of an abstract argumentation system as a structure consisting of a logical language
+L closed under negation1
+, a set R consisting of two subsets Rs and Rd of strict and
+defeasible inference rules, and a naming convention n in L for defeasible rules in order
+to talk about the applicability of defeasible rules in L. Thus, informally, n(r) is a wff
+in L which says that rule r ∈ R is applicable. ASPIC+ as a framework does not make
+any assumptions on how the elements of an argumentation system are defined. In ASPIC+ argumentation systems are applied to knowledge bases to generate arguments and
+1
+In most papers on ASPIC+ negation can be non-symmetric, an idea taken from [5]. In this paper we present
+the special case with symmetric negation.
+counterarguments. Combining these with an argument ordering results in argumentation
+theories, which generate Dung-style AFs.
+Definition 1 [Argumentation systems] An argumentation system is a triple AS =
+(L, R, n) where:
+• L is a logical language closed under negation (¬).
+• R = Rs ∪ Rd is a set of strict (Rs) and defeasible (Rd) inference rules of the
+form ϕ1, . . . , ϕn → ϕ and ϕ1, . . . , ϕn ⇒ ϕ respectively (where ϕi
+, ϕ are metavariables ranging over wff in L), and Rs ∩ Rd = ∅.
+• n : Rd −→ L is a naming convention for defeasible rules.
+We write ψ = −ϕ just in case ψ = ¬ϕ or ϕ = ¬ψ.
+Definition 2 [Knowledge bases] A knowledge base in an AS = (L, R, n) is a set K ⊆
+L consisting of two disjoint subsets Kn (the axioms) and Kp (the ordinary premises).
+Intuitively, the axioms are certain knowledge and thus cannot be attacked, whereas
+the ordinary premises are uncertain and thus can be attacked.
+Arguments can be constructed step-by-step from knowledge bases by chaining inference rules into trees. In what follows, for a given argument the function Prem returns
+all its premises, Conc returns its conclusion and Sub returns all its sub-arguments.
+Definition 3 [Arguments] An argument A on the basis of a knowledge base K in an
+argumentation system (L, R, n) is:
+1. ϕ if ϕ ∈ K with: Prem(A) = {ϕ}; Conc(A) = ϕ; Sub(A) = {ϕ};
+2. A1, . . . An →/⇒ ψ if A1, . . . , An are arguments such that there exists a
+strict/defeasible rule Conc(A1), . . . , Conc(An) →/⇒ ψ in Rs/Rd.
+Prem(A) = Prem(A1) ∪ . . . ∪ Prem(An), Conc(A) = ψ, Sub(A) = Sub(A1) ∪
+. . . ∪ Sub(An) ∪ {A}.
+Definition 4 [Argumentation theories] An argumentation theory is a triple AT =
+(AS, KB, ) where AS is an argumentation system, KB is a knowledge base in AS
+and  is an ordering on the set of all arguments that can be constructed from KB in AS
+(below denoted by AAT ). A  B means that B is at least as preferred as A. As usual,
+A ≺ B is defined as A  B and B 6 A and A ≈ B as A  B and B  A.
+Arguments can be attacked in three ways: on their premises (undermining attack), on
+their conclusion (rebutting attack) or on an inference step (undercutting attack). The latter
+two are only possible on applications of defeasible inference rules.
+Definition 5 [Attack] A attacks B iff A undercuts, rebuts or undermines B, where:
+• A undercuts argument B (on B0
+) iff Conc(A) = −n(r) for some B0 ∈ Sub(B) such
+that B0
+’s top rule r is defeasible.
+• A rebuts argument B (on B0
+) iff Conc(A) = −ϕ for some B0 ∈ Sub(B) of the form
+B00
+1
+, . . . , B00
+n ⇒ ϕ.
+• Argument A undermines B (on B0
+) iff Conc(A) = −ϕ for some B0 = ϕ, ϕ 6∈ Kn.
+Undercutting attacks succeed as defeats independently of preferences over arguments,
+since they express exceptions to defeasible inference rules. Rebutting and undermining
+attacks succeed only if the attacked argument is not stronger than the attacking argument.
+Definition 6 [Defeat] A defeats B iff:A undercuts B, or; A rebuts/undermines B on B0
+and A ⊀ B0
+. A strictly defeats B iff A defeats B and B does not defeat A
+Abstract argumentation frameworks are then generated as follows:
+Definition 7 [Argumentation frameworks] An abstract argumentation framework
+(AF) corresponding to an AT = hAS, KB, i is a pair hArgs, Defi such that:
+• Args is the set AAT as defined by Definitions 3 and 4,
+• Def is the relation on Args given by Definition 6.
+Now a statement is justified if it is the conclusion of a justified argument, while it is
+defensible if it is not justified but the conclusion of a defensible argument, and overruled
+if it is defeated by a justified argument.
+3. An example of natural argument
+The following text is a summary of an opinion by Nico Kwakman of the Faculty of
+Law, University of Groningen, The Netherlands, published on 29 February 2012 at
+www.rug.nl/rechten. The topic is whether the legislative proposal by the Dutch government to impose mandatory minimum sentences for serious crimes is a good idea.
+Despite strong criticism from the Council of State (Raad van State, RvS), the Cabinet is going
+to continue to introduce mandatory minimum sentences for serious offences. Dr Nico Kwakman, criminal justice expert at the University of Groningen, is critical of the bill, but can also
+understand the reasoning behind it. The effectiveness of the bill is doubtful, but the symbolic
+impact is large. The cabinet is sending out a strong signal and it has every right to do so.
+The Netherlands Bar Association, the Council of State, the Netherlands Association for the
+Judiciary, they are all advising the cabinet not to introduce the bill. However, the cabinet is
+ignoring their advice and continuing on with its plans. Criminals who commit a serious crime
+for the second time within ten years must be given a minimum sentence of at least half of
+the maximum sentence allocated to that offence, says the Cabinet. The bill has been drawn up
+under great pressure from the PVV party.
+Not effective Regarding content, the bill raises a lot of question marks, explains Kwakman.
+Heavy sentences do not reduce the chances of recidivism, academic research has revealed. Nor
+has it ever been demonstrated that heavy sentences lead to a reduction in the crime figures.
+Kwakman: ‘It is very important for a judge to be able to tailor a punishment to the individual
+offender. That increases the chances of a successful return to society. In the future, judges will
+have much less room for such tailoring.’
+Call from the public The Cabinet says that the new bill is meeting the call from the public
+for heavier sentences. This is despite the fact that international comparisons show that crime
+in the Netherlands is already heavily punished. Kwakman: ‘Dutch judges are definitely not
+softies, as is often claimed. Even without politics ordering them to, in the past few years they
+have become much stricter in reaction to what is going on in society. This bill, completely
+unnecessarily, will force them to go even further’.
+Symbolic impact Kwakman does have a certain amount of sympathy for the Cabinet’s reasoning. ‘The effectiveness of the bill is doubtful, but criminal law revolves around more than
+effectiveness alone. It will also have a significant symbolic impact. The Cabinet is probably
+mainly interested in the symbolism, in underlining norms. The Cabinet is sending out a strong
+signal and it has every right to do so as the democratically elected legislator. Anyone who
+doesn’t agree should vote for a different party the next time.’
+French kissing is rape Judges currently have a lot of freedom when setting sentences but
+that will be significantly less in the future. Kwakman: ‘A forced French kiss is a graphic example. It officially counts as rape, but judges impose relatively mild sentences for it. Soon judges
+will be forced to impose half of the maximum punishment for rape on someone who is guilty of
+a forced French kiss for the second time. Only in extremely exceptional cases can that sentence
+be changed.’
+Taking a stand And that is where the dangers of the new bill lurk, thinks Kwakman. Judges
+who don’t think the mandatory sentence is suitable will look for ways to get around the bill.
+These could include not assuming so quickly that punishable offences have been proven, interpreting the bill in a very wide way on their own initiative, or by thinking up emergency
+constructions. Kwakman: ‘In this way judges will be taking on more and more of the legislative and law formation tasks, and that is a real shame. The legislature and the judiciary should
+complement each other. This bill will force people to take a stand and the relationship between
+legislator and judge will harden.’
+4. A formal reconstruction in ASPIC+
+I next model the example of the previous section in the ASPIC+framework, leaving
+the logical language formally undefined and instead using streamlined natural language
+for expressing the premises and conclusions of the arguments. Argument schemes are
+modelled as defeasible inference rules. The case is reconstructed in terms of argument
+schemes from good and bad consequences recently proposed by [3] and some other
+schemes. Contrary to the usual formulations of schemes from consequences (e.g. [10, 1]),
+they do not refer to single but to sets of good or bad consequences.2
+Argument scheme from good consequences
+Action A results in C1
+. . .
+Action A results in Cn
+C1 is good
+. . .
+Cn is good
+Action A is good.
+Argument scheme from bad consequences
+Action A results in C1
+. . .
+Action A results in Cm
+C1 is bad
+. . .
+Cm is bad
+Action A is bad.
+These schemes have three critical questions:
+2As usual, inference rules with free variables are schemes for all their ground instances.
+1. Does A result in C1, . . . , Cn/Cm?
+2. Does A also result in something which is bad (good)?
+3. Is there another way to realise Cn/Cm?
+In ASPIC+ these questions are pointers to counterarguments. Question 1 points to underminers, question 2 to rebuttals and question 3 to undercutters. Note that if there is
+more than one good (bad) consequence of a given action, then the scheme of good (bad)
+consequences can be instantiated several times, namely for each combination of one or
+more of these consequences.
+My reconstruction of Kwakman’s opinion is visualised in Figure 1. All arguments in
+my reconstruction either instantiate one of these schemes or attack one of their premises,
+using another argument scheme, which I now informally specify: (all inferences in the
+figure are labelled with the name of the inference rule that they apply):
+• GCi and BCi stand for, respectively, the i’th application of the scheme from good,
+respectively, bad consequences.
+• D stands for the application of a definition in a deductive inference: P causes Q,
+Q is by definition a case of R strictly implies P causes R.
+• C1 and C2 stand for two applications of causal chaining: P1 causes P2, P2 causes
+. . . causes Pn strictly/defeasibly implies P1 causes Pn (depending on whether the
+causal relations are assumed to be categorical or presumptive).
+• DMP stands for defeasible modus ponens: If P1 and . . . and Pn then usually/typically/normally Q, P1 and . . . and Pn defeasibly implies Q.
+• SE is shorthand for a ‘scientific evidence’ scheme: scientific evidence shows that
+P defeasibly implies P.
+The links in Figure 1 to the final two conclusions require some explanation. If there is a
+set S of reasons why action A is good, then the scheme from good consequences can be
+instantiated for any nonempty subset of S. This is informally visualised by introducing a
+name in dotted boxes for any of these reasons, and then linking these dotted boxes to the
+conclusion that A is good. This summarises all possible instances of the scheme from
+good consequences. Thus in the example there are seven such instances, one combining
+GC1, GC2 and GC3 (denoted below by GC123), three with any combination of two reasons (denoted below by GC12, GC13, GC23) and three applying any individual reason
+(denoted below by G1, G2 and G3).
+The argumentation theory corresponding to Figure 1 can be summarised as follows:
+• L is a first-order language (here informally presented), where for ease of notation
+‘Action A is good’ and ‘Action A is bad’ are regarded as negating each other.
+• Rs contains at least the D rule mentioned above, and it contains the C rule if the
+causal relations in the example to which it is applied are regarded as categorical.
+• Rd consists of the argument schemes from good and bad consequences, the C
+rule if not included in Rs, and the SE and DMP rules.
+• Kn is empty, while Kp consists of the leafs of the two argument trees (where their
+conclusions are regarded as their roots). K thus consists of 18 ordinary premises.
+The argumentation framework induced by this argumentation theory is as follows:
+• A consists of quite a number of arguments:
+∗ all 18 premises;
+∗ two applications of the C rule: C1 and C2;
+∗ one application of the DMP rule: DMP;
+∗ one application of the D rule: D;
+∗ seven applications of the GC scheme: GC1, GC2, GC3, GC12, GC13, GC23,
+GC123;
+∗ three applications of the BC scheme: BC1, BC2, BC12.
+So in total the reconstruction contains 29 arguments.
+• The attack relations are more in number than the three shown in the figure:
+∗ Any argument applying GC rebuts any argument applying BC and vice versa;
+∗ C1 undermines the premise argument P1 = ‘The act will reduce recidivism’
+and all arguments using it, that is, the arguments D, GC1, GC12,
+GC13, GC123;
+∗ The premise argument P1 in turn rebuts argument C1;
+∗ DMP undermines the premise argument P2 = ‘Meeting the call for the public
+for heavier sentences is good’ and all arguments using it, that is, GC2, GC12,
+GC23, GC123;
+∗ The premise argument P2 in turn rebuts argument DMP.
+• Various argument orderings can be assumed, resulting in different defeat relations. Note that the argument ordering is only applied to ‘direct’ attacks, namely,
+to the attacks between C1 and P1, between C2 and P2, and between all applications of the GC scheme and all applications of the BC scheme.
+Let us now for simplicity assume that the argument ordering counts reasons for and
+against an action, and that P1 ≺ C1 while DMP ≈ P2. The resulting defeat graph
+is shown in Figures 2 and 3. Here mutual defeat relations are for ease of readability
+displayed as dotted arrows, while premise arguments are omitted if they are not attacked,
+and BC1 and BC2 are omitted since the focus is on whether any argument in favour of
+the legislative proposal can be adopted.
+The graphs show two preferred labellings, where white means that the argument is
+in and grey that it is out. Note that in both labellings all GC-arguments using premise P1
+are out, since they are (indirectly) strictly defeated by C1, which (directly) strictly defeats
+the premise argument P1. The two labellings then differ on how they (arbitrarily) resolve
+the two mutual defeat relations, namely between GC23 and BC12 and between DMP
+and P2. The labelling in Figure 2 results from accepting GC23 and P2 at the expense of
+BC12 and DMP. Note that GC23 can only be accepted if P2 is also accepted, otherwise
+DMP makes GC23 out. The labelling in Figure 3 results from accepting BC12 and
+DMP at the expense of GC23 and P2. Note that BC2 can be accepted without accepting
+DMP, so this defeat graph has a third labelling, which is equal to the one in Figure 3
+except that DMP is out and P2 is in.
+5. Conclusions
+In this paper I have illustrated the potential of the ASPIC+ framework for argumentationbased inference as a tool for reconstructing natural legal argument about legislative proposals. The case study illustrated that argument schemes can be conveniently modelled
+as defeasible inference rules and that ASPIC+’s notion of an argument ordering in combination with [6]’s semantics for abstract argumentation frameworks provides a suitable
+way to evaluate debates. The case study also suggests that modelling legal policy arguments does not always require a distinction between goals and values, as e.g. modelled
+in [1].
+One aim of the case study was to provide a new benchmark example for comparing
+alternative formal frameworks. Accordingly, an obvious topic for future research is to
+formalise the same example in such alternative frameworks and to compare the resulting
+formalisations with the one given in this paper.
+References
+[1] K.D. Atkinson and T.J.M. Bench-Capon. Practical reasoning as presumptive argumentation using action based alternating transition systems. Artificial Intelligence,
+171:855–874, 2007.
+[2] T.J.M. Bench-Capon and H. Prakken. A lightweight formal model of two-phase
+democratic deliberation. In R.G.F. Winkels, editor, Legal Knowledge and Information Systems. JURIX 2010: The Twenty-Third Annual Conference, pages 27–36.
+IOS Press, Amsterdam etc., 2010.
+[3] T.J.M. Bench-Capon, H. Prakken, and W. Visser. Argument schemes for two-phase
+democratic deliberation. In Proceedings of the Thirteenth International Conference
+on Artificial Intelligence and Law, pages 21–30, New York, 2011. ACM Press.
+[4] Ph. Besnard and A. Hunter. Elements of Argumentation. MIT Press, Cambridge,
+MA, 2008.
+[5] A. Bondarenko, P.M. Dung, R.A. Kowalski, and F. Toni. An abstract,
+argumentation-theoretic approach to default reasoning. Artificial Intelligence,
+93:63–101, 1997.
+[6] P.M. Dung. On the acceptability of arguments and its fundamental role in nonmonotonic reasoning, logic programming, and n–person games. Artificial Intelligence,
+77:321–357, 1995.
+[7] T.F. Gordon, H. Prakken, and D.N. Walton. The Carneades model of argument and
+burden of proof. Artificial Intelligence, 171:875–896, 2007.
+[8] H. Prakken. An abstract framework for argumentation with structured arguments.
+Argument and Computation, 1:93–124, 2010.
+[9] H. Prakken. Reconstructing Popov v. Hayashi in a framework for argumentation
+with structured arguments and Dungean semantics. Artificial Intelligence and Law,
+20:57–82, 2012.
+[10] D.N. Walton, C. Reed, and F. Macagno. Argumentation Schemes. Cambridge University Press, Cambridge, 2008.
+Figure 1.: The reconstruction
+Figure 2.: Defeat graph and preferred labelling
+Figure 3.: Defeat graph and alternative preferred labelling
+
+
+Below is a concise, prioritized write‑up of **“Formalising a legal opinion on a legislative proposal in the ASPIC+ framework”** (Henry Prakken). I highlight the core ideas, how the legal opinion is reconstructed, and what the reconstruction shows about ASPIC+. 
+
+---
+
+## TL;DR (one minute)
+
+* **Goal.** Reconstruct a *real* legal policy opinion (on Dutch **mandatory minimum sentences** for serious crimes) in **ASPIC+**, using **argument schemes from good and bad consequences** that aggregate *sets* of consequences—not just single ones. This lets the model combine multiple reasons **for** and **against** the bill. 
+* **Why ASPIC+?** It distinguishes **strict vs. defeasible** rules and supports **preferences over arguments**, then evaluates them in Dung‑style AFs (preferred semantics). The case study shows these features are practically useful in legal policy debates. 
+* **Result.** The reconstruction yields **29 arguments** over **18 premises**, with explicit **attacks** and **preferences**. Under a simple ordering (counting reasons), the induced AF admits **multiple preferred labelings**—capturing alternative coherent stances on the bill. 
+
+---
+
+## Set‑up and background
+
+* **Abstract Argumentation & semantics.** The paper reviews AFs (Args, Defeat) and **labelings**: *in* iff all defeaters are *out*; *out* iff defeated by an *in* argument. It uses **preferred semantics** to allow **alternative coherent positions** (vs. grounded’s single minimal set). An argument is **justified** if *in* in *all* labelings, **overruled** if *out* in *all*, **defensible** otherwise. 
+* **ASPIC+.** Arguments are trees built from a **knowledge base** via **strict (→)** and **defeasible (⇒)** rules. Attacks: **undermine** premises, **rebut** conclusions of defeasible steps, **undercut** defeasible rules (using rule names `n(r)`). **Undercuts always defeat**; **rebut/undermine** succeed only if the attacker is **not less preferred**. The AF is then evaluated under a chosen semantics. 
+
+---
+
+## The legal opinion being formalized (content)
+
+* Source: a public **opinion by Nico Kwakman** (Univ. of Groningen) on the Dutch cabinet’s plan: **repeat serious offenders** must receive a sentence **≥ half the statutory maximum**, with **very limited judicial discretion** to deviate. The opinion presents arguments **for** (symbolic impact; responding to public calls) and **against** (doubtful effectiveness; harms judicial tailoring; disproportionate outcomes; institutional strain). 
+* Illustrative details from the opinion include: **no evidence** that heavy sentences reduce recidivism or crime; **judicial tailoring** aids reintegration; the “**French kiss is rape**” example shows potential **disproportionate** penalties on repeat; judges might **circumvent** the bill, **hardening** relations with the legislature. 
+
+---
+
+## Schemes used: *sets* of consequences + critical questions
+
+* **Argument from good consequences (GC)** (set‑based): if Action **A** results in **C₁, …, Cₙ**, and each **Cᵢ** is *good*, infer **A is good**.
+* **Argument from bad consequences (BC)** (set‑based): similarly for *bad* consequences, infer **A is bad**.
+* **Critical questions** (map to attacks):
+
+  1. Does **A** *really* result in those consequences? → **undermining**;
+  2. Does **A** also produce *opposite‑valenced* consequences? → **rebutting**;
+  3. Is there another way to realize them? → **undercutting**. 
+
+> **Why sets matter.** If there are multiple pros/cons, GC/BC can be instantiated for **any non‑empty subset** of those consequences, enabling explicit **aggregation of reasons** (e.g., one GC combining all three pros; three GCs pairing two pros; and three single‑pro GCs). 
+
+---
+
+## The reconstruction in ASPIC+
+
+* **Other inference patterns** used (all named in the model):
+
+  * **D** (definition): e.g., chaining using definitional subsumption (strict).
+  * **C1/C2** (causal chaining): compose causal links (strict or defeasible).
+  * **DMP** (defeasible modus ponens): “If normally P→Q, and P, then Q” (defeasible).
+  * **SE** (“scientific evidence”): “Studies show P” ⇒ P (defeasible). 
+* **Knowledge base & counts.** Axioms **empty**; **18 ordinary premises** (leaves in the trees). Generated arguments: the 18 premises; **C1, C2**; **DMP**; **D**; **7 GC** instances (singleton, pairs, and triple of pros); **3 BC** instances (two singletons and their combination). **Total = 29 arguments.** 
+* **Good‑side reasons (sketch).**
+
+  * **G1:** “Reducing recidivism is good” + “the act will reduce recidivism” (later **undermined**).
+  * **G2:** “Meeting the public call for heavier sentences is good” (later **undermined** via DMP).
+  * **G3:** “Symbolic impact / norm‑underlining by a democratically elected legislator is good.”
+    Multiple **GC** instances aggregate these (singletons, pairs, all three). 
+* **Bad‑side reasons (sketch).**
+
+  * **B1:** **Less judicial tailoring** → risks **disproportionate** penalties (e.g., forced “French kiss” counts as rape; a second offence triggers half the maximum) → **bad**.
+  * **B2:** Judges may **circumvent** the bill, taking on quasi‑legislative roles → **institutional hardening** → **bad**.
+    Single and combined **BC** instantiations capture these. 
+
+> The full two‑tree **reconstruction diagram** is shown in **Figure 1 (PDF p. 9)**; it labels each rule use (GC/BC, C1/C2, D, DMP, SE) and visually aggregates the GC instances via dotted subset boxes feeding “**Action is good**.” 
+
+---
+
+## Attacks and preferences (what defeats what)
+
+* **Mutual rebuttals:** *Every* GC instance **rebut**s *every* BC instance, and **vice versa**. 
+* **Undermining P1 (“the act will reduce recidivism”).** **C1** delivers “**the act will *not* reduce recidivism**” (via SE and causal reasoning) and **strictly defeats** P1; P1 in turn **rebuts** C1, but loses under the assumed ordering (see below). All GCs that depend on P1 (e.g., GC1, GC12, GC13, GC123) go **out** because their premise is strictly defeated. 
+* **Undermining P2 (“meeting the public call… is good”).** **DMP** undermines **P2**; **P2** rebuts **DMP** (a **tie** under the assumed ordering). These feed into the status of GC2, GC23, GC123, etc. 
+* **Preferences used.** For simplicity, the paper assumes an ordering that essentially **counts reasons**; crucially **P1 ≺ C1** (so C1 strictly defeats P1) and **DMP ≈ P2** (tie). Preferences are only used on **direct** attacks (P1↔C1, P2↔DMP, and GC↔BC). 
+
+---
+
+## Semantics & outcomes (preferred labelings)
+
+* With the above attacks and ordering, the defeat graphs in **Figures 2–3 (PDF p. 10)** show **two preferred labelings** (white = *in*, grey = *out*). In *both*, any GC relying on P1 is **out** (since C1 strictly defeats P1). The labelings then **diverge** in how they resolve the **mutual defeats** between **GC23** and **BC12**, and between **DMP** and **P2**:
+
+  * **Labeling A (Fig. 2):** **GC23** and **P2** are *in*; **BC12** and **DMP** are *out*.
+  * **Labeling B (Fig. 3):** **BC12** and **DMP** are *in*; **GC23** and **P2** are *out*.
+    The paper notes a **third** labeling variant toggling **DMP/P2** (like Fig. 3 but with **DMP out** and **P2 in**). Together, these show **multiple coherent stances** given the same premises and rules. 
+
+---
+
+## What this shows (contributions)
+
+1. **Aggregation via set‑based schemes.** Modeling GC/BC over **sets** of consequences makes **pro/con aggregation explicit** and generates the right combinatorics of support (singletons, pairs, triples). This is reflected in the seven GC instances (3 singles, 3 pairs, 1 triple) and three BC instances (2 singles, 1 pair). 
+2. **Strict vs. defeasible matters.** The **effectiveness** claim is attacked using **SE + causal chaining** into a **strict** defeat of P1; this immediately collapses several pro‑bill arguments—precisely the kind of control ASPIC+ enables. 
+3. **Preferences shape outcomes.** Minimal, transparent preferences (P1 ≺ C1, DMP ≈ P2) suffice to generate **alternative preferred labelings**, aligning with legal practice where **different but coherent positions** can be maintained. 
+4. **Benchmark value.** The paper proposes this as a **benchmark case** for cross‑framework comparison (e.g., ABA, classical argumentation, Carneades), inviting re‑formalization elsewhere. 
+5. **No mandatory goal/value layer.** For legal‑policy arguments of this sort, the author suggests you **may not need** a separate **goals vs. values** apparatus; the ASPIC+ reconstruction handled the debate without it. 
+
+---
+
+## Assumptions & modeling choices
+
+* **Language/negation.** The ASPIC+ language is left informal; **“Action A is good”** and **“Action A is bad”** are treated as **negations** of each other for simplicity. 
+* **What’s in Rs vs. Rd.** The **definition** rule (D) is **strict**; **SE, DMP**, and (depending on reading) **causal chaining** (C) are **defeasible** unless the causal links are stipulated categorical. 
+* **Where preferences apply.** Only on **direct** attacks (P1↔C1; P2↔DMP; every GC↔every BC). Different orderings will change defeats and thus the labellings. 
+
+---
+
+## If you only remember five bullets
+
+1. **Real case** (mandatory minimums) encoded in **ASPIC+** with **set‑based GC/BC** schemes. 
+2. **29 arguments**, **18 premises**; explicit **attacks** and **preferences** drive the AF. 
+3. **Strict defeat** of the “reduce recidivism” premise knocks out several pro‑bill arguments. 
+4. **Preferred semantics** yield **multiple coherent labelings** (positions) for the same data. 
+5. The study doubles as a **benchmark** for comparing argumentation frameworks in legal policy settings. 
+
+---
+
+### Visual anchors (page pointers)
+
+* **Figure 1 (p. 9):** Full reconstruction trees with named rules (GC/BC, C1/C2, D, DMP, SE) and GC aggregation via subset boxes. 
+* **Figures 2–3 (p. 10):** Defeat graphs and two alternative **preferred labelings**; plus note of a third labeling variant toggling **DMP/P2**. 
+
+If you’d like, I can convert this into a one‑page slide (with the Figure‑based pointers) or a small diagrammatic cheat sheet of the GC/BC instantiations and the key attacks.
+
+0. What we’re formalising
+
+Natural question:
+
+Is the Dutch bill that introduces mandatory minimum sentences for repeat serious offenders a good idea?
+
+Action in the formalisation:
+
+A = passing the act with mandatory minimum sentences for serious crimes. 
+
+The opinion text gives:
+
+Several reasons why A might be good (symbolic impact, meeting public’s call, supposed reduction of recidivism).
+
+Several reasons why A might be bad (disproportionate sentences, less judicial tailoring, judges circumventing law, strained judicial–legislative relations). 
+
+
+The ASPIC+ reconstruction turns that into two argument trees (one “good”, one “bad”) plus attacks between them. 
+
+1. Step 1 – Extract atomic premises from the text
+
+Prakken’s first move is to strip the article down to short, single-claim statements that can serve as ASPIC+ premises. He doesn’t give a numbered list in the text, but he says there are 18 ordinary premises (no axioms).
+
+Examples (informal glosses):
+
+Pro-bill side (premises that can help show A is good)
+
+P1: “The act will reduce recidivism.” (roughly the Cabinet’s justification)
+
+“Meeting the call from the public for heavier sentences is good.” (later labelled P2 in the formalisation)
+
+“The act meets the public’s call for heavier sentences.”
+
+“The act has significant symbolic impact / underlines norms.”
+
+“The Cabinet is a democratically elected legislator; sending a strong signal is its right.”
+
+These will feed GC-style pro arguments (“good consequences”).
+
+Anti-bill side (premises that can help show A is bad)
+
+“Heavy sentences do not reduce chances of recidivism.”
+
+“Heavy sentences have not been shown to reduce crime figures.”
+
+“Tailoring punishment to the individual increases successful reintegration.”
+
+“Judges will have much less room for tailoring under the bill.”
+
+“A forced French kiss officially counts as rape.”
+
+“For a second conviction of rape, the bill forces at least half of the maximum sentence.”
+
+“Judges will look for ways to get around the bill (looser standards of proof, emergency constructions, etc.).”
+
+“In this way judges will take on legislative / law-making tasks.”
+
+“This hardens the relationship between legislator and judge.”
+
+These will feed BC-style con arguments (“bad consequences”).
+
+Instruction pattern:
+
+Read the text and underline statements that look like basic facts or value claims.
+
+Rewrite them as short, unambiguous propositions.
+
+These become your Kₚ (ordinary premises) in ASPIC+.
+
+2. Step 2 – Choose your main argument schemes (rules)
+
+Prakken chooses a very small rule set and reuses it:
+
+2.1 Good/Bad Consequences schemes (GC / BC)
+
+These are the core schemes, each implemented as a defeasible rule in ASPIC+:
+
+From good consequences (GC):
+
+If action A brings about consequences C₁…Cₙ and each Cᵢ is good,
+then A is good.
+
+From bad consequences (BC):
+
+If action A brings about consequences C₁…Cₘ and each Cⱼ is bad,
+then A is bad.
+
+Crucially, these schemes take sets of consequences, not one consequence at a time: any non-empty subset of good consequences S ⊆ {C₁, C₂, C₃} can instantiate a GC rule.
+
+2.2 Other schemes used as rules
+
+All of these are also modelled as inference rules:
+
+D (Definition) – strict rule:
+
+If P causes Q and Q is by definition a case of R, then P causes R.
+E.g., “French kiss counts as rape” + “the bill forces half the maximum for rape on second offence” ⇒ disproportionate punishment.
+
+C (Causal chaining) – strict or defeasible rule:
+
+If P₁ causes P₂, P₂ causes … causes Pₙ, then P₁ causes Pₙ. 
+
+DMP (Defeasible modus ponens) – defeasible rule:
+
+If “Normally, if P₁…Pₙ then Q” and P₁…Pₙ, then Q.
+Used to go from “crime in NL is already heavily punished” to “meeting the call for heavier sentences is not good.” 
+
+SE (Scientific evidence) – defeasible rule:
+
+If scientific evidence shows P, then P.
+Used to infer “heavy sentences do not reduce recidivism” from “academic research reveals so.” 
+
+Instruction pattern:
+"Identify recurring reasoning patterns: “because of consequences”, “research shows…”, “by definition…”, “if normally P then Q”.
+
+"Turn each into a named inference rule (GC, BC, SE, DMP, D, C) and decide: strict or defeasible?
+
+3. Step 3 – Build the “A is good” arguments (GC-side)
+
+We want arguments whose top conclusion is:
+Good(A) (passing the act is good)
+There are three intuitive “good” clusters in the text; each gives a GCi: 
+
+3.1 GC1 – Effectiveness (later undermined)
+
+Intended pro reason:
+
+P1: “The act will reduce recidivism.”
+
+R1: “Reducing serious crime / recidivism is good.”
+
+From these we get consequence C₁: “A leads to reduced recidivism, which is good.”
+
+GC1: Apply GC with S = {C₁} → conclude Good(A).
+
+In the final reconstruction this is GC1, but C₁ will be attacked by research evidence (see §4).
+
+3.2 GC2 – Meeting the public’s call
+
+Pro reason from “Call from the public” section:
+
+“The act meets the public’s call for heavier sentences.”
+
+P2: “Meeting the call from the public for heavier sentences is good.”
+
+So consequence C₂: “A satisfies a good demand of the public.”
+
+GC2: Apply GC with S = {C₂} → Good(A).
+
+Later, DMP attacks P2 (“meeting that call is not good, given crime is already heavily punished”). 
+3.3 GC3 – Symbolic impact and democratic signaling
+
+From “Symbolic impact” section:
+
+“The act has significant symbolic impact / underlines norms.”
+
+“Underlining norms with criminal law can be good.”
+
+“The Cabinet is democratically elected; it may send strong signals; those who disagree can vote differently next time.”
+→ Together these encode that this particular symbolic act is good.
+
+GC3: Apply GC with S = {C₃} → Good(A).
+
+3.4 Aggregating the good reasons: GC-sets
+
+Because GC is set-based, Prakken instantiates it not just once per Ci but also for every non-empty subset S ⊆ {C₁, C₂, C₃}: 
+
+Formalising a legal opinion on …
+
+Singletons: GC1, GC2, GC3 (each using one reason).
+
+Pairs: GC12, GC13, GC23 (e.g. GC23 uses {C₂, C₃}).
+
+Triple: GC123 (uses all three).
+
+In the diagram on page 9, this is shown as a set of dotted boxes named G1, G2, G3, GC12, GC13, GC23, GC123 feeding into the final node “Passing the act is good.”
+
+Instruction pattern:
+
+Identify each distinct “good consequence” cluster in the text.
+
+For each cluster, build a sub-argument delivering a consequence Cᵢ (“A results in Cᵢ and Cᵢ is good”).
+
+Instantiate GC for all subsets S of {Cᵢ} you care about. Each S gives a distinct ASPIC+ argument for Good(A).
+
+4. Step 4 – Build the “A is bad” arguments (BC-side)
+
+Now we build arguments whose top conclusion is:
+
+Bad(A) (passing the act is bad)
+
+Again, the text gives clusters of bad consequences; these become BCi. 
+
+Formalising a legal opinion on …
+
+4.1 BC1 – Disproportionate sentences (French-kiss example)
+
+From “French kissing is rape” paragraph:
+
+Premises (simplified):
+
+“A forced French kiss officially counts as rape.”
+
+“Under the bill, a second rape conviction carries at least half the maximum sentence.”
+
+“Judges currently impose relatively mild sentences for a forced French kiss.”
+
+“Imposing half the maximum rape sentence for a forced French kiss is a disproportionate / bad outcome.”
+
+With D (definition) plus chain of statutory effects, we infer:
+
+The act A causes disproportionate sentencing in such cases.
+
+Call that consequence B₁ and mark it as bad.
+
+Then BC1: apply BC with S = {B₁} → Bad(A).
+
+4.2 BC2 – Judicial circumvention and hardened relations
+
+From “Taking a stand” paragraph:
+
+Premises (simplified):
+
+“Judges who think the mandatory sentence is unsuitable will look for ways to get around the bill.”
+
+“Doing so means taking on more legislative and law-formation tasks.”
+
+“That is bad; the legislature and judiciary should complement, not overlap.”
+
+“This bill will harden the relationship between legislator and judge; that hardening is bad.” 
+
+
+Using C (causal chaining), we infer:
+
+The act A causes bad outcomes B₂ (judicial role shift) and B₃ (hardened relationship).
+
+Treat those as bad consequences; BC2 then instantiates BC with a subset of them, e.g. S = {B₂, B₃}.
+
+4.3 Aggregating the bad reasons: BC-sets
+
+Prakken mentions three BC arguments: BC1, BC2, and BC12 (the combination). 
+
+
+Singletons: BC1 (disproportionate sentencing), BC2 (institutional strain).
+
+Combination: BC12 using S = {B₁, B₂ …} (all bad consequences together).
+
+Instruction pattern:
+
+Do exactly as on the good side but with bad consequences.
+
+Make each “worry cluster” in the text into a consequence Bᵢ.
+
+Instantiate BC on singletons and on any aggregated combination you care about.
+
+5. Step 5 – Turn critical questions into attacks
+
+
+For GC/BC, the three critical questions become attack templates: 
+
+
+CQ1 – Does A really result in C’s? → Undermining attacks on premises “A results in Cᵢ”.
+
+CQ2 – Does A also result in opposite-valenced consequences? → Rebutting attacks (good vs bad).
+
+CQ3 – Is there another way to realise C’s? → Undercutting attacks on the GC/BC rule instance.
+
+In this example:
+
+5.1 CQ1 on “effectiveness”
+
+Text: “Heavy sentences do not reduce chances of recidivism… nor has it been demonstrated they reduce crime figures.” 
+
+ASPIC+ reconstruction:
+
+Use SE to infer:
+Research shows “heavy sentences do not reduce recidivism” ⇒ “Heavy sentences do not reduce recidivism.”
+
+Combine that with facts about what the act does (“the act imposes heavy sentences”) via C1 (causal chaining) to infer:
+
+C1: “The act will not reduce recidivism.”
+
+This undermines premise P1 (“the act will reduce recidivism”) and therefore all GC arguments that depend on P1 (GC1, GC12, GC13, GC123). 
+
+In ASPIC+ terms:
+
+Premise argument P1:
+P1 (as a leaf argument).
+
+Argument C1:
+SE + C → conclusion ¬P1 (“the act will not reduce recidivism”).
+
+Attack: C1 undermines P1 and thereby all superarguments with P1 in their premises.
+
+5.2 CQ1 on “meeting the call from the public”
+
+Text: “International comparisons show crime in NL is already heavily punished… This bill will force judges to go even further.” 
+
+ASPIC+ reconstruction:
+
+Use SE again to infer:
+“Crime in NL is already heavily punished.”
+
+With a DMP-style rule:
+
+If crime in NL is already heavily punished, then normally meeting the call for heavier sentences is not good.
+
+We get:
+
+DMP argument concluding: ¬P2 (“Meeting the call from the public for heavier sentences is not good”).
+
+This undermines P2 (“Meeting the call from the public for heavier sentences is good”) and all GC arguments that depend on P2 (GC2, GC12, GC23, GC123). 
+
+Formalising a legal opinion on …
+
+5.3 CQ2 – Pro vs Con (GC vs BC)
+
+Here CQ2 is instantiated wholesale: any GC argument (“A is good”) rebuts any BC argument (“A is bad”), and vice versa.
+
+Formally:
+
+For any GC* ∈ {GC1, GC2, GC3, GC12, GC13, GC23, GC123}
+
+And any BC* ∈ {BC1, BC2, BC12}
+
+GC* and BC* are mutual rebutters (each concludes the contrary of the other’s conclusion).
+
+That’s the dense web of solid/dotted arrows between GC-nodes and BC-nodes in Figures 2 and 3 (page 10). 
+
+Instruction pattern:
+
+For each critical question of a scheme, decide: underminer / rebutter / undercutter.
+
+Identify where the text actually asks or answers those CQs.
+
+Build those as arguments whose conclusions are negations of premises, conclusions, or rule applicabilities, then wire them up as attacks.
+
+6. Step 6 – Define the ASPIC+ components explicitly
+
+Prakken then summarises the whole reconstruction as an ASPIC+ argumentation theory: 
+
+6.1 Language & negation
+
+L is a (informal) first-order language;
+
+He simply stipulates “Action A is good” and “Action A is bad” are negations of each other.
+
+6.2 Rules
+
+Rs (strict rules): at least D (definition) and possibly C (causal chaining) if the relevant causal relations are treated as categorical.
+
+Rd (defeasible rules):
+
+GC & BC schemes from consequences;
+
+C if not in Rs;
+
+SE (scientific evidence);
+
+DMP (defeasible modus ponens).
+
+6.3 Knowledge base
+
+Kn (axioms): empty.
+
+Kp (ordinary premises): all 18 leaf premises of the two argument trees (the natural language statements at the leaves of Figure 1).
+
+6.4 Constructed arguments A
+
+From K and R, he builds the set A of arguments: 
+
+Formalising a legal opinion on …
+
+The 18 one-premise arguments (each leaf as an argument).
+
+Two C applications: C1, C2.
+
+One DMP argument.
+
+One D argument.
+
+Seven GC arguments: GC1, GC2, GC3, GC12, GC13, GC23, GC123.
+
+Three BC arguments: BC1, BC2, BC12.
+
+Total: 29 arguments.
+
+6.5 Attacks & (later) defeat
+
+GC vs BC: every GC* rebuts every BC*.
+
+C1 vs P1: C1 undermines P1; P1 rebuts C1.
+
+DMP vs P2: DMP undermines P2; P2 rebuts DMP.
+
+Then, given an argument ordering (preferences) – e.g., counting reasons and assuming P1 ≺ C1 and DMP ≈ P2 – he derives defeats and constructs the defeat graph (Figures 2 & 3) and preferred labelings. 
+
+7. How to reuse this as a translation recipe
+
+Here’s the flow you can reuse when you or others translate a natural-language policy argument into ASPIC+ (this example is a template):
+
+Fix the action and question.
+
+Decide what your A is (“passing the act,” “adopting policy X”), and what you’re eventually trying to label (Good(A) / Bad(A), or something analogous).
+
+Extract leaf premises.
+
+Go through the text and rewrite relevant statements as short premises (facts and value judgments).
+
+Put them in Kp (ordinary premises).
+
+Choose your schemes.
+
+Pick a small set of argument schemes that match the style of reasoning in the text (consequences, analogies, evidence, definitions…).
+
+Turn each scheme into a strict or defeasible rule (in Rs or Rd).
+
+Name them (GC, BC, SE, D, C, DMP) so you can annotate inference steps.
+
+Build consequence arguments for A.
+
+From premises + schemes (C, D, SE, etc.), build sub-arguments showing that A leads to specific labelled consequences (good or bad).
+
+For each cluster of consequences on the same side, use a set-based scheme (GC/BC) and, if relevant, instantiate it on multiple subsets to create aggregated arguments (e.g., GC23, GC123).
+
+Map critical questions to attacks.
+
+For each scheme, list its critical questions.
+
+Identify bits of text that answer those questions negatively (“No, A does not reduce recidivism”, “That consequence isn’t really good”, “There’s another way to achieve that goal”).
+
+Turn those answers into arguments concluding negations of premises/conclusions/rule-applicability, and wire them as underminers, rebutters, or undercutters.
+
+Enumerate your arguments explicitly.
+List all leaf arguments, all scheme applications, and any compound GC/BC instances – like the 29 arguments in this case.
+
+This is your Args set.
+
+Define attacks and then defeats.
+
+Use ASPIC+’s attack definitions (undermine/rebut/undercut) to generate attack pairs.
+
+Add an argument ordering (preferences) to turn attacks into defeats.
+
+(Optionally) apply Dung semantics.
+
+Build the AF (Args, Defeat) and compute labelings (grounded/preferred).
+
+Read off which arguments and conclusions are justified, overruled, or defensible.
+
+If you follow that recipe on a new article, you’ll be doing exactly what Prakken did in Sections 3–4 – just with different premises and schemes.
+
+
+Nice, let’s turn this into something you can literally drop into docs.
+
+I’ll give you **two concrete ASPIC+ snippets**:
+
+1. **C1 undermining P1** (effectiveness / recidivism)
+2. **GC23 vs BC12** (aggregated “good” vs “bad” consequences for the bill)
+
+Each is written in a pretty standard ASPIC+ style:
+
+* **Formulas** are simple propositional atoms with comments.
+* **Rules** are named; strict with `→`, defeasible with `⇒`.
+* **Arguments** are built with the usual bracket notation:
+
+  * `[φ]` is a premise argument.
+  * `[A1, …, An ⇒r ψ]` applies rule `r` to subarguments `A1…An`.
+
+You can tweak naming to match your codebase.
+
+---
+
+## 1. Example: C1 undermining P1 (effectiveness)
+
+Goal: show how the **“research shows it won’t reduce recidivism”** line becomes an ASPIC+ argument **C1** that **undermines** the premise argument **P1**:
+
+> P1: “The act will reduce recidivism.” 
+
+### 1.1 Language (atoms)
+
+```text
+r_eff      : "The act will reduce recidivism."
+¬r_eff     : "The act will NOT reduce recidivism."
+
+res_no_eff : "Scientific research shows: heavy sentences do NOT reduce recidivism."
+heavy_sent : "The bill imposes heavy sentences for repeat serious offenders."
+
+hs_no_eff  : "Heavy sentences do NOT reduce recidivism."
+```
+
+(You can of course make these richer predicates like `reduce_recidivism(act)`.)
+
+### 1.2 Rules
+
+We encode the **scientific evidence** and **causal chaining** as rules, matching the paper’s SE and C schemes. 
+
+```text
+r_SE  : res_no_eff ⇒ hs_no_eff
+    // SE: If scientific evidence shows P, then (defeasibly) P.
+
+r_C1  : heavy_sent, hs_no_eff → ¬r_eff
+    // C: From "the bill imposes heavy sentences" and
+    //     "heavy sentences do NOT reduce recidivism",
+    //     strictly infer "the act will NOT reduce recidivism".
+```
+
+* `r_SE` is **defeasible** (scientific evidence is presumptive).
+* `r_C1` is taken as **strict** here (the logical chaining is categorical once you accept the premises).
+
+### 1.3 Knowledge base (premises)
+
+```text
+Kp = {
+  res_no_eff,   // research shows no effect
+  heavy_sent,   // the bill imposes heavy sentences
+  r_eff         // the Cabinet’s assumption: the act will reduce recidivism
+}
+
+Kn = ∅         // no axioms
+```
+
+### 1.4 Arguments
+
+Build the arguments step-by-step:
+
+```text
+P1   = [r_eff]
+      // Premise-argument: "The act will reduce recidivism."
+
+E1   = [res_no_eff]
+      // Premise: "Research shows no effect."
+
+E2   = [E1 ⇒r_SE hs_no_eff]
+      // Apply SE: "Heavy sentences do NOT reduce recidivism."
+
+E3   = [heavy_sent]
+      // Premise: "The bill imposes heavy sentences."
+
+C1   = [E2, E3 →r_C1 ¬r_eff]
+      // Apply C1: conclude "The act will NOT reduce recidivism."
+```
+
+### 1.5 Attack relation
+
+In ASPIC+:
+
+* **Undermining**: an argument A undermines an argument B if `concl(A)` is a **contrary** (or contradiction) of some **premise** of B.
+
+Here:
+
+```text
+concl(C1) = ¬r_eff
+premise(P1) = r_eff
+```
+
+Assuming `¬r_eff` is the contrary of `r_eff`, we get:
+
+```text
+Attack: C1 undermines P1
+Attack: C1 undermines every superargument that has P1 as a subargument
+```
+
+In an AF view:
+
+```text
+Args   = { P1, E1, E2, E3, C1, ... }
+Att    = { (C1, P1) } ∪ { (C1, X) | X has P1 as a subargument }
+```
+
+With preferences (as in the paper) such that **C1 ≻ P1** (C1 is strictly preferred), this becomes a **strict defeat**: all GC arguments using P1 are forced *out* in every preferred labeling. 
+
+---
+
+## 2. Example: GC23 vs BC12 (aggregated pros vs cons)
+
+Now let’s formalise the **clash between combined good reasons and combined bad reasons**:
+
+* **GC23**: application of the good-consequences scheme using *two* good consequences (C₂ and C₃).
+* **BC12**: application of the bad-consequences scheme using *two* bad consequences (B₁ and B₂). 
+
+At the top they conclude:
+
+```text
+GC23:  good(A)
+BC12:  bad(A)
+```
+
+where `A` is “passing the mandatory-minimum bill”.
+
+### 2.1 Language (atoms)
+
+We’ll keep the structure simple and focus on the pattern.
+
+```text
+good(A)    : "Passing the bill is good."
+bad(A)     : "Passing the bill is bad."
+
+c2(A)      : "The bill meets the public’s call for heavier sentences."
+c3(A)      : "The bill has significant symbolic impact / underlines norms."
+
+good_c2(A) : "Meeting that public call (in this way) is good."
+good_c3(A) : "That symbolic impact is good."
+
+b1(A)      : "The bill causes disproportionate sentences (e.g. French-kiss case)."
+b2(A)      : "The bill causes judges to circumvent and hardens legislature–judiciary relations."
+
+bad_b1(A)  : "Those disproportionate sentences are bad."
+bad_b2(A)  : "That institutional effect is bad."
+```
+
+In the *actual* reconstruction, each of these `good_*` and `bad_*` atoms is itself supported by lower-level arguments (definitions, causal chains, evidence), but for clarity we treat them here as already established.
+
+### 2.2 Rules: building reasons then aggregating them
+
+We separate **reason-builders** from **aggregators**.
+
+#### Reason-builders (single-consequence reasons)
+
+```text
+r_G2  : c2(A), good_c2(A) ⇒ reason2_good(A)
+r_G3  : c3(A), good_c3(A) ⇒ reason3_good(A)
+
+r_B1  : b1(A), bad_b1(A) ⇒ reason1_bad(A)
+r_B2  : b2(A), bad_b2(A) ⇒ reason2_bad(A)
+```
+
+> These are applications of the **good/bad consequences** schemes with a singleton set of consequences.
+
+#### Aggregated GC/BC instances (sets of consequences)
+
+Now instantiate the **set-based** GC/BC schemes. GC23 and BC12 are examples:
+
+```text
+r_GC23 : reason2_good(A), reason3_good(A) ⇒ good(A)
+    // GC23: Use both good reasons {C2, C3} to conclude A is good.
+
+r_BC12 : reason1_bad(A), reason2_bad(A) ⇒ bad(A)
+    // BC12: Use both bad reasons {B1, B2} to conclude A is bad.
+```
+
+(You would also have rules for GC1, GC2, GC3, GC12, GC13, GC123, and BC1, BC2; I’m just singling out the 23/12 pair.)
+
+### 2.3 Knowledge base for this fragment
+
+```text
+Kp = {
+  c2(A), good_c2(A),
+  c3(A), good_c3(A),
+  b1(A), bad_b1(A),
+  b2(A), bad_b2(A)
+}
+Kn = ∅
+```
+
+(Again, in the full model some of these are derived via other rules like D, C, SE.)
+
+### 2.4 Arguments
+
+Now build the arguments explicitly.
+
+#### Pro-side (“good”)
+
+```text
+G2    = [ c2(A), good_c2(A) ⇒r_G2 reason2_good(A) ]
+G3    = [ c3(A), good_c3(A) ⇒r_G3 reason3_good(A) ]
+
+GC23  = [ G2, G3 ⇒r_GC23 good(A) ]
+       // This is the GC23 argument in the paper:
+       // A is good because of reasons {C2, C3}.
+```
+
+#### Con-side (“bad”)
+
+```text
+B1    = [ b1(A), bad_b1(A) ⇒r_B1 reason1_bad(A) ]
+B2    = [ b2(A), bad_b2(A) ⇒r_B2 reason2_bad(A) ]
+
+BC12  = [ B1, B2 ⇒r_BC12 bad(A) ]
+       // This is the BC12 argument: A is bad because of reasons {B1, B2}.
+```
+
+### 2.5 Attack relation: mutual rebuttal
+
+Here we assume **contrariness**:
+
+```text
+good(A) is contrary to bad(A)
+bad(A) is contrary to good(A)
+```
+
+So:
+
+* `GC23` **rebut-attacks** `BC12` (its conclusion `good(A)` is contrary to `bad(A)`).
+* `BC12` **rebut-attacks** `GC23` symmetrically.
+
+Formally:
+
+```text
+Att = {
+  (GC23, BC12),  // GC23 rebuts BC12
+  (BC12, GC23)   // BC12 rebuts GC23
+}
+```
+
+When you add the rest of the GC/BC arguments, you also add **all cross-attacks**: every GC* rebut-attacks every BC* and vice versa, as Prakken notes. 
+
+Under the argument ordering used in the paper, this mutual attack is what gives rise to **alternative preferred labelings**: some labelings accept GC23 (and thus `good(A)` defensibly) while rejecting BC12; others accept BC12 and reject GC23. 
+
+---
+
+## 3. How to reuse these patterns
+
+These two fragments illustrate **all the moving parts** you typically need:
+
+1. **Premise argument vs derived argument** (P1 vs C1).
+2. **Undermining** (C1’s conclusion is the contrary of P1’s premise).
+3. **Set-based schemes** implemented as rules that take **aggregated “reason” atoms** (GC23, BC12).
+4. **Mutual rebuttal** on top-level evaluations (`good(A)` vs `bad(A)`).
+
+To adapt this to another text in your system:
+
+* Copy the **shape** of the C1/P1 fragment for any *“research shows the opposite”* pattern.
+* Copy the **shape** of the GC23/BC12 fragment for *“cluster of pro reasons vs cluster of con reasons for the same action”*.
+
+If you’d like, next step could be to:
+
+* Wrap this into a tiny **“ASPIC+ mini-spec”** for your repo (e.g., `docs/aspic-examples.md`) with your actual predicate names, or
+* Show the corresponding **Dung AF** for just these arguments (nodes {P1, C1, GC23, BC12,…}, edges for attacks) so people can see the graph-level view side-by-side with ASPIC+.

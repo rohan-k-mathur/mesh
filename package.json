@@ -169,6 +169,7 @@
     "googleapis": "^130.0.0",
     "gsap": "^3.12.5",
     "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.11",
     "html2canvas": "^1.4.1",
     "immer": "^10.1.1",
     "ioredis": "^5.7.0",
@@ -213,7 +214,7 @@
     "react-pdf": "^10.1.0",
     "react-rnd": "^10.5.2",
     "react-virtuoso": "^4.14.0",
-    "reactflow": "^11.11.4",
+    "reactflow": "^11.10.4",
     "remark-gfm": "^4.0.1",
     "sass": "^1.89.2",
     "server-only": "^0.0.1",
@@ -248,7 +249,7 @@
     "yjs": "^13.6.27",
     "ytdl-core": "^4.11.5",
     "zod": "3.25.6",
-    "zustand": "^5.0.6"
+    "zustand": "^4.4.7"
   },
   "overrides": {
     "@tiptap/*": "2.26.1"
@@ -262,7 +263,7 @@
     "@testing-library/react": "^14.2.1",
     "@types/antd": "^0.12.32",
     "@types/cytoscape-dagre": "^2.3.3",
-    "@types/dagre": "^0.7.53",
+    "@types/dagre": "^0.7.52",
     "@types/fluent-ffmpeg": "^2",
     "@types/ioredis-mock": "^8",
     "@types/jest": "^30.0.0",

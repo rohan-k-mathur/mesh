@@ -1,0 +1,876 @@
+Fig. 7 – Argument network: expert opinion + two attacks
+
+Narrative context (from caption):
+Alice argues: “Brazil has the best football team: Allen is a sports expert and he says they do.”
+Bob replies: “Yes, but Allen is biased, and he is not an expert in sports!”
+
+The diagram is an AIF-style network that combines:
+
+the argument from expert opinion,
+
+presumptions that have to hold for that scheme,
+
+conflict schemes (bias and testimonial inconsistency),
+
+and attack nodes that instantiate those conflicts.
+
+1. Core argument from expert opinion
+
+Conclusion I-node (white rounded rectangle at bottom-right):
+
+“Brazil has the best football team.”
+
+This conclusion is the hasConclusion of an RA-node (Reasoning Application node), underlined:
+
+RA-node
+
+The RA-node is supported by two premise I-nodes:
+
+“Allen says that Brazil has the best football team.”
+
+“Allen is an expert in sports.”
+
+Each premise supports the RA-node.
+
+2. Connection to the generic scheme “Argument from expert opinion”
+
+Above the RA-node is a grey rectangular node (a Form / scheme-description node):
+
+“Presumptive inference scheme: Argument from expert opinion”
+
+This is the scheme the RA-node instantiates. Arcs indicate:
+
+The RA-node fulfilsScheme this “Argument from expert opinion” scheme.
+
+The scheme has two premise descriptors and one conclusion descriptor.
+
+Premise descriptors (grey boxes):
+
+“Premise descriptor: E is an expert in domain D.”
+
+“Premise descriptor: E asserts that A is known to be true.”
+
+Each premise descriptor is linked to the corresponding concrete premise via:
+
+fulfilsPremiseDesc
+
+“Allen is an expert in sports” fulfils “E is an expert in domain D.”
+
+“Allen says that Brazil has the best football team” fulfils “E asserts that A is known to be true.”
+
+Conclusion descriptor (grey box at upper right):
+
+“Conclusion descriptor: A may plausibly be taken to be true.”
+
+The RA-node’s conclusion “Brazil has the best football team” fulfilsConclusionDesc this descriptor.
+
+So: the concrete argument is treated as an instance of a generic presumptive inference scheme.
+
+3. Presumptions of the expert-opinion scheme
+
+Beneath the scheme are three Presumption nodes (grey rounded rectangles):
+
+“Presumption: E’s testimony does imply A.”
+
+“Presumption: E is credible as an expert source.”
+
+“Presumption: E is an expert in the field that A is in.”
+
+These are connected to the “Argument from expert opinion” scheme via hasPresumption.
+
+Informally: for the scheme to be acceptable, all three presumptions should hold.
+
+4. Conflict schemes: bias and testimonial inconsistency
+
+On the left are two Conflict scheme nodes (grey):
+
+“Conflict scheme: Conflict from bias.”
+
+“Conflict scheme: Conflict from testimonial inconsistency.”
+
+Each has associated premise descriptors:
+
+For the bias conflict scheme:
+“Premise descriptor: Speaker is biased.”
+
+For the testimonial inconsistency conflict scheme:
+“Premise descriptor: Other experts disagree.”
+
+Each premise descriptor is connected via hasPremiseDescription to its conflict scheme.
+
+The conflict schemes themselves are linked as hasException to the main “Argument from expert opinion” scheme, meaning: if a conflict scheme is instantiated, it provides an exception to the presumptive inference.
+
+5. Attack instantiations (CA-nodes) from Bob’s objections
+
+At the bottom we see two factual I-nodes:
+
+“Allen is not an expert in sport.”
+
+“Allen is biased.”
+
+Each of these is connected to a CA-node (Conflict Application node, underlined):
+
+“Allen is not an expert in sport” attacks → CA-node (instantiating testimonial inconsistency / ‘not an expert’).
+
+“Allen is biased” attacks → CA-node (instantiating bias conflict).
+
+Those CA-nodes are linked upward so that the instantiated conflict schemes underminePresumption:
+
+The “Allen is not an expert in sport” CA-node undermines the presumption that “E is an expert in the field that A is in.”
+
+The “Allen is biased” CA-node undermines the presumption that “E is credible as an expert source.”
+
+The CA-nodes also CA_Node_attacks the RA-node (the main expert-opinion argument), representing Bob’s overall attack on Alice’s argument.
+
+6. Legend
+
+At the bottom:
+
+White rounded node = I-node (information node) or subtype.
+
+Grey rounded node = F-node (form node) or subtype.
+
+Black-border rounded node = S-node (scheme application) or subtype (RA-node, CA-node).
+
+Grey oval = Scheme (abstract scheme, not application).
+
+Underlined label indicates the node type (e.g., RA-node, CA-node).
+
+Fig. 8 – Extensions to the original AIF (meta-model)
+
+This figure is an ontology diagram: classes of nodes and schemes in the extended AIF and the relations between them.
+
+1. Top-level classes
+
+Node (pink box) – the most general node type.
+
+S-Node (white box) – scheme-application nodes.
+
+I-Node (white box) – information nodes.
+
+Form (white box) – for describing generic forms like Premise description, Conclusion description, Presumption.
+
+Scheme (yellow box) – abstract argument or conflict schemes.
+
+Arrows labeled is-a represent subclass relationships.
+
+2. S-Node hierarchy
+
+Under S-Node:
+
+PA-Node – preference application node.
+
+CA-Node – conflict application node.
+
+RA-Node – reasoning application node.
+
+Each is an is-a of S-Node.
+
+Relations:
+
+S-Node has edgeFromINode and edgeFromSNode relations (edges in the argument graph).
+
+CA-Node has:
+
+caNode_Attacks → something (e.g., an RA-node).
+
+caNode_isAttacked ← something (meta-relations for attack structure).
+
+3. I-Node hierarchy and content
+
+Under I-Node:
+
+Conclusion – a subtype of I-Node.
+
+Premise – a subtype of I-Node.
+
+An I-Node has a text property (shown as an oval labeled “text”).
+
+Relations:
+
+RA-Node hasPremise → Premise
+
+RA-Node hasConclusion → Conclusion
+
+Conclusion supports → RA-Node (or vice versa, depending on direction convention).
+
+S-nodes attacks → other nodes (especially CA-nodes attacking RA-nodes).
+
+4. Form hierarchy and descriptions
+
+Under Form:
+
+ConclusionDesc – a description of a conclusion form.
+
+PremiseDesc – a description of a premise form.
+
+Presumption – a presumption associated with a scheme.
+
+Each Form node has a hasDescription attribute (text of the form).
+
+Relations:
+
+Conclusion fulfilsConclusionDesc → ConclusionDesc.
+
+Premise fulfilsPremiseDesc → PremiseDesc.
+
+ConclusionDesc fulfilsConclusionDesc ← RA-node (RA-node’s conclusion matches that form).
+
+PremiseDesc fulfilsPremiseDesc ← RA-node (its premises match the described forms).
+
+Presumption underminesPresumption ← Form or CA-Node (attack on a presumption).
+
+ConclusionDesc hasConclusionDescription ← Scheme.
+
+PremiseDesc hasPremiseDescription ← Scheme.
+
+Presumption hasPresumption ← Scheme.
+
+The arrow labeled entails goes from Presumption to Premise (capturing logical entailment from presumption to instantiated premise).
+
+5. Scheme hierarchy (bottom, yellow boxes)
+
+Central yellow box: Scheme.
+
+Under it:
+
+ConflictScheme – schemes that capture conflicts (e.g., bias).
+
+PreferenceScheme – schemes for comparing arguments.
+
+Under this:
+
+Logical Preference Scheme
+
+Presumptive Preference Scheme
+
+RuleScheme – inference rules.
+
+Under this:
+
+Deductive Inference Scheme
+
+Presumptive Inference Scheme
+
+Inductive Inference Scheme
+
+Relations:
+
+Scheme hasPremiseDescription → PremiseDesc.
+
+Scheme hasConclusionDescription → ConclusionDesc.
+
+Scheme hasPresumption → Presumption.
+
+Scheme hasException → (other Scheme) – for exceptions like conflict schemes.
+
+Scheme hasSchemeName → a text label (shown as oval “hasSchemeName”).
+
+In short, Fig. 8 declares the ontology: how S-nodes, I-nodes, forms, and schemes fit together and which relations (hasPremise, attacks, fulfilsScheme, hasException, etc.) are available.
+
+Figs. 9 & 10 – Argument creation workflow and scheme list
+Fig. 9 – New argument creation cycle
+
+This is a sequence diagram showing how a user interacts with the ArgDF system and a scheme repository to create a new argument.
+
+Actors:
+
+Left: a user (stick figure).
+
+Middle: ArgDF system.
+
+Right: a Repository that stores schemes and created nodes (premises, conclusions, RA-nodes).
+
+Steps:
+
+User → ArgDF: “Create argument.”
+
+ArgDF → Repository: “Repository Scheme Query.” (asks for available schemes)
+
+Repository → ArgDF: returns Scheme list.
+
+ArgDF → User: sends Scheme list to choose from.
+
+User → ArgDF: “Choose scheme.”
+
+ArgDF → Repository: “Scheme Details Query.”
+
+Repository → ArgDF: returns Scheme details.
+
+ArgDF → User: sends Scheme details (so user can see required premises/conclusion forms).
+
+User → ArgDF: “Creation confirmed.”
+
+ArgDF → Repository: “RA-Node Created in Repository” (creates an RA-node instance for this scheme).
+
+ArgDF → User: “Requesting conclusion.”
+
+User → ArgDF: “Entering conclusion.”
+
+ArgDF → Repository: “Conclusion Created in Repository.”
+
+ArgDF → User: “Requesting premises.”
+
+User → ArgDF: “Entering premises.”
+
+ArgDF → Repository: “Premise Created in Repository.”
+
+So the cycle: select scheme → instantiate RA-node → enter conclusion → enter premises with repository writes at each step.
+
+Fig. 10 – XSLT table output
+
+A simple HTML-table-like view listing available argumentation schemes with links to create new arguments.
+
+Columns:
+
+Argumentation Scheme
+
+Click to Create Argument
+
+Rows (examples shown):
+
+“Argument from Example” – [Create]
+
+“Argument from Verbal Classification” – [Create]
+
+“Argument from expert opinion” – [Create]
+
+“Argument from Sign” – [Create]
+
+Clicking “Create” presumably triggers the sequence shown in Fig. 9 for the chosen scheme.
+
+Figs. 13 & 14 – Argument search + chaining of arguments
+Fig. 13 – Argument search interface
+
+A GUI form titled “Advanced ArgDF Search”.
+
+Step 1: Enter a string found in
+
+a – Premise: text input field.
+Example content: “Weapons of mass destruction”.
+Underneath:
+
+radio options: For / Against (indicating whether the premise supports or opposes something).
+
+note in parentheses: “(Leave blank for all premises)”.
+
+b – Conclusion: text input field.
+Example content: “War on Iraq”.
+Note: “(Leave blank for all conclusions)”.
+
+At the bottom: a button “Go to Step 2”.
+
+So the interface lets you search the argument database for arguments whose premises or conclusions contain certain strings (e.g., all arguments whose premises mention “Weapons of mass destruction” and whose conclusions mention “War on Iraq”).
+
+Fig. 14 – Chaining of arguments and shared premises
+
+A graph showing three arguments and their premises/conclusions, including chained conclusions and shared premises.
+
+Nodes use names with subscripts:
+
+Argument₁, Argument₂, Argument₃
+
+Conclusion₁, Conclusion₂, Conclusion₃
+
+Premise₁,a, Premise₁,b, Premise₂,a, Premise₂,b, Premise₃,a, Premise₃,b
+
+Structure:
+
+Argument₁
+
+Supports Conclusion₁ (arrow from Argument₁ to Conclusion₁).
+
+Has two premises:
+
+Premise₁,a
+
+Premise₁,b, which is also labeled Conclusion₂ (same node with double label).
+
+Argument₂
+
+Concludes the shared node Premise₁,b / Conclusion₂ (arrow from Argument₂ to that node).
+
+Has three premises:
+
+Premise₂,a
+
+Premise₂,b, which is also Premise₃,a (shared premise node)
+
+(implicitly a third premise, depending on how you read the layout—caption focuses on shared premise between arguments 2 and 3.)
+
+Argument₃
+
+Concludes Conclusion₃.
+
+Has premises:
+
+Premise₃,a (same node as Premise₂,b from Argument₂)
+
+Premise₃,b.
+
+Key idea:
+
+Argument₁ and Argument₂ are chained because the conclusion of Argument₂ (Conclusion₂) is also a premise of Argument₁ (Premise₁,b).
+
+Argument₂ and Argument₃ share a premise: the node labeled Premise₂,b / Premise₃,a belongs to both arguments.
+
+So Fig. 14 demonstrates how multiple arguments can:
+
+chain (conclusion of one becomes premise of another), and
+
+share premises (same proposition serves as a premise in multiple arguments),
+which is exactly what the search interface (Fig. 13) is meant to help discover.
+
+four JSON “files”:
+
+A compact extended-AIF JSON schema (Node/Scheme ontology – Fig. 8).
+
+A concrete instance graph for the expert-opinion argument with attacks (Fig. 7).
+
+A lightweight workflow model for argument creation from schemes (Figs. 9–10).
+
+A search + chaining example that captures Figs. 13–14 in AIF terms.
+
+You can treat each code block as a separate JSON document.
+
+1. aif-schema.json – Extended AIF meta-schema (Fig. 8)
+
+This is not a full JSON Schema draft-07 document (you can wrap it if you like), but a typed data model you can enforce or extend.
+
+{
+  "aifSchemaVersion": "rahwan-extended-2007",
+  "nodeTypes": {
+    "Node": {
+      "description": "Base type for all nodes",
+      "fields": {
+        "id": "string",
+        "nodeKind": "enum(Node, I, S, F, Scheme, Form)",
+        "subtype": "string",
+        "text": "string?"
+      }
+    },
+    "INode": {
+      "extends": "Node",
+      "nodeKind": "I",
+      "subtypes": ["Premise", "Conclusion", "Locution", "PresumptionInstance"]
+    },
+    "SNode": {
+      "extends": "Node",
+      "nodeKind": "S",
+      "subtypes": ["RA", "CA", "PA"]
+    },
+    "FNode": {
+      "extends": "Node",
+      "nodeKind": "F",
+      "subtypes": ["PremiseDesc", "ConclusionDesc", "Presumption"]
+    },
+    "Scheme": {
+      "extends": "Node",
+      "nodeKind": "Scheme",
+      "subtypes": [
+        "RuleScheme",
+        "ConflictScheme",
+        "PreferenceScheme",
+        "DeductiveInferenceScheme",
+        "PresumptiveInferenceScheme",
+        "InductiveInferenceScheme",
+        "LogicalPreferenceScheme",
+        "PresumptivePreferenceScheme"
+      ]
+    },
+    "Form": {
+      "extends": "Node",
+      "nodeKind": "Form",
+      "subtypes": ["PremiseForm", "ConclusionForm", "PresumptionForm"]
+    }
+  },
+  "edgeTypes": {
+    "hasPremise": {
+      "from": "SNode",
+      "to": "INode"
+    },
+    "hasConclusion": {
+      "from": "SNode",
+      "to": "INode"
+    },
+    "supports": {
+      "from": "INode",
+      "to": "INode | SNode"
+    },
+    "attacks": {
+      "from": "SNode | INode",
+      "to": "SNode | INode"
+    },
+    "fulfilsScheme": {
+      "from": "SNode",
+      "to": "Scheme"
+    },
+    "hasPremiseDescription": {
+      "from": "Scheme",
+      "to": "FNode(PremiseDesc)"
+    },
+    "hasConclusionDescription": {
+      "from": "Scheme",
+      "to": "FNode(ConclusionDesc)"
+    },
+    "hasPresumption": {
+      "from": "Scheme",
+      "to": "FNode(Presumption)"
+    },
+    "hasException": {
+      "from": "Scheme",
+      "to": "Scheme(ConflictScheme | PreferenceScheme)"
+    },
+    "fulfilsPremiseDesc": {
+      "from": "INode",
+      "to": "FNode(PremiseDesc)"
+    },
+    "fulfilsConclusionDesc": {
+      "from": "INode",
+      "to": "FNode(ConclusionDesc)"
+    },
+    "underminesPresumption": {
+      "from": "SNode | INode",
+      "to": "FNode(Presumption)"
+    },
+    "entails": {
+      "from": "INode | FNode",
+      "to": "INode | FNode"
+    },
+    "hasSchemeName": {
+      "from": "Scheme",
+      "to": "Literal(string)"
+    }
+  }
+}
+
+fig7-expert-opinion.json – Instance graph for Fig. 7
+
+This uses the schema above. IDs are arbitrary but stable.
+
+{
+  "graphId": "fig7-expert-opinion",
+  "nodes": [
+    {
+      "id": "i_concl_brazil_best",
+      "nodeKind": "I",
+      "subtype": "Conclusion",
+      "text": "Brazil has the best football team"
+    },
+    {
+      "id": "i_p_allen_says",
+      "nodeKind": "I",
+      "subtype": "Premise",
+      "text": "Allen says that Brazil has the best football team"
+    },
+    {
+      "id": "i_p_allen_expert_sports",
+      "nodeKind": "I",
+      "subtype": "Premise",
+      "text": "Allen is an expert in sports"
+    },
+    {
+      "id": "i_p_allen_not_expert_sports",
+      "nodeKind": "I",
+      "subtype": "Premise",
+      "text": "Allen is not an expert in sport"
+    },
+    {
+      "id": "i_p_allen_biased",
+      "nodeKind": "I",
+      "subtype": "Premise",
+      "text": "Allen is biased"
+    },
+
+    /* scheme application nodes */
+    {
+      "id": "s_ra_expert_opinion",
+      "nodeKind": "S",
+      "subtype": "RA",
+      "text": "RA-node: Argument from expert opinion (Allen on Brazil)"
+    },
+    {
+      "id": "s_ca_not_expert",
+      "nodeKind": "S",
+      "subtype": "CA",
+      "text": "CA-node: conflict from testimonial inconsistency (Allen not expert)"
+    },
+    {
+      "id": "s_ca_bias",
+      "nodeKind": "S",
+      "subtype": "CA",
+      "text": "CA-node: conflict from bias (Allen biased)"
+    },
+
+    /* abstract schemes */
+    {
+      "id": "sch_arg_from_expert",
+      "nodeKind": "Scheme",
+      "subtype": "PresumptiveInferenceScheme",
+      "text": "Argument from expert opinion"
+    },
+    {
+      "id": "sch_conflict_bias",
+      "nodeKind": "Scheme",
+      "subtype": "ConflictScheme",
+      "text": "Conflict from bias"
+    },
+    {
+      "id": "sch_conflict_testimony",
+      "nodeKind": "Scheme",
+      "subtype": "ConflictScheme",
+      "text": "Conflict from testimonial inconsistency"
+    },
+
+    /* forms / descriptors / presumptions */
+    {
+      "id": "f_pd_expert_domain",
+      "nodeKind": "F",
+      "subtype": "PremiseDesc",
+      "text": "E is an expert in domain D"
+    },
+    {
+      "id": "f_pd_expert_asserts_A",
+      "nodeKind": "F",
+      "subtype": "PremiseDesc",
+      "text": "E asserts that A is known to be true"
+    },
+    {
+      "id": "f_cd_A_plausibly_true",
+      "nodeKind": "F",
+      "subtype": "ConclusionDesc",
+      "text": "A may plausibly be taken to be true"
+    },
+    {
+      "id": "f_pd_speaker_biased",
+      "nodeKind": "F",
+      "subtype": "PremiseDesc",
+      "text": "Speaker is biased"
+    },
+    {
+      "id": "f_pd_other_experts_disagree",
+      "nodeKind": "F",
+      "subtype": "PremiseDesc",
+      "text": "Other experts disagree"
+    },
+    {
+      "id": "f_pres_testimony_implies_A",
+      "nodeKind": "F",
+      "subtype": "Presumption",
+      "text": "E's testimony does imply A"
+    },
+    {
+      "id": "f_pres_E_credible_source",
+      "nodeKind": "F",
+      "subtype": "Presumption",
+      "text": "E is credible as an expert source"
+    },
+    {
+      "id": "f_pres_E_expert_in_field_A",
+      "nodeKind": "F",
+      "subtype": "Presumption",
+      "text": "E is an expert in the field that A is in"
+    }
+  ],
+  "edges": [
+    /* main RA-node structure */
+    { "from": "s_ra_expert_opinion", "to": "i_p_allen_says", "rel": "hasPremise" },
+    { "from": "s_ra_expert_opinion", "to": "i_p_allen_expert_sports", "rel": "hasPremise" },
+    { "from": "s_ra_expert_opinion", "to": "i_concl_brazil_best", "rel": "hasConclusion" },
+
+    /* scheme instantiation */
+    { "from": "s_ra_expert_opinion", "to": "sch_arg_from_expert", "rel": "fulfilsScheme" },
+
+    /* descriptors on expert-opinion scheme */
+    { "from": "sch_arg_from_expert", "to": "f_pd_expert_domain", "rel": "hasPremiseDescription" },
+    { "from": "sch_arg_from_expert", "to": "f_pd_expert_asserts_A", "rel": "hasPremiseDescription" },
+    { "from": "sch_arg_from_expert", "to": "f_cd_A_plausibly_true", "rel": "hasConclusionDescription" },
+
+    /* descriptor fulfilment by concrete premises/conclusion */
+    { "from": "i_p_allen_expert_sports", "to": "f_pd_expert_domain", "rel": "fulfilsPremiseDesc" },
+    { "from": "i_p_allen_says", "to": "f_pd_expert_asserts_A", "rel": "fulfilsPremiseDesc" },
+    { "from": "i_concl_brazil_best", "to": "f_cd_A_plausibly_true", "rel": "fulfilsConclusionDesc" },
+
+    /* presumptions of expert-opinion scheme */
+    { "from": "sch_arg_from_expert", "to": "f_pres_testimony_implies_A", "rel": "hasPresumption" },
+    { "from": "sch_arg_from_expert", "to": "f_pres_E_credible_source", "rel": "hasPresumption" },
+    { "from": "sch_arg_from_expert", "to": "f_pres_E_expert_in_field_A", "rel": "hasPresumption" },
+
+    /* conflict schemes are exceptions to expert-opinion scheme */
+    { "from": "sch_arg_from_expert", "to": "sch_conflict_bias", "rel": "hasException" },
+    { "from": "sch_arg_from_expert", "to": "sch_conflict_testimony", "rel": "hasException" },
+
+    /* conflict scheme descriptors */
+    { "from": "sch_conflict_bias", "to": "f_pd_speaker_biased", "rel": "hasPremiseDescription" },
+    { "from": "sch_conflict_testimony", "to": "f_pd_other_experts_disagree", "rel": "hasPremiseDescription" },
+
+    /* CA-node instantiations: Bob's criticisms */
+    { "from": "s_ca_not_expert", "to": "sch_conflict_testimony", "rel": "fulfilsScheme" },
+    { "from": "s_ca_bias", "to": "sch_conflict_bias", "rel": "fulfilsScheme" },
+
+    { "from": "s_ca_not_expert", "to": "i_p_allen_not_expert_sports", "rel": "hasPremise" },
+    { "from": "s_ca_bias", "to": "i_p_allen_biased", "rel": "hasPremise" },
+
+    /* CA-nodes attack RA-node */
+    { "from": "s_ca_not_expert", "to": "s_ra_expert_opinion", "rel": "attacks" },
+    { "from": "s_ca_bias", "to": "s_ra_expert_opinion", "rel": "attacks" },
+
+    /* CA-nodes undermine relevant presumptions */
+    { "from": "s_ca_not_expert", "to": "f_pres_E_expert_in_field_A", "rel": "underminesPresumption" },
+    { "from": "s_ca_bias", "to": "f_pres_E_credible_source", "rel": "underminesPresumption" }
+  ]
+}
+
+3. fig9-10-creation-workflow.json – Scheme-driven argument creation
+
+This is a workflow abstraction, not standard AIF, but you can hang AIF ids on it.
+
+{
+  "workflowId": "argdf-argument-creation",
+  "roles": ["user", "argdf", "repository"],
+  "states": [
+    "Idle",
+    "RequestedSchemeList",
+    "ViewingSchemeList",
+    "ViewingSchemeDetails",
+    "CreatingRANode",
+    "EnteringConclusion",
+    "EnteringPremises",
+    "Completed"
+  ],
+  "transitions": [
+    {
+      "from": "Idle",
+      "to": "RequestedSchemeList",
+      "actor": "user",
+      "action": "CreateArgument"
+    },
+    {
+      "from": "RequestedSchemeList",
+      "to": "ViewingSchemeList",
+      "actor": "repository",
+      "action": "ReturnSchemeList"
+    },
+    {
+      "from": "ViewingSchemeList",
+      "to": "ViewingSchemeDetails",
+      "actor": "user",
+      "action": "ChooseScheme",
+      "payload": { "schemeId": "sch_arg_from_expert" }
+    },
+    {
+      "from": "ViewingSchemeDetails",
+      "to": "CreatingRANode",
+      "actor": "user",
+      "action": "ConfirmCreation"
+    },
+    {
+      "from": "CreatingRANode",
+      "to": "EnteringConclusion",
+      "actor": "argdf",
+      "action": "RA_NodeCreated",
+      "payload": { "sNodeId": "s_ra_new" }
+    },
+    {
+      "from": "EnteringConclusion",
+      "to": "EnteringPremises",
+      "actor": "user",
+      "action": "SubmitConclusion",
+      "payload": {
+        "newINode": {
+          "id": "i_concl_new",
+          "nodeKind": "I",
+          "subtype": "Conclusion",
+          "text": "User-supplied conclusion"
+        }
+      }
+    },
+    {
+      "from": "EnteringPremises",
+      "to": "Completed",
+      "actor": "user",
+      "action": "SubmitPremises",
+      "payload": {
+        "premises": [
+          {
+            "id": "i_p1_new",
+            "nodeKind": "I",
+            "subtype": "Premise",
+            "text": "First premise text"
+          }
+        ]
+      }
+    }
+  ],
+  "schemeTable": [
+    {
+      "label": "Argument from Example",
+      "schemeId": "sch_arg_from_example"
+    },
+    {
+      "label": "Argument from Verbal Classification",
+      "schemeId": "sch_arg_from_verbal_classification"
+    },
+    {
+      "label": "Argument from expert opinion",
+      "schemeId": "sch_arg_from_expert"
+    },
+    {
+      "label": "Argument from Sign",
+      "schemeId": "sch_arg_from_sign"
+    }
+  ]
+}
+
+fig13-14-search-chain.json – Search request + chained arguments
+
+This has:
+
+An argument search request (Fig. 13), and
+
+A tiny AIF graph for three chained arguments with a shared premise (Fig. 14).
+
+{
+  "searchRequest": {
+    "id": "srch_weapons_war_iraq",
+    "premiseQuery": "Weapons of mass destruction",
+    "premisePolarity": "ForOrAgainstOrAny",
+    "conclusionQuery": "War on Iraq"
+  },
+  "argumentChainGraph": {
+    "graphId": "fig14-argument-chain",
+    "nodes": [
+      { "id": "i_concl_1", "nodeKind": "I", "subtype": "Conclusion", "text": "Conclusion_1" },
+      { "id": "i_concl_2", "nodeKind": "I", "subtype": "Conclusion", "text": "Conclusion_2" },
+      { "id": "i_concl_3", "nodeKind": "I", "subtype": "Conclusion", "text": "Conclusion_3" },
+
+      { "id": "i_p_1a", "nodeKind": "I", "subtype": "Premise", "text": "Premise_1,a" },
+      { "id": "i_p_1b_concl2", "nodeKind": "I", "subtype": "Premise", "text": "Premise_1,b / Conclusion_2" },
+
+      { "id": "i_p_2a", "nodeKind": "I", "subtype": "Premise", "text": "Premise_2,a" },
+      { "id": "i_p_2b_3a", "nodeKind": "I", "subtype": "Premise", "text": "Premise_2,b / Premise_3,a" },
+
+      { "id": "i_p_3b", "nodeKind": "I", "subtype": "Premise", "text": "Premise_3,b" },
+
+      { "id": "s_ra_1", "nodeKind": "S", "subtype": "RA", "text": "Argument_1" },
+      { "id": "s_ra_2", "nodeKind": "S", "subtype": "RA", "text": "Argument_2" },
+      { "id": "s_ra_3", "nodeKind": "S", "subtype": "RA", "text": "Argument_3" }
+    ],
+    "edges": [
+      /* Argument 1 */
+      { "from": "s_ra_1", "to": "i_p_1a", "rel": "hasPremise" },
+      { "from": "s_ra_1", "to": "i_p_1b_concl2", "rel": "hasPremise" },
+      { "from": "s_ra_1", "to": "i_concl_1", "rel": "hasConclusion" },
+
+      /* Argument 2 – concludes what Argument 1 uses as Premise_1,b */
+      { "from": "s_ra_2", "to": "i_p_2a", "rel": "hasPremise" },
+      { "from": "s_ra_2", "to": "i_p_2b_3a", "rel": "hasPremise" },
+      { "from": "s_ra_2", "to": "i_p_1b_concl2", "rel": "hasConclusion" },
+
+      /* Argument 3 – shares Premise_3,a with Argument 2 */
+      { "from": "s_ra_3", "to": "i_p_2b_3a", "rel": "hasPremise" },
+      { "from": "s_ra_3", "to": "i_p_3b", "rel": "hasPremise" },
+      { "from": "s_ra_3", "to": "i_concl_3", "rel": "hasConclusion" }
+    ]
+  }
+}

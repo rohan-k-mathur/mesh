@@ -1,0 +1,785 @@
+Here’s a clear, prioritized set of notes on “Defining the structure of arguments with AI models of argumentation” (Bin Wei & Henry Prakken). I highlight what changes relative to the traditional (Walton/Freeman) view, how the paper uses ASPIC+ to sharpen definitions, and what to remember. 
+
+paper_16
+
+TL;DR (one minute)
+
+The paper formalizes the standard informal taxonomy of argument structures (single, linked, convergent, divergent, serial, complex) using a simplified ASPIC+ framework. Two payoffs:
+
+It completes the taxonomy and clarifies ambiguities;
+
+It shows convergent and divergent are not types of single arguments but types of argument structures (sets of arguments).
+It also argues that Vorobej’s “hybrid arguments” are not needed once we distinguish defeasible vs. strict support in ASPIC+. 
+
+paper_16
+
+Why this paper matters
+
+Informal diagrams often blur what is one argument vs. what is a structure of multiple arguments. The authors use ASPIC+ (structured arguments with strict/defeasible rules and three attack types) to separate the two levels rigorously and to resolve the “hybrid” category proposed by Vorobej. 
+
+paper_16
+
+Background: the “standard approach” and its limits
+
+Standard categories (Thomas → Walton/Freeman): single, convergent, linked, serial, divergent, complex (see the six diagrams in Figure 1, p. 2). These are defined informally in terms of how premises relate to conclusions. 
+
+paper_16
+
+Problem: This taxonomy mixes up (i) types of individual arguments with (ii) structures made of several arguments; it is incomplete and ambiguous about relevance and dependency among premises. 
+
+paper_16
+
+The ASPIC+ toolkit they use (simplified here)
+
+Language & rules: a logical language with negation; rules are strict (→) or defeasible (⇒). Arguments are trees built by chaining rules from a knowledge base K. (Definitions 5–8). 
+
+paper_16
+
+Attacks:
+
+Undermine (attack a premise),
+
+Rebut (attack a defeasible conclusion),
+
+Undercut (attack a defeasible rule application). Only defeasible steps can be rebutted/undercut. (Figure 2 on p. 3 shows a full tree A₁…A₁₀). 
+
+paper_16
+
+The paper’s core move: redefine argument types inside ASPIC+
+
+They introduce two unit shapes and then build everything from them (Definition 9; Figure 3, p. 3): 
+
+paper_16
+
+Unit I: one atomic premise gives a defeasible step to a conclusion (ϕ ⇒ ψ).
+
+Unit II: multiple atomic premises jointly give a defeasible step (ϕ₁, …, ϕₙ ⇒ ψ).
+
+Multiple Unit I: a chain where all steps are Unit I.
+
+Multiple Unit II: a chain where all steps are Unit II.
+
+Mixed: contains both Unit I and Unit II subarguments.
+Proposition 1: Every argument is exactly one of these types (existence by induction on the number of unit inferences, uniqueness from single top rule / single conclusion). 
+
+paper_16
+
+Distinguish arguments from argument structures
+
+Having the unit repertoire, they define structures (sets of arguments with specific patterns), Definition 10–11; see Figure 4 (p. 4). Key families: 
+
+paper_16
+
+SCS (serial convergent structure): only Unit I arguments; same conclusion. (What textbooks call a “convergent argument” becomes a set of distinct Unit I arguments converging on one C.)
+
+SDS (serial divergent structure): only Unit I; same premise, different conclusions. (Classic “divergent argument”.)
+
+LCS (linked convergent structure): only Unit II; same conclusion (several linked arguments converging on one C).
+
+LDS (linked divergent structure): only Unit II; same premise set, different conclusions.
+
+MS (mixed structure): interconnected set that is not SCS/SDS/LCS/LDS.
+Conclusion: Convergent and divergent are structures, not argument types; “single/linked/serial” are argument types (Unit I, Unit II, Multiple Unit I). This completes and disentangles the standard taxonomy. 
+
+paper_16
+
+Reassessing Vorobej’s hybrid arguments
+
+Vorobej proposed “hybrids” where some premises are individually relevant while together they add a distinct line of support (Example F: ducks on the pond). The paper shows hybrids are not a new type of single argument once we separate strict vs. defeasible support and model “supplementation” precisely. 
+
+paper_16
+
+They make relevance explicit:
+
+Defeasible relevance S ⊢~ ϕ (there is a defeasible argument from S to ϕ) vs.
+
+Strict relevance S ⊢ ϕ (there is a strict argument).
+Then redefine supplementation (Definition 12): a set Σ supplements Δ when Σ alone is not relevant to C, Δ is defeasibly relevant to C, and Σ∪Δ (strictly or defeasibly) yields C minimally. 
+
+paper_16
+
+Result: “Hybrids” are just structures:
+
+If Σ has one premise (m=1): a Mixed Structure (MS) combining a Unit I and a Unit II argument.
+
+If Σ has >1 premises: a Linked Convergent Structure (LCS) (two linked arguments to same C).
+(See Figure 5, p. 5 for worked reconstructions.) 
+
+paper_16
+
+Worked examples (what to remember)
+
+Walton’s textbook examples (Figure 1, p. 2):
+
+“Tipping is bad” with two independent reasons ⇒ SCS (two Unit I arguments to the same C).
+
+“Smoking is dangerous” premise branching to two conclusions ⇒ SDS (divergent structure).
+
+“Birds fly; Tweety is a bird ⇒ Tweety flies” ⇒ Unit II (linked) single argument. 
+
+paper_16
+
+Vorobej’s F (ducks on the pond):
+(1) “All observed F’s are G’s” defeasibly supports “All F’s are G’s.”
+(1)+(2) “Observed F’s = all F’s” strictly supports the same conclusion.
+So we have two arguments to the same C that share (1): it’s a convergent structure, not a new hybrid type. 
+
+paper_16
+
+Vorobej’s G, J: reconstructed as LCS or MS depending on whether the “supplement” is single or multiple—again, no new primitive type is needed. 
+
+paper_16
+
+Visual anchors you can trust
+
+Figure 1 (p. 2): six classic structure diagrams (convergent/divergent/linked/serial/complex).
+
+Figure 2 (p. 3): a full ASPIC+ argument tree mixing strict and defeasible steps (A₁…A₁₀).
+
+Figure 3 (p. 3): the five argument types (Unit I, Unit II, Multiple I, Multiple II, Mixed).
+
+Figure 4 (p. 4): the five argument structures (SCS, SDS, LCS, LDS, MS).
+
+Figure 5 (p. 5): hybrid reconstructions as MS/LCS. 
+
+paper_16
+
+Practical takeaways (for analysts, teachers, and tool builders)
+
+When diagramming, separate:
+
+Type of a single argument (what rules/premise‑combination the tree uses) vs.
+
+Structure over multiple arguments (how multiple trees combine).
+Use Unit I/II and Multiple/Mixed for the former; SCS/SDS/LCS/LDS/MS for the latter. 
+
+paper_16
+
+Treat purported hybrids as structural composites (often MS or LCS) once you mark defeasible vs. strict support. This clarifies “relevance” without inventing a new primitive type. 
+
+paper_16
+
+In teaching materials and software, label convergent/divergent explicitly as structures (sets of arguments), not single arguments. This avoids category mistakes in evaluation. 
+
+paper_16
+
+If you only remember five lines
+
+Convergent/divergent belong to argument structures, not single-argument types. 
+
+paper_16
+
+Single-argument types are Unit I, Unit II, Multiple I, Multiple II, Mixed (exactly one holds for any argument). 
+
+paper_16
+
+Making defeasible vs. strict support explicit dissolves “hybrid” as a separate category. 
+
+paper_16
+
+Figures 3–4 give quick visual grammars for types vs. structures. 
+
+paper_16
+
+The ASPIC+ lens completes and clarifies the standard informal model. 
+
+paper_16
+
+Pinpoint citations inside the paper
+
+Standard approach & examples: §2.1; Figure 1 (p. 2). 
+
+paper_16
+
+Vorobej’s “hybrid” and supplementation: §2.2; Definition 4, Example 2; refined as Definition 12 in §5. 
+
+paper_16
+
+ASPIC+ mini‑spec: §3; Definitions 5–8, Figure 2 (p. 3). 
+
+paper_16
+
+New argument types: §4; Definition 9, Proposition 1, Figure 3 (p. 3). 
+
+paper_16
+
+Argument structures: §4; Definitions 10–11, Figure 4 (p. 4); Corollary 1. 
+
+paper_16
+
+Hybrid resolved: §5; examples F, G, J; Figure 5 (p. 5). 
+
+paper_16
+
+Defining Argument Types vs. Structures
+
+(Wei & Prakken – “Defining the structure of arguments with AI models of argumentation”) 
+
+paper_16
+
+1. Big Idea
+
+Use ASPIC+ to clean up the “standard” informal taxonomy (Thomas, Walton, Freeman).
+
+Key distinction:
+
+What is one argument? (its internal rule/combination pattern)
+
+What is an argument structure? (a set of arguments related by premises/conclusions)
+
+Result:
+
+Single / linked / serial = types of individual arguments
+
+Convergent / divergent = types of argument structures
+
+Vorobej’s “hybrid arguments” reduce to ordinary structures once we track strict vs. defeasible support. 
+
+paper_16
+
+2. Argument Types (Figure 3) – inside ASPIC+ 
+
+paper_16
+
+Think of these as shapes of one argument tree:
+
+Unit I
+
+Form: single premise, defeasible rule: ϕ ⇒ ψ
+
+Textbook “single” reason → conclusion.
+
+Unit II
+
+Form: multiple premises, one defeasible rule: ϕ₁, ϕ₂ ⇒ ψ
+
+Premises must work together → “linked” argument.
+
+Multiple Unit I
+
+Chain of Unit I steps only (serial single-premise inferences).
+
+Multiple Unit II
+
+Chain of Unit II steps only (serial linked inferences).
+
+Mixed
+
+Contains both Unit I and Unit II subarguments in one tree.
+
+Fact: Every argument is exactly one of these 5 types (Proposition 1). 
+
+paper_16
+
+3. Argument Structures (Figure 4) – sets of arguments
+
+Now we look at collections of arguments {A₁,…,Aₙ}:
+
+SCS – Serial Convergent Structure
+
+Only Unit I arguments, all with the same conclusion.
+
+Standard “convergent argument” = several separate lines all supporting C.
+
+SDS – Serial Divergent Structure
+
+Only Unit I, all with the same premise set but different conclusions.
+
+Standard “divergent argument” = one reason branching to multiple conclusions.
+
+LCS – Linked Convergent Structure
+
+Only Unit II, all share the same conclusion.
+
+Several linked arguments converging on C.
+
+LDS – Linked Divergent Structure
+
+Only Unit II, all share the same premises, different conclusions.
+
+MS – Mixed Structure
+
+Interconnected set that is not SCS/SDS/LCS/LDS (mix of types or more complex wiring).
+
+Convergent/divergent in Walton/Freeman = SCS/SDS over Unit I arguments, not new single-argument kinds. 
+
+paper_16
+
+4. Where Vorobej’s “Hybrid Arguments” Go (Figure 5) 
+
+paper_16
+
+Vorobej: hybrids occur when
+
+One premise (or set) is already relevant to C,
+
+Extra premises supplement it to yield an additional reason.
+
+Wei & Prakken:
+
+Make relevance explicit as defeasible vs. strict support in ASPIC+.
+
+Then a “hybrid argument” is always one of:
+
+Mixed Structure (MS)
+
+If the supplement is a single premise (m = 1).
+
+Shape: one Unit I and one Unit II argument to same conclusion, sharing premises.
+
+Linked Convergent Structure (LCS)
+
+If the supplement has multiple premises (m > 1).
+
+Shape: two linked arguments (both Unit II) converging on same conclusion.
+
+Example F (“all ducks I’ve seen are yellow … I’ve seen all the ducks …”) = simply two arguments for the same conclusion, sharing one premise → a convergent structure (LCS/MS), not a new hybrid type. 
+
+paper_16
+
+
+Perfect, let’s turn that into a “drop-in” slide with tiny ASCII diagrams for each type & structure.
+
+You can copy-paste this as Markdown, or just mine the pieces you like.
+
+---
+
+### Argument *Types* vs. *Structures*
+
+*(Wei & Prakken – Defining the structure of arguments with AI models of argumentation)*
+
+---
+
+## 1. Argument *Types* (inside a single tree)
+
+Think: **shape of one argument** in ASPIC+.
+
+---
+
+### **Unit I** – Single-premise, single-step (classic “single” argument)
+
+**Form:** `ϕ ⇒ ψ`
+
+```text
+ϕ ──⇒ ψ
+```
+
+* One atomic premise
+* One defeasible rule to the conclusion
+
+---
+
+### **Unit II** – Multiple premises, single-step (classic “linked” argument)
+
+**Form:** `ϕ₁, ϕ₂ ⇒ ψ`
+
+```text
+ϕ₁     ϕ₂
+  \   /
+   ⇒ ψ
+```
+
+* Premises must **work together**
+* No premise alone is sufficient
+
+---
+
+### **Multiple Unit I** – Serial chain of Unit I steps
+
+All inferences are single-premise defeasible rules.
+
+```text
+ϕ ──⇒ χ ──⇒ ψ
+```
+
+* “Serial” single-premise reasoning
+* No genuinely linked steps
+
+---
+
+### **Multiple Unit II** – Serial chain of Unit II steps
+
+All inferences are multi-premise defeasible rules.
+
+```text
+ϕ₁   ϕ₂
+  \ /
+   ⇒ χ      θ₁   θ₂
+            \   /
+             ⇒ ψ
+```
+
+* Each step is **linked**
+* Entire tree stays in the “linked” style
+
+---
+
+### **Mixed** – Combination of Unit I and Unit II inside one argument
+
+```text
+ϕ ──⇒ χ      θ
+        \    /
+         ⇒ ψ
+```
+
+* At least one Unit I and one Unit II subargument
+* “Hybrid” **within a single tree**, not in Vorobej’s sense
+
+---
+
+## 2. Argument *Structures* (sets of arguments)
+
+Now: **collections** of arguments `{A₁,…,Aₙ}`, not just one tree.
+
+---
+
+### **SCS – Serial Convergent Structure**
+
+(“Convergent argument” in textbooks)
+
+* Only Unit I arguments
+* All have the **same conclusion**
+
+```text
+A₁: ϕ₁ ──⇒ C
+A₂: ϕ₂ ──⇒ C
+A₃: ϕ₃ ──⇒ C
+```
+
+* Several **independent** lines of support for C
+
+---
+
+### **SDS – Serial Divergent Structure**
+
+(“Divergent argument” in textbooks)
+
+* Only Unit I arguments
+* All share the **same premise**, but with **different conclusions**
+
+```text
+A₁: ϕ ──⇒ C₁
+A₂: ϕ ──⇒ C₂
+A₃: ϕ ──⇒ C₃
+```
+
+* One reason branching into multiple claims
+
+---
+
+### **LCS – Linked Convergent Structure**
+
+* Only Unit II arguments
+* All have the **same conclusion**
+
+```text
+A₁: ϕ₁   ϕ₂
+       \ /
+        ⇒ C
+
+A₂: θ₁   θ₂
+       \ /
+        ⇒ C
+```
+
+* Several *linked* arguments converging on C
+
+---
+
+### **LDS – Linked Divergent Structure**
+
+* Only Unit II arguments
+* All share the **same premises**, but yield **different conclusions**
+
+```text
+A₁: ϕ₁   ϕ₂
+       \ /
+        ⇒ C₁
+
+A₂: ϕ₁   ϕ₂
+       \ /
+        ⇒ C₂
+```
+
+* Same joint grounds, multiple conclusions
+
+---
+
+### **MS – Mixed Structure**
+
+* Interconnected set of arguments that is **not** SCS, SDS, LCS, or LDS
+* Mixes different argument types and/or more complex wiring
+
+Example pattern:
+
+```text
+A₁: ϕ ──⇒ χ
+
+A₂: χ    θ
+       \ /
+        ⇒ C
+
+A₃: ψ ──⇒ C
+```
+
+* Here: one Unit I (A₁), one Unit II (A₂), plus another Unit I (A₃) to the same conclusion → **Mixed Structure**
+
+---
+
+## 3. Quick verbal hooks (for the slide notes)
+
+* **Types = inside one tree:**
+  *Unit I / Unit II / Multiple I / Multiple II / Mixed*.
+* **Structures = across trees:**
+  *SCS / SDS / LCS / LDS / MS*.
+* **Convergent & divergent** live at the **structure** level, not as single-argument types.
+* Vorobej’s “hybrids” fall into **LCS** or **MS** once you mark strict vs. defeasible support.
+
+---
+
+—here are compact **ASCII** sketches plus **pseudo-TikZ** snippets you can drop into slides. they’re intentionally tiny and high-contrast for classroom use.
+
+---
+
+# Argument *Types* (single argument trees)
+
+**Legend:**
+`[]` premise `(⇒)` defeasible rule `(→)` strict rule `▶` derived node / conclusion
+
+### 1) Unit I (single-premise, defeasible)
+
+```
+[ϕ]
+  │ (⇒)
+  ▼
+▶ ψ
+```
+
+```tex
+% pseudo-TikZ
+\node (p) [draw] {$\phi$};
+\node (c) [below=8mm of p, draw, rounded corners] {$\psi$};
+\draw[->, dashed] (p) -- (c) node[midway,right] {$\Rightarrow$};
+```
+
+### 2) Unit II (linked premises, defeasible)
+
+```
+[ϕ₁]   [ϕ₂]
+   \     /
+    \   /
+    (⇒)
+     │
+     ▼
+    ▶ ψ
+```
+
+```tex
+\node (p1) [draw] {$\phi_1$};
+\node (p2) [right=10mm of p1, draw] {$\phi_2$};
+\node (c)  [below=10mm of $(p1)!0.5!(p2)$, draw, rounded corners] {$\psi$};
+\draw[->, dashed] (p1) |- (c);
+\draw[->, dashed] (p2) |- (c);
+```
+
+### 3) Multiple Unit I (serial single-premise)
+
+```
+[α]
+ │ (⇒)
+ ▼
+[β]
+ │ (⇒)
+ ▼
+▶ γ
+```
+
+```tex
+\node (a) [draw] {$\alpha$};
+\node (b) [below=7mm of a, draw] {$\beta$};
+\node (g) [below=7mm of b, draw, rounded corners] {$\gamma$};
+\draw[->, dashed] (a)--(b);
+\draw[->, dashed] (b)--(g);
+```
+
+### 4) Multiple Unit II (serial linked)
+
+```
+[α] [β]
+  \ /
+  (⇒)
+   │
+  [δ] [ε]
+    \ /
+    (⇒)
+     │
+     ▼
+    ▶ ζ
+```
+
+```tex
+\node (a) [draw] {$\alpha$};
+\node (b) [right=8mm of a, draw] {$\beta$};
+\node (d) [below=8mm of $(a)!0.5!(b)$, draw] {$\delta$};
+\node (e) [right=8mm of d, draw] {$\varepsilon$};
+\node (z) [below=8mm of $(d)!0.5!(e)$, draw, rounded corners] {$\zeta$};
+\draw[->, dashed] (a)|-(d);
+\draw[->, dashed] (b)|-(d);
+\draw[->, dashed] (d)|-(z);
+\draw[->, dashed] (e)|-(z);
+```
+
+### 5) Mixed (contains Unit I + Unit II)
+
+```
+[ρ]   [σ]
+  \   /
+   (⇒)
+    │
+   [τ]
+    │ (⇒)
+    ▼
+   ▶ χ
+```
+
+```tex
+\node (r) [draw] {$\rho$};
+\node (s) [right=8mm of r, draw] {$\sigma$};
+\node (t) [below=8mm of $(r)!0.5!(s)$, draw] {$\tau$};
+\node (x) [below=8mm of t, draw, rounded corners] {$\chi$};
+\draw[->, dashed] (r)|-(t);
+\draw[->, dashed] (s)|-(t);
+\draw[->, dashed] (t)--(x);
+```
+
+---
+
+# Argument *Structures* (sets of arguments)
+
+**Note:** each “arrow” below is a separate **argument**; SCS/SDS use only Unit I; LCS/LDS use only Unit II.
+
+### A) SCS — Serial Convergent Structure (parallel reasons → same conclusion)
+
+```
+[π₁] ─(⇒)→ ▶ C
+[π₂] ─(⇒)→ ▶ C
+[π₃] ─(⇒)→ ▶ C
+```
+
+```tex
+\node (p1)[draw]{$\pi_1$}; \node (c)[right=18mm of p1, draw, rounded corners]{$C$};
+\node (p2)[below=5mm of p1,draw]{$\pi_2$};
+\node (p3)[below=5mm of p2,draw]{$\pi_3$};
+\draw[->, dashed](p1)--(c);
+\draw[->, dashed](p2)--(c);
+\draw[->, dashed](p3)--(c);
+```
+
+### B) SDS — Serial Divergent Structure (one reason → multiple conclusions)
+
+```
+[π] ─(⇒)→ ▶ C₁
+[π] ─(⇒)→ ▶ C₂
+[π] ─(⇒)→ ▶ C₃
+```
+
+```tex
+\node (p)[draw]{$\pi$};
+\node (c1)[right=18mm of p, draw, rounded corners]{$C_1$};
+\node (c2)[below=5mm of c1, draw, rounded corners]{$C_2$};
+\node (c3)[below=5mm of c2, draw, rounded corners]{$C_3$};
+\draw[->, dashed](p)--(c1);
+\draw[->, dashed](p)--(c2);
+\draw[->, dashed](p)--(c3);
+```
+
+### C) LCS — Linked Convergent Structure (several linked arguments → same conclusion)
+
+```
+[α₁][β₁] ⇒ ▶ C
+[α₂][β₂] ⇒ ▶ C
+```
+
+```tex
+\node (a1)[draw]{$\alpha_1$};
+\node (b1)[right=8mm of a1, draw]{$\beta_1$};
+\node (c)[right=20mm of $(a1)!0.5!(b1)$, draw, rounded corners]{$C$};
+\draw[->, dashed](a1)|-(c); \draw[->, dashed](b1)|-(c);
+\node (a2)[below=8mm of a1, draw]{$\alpha_2$};
+\node (b2)[right=8mm of a2, draw]{$\beta_2$};
+\draw[->, dashed](a2)|-(c); \draw[->, dashed](b2)|-(c);
+```
+
+### D) LDS — Linked Divergent Structure (same linked premises → multiple conclusions)
+
+```
+[α][β] ⇒ ▶ C₁
+[α][β] ⇒ ▶ C₂
+```
+
+```tex
+\node (a)[draw]{$\alpha$};
+\node (b)[right=8mm of a, draw]{$\beta$};
+\node (c1)[right=20mm of $(a)!0.5!(b)$, draw, rounded corners]{$C_1$};
+\node (c2)[below=6mm of c1, draw, rounded corners]{$C_2$};
+\draw[->, dashed](a)|-(c1); \draw[->, dashed](b)|-(c1);
+\draw[->, dashed](a)|-(c2); \draw[->, dashed](b)|-(c2);
+```
+
+### E) MS — Mixed Structure (anything not purely SCS/SDS/LCS/LDS)
+
+```
+[ρ] ─(⇒)→ ▶ C
+[σ][τ] ⇒ ▶ C
+      │
+      └──(⇒)▶ D
+```
+
+```tex
+\node (r)[draw]{$\rho$};
+\node (s)[below=6mm of r, draw]{$\sigma$};
+\node (t)[right=8mm of s, draw]{$\tau$};
+\node (c)[right=22mm of r, draw, rounded corners]{$C$};
+\node (d)[below=6mm of c, draw, rounded corners]{$D$};
+\draw[->, dashed](r)--(c);
+\draw[->, dashed](s)|-(c); \draw[->, dashed](t)|-(c);
+\draw[->, dashed](t)|-(d);
+```
+
+---
+
+# “Hybrid” reconstructions (Vorobej) as structures
+
+### Case 1 — Single-premise supplement → **MS**
+
+```
+[base] ─(⇒)→ ▶ C
+[base][suppl₁] ⇒ ▶ C
+```
+
+```tex
+\node (b)[draw]{$base$}; \node (s1)[right=8mm of b, draw]{$supp_1$};
+\node (c)[right=18mm of s1, draw, rounded corners]{$C$};
+\draw[->, dashed](b)--(c);
+\draw[->, dashed](b)|-(c); \draw[->, dashed](s1)|-(c);
+```
+
+### Case 2 — Multi-premise supplement → **LCS**
+
+```
+[base][suppl₁] ⇒ ▶ C
+[base][suppl₂] ⇒ ▶ C
+```
+
+```tex
+\node (b)[draw]{$base$};
+\node (s1)[right=8mm of b, draw]{$supp_1$};
+\node (s2)[below=6mm of b, draw]{$supp_2$};
+\node (c)[right=22mm of b, draw, rounded corners]{$C$};
+\draw[->, dashed](b)|-(c); \draw[->, dashed](s1)|-(c);
+\draw[->, dashed](b)|-(c); \draw[->, dashed](s2)|-(c);
+```
+
+---
+
+want me to package these as a **Marp/Reveal.js slide** or a **PDF** with consistent spacing? I can also swap `(⇒)`/dashed arrows for `(→)`/solid when you want to illustrate strict vs. defeasible.
