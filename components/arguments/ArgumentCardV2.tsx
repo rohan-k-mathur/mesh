@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Target,
   AlertCircle,
+  AlertTriangle,
   Sparkles,
   PanelBottomOpen,
   StepForward,
@@ -21,9 +22,12 @@ import {
   Swords,
   Plus,
   View,
-  PlusCircle
+  PlusCircle,
+  Split
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { AttackMenuPro } from "./AttackMenuPro";
 import { ArgumentAttackModal } from "./ArgumentAttackModal";
 import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
@@ -49,6 +53,7 @@ import {
 import { SchemeAdditionDialog } from "@/components/argumentation/SchemeAdditionDialog";
 import { DependencyEditor } from "@/components/argumentation/DependencyEditor";
 import { ArgumentNetBuilder } from "@/components/argumentation/ArgumentNetBuilder";
+import { QuickContraryDialog } from "./QuickContraryDialog";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -424,6 +429,11 @@ export function ArgumentCardV2({
   const [showSchemeAdditionDialog, setShowSchemeAdditionDialog] = React.useState(false); // Phase 2: Multi-scheme support
   const [showDependencyEditor, setShowDependencyEditor] = React.useState(false); // Phase 2 Feature #2: Dependency editor
   const [showNetBuilder, setShowNetBuilder] = React.useState(false); // Phase 4 Feature #4: Net builder
+  const [showContraryDialog, setShowContraryDialog] = React.useState(false); // Phase 1d.2: Quick contrary dialog
+  
+  // Phase 1d.1: Fetch contraries for conclusion claim
+  const [contraries, setContraries] = React.useState<any[]>([]);
+  const [loadingContraries, setLoadingContraries] = React.useState(false);
   
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
@@ -551,6 +561,58 @@ export function ArgumentCardV2({
     })();
     return () => { cancel = true; };
   }, [id]);
+
+  // Phase 1d.1: Fetch contraries for conclusion claim
+  React.useEffect(() => {
+    if (!conclusion?.id || !deliberationId) return;
+    
+    let cancel = false;
+    (async () => {
+      setLoadingContraries(true);
+      try {
+        const response = await fetch(
+          `/api/contraries?deliberationId=${deliberationId}&claimId=${conclusion.id}`,
+          { cache: "no-store" }
+        );
+        if (!cancel && response.ok) {
+          const data = await response.json();
+          setContraries(data.contraries || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch contraries:", err);
+      } finally {
+        if (!cancel) setLoadingContraries(false);
+      }
+    })();
+    
+    return () => { cancel = true; };
+  }, [conclusion?.id, deliberationId]);
+
+  // Phase 1d.1: Listen for contrary changes
+  React.useEffect(() => {
+    const handler = () => {
+      if (conclusion?.id && deliberationId) {
+        // Refetch contraries
+        (async () => {
+          try {
+            const response = await fetch(
+              `/api/contraries?deliberationId=${deliberationId}&claimId=${conclusion.id}`,
+              { cache: "no-store" }
+            );
+            if (response.ok) {
+              const data = await response.json();
+              setContraries(data.contraries || []);
+            }
+          } catch (err) {
+            console.error("Failed to refresh contraries:", err);
+          }
+        })();
+      }
+    };
+    
+    window.addEventListener("contraries:changed", handler);
+    return () => window.removeEventListener("contraries:changed", handler);
+  }, [conclusion?.id, deliberationId]);
 
   // Listen for citation changes
   React.useEffect(() => {
@@ -749,8 +811,19 @@ export function ArgumentCardV2({
   const undermineAttacks = attacks.filter(a => a.attackType === "UNDERMINES");
   const totalAttacks = attacks.length;
 
+  // Phase 1d.1: Compute contrary display data
+  const contraryCount = contraries.length;
+  const hasContraries = contraryCount > 0;
+  const contraryClaimTexts = contraries.map((c: any) => c.contrary?.text || c.contraryText || "Unknown claim");
+
   return (
-    <div className="argument-card-v2 border-2 border-slate-300 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+    <TooltipProvider>
+      <div 
+        className="argument-card-v2 border-2 border-slate-300 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+        data-has-contraries={hasContraries}
+        data-contrary-count={contraryCount}
+        data-contrary-ids={JSON.stringify(contraries.map((c: any) => c.contraryId))}
+      >
       {/* Header - Always Visible */}
       <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
         <div className="flex items-start justify-between gap-3">
@@ -877,6 +950,16 @@ export function ArgumentCardV2({
                 Attack
               </button>
               
+              {/* Phase 1d.2: Mark as Contrary Button */}
+              <button
+                onClick={() => setShowContraryDialog(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 hover:bg-rose-100 hover:border-rose-300 transition-all cursor-pointer text-xs font-medium text-rose-700"
+                title="Mark this claim as contrary to another claim"
+              >
+                <Split className="w-3 h-3" />
+                Mark Contrary
+              </button>
+              
               {argCqStatus && (
                 <CQStatusPill 
                   required={argCqStatus.required} 
@@ -892,6 +975,37 @@ export function ArgumentCardV2({
                   <LinkIcon className="w-3 h-3" />
                   <span>{citations.length}</span>
                 </div>
+              )}
+
+              {/* Phase 1d.1: Contraries Badge */}
+              {hasContraries && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant="outline" 
+                      className="border-rose-500 text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-help transition-colors"
+                    >
+                      <AlertTriangle className="mr-1 h-3 w-3" />
+                      {contraryCount} {contraryCount === 1 ? "Contrary" : "Contraries"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs font-semibold mb-2">
+                      This argument&apos;s conclusion has {contraryCount} contrary claim{contraryCount !== 1 ? "s" : ""}.
+                    </p>
+                    <p className="text-xs text-gray-400 mb-2">
+                      Arguments with these conclusions may rebut or be rebutted by this argument:
+                    </p>
+                    <ul className="text-xs text-gray-300 space-y-1 list-disc list-inside">
+                      {contraryClaimTexts.slice(0, 5).map((text: string, idx: number) => (
+                        <li key={idx}>{text}</li>
+                      ))}
+                      {contraryClaimTexts.length > 5 && (
+                        <li className="italic">...and {contraryClaimTexts.length - 5} more</li>
+                      )}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
               )}
 
               {/* Phase 2 Week 2: Ludics Badges */}
@@ -1513,6 +1627,23 @@ export function ArgumentCardV2({
           onAnyChange?.(); // Notify parent of change
         }}
       />
+      
+      {/* Phase 1d.2: Quick Contrary Dialog */}
+      <QuickContraryDialog
+        open={showContraryDialog}
+        onOpenChange={setShowContraryDialog}
+        deliberationId={deliberationId}
+        sourceClaim={{
+          id: conclusion.id,
+          text: conclusion.text
+        }}
+        onContraryCreated={() => {
+          // Dialog will dispatch contraries:changed event
+          // ArgumentCardV2 will auto-refresh via existing listener
+          onAnyChange?.(); // Notify parent of change
+        }}
+      />
     </div>
+    </TooltipProvider>
   );
 }

@@ -1277,7 +1277,7 @@ const {
           </div>
 
           {/* DEBATE TAB */}
-          <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
+          <TabsContent value="debate" >
             <DebateTab
               deliberationId={deliberationId}
               currentUserId={currentUserId}
@@ -1288,7 +1288,7 @@ const {
           </TabsContent>
 
           {/* MODELS TAB */}
-          <TabsContent value="arguments" className="w-full min-w-0 space-y-4 mt-4">
+          <TabsContent value="arguments" className="w-full min-w-0 space-y-8 py-8 mt-4">
             <ArgumentsTab
               deliberationId={deliberationId}
               authorId={authorId || ""}

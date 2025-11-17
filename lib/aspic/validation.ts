@@ -176,13 +176,31 @@ export function ensureTranspositionClosure(
  * @param formula - Formula to negate
  * @returns Negated formula
  */
-function negateFormula(formula: string): string {
-  // Simple negation: prepend "NOT "
-  // TODO Phase C: Proper logical negation
-  if (formula.startsWith("NOT ")) {
-    return formula.slice(4); // Remove "NOT " prefix
+export function negateFormula(formula: string): string {
+  const trimmed = formula.trim();
+  
+  // Check for existing negation symbols (¬, ~, NOT, not, !)
+  const negSymbols = ['¬', '~', 'NOT ', 'not ', '!'];
+  
+  for (const negSymbol of negSymbols) {
+    if (trimmed.startsWith(negSymbol)) {
+      // Remove negation (double negation cancels out)
+      return trimmed.slice(negSymbol.length).trim();
+    }
   }
-  return `NOT ${formula}`;
+  
+  // Check if formula is "simple" (no operators) or already parenthesized
+  const needsParens = 
+    trimmed.includes('→') || 
+    trimmed.includes('∧') || 
+    trimmed.includes('∨') || 
+    trimmed.includes(' ') && !trimmed.startsWith('(');
+  
+  // Add negation (prefer ¬ symbol for consistency)
+  if (needsParens && !trimmed.startsWith('(')) {
+    return `¬(${trimmed})`;
+  }
+  return `¬${trimmed}`;
 }
 
 /**

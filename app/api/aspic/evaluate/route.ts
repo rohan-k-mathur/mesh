@@ -603,13 +603,18 @@ export async function GET(req: NextRequest) {
     const { validateAxiomConsistency, validateWellFormedness } = await import(
       "@/lib/aspic/validation"
     );
+    const { validateTranspositionClosure } = await import(
+      "@/lib/aspic/transposition"
+    );
     const axiomCheck = validateAxiomConsistency(theory);
     const wellFormednessCheck = validateWellFormedness(theory);
+    const transpositionCheck = validateTranspositionClosure(theory.strictRules);
 
-    if (!axiomCheck.valid || !wellFormednessCheck.valid) {
+    if (!axiomCheck.valid || !wellFormednessCheck.valid || !transpositionCheck.isClosed) {
       console.warn("[ASPIC API] Rationality violations detected:", {
         axioms: axiomCheck,
         wellFormedness: wellFormednessCheck,
+        transposition: transpositionCheck.isClosed ? "closed" : `${transpositionCheck.missingRules.length} missing transpositions`,
       });
     }
 
@@ -692,7 +697,7 @@ export async function GET(req: NextRequest) {
           axiomConsistency: axiomCheck.valid,
           wellFormedness: wellFormednessCheck.valid,
           subArgumentClosure: true, // Phase C: Implement with strict rules
-          transpositionClosure: true, // Phase C: Implement with strict rules
+          transpositionClosure: transpositionCheck.isClosed,
         },
       },
     };

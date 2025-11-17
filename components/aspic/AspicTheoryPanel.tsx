@@ -6,8 +6,8 @@ import useSWR from "swr";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AspicTheoryViewer } from "./AspicTheoryViewer";
 import { GroundedExtensionPanel } from "./GroundedExtensionPanel";
+import { RationalityChecklist } from "./RationalityChecklist";
 // import { AttackGraphVisualization } from "./AttackGraphVisualization"; // Chunk 2
-// import { RationalityChecklist } from "./RationalityChecklist";         // Chunk 4
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -92,7 +92,7 @@ export function AspicTheoryPanel({
             <TabsTrigger value="extension">
               Extension
             </TabsTrigger>
-            <TabsTrigger value="rationality" disabled>
+            <TabsTrigger value="rationality">
               Rationality
             </TabsTrigger>
           </TabsList>
@@ -116,10 +116,15 @@ export function AspicTheoryPanel({
           />
         )}
         
-        {view === "rationality" && (
-          <div className="text-center py-12 text-gray-500 text-sm">
-            Rationality checklist coming in Chunk 4
-          </div>
+        {view === "rationality" && data.rationality && (
+          <RationalityChecklist
+            rationality={data.rationality}
+            deliberationId={deliberationId}
+            onRegenerateTransposition={() => {
+              // Trigger SWR revalidation
+              window.location.reload();
+            }}
+          />
         )}
       </div>
     </div>

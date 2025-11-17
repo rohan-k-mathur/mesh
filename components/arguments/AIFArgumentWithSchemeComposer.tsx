@@ -725,7 +725,7 @@ export function AIFArgumentWithSchemeComposer({
                 </button>
                 
                 <button
-                  className="text-xs px-3 py-2 rounded-lg btnv2 bg-indigo-400 text-white"
+                  className="text-xs px-3 py-2 rounded-lg btnv2 bg-indigo-600 text-white"
                   disabled={!conclusionDraft.trim() || savingConclusion}
                   onClick={saveConclusionNow}
                   title="Save this text as a new claim"
@@ -1173,8 +1173,8 @@ export function AIFArgumentWithSchemeComposer({
           />
         </div>
 
-        {/* Phase 1b.3: Rule Type Selection (STRICT vs DEFEASIBLE) */}
-        {selected && (
+        {/* Phase 1b.3: Rule Type Selection (STRICT vs DEFEASIBLE) - Available for both scheme-based and freeform arguments */}
+        
           <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
             <div className="flex items-start gap-2 mb-3">
               <span className="text-blue-600 text-sm">⚖️</span>
@@ -1271,6 +1271,25 @@ export function AIFArgumentWithSchemeComposer({
                   </div>
                 </div>
 
+                {/* Phase 1c: Transposition closure explanation */}
+                <div className="mt-3 p-2 rounded bg-blue-50 border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600 text-xs">💡</span>
+                    <div className="flex-1">
+                      <p className="text-xs text-blue-900 font-medium">
+                        Transposition Closure
+                      </p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        For logical consistency, strict rules should support <em>contrapositive reasoning</em> (modus tollens). 
+                        If you create "<strong>P → Q</strong>", the system may warn if "<strong>¬Q → ¬P</strong>" is missing.
+                      </p>
+                      <div className="mt-2 text-xs text-blue-800 bg-blue-100 p-2 rounded">
+                        <strong>Example:</strong> "rain → wet" should have "¬wet → ¬rain" for complete reasoning.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Optional rule name input for strict rules */}
                 <div className="mt-3">
                   <label className="flex flex-col gap-1.5">
@@ -1292,7 +1311,6 @@ export function AIFArgumentWithSchemeComposer({
               </div>
             )}
           </div>
-        )}
 
         <div className="flex items-center gap-3 mt-4">
           <button

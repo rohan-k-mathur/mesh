@@ -59,7 +59,7 @@ export function DebateTab({
   className,
 }: DebateTabProps) {
   return (
-    <div className={className}>
+    <div  className="w-full min-w-0 space-y-5  mt-4">
       {/* Conditional Settings Panel */}
       {delibSettingsOpen && (
         <SectionCard>
