@@ -39,3 +39,262 @@ It is important to note that ontologies and rules of representational systems do
 I am conscious of my existence as determined in time. All time determination presupposes something persistent in perception. This persistent thing, however, cannot be an intuition in me. It is clear that Kant—in order to demonstrate that the existence of external objects is indispensable to explain the possibility of our common experience “as determined in time”—needs to exclude the possibility that the “persistent thing” necessary for time determination is “an intuition in me.” If it could be something “in us,” then no external objects would be necessary. This argument, however, is only strong and convincing if there are, indeed, only these two possibilities: “Either,” as the enabler in the disjunctive syllogism in Fig. 6 states, “this persistent something can ... be an intuition within me or the perception of this persistent something is possible only through a thing outside me.” Dicker, by contrast, argues—implicitly—that there is a third option. He suggests, thus, to improve Kant’s argument by adding what he counts as premise (4) in his reconstruction: “Time itself cannot serve as this persisting frame of reference.” So the question is whether Kant simply missed something that should be added to his argument or whether he deliberately did not mention Dicker’s third option. In AGORA-net it is easier to discuss this question than in either Dicker’s reconstruction or in Rationale because the enabler—which is clearly visible in the AGORA-map when we reconstruct this part of the argument as disjunctive syllogism—presents a distinctive location at which this question must be decided. This enabler is either convincing or it should be amended. Now, I think this enabler is perfectly acceptable. The reason is that time—as an “a priori form of intuition”—could never be a “persistent something” for Kant. Time simply is not a “something”—be it persistent or not—at which we could look as though we are looking at the “starry heavens above” or anything else. This reflection on the cognitive potential of certain enabling and constraining features that can be implemented in computer-supported argument visualization tools, but not in tools that we usually use for the textual representation of arguments, leads to a second argument in favor of CSAV tools. These tools are superior because they can be designed so that they, first, direct the user’s attention in certain advantageous directions and, second, prevent operations that should be avoided, such as claiming something that is not connected to anything. It is, to be sure, an open question what exactly makes a good or optimal system of constraining and enabling software features. But it should be clear that the possibility alone to design such a system is advantageous. A third and last argument focuses on collaborative CSAV tools in contrast to noncollaborative ones. Based on the comparison of Rationale and AGORA-net in the previous section, I would argue that collaborative tools are, in general, superior to standalone software applications. 15 This claim can be justified by the following reasons. First, as already argued above, critical reflection on one’s own argument can be effectively stimulated by objections and comments provided by other people. Second, collaborative argument visualization tools allow debate as part of the argument construction process. In AGORA-net, for instance, any premise that is not justified by another argument can either be countered by a counterargument or defeated—if it is a universal statement—by a counterexample. These two sorts of objections can again be attacked by counter-counterarguments, and so on. Third, the possibility of debate as part of the process of argument construction should lead to better arguments, and to a better understanding of the problem an argument is about. Objections by other people might illustrate perspectives on the problem that the creator of an argument did not see before. Additionally, if I am not able to counter those objections, their existence should challenge me to revise either the conclusion of my argument or the entire structure of an argument or argumentation. Fourth, the possibility of online collaboration on argument maps allows a fundamental shift in the practice of arguing in philosophy and other disciplines. We are all familiar with the four-step process of developing arguments in texts, publishing these texts, reading other texts that react to our arguments, and new responses. This recursive process is not only time-consuming, but also a process that is characterized by a clear separation between individual and social activities. Papers and books are written by individuals or, usually, small groups of authors, while social exchange happens at conferences, in seminars, and in person-to-person communication. As in “open source” software development where individuals and groups from all over the globe collaborate on the creation of freely available and openly shared software (Raymond 2001), it is possible to supplement or replace this traditional method of arguing—and of knowledge production by arguments—by a process in which these four steps happen virtually simultaneously and the individual-social divide is largely overcome by synchronous and asynchronous collaboration on argument maps over the internet. Everybody, for example, can “Enter the AGORA-net” at http://agora.gatech.edu/, go to “Philosophy,” then “Epistemology,” to find several versions of the Kantian argument that I presented in the previous section. Registered visitors can add objections and comments to particular statements, are able to provide additional arguments, and can copy entire argument maps by clicking on “Save map as” to completely revise them. This way, it is possible to move large parts of the academic debate about the most convincing structure of Kant’s argument—and any other argument—online. It is possible to provide feedback immediately from all over the world, to learn from others’ input, and to improve arguments in either collaborative efforts or adversarial competition. A fifth reason for the superiority of collaborative argument visualization tools is that they support division of labor in complex projects. The potential of collaborative argument mapping on the web could be interesting especially for large-scale collaboration among experts who need to connect compartmentalized areas of expertise. John Hardwick famously described—under the heading of “epistemic dependence”—the development of a 3½ pages long journal article in particle physics that has been published by 99 authors after a series of experiments that were performed in five geographically separated groups. Many authors of an article such as this one, he writes, “will not even know how a given number in the article was arrived at,” and there would be no point for a single author to understand all the details because in the time that it would take the results will probably already be overturned by new research (Hardwig 1985, p. 347). For a publication, however, all the justifications that are provided by a variety of fields must be connected in one consistent and clearly structured argument. To achieve this goal, it should be helpful to collaboratively develop such a structure in web-based argument maps. If the overall structure of an argument is agreed upon, then the efforts of all the contributors can be compartmentalized. A sixth and final reason to be mentioned here is that collaborative tools allow us to identify and clearly localize all the areas of disagreement in an argumentation, in contrast to those areas where there is consensus.
 
 . Conclusion: Changing the practice of philosophy by collaborative and adversarial argument mapping Computer-supported collaborative argument mapping on the internet can, as I tried to show in this paper, change the practice of doing philosophy in a variety of ways. The graphical structure of argument “maps” that can be developed in a virtually infinite space can improve philosophical reflection by supporting efforts to cope with complexity.16 If we conceptualize complexity as the experience of feeling overwhelmed by a multitude of ideas, data, knowledge, assumptions, and so on that are not well structured, then argument mapping can be seen as means of empowerment. Tools that challenge users to focus on inferential relations between statements and the overall structure of complex argumentations, and that help them to develop those relations and structures, promote reflection on these crucial components of rationality. These tools cannot only change philosophy, but they also have the potential to contribute to human flourishing in general. The visualization of networks of justifications can facilitate deliberation and rational communication. Furthermore, software tools that are designed for collaboration can substantially change communication and workflow. By overcoming boundaries of space and time and those between individual and social activities, argument mapping on the internet can foster more collaborative modes of knowledge production and exchange. Tools such as AGORA-net provide an online infrastructure in which everybody can develop arguments for positions, recommendations, or theses, or can contribute to debates with further arguments or counterarguments. There is also the possibility of a more fundamental shift from the publication of individual “contributions” into the direction of a collective development of arguments that are available in a “World-Wide Argument Web” (Rahwan et al. 2007). I introduced above the notion of synergetic logosymphysis to describe a process in which an argumentative structure grows in a collaborative effort. To a certain degree, this concept puts the growing argumentation in the center of attention, in contrast to individual contributions. Instead of keeping the familiar individualistic perspective that perceives cognition as centered on an individual—and software tools as “augmenting” human cognition (Engelbart 1963)— synergetic logosymphysis can stand for a shift to the growth of knowledge itself; a growth to which individuals contribute in an auxiliary and serving role.17 All this should support the hope that well-designed collaborative argument mapping tools can improve reflection, communication, and collaboration, thus changing the practice of doing philosophy.
+
+Below is a clear, fully textual transcription + explanation of the three new diagrams, written so that an LLM with no image-reading ability can understand the exact reasoning structure, nodes, and inferential relations.
+
+I preserve:
+
+The argument nodes verbatim
+
+The structure of supports / co-dependent reasons
+
+The direction and type of inferential arrows
+
+The intended philosophical meaning (Kant → Dicker → Hoffman reconstructions)
+
+Diagram 1: Dicker’s Reconstruction of Kant’s “Proof”
+
+(Fig. 1: Two-dimensional visualization using CSAV tool)
+
+Overall Structure
+
+This is a bifurcated support structure with:
+
+A main conclusion (top)
+
+A main argument consisting of two co-dependent reasons
+
+A second subargument supporting one of those reasons with four co-dependent premises
+
+Everything ultimately supports the conclusion:
+
+“I perceive persisting objects in space outside me by reference to which I can determine the temporal order of my experiences.”
+
+This is the top box.
+
+Main Argument (first-level support): two co-dependent reasons
+
+Two boxes directly underneath the conclusion:
+
+Reason 1
+
+1. I am conscious of my own existence in time, i.e., I am aware that I have experiences that occur in a specific temporal order.
+
+Reason 2
+
+I can be aware of having experiences that occur in a specific temporal order only if I perceive persisting objects in space outside me by reference to which I can determine the temporal order of my experiences.
+
+Important:
+
+These two reasons are co-dependent, meaning each is necessary but not sufficient alone.
+
+Second Subargument (supports the second reason)
+
+The second reason (above) is expanded into four co-dependent supporting claims, which jointly justify it.
+
+These four are placed in a row beneath:
+
+Box 2
+
+2. I can be aware of having experiences that occur in a specific temporal order only if there is some persisting element by reference to which I can determine [the order].
+
+Box 3
+
+3. No conscious state of my own can serve as this persisting frame of reference.
+
+Box 4
+
+4. Time itself cannot serve as this persisting frame of reference.
+
+Conclusion of subargument (Box 5)
+
+Derived from Boxes 2, 3, and 4:
+
+5. If (2) and (3) and (4), then I can be aware of having experiences that occur in a specific temporal order only if I perceive persisting objects in space outside me by reference to which I can determine the temporal order of my experiences.
+
+This directly supports the second co-dependent reason in the main argument.
+
+Textual Note (from caption)
+
+The diagram shows that the main conclusion is justified by two co-dependent reasons.
+
+The second of these reasons is further justified by four co-dependent subreasons.
+
+This is a structured visualization of how Dicker reconstructs Kant’s transcendental proof regarding external objects.
+
+Diagram 2: Hoffman’s AGORA-net Reconstruction of Kant’s Main Argument
+
+(Fig. 5)
+
+Overall Purpose
+
+This is a formal AGORA-net diagram showing how three co-dependent premises jointly support a conditional argument that concludes:
+
+“objects in space outside me exist.”
+
+The structure is built around a large modus ponens step.
+
+Conclusion node
+
+Leftmost conclusion:
+
+“objects in space outside me exist”
+(Labeled “Particular” by AU: MichaelHoff…)
+
+This is reached via a therefore (modus ponens) arrow from a major premise.
+
+Major Premise (central box)
+
+A conditional with conjunctive antecedent:
+
+If
+
+“I am conscious of my existence as determined in time” and
+
+“all time-determination presupposes something persistent in perception” and
+
+“the perception of this persistent something is possible only through a thing outside me,”
+then
+“objects in space outside me exist.”
+
+This is the conditional used for modus ponens.
+
+Three co-dependent antecedent premises (right side)
+
+Each has its own box, linked as conjunctive support to the central conditional.
+
+Premise A
+
+Labeled “Particular”:
+
+“I am conscious of my existence as determined in time.”
+
+Premise B
+
+Labeled “Universal”:
+
+“all time-determination presupposes something persistent in perception.”
+
+Premise C
+
+Labeled “Universal”:
+
+“the perception of this persistent something is possible only through a thing outside me.”
+
+Together, A, B, and C form the three co-dependent reasons necessary to instantiate the antecedent of the conditional.
+
+Inferential Step
+
+A modus ponens link from:
+
+the conditional
+
+plus the conjunction of the three premises
+→ yields the conclusion “objects in space outside me exist.”
+
+Textual Note (caption)
+
+According to this interpretation, three co-dependent reasons are needed.
+
+The second and third are themselves justified by additional arguments shown in Fig. 6 (the next image).
+
+Based on interpretations of Kant’s Reflexionen, B277f, and Hoffman’s map structure.
+
+Diagram 3: Arguments Supporting the Second and Third Premises (Fig. 6)
+
+This diagram contains two embedded argument chains:
+
+A top chain justifying the second premise from Fig. 5 (“all time-determination presupposes something persistent in perception”).
+
+A bottom chain justifying the third premise from Fig. 5 (“the perception of this persistent something is possible only through a thing outside me”).
+
+Each chain uses classical argument schemes (modus ponens, disjunctive syllogism, not-all syllogism, etc.).
+
+Top Argument Chain (supports Premise B of Fig. 5)
+Target conclusion
+
+“all time-determination presupposes something persistent in perception.”
+
+Supporting premises:
+Universal premise
+
+“the recognition of time as a succession cannot be represented except by means of something which endures, with which that which is successive is simultaneous”
+(from Dicker 2008, referencing Kant)
+
+Conditional premise
+
+If the recognition of time as a succession ‘cannot be represented except by means of something which endures…’, then ‘all time-determination presupposes something persistent in perception’.
+
+Inference
+
+The conditional + universal premise →
+Therefore (modus ponens) →
+the target conclusion.
+
+Bottom Argument Chain (supports Premise C of Fig. 5)
+Target conclusion
+
+“the perception of this persistent something is possible only through a thing outside me.”
+
+Premise reflects Kant’s “Note 2” to the Proof.
+
+Supporting reasoning:
+Disjunction (Universal premise)
+
+Either
+“this persistent something can be an intuition within me”
+or
+“the perception of this persistent something is possible only through a thing outside me.”
+
+Premise denying the first disjunct
+
+“It is not the case that ‘this persistent something can … be an intuition within me’.”
+
+Inference
+
+Using disjunctive syllogism, the disjunction + the negation of the first option implies the second disjunct:
+
+Therefore “the perception of this persistent something is possible only through a thing outside me.”
+
+Additional supporting step (not-all syllogism)
+
+Another supporting Universal premise:
+
+“we can determine time solely through the variation in external relations (i.e., through motion) by reference to the persistent in space (e.g., the sun’s motion with respect to the earth’s object)” (B277f).
+
+And a negation premise:
+
+“It cannot be the case, at the same time, that we can determine time by reference to the persistent in space and ‘this persistent something can … be an intuition within me’.”
+
+This yields a not-all syllogism step producing support for the denial of internal intuition as a candidate.
+
+This strengthens the disjunctive syllogism above.
+
+Textual Note (caption)
+
+The top argument justifies the second premise of Fig. 5.
+
+The bottom argument justifies the third premise.
+
+Quotes are from Kant (B277f, Reflexionen).
+
+Argument schemes selected by Hoffman; translations by the author.
+
+If you’d like, I can also:
+Transform these into
+
+AIF (I-nodes, RA-nodes, CA-nodes)
+
+Your Mesh/Agora schema (Claims, ArgumentEdges, SchemeInstances, DebateSheet structure)
+
+A Toulmin-style decomposition
+
+A formal logical derivation (Fitch or natural deduction)
+
+Or
+
+Build a unified canonical reconstruction combining Dicker, Hoffman, and Kant’s original passages.
+
+Just tell me what version you want.
+
+

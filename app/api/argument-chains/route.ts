@@ -16,6 +16,76 @@ const createChainSchema = z.object({
   isEditable: z.boolean().default(false),
 });
 
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getUserFromCookies();
+    if (!user || !user.userId) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401, ...NO_STORE }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const deliberationId = searchParams.get("deliberationId");
+
+    if (!deliberationId) {
+      return NextResponse.json(
+        { ok: false, error: "deliberationId is required" },
+        { status: 400, ...NO_STORE }
+      );
+    }
+
+    // Fetch chains for this deliberation
+    const chains = await prisma.argumentChain.findMany({
+      where: {
+        deliberationId: deliberationId,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        _count: {
+          select: {
+            nodes: true,
+            edges: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    // Serialize BigInt fields
+    const serializedChains = chains.map((chain: any) => ({
+      ...chain,
+      createdBy: chain.createdBy.toString(),
+      creator: {
+        ...chain.creator,
+        id: chain.creator.id.toString(),
+      },
+      createdAt: chain.createdAt.toISOString(),
+      updatedAt: chain.updatedAt.toISOString(),
+    }));
+
+    return NextResponse.json(
+      { ok: true, chains: serializedChains },
+      { status: 200, ...NO_STORE }
+    );
+  } catch (error) {
+    console.error("[GET /api/argument-chains] Error:", error);
+    return NextResponse.json(
+      { ok: false, error: "Failed to fetch argument chains" },
+      { status: 500, ...NO_STORE }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getUserFromCookies();

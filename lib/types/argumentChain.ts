@@ -195,6 +195,7 @@ export interface ChainNodeData {
     image: string | null;
   };
   nodeOrder: number;
+  isHighlighted?: boolean;
 }
 
 // ReactFlow edge data

@@ -21,13 +21,12 @@ interface AddNodeButtonProps {
 }
 
 const ROLE_OPTIONS = [
-  { value: "PREMISE", label: "Premise", description: "A foundational claim or starting point" },
-  { value: "INFERENCE", label: "Inference", description: "A logical step or reasoning process" },
-  { value: "CONCLUSION", label: "Conclusion", description: "A final claim or result" },
-  { value: "OBJECTION", label: "Objection", description: "A counterargument or challenge" },
-  { value: "SUPPORT", label: "Support", description: "Additional evidence or backing" },
-  { value: "REBUTTAL", label: "Rebuttal", description: "A response to an objection" },
-  { value: "SYNTHESIS", label: "Synthesis", description: "A combination of multiple arguments" },
+  { value: "PREMISE", label: "Premise", description: "Provides foundational claim" },
+  { value: "EVIDENCE", label: "Evidence", description: "Supports with data/facts" },
+  { value: "CONCLUSION", label: "Conclusion", description: "Final claim being argued for" },
+  { value: "OBJECTION", label: "Objection", description: "Challenges another argument" },
+  { value: "REBUTTAL", label: "Rebuttal", description: "Responds to objection" },
+  { value: "QUALIFIER", label: "Qualifier", description: "Adds conditions/scope" },
 ];
 
 const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
@@ -45,10 +44,21 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/deliberations/${deliberationId}/arguments`);
+      const response = await fetch(`/api/deliberations/${deliberationId}/arguments/aif?limit=100`);
       if (response.ok) {
         const data = await response.json();
-        setArgumentsList(data.arguments || []);
+        // Map AIF arguments to simpler format
+        const mapped = (data.items || []).map((item: any) => ({
+          id: item.id,
+          text: item.text,
+          title: item.aif?.conclusion?.text || item.text.substring(0, 50) + "...",
+          createdAt: item.createdAt,
+          creator: {
+            id: item.authorId,
+            name: item.dialogueProvenance?.speakerName || "Unknown",
+          },
+        }));
+        setArgumentsList(mapped);
       }
     } catch (error) {
       console.error("Failed to fetch arguments:", error);
@@ -85,28 +95,21 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
         throw new Error("Failed to add node");
       }
 
-      const nodeData = await response.json();
+      const result = await response.json();
+      const nodeData = result.node;
 
       // Calculate position for new node
       const position = getNewNodePosition(nodes, 280, 180);
 
-      // Add to local state
+      // Add to local state with full node data from API
       addNode({
         id: nodeData.id,
         type: "argumentNode",
         position,
         data: {
-          argument: {
-            id: argument.id,
-            text: argument.text,
-            title: argument.title,
-          },
-          role: selectedRole,
-          addedBy: {
-            id: argument.creator.id,
-            name: argument.creator.name,
-            image: null,
-          },
+          argument: nodeData.argument,
+          role: nodeData.role,
+          addedBy: nodeData.contributor,
           nodeOrder: nodeData.nodeOrder,
         },
       });
@@ -131,7 +134,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
     <>
       <button
         onClick={handleOpen}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors shadow-md"
       >
         <Plus className="w-4 h-4" />
         Add Argument
@@ -164,7 +167,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
                     className={`
                       p-2 text-left rounded-lg border-2 transition-colors
                       ${selectedRole === role.value
-                        ? "border-blue-500 bg-blue-50"
+                        ? "border-sky-500 bg-sky-50"
                         : "border-gray-200 hover:border-gray-300"
                       }
                     `}
@@ -185,7 +188,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
                   placeholder="Search arguments..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -202,7 +205,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
                     <button
                       key={arg.id}
                       onClick={() => handleAddArgument(arg)}
-                      className="w-full p-3 text-left bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                      className="w-full p-3 text-left bg-white border border-gray-200 rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors"
                     >
                       <h4 className="text-sm font-semibold text-gray-900 mb-1">
                         {arg.title || "Untitled"}

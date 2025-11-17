@@ -51,7 +51,8 @@ const ConnectionEditor: React.FC = () => {
         throw new Error("Failed to create edge");
       }
 
-      const edgeData = await response.json();
+      const result = await response.json();
+      const edgeData = result.edge;
 
       // Add to local state
       addEdge({
@@ -85,7 +86,7 @@ const ConnectionEditor: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl">
+      <div className="w-full max-h-[500px] overflow-y-auto max-w-md bg-white rounded-xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Define Connection</h2>
@@ -113,7 +114,7 @@ const ConnectionEditor: React.FC = () => {
                   className={`
                     w-full p-3 text-left rounded-lg border-2 transition-all
                     ${edgeType === type.id
-                      ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
+                      ? "border-sky-500 bg-sky-50 ring-2 ring-sky-200"
                       : "border-gray-200 hover:border-gray-300"
                     }
                   `}
@@ -132,7 +133,7 @@ const ConnectionEditor: React.FC = () => {
           {/* Strength Slider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Connection Strength: <span className="text-blue-600 font-semibold">{Math.round(strength * 100)}%</span>
+              Connection Strength: <span className="text-sky-600 font-semibold">{Math.round(strength * 100)}%</span>
             </label>
             <input
               type="range"
@@ -160,7 +161,7 @@ const ConnectionEditor: React.FC = () => {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Explain how these arguments are connected..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
             />
           </div>
         </div>
@@ -177,7 +178,7 @@ const ConnectionEditor: React.FC = () => {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
           >
             {loading ? "Creating..." : "Create Connection"}
           </button>

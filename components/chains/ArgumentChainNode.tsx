@@ -8,34 +8,34 @@ interface ArgumentChainNodeProps extends NodeProps<ChainNodeData> {}
 
 const roleColors: Record<string, string> = {
   PREMISE: "border-blue-500",
-  INFERENCE: "border-purple-500",
+  EVIDENCE: "border-teal-500",
   CONCLUSION: "border-green-500",
   OBJECTION: "border-red-500",
-  SUPPORT: "border-teal-500",
   REBUTTAL: "border-orange-500",
-  SYNTHESIS: "border-indigo-500",
+  QUALIFIER: "border-purple-500",
 };
 
 const roleBgColors: Record<string, string> = {
   PREMISE: "bg-blue-100 text-blue-800",
-  INFERENCE: "bg-purple-100 text-purple-800",
+  EVIDENCE: "bg-teal-100 text-teal-800",
   CONCLUSION: "bg-green-100 text-green-800",
   OBJECTION: "bg-red-100 text-red-800",
-  SUPPORT: "bg-teal-100 text-teal-800",
   REBUTTAL: "bg-orange-100 text-orange-800",
-  SYNTHESIS: "bg-indigo-100 text-indigo-800",
+  QUALIFIER: "bg-purple-100 text-purple-800",
 };
 
 const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected }) => {
   const role = data.role || "PREMISE";
   const borderColor = roleColors[role] || "border-gray-400";
   const badgeColor = roleBgColors[role] || "bg-gray-100 text-gray-800";
+  const isHighlighted = data.isHighlighted || false;
 
   return (
     <div
       className={`
         relative w-[280px] bg-white rounded-lg shadow-md border-l-4 ${borderColor}
         ${selected ? "ring-2 ring-blue-400 shadow-lg" : ""}
+        ${isHighlighted ? "ring-4 ring-yellow-400 shadow-xl animate-pulse" : ""}
         transition-all duration-200
       `}
     >

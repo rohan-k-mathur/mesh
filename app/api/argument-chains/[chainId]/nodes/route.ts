@@ -14,6 +14,110 @@ const addNodeSchema = z.object({
   positionY: z.number().optional(),
 });
 
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { chainId: string } }
+) {
+  try {
+    const user = await getUserFromCookies();
+    if (!user || !user.userId) {
+      return NextResponse.json(
+        { ok: false, error: "Unauthorized" },
+        { status: 401, ...NO_STORE }
+      );
+    }
+
+    const { chainId } = params;
+
+    // Fetch chain with nodes and edges
+    const chain = await prisma.argumentChain.findUnique({
+      where: { id: chainId },
+      include: {
+        nodes: {
+          include: {
+            argument: {
+              include: {
+                argumentSchemes: {
+                  include: {
+                    scheme: true,
+                  },
+                },
+                schemeNet: {
+                  include: {
+                    steps: {
+                      include: {
+                        scheme: true,
+                      },
+                      orderBy: {
+                        stepOrder: "asc",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            contributor: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          orderBy: {
+            nodeOrder: "asc",
+          },
+        },
+        edges: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!chain) {
+      return NextResponse.json(
+        { ok: false, error: "Chain not found" },
+        { status: 404, ...NO_STORE }
+      );
+    }
+
+    // Serialize BigInt fields
+    const serializedNodes = chain.nodes.map((node: any) => ({
+      ...node,
+      addedBy: node.addedBy.toString(),
+      contributor: {
+        ...node.contributor,
+        id: node.contributor.id.toString(),
+      },
+      argument: {
+        ...node.argument,
+        authorId: node.argument.authorId.toString(),
+      },
+    }));
+
+    const serializedEdges = chain.edges.map((edge: any) => ({
+      ...edge,
+    }));
+
+    return NextResponse.json(
+      {
+        ok: true,
+        nodes: serializedNodes,
+        edges: serializedEdges,
+      },
+      { status: 200, ...NO_STORE }
+    );
+  } catch (error) {
+    console.error("[GET /api/argument-chains/[chainId]/nodes] Error:", error);
+    return NextResponse.json(
+      { ok: false, error: "Failed to fetch nodes" },
+      { status: 500, ...NO_STORE }
+    );
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { chainId: string } }

@@ -12,7 +12,7 @@ interface ChainExportButtonProps {
 const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argument-chain" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const { getNodes } = useReactFlow();
+  const { getNodes, getEdges } = useReactFlow();
 
   const handleExportPNG = async () => {
     setExporting(true);
@@ -70,10 +70,12 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
     setExporting(true);
     try {
       const nodes = getNodes();
+      const edges = getEdges();
       const data = {
         chainName,
         exportedAt: new Date().toISOString(),
         nodes,
+        edges,
       };
 
       const jsonStr = JSON.stringify(data, null, 2);
