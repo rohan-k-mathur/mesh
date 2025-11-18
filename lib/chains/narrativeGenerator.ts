@@ -5,6 +5,7 @@
 
 import { Node, Edge } from "reactflow";
 import { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
+import { generateEnhancedMarkdown, MarkdownOptions } from "./markdownFormatter";
 
 // ===== Types =====
 
@@ -13,6 +14,8 @@ export interface NarrativeOptions {
   includeMetadata?: boolean;
   tone?: "formal" | "conversational" | "academic" | "legal";
   detailLevel?: "brief" | "standard" | "detailed";
+  // Markdown-specific options
+  markdownOptions?: MarkdownOptions;
 }
 
 export interface NarrativeResult {
@@ -25,7 +28,7 @@ export interface NarrativeResult {
   };
 }
 
-interface SortedNode {
+export interface SortedNode {
   node: Node<ChainNodeData>;
   depth: number;
   position: number;
@@ -381,11 +384,12 @@ export function generateNarrative(
   options: NarrativeOptions = {}
 ): NarrativeResult {
   // Set defaults
-  const opts: Required<NarrativeOptions> = {
+  const opts: NarrativeOptions = {
     format: options.format || "text",
     includeMetadata: options.includeMetadata ?? true,
     tone: options.tone || "formal",
-    detailLevel: options.detailLevel || "standard"
+    detailLevel: options.detailLevel || "standard",
+    markdownOptions: options.markdownOptions || {}
   };
 
   // Handle empty chain
@@ -396,7 +400,7 @@ export function generateNarrative(
         nodeCount: 0,
         edgeCount: 0,
         generatedAt: new Date().toISOString(),
-        format: opts.format
+        format: opts.format!
       }
     };
   }
@@ -404,6 +408,28 @@ export function generateNarrative(
   // Sort nodes topologically
   const sortedNodes = topologicalSort(nodes, edges);
   
+  // If markdown format, use enhanced formatter
+  if (opts.format === "markdown") {
+    const markdown = generateEnhancedMarkdown(
+      nodes,
+      edges,
+      sortedNodes,
+      chainName,
+      opts.markdownOptions
+    );
+
+    return {
+      text: markdown,
+      metadata: {
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        generatedAt: new Date().toISOString(),
+        format: "markdown"
+      }
+    };
+  }
+
+  // Plain text format (existing logic)
   // Separate main chain from orphans
   const mainChain = sortedNodes.filter(sn => sn.depth >= 0);
   const orphans = sortedNodes.filter(sn => sn.depth < 0);
@@ -418,21 +444,11 @@ export function generateNarrative(
   const orphansSection = generateOrphansSection(orphans, opts);
 
   // Combine all parts
-  let narrative = "";
-  
-  if (opts.format === "markdown") {
-    narrative = metadata + "\n\n" + narrativeParts.join("\n\n") + orphansSection;
-  } else {
-    narrative = metadata + narrativeParts.join(opts.detailLevel === "brief" ? ". " : "\n\n") + orphansSection;
-  }
+  let narrative = metadata + narrativeParts.join(opts.detailLevel === "brief" ? ". " : "\n\n") + orphansSection;
 
   // Add concluding remark for formal tone
   if (opts.tone === "formal" && mainChain.length > 1) {
-    if (opts.format === "markdown") {
-      narrative += "\n\n---\n\n*This completes the argument chain.*";
-    } else {
-      narrative += "\n\nThis completes the argument chain.";
-    }
+    narrative += "\n\nThis completes the argument chain.";
   }
 
   return {
@@ -441,7 +457,7 @@ export function generateNarrative(
       nodeCount: nodes.length,
       edgeCount: edges.length,
       generatedAt: new Date().toISOString(),
-      format: opts.format
+      format: opts.format!
     }
   };
 }

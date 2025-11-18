@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Download, Image as ImageIcon, FileCode, Network, FileText } from "lucide-react";
+import { Download, Image as ImageIcon, FileCode, Network, FileText, Copy } from "lucide-react";
 import { toPng, toSvg } from "html-to-image";
 import { useReactFlow } from "reactflow";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 import { generateNarrative, copyNarrativeToClipboard } from "@/lib/chains/narrativeGenerator";
+import { downloadAsFile, generateFilename, getMimeType } from "@/lib/utils/fileExport";
 
 interface ChainExportButtonProps {
   chainName?: string;
@@ -156,13 +157,21 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
         format,
         includeMetadata: true,
         tone: "formal",
-        detailLevel: "standard"
+        detailLevel: "standard",
+        markdownOptions: format === "markdown" ? {
+          includeToC: true, // Auto-enabled for chains >10
+          includeFrontmatter: true,
+          includeStatistics: true,
+          includeSchemeDetails: true,
+          numberingStyle: "sequential"
+        } : undefined
       });
 
       const success = await copyNarrativeToClipboard(result.text);
       
       if (success) {
-        showToast(`✓ Narrative copied to clipboard! (${result.metadata.nodeCount} arguments)`, "ok");
+        const formatLabel = format === "markdown" ? "Markdown" : "Text";
+        showToast(`✓ ${formatLabel} narrative copied to clipboard! (${result.metadata.nodeCount} arguments)`, "ok");
         setIsOpen(false);
       } else {
         throw new Error("Failed to copy to clipboard");
@@ -170,6 +179,49 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
     } catch (error) {
       console.error("Failed to export narrative:", error);
       showToast(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`, "err");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownloadNarrative = async (format: "text" | "markdown") => {
+    setExporting(true);
+    try {
+      const nodes = getNodes();
+      const edges = getEdges();
+
+      if (nodes.length === 0) {
+        showToast("No arguments to export", "err");
+        return;
+      }
+
+      const result = generateNarrative(nodes, edges, chainName, {
+        format,
+        includeMetadata: true,
+        tone: "formal",
+        detailLevel: "standard",
+        markdownOptions: format === "markdown" ? {
+          includeToC: true,
+          includeFrontmatter: true,
+          includeStatistics: true,
+          includeSchemeDetails: true,
+          numberingStyle: "sequential"
+        } : undefined
+      });
+
+      // Generate filename and download
+      const extension = format === "markdown" ? "md" : "txt";
+      const filename = generateFilename(chainName, extension);
+      const mimeType = getMimeType(extension);
+      
+      downloadAsFile(result.text, filename, mimeType);
+      
+      const formatLabel = format === "markdown" ? "Markdown" : "Text";
+      showToast(`✓ ${formatLabel} file downloaded! (${result.metadata.nodeCount} arguments)`, "ok");
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Failed to download narrative:", error);
+      showToast(`Download failed: ${error instanceof Error ? error.message : "Unknown error"}`, "err");
     } finally {
       setExporting(false);
     }
@@ -207,10 +259,22 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
                 disabled={exporting}
                 className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FileText className="w-4 h-4 text-indigo-600" />
+                <Copy className="w-4 h-4 text-indigo-600" />
                 <div className="flex-1 text-left">
-                  <div className="font-medium">Narrative (Text)</div>
-                  <div className="text-xs text-gray-500">Natural language story</div>
+                  <div className="font-medium">Copy Narrative (Text)</div>
+                  <div className="text-xs text-gray-500">Plain text to clipboard</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleDownloadNarrative("text")}
+                disabled={exporting}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4 text-indigo-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">Download Narrative (Text)</div>
+                  <div className="text-xs text-gray-500">Save as .txt file</div>
                 </div>
               </button>
 
@@ -219,10 +283,22 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
                 disabled={exporting}
                 className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FileText className="w-4 h-4 text-indigo-600" />
+                <Copy className="w-4 h-4 text-indigo-600" />
                 <div className="flex-1 text-left">
-                  <div className="font-medium">Narrative (Markdown)</div>
-                  <div className="text-xs text-gray-500">Formatted with headings</div>
+                  <div className="font-medium">Copy Narrative (Markdown)</div>
+                  <div className="text-xs text-gray-500">Formatted to clipboard</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleDownloadNarrative("markdown")}
+                disabled={exporting}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4 text-indigo-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">Download Narrative (Markdown)</div>
+                  <div className="text-xs text-gray-500">Save as .md file</div>
                 </div>
               </button>
 
