@@ -142,10 +142,19 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const deliberationId = searchParams.get("deliberationId");
+    const ordering = searchParams.get("ordering") || "last-link"; // ASPIC+ Phase 4.2
 
     if (!deliberationId) {
       return NextResponse.json(
         { error: "Missing required query parameter: deliberationId" },
+        { status: 400 }
+      );
+    }
+
+    // Validate ordering parameter
+    if (ordering !== "last-link" && ordering !== "weakest-link") {
+      return NextResponse.json(
+        { error: "Invalid ordering parameter. Must be 'last-link' or 'weakest-link'" },
         { status: 400 }
       );
     }
@@ -598,6 +607,16 @@ export async function GET(req: NextRequest) {
 
     // Step 4: Translate AIF → ASPIC+ theory (with explicit contraries)
     const theory = aifToASPIC(aifGraph, explicitContraries as any);
+
+    // ASPIC+ Phase 4.2: Populate preferences from AIF PA-nodes
+    const { populateKBPreferencesFromAIF } = await import("@/lib/aspic/translation/aifToASPIC");
+    const { premisePreferences, rulePreferences } = await populateKBPreferencesFromAIF(deliberationId);
+    
+    // Add preferences to theory
+    theory.preferences = [
+      ...premisePreferences.map(p => ({ preferred: p.preferred, dispreferred: p.dispreferred })),
+      ...rulePreferences.map(p => ({ preferred: p.preferred, dispreferred: p.dispreferred })),
+    ];
 
     // Step 4.5: Validate rationality postulates (Phase B)
     const { validateAxiomConsistency, validateWellFormedness } = await import(

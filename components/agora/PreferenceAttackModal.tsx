@@ -3,7 +3,10 @@
 
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowUp, ArrowDown, Triangle, Target, Sparkles, CheckCircle2, AlertCircle, FileText, Loader2, GitBranch, FerrisWheel } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ArrowUp, ArrowDown, Triangle, Target, Sparkles, CheckCircle2, AlertCircle, FileText, Loader2, GitBranch, FerrisWheel, ChevronDown, Settings } from "lucide-react";
 import { EntityPicker } from "@/components/kb/EntityPicker";
 
 import "./deliberation-styles.css";
@@ -62,6 +65,8 @@ export function PreferenceAttackModal({
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
   const [justification, setJustification] = React.useState("");
+  const [orderingPolicy, setOrderingPolicy] = React.useState<"last-link" | "weakest-link" | null>(null);
+  const [setComparison, setSetComparison] = React.useState<"elitist" | "democratic" | null>(null);
   const [sourceArgument, setSourceArgument] = React.useState<FullArgument | null>(null);
   const [targetArgument, setTargetArgument] = React.useState<FullArgument | null>(null);
   const [targetScheme, setTargetScheme] = React.useState<FullScheme | null>(null);
@@ -161,6 +166,8 @@ export function PreferenceAttackModal({
         setSuccess(false);
         setBulkProgress(null);
         setJustification("");
+        setOrderingPolicy(null);
+        setSetComparison(null);
         setExistingPreferences([]);
       }, 200);
     }
@@ -190,7 +197,6 @@ export function PreferenceAttackModal({
 
         let body: any = {
           deliberationId,
-          justification: justification.trim() || undefined,
         };
 
         // Build request based on entity kind and preference type
@@ -210,6 +216,17 @@ export function PreferenceAttackModal({
             body.preferredSchemeId = target.id;
             body.dispreferredArgumentId = sourceArgumentId;
           }
+        }
+
+        // Add optional fields
+        if (justification.trim()) {
+          body.justification = justification.trim();
+        }
+        if (orderingPolicy) {
+          body.orderingPolicy = orderingPolicy;
+        }
+        if (setComparison) {
+          body.setComparison = setComparison;
         }
 
         try {
@@ -254,7 +271,7 @@ export function PreferenceAttackModal({
       setBusy(false);
       setBulkProgress(null);
     }
-  }, [preferenceType, selectedTarget, selectedTargets, selectionMode, busy, deliberationId, sourceArgumentId, entityKind, justification, onOpenChange, onSuccess]);
+  }, [preferenceType, selectedTarget, selectedTargets, selectionMode, busy, deliberationId, sourceArgumentId, entityKind, justification, orderingPolicy, setComparison, onOpenChange, onSuccess]);
 
   const canSubmit = preferenceType && (selectionMode === "single" ? selectedTarget !== null : selectedTargets.length > 0) && !busy;
 
@@ -833,8 +850,99 @@ export function PreferenceAttackModal({
                       focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent
                       transition-all duration-200"
                   />
-                  
                 </div>
+
+                {/* Advanced Options - Ordering Policies */}
+                <Collapsible className="space-y-3">
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-300
+                        bg-white/50 hover:bg-slate-50/70 transition-all duration-200 group"
+                    >
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                        <Settings className="w-4 h-4 text-indigo-600" />
+                        Advanced Options
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-slate-500 transition-transform group-data-[state=open]:rotate-180" />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 p-4 border border-slate-200 rounded-lg bg-white/30 backdrop-blur-sm">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-slate-900">
+                        Ordering Policy
+                      </Label>
+                      <Select 
+                        value={orderingPolicy ?? "default"} 
+                        onValueChange={(v) => setOrderingPolicy(v === "default" ? null : v as "last-link" | "weakest-link")}
+                      >
+                        <SelectTrigger className="w-full bg-white/70 border-slate-300">
+                          <SelectValue placeholder="Use default ordering" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">Use default</span>
+                              <span className="text-xs text-slate-500">System default ordering</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="last-link">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">Last-link</span>
+                              <span className="text-xs text-slate-500">Legal/normative contexts</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="weakest-link">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">Weakest-link</span>
+                              <span className="text-xs text-slate-500">Epistemic reasoning</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-600">
+                        How argument strength is computed from rule and premise preferences
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-slate-900">
+                        Set Comparison
+                      </Label>
+                      <Select 
+                        value={setComparison ?? "default"} 
+                        onValueChange={(v) => setSetComparison(v === "default" ? null : v as "elitist" | "democratic")}
+                      >
+                        <SelectTrigger className="w-full bg-white/70 border-slate-300">
+                          <SelectValue placeholder="Use default (elitist)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">Use default (elitist)</span>
+                              <span className="text-xs text-slate-500">Standard comparison</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="elitist">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">Elitist</span>
+                              <span className="text-xs text-slate-500">Strongest link comparison</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="democratic">
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium">Democratic</span>
+                              <span className="text-xs text-slate-500">All links matter</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-600">
+                        How to compare sets of rules or premises
+                      </p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
                 
               </div>
             )}

@@ -2685,6 +2685,11 @@ model PreferenceApplication {
   dispreferredArgumentId String?
   dispreferredSchemeId   String?
 
+  // ASPIC+ Phase 4.2: Ordering metadata (optional - defaults to system-wide policy)
+  orderingPolicy String? // "last-link" | "weakest-link" | null (use deliberation default)
+  setComparison  String? // "elitist" | "democratic" | null (use default elitist)
+  justification  String? @db.Text // Fix bug: UI collects but doesn't save
+
   scheme PreferenceScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
   @@index([deliberationId])

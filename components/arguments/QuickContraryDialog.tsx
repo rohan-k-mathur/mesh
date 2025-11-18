@@ -96,7 +96,7 @@ export function QuickContraryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-[600px] bg-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Split className="h-5 w-5 text-rose-600" />
@@ -186,7 +186,7 @@ export function QuickContraryDialog({
 
           {/* Reason Field (Optional) */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-700">
+            <label className="text-xs font-medium  text-gray-700">
               Reason (Optional):
             </label>
             <Textarea
@@ -194,7 +194,7 @@ export function QuickContraryDialog({
               onChange={(e) => setReason(e.target.value)}
               placeholder="Explain why these claims are contrary (e.g., 'These claims represent mutually exclusive states')"
               rows={3}
-              className="text-sm"
+              className="text-sm bg-slate-100"
             />
           </div>
 

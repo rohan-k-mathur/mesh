@@ -109,7 +109,7 @@ type AifRow = {
 // CONSTANTS & UTILITIES
 // ============================================================================
 
-const PAGE = 20;
+const PAGE = 40;
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(async r => {
   const j = await r.json().catch(() => ({}));
@@ -117,12 +117,38 @@ const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(async r => {
   return j;
 });
 
+// Memoized metadata signature for efficient change detection
+const metaSigCache = new Map<string, string>();
+
 function metaSig(m?: AifMeta) {
   if (!m) return '';
+  
+  // Use conclusion ID as cache key for stable memoization
+  const cacheKey = m.conclusion?.id || '';
+  if (cacheKey && metaSigCache.has(cacheKey)) {
+    const cached = metaSigCache.get(cacheKey)!;
+    // Verify cache is still valid by checking attacks/cq/prefs
+    const a = m.attacks || { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
+    const cq = m.cq || { required: 0, satisfied: 0 };
+    const p = m.preferences || { preferredBy: 0, dispreferredBy: 0 };
+    const sig = [
+      m.scheme?.key || '',
+      cacheKey,
+      (m.premises?.length || 0),
+      a.REBUTS, a.UNDERCUTS, a.UNDERMINES,
+      cq.required, cq.satisfied,
+      p.preferredBy || 0, p.dispreferredBy || 0,
+    ].join('|');
+    
+    if (cached === sig) return cached;
+    metaSigCache.set(cacheKey, sig);
+    return sig;
+  }
+  
   const a = m.attacks || { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
   const cq = m.cq || { required: 0, satisfied: 0 };
   const p = m.preferences || { preferredBy: 0, dispreferredBy: 0 };
-  return [
+  const sig = [
     m.scheme?.key || '',
     m.conclusion?.id || '',
     (m.premises?.length || 0),
@@ -130,6 +156,9 @@ function metaSig(m?: AifMeta) {
     cq.required, cq.satisfied,
     p.preferredBy || 0, p.dispreferredBy || 0,
   ].join('|');
+  
+  if (cacheKey) metaSigCache.set(cacheKey, sig);
+  return sig;
 }
 
 // ============================================================================
@@ -164,6 +193,11 @@ function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
   );
 }
 
+// Memoized to prevent unnecessary re-renders
+const MemoizedSchemeBadge = React.memo(SchemeBadge, (prev, next) => {
+  return prev.scheme?.id === next.scheme?.id && prev.scheme?.key === next.scheme?.key;
+});
+
 function PreferenceCounts({ p }: { p?: { preferredBy?: number; dispreferredBy?: number } }) {
   if (!p || (p.preferredBy === 0 && p.dispreferredBy === 0)) return null;
 
@@ -184,6 +218,11 @@ function PreferenceCounts({ p }: { p?: { preferredBy?: number; dispreferredBy?: 
     </div>
   );
 }
+
+// Memoized to prevent unnecessary re-renders
+const MemoizedPreferenceCounts = React.memo(PreferenceCounts, (prev, next) => {
+  return prev.p?.preferredBy === next.p?.preferredBy && prev.p?.dispreferredBy === next.p?.dispreferredBy;
+});
 
 function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
   const r = cq?.required ?? 0;
@@ -213,6 +252,11 @@ function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
   );
 }
 
+// Memoized to prevent unnecessary re-renders
+const MemoizedCqMeter = React.memo(CqMeter, (prev, next) => {
+  return prev.cq?.required === next.cq?.required && prev.cq?.satisfied === next.cq?.satisfied;
+});
+
 // ASPIC+ Attack Counts - Split by target level
 // - Claim-level attacks (REBUTS/UNDERMINES) shown in header with other metadata
 // - Argument-level attacks (UNDERCUTS) shown in footer (attacks inference/scheme)
@@ -238,6 +282,11 @@ function ClaimLevelAttackCounts({ a }: { a?: AifMeta['attacks'] }) {
   );
 }
 
+// Memoized to prevent unnecessary re-renders
+const MemoizedClaimLevelAttackCounts = React.memo(ClaimLevelAttackCounts, (prev, next) => {
+  return prev.a?.REBUTS === next.a?.REBUTS && prev.a?.UNDERMINES === next.a?.UNDERMINES;
+});
+
 function ArgumentLevelAttackCounts({ a }: { a?: AifMeta['attacks'] }) {
   if (!a || a.UNDERCUTS === 0) return null;
 
@@ -253,6 +302,11 @@ function ArgumentLevelAttackCounts({ a }: { a?: AifMeta['attacks'] }) {
     </div>
   );
 }
+
+// Memoized to prevent unnecessary re-renders
+const MemoizedArgumentLevelAttackCounts = React.memo(ArgumentLevelAttackCounts, (prev, next) => {
+  return prev.a?.UNDERCUTS === next.a?.UNDERCUTS;
+});
 
 // Legacy component - kept for compatibility but use split versions above
 function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
@@ -621,8 +675,8 @@ function RowImpl({
           <div className="shrink-0 flex flex-col items-end gap-2">
             <div className="flex items-center flex-wrap gap-1.5 justify-end">
               <time className="text-xs text-slate-500 font-medium">{created}</time>
-              <SchemeBadge scheme={meta?.scheme} />
-              <CqMeter cq={meta?.cq} />
+              <MemoizedSchemeBadge scheme={meta?.scheme} />
+              <MemoizedCqMeter cq={meta?.cq} />
               {typeof support === 'number' && (
                 <div className="inline-flex items-center gap-2 ml-1">
                   <SupportBar value={support} />
@@ -634,8 +688,8 @@ function RowImpl({
                 </div>
               )}
               <div className="flex items-center flex-wrap gap-1.5 justify-end">
-                <PreferenceCounts p={meta?.preferences} />
-                <ClaimLevelAttackCounts a={meta?.attacks} />
+                <MemoizedPreferenceCounts p={meta?.preferences} />
+                <MemoizedClaimLevelAttackCounts a={meta?.attacks} />
               </div>
             </div>
           </div>
@@ -703,7 +757,7 @@ function RowImpl({
 
         <footer className="flex flex-wrap items-center gap-2">
           {/* Argument-Level Attacks (UNDERCUTS) - Attacks the inference/scheme */}
-          <ArgumentLevelAttackCounts a={meta?.attacks} />
+          <MemoizedArgumentLevelAttackCounts a={meta?.attacks} />
           
           <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} authorId={a.authorId} onDone={() => onRefreshRow(a.id)} />
 
@@ -996,97 +1050,120 @@ export default function AIFArgumentsListPro({
   // Build stable key from row IDs
   const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
 
-  // Hydrate AIF metadata for rows
+  // Hydrate AIF metadata for rows using batch endpoint (Performance Optimization)
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      performance.mark('aif-fetch-start');
+      
       const byId: Record<string, AifMeta> = {};
       const pending = rows
         .filter(r => !r.aif && !aifMapRef.current[r.id])
         .map(r => r.id);
 
-      await Promise.all(
-        pending.map(async id => {
-          try {
-            const one = await fetch(`/api/arguments/${id}/aif`)
-              .then(r => (r.ok ? r.json() : null))
-              .catch(() => null);
-            if (one?.aif) {
-              byId[id] = {
-                scheme: one.aif.scheme ?? null,
-                conclusion: one.aif.conclusion ?? null,
-                premises: one.aif.premises ?? [],
-                implicitWarrant: one.aif.implicitWarrant ?? null,
-                attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
-                cq: one.aif.cq ?? { required: 0, satisfied: 0 },
-                preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
-                provenance: one.provenance ? {
-                  kind: one.provenance.kind ?? 'imported',
-                  sourceDeliberationId: one.provenance.sourceDeliberationId,
-                  sourceDeliberationName: one.provenance.sourceDeliberationName ?? one.provenance.sourceDeliberationTitle ?? '',
-                  fingerprint: one.provenance.fingerprint
-                } : null, // Phase 5A: Cross-deliberation import provenance
-              };
-              return;
-            }
+      if (pending.length === 0) return;
 
-            // Fallback: fetch CQs and attacks separately
-            const aCq = await fetch(`/api/arguments/${id}/aif-cqs`)
-              .then(r => (r.ok ? r.json() : null))
-              .catch(() => null);
-            const cq = Array.isArray(aCq?.items)
-              ? { required: aCq.items.length, satisfied: aCq.items.filter((x: any) => x.status === 'answered').length }
-              : undefined;
+      try {
+        // Batch fetch all metadata in a single request (eliminates N+1 problem)
+        const batchResponse = await fetch(
+          `/api/arguments/aif/batch?ids=${pending.join(',')}&deliberationId=${encodeURIComponent(deliberationId)}`
+        )
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null);
 
-            const ca = await fetch(`/api/ca?targetArgumentId=${encodeURIComponent(id)}&limit=200`)
-              .then(r => (r.ok ? r.json() : null))
-              .catch(() => null);
-            const g = { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
-            for (const e of ca?.items ?? []) {
-              const t = String(e.legacyAttackType || '').toUpperCase();
-              if (t && t in g) (g as any)[t] += 1;
-            }
+        if (batchResponse?.items) {
+          for (const item of batchResponse.items) {
+            byId[item.id] = {
+              scheme: item.aif.scheme ?? null,
+              conclusion: item.aif.conclusion ?? null,
+              premises: item.aif.premises ?? [],
+              implicitWarrant: item.aif.implicitWarrant ?? null,
+              attacks: item.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
+              cq: item.aif.cq ?? { required: 0, satisfied: 0 },
+              preferences: item.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
+              provenance: item.provenance ? {
+                kind: item.provenance.kind ?? 'imported',
+                sourceDeliberationId: item.provenance.sourceDeliberationId,
+                sourceDeliberationName: item.provenance.sourceDeliberationName ?? item.provenance.sourceDeliberationTitle ?? '',
+                fingerprint: item.provenance.fingerprint
+              } : null,
+            };
+          }
+        }
+      } catch (error) {
+        console.error('[AIFArgumentsListPro] Batch fetch failed:', error);
+      }
 
-            byId[id] = { cq, attacks: g };
-          } catch {/* ignore */ }
-        })
-      );
-
-      if (!cancelled) setAifMap(m => ({ ...m, ...byId }));
+      if (!cancelled) {
+        setAifMap(m => ({ ...m, ...byId }));
+        performance.mark('aif-fetch-end');
+        performance.measure('aif-fetch', 'aif-fetch-start', 'aif-fetch-end');
+        
+        if (process.env.NODE_ENV === 'development') {
+          const measure = performance.getEntriesByName('aif-fetch')[0];
+          console.log(`[Performance] AIF batch fetch: ${measure?.duration.toFixed(2)}ms for ${pending.length} arguments`);
+        }
+      }
     })();
     return () => { cancelled = true; };
-  }, [rowIdsKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowIdsKey, deliberationId]);
 
-  // Search bucket cache
+  // Search bucket cache - memoized for performance
   const bucketRef = React.useRef<Record<string, string>>({});
-  React.useEffect(() => {
+  const bucketSigRef = React.useRef<Record<string, string>>({});
+  
+  const searchBuckets = React.useMemo(() => {
+    const buckets: Record<string, string> = {};
+    const sigs: Record<string, string> = {};
+    
     for (const r of rows) {
       const m = r.aif || aifMap[r.id];
       const sig = `${m?.conclusion?.id || ''}:${m?.premises?.length || 0}`;
       const key = `${r.id}::${sig}`;
 
-      if ((bucketRef.current as any)[`${r.id}__sig`] !== key) {
-        (bucketRef.current as any)[`${r.id}__sig`] = key;
-        bucketRef.current[r.id] = [
+      // Check if we can reuse cached bucket
+      if (bucketSigRef.current[r.id] === key && bucketRef.current[r.id]) {
+        buckets[r.id] = bucketRef.current[r.id];
+        sigs[r.id] = key;
+      } else {
+        buckets[r.id] = [
           m?.conclusion?.text || r.text || '',
           ...(m?.premises?.map(p => p.text || '') ?? []),
           m?.implicitWarrant?.text || '',
         ].join(' ').toLowerCase();
+        sigs[r.id] = key;
       }
     }
+    
+    bucketRef.current = buckets;
+    bucketSigRef.current = sigs;
+    return buckets;
   }, [rows, aifMap]);
 
-  // Filtering
+  // Filtering - optimized with memoized search buckets
   const filtered: AifRow[] = React.useMemo(() => {
+    performance.mark('filter-start');
+    
     const lower = dq.trim().toLowerCase();
-    return rows.filter(a => {
+    const result = rows.filter(a => {
       const m = a.aif || aifMap[a.id];
       const schemeOk = !schemeKey || m?.scheme?.key === schemeKey;
-      const bucket = bucketRef.current[a.id] || '';
+      const bucket = searchBuckets[a.id] || '';
       const qOk = !lower || bucket.includes(lower);
       return schemeOk && qOk;
     });
-  }, [rows, aifMap, schemeKey, dq]);
+    
+    performance.mark('filter-end');
+    performance.measure('filter', 'filter-start', 'filter-end');
+    
+    if (process.env.NODE_ENV === 'development') {
+      const measure = performance.getEntriesByName('filter')[0];
+      console.log(`[Performance] Filter: ${measure?.duration.toFixed(2)}ms for ${rows.length} rows → ${result.length} filtered`);
+    }
+    
+    return result;
+  }, [rows, aifMap, schemeKey, dq, searchBuckets]);
 
   // Conclusion IDs for score fetching
   const conclusionIds = React.useMemo(() => {
@@ -1241,12 +1318,13 @@ export default function AIFArgumentsListPro({
         </button>
       </div>
 
-      {/* Virtualized list */}
+      {/* Virtualized list - optimized for performance */}
       <div className="h-[1000px]">
         <Virtuoso
           data={sorted}
           computeItemKey={(_i, a) => a.id}
-          increaseViewportBy={{ top: 200, bottom: 400 }}
+          increaseViewportBy={{ top: 400, bottom: 800 }} // Increased for smoother scrolling
+          overscan={5} // Render 5 extra items above/below viewport
           itemContent={(index, a) => {
             const meta = a.aif || aifMap[a.id];
             const cid = meta?.conclusion?.id;

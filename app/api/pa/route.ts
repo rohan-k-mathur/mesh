@@ -74,6 +74,10 @@ const CreatePA = z.object({
   dispreferredArgumentId: z.string().optional(),
   dispreferredClaimId: z.string().optional(),
   dispreferredSchemeId: z.string().optional(),
+  // ASPIC+ Phase 4.2: Ordering metadata
+  orderingPolicy: z.enum(["last-link", "weakest-link"]).optional(),
+  setComparison: z.enum(["elitist", "democratic"]).optional(),
+  justification: z.string().optional(),
 });
 
 
@@ -106,6 +110,10 @@ export async function POST(req: NextRequest) {
       dispreferredArgumentId: d.dispreferredArgumentId ?? null,
       dispreferredClaimId: d.dispreferredClaimId ?? null,
       dispreferredSchemeId: d.dispreferredSchemeId ?? null,
+      // ASPIC+ Phase 4.2: Save ordering metadata
+      orderingPolicy: d.orderingPolicy ?? null,
+      setComparison: d.setComparison ?? null,
+      justification: d.justification ?? null,
     },
     select: { id:true },
   });
