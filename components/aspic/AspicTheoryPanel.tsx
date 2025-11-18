@@ -23,7 +23,7 @@ export function AspicTheoryPanel({
   const [view, setView] = useState<"theory" | "graph" | "extension" | "rationality">(initialView);
 
   // Fetch ASPIC+ theory and semantics
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     `/api/aspic/evaluate?deliberationId=${deliberationId}`,
     fetcher,
     {
@@ -121,8 +121,8 @@ export function AspicTheoryPanel({
             rationality={data.rationality}
             deliberationId={deliberationId}
             onRegenerateTransposition={() => {
-              // Trigger SWR revalidation
-              window.location.reload();
+              // Trigger SWR revalidation without full page reload
+              mutate();
             }}
           />
         )}

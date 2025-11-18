@@ -268,6 +268,20 @@ export function RationalityChecklist({
           </Alert>
         )}
 
+        {/* Success message when closure is achieved */}
+        {rationality.postulates.transpositionClosure && (
+          <Alert className="border-green-200 bg-green-50">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-900 text-sm">
+              Transposition Closure Satisfied
+            </AlertTitle>
+            <AlertDescription className="text-green-800 text-xs mt-2">
+              All strict rules are closed under transposition. Your argumentation
+              system satisfies the contraposition rationality postulate.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Educational Resources */}
         <Alert className="border-purple-200 bg-purple-50">
           <Info className="h-4 w-4 text-purple-600" />

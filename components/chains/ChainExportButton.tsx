@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Download, Image as ImageIcon, FileCode, Network } from "lucide-react";
+import { Download, Image as ImageIcon, FileCode, Network, FileText } from "lucide-react";
 import { toPng, toSvg } from "html-to-image";
 import { useReactFlow } from "reactflow";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
+import { generateNarrative, copyNarrativeToClipboard } from "@/lib/chains/narrativeGenerator";
 
 interface ChainExportButtonProps {
   chainName?: string;
@@ -13,8 +14,14 @@ interface ChainExportButtonProps {
 const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argument-chain" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState<{ text: string; kind: "ok" | "err" } | null>(null);
   const { getNodes, getEdges } = useReactFlow();
   const { chainId } = useChainEditorStore();
+
+  const showToast = (text: string, kind: "ok" | "err" = "ok", ms = 2500) => {
+    setToast({ text, kind });
+    setTimeout(() => setToast(null), ms);
+  };
 
   const handleExportPNG = async () => {
     setExporting(true);
@@ -128,7 +135,41 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
       setIsOpen(false);
     } catch (error) {
       console.error("Failed to export AIF:", error);
-      alert(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      showToast(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`, "err");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportNarrative = async (format: "text" | "markdown") => {
+    setExporting(true);
+    try {
+      const nodes = getNodes();
+      const edges = getEdges();
+
+      if (nodes.length === 0) {
+        showToast("No arguments to export", "err");
+        return;
+      }
+
+      const result = generateNarrative(nodes, edges, chainName, {
+        format,
+        includeMetadata: true,
+        tone: "formal",
+        detailLevel: "standard"
+      });
+
+      const success = await copyNarrativeToClipboard(result.text);
+      
+      if (success) {
+        showToast(`✓ Narrative copied to clipboard! (${result.metadata.nodeCount} arguments)`, "ok");
+        setIsOpen(false);
+      } else {
+        throw new Error("Failed to copy to clipboard");
+      }
+    } catch (error) {
+      console.error("Failed to export narrative:", error);
+      showToast(`Export failed: ${error instanceof Error ? error.message : "Unknown error"}`, "err");
     } finally {
       setExporting(false);
     }
@@ -161,6 +202,32 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
             </div>
 
             <div className="p-1">
+              <button
+                onClick={() => handleExportNarrative("text")}
+                disabled={exporting}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">Narrative (Text)</div>
+                  <div className="text-xs text-gray-500">Natural language story</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleExportNarrative("markdown")}
+                disabled={exporting}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText className="w-4 h-4 text-indigo-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">Narrative (Markdown)</div>
+                  <div className="text-xs text-gray-500">Formatted with headings</div>
+                </div>
+              </button>
+
+              <div className="my-1 border-t border-gray-200" />
+
               <button
                 onClick={handleExportPNG}
                 disabled={exporting}
@@ -217,6 +284,22 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
             )}
           </div>
         </>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          aria-live="polite"
+          className={[
+            "fixed bottom-4 right-4 z-50 rounded-md border px-3 py-2 text-xs shadow",
+            "backdrop-blur bg-white/90",
+            toast.kind === "ok"
+              ? "border-emerald-200 text-emerald-700"
+              : "border-rose-200 text-rose-700",
+          ].join(" ")}
+        >
+          {toast.text}
+        </div>
       )}
     </div>
   );

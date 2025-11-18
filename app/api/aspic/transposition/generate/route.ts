@@ -170,6 +170,9 @@ export async function POST(req: NextRequest) {
               content: premise.claim.text,
               claimText: premise.claim.text,
               debateId: deliberationId,
+              metadata: {
+                role: premise.isAxiom ? "axiom" : "premise",
+              },
             });
             nodeIds.add(premiseNodeId);
           }
@@ -183,6 +186,79 @@ export async function POST(req: NextRequest) {
             debateId: deliberationId,
           });
         }
+      }
+    }
+
+    // Step 2b: Add assumptions (for K_a)
+    const assumptionsList = await prisma.assumptionUse.findMany({
+      where: {
+        deliberationId,
+        status: "ACCEPTED",
+      },
+    });
+
+    for (const assumption of assumptionsList) {
+      let assumptionNodeId: string | null = null;
+      let assumptionText: string | null = null;
+
+      if (assumption.assumptionClaimId) {
+        assumptionNodeId = `I:${assumption.assumptionClaimId}`;
+        
+        if (!nodeIds.has(assumptionNodeId)) {
+          const claim = await prisma.claim.findUnique({
+            where: { id: assumption.assumptionClaimId },
+          });
+          
+          if (claim) {
+            assumptionText = claim.text;
+            aifGraph.nodes.push({
+              id: assumptionNodeId,
+              nodeType: "I",
+              content: assumptionText,
+              claimText: assumptionText,
+              debateId: deliberationId,
+              metadata: {
+                role: "assumption",
+                assumptionId: assumption.id,
+                weight: assumption.weight,
+                confidence: assumption.confidence,
+              },
+            });
+            nodeIds.add(assumptionNodeId);
+          }
+        }
+      } else if (assumption.assumptionText) {
+        assumptionNodeId = `I:assumption_${assumption.id}`;
+        assumptionText = assumption.assumptionText;
+        
+        if (!nodeIds.has(assumptionNodeId)) {
+          aifGraph.nodes.push({
+            id: assumptionNodeId,
+            nodeType: "I",
+            content: assumptionText,
+            claimText: assumptionText,
+            debateId: deliberationId,
+            metadata: {
+              role: "assumption",
+              assumptionId: assumption.id,
+              weight: assumption.weight,
+              confidence: assumption.confidence,
+            },
+          });
+          nodeIds.add(assumptionNodeId);
+        }
+      }
+
+      // Create presumption edge if used in argument
+      if (assumptionNodeId && assumption.argumentId) {
+        const argumentNodeId = `RA:${assumption.argumentId}`;
+        aifGraph.edges.push({
+          id: `${assumptionNodeId}->${argumentNodeId}`,
+          sourceId: assumptionNodeId,
+          targetId: argumentNodeId,
+          edgeType: "presumption",
+          debateId: deliberationId,
+        });
       }
     }
 
@@ -217,7 +293,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 5: Extract only the newly generated transposed rules
-    const transposedRules = augmentedRules.filter(rule => rule.id.includes("_transpose_"));
+    // IMPORTANT: Filter out rules that are already transpositions to avoid nested transpositions
+    const transposedRules = augmentedRules.filter(
+      (rule) => rule.id.includes("_transpose_") && !rule.id.match(/_transpose_.*_transpose_/)
+    );
 
     console.log(`[Transposition Generate] Persisting ${transposedRules.length} transposed rules to database...`);
 
@@ -259,6 +338,14 @@ export async function POST(req: NextRequest) {
       if (!originalArg) {
         console.warn(
           `[Transposition Generate] Could not find original argument for ${originalArgId} (from rule ${transposedRule.id})`
+        );
+        continue;
+      }
+
+      // Skip if this argument is itself a transposition (avoid nested transpositions)
+      if (originalArg.text?.includes("Transposed from argument")) {
+        console.log(
+          `[Transposition Generate] Skipping nested transposition for ${originalArgId}`
         );
         continue;
       }
