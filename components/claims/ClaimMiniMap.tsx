@@ -838,7 +838,8 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                     <CriticalQuestionsV3
                       targetType="claim"
                       targetId={cqOpenFor}
-                      createdById={currentUserId}
+                      createdById={claimAuthorId}
+                      currentUserId={currentUserId}
                       claimAuthorId={enrichedClaims.find(c => c.id === cqOpenFor)?.createdById ? String(enrichedClaims.find(c => c.id === cqOpenFor)?.createdById) : undefined}
                       deliberationId={deliberationId}
                     />

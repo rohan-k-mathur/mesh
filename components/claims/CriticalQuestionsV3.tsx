@@ -131,6 +131,7 @@ export default function CriticalQuestionsV3({
   createdById,
   claimAuthorId, // NEW: The actual author of the claim/argument being questioned
   deliberationId,
+  currentUserId,
   roomId,
   currentLens,
   currentAudienceId,
@@ -142,6 +143,7 @@ export default function CriticalQuestionsV3({
   createdById?: string; // Current user ID
   claimAuthorId?: string; // NEW: Author of the claim/argument (who should answer CQs)
   deliberationId?: string;
+  currentUserId?: string;
   roomId?: string;
   currentLens?: string;
   currentAudienceId?: string;
@@ -149,7 +151,26 @@ export default function CriticalQuestionsV3({
   prefilterKeys?: string[];
 }) {
   // Determine if current user is the author
-  const isAuthor = createdById && claimAuthorId && createdById === claimAuthorId;
+  const isAuthor = currentUserId && (
+    currentUserId === claimAuthorId || 
+    (!claimAuthorId && currentUserId === createdById)
+  );
+  
+  // Debug logging for author detection
+  React.useEffect(() => {
+    console.log('[CriticalQuestionsV3] Author check:', {
+      currentUserId,
+      claimAuthorId,
+      createdById,
+      isAuthor,
+      currentUserIdType: typeof currentUserId,
+      claimAuthorIdType: typeof claimAuthorId,
+      createdByIdType: typeof createdById,
+      strictEqual: currentUserId === claimAuthorId,
+      looseEqual: currentUserId == claimAuthorId,
+    });
+  }, [currentUserId, claimAuthorId, createdById, isAuthor]);
+  
   // UI State
   const [expandedCQ, setExpandedCQ] = useState<string | null>(null);
   const [expandedMoves, setExpandedMoves] = useState<string | null>(null);
@@ -1073,7 +1094,7 @@ export default function CriticalQuestionsV3({
               <div className="mb-4">
                 <CQAuthorDashboard
                   cqStatusId={selectedCQForList.id}
-                  currentUserId={createdById}
+                  currentUserId={currentUserId}
                   canModerate={true}
                   onApprove={async (responseId, setAsCanonical) => {
                     // Handled by CQResponseCard/CQAuthorDashboard
@@ -1089,7 +1110,7 @@ export default function CriticalQuestionsV3({
             {selectedCQForList && (
               <CQResponsesList
                 cqStatusId={selectedCQForList.id}
-                currentUserId={createdById}
+                currentUserId={currentUserId}
                 canModerate={true}
                 onEndorse={(responseId) => {
                   setSelectedResponseForEndorse(responseId);

@@ -369,6 +369,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
                   targetType="claim"
                   targetId={cqOpenFor}
                   createdById={createdById}
+                  currentUserId={currentUserId}
                   claimAuthorId={claimAuthorId}
                   deliberationId={deliberationId}
                   
