@@ -89,7 +89,7 @@ function getConfidenceBadgeColor(confidence: number): string {
 
 function getNetTypeBadgeColor(netType: string): string {
   const colors = {
-    serial: "bg-blue-100 text-blue-800 border-blue-200",
+    serial: "bg-sky-100 text-sky-800 border-sky-200",
     convergent: "bg-purple-100 text-purple-800 border-purple-200",
     divergent: "bg-orange-100 text-orange-800 border-orange-200",
     hybrid: "bg-gray-100 text-gray-800 border-gray-200",
@@ -134,7 +134,7 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
                   {Math.round(confidence * 100)}%
                 </Badge>
               </div>
-              <div className="text-xs font-medium text-blue-600">{step.scheme.name}</div>
+              <div className="text-xs font-medium text-sky-600">{step.scheme.name}</div>
               <div className="text-xs text-gray-700 font-medium">{step.label}</div>
               {isWeakest && (
                 <Badge className="bg-red-50 text-red-700 border-red-200 text-xs">
@@ -332,12 +332,12 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
             <TabsContent value="steps" className="flex-1 m-0 p-6 pt-4 overflow-y-auto">
               <div className="space-y-4">
                 {/* Argument Info */}
-                <div className="border rounded-lg p-4 bg-blue-50">
-                  <h3 className="font-semibold text-sm text-blue-900 mb-2">
+                <div className="border rounded-lg p-4 bg-sky-50">
+                  <h3 className="font-semibold text-sm text-sky-900 mb-2">
                     Argument Conclusion
                   </h3>
-                  <p className="text-sm text-blue-800">{net.argument.conclusion}</p>
-                  <p className="text-xs text-blue-600 mt-2">
+                  <p className="text-sm text-sky-800">{net.argument.conclusion}</p>
+                  <p className="text-xs text-sky-600 mt-2">
                     By {net.argument.author.name || net.argument.author.username}
                   </p>
                 </div>
@@ -378,7 +378,7 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm font-medium text-blue-600">
+                              <p className="text-sm font-medium text-sky-600">
                                 {step.scheme.name}
                               </p>
                             </div>
@@ -436,7 +436,7 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
                 {/* Overall Confidence Analysis */}
                 <div className="border rounded-lg p-4 space-y-3">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                    <CheckCircle2 className="h-5 w-5 text-sky-600" />
                     Overall Confidence
                   </h3>
                   <div className="flex items-baseline gap-2">

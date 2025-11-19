@@ -1033,7 +1033,7 @@ function SchemeSelectionStep({
                     <div className="font-medium">{scheme.name}</div>
                     <div className="flex gap-1.5">
                       {scheme.materialRelation && (
-                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300">
+                        <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700 border-sky-300">
                           {scheme.materialRelation}
                         </Badge>
                       )}
@@ -1187,9 +1187,9 @@ function TemplateCustomizationStep({
 
             {/* Minor Premise */}
             {template.formalStructure.minorPremise && (
-              <div className="space-y-1 p-3 rounded-md bg-white/60 border border-blue-200">
+              <div className="space-y-1 p-3 rounded-md bg-white/60 border border-sky-200">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+                  <Badge variant="outline" className="text-xs bg-sky-100 text-sky-700 border-sky-300">
                     Minor Premise
                   </Badge>
                 </div>
@@ -1506,7 +1506,7 @@ function PremisesFillingStep({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="minor-premise" className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                  <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-300">
                     Minor Premise
                   </Badge>
                   <span className="text-sm text-muted-foreground">
@@ -1530,7 +1530,7 @@ function PremisesFillingStep({
                 onChange={(e) => onPremiseChange("minor", e.target.value)}
                 placeholder="Enter the minor (specific) premise..."
                 rows={3}
-                className="border-blue-200 focus:border-blue-400"
+                className="border-sky-200 focus:border-sky-400"
               />
             </div>
           </>

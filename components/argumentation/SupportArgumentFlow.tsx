@@ -170,9 +170,9 @@ export function SupportArgumentFlow({
                 </div>
               </button>
 
-              <Alert className="bg-blue-50 border-blue-200">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-900">
+              <Alert className="bg-sky-50 border-sky-200">
+                <TrendingUp className="h-4 w-4 text-sky-600" />
+                <AlertDescription className="text-sky-900">
                   <strong>Tip:</strong> The guided wizard analyzes weaknesses, matches
                   evidence to optimal schemes, and can generate multiple support
                   arguments efficiently.

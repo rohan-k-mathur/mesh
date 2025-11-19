@@ -220,7 +220,7 @@ export default function IdentificationConditionsTestPage() {
                     key={scenario.id}
                     className={`p-4 cursor-pointer transition-all hover:shadow-md ${
                       currentScenario?.id === scenario.id
-                        ? "ring-2 ring-blue-500 dark:ring-blue-400"
+                        ? "ring-2 ring-sky-500 dark:ring-sky-400"
                         : ""
                     } ${
                       completed
@@ -265,7 +265,7 @@ export default function IdentificationConditionsTestPage() {
             {/* Current Scenario */}
             {currentScenario && (
               <div className="space-y-6">
-                <Card className="p-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <Card className="p-6 bg-sky-50 dark:bg-sky-950 border-sky-200 dark:border-sky-800">
                   <div className="space-y-4">
                     <div className="flex items-start justify-between">
                       <div>

@@ -254,7 +254,7 @@ return {
 
 // Simplified contrary dialog
 <Dialog open={contraryDialogOpen} onOpenChange={setContraryDialogOpen}>
-  <DialogContent>
+  <DialogContent >
     <DialogTitle>Mark Contrary Claim</DialogTitle>
     <DialogDescription>
       Select a claim that contradicts "{argumentConclusion.text}"

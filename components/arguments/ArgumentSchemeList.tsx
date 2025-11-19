@@ -194,9 +194,9 @@ export function ArgumentSchemeList({
           {primaryScheme && (
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Layers className="w-4 h-4 text-blue-600" />
+                <Layers className="w-4 h-4 text-sky-600" />
                 <h4 className="text-sm font-semibold text-slate-900">Primary Scheme</h4>
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700">
                   Main inferential pattern
                 </Badge>
               </div>
@@ -338,7 +338,7 @@ export function ArgumentSchemeList({
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-4 border-2 border-solid border-blue-500 rounded bg-blue-50" />
+                    <div className="w-8 h-4 border-2 border-solid border-sky-500 rounded bg-sky-50" />
                     <div>
                       <p className="font-medium text-slate-700">Explicit</p>
                       <p className="text-[10px] text-muted-foreground">Stated in text</p>

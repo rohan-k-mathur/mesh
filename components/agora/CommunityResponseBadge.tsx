@@ -75,7 +75,7 @@ export function CommunityResponseBadge({
       <Badge
         variant="secondary"
         className={cn(
-          "bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors",
+          "bg-sky-100 text-sky-800 hover:bg-sky-200 transition-colors",
           onClick && "cursor-pointer",
           className
         )}
@@ -92,7 +92,7 @@ export function CommunityResponseBadge({
     <Badge
       variant="secondary"
       className={cn(
-        "bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors px-2 py-1",
+        "bg-sky-100 text-sky-800 hover:bg-sky-200 transition-colors px-2 py-1",
         onClick && "cursor-pointer",
         className
       )}

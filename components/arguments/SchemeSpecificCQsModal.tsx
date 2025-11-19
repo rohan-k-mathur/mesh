@@ -397,14 +397,14 @@ export function SchemeSpecificCQsModal({
             {/* Role-specific guidance */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               {isAuthor ? (
-                <div className="col-span-full p-3 bg-blue-50 rounded-lg border border-blue-300">
+                <div className="col-span-full p-3 bg-sky-50 rounded-lg border border-sky-300">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-900 rounded-full font-bold">
+                    <span className="text-xs px-2 py-0.5 bg-sky-200 text-sky-900 rounded-full font-bold">
                       AUTHOR
                     </span>
-                    <span className="text-xs font-semibold text-blue-900">Your Role</span>
+                    <span className="text-xs font-semibold text-sky-900">Your Role</span>
                   </div>
-                  <p className="text-xs text-blue-800 leading-relaxed">
+                  <p className="text-xs text-sky-800 leading-relaxed">
                     <strong>Answer CQs</strong> by providing objections (rebuts, undercuts, undermines). 
                     Mark questions as "asked" to enable community discussion. Your answers demonstrate the robustness of your argument.
                   </p>
@@ -674,18 +674,18 @@ export function SchemeSpecificCQsModal({
                       <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300 pt-4 border-t border-slate-200">
                         {/* AUTHOR SECTION: Answer CQ with Objection */}
                         {isAuthor && (
-                          <div className="p-4 bg-blue-50 rounded-xl border-2 border-blue-300 space-y-4">
+                          <div className="p-4 bg-sky-50 rounded-xl border-2 border-sky-300 space-y-4">
                             <div className="flex items-center gap-2 mb-3">
-                              <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-900 rounded-full font-bold">
+                              <span className="text-xs px-2 py-0.5 bg-sky-200 text-sky-900 rounded-full font-bold">
                                 AUTHOR
                               </span>
-                              <span className="text-sm font-bold text-blue-900">
+                              <span className="text-sm font-bold text-sky-900">
                                 Answer This Question
                               </span>
                             </div>
 
-                            <div className="p-3 bg-white/70 rounded-lg border border-blue-200">
-                              <p className="text-xs text-blue-800 leading-relaxed">
+                            <div className="p-3 bg-white/70 rounded-lg border border-sky-200">
+                              <p className="text-xs text-sky-800 leading-relaxed">
                                 <strong>How to answer:</strong> Provide an objection that addresses this question.
                                 Your answer will be posted as a {cq.attackType.toLowerCase()} attacking the{" "}
                                 {cq.targetScope}.
@@ -695,15 +695,15 @@ export function SchemeSpecificCQsModal({
                             {/* REBUTS form */}
                             {cq.attackType === "REBUTS" && (
                               <div className="space-y-3">
-                                <label className="block text-sm font-semibold text-blue-900">
+                                <label className="block text-sm font-semibold text-sky-900">
                                   Select or Create Counter-Claim
                                 </label>
-                                <p className="text-xs text-blue-700">
+                                <p className="text-xs text-sky-700">
                                   Choose a claim that contradicts the conclusion to demonstrate this weakness
                                 </p>
                                 <button
                                   onClick={() => setRebutClaimPickerOpen(cq.cqKey)}
-                                  className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 transition-colors"
+                                  className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-white border-2 border-sky-200 hover:bg-sky-50 transition-colors"
                                 >
                                   {rebutClaim[cq.cqKey]?.text || "Select or create counter-claim..."}
                                 </button>
@@ -718,11 +718,11 @@ export function SchemeSpecificCQsModal({
                                   allowCreate={true}
                                 />
                                 {meta?.conclusion && (
-                                  <div className="p-3 bg-blue-100/50 rounded-lg border border-blue-200">
-                                    <div className="text-xs font-semibold text-blue-800 mb-1">
+                                  <div className="p-3 bg-sky-100/50 rounded-lg border border-sky-200">
+                                    <div className="text-xs font-semibold text-sky-800 mb-1">
                                       Target Conclusion
                                     </div>
-                                    <div className="text-xs text-blue-700">{meta.conclusion.text}</div>
+                                    <div className="text-xs text-sky-700">{meta.conclusion.text}</div>
                                   </div>
                                 )}
                               </div>
@@ -731,10 +731,10 @@ export function SchemeSpecificCQsModal({
                             {/* UNDERCUTS form */}
                             {cq.attackType === "UNDERCUTS" && (
                               <div className="space-y-3">
-                                <label className="block text-sm font-semibold text-blue-900">
+                                <label className="block text-sm font-semibold text-sky-900">
                                   Exception or Rule-Defeater
                                 </label>
-                                <p className="text-xs text-blue-700">
+                                <p className="text-xs text-sky-700">
                                   Explain why the inference doesn't hold in this case
                                 </p>
                                 <textarea
@@ -744,13 +744,13 @@ export function SchemeSpecificCQsModal({
                                   }
                                   placeholder="Explain why the inference doesn't hold in this case..."
                                   className="
-                                    w-full px-3 py-2 rounded-lg border-2 border-blue-300 bg-white
-                                    focus:border-blue-400 focus:ring-2 focus:ring-blue-100
+                                    w-full px-3 py-2 rounded-lg border-2 border-sky-300 bg-white
+                                    focus:border-sky-400 focus:ring-2 focus:ring-sky-100
                                     transition-all duration-200 text-sm resize-none
                                   "
                                   rows={3}
                                 />
-                                <div className="text-xs text-blue-600">
+                                <div className="text-xs text-sky-600">
                                   {(undercutText[cq.cqKey] || "").length} characters
                                 </div>
                               </div>
@@ -759,10 +759,10 @@ export function SchemeSpecificCQsModal({
                             {/* UNDERMINES form */}
                             {cq.attackType === "UNDERMINES" && (
                               <div className="space-y-3">
-                                <label className="block text-sm font-semibold text-blue-900">
+                                <label className="block text-sm font-semibold text-sky-900">
                                   Select Premise to Undermine
                                 </label>
-                                <p className="text-xs text-blue-700">
+                                <p className="text-xs text-sky-700">
                                   Choose which premise you want to challenge
                                 </p>
                                 <select
@@ -771,8 +771,8 @@ export function SchemeSpecificCQsModal({
                                     setUnderminePremise((prev) => ({ ...prev, [cq.cqKey]: e.target.value }))
                                   }
                                   className="
-                                    w-full px-3 py-2 rounded-lg border-2 border-blue-300 bg-white
-                                    focus:border-blue-400 focus:ring-2 focus:ring-blue-100
+                                    w-full px-3 py-2 rounded-lg border-2 border-sky-300 bg-white
+                                    focus:border-sky-400 focus:ring-2 focus:ring-sky-100
                                     transition-all duration-200 text-sm
                                   "
                                 >
@@ -783,15 +783,15 @@ export function SchemeSpecificCQsModal({
                                   ))}
                                 </select>
 
-                                <label className="block text-sm font-semibold text-blue-900 mt-3">
+                                <label className="block text-sm font-semibold text-sky-900 mt-3">
                                   Select Contradicting Claim
                                 </label>
-                                <p className="text-xs text-blue-700">
+                                <p className="text-xs text-sky-700">
                                   Choose a claim that contradicts the selected premise
                                 </p>
                                 <button
                                   onClick={() => setUndermineClaimPickerOpen(cq.cqKey)}
-                                  className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 transition-colors"
+                                  className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-white border-2 border-sky-200 hover:bg-sky-50 transition-colors"
                                 >
                                   {undermineClaim[cq.cqKey]?.text || "Select or create contradicting claim..."}
                                 </button>
@@ -815,7 +815,7 @@ export function SchemeSpecificCQsModal({
                                 text-sm font-bold shadow-md hover:shadow-lg
                                 disabled:opacity-50 disabled:cursor-not-allowed
                                 transition-all duration-200 active:scale-95
-                                bg-blue-600 hover:bg-blue-700 text-white
+                                bg-sky-600 hover:bg-sky-700 text-white
                               "
                               disabled={
                                 isPosting ||
