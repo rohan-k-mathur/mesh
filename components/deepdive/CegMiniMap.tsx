@@ -520,7 +520,7 @@ export default function CegMiniMap({
               onClick={() => setShowClusters(!showClusters)}
               className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
                 showClusters 
-                  ? 'bg-blue-100 text-blue-700' 
+                  ? 'bg-sky-100 text-sky-700' 
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
               title="Toggle cluster boundaries"
@@ -563,7 +563,7 @@ export default function CegMiniMap({
                 
                 const color = label === 'IN' ? 'green' :
                   label === 'OUT' ? 'red' :
-                  label === 'UNDEC' ? 'slate' : 'blue';
+                  label === 'UNDEC' ? 'slate' : 'sky';
 
                 return (
                   <button
@@ -597,7 +597,7 @@ export default function CegMiniMap({
                 </div>
               )}
               {stats.clusterCount > 1 && (
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-sky-50 text-sky-700 rounded-full">
                   <span>🗂️</span>
                   <span className="font-medium">{stats.clusterCount} clusters</span>
                 </div>

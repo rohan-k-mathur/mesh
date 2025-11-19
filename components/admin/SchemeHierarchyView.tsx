@@ -214,7 +214,7 @@ export default function SchemeHierarchyView() {
 
             {/* Cluster tag */}
             {node.scheme.clusterTag && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+              <Badge variant="outline" className="text-xs bg-sky-50 text-sky-700">
                 {node.scheme.clusterTag}
               </Badge>
             )}
@@ -318,7 +318,7 @@ export default function SchemeHierarchyView() {
           </div>
           <div>
             <div className="text-xs text-slate-500">Cluster Families</div>
-            <div className="text-2xl font-bold text-blue-600">{clusterTags.length}</div>
+            <div className="text-2xl font-bold text-sky-600">{clusterTags.length}</div>
           </div>
         </div>
 
@@ -409,7 +409,7 @@ export default function SchemeHierarchyView() {
                   <button
                     key={tag}
                     onClick={() => setClusterFilter(tag!)}
-                    className="px-3 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md border border-blue-200 transition-colors"
+                    className="px-3 py-1.5 text-xs bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-md border border-sky-200 transition-colors"
                   >
                     {tag} ({count})
                   </button>

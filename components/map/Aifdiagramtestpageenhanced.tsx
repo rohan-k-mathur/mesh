@@ -198,9 +198,9 @@ export default function AifDiagramTestPageEnhanced() {
                       {currentGraph.nodes.filter(n => n.kind === 'I').length}
                     </div>
                   </div>
-                  <div className="bg-blue-50 rounded p-2">
-                    <div className="text-blue-600">RA-Nodes</div>
-                    <div className="font-semibold text-blue-900">
+                  <div className="bg-sky-50 rounded p-2">
+                    <div className="text-sky-600">RA-Nodes</div>
+                    <div className="font-semibold text-sky-900">
                       {currentGraph.nodes.filter(n => n.kind === 'RA').length}
                     </div>
                   </div>
@@ -354,11 +354,11 @@ export default function AifDiagramTestPageEnhanced() {
 
         {/* Feature showcase */}
         <div className="mt-6 grid grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-3">
+          <div className="bg-gradient-to-br from-sky-50 to-indigo-50 rounded-xl border border-sky-200 p-4">
+            <h3 className="text-sm font-semibold text-sky-900 mb-3">
               ✅ Completed Features
             </h3>
-            <ul className="space-y-2 text-xs text-blue-800">
+            <ul className="space-y-2 text-xs text-sky-800">
               <li className="flex gap-2">
                 <span>✓</span>
                 <span>Phase 1: Static AIF rendering with proper node types</span>

@@ -202,7 +202,7 @@ export function AifDiagramSearch({
           onKeyDown={handleKeyDown}
           onFocus={() => query.trim() && setIsOpen(true)}
           placeholder="Search nodes..."
-          className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
         />
         
         {/* Search Icon */}
@@ -249,7 +249,7 @@ export function AifDiagramSearch({
               key={result.node.id}
               onClick={() => handleResultClick(result, index)}
               className={`w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors ${
-                index === selectedIndex ? 'bg-blue-50' : ''
+                index === selectedIndex ? 'bg-sky-50' : ''
               }`}
             >
               <div className="flex items-start gap-2">
@@ -259,7 +259,7 @@ export function AifDiagramSearch({
                     result.node.kind === 'I'
                       ? 'bg-yellow-100 text-yellow-800'
                       : result.node.kind === 'RA'
-                      ? 'bg-blue-100 text-blue-800'
+                      ? 'bg-sky-100 text-sky-800'
                       : result.node.kind === 'CA'
                       ? 'bg-red-100 text-red-800'
                       : 'bg-green-100 text-green-800'

@@ -178,13 +178,13 @@ export default function WorkStatusRail({
             
             {/* Optional CQ status indicator */}
             {hasClaims && hasOpenCQs && (
-              <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                <p className="text-xs text-blue-800 leading-relaxed mb-2">
+              <div className="mt-3 p-3 rounded-lg bg-sky-50 border border-sky-200">
+                <p className="text-xs text-sky-800 leading-relaxed mb-2">
                   <span className="font-semibold">Optional:</span> Critical questions can be addressed in the dialogue panel to stress-test your claims.
                 </p>
                 <button
                   onClick={() => router.push(`/deepdive/${deliberationId}#dialogue`)}
-                  className="text-xs font-medium text-blue-700 hover:text-blue-900 underline"
+                  className="text-xs font-medium text-sky-700 hover:text-sky-900 underline"
                 >
                   → Address in dialogue panel
                 </button>
@@ -334,7 +334,7 @@ export default function WorkStatusRail({
 
         {/* Publish Section */}
         <div className="space-y-3">
-          <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200">
+          <div className="p-4 rounded-lg bg-sky-50/50 border border-sky-200">
             <p className="text-xs text-neutral-700 leading-relaxed">
               {decoupled 
                 ? 'Publishing creates a KB page from your work. Structure and adequacy checks must be complete.'

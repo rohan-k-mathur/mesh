@@ -60,7 +60,7 @@ const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
           <div
             className={`
               px-2 py-1 text-xs font-medium rounded shadow-sm
-              ${isTargeted ? "bg-red-100 text-red-800 border border-red-300 animate-pulse" : selected ? "bg-blue-100 text-blue-800 border border-blue-300" : "bg-white text-gray-700 border border-gray-200"}
+              ${isTargeted ? "bg-red-100 text-red-800 border border-red-300 animate-pulse" : selected ? "bg-sky-100 text-sky-800 border border-sky-300" : "bg-white text-gray-700 border border-gray-200"}
               transition-colors duration-200
             `}
             style={{

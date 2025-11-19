@@ -54,7 +54,7 @@ interface DialogueMoveData {
 
 // Move type styling (matches DialogueMoveNode)
 const MOVE_STYLES: Record<DialogueMoveKind, { bg: string; border: string; text: string; icon: string }> = {
-  WHY: { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700", icon: "?" },
+  WHY: { bg: "bg-sky-50", border: "border-sky-300", text: "text-sky-700", icon: "?" },
   CONCEDE: { bg: "bg-green-50", border: "border-green-300", text: "text-green-700", icon: "✓" },
   RETRACT: { bg: "bg-orange-50", border: "border-orange-300", text: "text-orange-700", icon: "↶" },
   CLOSE: { bg: "bg-slate-50", border: "border-slate-300", text: "text-slate-700", icon: "■" },
@@ -170,17 +170,17 @@ export function DialogueMoveDetailModal({
 
               {/* Context: Reply To */}
               {data.replyTo && (
-                <div className="p-4 bg-blue-50 rounded-md border border-blue-200">
+                <div className="p-4 bg-sky-50 rounded-md border border-sky-200">
                   <div className="flex items-center gap-2 mb-2">
-                    <ArrowRight className="w-4 h-4 text-blue-600" />
-                    <p className="text-sm font-medium text-blue-700">In Reply To</p>
+                    <ArrowRight className="w-4 h-4 text-sky-600" />
+                    <p className="text-sm font-medium text-sky-700">In Reply To</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-sky-600">
                       {data.replyTo.kind} by {data.replyTo.speakerName}
                     </p>
                     {data.replyTo.content && (
-                      <p className="text-sm text-blue-800 italic">&ldquo;{data.replyTo.content}&rdquo;</p>
+                      <p className="text-sm text-sky-800 italic">&ldquo;{data.replyTo.content}&rdquo;</p>
                     )}
                   </div>
                 </div>

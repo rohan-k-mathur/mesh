@@ -158,7 +158,7 @@ export function getExplicitnessStyle(level: ExplicitnessLevel): ExplicitnessStyl
       borderStyle: "solid",
       label: "Explicit",
       description: "Clearly stated in the argument text",
-      color: "blue",
+      color: "sky",
       icon: "📝",
     },
     presupposed: {
@@ -185,9 +185,9 @@ export function getExplicitnessStyle(level: ExplicitnessLevel): ExplicitnessStyl
 export function getRoleStyle(role: SchemeRole): RoleStyle {
   const styles: Record<SchemeRole, RoleStyle> = {
     primary: {
-      color: "text-blue-700",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-300",
+      color: "text-sky-700",
+      bgColor: "bg-sky-50",
+      borderColor: "border-sky-300",
       label: "Primary",
       description: "Main inferential pattern",
       icon: "⭐",
@@ -229,7 +229,7 @@ export function formatDependencyType(type: DependencyType): DependencyTypeFormat
       label: "Premise → Conclusion",
       description: "One scheme's conclusion feeds into another's premise",
       icon: "➡️",
-      color: "blue",
+      color: "sky",
     },
     enables_premise: {
       label: "Enables Premise",

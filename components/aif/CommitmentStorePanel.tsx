@@ -69,7 +69,7 @@ function CommitmentItem({
   onClick?: () => void;
 }) {
   const moveIcons = {
-    ASSERT: <CheckCircle2 className="h-3 w-3 text-blue-600" />,
+    ASSERT: <CheckCircle2 className="h-3 w-3 text-sky-600" />,
     CONCEDE: <CheckCircle2 className="h-3 w-3 text-green-600" />,
     RETRACT: <XCircle className="h-3 w-3 text-red-600" />
   };
@@ -89,7 +89,7 @@ function CommitmentItem({
             className={`
               p-2 rounded border text-sm
               ${record.isActive 
-                ? "bg-white border-gray-200 hover:border-blue-300" 
+                ? "bg-white border-gray-200 hover:border-sky-300" 
                 : "bg-gray-50 border-gray-300 opacity-60 line-through"
               }
               ${onClick ? "cursor-pointer" : ""}
@@ -148,7 +148,7 @@ function CommitmentTimeline({
             <div 
               className={`
                 w-2 h-2 rounded-full
-                ${record.moveKind === "ASSERT" ? "bg-blue-500" : ""}
+                ${record.moveKind === "ASSERT" ? "bg-sky-500" : ""}
                 ${record.moveKind === "CONCEDE" ? "bg-green-500" : ""}
                 ${record.moveKind === "RETRACT" ? "bg-red-500" : ""}
               `}
@@ -173,7 +173,7 @@ function CommitmentTimeline({
               className={`
                 text-sm
                 ${record.isActive ? "text-gray-800" : "text-gray-500 line-through"}
-                ${onClaimClick ? "cursor-pointer hover:text-blue-600" : ""}
+                ${onClaimClick ? "cursor-pointer hover:text-sky-600" : ""}
               `}
               onClick={() => onClaimClick?.(record.claimId)}
             >
@@ -257,7 +257,7 @@ export function CommitmentStorePanel({
               {showTimeline && (
                 <div className="flex items-center gap-2 mb-3">
                   <button
-                    className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                    className="text-xs flex items-center gap-1 text-sky-600 hover:text-sky-700"
                     onClick={() => {/* Toggle timeline view */}}
                   >
                     <History className="h-3 w-3" />
@@ -269,7 +269,7 @@ export function CommitmentStorePanel({
               {/* Statistics */}
               {stats && (
                 <div className="flex gap-2 mb-3 text-xs">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
                     {stats.active} active
                   </Badge>
                   {stats.retracted > 0 && (

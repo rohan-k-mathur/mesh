@@ -197,7 +197,7 @@ function MyContributionsPanel({ deliberationId, userId }: { deliberationId: stri
           icon={FileText}
           label="Claims Created"
           value={totalClaims}
-          color="blue"
+          color="sky"
         />
         <StatCard
           icon={MessageSquare}
@@ -338,7 +338,7 @@ function MyEngagementsPanel({ deliberationId, userId }: { deliberationId: string
           icon={MessageSquare}
           label="Responses (GROUNDS)"
           value={totalResponses}
-          color="blue"
+          color="sky"
         />
         <StatCard
           icon={ThumbsUp}
@@ -604,12 +604,12 @@ interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
-  color: "blue" | "indigo" | "green" | "red" | "amber" | "orange";
+  color: "sky" | "indigo" | "green" | "red" | "amber" | "orange";
 }
 
 function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
   const colorClasses = {
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
+    sky: "bg-sky-50 border-sky-200 text-sky-700",
     indigo: "bg-indigo-50 border-indigo-200 text-indigo-700",
     green: "bg-green-50 border-green-200 text-green-700",
     red: "bg-red-50 border-red-200 text-red-700",
@@ -638,7 +638,7 @@ interface ContributionCardProps {
 
 function ContributionCard({ type, id, text, createdAt }: ContributionCardProps) {
   const typeConfig = {
-    claim: { icon: FileText, color: "text-blue-600", bg: "bg-blue-50", label: "Claim" },
+    claim: { icon: FileText, color: "text-sky-600", bg: "bg-sky-50", label: "Claim" },
     argument: { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-50", label: "Argument" },
     proposition: { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", label: "Proposition" },
   };
@@ -679,7 +679,7 @@ function EngagementCard({ type, data }: EngagementCardProps) {
   const typeConfig = {
     attack: { icon: Swords, color: "text-red-600", bg: "bg-red-50", label: "Attack" },
     challenge: { icon: AlertCircle, color: "text-amber-600", bg: "bg-amber-50", label: "Challenge (WHY)" },
-    response: { icon: MessageSquare, color: "text-blue-600", bg: "bg-blue-50", label: "Response (GROUNDS)" },
+    response: { icon: MessageSquare, color: "text-sky-600", bg: "bg-sky-50", label: "Response (GROUNDS)" },
     vote: { icon: ThumbsUp, color: "text-green-600", bg: "bg-green-50", label: "Vote" },
   };
 

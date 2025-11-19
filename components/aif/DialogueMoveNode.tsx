@@ -113,7 +113,7 @@ const DIALOGUE_MOVE_STYLES = {
   GROUNDS: {
     label: "Grounds",
     icon: MessageCircle,
-    color: "bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200",
+    color: "bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200",
     description: "Provided justification",
     emoji: "⊢"
   },

@@ -8,7 +8,7 @@ import { Network, Info } from "lucide-react";
 interface ArgumentChainNodeProps extends NodeProps<ChainNodeData> {}
 
 const roleColors: Record<string, string> = {
-  PREMISE: "border-blue-500",
+  PREMISE: "border-sky-500",
   EVIDENCE: "border-teal-500",
   CONCLUSION: "border-green-500",
   OBJECTION: "border-red-500",
@@ -18,7 +18,7 @@ const roleColors: Record<string, string> = {
 };
 
 const roleBgColors: Record<string, string> = {
-  PREMISE: "bg-blue-100 text-blue-800",
+  PREMISE: "bg-sky-100 text-sky-800",
   EVIDENCE: "bg-teal-100 text-teal-800",
   CONCLUSION: "bg-green-100 text-green-800",
   OBJECTION: "bg-red-100 text-red-800",
@@ -46,7 +46,7 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected })
     <div
       className={`
         relative w-[280px] bg-white rounded-lg shadow-md border-l-4 ${borderColor}
-        ${selected ? "ring-2 ring-blue-400 shadow-lg" : ""}
+        ${selected ? "ring-2 ring-sky-400 shadow-lg" : ""}
         ${isHighlighted ? "ring-4 ring-yellow-400 shadow-xl animate-pulse" : ""}
         transition-all duration-200
       `}
@@ -143,7 +143,7 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected })
                     <div className="flex items-center gap-2">
                       <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
                         argScheme.isPrimary 
-                          ? "bg-blue-100 text-blue-700" 
+                          ? "bg-sky-100 text-sky-700" 
                           : argScheme.role === "supporting"
                           ? "bg-green-100 text-green-700"
                           : "bg-purple-100 text-purple-700"

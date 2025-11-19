@@ -10,7 +10,7 @@ export function StylingLegend() {
         <h4 className="font-semibold text-sm">Scheme Roles</h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-2">
-            <Badge className="bg-blue-100 text-blue-800 border-blue-300">Primary</Badge>
+            <Badge className="bg-sky-100 text-sky-800 border-sky-300">Primary</Badge>
             <span className="text-gray-600">Main conclusion</span>
           </div>
           <div className="flex items-center gap-2">
@@ -40,7 +40,7 @@ export function StylingLegend() {
             <span className="text-gray-600">Supporting</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-blue-500"></div>
+            <div className="w-8 h-0.5 bg-sky-500"></div>
             <span className="text-gray-600">Enabling</span>
           </div>
           <div className="flex items-center gap-2">

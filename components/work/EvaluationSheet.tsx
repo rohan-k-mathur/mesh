@@ -206,7 +206,7 @@ export default function EvaluationSheet() {
                 className={`
                   px-3 py-2 rounded-lg border-2 text-left transition-all text-xs
                   ${method === 'mcda'
-                    ? 'border-blue-300 bg-blue-50 text-blue-900'
+                    ? 'border-sky-300 bg-sky-50 text-sky-900'
                     : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
                   }
                   ${!mcda ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -237,7 +237,7 @@ export default function EvaluationSheet() {
 
           {/* MCDA Summary */}
           {method === 'mcda' && (
-            <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50">
+            <div className="p-4 rounded-lg border border-sky-200 bg-sky-50/50">
               {mcda ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">

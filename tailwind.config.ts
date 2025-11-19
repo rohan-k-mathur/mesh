@@ -21,8 +21,8 @@ module.exports = {
       colors: {
         "primary-500": "#475569",
         "secondary-500": "#FFB620",
-        "ephemera-blue": "#d3edf7",
-        blue: "#0095F6",
+        "blue": "#d3edf7",
+        
         "logout-btn": "#FF5A5A",
         "navbar-menu": "rgba(16, 16, 18, 0.6)",
         "dark-1": "#c5c9d8",

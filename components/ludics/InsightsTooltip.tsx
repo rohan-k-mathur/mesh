@@ -80,11 +80,11 @@ export function InsightsTooltip({ insights, children }: InsightsTooltipProps) {
                 Polarity
               </div>
               <div className="flex gap-2">
-                <div className="flex-1 bg-blue-50 rounded px-2 py-1.5">
-                  <div className="text-blue-600 font-semibold">
+                <div className="flex-1 bg-sky-50 rounded px-2 py-1.5">
+                  <div className="text-sky-600 font-semibold">
                     ⊕ {insights.polarityDistribution.positive}
                   </div>
-                  <div className="text-xs text-blue-500">Positive</div>
+                  <div className="text-xs text-sky-500">Positive</div>
                 </div>
                 <div className="flex-1 bg-purple-50 rounded px-2 py-1.5">
                   <div className="text-purple-600 font-semibold">
@@ -112,7 +112,7 @@ export function InsightsTooltip({ insights, children }: InsightsTooltipProps) {
                 <MetricItem
                   label="Opener"
                   value={insights.locusRoleDistribution.opener}
-                  color="blue"
+                  color="sky"
                 />
                 <MetricItem
                   label="Responder"
@@ -173,12 +173,12 @@ export function InsightsTooltip({ insights, children }: InsightsTooltipProps) {
 interface MetricItemProps {
   label: string;
   value: string | number;
-  color?: "blue" | "purple" | "gray" | "amber";
+  color?: "sky" | "purple" | "gray" | "amber";
 }
 
 function MetricItem({ label, value, color }: MetricItemProps) {
   const colorClasses = {
-    blue: "text-blue-600",
+    sky: "text-sky-600",
     purple: "text-purple-600",
     gray: "text-gray-600",
     amber: "text-amber-600",

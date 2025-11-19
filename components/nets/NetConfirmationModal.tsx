@@ -219,7 +219,7 @@ export function NetConfirmationModal({
                           ? "bg-orange-100 text-orange-800"
                           : suggestion.priority === "medium"
                           ? "bg-yellow-100 text-yellow-800"
-                          : "bg-blue-100 text-blue-800"
+                          : "bg-sky-100 text-sky-800"
                       }
                     >
                       {suggestion.priority}

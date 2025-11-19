@@ -307,9 +307,9 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
               <button
                 onClick={handleExportPNG}
                 disabled={exporting}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded hover:bg-sky-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ImageIcon className="w-4 h-4 text-blue-600" />
+                <ImageIcon className="w-4 h-4 text-sky-600" />
                 <div className="flex-1 text-left">
                   <div className="font-medium">PNG Image</div>
                   <div className="text-xs text-gray-500">High quality raster</div>
@@ -354,8 +354,8 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
             </div>
 
             {exporting && (
-              <div className="p-3 border-t bg-blue-50">
-                <div className="text-xs text-blue-700 font-medium">Exporting...</div>
+              <div className="p-3 border-t bg-sky-50">
+                <div className="text-xs text-sky-700 font-medium">Exporting...</div>
               </div>
             )}
           </div>

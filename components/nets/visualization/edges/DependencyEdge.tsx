@@ -46,7 +46,7 @@ export const DependencyEdge = memo(({
     } else if (dependency?.type === "supporting") {
       strokeColor = "#22c55e"; // green-500
     } else if (dependency?.type === "enabling") {
-      strokeColor = "#3b82f6"; // blue-500
+      strokeColor = "#3b82f6"; // sky-500
     } else if (dependency?.type === "background") {
       strokeColor = "#9ca3af"; // gray-400
       strokeDasharray = "5,5";
@@ -108,7 +108,7 @@ export const DependencyEdge = memo(({
               dependency?.type === "supporting" &&
                 "bg-green-100 text-green-800 border-green-300",
               dependency?.type === "enabling" &&
-                "bg-blue-100 text-blue-800 border-blue-300",
+                "bg-sky-100 text-sky-800 border-sky-300",
               dependency?.type === "background" &&
                 "bg-gray-100 text-gray-800 border-gray-300",
               isOnCriticalPath && "ring-2 ring-yellow-400"

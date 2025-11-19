@@ -326,7 +326,7 @@ export default function DiscussionViewDemoClient({
         <div className='w-max-screen space-y-4 '>
 
       {/* Info Banner */}
-      <div className="bg-indigo-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-indigo-50 border border-sky-200 rounded-lg p-4">
         <p className="text-sm text-slate-700 mb-2">
           <span className="font-semibold text-slate-900">
             Live Component
@@ -426,7 +426,7 @@ export default function DiscussionViewDemoClient({
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
                     <p className="text-sm text-slate-700">
                       <span className="font-medium text-slate-900">What happens next:</span>
                       <br />

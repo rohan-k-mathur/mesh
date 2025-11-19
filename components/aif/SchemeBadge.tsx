@@ -9,7 +9,7 @@ type SchemeBadgeProps = {
 };
 
 const SCHEME_COLORS: Record<string, string> = {
-  expert_opinion: "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100",
+  expert_opinion: "bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-100",
   popular_opinion: "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100",
   popular_practice: "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-100",
   argument_from_division: "bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100",

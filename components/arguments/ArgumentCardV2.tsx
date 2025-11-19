@@ -1212,7 +1212,7 @@ export function ArgumentCardV2({
                           <Button
                             variant="ghost"
                             onClick={() => setShowNetBuilder(true)}
-                            className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md border border-blue-200 transition-colors"
+                            className="flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-800 hover:bg-sky-50 rounded-md border border-sky-200 transition-colors"
                             title="Build explicit scheme net"
                           >
                             <StepForward className="h-3 w-3" />
@@ -1237,7 +1237,7 @@ export function ArgumentCardV2({
                           {/* Phase 1b.3: Strict rule badge */}
                           {scheme.ruleType === 'STRICT' && (
                             <span 
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-blue-700 text-[10px] font-bold"
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-sky-100 border border-sky-300 text-sky-700 text-[10px] font-bold"
                               title={`Strict rule${scheme.ruleName ? `: ${scheme.ruleName}` : ''} - Conclusion is logically guaranteed and cannot be rebutted`}
                             >
                               <ShieldCheck className="h-2.5 w-2.5" />

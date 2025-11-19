@@ -427,13 +427,13 @@ export function PropositionComposerPro({
           )}
         </button>
         {showEpiPanel && (
-          <div className="space-y-2 pl-4 border-l-2 border-blue-200">
+          <div className="space-y-2 pl-4 border-l-2 border-sky-200">
             <div className="flex flex-wrap items-center gap-2">
               <SmallSelect label="Quantifier" value={quantifier} onChange={setQuantifier} options={['SOME', 'MANY', 'MOST', 'ALL']} />
               <SmallSelect label="Modality" value={modality} onChange={setModality} options={['COULD', 'LIKELY', 'NECESSARY']} />
               <SmallSlider label="Confidence" value={confidence ?? 0.7} onChange={setConfidence} />
               {detected && (
-                <button className="text-[11px] text-blue-700 underline" onClick={() => { setQuantifier(detected.quantifier ?? undefined); setModality(detected.modality ?? undefined); setConfidence(detected.confidence); }}>
+                <button className="text-[11px] text-sky-700 underline" onClick={() => { setQuantifier(detected.quantifier ?? undefined); setModality(detected.modality ?? undefined); setConfidence(detected.confidence); }}>
                   Apply detected
                 </button>
               )}
@@ -596,7 +596,7 @@ function SourcesField({ sources, onChange, grades }:{
             <span key={g.url}
               className={[
                 'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5',
-                g.score >= 0.8 ? 'bg-green-50 border-green-200' : g.score >= 0.6 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200',
+                g.score >= 0.8 ? 'bg-green-50 border-green-200' : g.score >= 0.6 ? 'bg-sky-50 border-sky-200' : 'bg-gray-50 border-gray-200',
               ].join(' ')}
               title={`Quality ~${Math.round(g.score * 100)}%`}
             >

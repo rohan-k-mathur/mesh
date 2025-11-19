@@ -132,7 +132,7 @@ export function EnablerPanel({
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "primary":
-        return "bg-blue-100 text-blue-700 border-blue-300";
+        return "bg-sky-100 text-sky-700 border-sky-300";
       case "supporting":
         return "bg-green-100 text-green-700 border-green-300";
       case "presupposed":
@@ -315,9 +315,9 @@ export function EnablerPanel({
           </Card>
         ))}
 
-        <Alert className="mt-4 bg-blue-50 border-blue-200">
-          <Lightbulb className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-xs text-blue-800">
+        <Alert className="mt-4 bg-sky-50 border-sky-200">
+          <Lightbulb className="h-4 w-4 text-sky-600" />
+          <AlertDescription className="text-xs text-sky-800">
             <strong>What are enablers?</strong> Enablers are the implicit inference rules that connect premises to conclusions. 
             In AGORA-net's framework, making these explicit allows critical reflection on the reasoning itself, 
             not just the claims being made.

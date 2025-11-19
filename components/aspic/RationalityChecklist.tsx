@@ -138,7 +138,7 @@ export function RationalityChecklist({
     <TooltipProvider>
       <div className="space-y-6">
         {/* Overall Status */}
-        <div className="flex items-start gap-4 p-4 rounded-lg border bg-gradient-to-br from-purple-50 to-blue-50">
+        <div className="flex items-start gap-4 p-4 rounded-lg border bg-gradient-to-br from-purple-50 to-sky-50">
           <div className="flex-shrink-0 mt-1">
             {allPassed ? (
               <CheckCircle2 className="h-8 w-8 text-green-600" />
@@ -224,12 +224,12 @@ export function RationalityChecklist({
 
         {/* Transposition Auto-Generate */}
         {!rationality.postulates.transpositionClosure && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <Sparkles className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-900">
+          <Alert className="border-sky-200 bg-sky-50">
+            <Sparkles className="h-4 w-4 text-sky-600" />
+            <AlertTitle className="text-sky-900">
               Auto-Generate Transposed Rules
             </AlertTitle>
-            <AlertDescription className="text-blue-800 text-xs mt-2">
+            <AlertDescription className="text-sky-800 text-xs mt-2">
               <p className="mb-3">
                 Mesh can automatically generate contrapositives for your strict
                 rules. This will ensure transposition closure and satisfy the
@@ -239,7 +239,7 @@ export function RationalityChecklist({
                 size="sm"
                 onClick={handleAutoGenerate}
                 disabled={isGenerating}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-sky-600 hover:bg-sky-700"
               >
                 {isGenerating ? (
                   <>
@@ -334,7 +334,7 @@ function PostulateItem({
   const importanceColors = {
     critical: "text-red-600 bg-red-50 border-red-200",
     high: "text-amber-600 bg-amber-50 border-amber-200",
-    medium: "text-blue-600 bg-blue-50 border-blue-200",
+    medium: "text-sky-600 bg-sky-50 border-sky-200",
   };
 
   return (
@@ -356,7 +356,7 @@ function PostulateItem({
                   ? "text-red-600"
                   : postulate.importance === "high"
                   ? "text-amber-600"
-                  : "text-blue-600"
+                  : "text-sky-600"
               }`}
             />
           )}
@@ -389,7 +389,7 @@ function PostulateItem({
                     ? "border-red-300 text-red-700"
                     : postulate.importance === "high"
                     ? "border-amber-300 text-amber-700"
-                    : "border-blue-300 text-blue-700"
+                    : "border-sky-300 text-sky-700"
                 }`}
               >
                 {postulate.importance}

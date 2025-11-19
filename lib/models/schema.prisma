@@ -2690,6 +2690,13 @@ model PreferenceApplication {
   setComparison  String? // "elitist" | "democratic" | null (use default elitist)
   justification  String? @db.Text // Fix bug: UI collects but doesn't save
 
+  // ASPIC+ Phase 5.3: Conflict resolution (weighted preferences deferred)
+  weight                 Float?    @default(1.0) // Confidence score [0.0, 1.0] (deferred)
+  conflictStatus         String?   @default("none") // "none" | "detected" | "resolved"
+  conflictResolution     Json? // Resolution metadata (strategy, timestamp, resolvedBy)
+  conflictResolvedAt     DateTime?
+  conflictResolvedBy     String?
+
   scheme PreferenceScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
   @@index([deliberationId])
@@ -2697,6 +2704,7 @@ model PreferenceApplication {
   @@index([preferredArgumentId])
   @@index([dispreferredClaimId])
   @@index([dispreferredArgumentId])
+  @@index([conflictStatus])
 }
 
 model DefaultRule {

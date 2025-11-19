@@ -199,11 +199,11 @@ function NetCard({
       case "serial":
         return { 
           icon: ChevronRight, 
-          color: "blue", 
+          color: "sky", 
           label: "Serial",
-          iconClass: "text-blue-600",
-          badgeBgClass: "bg-blue-100",
-          badgeTextClass: "text-blue-700"
+          iconClass: "text-sky-600",
+          badgeBgClass: "bg-sky-100",
+          badgeTextClass: "text-sky-700"
         };
       case "convergent":
         return { 

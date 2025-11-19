@@ -18,9 +18,9 @@ const THEORY_CONFIGS = {
     label: 'DN — Descriptive–Nomological',
     subtitle: 'empirical',
     description: 'Describe regularities, supply data & laws.',
-    color: 'from-blue-500/10 to-blue-600/5',
-    border: 'border-blue-200',
-    badge: 'bg-blue-100 text-blue-700',
+    color: 'from-sky-500/10 to-sky-600/5',
+    border: 'border-sky-200',
+    badge: 'bg-sky-100 text-sky-700',
   },
   IH: {
     label: 'IH — Idealizing–Hermeneutic',
@@ -193,7 +193,7 @@ export function TheoryFraming({
             {t === 'DN' && (
               <>
                 <DNThesesEditor workId={workId} />
-                <p className="text-[10px] text-neutral-500 px-3 py-2 bg-blue-50/50 rounded border border-blue-100">
+                <p className="text-[10px] text-neutral-500 px-3 py-2 bg-sky-50/50 rounded border border-sky-100">
                   DN posts supply empirical premises. Link them later via the Supply function graph.
                 </p>
               </>

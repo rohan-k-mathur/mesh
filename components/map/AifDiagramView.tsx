@@ -433,7 +433,7 @@ export default function AifDiagramView({
         <div className="font-semibold mb-2 text-slate-700">Node Types</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded border-2 border-[#3b82f6ff] bg-blue-50" />
+            <div className="w-3 h-3 rounded border-2 border-[#3b82f6ff] bg-sky-50" />
             <span>I-Node (Statement)</span>
           </div>
           <div className="flex items-center gap-2">

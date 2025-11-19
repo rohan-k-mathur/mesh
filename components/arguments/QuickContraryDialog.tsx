@@ -114,8 +114,8 @@ export function QuickContraryDialog({
             <label className="text-xs font-medium text-gray-700">
               Source Claim:
             </label>
-            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-              <p className="text-sm text-blue-900">{sourceClaim.text}</p>
+            <div className="p-3 rounded-lg bg-sky-50 border border-sky-200">
+              <p className="text-sm text-sky-900">{sourceClaim.text}</p>
             </div>
           </div>
 
@@ -200,9 +200,9 @@ export function QuickContraryDialog({
 
           {/* Well-formedness Info */}
           {selectedContrary && (
-            <Alert className="border-blue-500 bg-blue-50">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-xs text-blue-800">
+            <Alert className="border-sky-500 bg-sky-50">
+              <AlertCircle className="h-4 w-4 text-sky-600" />
+              <AlertDescription className="text-xs text-sky-800">
                 <strong>ASPIC+ Rule:</strong> Arguments with conclusions <strong>&quot;{sourceClaim.text}&quot;</strong> and{" "}
                 <strong>&quot;{selectedContrary.text}&quot;</strong> will be able to rebut each other.
                 {isSymmetric && " This is a symmetric (contradictory) relationship."}

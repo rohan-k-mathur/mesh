@@ -18,8 +18,8 @@ export const SchemeNode = memo(({ data }: NodeProps) => {
 
     // Role-based styling
     if (role === "primary") {
-      borderColor = "border-blue-500";
-      bgColor = "bg-blue-50";
+      borderColor = "border-sky-500";
+      bgColor = "bg-sky-50";
     } else if (role === "supporting") {
       borderColor = "border-green-500";
       bgColor = "bg-green-50";
@@ -58,7 +58,7 @@ export const SchemeNode = memo(({ data }: NodeProps) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="w-3 h-3 !bg-blue-500"
+        className="w-3 h-3 !bg-sky-500"
       />
 
       {/* Node Card */}
@@ -83,7 +83,7 @@ export const SchemeNode = memo(({ data }: NodeProps) => {
               variant="outline"
               className={cn(
                 "text-xs",
-                role === "primary" && "bg-blue-100 text-blue-800 border-blue-300",
+                role === "primary" && "bg-sky-100 text-sky-800 border-sky-300",
                 role === "supporting" && "bg-green-100 text-green-800 border-green-300",
                 role === "subordinate" && "bg-purple-100 text-purple-800 border-purple-300"
               )}
@@ -132,7 +132,7 @@ export const SchemeNode = memo(({ data }: NodeProps) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-3 h-3 !bg-blue-500"
+        className="w-3 h-3 !bg-sky-500"
       />
     </div>
   );

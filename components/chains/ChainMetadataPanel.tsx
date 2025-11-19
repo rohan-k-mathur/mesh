@@ -110,7 +110,7 @@ const ChainMetadataPanel: React.FC = () => {
                   value={localName}
                   onChange={(e) => setLocalName(e.target.value)}
                   placeholder="Enter chain name..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
 
@@ -127,7 +127,7 @@ const ChainMetadataPanel: React.FC = () => {
                       className={`
                         w-full p-3 text-left rounded-lg border-2 transition-colors
                         ${localType === type.value
-                          ? "border-blue-500 bg-blue-50"
+                          ? "border-sky-500 bg-sky-50"
                           : "border-gray-200 hover:border-gray-300"
                         }
                       `}
@@ -146,7 +146,7 @@ const ChainMetadataPanel: React.FC = () => {
                     type="checkbox"
                     checked={localIsPublic}
                     onChange={(e) => setLocalIsPublic(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500"
                   />
                   <div>
                     <div className="text-sm font-medium text-gray-900">Make Public</div>
@@ -170,7 +170,7 @@ const ChainMetadataPanel: React.FC = () => {
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {loading ? "Saving..." : "Save Changes"}

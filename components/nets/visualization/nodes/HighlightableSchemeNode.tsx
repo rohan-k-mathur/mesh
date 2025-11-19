@@ -24,20 +24,20 @@ export const HighlightableSchemeNode = memo(({ data, selected }: NodeProps) => {
       className={cn(
         "transition-all duration-300",
         _dimmed && "opacity-30 scale-95",
-        _highlighted && "ring-4 ring-blue-400 scale-105 z-10"
+        _highlighted && "ring-4 ring-sky-400 scale-105 z-10"
       )}
     >
       <Handle
         type="target"
         position={Position.Top}
-        className="w-3 h-3 !bg-blue-500"
+        className="w-3 h-3 !bg-sky-500"
       />
 
       <Card
         className={cn(
           "min-w-[220px] max-w-[300px] transition-all",
-          selected && "ring-2 ring-blue-400",
-          role === "primary" && "border-blue-500 bg-blue-50",
+          selected && "ring-2 ring-sky-400",
+          role === "primary" && "border-sky-500 bg-sky-50",
           role === "supporting" && "border-green-500 bg-green-50",
           role === "subordinate" && "border-purple-500 bg-purple-50",
           isCriticalPath && "shadow-xl ring-2 ring-yellow-400",
@@ -92,7 +92,7 @@ export const HighlightableSchemeNode = memo(({ data, selected }: NodeProps) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-3 h-3 !bg-blue-500"
+        className="w-3 h-3 !bg-sky-500"
       />
     </div>
   );

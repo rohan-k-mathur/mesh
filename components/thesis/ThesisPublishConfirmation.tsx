@@ -194,9 +194,9 @@ export function ThesisPublishConfirmation({
 
           {/* No Objects Message */}
           {!hasObjects && (
-            <Alert className="bg-blue-50 border-blue-200 flex gap-2">
-              <CheckCircle2 className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-blue-800">
+            <Alert className="bg-sky-50 border-sky-200 flex gap-2">
+              <CheckCircle2 className="h-4 w-4 text-sky-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sky-800">
                 Your thesis contains no draft objects. It will be published as-is.
               </div>
             </Alert>

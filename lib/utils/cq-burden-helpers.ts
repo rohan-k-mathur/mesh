@@ -106,7 +106,7 @@ export function getBurdenBadgeText(burdenOfProof: BurdenOfProof): string {
 export function getBurdenBadgeColor(burdenOfProof: BurdenOfProof): string {
   switch (burdenOfProof) {
     case "PROPONENT":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      return "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-300";
     case "CHALLENGER":
       return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300";
     default:

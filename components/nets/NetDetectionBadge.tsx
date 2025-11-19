@@ -21,7 +21,7 @@ export function NetDetectionBadge({
   const getColorClass = () => {
     if (isConfirmed) return "bg-green-100 text-green-800 border-green-300";
     if (confidence < 50) return "bg-yellow-100 text-yellow-800 border-yellow-300";
-    return "bg-blue-100 text-blue-800 border-blue-300";
+    return "bg-sky-100 text-sky-800 border-sky-300";
   };
 
   const Icon = isConfirmed ? CheckCircle : confidence < 50 ? AlertCircle : Network;

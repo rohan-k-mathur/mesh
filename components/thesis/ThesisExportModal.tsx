@@ -168,9 +168,9 @@ export function ThesisExportModal({ open, onClose, thesisId, thesisTitle }: Thes
           </div>
 
           {/* Info Banner */}
-          <Alert className="bg-blue-50 border-blue-200 flex gap-2">
-            <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
+          <Alert className="bg-sky-50 border-sky-200 flex gap-2">
+            <AlertCircle className="h-4 w-4 text-sky-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-sky-800">
               <strong>Static Snapshot:</strong> The exported file is a point-in-time copy. Any future changes to your
               thesis or linked objects will not be reflected in this export.
             </div>

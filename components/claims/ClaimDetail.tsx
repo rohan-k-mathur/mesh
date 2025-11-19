@@ -53,7 +53,7 @@ export default function ClaimDetail({
 
       {/* ✅ NEW: Canonical Claim Notice */}
       {canonical && (
-        <div className="bg-blue-50 border-l-4 border-blue-400 text-blue-800 p-4 rounded-md mb-6" role="alert">
+        <div className="bg-sky-50 border-l-4 border-sky-400 text-sky-800 p-4 rounded-md mb-6" role="alert">
           <p className="font-bold text-sm">Canonical Version</p>
           <p className="text-sm mt-1">
             This is a variation of a canonical claim. View the original: {' '}
@@ -67,7 +67,7 @@ export default function ClaimDetail({
       <div className="bg-white shadow-lg rounded-xl p-6">
         <div className="mb-5">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Claim Text</h2>
-          <blockquote className="text-xl text-gray-900 mt-1 border-l-4 border-blue-500 pl-4 italic">
+          <blockquote className="text-xl text-gray-900 mt-1 border-l-4 border-sky-500 pl-4 italic">
             {text}
           </blockquote>
         </div>
@@ -100,12 +100,12 @@ export default function ClaimDetail({
               <li key={citation.id} className="bg-white shadow-md rounded-lg p-4">
                 <div className="font-semibold text-gray-800">{citation.sourceName || 'Untitled Source'}</div>
                 {citation.url && (
-                  <a href={citation.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">
+                  <a href={citation.url} target="_blank" rel="noopener noreferrer" className="text-sm text-sky-600 hover:underline break-all">
                     {citation.url}
                   </a>
                 )}
                 {citation.comment && (
-                  <p className="text-sm text-gray-600 mt-2 italic">"{citation.comment}"</p>
+                  <p className="text-sm text-gray-600 mt-2 italic">&quot;{citation.comment}&quot;</p>
                 )}
               </li>
             ))}

@@ -389,18 +389,18 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                  <Play className="h-5 w-5 text-blue-600" />
+                  <Play className="h-5 w-5 text-sky-600" />
                   Interactive Demo
                 </h3>
                
               </div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky text-sky-700">
                 <Info className="h-3 w-3" />
                 Simplified demo
               </span>
             </div>
             
-            <div className="bg-transparent rounded-lg p-6 border border-blue-100">
+            <div className="bg-transparent rounded-lg p-6 border border-sky-100">
               {step.demo === 'discussion-upgrade' && <DiscussionViewDemo />}
               {step.demo === 'live-chat' && <DiscussionViewDemo defaultTab="chat" />}
               {step.demo !== 'discussion-upgrade' && step.demo !== 'live-chat' && (
@@ -653,7 +653,7 @@ function SchemaReference({ schema, isExpanded, onToggle }: SchemaReferenceProps)
                 <div className="space-y-2">
                   {schema.fields.map((field) => (
                     <div key={field.name} className="flex items-start gap-3 text-sm font-mono bg-white p-3 rounded border border-slate-200">
-                      <span className="text-blue-600 font-medium">{field.name}</span>
+                      <span className="text-sky-600 font-medium">{field.name}</span>
                       <span className="text-slate-400">{field.optional ? '?' : ''}</span>
                       <span className="text-purple-600">{field.type}</span>
                       {field.defaultValue && (
@@ -678,7 +678,7 @@ function SchemaReference({ schema, isExpanded, onToggle }: SchemaReferenceProps)
                       <div key={rel.name} className="flex items-center gap-3 text-sm bg-white p-3 rounded border border-slate-200">
                         <span className="font-mono text-green-600 font-medium">{rel.name}</span>
                         <span className="text-slate-400">→</span>
-                        <span className="font-mono text-blue-600">{rel.target}</span>
+                        <span className="font-mono text-sky-600">{rel.target}</span>
                         <span className="text-xs text-slate-500 font-mono">({rel.cardinality})</span>
                         <span className="text-slate-600 text-xs ml-auto">
                           {rel.description}
@@ -693,7 +693,7 @@ function SchemaReference({ schema, isExpanded, onToggle }: SchemaReferenceProps)
               <div className="mt-4 pt-4 border-t border-slate-200">
                 <a 
                   href="/docs/schema" 
-                  className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                  className="text-xs text-sky-600 hover:underline inline-flex items-center gap-1"
                 >
                   View complete Prisma schema <ExternalLink className="h-3 w-3" />
                 </a>

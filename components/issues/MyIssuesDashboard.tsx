@@ -92,14 +92,14 @@ export function MyIssuesDashboard({
           onClick={() => setActiveTab("pending_clarifications")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
             activeTab === "pending_clarifications"
-              ? "bg-blue-100 text-blue-700 border border-blue-200"
+              ? "bg-sky-100 text-sky-700 border border-sky-200"
               : "text-neutral-600 hover:bg-neutral-100"
           }`}
         >
           <HelpCircle className="h-4 w-4" />
           Questions to Answer
           {myIssues.pendingClarifications.length > 0 && (
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-200 text-xs font-semibold">
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-sky-200 text-xs font-semibold">
               {myIssues.pendingClarifications.length}
             </span>
           )}
@@ -151,9 +151,9 @@ export function MyIssuesDashboard({
           const kindConfig = {
             clarification: {
               icon: HelpCircle,
-              color: "blue",
-              bgColor: "bg-blue-50/70",
-              hoverColor: "hover:bg-blue-100",
+              color: "sky",
+              bgColor: "bg-sky-50/70",
+              hoverColor: "hover:bg-sky-100",
             },
             community_defense: {
               icon: Shield,

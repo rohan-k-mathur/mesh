@@ -188,7 +188,7 @@ export function AifPathHighlighter({
             onClick={() => handlePathSelect(path)}
             className={`w-full text-left px-3 py-2 rounded-md text-xs border transition-colors ${
               activePath?.id === path.id
-                ? 'bg-blue-50 border-blue-300 text-blue-900'
+                ? 'bg-sky-50 border-sky-300 text-sky-900'
                 : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -253,7 +253,7 @@ export function getPathHighlightStyle(
   }
   
   // Highlight color based on path type
-  let highlightColor = '#3b82f6'; // blue for support
+  let highlightColor = '#3b82f6'; // sky for support
   if (pathType === 'attack') highlightColor = '#ef4444'; // red
   if (pathType === 'preference') highlightColor = '#22c55e'; // green
   

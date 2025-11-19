@@ -323,7 +323,7 @@ function NetCard({ net, onView, onEdit, onDelete }: NetCardProps) {
       : "text-red-600";
 
   const netTypeColors = {
-    serial: "bg-blue-100 text-blue-800 border-blue-200",
+    serial: "bg-sky-100 text-sky-800 border-sky-200",
     convergent: "bg-purple-100 text-purple-800 border-purple-200",
     divergent: "bg-orange-100 text-orange-800 border-orange-200",
     hybrid: "bg-gray-100 text-gray-800 border-gray-200",

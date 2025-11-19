@@ -37,7 +37,7 @@ export default function DialogueInspectorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-blue p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -126,7 +126,7 @@ export default function DialogueInspectorPage() {
               <button
                 type="button"
                 onClick={loadExample}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium transition-colors"
+                className="px-6 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 font-medium transition-colors"
               >
                 📝 Load Example
               </button>
@@ -143,9 +143,9 @@ export default function DialogueInspectorPage() {
 
         {/* Instructions */}
         {!showInspector && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-900 mb-2">📖 How to Use</h3>
-            <ol className="space-y-2 text-sm text-blue-800">
+          <div className="bg-sky-50 border border-sky-200 rounded-lg p-6">
+            <h3 className="font-semibold text-sky-900 mb-2">📖 How to Use</h3>
+            <ol className="space-y-2 text-sm text-sky-800">
               <li>
                 <strong>1.</strong> Get a Deliberation ID from the browser console or database
               </li>
@@ -162,7 +162,7 @@ export default function DialogueInspectorPage() {
                 <strong>5.</strong> Click "🔍 Inspect" to view all dialogue data
               </li>
             </ol>
-            <div className="mt-4 p-3 bg-white rounded border border-blue-200">
+            <div className="mt-4 p-3 bg-white rounded border border-sky-200">
               <p className="text-xs font-mono text-gray-700">
                 <strong>Tip:</strong> You can find IDs in the network tab when browsing deliberations,
                 or by looking at API responses in the console.
@@ -190,7 +190,7 @@ export default function DialogueInspectorPage() {
                 href={`/api/claims/${targetId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                className="px-3 py-1 bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
               >
                 📄 Claim API
               </a>

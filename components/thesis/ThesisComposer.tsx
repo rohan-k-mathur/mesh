@@ -31,7 +31,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 type ThesisStatus = "DRAFT" | "SUBMITTED" | "PUBLISHED" | "ARCHIVED";
 type ThesisTemplate = "LEGAL_DEFENSE" | "POLICY_CASE" | "ACADEMIC_THESIS" | "GENERAL";
 type ProngRole = "SUPPORT" | "REBUT" | "PREEMPT";
-type ThesisSectionType = "INTRODUCTION" | "BACKGROUND" | "LEGAL_STANDARD" | "CONCLUSION" | "APPENDIX";
+type ThesisSectionType = "INTRODUCTION" | "BACKGROUND" | "LEGAL_STANDARD" | "CONCLUSION" | "APPENDIX" | "METHODOLOGY";
 
 type Thesis = {
   id: string;
@@ -447,7 +447,7 @@ export function ThesisComposer({
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
                   thesis.status === "PUBLISHED" ? "bg-emerald-100 text-emerald-800" :
-                  thesis.status === "SUBMITTED" ? "bg-blue-100 text-blue-800" :
+                  thesis.status === "SUBMITTED" ? "bg-sky-100 text-sky-800" :
                   thesis.status === "DRAFT" ? "bg-amber-100 text-amber-800" :
                   "bg-slate-100 text-slate-800"
                 }`}>
@@ -799,7 +799,7 @@ export function ThesisComposer({
                           <div className="flex items-center gap-2 mb-3">
                             <span className="text-xs font-semibold text-slate-500">#{index + 1}</span>
                             <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                              section.sectionType === "INTRODUCTION" ? "bg-blue-100 text-blue-800" :
+                              section.sectionType === "INTRODUCTION" ? "bg-sky-100 text-sky-800" :
                               section.sectionType === "METHODOLOGY" ? "bg-purple-100 text-purple-800" :
                               section.sectionType === "CONCLUSION" ? "bg-green-100 text-green-800" :
                               "bg-slate-100 text-slate-800"

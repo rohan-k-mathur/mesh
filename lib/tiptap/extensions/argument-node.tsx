@@ -45,10 +45,10 @@ function ArgumentNodeView({ node }: NodeViewProps) {
   const roleConfig = {
     PREMISE: {
       icon: Shield,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      border: "border-blue-200",
-      accentBorder: "border-l-blue-400",
+      color: "text-sky-600",
+      bg: "bg-sky-50",
+      border: "border-sky-200",
+      accentBorder: "border-l-sky-400",
       label: "Supporting",
     },
     OBJECTION: {
@@ -105,7 +105,7 @@ function ArgumentNodeView({ node }: NodeViewProps) {
               <Icon className={`w-4 h-4 ${config.color} flex-shrink-0`} />
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 role === "PREMISE"
-                  ? "bg-blue-100 text-blue-700"
+                  ? "bg-sky-100 text-sky-700"
                   : role === "OBJECTION"
                   ? "bg-rose-100 text-rose-700"
                   : "bg-purple-100 text-purple-700"

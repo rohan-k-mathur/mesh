@@ -9,6 +9,7 @@ import { SchemesSection } from "../sections/SchemesSection";
 import { NetworksSection } from "../sections/NetworksSection";
 import { ChainsSection } from "../sections/ChainsSection";
 import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
+import { ConflictResolutionPanel } from "@/components/aspic/ConflictResolutionPanel";
 import { ArgumentNetAnalyzer } from "@/components/argumentation/ArgumentNetAnalyzer";
 import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
 import { AttackArgumentWizard } from "@/components/argumentation/AttackArgumentWizard";
@@ -211,7 +212,21 @@ export function ArgumentsTab({
             value: "aspic",
             label: "ASPIC",
             icon: <Shield className="size-3.5" />,
-            content: <AspicTheoryPanel deliberationId={deliberationId} />,
+            content: (
+              <div className="space-y-6">
+                <ConflictResolutionPanel 
+                  deliberationId={deliberationId}
+                  onResolved={() => {
+                    // Refresh ASPIC theory after conflicts resolved
+                    setAttackRefreshKey((prev) => prev + 1);
+                  }}
+                />
+                <AspicTheoryPanel 
+                  deliberationId={deliberationId}
+                  key={attackRefreshKey}
+                />
+              </div>
+            ),
           },
         ]}
       />

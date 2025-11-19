@@ -38,7 +38,7 @@ type CommunityResponse = {
 
 const MOVE_TYPE_LABELS: Record<string, { label: string; color: string; icon: string }> = {
   GROUNDS_RESPONSE: { label: "Grounds", color: "bg-green-100 text-green-800", icon: "🛡️" },
-  CLARIFICATION_ANSWER: { label: "Clarification", color: "bg-blue-100 text-blue-800", icon: "💬" },
+  CLARIFICATION_ANSWER: { label: "Clarification", color: "bg-sky-100 text-sky-800", icon: "💬" },
   CHALLENGE_RESPONSE: { label: "Challenge Response", color: "bg-orange-100 text-orange-800", icon: "⚔️" },
   EVIDENCE_ADDITION: { label: "Evidence", color: "bg-purple-100 text-purple-800", icon: "📊" },
   PREMISE_DEFENSE: { label: "Premise Defense", color: "bg-indigo-100 text-indigo-800", icon: "🏛️" },

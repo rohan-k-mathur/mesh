@@ -154,7 +154,7 @@ function SchemeComparisonCard({
         isSelected 
           ? "border-indigo-500 bg-indigo-50 shadow-lg" 
           : "border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md",
-        isPrimary && "ring-2 ring-blue-400 ring-offset-2"
+        isPrimary && "ring-2 ring-sky-400 ring-offset-2"
       )}
       onClick={onClick}
     >
@@ -167,7 +167,7 @@ function SchemeComparisonCard({
             showConfidence={false}
           />
           {isPrimary && (
-            <Badge className="text-xs bg-blue-600 text-white">
+            <Badge className="text-xs bg-sky-600 text-white">
               Primary
             </Badge>
           )}
@@ -252,7 +252,7 @@ function SchemeComparisonCard({
           <span className="text-muted-foreground">Explicitness: </span>
           <span className={cn(
             "font-medium capitalize",
-            scheme.explicitness === "explicit" ? "text-blue-700" :
+            scheme.explicitness === "explicit" ? "text-sky-700" :
             scheme.explicitness === "presupposed" ? "text-amber-700" :
             "text-gray-700"
           )}>

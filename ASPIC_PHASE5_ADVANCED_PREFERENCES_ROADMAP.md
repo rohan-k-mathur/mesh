@@ -2828,17 +2828,1199 @@ export function instantiateScheme(
 
 ---
 
-## TO BE CONTINUED (Part 5 - Final)...
+### Implementation Part 8: Preference Schemes UI Components
 
-**Current Progress**: 
-- ✅ Part 1: Schema design + type definitions for weighted preferences
-- ✅ Part 2: Weighted defeat computation + sensitivity analysis
-- ✅ Part 3: API endpoints + UI components for weighted preferences
-- ✅ Part 4: Testing for weighted preferences + Preference Schemes foundation
+#### Component 5: `components/aspic/SchemeSelector.tsx` (New, ~250 lines)
 
-**Final Section**: Preference Schemes UI, Conflict Resolution (5.3), Bulk Operations (5.4), Timeline & Summary.
+```tsx
+/**
+ * Scheme selector for preference creation
+ * Allows users to choose from structured preference schemes
+ */
+
+"use client";
+
+import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Lightbulb, AlertCircle } from "lucide-react";
+import { PREFERENCE_SCHEMES, validateSchemeParameters, instantiateScheme } from "@/lib/aspic/schemes/preferenceSchemes";
+import type { PreferenceScheme } from "@/lib/aspic/schemes/preferenceSchemes";
+
+interface SchemeSelectorProps {
+  onSchemeSelect: (schemeKey: string, parameters: Record<string, any>) => void;
+  initialScheme?: string;
+  initialParameters?: Record<string, any>;
+}
+
+export function SchemeSelector({
+  onSchemeSelect,
+  initialScheme,
+  initialParameters = {},
+}: SchemeSelectorProps) {
+  const [selectedScheme, setSelectedScheme] = useState<PreferenceScheme | null>(
+    initialScheme ? PREFERENCE_SCHEMES.find(s => s.key === initialScheme) ?? null : null
+  );
+  const [parameters, setParameters] = useState<Record<string, any>>(initialParameters);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const handleSchemeChange = (schemeKey: string) => {
+    const scheme = PREFERENCE_SCHEMES.find(s => s.key === schemeKey);
+    if (scheme) {
+      setSelectedScheme(scheme);
+      setParameters({});
+      setErrors([]);
+      setShowPreview(false);
+    }
+  };
+
+  const handleParameterChange = (key: string, value: any) => {
+    setParameters(prev => ({ ...prev, [key]: value }));
+    setErrors([]);
+  };
+
+  const handleValidate = () => {
+    if (!selectedScheme) return;
+
+    const validation = validateSchemeParameters(selectedScheme, parameters);
+    setErrors(validation.errors);
+
+    if (validation.valid) {
+      onSchemeSelect(selectedScheme.key, parameters);
+    }
+  };
+
+  const handlePreview = () => {
+    if (!selectedScheme) return;
+
+    const validation = validateSchemeParameters(selectedScheme, parameters);
+    setErrors(validation.errors);
+
+    if (validation.valid) {
+      setShowPreview(true);
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "epistemic": return "bg-blue-500";
+      case "normative": return "bg-purple-500";
+      case "pragmatic": return "bg-green-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Scheme Selection */}
+      <div>
+        <Label htmlFor="scheme-select">Preference Scheme</Label>
+        <Select 
+          value={selectedScheme?.key} 
+          onValueChange={handleSchemeChange}
+        >
+          <SelectTrigger id="scheme-select">
+            <SelectValue placeholder="Select a scheme to justify this preference" />
+          </SelectTrigger>
+          <SelectContent>
+            {PREFERENCE_SCHEMES.map(scheme => (
+              <SelectItem key={scheme.key} value={scheme.key}>
+                <div className="flex items-center gap-2">
+                  <Badge className={getCategoryColor(scheme.category)}>
+                    {scheme.category}
+                  </Badge>
+                  <span>{scheme.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedScheme && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {selectedScheme.description}
+          </p>
+        )}
+      </div>
+
+      {/* Parameter Inputs */}
+      {selectedScheme && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Scheme Parameters</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {selectedScheme.parameters.map(param => (
+              <div key={param.key}>
+                <Label htmlFor={`param-${param.key}`}>
+                  {param.label}
+                  {param.required && <span className="text-destructive">*</span>}
+                </Label>
+                
+                {param.type === "string" && (
+                  <Input
+                    id={`param-${param.key}`}
+                    type="text"
+                    value={parameters[param.key] ?? ""}
+                    onChange={(e) => handleParameterChange(param.key, e.target.value)}
+                    placeholder={`Enter ${param.label.toLowerCase()}`}
+                  />
+                )}
+
+                {param.type === "number" && (
+                  <Input
+                    id={`param-${param.key}`}
+                    type="number"
+                    value={parameters[param.key] ?? ""}
+                    onChange={(e) => handleParameterChange(param.key, parseFloat(e.target.value))}
+                    placeholder={`Enter ${param.label.toLowerCase()}`}
+                  />
+                )}
+
+                {param.type === "select" && param.options && (
+                  <Select
+                    value={parameters[param.key]}
+                    onValueChange={(value) => handleParameterChange(param.key, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={`Select ${param.label.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {param.options.map(option => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Examples */}
+      {selectedScheme && selectedScheme.examples.length > 0 && (
+        <Alert>
+          <Lightbulb className="h-4 w-4" />
+          <AlertDescription>
+            <div className="text-sm font-medium mb-2">Example:</div>
+            <div className="text-xs">
+              <strong>{selectedScheme.examples[0].title}</strong>
+              <p className="mt-1">{selectedScheme.examples[0].description}</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Validation Errors */}
+      {errors.length > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <ul className="list-disc list-inside text-sm">
+              {errors.map((error, i) => (
+                <li key={i}>{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Preview */}
+      {showPreview && selectedScheme && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Preview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-sm max-w-none">
+              <div dangerouslySetInnerHTML={{ 
+                __html: instantiateScheme(selectedScheme, parameters).replace(/\n/g, '<br />') 
+              }} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button 
+          variant="outline" 
+          onClick={handlePreview}
+          disabled={!selectedScheme}
+        >
+          Preview Scheme
+        </Button>
+        <Button 
+          onClick={handleValidate}
+          disabled={!selectedScheme}
+        >
+          Apply Scheme
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+#### Update `PreferenceAttackModal` with Scheme Support
+
+```tsx
+// Add to PreferenceAttackModal.tsx
+import { SchemeSelector } from "@/components/aspic/SchemeSelector";
+
+// Add state
+const [useScheme, setUseScheme] = useState(false);
+const [schemeKey, setSchemeKey] = useState<string | null>(null);
+const [schemeParameters, setSchemeParameters] = useState<Record<string, any>>({});
+
+// Add to form UI (after weight slider, before justification)
+<div className="space-y-2">
+  <div className="flex items-center space-x-2">
+    <input
+      type="checkbox"
+      id="use-scheme"
+      checked={useScheme}
+      onChange={(e) => setUseScheme(e.target.checked)}
+    />
+    <Label htmlFor="use-scheme">
+      Use structured preference scheme
+    </Label>
+  </div>
+
+  {useScheme ? (
+    <SchemeSelector
+      onSchemeSelect={(key, params) => {
+        setSchemeKey(key);
+        setSchemeParameters(params);
+      }}
+    />
+  ) : (
+    <div className="space-y-1">
+      <Label htmlFor="justification">
+        Justification (Optional)
+      </Label>
+      <Textarea
+        id="justification"
+        placeholder="Why do you prefer this argument?"
+        value={justification}
+        onChange={(e) => setJustification(e.target.value)}
+        rows={3}
+      />
+    </div>
+  )}
+</div>
+
+// Update API call
+const response = await fetch("/api/pa", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    deliberationId,
+    preferredArgumentId,
+    dispreferredArgumentId,
+    weight,
+    weightSource: "user",
+    weightJustification,
+    // NEW: Scheme fields
+    schemeId: schemeKey,
+    schemeParameters: useScheme ? schemeParameters : null,
+    justification: useScheme ? null : justification,
+  }),
+});
+```
 
 ---
 
-**Word Count**: ~11,000 / Target: 8,000-12,000 total
-**Completion**: ~85% (Part 4 of 5)
+## Feature 5.3: Conflict Resolution UI (3-4 days)
+
+### Overview
+
+Detect and resolve circular preferences (A < B < C < A). Cycles violate ASPIC+ rationality postulates and must be resolved before evaluation.
+
+**Resolution Strategies**:
+1. **Remove weakest preference** - Remove preference with lowest weight
+2. **User selection** - Let user choose which preference to remove
+3. **Temporal ordering** - Keep most recent preference
+4. **Vote-based** - If multiple users created preferences, use voting
+
+---
+
+### Implementation Part 9: Conflict Detection & Resolution
+
+#### File 8: `lib/aspic/conflicts/resolution.ts` (New, ~300 lines)
+
+```typescript
+/**
+ * Preference conflict detection and resolution
+ * Handles circular preferences and inconsistencies
+ */
+
+import { detectPreferenceCycles } from "@/lib/aspic/translation/aifToASPIC";
+import { prisma } from "@/lib/prismaclient";
+
+export interface PreferenceConflict {
+  type: "cycle" | "contradiction";
+  cycle: string[]; // IDs in cycle
+  preferences: Array<{
+    id: string;
+    preferred: string;
+    dispreferred: string;
+    weight: number;
+    createdAt: Date;
+    createdBy: string;
+  }>;
+  severity: "critical" | "warning";
+}
+
+export interface ResolutionStrategy {
+  type: "remove_weakest" | "user_selection" | "temporal" | "vote_based";
+  toRemove: string[]; // PA IDs to remove
+  reason: string;
+}
+
+/**
+ * Detect all conflicts in deliberation preferences
+ */
+export async function detectConflicts(
+  deliberationId: string
+): Promise<PreferenceConflict[]> {
+  const paRecords = await prisma.preferenceApplication.findMany({
+    where: { deliberationId },
+    select: {
+      id: true,
+      preferredArgumentId: true,
+      dispreferredArgumentId: true,
+      preferredClaimId: true,
+      dispreferredClaimId: true,
+      weight: true,
+      createdAt: true,
+      createdById: true,
+    },
+  });
+
+  const conflicts: PreferenceConflict[] = [];
+
+  // Build preference graph
+  const prefs = paRecords.map(pa => ({
+    preferred: pa.preferredArgumentId ?? pa.preferredClaimId ?? "",
+    dispreferred: pa.dispreferredArgumentId ?? pa.dispreferredClaimId ?? "",
+  })).filter(p => p.preferred && p.dispreferred);
+
+  // Detect cycles
+  const cycles = detectPreferenceCycles(prefs);
+
+  for (const cycle of cycles) {
+    // Find PA records involved in this cycle
+    const involvedPAs = paRecords.filter(pa => {
+      const pref = pa.preferredArgumentId ?? pa.preferredClaimId ?? "";
+      const dispref = pa.dispreferredArgumentId ?? pa.dispreferredClaimId ?? "";
+      return cycle.includes(pref) && cycle.includes(dispref);
+    });
+
+    conflicts.push({
+      type: "cycle",
+      cycle,
+      preferences: involvedPAs.map(pa => ({
+        id: pa.id,
+        preferred: pa.preferredArgumentId ?? pa.preferredClaimId ?? "",
+        dispreferred: pa.dispreferredArgumentId ?? pa.dispreferredClaimId ?? "",
+        weight: pa.weight ?? 1.0,
+        createdAt: pa.createdAt,
+        createdBy: pa.createdById,
+      })),
+      severity: "critical",
+    });
+  }
+
+  return conflicts;
+}
+
+/**
+ * Suggest resolution strategy for conflict
+ */
+export function suggestResolution(conflict: PreferenceConflict): ResolutionStrategy[] {
+  const strategies: ResolutionStrategy[] = [];
+
+  // Strategy 1: Remove weakest preference
+  const sortedByWeight = [...conflict.preferences].sort((a, b) => a.weight - b.weight);
+  strategies.push({
+    type: "remove_weakest",
+    toRemove: [sortedByWeight[0].id],
+    reason: `Remove weakest preference (weight=${sortedByWeight[0].weight.toFixed(2)})`,
+  });
+
+  // Strategy 2: Remove oldest preference (keep most recent)
+  const sortedByDate = [...conflict.preferences].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
+  strategies.push({
+    type: "temporal",
+    toRemove: [sortedByDate[0].id],
+    reason: `Remove oldest preference (created ${sortedByDate[0].createdAt.toLocaleDateString()})`,
+  });
+
+  // Strategy 3: User selection (return all options)
+  strategies.push({
+    type: "user_selection",
+    toRemove: [], // User will choose
+    reason: "Let user select which preference to remove",
+  });
+
+  return strategies;
+}
+
+/**
+ * Apply resolution strategy
+ */
+export async function applyResolution(
+  conflictId: string,
+  strategy: ResolutionStrategy
+): Promise<{ removed: number }> {
+  let removed = 0;
+
+  for (const paId of strategy.toRemove) {
+    await prisma.preferenceApplication.update({
+      where: { id: paId },
+      data: { 
+        conflictStatus: "resolved",
+        conflictResolution: {
+          strategy: strategy.type,
+          reason: strategy.reason,
+          resolvedAt: new Date(),
+        },
+      },
+    });
+    removed++;
+  }
+
+  return { removed };
+}
+
+/**
+ * Mark conflict as detected
+ */
+export async function markConflictDetected(
+  paIds: string[]
+): Promise<void> {
+  await prisma.preferenceApplication.updateMany({
+    where: { id: { in: paIds } },
+    data: { conflictStatus: "detected" },
+  });
+}
+```
+
+#### Component 6: `components/aspic/ConflictResolutionPanel.tsx` (New, ~300 lines)
+
+```tsx
+/**
+ * Conflict resolution panel
+ * Visualizes cycles and allows user to resolve them
+ */
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import type { PreferenceConflict, ResolutionStrategy } from "@/lib/aspic/conflicts/resolution";
+
+interface ConflictResolutionPanelProps {
+  deliberationId: string;
+  onResolved?: () => void;
+}
+
+export function ConflictResolutionPanel({
+  deliberationId,
+  onResolved,
+}: ConflictResolutionPanelProps) {
+  const [conflicts, setConflicts] = useState<PreferenceConflict[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStrategy, setSelectedStrategy] = useState<Record<string, string>>({});
+  const [resolving, setResolving] = useState(false);
+
+  useEffect(() => {
+    fetchConflicts();
+  }, [deliberationId]);
+
+  async function fetchConflicts() {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/aspic/conflicts?deliberationId=${deliberationId}`
+      );
+      const data = await response.json();
+      setConflicts(data.conflicts || []);
+    } catch (error) {
+      console.error("Failed to fetch conflicts:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResolve(conflictIndex: number) {
+    const conflict = conflicts[conflictIndex];
+    const strategyId = selectedStrategy[conflictIndex];
+    
+    if (!strategyId) return;
+
+    setResolving(true);
+    try {
+      const response = await fetch(`/api/aspic/conflicts/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deliberationId,
+          conflictIndex,
+          strategyType: strategyId,
+        }),
+      });
+
+      if (response.ok) {
+        await fetchConflicts();
+        onResolved?.();
+      }
+    } catch (error) {
+      console.error("Failed to resolve conflict:", error);
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div>Loading conflicts...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (conflicts.length === 0) {
+    return (
+      <Alert>
+        <CheckCircle className="h-4 w-4" />
+        <AlertDescription>
+          No preference conflicts detected. All preferences are consistent.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>{conflicts.length} conflict{conflicts.length > 1 ? "s" : ""} detected!</strong>
+          <p className="text-sm mt-1">
+            Circular preferences must be resolved before evaluation can proceed.
+          </p>
+        </AlertDescription>
+      </Alert>
+
+      {conflicts.map((conflict, index) => (
+        <Card key={index}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Badge variant="destructive">Cycle</Badge>
+              Conflict #{index + 1}
+            </CardTitle>
+            <CardDescription>
+              Circular preference detected: {conflict.cycle.join(" → ")} → {conflict.cycle[0]}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Show involved preferences */}
+            <div>
+              <div className="text-sm font-medium mb-2">Involved Preferences:</div>
+              <div className="space-y-2">
+                {conflict.preferences.map(pref => (
+                  <div key={pref.id} className="flex items-center justify-between p-2 border rounded text-sm">
+                    <div>
+                      <span className="font-medium">{pref.preferred}</span>
+                      {" > "}
+                      <span>{pref.dispreferred}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">
+                        Weight: {pref.weight.toFixed(2)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(pref.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Resolution strategies */}
+            <div>
+              <div className="text-sm font-medium mb-2">Resolution Strategy:</div>
+              <RadioGroup
+                value={selectedStrategy[index]}
+                onValueChange={(value) => 
+                  setSelectedStrategy(prev => ({ ...prev, [index]: value }))
+                }
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="remove_weakest" id={`${index}-weakest`} />
+                  <Label htmlFor={`${index}-weakest`}>
+                    Remove weakest preference (weight={Math.min(...conflict.preferences.map(p => p.weight)).toFixed(2)})
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="temporal" id={`${index}-temporal`} />
+                  <Label htmlFor={`${index}-temporal`}>
+                    Remove oldest preference (keep most recent)
+                  </Label>
+                </div>
+                {conflict.preferences.map(pref => (
+                  <div key={pref.id} className="flex items-center space-x-2">
+                    <RadioGroupItem value={`manual:${pref.id}`} id={`${index}-${pref.id}`} />
+                    <Label htmlFor={`${index}-${pref.id}`}>
+                      Remove: {pref.preferred} {">"} {pref.dispreferred}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+
+            <Button
+              onClick={() => handleResolve(index)}
+              disabled={!selectedStrategy[index] || resolving}
+            >
+              {resolving ? "Resolving..." : "Resolve Conflict"}
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Feature 5.4: Bulk Operations (2-3 days)
+
+### Overview
+
+Efficient management of many preferences: CSV import, templates, batch operations.
+
+---
+
+### Implementation Part 10: Bulk Operations
+
+#### File 9: `lib/aspic/bulk/operations.ts` (New, ~250 lines)
+
+```typescript
+/**
+ * Bulk preference operations
+ * CSV import, templates, batch creation
+ */
+
+import { prisma } from "@/lib/prismaclient";
+import { parse } from "csv-parse/sync";
+
+export interface BulkPreferenceRow {
+  preferredId: string;
+  dispreferredId: string;
+  weight?: number;
+  justification?: string;
+  schemeKey?: string;
+}
+
+export interface BulkImportResult {
+  created: number;
+  skipped: number;
+  errors: Array<{ row: number; message: string }>;
+}
+
+/**
+ * Import preferences from CSV
+ */
+export async function importPreferencesFromCSV(
+  deliberationId: string,
+  userId: string,
+  csvContent: string
+): Promise<BulkImportResult> {
+  const result: BulkImportResult = {
+    created: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  try {
+    const records = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: true,
+    });
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      
+      try {
+        // Validate row
+        if (!row.preferredId || !row.dispreferredId) {
+          result.errors.push({
+            row: i + 1,
+            message: "Missing preferredId or dispreferredId",
+          });
+          result.skipped++;
+          continue;
+        }
+
+        // Check for duplicates
+        const existing = await prisma.preferenceApplication.findFirst({
+          where: {
+            deliberationId,
+            preferredArgumentId: row.preferredId,
+            dispreferredArgumentId: row.dispreferredId,
+          },
+        });
+
+        if (existing) {
+          result.skipped++;
+          continue;
+        }
+
+        // Create preference
+        await prisma.preferenceApplication.create({
+          data: {
+            deliberationId,
+            createdById: userId,
+            preferredArgumentId: row.preferredId,
+            dispreferredArgumentId: row.dispreferredId,
+            weight: row.weight ? parseFloat(row.weight) : 1.0,
+            justification: row.justification || null,
+            schemeId: row.schemeKey || null,
+          },
+        });
+
+        result.created++;
+      } catch (error) {
+        result.errors.push({
+          row: i + 1,
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+        result.skipped++;
+      }
+    }
+  } catch (error) {
+    result.errors.push({
+      row: 0,
+      message: `CSV parse error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Export preferences to CSV
+ */
+export async function exportPreferencesToCSV(
+  deliberationId: string
+): Promise<string> {
+  const preferences = await prisma.preferenceApplication.findMany({
+    where: { deliberationId },
+    include: { scheme: true },
+  });
+
+  const header = "preferredId,dispreferredId,weight,justification,schemeKey,createdAt\n";
+  
+  const rows = preferences.map(pa => {
+    const cols = [
+      pa.preferredArgumentId ?? pa.preferredClaimId ?? "",
+      pa.dispreferredArgumentId ?? pa.dispreferredClaimId ?? "",
+      pa.weight ?? 1.0,
+      pa.justification ? `"${pa.justification.replace(/"/g, '""')}"` : "",
+      pa.scheme?.key ?? "",
+      pa.createdAt.toISOString(),
+    ];
+    return cols.join(",");
+  });
+
+  return header + rows.join("\n");
+}
+
+/**
+ * Apply preference template
+ * Creates multiple preferences based on pattern
+ */
+export async function applyPreferenceTemplate(
+  deliberationId: string,
+  userId: string,
+  template: {
+    name: string;
+    pattern: "transitive" | "expert_priority" | "recency_cascade";
+    arguments: string[];
+    weight?: number;
+  }
+): Promise<{ created: number }> {
+  let created = 0;
+
+  switch (template.pattern) {
+    case "transitive":
+      // Create A > B > C > D chain
+      for (let i = 0; i < template.arguments.length - 1; i++) {
+        await prisma.preferenceApplication.create({
+          data: {
+            deliberationId,
+            createdById: userId,
+            preferredArgumentId: template.arguments[i],
+            dispreferredArgumentId: template.arguments[i + 1],
+            weight: template.weight ?? 1.0,
+            justification: `Template: ${template.name}`,
+          },
+        });
+        created++;
+      }
+      break;
+
+    case "expert_priority":
+      // First argument preferred over all others
+      const [expert, ...others] = template.arguments;
+      for (const other of others) {
+        await prisma.preferenceApplication.create({
+          data: {
+            deliberationId,
+            createdById: userId,
+            preferredArgumentId: expert,
+            dispreferredArgumentId: other,
+            weight: template.weight ?? 1.0,
+            justification: `Expert priority: ${template.name}`,
+            schemeId: "expert_opinion",
+          },
+        });
+        created++;
+      }
+      break;
+
+    case "recency_cascade":
+      // Newer arguments preferred over older (reversed order)
+      for (let i = template.arguments.length - 1; i > 0; i--) {
+        await prisma.preferenceApplication.create({
+          data: {
+            deliberationId,
+            createdById: userId,
+            preferredArgumentId: template.arguments[i],
+            dispreferredArgumentId: template.arguments[i - 1],
+            weight: template.weight ?? 1.0,
+            justification: `Recency cascade: ${template.name}`,
+            schemeId: "recency",
+          },
+        });
+        created++;
+      }
+      break;
+  }
+
+  return { created };
+}
+
+/**
+ * Batch delete preferences
+ */
+export async function batchDeletePreferences(
+  preferenceIds: string[]
+): Promise<{ deleted: number }> {
+  const result = await prisma.preferenceApplication.deleteMany({
+    where: { id: { in: preferenceIds } },
+  });
+
+  return { deleted: result.count };
+}
+
+/**
+ * Batch update preference weights
+ */
+export async function batchUpdateWeights(
+  preferenceIds: string[],
+  newWeight: number
+): Promise<{ updated: number }> {
+  const result = await prisma.preferenceApplication.updateMany({
+    where: { id: { in: preferenceIds } },
+    data: { weight: newWeight },
+  });
+
+  return { updated: result.count };
+}
+```
+
+#### API Endpoint: `app/api/aspic/bulk/route.ts` (New)
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { 
+  importPreferencesFromCSV, 
+  exportPreferencesToCSV,
+  applyPreferenceTemplate,
+  batchDeletePreferences,
+  batchUpdateWeights,
+} from "@/lib/aspic/bulk/operations";
+
+const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
+
+// POST: Import or apply template
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  
+  if (body.action === "import") {
+    const result = await importPreferencesFromCSV(
+      body.deliberationId,
+      body.userId,
+      body.csvContent
+    );
+    return NextResponse.json(result, NO_STORE);
+  }
+
+  if (body.action === "template") {
+    const result = await applyPreferenceTemplate(
+      body.deliberationId,
+      body.userId,
+      body.template
+    );
+    return NextResponse.json(result, NO_STORE);
+  }
+
+  return NextResponse.json({ error: "Invalid action" }, { status: 400, ...NO_STORE });
+}
+
+// GET: Export
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const deliberationId = url.searchParams.get("deliberationId");
+
+  if (!deliberationId) {
+    return NextResponse.json({ error: "Missing deliberationId" }, { status: 400, ...NO_STORE });
+  }
+
+  const csv = await exportPreferencesToCSV(deliberationId);
+  
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": `attachment; filename="preferences_${deliberationId}.csv"`,
+    },
+  });
+}
+
+// DELETE: Batch delete
+export async function DELETE(req: NextRequest) {
+  const body = await req.json();
+  const result = await batchDeletePreferences(body.preferenceIds);
+  return NextResponse.json(result, NO_STORE);
+}
+
+// PATCH: Batch update
+export async function PATCH(req: NextRequest) {
+  const body = await req.json();
+  const result = await batchUpdateWeights(body.preferenceIds, body.newWeight);
+  return NextResponse.json(result, NO_STORE);
+}
+```
+
+---
+
+## Phase 5 Timeline & Summary
+
+### Timeline Breakdown
+
+| Feature | Duration | Complexity | Priority |
+|---------|----------|-----------|----------|
+| **5.1 Weighted Preferences** | 4-5 days | 🔴 Hard | P1 Critical |
+| - Schema + Types | 0.5 days | 🟡 Medium | - |
+| - Weighted Defeats | 1.5 days | 🔴 Hard | - |
+| - API Endpoints | 1 day | 🟡 Medium | - |
+| - UI Components | 1 day | 🟡 Medium | - |
+| - Testing | 0.5 days | 🟢 Easy | - |
+| **5.2 Preference Schemes** | 3-4 days | 🟡 Medium | P2 High |
+| - Schema + Library | 1 day | 🟡 Medium | - |
+| - API Endpoints | 0.5 days | 🟢 Easy | - |
+| - UI Components | 1.5 days | 🟡 Medium | - |
+| - Testing | 0.5 days | 🟢 Easy | - |
+| **5.3 Conflict Resolution** | 3-4 days | 🟡 Medium | P1 Critical |
+| - Detection Logic | 1 day | 🟡 Medium | - |
+| - Resolution Strategies | 1 day | 🟡 Medium | - |
+| - UI Components | 1 day | 🟡 Medium | - |
+| - Testing | 0.5 days | 🟢 Easy | - |
+| **5.4 Bulk Operations** | 2-3 days | 🟢 Easy | P3 Nice-to-have |
+| - Import/Export | 1 day | 🟢 Easy | - |
+| - Templates | 0.5 days | 🟢 Easy | - |
+| - Batch Operations | 0.5 days | 🟢 Easy | - |
+| - Testing | 0.5 days | 🟢 Easy | - |
+| **Total** | **12-15 days** | Mixed | - |
+
+---
+
+## Success Metrics
+
+### Feature 5.1: Weighted Preferences
+- ✅ Preferences support weights (0.0-1.0) with UI slider
+- ✅ Probabilistic defeats computed correctly for all aggregation methods
+- ✅ Monte Carlo simulation produces valid probability distributions
+- ✅ Sensitivity analysis identifies critical preferences
+- ✅ API performance <2s for 100 arguments with weighted evaluation
+
+### Feature 5.2: Preference Schemes
+- ✅ 5+ built-in schemes available (epistemic, normative, pragmatic)
+- ✅ Scheme parameters validated before application
+- ✅ Schemes instantiate correctly with user parameters
+- ✅ Critical questions displayed for meta-argumentation
+- ✅ Backward compatible with free-text justifications
+
+### Feature 5.3: Conflict Resolution
+- ✅ All preference cycles detected (100% accuracy)
+- ✅ 3+ resolution strategies offered per conflict
+- ✅ User can manually select preference to remove
+- ✅ Conflicts resolved without data loss (preferences marked, not deleted)
+- ✅ Re-evaluation after resolution produces acyclic graph
+
+### Feature 5.4: Bulk Operations
+- ✅ CSV import/export with proper escaping and validation
+- ✅ 3+ preference templates (transitive, expert priority, recency)
+- ✅ Batch operations handle 100+ preferences efficiently (<5s)
+- ✅ Error reporting shows row-level details for imports
+- ✅ Export includes all preference metadata
+
+---
+
+## Integration with Phase 4
+
+Phase 5 builds directly on Phase 4 foundations:
+
+| Phase 4 Component | Phase 5 Extension |
+|-------------------|-------------------|
+| `PreferenceApplication` model | + `weight`, `schemeId`, `conflictStatus` fields |
+| `POST /api/pa` | + Weight, scheme, conflict validation |
+| `GET /api/aspic/evaluate` | + `/weighted` variant with probabilistic defeats |
+| `PreferenceAttackModal` | + Weight slider, scheme selector |
+| `PreferenceBadge` | + Probabilistic defeat indicators |
+| Translation layer | + `populateWeightedKBFromAIF()` |
+| Defeat computation | + `computeWeightedDefeats()` |
+
+---
+
+## Risk Mitigation
+
+### Risk: Weighted Defeats Too Slow
+**Impact**: High (affects UX)  
+**Mitigation**:
+- Cache weighted defeat computations (invalidate on PA change)
+- Lazy evaluation: only compute when needed
+- Limit Monte Carlo samples based on deliberation size
+- Progress indicators for long computations
+
+### Risk: Scheme Complexity Overwhelms Users
+**Impact**: Medium (affects adoption)  
+**Mitigation**:
+- Make schemes optional (default to free text)
+- Provide clear examples for each scheme
+- Progressive disclosure: show advanced schemes only when needed
+- Tooltips and inline help
+
+### Risk: Conflict Resolution Creates New Conflicts
+**Impact**: Low (edge case)  
+**Mitigation**:
+- Re-run conflict detection after each resolution
+- Prevent removal if it creates new cycles (validation)
+- Allow undo for resolution actions
+- Log all resolution actions for audit
+
+### Risk: Bulk Import Data Quality
+**Impact**: Medium (garbage in, garbage out)  
+**Mitigation**:
+- Strict CSV validation with row-level error reporting
+- Preview imported data before committing
+- Rollback on error (transaction-based import)
+- Template CSVs with examples
+
+---
+
+## Future Enhancements (Phase 6+)
+
+### Phase 6: Visualization
+- Interactive preference graph with cycle highlighting
+- D3.js or Cytoscape for network visualization
+- Animated evaluation showing defeat propagation
+- Heatmap of sensitivity across preference space
+
+### Phase 7: Machine Learning Integration
+- ML model suggests preference weights based on argument features
+- Cluster similar arguments for batch preference application
+- Predict user preferences based on past behavior
+- Auto-detect preference schemes from justification text
+
+### Phase 8: Collaborative Preferences
+- Multi-user voting on preferences (aggregated weights)
+- Preference negotiation protocols
+- Expert vs. crowd preference weighting
+- Real-time preference updates across users
+
+---
+
+## Acceptance Criteria Summary
+
+**Phase 5 is complete when**:
+- ✅ All 4 features (5.1-5.4) implemented and tested
+- ✅ Schema migrations successful (`npx prisma db push`)
+- ✅ All API endpoints return correct data (integration tests pass)
+- ✅ UI components render without errors (manual testing + screenshots)
+- ✅ Lint checks pass (`npm run lint`)
+- ✅ Test coverage >75% for new code
+- ✅ Documentation updated (user guides + API docs)
+- ✅ No regressions in Phase 4 functionality
+- ✅ Performance targets met (<2s weighted evaluation for 100 args)
+- ✅ Backward compatibility maintained (existing preferences still work)
+
+---
+
+## References
+
+**Theoretical Foundations**:
+- Modgil & Prakken (2014) - Argumentation with Preferences
+- Walton, Reed & Macagno (2008) - Argumentation Schemes
+- Dung (1995) - Abstract Argumentation Frameworks
+
+**Implementation Guides**:
+- Prisma Schema Design: https://www.prisma.io/docs/concepts/components/prisma-schema
+- React Query: https://tanstack.com/query/latest
+- D3.js Network Graphs: https://d3js.org/
+
+---
+
+## Conclusion
+
+Phase 5 transforms the basic preference system from Phase 4 into a production-ready, research-grade argumentation platform with:
+
+1. **Weighted Preferences** - Uncertainty quantification for real-world deliberation
+2. **Preference Schemes** - Structured justifications with meta-argumentation support  
+3. **Conflict Resolution** - Robust handling of preference cycles
+4. **Bulk Operations** - Efficient management for large-scale deliberations
+
+**Total Implementation**: 12-15 days of focused development  
+**Expected Impact**: 10x improvement in preference expressiveness and usability
+
+---
+
+**End of Phase 5 Roadmap** ✅
+
+Ready to begin implementation once Phase 4 is complete.

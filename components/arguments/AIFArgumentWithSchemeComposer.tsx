@@ -1175,33 +1175,33 @@ export function AIFArgumentWithSchemeComposer({
 
         {/* Phase 1b.3: Rule Type Selection (STRICT vs DEFEASIBLE) - Available for both scheme-based and freeform arguments */}
         
-          <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+          <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200">
             <div className="flex items-start gap-2 mb-3">
-              <span className="text-blue-600 text-sm">⚖️</span>
+              <span className="text-sky-600 text-sm">⚖️</span>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-blue-900">
+                  <span className="text-sm font-semibold text-sky-900">
                     Rule Type
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowRuleTypeHelp(!showRuleTypeHelp)}
-                    className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    className="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-700 hover:bg-sky-200"
                   >
                     {showRuleTypeHelp ? "Hide" : "Show"} explanation
                   </button>
                 </div>
-                <p className="text-xs text-blue-700 mt-1">
+                <p className="text-xs text-sky-700 mt-1">
                   Choose whether this inference is logically guaranteed or open to rebuttal
                 </p>
               </div>
             </div>
 
             {showRuleTypeHelp && (
-              <div className="mb-3 p-3 rounded-lg bg-white border border-blue-200">
+              <div className="mb-3 p-3 rounded-lg bg-white border border-sky-200">
                 <div className="space-y-2 text-xs text-slate-700">
                   <div>
-                    <strong className="text-blue-900">Strict Rule:</strong> The conclusion follows logically from the premises. 
+                    <strong className="text-sky-900">Strict Rule:</strong> The conclusion follows logically from the premises. 
                     If the premises are true, the conclusion <em>must</em> be true. Cannot be rebutted (only undercut by challenging premises).
                     <div className="mt-1 text-slate-600 italic">Example: &ldquo;All humans are mortal. Socrates is human. Therefore, Socrates is mortal.&rdquo;</div>
                   </div>
@@ -1244,8 +1244,8 @@ export function AIFArgumentWithSchemeComposer({
                   className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-900">Strict</span>
-                    <Badge variant="outline" className="text-xs font-normal bg-blue-100 border-blue-300 text-blue-700">
+                    <span className="text-sky-900">Strict</span>
+                    <Badge variant="outline" className="text-xs font-normal bg-sky-100 border-sky-300 text-sky-700">
                       Logically guaranteed
                     </Badge>
                   </div>
@@ -1272,18 +1272,18 @@ export function AIFArgumentWithSchemeComposer({
                 </div>
 
                 {/* Phase 1c: Transposition closure explanation */}
-                <div className="mt-3 p-2 rounded bg-blue-50 border border-blue-200">
+                <div className="mt-3 p-2 rounded bg-sky-50 border border-sky-200">
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-600 text-xs">💡</span>
+                    <span className="text-sky-600 text-xs">💡</span>
                     <div className="flex-1">
-                      <p className="text-xs text-blue-900 font-medium">
+                      <p className="text-xs text-sky-900 font-medium">
                         Transposition Closure
                       </p>
-                      <p className="text-xs text-blue-700 mt-1">
+                      <p className="text-xs text-sky-700 mt-1">
                         For logical consistency, strict rules should support <em>contrapositive reasoning</em> (modus tollens). 
                         If you create "<strong>P → Q</strong>", the system may warn if "<strong>¬Q → ¬P</strong>" is missing.
                       </p>
-                      <div className="mt-2 text-xs text-blue-800 bg-blue-100 p-2 rounded">
+                      <div className="mt-2 text-xs text-sky-800 bg-sky-100 p-2 rounded">
                         <strong>Example:</strong> "rain → wet" should have "¬wet → ¬rain" for complete reasoning.
                       </div>
                     </div>

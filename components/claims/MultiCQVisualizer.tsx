@@ -76,7 +76,7 @@ export function MultiCQVisualizer({
                 progressPercent === 100
                   ? 'bg-emerald-500'
                   : progressPercent > 50
-                  ? 'bg-blue-500'
+                  ? 'bg-sky-500'
                   : 'bg-amber-500'
               }`}
               style={{ width: `${progressPercent}%` }}

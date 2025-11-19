@@ -446,7 +446,7 @@ export function SupportConstructionWizard({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge className="bg-green-100 text-green-800">More Control</Badge>
-                    <Badge className="bg-blue-100 text-blue-800">Detailed</Badge>
+                    <Badge className="bg-sky-100 text-sky-800">Detailed</Badge>
                   </div>
                 </button>
 

@@ -310,7 +310,7 @@ function ChainCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <Link2 className="size-4 shrink-0 text-blue-600" />
+            <Link2 className="size-4 shrink-0 text-sky-600" />
             <h3 className="text-sm font-semibold text-slate-900 truncate">
               {chain.name}
             </h3>
@@ -324,7 +324,7 @@ function ChainCard({
 
         {/* Node/Edge Count Badge */}
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+          <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700">
             {chain._count.nodes} nodes
           </span>
         </div>

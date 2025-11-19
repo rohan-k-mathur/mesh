@@ -49,7 +49,7 @@ export function MorphismCard({ morphism, direction, onClick }: MorphismCardProps
     },
     concede: {
       Icon: Handshake,
-      color: "text-blue-600 bg-blue-50 border-blue-200",
+      color: "text-sky-600 bg-sky-50 border-sky-200",
       label: "Concede",
     },
   };

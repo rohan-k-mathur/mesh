@@ -256,7 +256,7 @@ export function DialogueInspector({
                 <StatCard
                   label="Dialogue Moves"
                   value={targetMoves.length}
-                  color="blue"
+                  color="sky"
                 />
                 <StatCard
                   label="Legal Actions"
@@ -288,7 +288,7 @@ export function DialogueInspector({
             <Section title="⏱️ Latest Activity">
               {targetMoves.slice(0, 5).map((move: any, idx: number) => (
                 <div key={idx} className="flex items-start gap-2 p-2 bg-gray-50 rounded mb-2">
-                  <span className="text-xs font-mono bg-blue-100 px-2 py-1 rounded">
+                  <span className="text-xs font-mono bg-sky-100 px-2 py-1 rounded">
                     {move.kind}
                   </span>
                   <div className="flex-1 text-sm">
@@ -325,7 +325,7 @@ export function DialogueInspector({
               </h3>
               <button
                 onClick={() => window.location.reload()}
-                className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded"
+                className="text-xs px-2 py-1 bg-sky-100 hover:bg-sky-200 rounded"
               >
                 🔄 Refresh
               </button>
@@ -514,10 +514,10 @@ function StatCard({
 }: {
   label: string;
   value: number;
-  color: "blue" | "green" | "amber" | "rose";
+  color: "sky" | "green" | "amber" | "rose";
 }) {
   const colorClasses = {
-    blue: "bg-blue-50 border-blue-200 text-blue-900",
+    sky: "bg-sky-50 border-sky-200 text-sky-900",
     green: "bg-green-50 border-green-200 text-green-900",
     amber: "bg-amber-50 border-amber-200 text-amber-900",
     rose: "bg-rose-50 border-rose-200 text-rose-900",

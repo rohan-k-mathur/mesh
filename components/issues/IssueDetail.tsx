@@ -315,17 +315,17 @@ export default function IssueDetail({
             {it.kind === 'clarification' && (
               <section className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100 mb-2 flex items-center gap-2">
-                  <HelpCircle className="h-4 w-4 text-blue-300" />
+                  <HelpCircle className="h-4 w-4 text-sky-300" />
                   Clarification Request
                 </h3>
                 
                 {/* Question */}
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="text-xs font-medium text-blue-900 mb-2 flex items-center gap-1.5">
+                <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg">
+                  <div className="text-xs font-medium text-sky-900 mb-2 flex items-center gap-1.5">
                     <HelpCircle className="h-3.5 w-3.5" />
                     Question
                   </div>
-                  <p className="text-sm text-blue-800 leading-relaxed">
+                  <p className="text-sm text-sky-800 leading-relaxed">
                     {it.questionText || 'No question provided'}
                   </p>
                 </div>
@@ -350,7 +350,7 @@ export default function IssueDetail({
                     <textarea 
                       value={answerText}
                       onChange={(e) => setAnswerText(e.target.value)}
-                      className="w-full border border-neutral-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px] resize-y"
+                      className="w-full border border-neutral-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent min-h-[100px] resize-y"
                       placeholder="Provide a detailed answer to this clarification request..."
                       disabled={actionLoading === 'answer'}
                     />
@@ -361,7 +361,7 @@ export default function IssueDetail({
                       <button 
                         onClick={submitAnswer}
                         disabled={!answerText.trim() || actionLoading === 'answer'}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                       >
                         {actionLoading === 'answer' ? (
                           <>
