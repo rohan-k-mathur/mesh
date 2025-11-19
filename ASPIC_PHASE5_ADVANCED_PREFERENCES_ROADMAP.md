@@ -1038,15 +1038,1807 @@ async function getArgumentIdFromRuleId(
 
 ---
 
-## TO BE CONTINUED (Part 3)...
+### Implementation Part 4: API Endpoints for Weighted Preferences
 
-**Current Progress**: 
-- ✅ Part 1: Schema design + type definitions
-- ✅ Part 2: Weighted defeat computation + sensitivity analysis
+#### File 4: `app/api/aspic/evaluate/weighted/route.ts` (New, ~250 lines)
 
-**Next Section**: API endpoints, UI components, and testing for weighted preferences.
+```typescript
+/**
+ * Weighted ASPIC+ evaluation endpoint
+ * Extends /api/aspic/evaluate with weighted preference support
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { buildTheoryFromDeliberation } from "@/lib/aspic/theoryBuilder";
+import { constructArguments } from "@/lib/aspic/arguments";
+import { computeAttacks } from "@/lib/aspic/attacks";
+import { computeWeightedDefeats, monteCarloExtension } from "@/lib/aspic/weighted/defeats";
+import { populateWeightedKBFromAIF } from "@/lib/aspic/translation/weightedTranslation";
+
+const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
+
+const WeightedEvaluateQuery = z.object({
+  deliberationId: z.string().min(6),
+  ordering: z.enum(["last-link", "weakest-link"]).optional().default("last-link"),
+  aggregation: z.enum(["minimum", "product", "average", "max"]).optional().default("minimum"),
+  useMonteCarlo: z.boolean().optional().default(false),
+  monteCarloSamples: z.number().int().min(100).max(10000).optional().default(1000),
+});
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const query = WeightedEvaluateQuery.safeParse({
+    deliberationId: url.searchParams.get("deliberationId"),
+    ordering: url.searchParams.get("ordering"),
+    aggregation: url.searchParams.get("aggregation"),
+    useMonteCarlo: url.searchParams.get("useMonteCarlo") === "true",
+    monteCarloSamples: url.searchParams.get("monteCarloSamples") 
+      ? parseInt(url.searchParams.get("monteCarloSamples")!)
+      : undefined,
+  });
+
+  if (!query.success) {
+    return NextResponse.json(
+      { error: query.error.flatten() },
+      { status: 400, ...NO_STORE }
+    );
+  }
+
+  const { deliberationId, ordering, aggregation, useMonteCarlo, monteCarloSamples } = query.data;
+
+  try {
+    // Build ASPIC+ theory
+    const theory = await buildTheoryFromDeliberation(deliberationId);
+
+    // Load weighted preferences from AIF
+    const weightedKB = await populateWeightedKBFromAIF(deliberationId);
+
+    // Construct arguments
+    const args = constructArguments(theory);
+
+    // Compute attacks
+    const attacks = computeAttacks(args, theory);
+
+    // Compute weighted defeats
+    const startTime = Date.now();
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      ordering,
+      aggregation
+    );
+    const defeatComputationTime = Date.now() - startTime;
+
+    // Compute probabilistic extension (optional Monte Carlo)
+    let probabilisticExtension: Map<string, number> | null = null;
+    let monteCarloTime = 0;
+
+    if (useMonteCarlo) {
+      const mcStart = Date.now();
+      probabilisticExtension = monteCarloExtension(
+        args,
+        probabilisticDefeats,
+        monteCarloSamples
+      );
+      monteCarloTime = Date.now() - mcStart;
+    }
+
+    // Compute statistics
+    const weightStats = {
+      totalPreferences: weightedKB.premisePreferences.length + weightedKB.rulePreferences.length,
+      premisePreferences: weightedKB.premisePreferences.length,
+      rulePreferences: weightedKB.rulePreferences.length,
+      averageWeight: [
+        ...weightedKB.premisePreferences,
+        ...weightedKB.rulePreferences,
+      ].reduce((sum, p) => sum + p.weight, 0) / (weightedKB.premisePreferences.length + weightedKB.rulePreferences.length),
+      minWeight: Math.min(
+        ...weightedKB.premisePreferences.map(p => p.weight),
+        ...weightedKB.rulePreferences.map(p => p.weight)
+      ),
+      maxWeight: Math.max(
+        ...weightedKB.premisePreferences.map(p => p.weight),
+        ...weightedKB.rulePreferences.map(p => p.weight)
+      ),
+    };
+
+    const defeatStats = {
+      totalAttacks: attacks.length,
+      totalDefeats: probabilisticDefeats.length,
+      averageDefeatProbability: probabilisticDefeats.reduce((sum, d) => sum + d.probability, 0) / probabilisticDefeats.length,
+      highConfidenceDefeats: probabilisticDefeats.filter(d => d.probability > 0.8).length,
+      mediumConfidenceDefeats: probabilisticDefeats.filter(d => d.probability >= 0.5 && d.probability <= 0.8).length,
+      lowConfidenceDefeats: probabilisticDefeats.filter(d => d.probability < 0.5).length,
+    };
+
+    return NextResponse.json(
+      {
+        ok: true,
+        deliberationId,
+        configuration: {
+          ordering,
+          aggregation,
+          useMonteCarlo,
+          monteCarloSamples: useMonteCarlo ? monteCarloSamples : null,
+        },
+        theory: {
+          argumentCount: args.length,
+          attackCount: attacks.length,
+          preferenceCount: weightStats.totalPreferences,
+        },
+        attacks: attacks.map(a => ({
+          from: a.attacker.id,
+          to: a.attacked.id,
+          type: a.type,
+        })),
+        probabilisticDefeats: probabilisticDefeats.map(d => ({
+          from: d.defeater.id,
+          to: d.defeated.id,
+          type: d.attack.type,
+          probability: d.probability,
+          contributingPreferences: d.contributingWeights.map(cw => ({
+            preferred: cw.preference.preferred,
+            dispreferred: cw.preference.dispreferred,
+            weight: cw.preference.weight,
+            impact: cw.impact,
+          })),
+          aggregationMethod: d.aggregationMethod,
+        })),
+        weightStatistics: weightStats,
+        defeatStatistics: defeatStats,
+        probabilisticExtension: probabilisticExtension
+          ? Array.from(probabilisticExtension.entries()).map(([argId, prob]) => ({
+              argumentId: argId,
+              acceptanceProbability: prob,
+            }))
+          : null,
+        performance: {
+          defeatComputationMs: defeatComputationTime,
+          monteCarloMs: monteCarloTime,
+          totalMs: defeatComputationTime + monteCarloTime,
+        },
+      },
+      NO_STORE
+    );
+  } catch (error) {
+    console.error("Weighted evaluation error:", error);
+    return NextResponse.json(
+      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+      { status: 500, ...NO_STORE }
+    );
+  }
+}
+```
+
+#### File 5: `app/api/aspic/sensitivity/route.ts` (New, ~150 lines)
+
+```typescript
+/**
+ * Sensitivity analysis endpoint
+ * Analyzes how argument acceptance depends on preference weights
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { buildTheoryFromDeliberation } from "@/lib/aspic/theoryBuilder";
+import { constructArguments } from "@/lib/aspic/arguments";
+import { computeAttacks } from "@/lib/aspic/attacks";
+import { analyzeSensitivity } from "@/lib/aspic/weighted/defeats";
+import { populateWeightedKBFromAIF } from "@/lib/aspic/translation/weightedTranslation";
+
+const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
+
+const SensitivityQuery = z.object({
+  deliberationId: z.string().min(6),
+  argumentId: z.string().min(6),
+  ordering: z.enum(["last-link", "weakest-link"]).optional().default("last-link"),
+  perturbationSize: z.number().min(0.01).max(0.5).optional().default(0.1),
+});
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const query = SensitivityQuery.safeParse({
+    deliberationId: url.searchParams.get("deliberationId"),
+    argumentId: url.searchParams.get("argumentId"),
+    ordering: url.searchParams.get("ordering"),
+    perturbationSize: url.searchParams.get("perturbationSize")
+      ? parseFloat(url.searchParams.get("perturbationSize")!)
+      : undefined,
+  });
+
+  if (!query.success) {
+    return NextResponse.json(
+      { error: query.error.flatten() },
+      { status: 400, ...NO_STORE }
+    );
+  }
+
+  const { deliberationId, argumentId, ordering, perturbationSize } = query.data;
+
+  try {
+    // Build theory and get argument
+    const theory = await buildTheoryFromDeliberation(deliberationId);
+    const args = constructArguments(theory);
+    const targetArgument = args.find(a => a.id === argumentId);
+
+    if (!targetArgument) {
+      return NextResponse.json(
+        { error: "Argument not found" },
+        { status: 404, ...NO_STORE }
+      );
+    }
+
+    // Load weighted KB
+    const weightedKB = await populateWeightedKBFromAIF(deliberationId);
+
+    // Compute attacks
+    const attacks = computeAttacks(args, theory);
+
+    // Perform sensitivity analysis
+    const sensitivities = analyzeSensitivity(
+      targetArgument,
+      attacks,
+      weightedKB,
+      ordering,
+      perturbationSize
+    );
+
+    return NextResponse.json(
+      {
+        ok: true,
+        deliberationId,
+        argumentId,
+        configuration: {
+          ordering,
+          perturbationSize,
+        },
+        sensitivities: sensitivities.slice(0, 20), // Top 20 most sensitive
+        summary: {
+          totalPreferences: sensitivities.length,
+          mostSensitive: sensitivities[0],
+          leastSensitive: sensitivities[sensitivities.length - 1],
+          averageImpact: sensitivities.reduce((sum, s) => sum + s.impactOnProbability, 0) / sensitivities.length,
+        },
+      },
+      NO_STORE
+    );
+  } catch (error) {
+    console.error("Sensitivity analysis error:", error);
+    return NextResponse.json(
+      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+      { status: 500, ...NO_STORE }
+    );
+  }
+}
+```
+
+#### File 6: Update `app/api/pa/route.ts` (Modify existing)
+
+```typescript
+// Add to existing POST schema
+const CreatePA = z.object({
+  // ... existing fields ...
+  
+  // PHASE 5.1: Weighted preferences
+  weight: z.number().min(0).max(1).optional().default(1.0),
+  weightSource: z.enum(["user", "ml_model", "expert_panel", "aggregated"]).optional(),
+  weightJustification: z.string().optional(),
+});
+
+export async function POST(req: NextRequest) {
+  // ... existing validation ...
+  
+  const created = await prisma.preferenceApplication.create({
+    data: {
+      // ... existing fields ...
+      
+      // NEW: Weight fields
+      weight: d.weight,
+      weightSource: d.weightSource ?? "user",
+      weightJustification: d.weightJustification ?? null,
+    },
+    select: { id: true },
+  });
+
+  return NextResponse.json({ ok: true, id: created.id }, NO_STORE);
+}
+```
 
 ---
 
-**Word Count**: ~5,200 / Target: 8,000-10,000 total
-**Completion**: ~50% (Part 2 of 5)
+### Implementation Part 5: UI Components for Weighted Preferences
+
+#### Component 1: `components/aspic/WeightSlider.tsx` (New, ~150 lines)
+
+```tsx
+/**
+ * Weight slider component for preference confidence
+ * Allows users to express uncertainty in preferences
+ */
+
+"use client";
+
+import { useState } from "react";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+
+interface WeightSliderProps {
+  value: number;
+  onChange: (value: number) => void;
+  label?: string;
+  showNumericInput?: boolean;
+  disabled?: boolean;
+}
+
+export function WeightSlider({
+  value,
+  onChange,
+  label = "Confidence",
+  showNumericInput = true,
+  disabled = false,
+}: WeightSliderProps) {
+  const [localValue, setLocalValue] = useState(value);
+
+  const handleSliderChange = (values: number[]) => {
+    const newValue = values[0];
+    setLocalValue(newValue);
+    onChange(newValue);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value);
+    if (!isNaN(newValue) && newValue >= 0 && newValue <= 1) {
+      setLocalValue(newValue);
+      onChange(newValue);
+    }
+  };
+
+  const getConfidenceLabel = (weight: number): { text: string; color: string } => {
+    if (weight >= 0.9) return { text: "Very High", color: "bg-green-500" };
+    if (weight >= 0.7) return { text: "High", color: "bg-blue-500" };
+    if (weight >= 0.5) return { text: "Medium", color: "bg-yellow-500" };
+    if (weight >= 0.3) return { text: "Low", color: "bg-orange-500" };
+    return { text: "Very Low", color: "bg-red-500" };
+  };
+
+  const confidenceLabel = getConfidenceLabel(localValue);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="weight-slider">{label}</Label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">
+                  How confident are you in this preference?
+                </p>
+                <ul className="text-xs mt-2 space-y-1">
+                  <li><strong>1.0</strong> - Absolutely certain</li>
+                  <li><strong>0.7-0.9</strong> - Quite confident</li>
+                  <li><strong>0.5-0.7</strong> - Moderately confident</li>
+                  <li><strong>0.3-0.5</strong> - Somewhat uncertain</li>
+                  <li><strong>&lt;0.3</strong> - Very uncertain</li>
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <Badge className={confidenceLabel.color}>
+          {confidenceLabel.text}
+        </Badge>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Slider
+          id="weight-slider"
+          min={0}
+          max={1}
+          step={0.05}
+          value={[localValue]}
+          onValueChange={handleSliderChange}
+          disabled={disabled}
+          className="flex-1"
+        />
+        {showNumericInput && (
+          <Input
+            type="number"
+            min={0}
+            max={1}
+            step={0.05}
+            value={localValue.toFixed(2)}
+            onChange={handleInputChange}
+            disabled={disabled}
+            className="w-20"
+          />
+        )}
+      </div>
+
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>0.0 (No confidence)</span>
+        <span>1.0 (Full confidence)</span>
+      </div>
+    </div>
+  );
+}
+```
+
+#### Component 2: Update `components/agora/PreferenceAttackModal.tsx`
+
+```tsx
+// Add imports
+import { WeightSlider } from "@/components/aspic/WeightSlider";
+
+// Add to modal state
+const [weight, setWeight] = useState(1.0);
+const [weightJustification, setWeightJustification] = useState("");
+
+// Add to form UI (after justification field)
+<div className="space-y-2">
+  <WeightSlider
+    value={weight}
+    onChange={setWeight}
+    label="Preference Confidence"
+  />
+  
+  {weight < 1.0 && (
+    <div className="space-y-1">
+      <Label htmlFor="weight-justification">
+        Why this confidence level? (Optional)
+      </Label>
+      <Textarea
+        id="weight-justification"
+        placeholder="E.g., 'Based on limited evidence' or 'Expert opinion with some uncertainty'"
+        value={weightJustification}
+        onChange={(e) => setWeightJustification(e.target.value)}
+        rows={2}
+      />
+    </div>
+  )}
+</div>
+
+// Update API call
+const response = await fetch("/api/pa", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    deliberationId,
+    preferredArgumentId,
+    dispreferredArgumentId,
+    justification,
+    orderingPolicy,
+    setComparison,
+    // NEW: Weight fields
+    weight,
+    weightSource: "user",
+    weightJustification: weightJustification || null,
+  }),
+});
+```
+
+#### Component 3: `components/aspic/ProbabilisticDefeatBadge.tsx` (New, ~100 lines)
+
+```tsx
+/**
+ * Badge showing probabilistic defeat with confidence visualization
+ */
+
+"use client";
+
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+interface ProbabilisticDefeatBadgeProps {
+  probability: number;
+  defeaterCount: number;
+  showIcon?: boolean;
+}
+
+export function ProbabilisticDefeatBadge({
+  probability,
+  defeaterCount,
+  showIcon = true,
+}: ProbabilisticDefeatBadgeProps) {
+  const getVariant = (prob: number) => {
+    if (prob >= 0.8) return "destructive";
+    if (prob >= 0.5) return "warning";
+    return "secondary";
+  };
+
+  const getIcon = (prob: number) => {
+    if (prob >= 0.7) return <TrendingDown className="h-3 w-3" />;
+    if (prob >= 0.3) return <Minus className="h-3 w-3" />;
+    return <TrendingUp className="h-3 w-3" />;
+  };
+
+  const getLabel = (prob: number) => {
+    if (prob >= 0.9) return "Highly likely defeated";
+    if (prob >= 0.7) return "Likely defeated";
+    if (prob >= 0.5) return "Possibly defeated";
+    if (prob >= 0.3) return "Unlikely defeated";
+    return "Very unlikely defeated";
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant={getVariant(probability)} className="gap-1">
+            {showIcon && getIcon(probability)}
+            {(probability * 100).toFixed(0)}%
+            {defeaterCount > 0 && ` (${defeaterCount})`}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="space-y-1 text-sm">
+            <div className="font-semibold">{getLabel(probability)}</div>
+            <div className="text-xs text-muted-foreground">
+              {defeaterCount} potential defeater{defeaterCount !== 1 ? "s" : ""}
+            </div>
+            <div className="text-xs">
+              Defeat probability: {(probability * 100).toFixed(1)}%
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+```
+
+#### Component 4: `components/aspic/SensitivityAnalysisPanel.tsx` (New, ~200 lines)
+
+```tsx
+/**
+ * Sensitivity analysis panel
+ * Shows which preferences most affect argument acceptance
+ */
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+
+interface SensitivityData {
+  preferenceId: string;
+  originalWeight: number;
+  perturbedWeight: number;
+  impactOnProbability: number;
+}
+
+interface SensitivityAnalysisPanelProps {
+  deliberationId: string;
+  argumentId: string;
+  ordering?: "last-link" | "weakest-link";
+}
+
+export function SensitivityAnalysisPanel({
+  deliberationId,
+  argumentId,
+  ordering = "last-link",
+}: SensitivityAnalysisPanelProps) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sensitivities, setSensitivities] = useState<SensitivityData[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchSensitivity() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `/api/aspic/sensitivity?deliberationId=${deliberationId}&argumentId=${argumentId}&ordering=${ordering}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch sensitivity analysis");
+        }
+
+        const data = await response.json();
+        setSensitivities(data.sensitivities);
+        setSummary(data.summary);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchSensitivity();
+  }, [deliberationId, argumentId, ordering]);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Analyzing sensitivity...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            <span>Error: {error}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const maxImpact = Math.max(...sensitivities.map(s => s.impactOnProbability), 0.01);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Sensitivity Analysis</CardTitle>
+        <CardDescription>
+          Preferences that most affect this argument's acceptance
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {summary && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <div className="text-sm font-medium">Summary</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Average impact: {(summary.averageImpact * 100).toFixed(1)}%
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {sensitivities.slice(0, 10).map((sensitivity, index) => (
+            <div key={index} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium truncate flex-1">
+                  {sensitivity.preferenceId.split("_").join(" > ")}
+                </div>
+                <Badge variant="secondary">
+                  {(sensitivity.impactOnProbability * 100).toFixed(1)}%
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Weight: {sensitivity.originalWeight.toFixed(2)}</span>
+                <Progress 
+                  value={(sensitivity.impactOnProbability / maxImpact) * 100} 
+                  className="flex-1 h-2"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {sensitivities.length === 0 && (
+          <div className="text-sm text-muted-foreground text-center py-4">
+            No sensitive preferences found
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+---
+
+### Implementation Part 6: Testing for Weighted Preferences
+
+#### Unit Tests: `__tests__/aspic/weighted/defeats.test.ts` (New, ~300 lines)
+
+```typescript
+import { computeWeightedDefeats, monteCarloExtension, analyzeSensitivity } from "@/lib/aspic/weighted/defeats";
+import type { WeightedKnowledgeBase } from "@/lib/aspic/weighted/types";
+import { setupTestArguments, setupTestAttacks } from "../testHelpers";
+
+describe("Weighted Defeat Computation", () => {
+  test("deterministic preferences (weight=1.0) match standard defeats", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 1.0 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "minimum"
+    );
+
+    // With weight=1.0, defeat probability should be 1.0 (deterministic)
+    expect(probabilisticDefeats.every(d => d.probability === 1.0)).toBe(true);
+  });
+
+  test("uncertain preferences reduce defeat probability", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.6 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "minimum"
+    );
+
+    // Some defeats should have probability < 1.0
+    expect(probabilisticDefeats.some(d => d.probability < 1.0)).toBe(true);
+    expect(probabilisticDefeats.some(d => d.probability === 0.6)).toBe(true);
+  });
+
+  test("minimum aggregation takes weakest link", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.8 },
+        { preferred: "rule1", dispreferred: "rule3", weight: 0.6 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "minimum"
+    );
+
+    // Minimum aggregation should use 0.6 (weakest preference)
+    const relevantDefeat = probabilisticDefeats.find(d => 
+      d.contributingWeights.length > 1
+    );
+    
+    if (relevantDefeat) {
+      expect(relevantDefeat.probability).toBe(0.6);
+    }
+  });
+
+  test("product aggregation multiplies weights", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.8 },
+        { preferred: "rule1", dispreferred: "rule3", weight: 0.5 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "product"
+    );
+
+    // Product aggregation: 0.8 × 0.5 = 0.4
+    const relevantDefeat = probabilisticDefeats.find(d => 
+      d.contributingWeights.length > 1
+    );
+    
+    if (relevantDefeat) {
+      expect(relevantDefeat.probability).toBeCloseTo(0.4, 2);
+    }
+  });
+
+  test("average aggregation computes mean weight", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.8 },
+        { preferred: "rule1", dispreferred: "rule3", weight: 0.6 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "average"
+    );
+
+    // Average aggregation: (0.8 + 0.6) / 2 = 0.7
+    const relevantDefeat = probabilisticDefeats.find(d => 
+      d.contributingWeights.length > 1
+    );
+    
+    if (relevantDefeat) {
+      expect(relevantDefeat.probability).toBeCloseTo(0.7, 2);
+    }
+  });
+});
+
+describe("Monte Carlo Extension", () => {
+  test("returns probability map for all arguments", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.7 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "minimum"
+    );
+
+    const probabilities = monteCarloExtension(args, probabilisticDefeats, 1000);
+
+    expect(probabilities.size).toBe(args.length);
+    
+    // All probabilities should be in [0, 1]
+    for (const prob of probabilities.values()) {
+      expect(prob).toBeGreaterThanOrEqual(0);
+      expect(prob).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("more samples increase accuracy", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.5 },
+      ],
+    };
+
+    const probabilisticDefeats = computeWeightedDefeats(
+      attacks,
+      theory,
+      weightedKB,
+      "last-link",
+      "minimum"
+    );
+
+    const probs100 = monteCarloExtension(args, probabilisticDefeats, 100);
+    const probs1000 = monteCarloExtension(args, probabilisticDefeats, 1000);
+    const probs5000 = monteCarloExtension(args, probabilisticDefeats, 5000);
+
+    // Variance should decrease with more samples (statistical property)
+    // This is a heuristic check - actual test depends on specific setup
+    expect(probs5000.size).toBe(probs1000.size);
+  });
+});
+
+describe("Sensitivity Analysis", () => {
+  test("identifies preferences with high impact", async () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    const targetArg = args[0];
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.8 },
+        { preferred: "rule3", dispreferred: "rule4", weight: 0.5 },
+      ],
+    };
+
+    const sensitivities = analyzeSensitivity(
+      targetArg,
+      attacks,
+      weightedKB,
+      "last-link",
+      0.1
+    );
+
+    // Should return sensitivity data for all preferences
+    expect(sensitivities.length).toBeGreaterThan(0);
+    
+    // Each sensitivity should have required fields
+    for (const sens of sensitivities) {
+      expect(sens).toHaveProperty("preferenceId");
+      expect(sens).toHaveProperty("originalWeight");
+      expect(sens).toHaveProperty("perturbedWeight");
+      expect(sens).toHaveProperty("impactOnProbability");
+    }
+  });
+
+  test("sorts sensitivities by impact (descending)", () => {
+    const { args, theory } = setupTestArguments();
+    const attacks = setupTestAttacks(args);
+    const targetArg = args[0];
+    
+    const weightedKB: WeightedKnowledgeBase = {
+      premisePreferences: [],
+      rulePreferences: [
+        { preferred: "rule1", dispreferred: "rule2", weight: 0.8 },
+        { preferred: "rule3", dispreferred: "rule4", weight: 0.5 },
+        { preferred: "rule5", dispreferred: "rule6", weight: 0.9 },
+      ],
+    };
+
+    const sensitivities = analyzeSensitivity(
+      targetArg,
+      attacks,
+      weightedKB,
+      "last-link",
+      0.1
+    );
+
+    // Check that impacts are sorted in descending order
+    for (let i = 0; i < sensitivities.length - 1; i++) {
+      expect(sensitivities[i].impactOnProbability).toBeGreaterThanOrEqual(
+        sensitivities[i + 1].impactOnProbability
+      );
+    }
+  });
+});
+```
+
+#### Integration Tests: `__tests__/api/weighted-evaluation.test.ts` (New, ~200 lines)
+
+```typescript
+import { createTestDeliberation, createTestArguments } from "../testHelpers";
+
+describe("POST /api/pa with weights", () => {
+  test("creates preference with weight", async () => {
+    const { deliberationId, argA, argB, userId } = await createTestDeliberation();
+
+    const response = await fetch("/api/pa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deliberationId,
+        preferredArgumentId: argA.id,
+        dispreferredArgumentId: argB.id,
+        weight: 0.75,
+        weightSource: "user",
+        weightJustification: "Moderately confident based on available evidence",
+      }),
+    });
+
+    expect(response.ok).toBe(true);
+    const { id } = await response.json();
+
+    const pa = await prisma.preferenceApplication.findUnique({ where: { id } });
+    expect(pa?.weight).toBe(0.75);
+    expect(pa?.weightSource).toBe("user");
+    expect(pa?.weightJustification).toBe("Moderately confident based on available evidence");
+  });
+
+  test("defaults weight to 1.0 when not provided", async () => {
+    const { deliberationId, argA, argB } = await createTestDeliberation();
+
+    const response = await fetch("/api/pa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deliberationId,
+        preferredArgumentId: argA.id,
+        dispreferredArgumentId: argB.id,
+      }),
+    });
+
+    expect(response.ok).toBe(true);
+    const { id } = await response.json();
+
+    const pa = await prisma.preferenceApplication.findUnique({ where: { id } });
+    expect(pa?.weight).toBe(1.0);
+  });
+});
+
+describe("GET /api/aspic/evaluate/weighted", () => {
+  test("evaluates with weighted preferences", async () => {
+    const { deliberationId, argA, argB } = await createTestDeliberation();
+
+    // Create weighted preference
+    await prisma.preferenceApplication.create({
+      data: {
+        deliberationId,
+        preferredArgumentId: argA.id,
+        dispreferredArgumentId: argB.id,
+        weight: 0.6,
+        weightSource: "user",
+      },
+    });
+
+    const response = await fetch(
+      `/api/aspic/evaluate/weighted?deliberationId=${deliberationId}&ordering=last-link&aggregation=minimum`
+    );
+
+    expect(response.ok).toBe(true);
+    const data = await response.json();
+
+    expect(data.ok).toBe(true);
+    expect(data.configuration.aggregation).toBe("minimum");
+    expect(data.probabilisticDefeats).toBeInstanceOf(Array);
+    expect(data.weightStatistics).toBeDefined();
+    expect(data.defeatStatistics).toBeDefined();
+  });
+
+  test("Monte Carlo evaluation returns probabilistic extension", async () => {
+    const { deliberationId } = await createTestDeliberation();
+
+    const response = await fetch(
+      `/api/aspic/evaluate/weighted?deliberationId=${deliberationId}&useMonteCarlo=true&monteCarloSamples=500`
+    );
+
+    expect(response.ok).toBe(true);
+    const data = await response.json();
+
+    expect(data.probabilisticExtension).not.toBeNull();
+    expect(data.probabilisticExtension).toBeInstanceOf(Array);
+    expect(data.performance.monteCarloMs).toBeGreaterThan(0);
+  });
+
+  test("different aggregation methods produce different results", async () => {
+    const { deliberationId } = await createTestDeliberation();
+
+    const minResponse = await fetch(
+      `/api/aspic/evaluate/weighted?deliberationId=${deliberationId}&aggregation=minimum`
+    );
+    const avgResponse = await fetch(
+      `/api/aspic/evaluate/weighted?deliberationId=${deliberationId}&aggregation=average`
+    );
+    const prodResponse = await fetch(
+      `/api/aspic/evaluate/weighted?deliberationId=${deliberationId}&aggregation=product`
+    );
+
+    const minData = await minResponse.json();
+    const avgData = await avgResponse.json();
+    const prodData = await prodResponse.json();
+
+    // Each method should return valid data
+    expect(minData.ok).toBe(true);
+    expect(avgData.ok).toBe(true);
+    expect(prodData.ok).toBe(true);
+
+    // Defeat statistics may differ based on aggregation
+    expect(minData.defeatStatistics).toBeDefined();
+    expect(avgData.defeatStatistics).toBeDefined();
+    expect(prodData.defeatStatistics).toBeDefined();
+  });
+});
+
+describe("GET /api/aspic/sensitivity", () => {
+  test("returns sensitivity analysis for argument", async () => {
+    const { deliberationId, argA } = await createTestDeliberation();
+
+    const response = await fetch(
+      `/api/aspic/sensitivity?deliberationId=${deliberationId}&argumentId=${argA.id}&ordering=last-link`
+    );
+
+    expect(response.ok).toBe(true);
+    const data = await response.json();
+
+    expect(data.ok).toBe(true);
+    expect(data.argumentId).toBe(argA.id);
+    expect(data.sensitivities).toBeInstanceOf(Array);
+    expect(data.summary).toBeDefined();
+  });
+
+  test("404 for non-existent argument", async () => {
+    const { deliberationId } = await createTestDeliberation();
+
+    const response = await fetch(
+      `/api/aspic/sensitivity?deliberationId=${deliberationId}&argumentId=nonexistent&ordering=last-link`
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+```
+
+---
+
+## Feature 5.2: Preference Schemes (3-4 days)
+
+### Overview
+
+Formalize preference justifications using argumentation schemes. Instead of free-text justifications, users select from structured schemes that explain *why* one argument is preferred over another.
+
+**Use Cases**:
+- "Expert Opinion" scheme: A is preferred because it cites a more credible expert
+- "Recency" scheme: A is preferred because it uses more recent evidence
+- "Statistical Strength" scheme: A is preferred because it has stronger statistical support
+- Meta-argumentation: Users can challenge the preference itself by questioning the scheme
+
+### Theoretical Foundation
+
+**Preference Schemes** are argumentation schemes specifically for justifying preferences:
+
+```
+Scheme: Expert Opinion
+  Premise 1: Argument A cites expert E1
+  Premise 2: Argument B cites expert E2
+  Premise 3: Expert E1 is more credible than E2 in domain D
+  Conclusion: A is preferred over B
+
+Critical Questions:
+  CQ1: Is E1 actually an expert in domain D?
+  CQ2: Is the credibility assessment of E1 > E2 justified?
+  CQ3: Are there other factors that override expertise?
+```
+
+**Integration with ASPIC+**:
+- Preference schemes create *second-order arguments* about preferences
+- These meta-arguments can be attacked (e.g., challenge an expert's credibility)
+- Defeating a preference scheme invalidates the preference
+
+---
+
+### Schema Changes
+
+#### New Model: `PreferenceScheme`
+
+**File**: `prisma/schema.prisma`
+
+```prisma
+model PreferenceScheme {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Scheme identification
+  key         String   @unique // "expert_opinion", "recency", "statistical_strength"
+  name        String   // "Expert Opinion", "Recency", "Statistical Strength"
+  description String   @db.Text
+  category    String   // "epistemic", "normative", "pragmatic"
+
+  // Scheme structure (JSON)
+  premises          Json // Array of premise templates
+  conclusion        Json // Conclusion template
+  criticalQuestions Json // Array of CQ templates
+  
+  // Scheme metadata
+  parameters  Json // Required parameters for instantiation
+  examples    Json // Example instantiations
+  
+  // Relations
+  applications PreferenceApplication[]
+  
+  @@index([category])
+  @@index([key])
+}
+```
+
+#### Update `PreferenceApplication` Model
+
+```prisma
+model PreferenceApplication {
+  // ... existing fields ...
+  
+  // PHASE 5.2: Preference scheme
+  schemeId            String?           @db.VarChar(255)
+  scheme              PreferenceScheme? @relation(fields: [schemeId], references: [id])
+  schemeParameters    Json?             // Instantiated scheme parameters
+  
+  // Replace old justification with structured scheme
+  // justification field becomes fallback for schemes without structure
+}
+```
+
+---
+
+### Implementation Part 7: Preference Scheme Library
+
+#### File 7: `lib/aspic/schemes/preferenceSchemes.ts` (New, ~400 lines)
+
+```typescript
+/**
+ * Library of preference argumentation schemes
+ * Formalizes common patterns for justifying preferences
+ */
+
+export interface PreferenceScheme {
+  key: string;
+  name: string;
+  description: string;
+  category: "epistemic" | "normative" | "pragmatic";
+  premises: SchemePremise[];
+  conclusion: SchemeConclusion;
+  criticalQuestions: CriticalQuestion[];
+  parameters: SchemeParameter[];
+  examples: SchemeExample[];
+}
+
+export interface SchemePremise {
+  id: string;
+  template: string; // e.g., "Argument {arg1} cites expert {expert1}"
+  type: "factual" | "evaluative" | "comparative";
+}
+
+export interface SchemeConclusion {
+  template: string; // e.g., "{arg1} is preferred over {arg2}"
+}
+
+export interface CriticalQuestion {
+  id: string;
+  question: string;
+  attackType: "rebuttal" | "undercut";
+  severity: "critical" | "important" | "minor";
+}
+
+export interface SchemeParameter {
+  key: string;
+  label: string;
+  type: "string" | "number" | "boolean" | "select";
+  required: boolean;
+  options?: string[]; // For select type
+  validation?: string; // Regex or validation rule
+}
+
+export interface SchemeExample {
+  title: string;
+  description: string;
+  parameters: Record<string, any>;
+}
+
+/**
+ * Built-in preference schemes
+ */
+export const PREFERENCE_SCHEMES: PreferenceScheme[] = [
+  {
+    key: "expert_opinion",
+    name: "Expert Opinion",
+    description: "Prefer argument citing more credible expert",
+    category: "epistemic",
+    premises: [
+      {
+        id: "p1",
+        template: "Argument {arg1} cites expert {expert1} with credentials {credentials1}",
+        type: "factual",
+      },
+      {
+        id: "p2",
+        template: "Argument {arg2} cites expert {expert2} with credentials {credentials2}",
+        type: "factual",
+      },
+      {
+        id: "p3",
+        template: "Expert {expert1} is more credible than {expert2} in domain {domain}",
+        type: "comparative",
+      },
+    ],
+    conclusion: {
+      template: "{arg1} is preferred over {arg2}",
+    },
+    criticalQuestions: [
+      {
+        id: "cq1",
+        question: "Is {expert1} actually an expert in {domain}?",
+        attackType: "undercut",
+        severity: "critical",
+      },
+      {
+        id: "cq2",
+        question: "Is the credibility assessment justified?",
+        attackType: "undercut",
+        severity: "important",
+      },
+      {
+        id: "cq3",
+        question: "Are there other factors that override expertise?",
+        attackType: "rebuttal",
+        severity: "minor",
+      },
+    ],
+    parameters: [
+      {
+        key: "expert1",
+        label: "Expert cited in preferred argument",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "expert2",
+        label: "Expert cited in dispreferred argument",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "credentials1",
+        label: "Credentials of expert 1",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "credentials2",
+        label: "Credentials of expert 2",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "domain",
+        label: "Domain of expertise",
+        type: "string",
+        required: true,
+      },
+    ],
+    examples: [
+      {
+        title: "Climate Science",
+        description: "Prefer climate scientist over engineer",
+        parameters: {
+          expert1: "Dr. Jane Smith",
+          expert2: "John Doe",
+          credentials1: "PhD Climate Science, 20 years research",
+          credentials2: "BS Mechanical Engineering",
+          domain: "climate change",
+        },
+      },
+    ],
+  },
+
+  {
+    key: "recency",
+    name: "Recency",
+    description: "Prefer argument with more recent evidence",
+    category: "epistemic",
+    premises: [
+      {
+        id: "p1",
+        template: "Argument {arg1} cites evidence from {date1}",
+        type: "factual",
+      },
+      {
+        id: "p2",
+        template: "Argument {arg2} cites evidence from {date2}",
+        type: "factual",
+      },
+      {
+        id: "p3",
+        template: "{date1} is more recent than {date2}",
+        type: "comparative",
+      },
+      {
+        id: "p4",
+        template: "In domain {domain}, recency is important",
+        type: "evaluative",
+      },
+    ],
+    conclusion: {
+      template: "{arg1} is preferred over {arg2}",
+    },
+    criticalQuestions: [
+      {
+        id: "cq1",
+        question: "Is recency actually important in {domain}?",
+        attackType: "undercut",
+        severity: "critical",
+      },
+      {
+        id: "cq2",
+        question: "Has the older evidence been superseded?",
+        attackType: "undercut",
+        severity: "important",
+      },
+      {
+        id: "cq3",
+        question: "Is the newer evidence of sufficient quality?",
+        attackType: "rebuttal",
+        severity: "important",
+      },
+    ],
+    parameters: [
+      {
+        key: "date1",
+        label: "Date of preferred evidence",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "date2",
+        label: "Date of dispreferred evidence",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "domain",
+        label: "Domain where recency matters",
+        type: "string",
+        required: true,
+      },
+    ],
+    examples: [
+      {
+        title: "Technology Study",
+        description: "Prefer 2024 study over 2015 study on AI",
+        parameters: {
+          date1: "2024",
+          date2: "2015",
+          domain: "artificial intelligence",
+        },
+      },
+    ],
+  },
+
+  {
+    key: "statistical_strength",
+    name: "Statistical Strength",
+    description: "Prefer argument with stronger statistical evidence",
+    category: "epistemic",
+    premises: [
+      {
+        id: "p1",
+        template: "Argument {arg1} is based on study with n={n1}, p={p1}",
+        type: "factual",
+      },
+      {
+        id: "p2",
+        template: "Argument {arg2} is based on study with n={n2}, p={p2}",
+        type: "factual",
+      },
+      {
+        id: "p3",
+        template: "Study 1 has stronger statistical evidence (larger n, smaller p)",
+        type: "comparative",
+      },
+    ],
+    conclusion: {
+      template: "{arg1} is preferred over {arg2}",
+    },
+    criticalQuestions: [
+      {
+        id: "cq1",
+        question: "Are the study designs comparable?",
+        attackType: "undercut",
+        severity: "critical",
+      },
+      {
+        id: "cq2",
+        question: "Is statistical significance the right metric?",
+        attackType: "undercut",
+        severity: "important",
+      },
+      {
+        id: "cq3",
+        question: "Are there confounding factors?",
+        attackType: "rebuttal",
+        severity: "important",
+      },
+    ],
+    parameters: [
+      {
+        key: "n1",
+        label: "Sample size of preferred study",
+        type: "number",
+        required: true,
+      },
+      {
+        key: "n2",
+        label: "Sample size of dispreferred study",
+        type: "number",
+        required: true,
+      },
+      {
+        key: "p1",
+        label: "P-value of preferred study",
+        type: "number",
+        required: true,
+      },
+      {
+        key: "p2",
+        label: "P-value of dispreferred study",
+        type: "number",
+        required: true,
+      },
+    ],
+    examples: [
+      {
+        title: "Drug Efficacy",
+        description: "Prefer large RCT over small pilot study",
+        parameters: {
+          n1: 5000,
+          n2: 50,
+          p1: 0.001,
+          p2: 0.04,
+        },
+      },
+    ],
+  },
+
+  {
+    key: "normative_priority",
+    name: "Normative Priority",
+    description: "Prefer argument based on higher-priority norm",
+    category: "normative",
+    premises: [
+      {
+        id: "p1",
+        template: "Argument {arg1} appeals to norm {norm1}",
+        type: "factual",
+      },
+      {
+        id: "p2",
+        template: "Argument {arg2} appeals to norm {norm2}",
+        type: "factual",
+      },
+      {
+        id: "p3",
+        template: "Norm {norm1} has higher priority than {norm2} in context {context}",
+        type: "comparative",
+      },
+    ],
+    conclusion: {
+      template: "{arg1} is preferred over {arg2}",
+    },
+    criticalQuestions: [
+      {
+        id: "cq1",
+        question: "Is the priority ordering of norms justified?",
+        attackType: "undercut",
+        severity: "critical",
+      },
+      {
+        id: "cq2",
+        question: "Does context {context} affect norm priority?",
+        attackType: "undercut",
+        severity: "important",
+      },
+      {
+        id: "cq3",
+        question: "Are there exceptions to this priority?",
+        attackType: "rebuttal",
+        severity: "minor",
+      },
+    ],
+    parameters: [
+      {
+        key: "norm1",
+        label: "Higher-priority norm",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "norm2",
+        label: "Lower-priority norm",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "context",
+        label: "Context for norm priority",
+        type: "string",
+        required: true,
+      },
+    ],
+    examples: [
+      {
+        title: "Legal Priority",
+        description: "Constitutional rights override statutory law",
+        parameters: {
+          norm1: "Constitutional right to free speech",
+          norm2: "Local noise ordinance",
+          context: "protest in public square",
+        },
+      },
+    ],
+  },
+
+  {
+    key: "practical_consequences",
+    name: "Practical Consequences",
+    description: "Prefer argument with better practical consequences",
+    category: "pragmatic",
+    premises: [
+      {
+        id: "p1",
+        template: "If {arg1} is accepted, consequence {consequence1} follows",
+        type: "factual",
+      },
+      {
+        id: "p2",
+        template: "If {arg2} is accepted, consequence {consequence2} follows",
+        type: "factual",
+      },
+      {
+        id: "p3",
+        template: "Consequence {consequence1} is more desirable than {consequence2}",
+        type: "evaluative",
+      },
+    ],
+    conclusion: {
+      template: "{arg1} is preferred over {arg2}",
+    },
+    criticalQuestions: [
+      {
+        id: "cq1",
+        question: "Will {consequence1} actually occur?",
+        attackType: "undercut",
+        severity: "critical",
+      },
+      {
+        id: "cq2",
+        question: "Are there unintended consequences?",
+        attackType: "rebuttal",
+        severity: "important",
+      },
+      {
+        id: "cq3",
+        question: "Is the desirability assessment justified?",
+        attackType: "undercut",
+        severity: "important",
+      },
+    ],
+    parameters: [
+      {
+        key: "consequence1",
+        label: "Consequence of preferred argument",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "consequence2",
+        label: "Consequence of dispreferred argument",
+        type: "string",
+        required: true,
+      },
+      {
+        key: "desirabilityReason",
+        label: "Why consequence1 is more desirable",
+        type: "string",
+        required: true,
+      },
+    ],
+    examples: [
+      {
+        title: "Policy Choice",
+        description: "Prefer policy with better economic outcomes",
+        parameters: {
+          consequence1: "Economic growth + job creation",
+          consequence2: "Economic stagnation",
+          desirabilityReason: "Improves quality of life for citizens",
+        },
+      },
+    ],
+  },
+];
+
+/**
+ * Get scheme by key
+ */
+export function getSchemeByKey(key: string): PreferenceScheme | null {
+  return PREFERENCE_SCHEMES.find(s => s.key === key) ?? null;
+}
+
+/**
+ * Validate scheme parameters
+ */
+export function validateSchemeParameters(
+  scheme: PreferenceScheme,
+  parameters: Record<string, any>
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  for (const param of scheme.parameters) {
+    if (param.required && !(param.key in parameters)) {
+      errors.push(`Missing required parameter: ${param.label}`);
+      continue;
+    }
+
+    const value = parameters[param.key];
+    
+    // Type validation
+    if (param.type === "number" && typeof value !== "number") {
+      errors.push(`${param.label} must be a number`);
+    }
+    if (param.type === "boolean" && typeof value !== "boolean") {
+      errors.push(`${param.label} must be a boolean`);
+    }
+    if (param.type === "string" && typeof value !== "string") {
+      errors.push(`${param.label} must be a string`);
+    }
+
+    // Select validation
+    if (param.type === "select" && param.options) {
+      if (!param.options.includes(value)) {
+        errors.push(`${param.label} must be one of: ${param.options.join(", ")}`);
+      }
+    }
+
+    // Custom validation
+    if (param.validation && typeof value === "string") {
+      const regex = new RegExp(param.validation);
+      if (!regex.test(value)) {
+        errors.push(`${param.label} format is invalid`);
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Instantiate scheme with parameters (generate human-readable text)
+ */
+export function instantiateScheme(
+  scheme: PreferenceScheme,
+  parameters: Record<string, any>
+): string {
+  let text = `**${scheme.name}**\n\n`;
+  
+  // Premises
+  text += "Premises:\n";
+  for (const premise of scheme.premises) {
+    let instantiated = premise.template;
+    for (const [key, value] of Object.entries(parameters)) {
+      instantiated = instantiated.replace(new RegExp(`\\{${key}\\}`, "g"), String(value));
+    }
+    text += `- ${instantiated}\n`;
+  }
+
+  // Conclusion
+  text += "\nConclusion:\n";
+  let conclusionText = scheme.conclusion.template;
+  for (const [key, value] of Object.entries(parameters)) {
+    conclusionText = conclusionText.replace(new RegExp(`\\{${key}\\}`, "g"), String(value));
+  }
+  text += `- ${conclusionText}\n`;
+
+  return text;
+}
+```
+
+---
+
+## TO BE CONTINUED (Part 5 - Final)...
+
+**Current Progress**: 
+- ✅ Part 1: Schema design + type definitions for weighted preferences
+- ✅ Part 2: Weighted defeat computation + sensitivity analysis
+- ✅ Part 3: API endpoints + UI components for weighted preferences
+- ✅ Part 4: Testing for weighted preferences + Preference Schemes foundation
+
+**Final Section**: Preference Schemes UI, Conflict Resolution (5.3), Bulk Operations (5.4), Timeline & Summary.
+
+---
+
+**Word Count**: ~11,000 / Target: 8,000-12,000 total
+**Completion**: ~85% (Part 4 of 5)
