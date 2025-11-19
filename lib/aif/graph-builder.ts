@@ -66,8 +66,8 @@ export async function buildDialogueAwareGraph(
     // RA-node (Reasoning Application node)
     nodes.push({
       id: `RA:${arg.id}`,
-      nodeType: "aif:RANode",
-      text: arg.text || `Argument using ${arg.scheme?.name || "scheme"}`,
+      nodeKind: "RA",
+      text: arg.text || `Argument using ${arg.schemeId || "scheme"}`,
       dialogueMoveId: arg.createdByMoveId || null,
       dialogueMove: arg.createdByMove || null,
       dialogueMetadata: arg.createdByMove
@@ -80,7 +80,10 @@ export async function buildDialogueAwareGraph(
           }
         : null,
       nodeSubtype: "standard",
-    });
+      deliberationId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
 
     // I-node for conclusion
     if (arg.conclusion) {
@@ -88,13 +91,16 @@ export async function buildDialogueAwareGraph(
       if (!nodes.some((n) => n.id === conclusionNodeId)) {
         nodes.push({
           id: conclusionNodeId,
-          nodeType: "aif:INode",
+          nodeKind: "I",
           text: arg.conclusion.text,
           dialogueMoveId: null,
           dialogueMove: null,
           dialogueMetadata: null,
           nodeSubtype: "standard",
-        });
+          deliberationId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as any);
       }
 
       // Edge: RA → I (conclusion)
@@ -115,13 +121,16 @@ export async function buildDialogueAwareGraph(
       if (!nodes.some((n) => n.id === premiseINodeId)) {
         nodes.push({
           id: premiseINodeId,
-          nodeType: "aif:INode",
+          nodeKind: "I",
           text: premise.claim.text,
           dialogueMoveId: null,
           dialogueMove: null,
           dialogueMetadata: null,
           nodeSubtype: "standard",
-        });
+          deliberationId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as any);
       }
 
       // Edge: I → RA (premise)
@@ -171,6 +180,31 @@ export async function buildDialogueAwareGraph(
     }
   }
 
+  // Step 3.5: Derive support edges from ArgumentPremise (premise I-node → conclusion I-node)
+  // This mirrors the support edge derivation in CEG mini route
+  for (const arg of argumentsList) {
+    if (!arg.conclusionClaimId) continue;
+
+    const conclusionINodeId = `I:${arg.conclusionClaimId}`;
+
+    for (const premise of arg.premises) {
+      const premiseINodeId = `I:${premise.claimId}`;
+
+      // Skip self-loops
+      if (premise.claimId === arg.conclusionClaimId) continue;
+
+      // Add support edge: premise I-node → conclusion I-node
+      // Include argumentId to ensure uniqueness when multiple args share same premise→conclusion
+      edges.push({
+        id: `edge:support:${arg.id}:${premise.claimId}:${arg.conclusionClaimId}`,
+        source: premiseINodeId,
+        target: conclusionINodeId,
+        edgeType: "supports",
+        causedByDialogueMoveId: arg.createdByMoveId || null,
+      });
+    }
+  }
+
   // Resolve conflicts to CA-nodes and edges
   for (const conflict of conflicts) {
     // Resolve claims to arguments
@@ -192,7 +226,7 @@ export async function buildDialogueAwareGraph(
     // Create CA-node (Conflict Application node)
     nodes.push({
       id: caNodeId,
-      nodeType: "aif:CANode",
+      nodeKind: "CA",
       text: `${conflict.legacyAttackType || "Attack"}`,
       dialogueMoveId: conflict.createdByMoveId || null,
       dialogueMove: (conflict as any).createdByMove || null,
@@ -206,7 +240,10 @@ export async function buildDialogueAwareGraph(
           }
         : null,
       nodeSubtype: "standard",
-    });
+      deliberationId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
 
     // Edges: attacking arg → CA, CA → targeted arg
     edges.push({
@@ -240,7 +277,7 @@ export async function buildDialogueAwareGraph(
     for (const vizNode of vizNodes) {
       nodes.push({
         id: `DM:${vizNode.id}`,
-        nodeType: `aif:DialogueMove_${vizNode.nodeKind}`,
+        nodeKind: "DM",
         text: `${vizNode.nodeKind}`,
         dialogueMoveId: vizNode.dialogueMoveId,
         dialogueMove: vizNode.dialogueMove as any,
@@ -252,7 +289,10 @@ export async function buildDialogueAwareGraph(
           replyToMoveId: null,
         },
         nodeSubtype: "dialogue_move",
-      });
+        deliberationId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
 
       // Create edges for dialogue move interactions (e.g., WHY → RA)
       const metadata = vizNode.metadata as any;
@@ -351,9 +391,14 @@ export async function buildDialogueAwareGraph(
  * 
  * @param nodeId - The AIF node ID (e.g., "RA:abc123", "I:xyz789")
  * @param deliberationId - The deliberation context
+ * @param includeDialogue - Whether to include dialogue move details
  * @returns Provenance information
  */
-export async function getNodeProvenance(nodeId: string, deliberationId: string) {
+export async function getNodeProvenance(
+  nodeId: string, 
+  deliberationId: string,
+  includeDialogue: boolean = true
+) {
   const [nodeType, id] = nodeId.split(":");
 
   if (nodeType === "RA") {

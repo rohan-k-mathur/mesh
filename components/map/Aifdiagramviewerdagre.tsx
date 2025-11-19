@@ -129,7 +129,7 @@ export function AifDiagramViewerDagre({
   );
   
   // Zoom and pan state
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(.5);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
@@ -137,6 +137,9 @@ export function AifDiagramViewerDagre({
   // State for drag-to-zoom
   const [isZooming, setIsZooming] = useState(false);
   const [zoomStart, setZoomStart] = useState({ y: 0, initialZoom: 1 });
+  
+  // Focus state for scroll-to-pan control
+  const [isFocused, setIsFocused] = useState(false);
 
   // Feature states
   const [activePath, setActivePath] = useState<ArgumentPath | null>(null);
@@ -187,6 +190,9 @@ export function AifDiagramViewerDagre({
   function handleMouseDown(e: React.MouseEvent) {
     if (e.button !== 0) return;
     
+    // Set focus when clicking on the graph
+    setIsFocused(true);
+    
     if (e.shiftKey) {
       setIsZooming(true);
       setZoomStart({ y: e.clientY, initialZoom: zoom });
@@ -214,6 +220,20 @@ export function AifDiagramViewerDagre({
   function handleMouseUp() {
     setIsPanning(false);
     setIsZooming(false);
+  }
+  
+  // Wheel handler for scroll-to-pan (only when focused)
+  function handleWheel(e: React.WheelEvent) {
+    if (!isFocused) return; // Allow parent scroll if not focused
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Scroll to pan: use deltaX and deltaY
+    setPan(prev => ({
+      x: prev.x - e.deltaX,
+      y: prev.y - e.deltaY,
+    }));
   }
   
   // Node click handler
@@ -281,8 +301,33 @@ export function AifDiagramViewerDagre({
   // Get unique edge roles for markers
   const uniqueEdgeRoles = Array.from(new Set(filteredGraph.edges.map(e => e.role)));
   
+  // Click outside handler to unfocus
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
   return (
-    <div className={`relative w-full h-full border-2 border-indigo-500 bg-gray-50 ${className}`} ref={containerRef}>
+    <div 
+      className={`relative w-full h-full border-2 ${isFocused ? 'border-indigo-600 shadow-lg' : 'border-indigo-500'} bg-gray-50 transition-all ${className}`} 
+      ref={containerRef}
+    >
+      {/* Focus indicator overlay */}
+      {isFocused && (
+        <div className="absolute top-2 right-2 z-50 bg-indigo-600 text-white text-xs px-2 py-1 rounded-md shadow-md flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          Scroll active
+        </div>
+      )}
+      
       {/* Top Controls */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3">
         <div className="w-80">
@@ -367,6 +412,7 @@ export function AifDiagramViewerDagre({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
         style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       >
         <defs>
@@ -677,7 +723,9 @@ export function AifDiagramViewerDagre({
 <div className='absolute bottom-4 left-[200px] '>     {/* Controls info */}
       <div className=" bg-white/35 border border-indigo-300 rounded-lg px-3 py-2 text-xs backdrop-blur-md text-gray-600">
         <div className="font-semibold mb-1">Controls:</div>
+        <div>• Click graph to focus</div>
         <div>• Drag to pan</div>
+        <div>• Scroll to pan (when focused)</div>
         <div>• Shift + Drag to zoom</div>
         <div>• Click node to select</div>
       </div>

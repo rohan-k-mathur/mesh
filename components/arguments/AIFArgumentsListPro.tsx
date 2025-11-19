@@ -738,6 +738,7 @@ function RowImpl({
               schemeKey={meta.scheme?.key}
               schemeName={meta.scheme?.name}
               onAnyChange={() => onRefreshRow(a.id)}
+              currentUserId={currentUserId || undefined}
               createdAt={a.createdAt}
               updatedAt={a.updatedAt || a.createdAt}
               confidence={a.confidence}
@@ -795,7 +796,7 @@ function RowImpl({
           />
 
           {/* Scheme-specific Critical Questions Modal */}
-          {meta?.scheme && (
+          {/* {meta?.scheme && (
             <SchemeSpecificCQsModal
               argumentId={a.id}
               deliberationId={deliberationId}
@@ -828,7 +829,7 @@ function RowImpl({
                 </button>
               }
             />
-          )}
+          )} */}
 
           {/* Week 5 Task 5.1: ArgumentNetAnalyzer button */}
           {meta?.scheme && onAnalyzeArgument && (
@@ -851,9 +852,10 @@ function RowImpl({
             <button
               onClick={() => onGenerateAttack(a.id, meta.conclusion!.id)}
               className="
-                inline-flex items-center gap-2 px-3 py-1.5 btnv2 rounded-lg text-xs font-medium
-                bg-rose-50 text-rose-700 border border-rose-200 
-                hover:bg-rose-100 transition-all duration-200 shadow-sm hover:shadow
+                inline-flex items-center gap-2 px-3 py-1.5 btnv2--rose rounded-lg text-xs
+                    bg-white text-slate-600 
+                    
+                    transition-all duration-200
               "
               title="Generate strategic attacks for this argument"
             >

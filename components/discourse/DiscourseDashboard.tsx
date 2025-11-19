@@ -937,6 +937,8 @@ function ActionOnMeCard({ type, data, deliberationId, userId }: ActionOnMeCardPr
                   claimId={data.targetId}
                   deliberationId={deliberationId}
                   claimText={data.targetText}
+                  claimAuthorId={data.targetAuthorId}
+                  currentUserId={data.currentUserId}
                   className="mt-3"
                 />
               )}

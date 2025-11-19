@@ -742,85 +742,92 @@ const {
                   </div>
                 </div>
               ) : (
-                <AFMinimap
-                  nodes={minimapNodes}
-                  edges={minimapEdges}
-                  selectedId={selectedNodeId}
-                  onSelectNode={(id, locusPath) => handleClaimSelect(id, locusPath)}
-                  width={432}
-                  height={320}
-                />
+                // <AFMinimap
+                //   nodes={minimapNodes}
+                //   edges={minimapEdges}
+                //   selectedId={selectedNodeId}
+                //   onSelectNode={(id, locusPath) => handleClaimSelect(id, locusPath)}
+                //   width={432}
+                //   height={320}
+                // />
+                <div className="min-h-[600px]">
+                  <DialogueAwareGraphPanel
+                    deliberationId={deliberationId}
+                    initialShowDialogue={true}
+                    highlightMoveId={delibState.highlightedDialogueMoveId}
+                    className="w-full"
+                    renderGraph={(nodes, edges) => {
+                      const aifGraph = {
+                        nodes: nodes.map(n => ({
+                          id: n.id,
+                          kind: (n.nodeKind === 'I' ? 'I' : 
+                                 n.nodeKind === 'RA' ? 'RA' : 
+                                 n.nodeKind === 'CA' ? 'CA' : 
+                                 n.nodeKind === 'PA' ? 'PA' : 'I') as 'I' | 'RA' | 'CA' | 'PA',
+                          label: n.text || n.id,
+                          schemeKey:  null,
+                          schemeName: null,
+                          cqStatus: null,
+                          dialogueMoveId: n.dialogueMove?.id || null,
+                          locutionType: n.dialogueMetadata?.locution || null,
+                          isImported: false,
+                          importedFrom: null,
+                          toulminDepth: null
+                        })),
+                        edges: edges.map(e => {
+                          // Map edgeType to AIF role based on source/target node types
+                          let role: 'premise' | 'conclusion' | 'conflictingElement' | 'conflictedElement' | 'preferredElement' | 'dispreferredElement' | 'has-presumption' | 'has-exception' = 'premise';
+                          
+                          if (e.edgeType === 'inference') {
+                            // I → RA = premise, RA → I = conclusion
+                            if (e.source.startsWith('I:') && e.target.startsWith('RA:')) {
+                              role = 'premise';
+                            } else if (e.source.startsWith('RA:') && e.target.startsWith('I:')) {
+                              role = 'conclusion';
+                            }
+                          } else if (e.edgeType === 'conflict') {
+                            // Attacker → CA = conflictingElement, CA → Target = conflictedElement
+                            if (e.target.startsWith('CA:')) {
+                              role = 'conflictingElement';
+                            } else if (e.source.startsWith('CA:')) {
+                              role = 'conflictedElement';
+                            }
+                          } else if (e.edgeType === 'supports') {
+                            // Support edges shown as preferredElement (purple dashed)
+                            role = 'preferredElement';
+                          }
+                          
+                          return {
+                            id: e.id || `${e.source}-${e.target}`,
+                            from: e.source,
+                            to: e.target,
+                            role: role
+                          };
+                        })
+                      };
+                      
+                      return (
+                        <div className="h-[600px] bg-white rounded-lg border border-slate-200">
+                          <AifDiagramViewerDagre
+                            initialGraph={aifGraph}
+                            layoutPreset="compact"
+                            deliberationId={deliberationId}
+                            onNodeClick={(nodeId) => {
+                              console.log('Dialogue node clicked:', nodeId);
+                            }}
+                            className="w-full h-full"
+                          />
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
               )}
             </div>
 
               {/* Command Card (if claim selected) */}
               {/* Dialogical Actions */}
-        <div className="mb-6 w-full">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
-            Dialogical Actions
-          </h3>
-          {hudTarget ? (
-            <div className="space-y-3">
-              {/* Selected Target Info */}
-              <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200">
-                <div className="text-xs font-medium text-indigo-900 mb-1">Selected Target</div>
-                <div className="text-xs text-indigo-700">
-                  {hudTarget.type === "claim" ? "Claim" : "Argument"}: {hudTarget.id.slice(0, 12)}...
-                </div>
-              </div>
-              
-              {/* Dialogue Actions Button */}
-              <DialogueActionsButton
-                deliberationId={deliberationId}
-                targetType={hudTarget.type as any}
-                targetId={hudTarget.id}
-                locusPath="0"
-                label="Open Dialogue Actions"
-                variant="default"
-                className="w-fit px-8 justify-center"
-                onMovePerformed={() => {
-                  // Refresh the graph and moves
-                  swrMutate(`/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${hudTarget.type}&targetId=${hudTarget.id}&locus=0`);
-                  window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } }));
-                }}
-              />
-              
-              {/* Legacy CommandCard - Keep for comparison */}
-              <details className="group">
-                <summary className="cursor-pointer text-xs text-slate-600 hover:text-slate-900 font-medium">
-                  Show Legacy Grid View
-                </summary>
-                <div className="mt-3">
-                  {cardActions.length > 0 ? (
-                    <CommandCard
-                      actions={cardActions}
-                      onPerform={performCommand}
-                    />
-                  ) : (
-                    <div className="text-xs text-slate-500 text-center py-4">
-                      No actions available
-                    </div>
-                  )}
-                </div>
-              </details>
-            </div>
-          ) : (
-            <div className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center">
-              <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-              </svg>
-              <div className="text-sm text-slate-600 font-medium mb-1">
-                No claim selected
-              </div>
-              <div className="text-xs text-slate-500">
-                Click a claim in the graph or debate to see available actions
-              </div>
-            </div>
-          )}
-        </div>
+     
 
           </>
         ) : (
@@ -1342,10 +1349,10 @@ const {
                       const aifGraph = {
                         nodes: nodes.map(n => ({
                           id: n.id,
-                          kind: (n.nodeType === 'I-node' ? 'I' : 
-                                 n.nodeType === 'RA-node' ? 'RA' : 
-                                 n.nodeType === 'CA-node' ? 'CA' : 
-                                 n.nodeType === 'PA-node' ? 'PA' : 'I') as 'I' | 'RA' | 'CA' | 'PA',
+                          kind: (n.nodeKind === 'I' ? 'I' : 
+                                 n.nodeKind === 'RA' ? 'RA' : 
+                                 n.nodeKind === 'CA' ? 'CA' : 
+                                 n.nodeKind === 'PA' ? 'PA' : 'I') as 'I' | 'RA' | 'CA' | 'PA',
                           label: n.text || n.id,
                           schemeKey: null,
                           schemeName: null,
@@ -1356,12 +1363,36 @@ const {
                           importedFrom: null,
                           toulminDepth: null
                         })),
-                        edges: edges.map(e => ({
-                          id: e.id || `${e.source}-${e.target}`,
-                          from: e.source,
-                          to: e.target,
-                          role: (e.edgeType || 'premise') as any
-                        }))
+                        edges: edges.map(e => {
+                          // Map edgeType to AIF role based on source/target node types
+                          let role: 'premise' | 'conclusion' | 'conflictingElement' | 'conflictedElement' | 'preferredElement' | 'dispreferredElement' | 'has-presumption' | 'has-exception' = 'premise';
+                          
+                          if (e.edgeType === 'inference') {
+                            // I → RA = premise, RA → I = conclusion
+                            if (e.source.startsWith('I:') && e.target.startsWith('RA:')) {
+                              role = 'premise';
+                            } else if (e.source.startsWith('RA:') && e.target.startsWith('I:')) {
+                              role = 'conclusion';
+                            }
+                          } else if (e.edgeType === 'conflict') {
+                            // Attacker → CA = conflictingElement, CA → Target = conflictedElement
+                            if (e.target.startsWith('CA:')) {
+                              role = 'conflictingElement';
+                            } else if (e.source.startsWith('CA:')) {
+                              role = 'conflictedElement';
+                            }
+                          } else if (e.edgeType === 'supports') {
+                            // Support edges shown as preferredElement (purple dashed)
+                            role = 'preferredElement';
+                          }
+                          
+                          return {
+                            id: e.id || `${e.source}-${e.target}`,
+                            from: e.source,
+                            to: e.target,
+                            role: role
+                          };
+                        })
                       };
                       
                       return (

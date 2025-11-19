@@ -174,8 +174,57 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       }
     }
 
-    // Merge claim edges with derived edges
-    const allClaimEdges = [...claimEdges, ...derivedEdges];
+    // 3.7. Derive support edges from RA-node structure (ArgumentPremise)
+    // For each argument: premise claim → conclusion claim = support edge
+    const premises = await prisma.argumentPremise.findMany({
+      where: {
+        argument: { deliberationId },
+      },
+      select: {
+        argumentId: true,
+        claimId: true,
+      },
+    });
+
+    // Build map: argumentId → conclusionClaimId
+    const argToConclusionMap = new Map<string, string>();
+    const argsForSupport = await prisma.argument.findMany({
+      where: { deliberationId },
+      select: { id: true, conclusionClaimId: true },
+    });
+    argsForSupport.forEach(arg => {
+      if (arg.conclusionClaimId) {
+        argToConclusionMap.set(arg.id, arg.conclusionClaimId);
+      }
+    });
+
+    // Derive support edges: premise I-node → conclusion I-node
+    const derivedSupportEdges: Array<{
+      id: string;
+      fromClaimId: string;
+      toClaimId: string;
+      type: 'supports';
+      attackType: null;
+      targetScope: null;
+    }> = [];
+    
+    for (const premise of premises) {
+      const conclusionClaimId = argToConclusionMap.get(premise.argumentId);
+      
+      if (premise.claimId && conclusionClaimId && premise.claimId !== conclusionClaimId) {
+        derivedSupportEdges.push({
+          id: `support_${premise.argumentId}_${premise.claimId}`,
+          fromClaimId: premise.claimId,  // Premise I-node
+          toClaimId: conclusionClaimId,  // Conclusion I-node
+          type: 'supports',
+          attackType: null,
+          targetScope: null,
+        });
+      }
+    }
+
+    // Merge all edges (explicit + derived attacks + derived supports)
+    const allClaimEdges = [...claimEdges, ...derivedEdges, ...derivedSupportEdges];
 
     // 4. Build claim-level graph structure
     const edges: EdgeData[] = [];

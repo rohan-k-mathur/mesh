@@ -108,7 +108,7 @@ function DefaultGraphRenderer({
         <div className="space-y-1 max-h-[200px] overflow-y-auto">
           {nodes.slice(0, 10).map(node => (
             <div key={node.id} className="text-xs p-2 bg-white rounded border">
-              <span className="font-mono text-gray-500">{node.nodeType}</span>
+              <span className="font-mono text-gray-500">{node.dialogueMove?.type}</span>
               {" "}
               {node.text?.substring(0, 50) || node.id}
               {node.dialogueMetadata && (
@@ -131,11 +131,18 @@ function DefaultGraphRenderer({
         <div className="space-y-1 max-h-[200px] overflow-y-auto">
           {edges.slice(0, 10).map((edge, idx) => (
             <div key={`${edge.id || idx}`} className="text-xs p-2 bg-white rounded border">
-              <span className="font-mono text-gray-500">{edge.edgeType}</span>
+              <span className={`font-mono ${
+                edge.edgeType === 'supports' ? 'text-green-600' :
+                edge.edgeType === 'conflict' ? 'text-red-600' :
+                edge.edgeType === 'inference' ? 'text-blue-600' :
+                'text-gray-500'
+              }`}>
+                {edge.edgeType}
+              </span>
               {" "}
               {edge.source} → {edge.target}
               {edge.causedByDialogueMoveId && (
-                <span className="ml-2 text-green-600">[dialogue provenance]</span>
+                <span className="ml-2 text-purple-600 text-[10px]">[dialogue provenance]</span>
               )}
             </div>
           ))}
@@ -263,26 +270,41 @@ export function DialogueAwareGraphPanel({
           
           {/* Statistics */}
           {data && controlState.showDialogue && (
-            <div className="mt-3 flex items-center gap-3 text-xs text-gray-600">
-              <span>
-                <strong>{data.nodes?.length || 0}</strong> nodes
-              </span>
-              <span>•</span>
-              <span>
-                <strong>{data.edges?.length || 0}</strong> edges
-              </span>
-              <span>•</span>
-              <span>
-                <strong>{data.dialogueMoves?.length || 0}</strong> moves
-              </span>
-              {data.metadata && data.metadata.dmNodeCount && data.metadata.dmNodeCount > 0 && (
-                <>
-                  <span>•</span>
-                  <span className="text-blue-600">
-                    <strong>{data.metadata.dmNodeCount}</strong> DM-nodes
-                  </span>
-                </>
-              )}
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-3 text-xs text-gray-600">
+                <span>
+                  <strong>{data.nodes?.length || 0}</strong> nodes
+                </span>
+                <span>•</span>
+                <span>
+                  <strong>{data.edges?.length || 0}</strong> edges
+                </span>
+                <span>•</span>
+                <span>
+                  <strong>{data.dialogueMoves?.length || 0}</strong> moves
+                </span>
+                {data.metadata && data.metadata.dmNodeCount && data.metadata.dmNodeCount > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-blue-600">
+                      <strong>{data.metadata.dmNodeCount}</strong> DM-nodes
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Edge type breakdown */}
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-green-600">
+                  <strong>{data.edges?.filter(e => e.edgeType === 'supports').length || 0}</strong> support
+                </span>
+                <span className="text-red-600">
+                  <strong>{data.edges?.filter(e => e.edgeType === 'conflict').length || 0}</strong> attack
+                </span>
+                <span className="text-blue-600">
+                  <strong>{data.edges?.filter(e => e.edgeType === 'inference').length || 0}</strong> inference
+                </span>
+              </div>
             </div>
           )}
         </CardContent>

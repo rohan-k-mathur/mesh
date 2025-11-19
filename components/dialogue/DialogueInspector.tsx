@@ -156,7 +156,7 @@ export function DialogueInspector({
           {/* Claim Selector Button */}
           <button
             onClick={() => setClaimPickerOpen(true)}
-            className="px-5 py-2 btnv2 bg-indigo-300/70 hover:bg-indigo-400/70 text-indigo-700 rounded-full text-sm font-medium transition-colors "
+            className="px-3 py-2 btnv2 bg-indigo-300/70 hover:bg-indigo-400/70 text-indigo-700 rounded-lg text-sm font-medium transition-colors "
           >
             {targetId ? "Change Claim" : "Select Claim"}
           </button>
@@ -205,7 +205,7 @@ export function DialogueInspector({
             </p>
             <button
               onClick={() => setClaimPickerOpen(true)}
-            className="px-5 py-3 btnv2 bg-indigo-300/70 hover:bg-indigo-400/70 text-indigo-700 rounded-full text-base font-medium transition-colors "
+            className="px-3 py-2 btnv2 bg-indigo-300/70 hover:bg-indigo-400/70 text-indigo-700 rounded-lg text-sm font-medium transition-colors "
             >
               Select Claim
             </button>

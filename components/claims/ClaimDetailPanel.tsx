@@ -1,10 +1,13 @@
 "use client";
 import * as React from "react";
 import useSWR from "swr";
-import { Activity, Link as LinkIcon, Tag, Swords } from "lucide-react";
+import { Activity, Link as LinkIcon, Tag, Swords, ChevronDown } from "lucide-react";
 import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
 import { AttackCreationModal } from "@/components/aspic/AttackCreationModal";
+import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
 import { mutate } from "swr";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { current } from "immer";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -13,6 +16,9 @@ type ClaimDetailPanelProps = {
   deliberationId: string;
   className?: string;
   claimText?: string; // Optional: Claim text for contraries manager
+  createdById?: string; // Current user ID
+  claimAuthorId?: string; // Author of the claim (who should answer CQs)
+  currentUserId?: string; // Current logged-in user ID
 };
 
 /**
@@ -32,9 +38,25 @@ type ClaimDetailPanelProps = {
  * - Critical Question completion percentage
  * - Citations with links
  */
-export function ClaimDetailPanel({ claimId, deliberationId, className = "", claimText }: ClaimDetailPanelProps) {
+export function ClaimDetailPanel({ claimId, deliberationId, className = "", claimText, createdById, claimAuthorId, currentUserId }: ClaimDetailPanelProps) {
   const [expanded, setExpanded] = React.useState(false);
   const [showAttackModal, setShowAttackModal] = React.useState(false); // Phase F: Attack creation modal
+  const [cqOpenFor, setCqOpenFor] = React.useState<string | null>(null); // CQ modal state
+  const [loadingSchemes, setLoadingSchemes] = React.useState(false); // Loading state for ensure-schemes
+
+  // Handler to ensure schemes before opening CQ modal
+  const handleOpenCQ = React.useCallback(async (claimId: string) => {
+    setLoadingSchemes(true);
+    try {
+      await fetch(`/api/claims/${claimId}/ensure-schemes`, { method: "POST" });
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setCqOpenFor(claimId);
+    } catch (err) {
+      console.error("Failed to ensure schemes:", err);
+    } finally {
+      setLoadingSchemes(false);
+    }
+  }, []);
 
   // Fetch CEG data for this specific claim (includes label, confidence, metrics)
   const { data: cegData } = useSWR(
@@ -282,6 +304,22 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             </p>
           </div>
 
+          {/* Critical Questions Button */}
+          <div className="px-3 py-2">
+            <button
+              onClick={() => handleOpenCQ(claimId)}
+              disabled={loadingSchemes}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 btnv2 text-slate-700 text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingSchemes ? "Loading..." : "View Critical Questions"}
+            </button>
+            {cqCompletion && (
+              <p className="text-[10px] text-slate-500 text-center mt-1">
+                {cqCompletion.satisfied}/{cqCompletion.required} questions answered ({cqCompletion.percentage}%)
+              </p>
+            )}
+          </div>
+
           {/* Citations */}
           {citations.length > 0 && (
             <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
@@ -304,9 +342,42 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
               </div>
             </div>
           )}
+
+        
         </div>
       )}
-
+      {/* CQ Modal */}
+      {cqOpenFor && (
+        <Dialog open onOpenChange={(o) => { if (!o) setCqOpenFor(null); }}>
+          <DialogContent 
+            className="!z-[60] bg-white/95 backdrop-blur-xl rounded-xl max-w-[90vw] w-full sm:max-w-[880px] max-h-[85vh] overflow-y-auto shadow-2xl"
+            overlayClassName="!z-[60]"
+          >
+            {/* Water droplets */}
+            <div className="absolute top-10 right-20 w-24 h-24 bg-sky-400/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+            <div className="absolute bottom-20 left-10 w-32 h-32 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+            
+            <div className="relative z-10">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-semibold text-sky-900 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+                  Claim-level Critical Questions
+                </DialogTitle>
+              </DialogHeader>
+              <div className="mt-4">
+                <CriticalQuestionsV3
+                  targetType="claim"
+                  targetId={cqOpenFor}
+                  createdById={createdById}
+                  claimAuthorId={claimAuthorId}
+                  deliberationId={deliberationId}
+                  
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       {/* Phase F: Attack Creation Modal */}
       {showAttackModal && (
         <AttackCreationModal

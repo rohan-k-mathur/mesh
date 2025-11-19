@@ -54,6 +54,7 @@ import { SchemeAdditionDialog } from "@/components/argumentation/SchemeAdditionD
 import { DependencyEditor } from "@/components/argumentation/DependencyEditor";
 import { ArgumentNetBuilder } from "@/components/argumentation/ArgumentNetBuilder";
 import { QuickContraryDialog } from "./QuickContraryDialog";
+import { current } from "immer";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -79,6 +80,7 @@ interface ArgumentCardV2Props {
   }>;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+  currentUserId?: string;
   confidence?: number;
   dsMode?: boolean; // Dempster-Shafer mode toggle
   provenance?: {
@@ -278,7 +280,7 @@ function SectionHeader({
   );
 }
 
-function AttackItem({ attack, deliberationId, onAnyChange }: { attack: any; deliberationId: string; onAnyChange?: () => void }) {
+function AttackItem({ attack, deliberationId, authorId, onAnyChange }: { attack: any; deliberationId: string; authorId: string; onAnyChange?: () => void }) {
   const attackType = ATTACK_TYPES[attack.attackType as keyof typeof ATTACK_TYPES];
   const Icon = attackType?.icon || Shield;
   
@@ -353,6 +355,9 @@ function AttackItem({ attack, deliberationId, onAnyChange }: { attack: any; deli
               claimId={attack.fromClaimId}
               deliberationId={deliberationId}
               claimText={attack.claimText || ""}
+              createdById={authorId}
+              claimAuthorId={authorId}
+              currentUserId={currentUserId}
               className="mt-2"
             />
           )}
@@ -399,6 +404,7 @@ export function ArgumentCardV2({
   conclusion,
   premises,
   onAnyChange,
+  currentUserId,
   schemeKey,
   schemeName,
   schemes: propsSchemes = [],
@@ -840,6 +846,8 @@ export function ArgumentCardV2({
                   claimId={conclusion.id}
                   deliberationId={deliberationId}
                   claimText={conclusion.text}
+                  createdById={authorId}
+                  claimAuthorId={authorId}
                   className="mt-2"
                 />
               </div>
@@ -1122,6 +1130,8 @@ export function ArgumentCardV2({
                           claimId={p.id}
                           deliberationId={deliberationId}
                           claimText={p.text}
+                          createdById={authorId}
+                          claimAuthorId={authorId}
                           className="mt-2"
                         />
                       </div>
@@ -1444,6 +1454,7 @@ export function ArgumentCardV2({
                       key={attack.id} 
                       attack={attack} 
                       deliberationId={deliberationId}
+                      authorId={authorId}
                       onAnyChange={onAnyChange}
                     />
                   ))}
@@ -1452,6 +1463,7 @@ export function ArgumentCardV2({
                       key={attack.id} 
                       attack={attack} 
                       deliberationId={deliberationId}
+                      authorId={authorId}
                       onAnyChange={onAnyChange}
                     />
                   ))}
@@ -1460,6 +1472,7 @@ export function ArgumentCardV2({
                       key={attack.id} 
                       attack={attack} 
                       deliberationId={deliberationId}
+                      authorId={authorId}
                       onAnyChange={onAnyChange}
                     />
                   ))}

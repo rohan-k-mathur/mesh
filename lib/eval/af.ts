@@ -1,13 +1,28 @@
 // lib/eval/af.ts
-export type AF = { nodes: string[]; attacks: [string, string][] }; // [from, to]
+export type AF = { 
+  nodes: string[]; 
+  attacks: [string, string][]; // [from, to]
+  supports?: [string, string][]; // [from, to] - optional support edges
+};
 export type Label = 'IN'|'OUT'|'UNDEC';
 
-/** Grounded labels via iterative characteristic function. */
+/** 
+ * Grounded labels via iterative characteristic function.
+ * Enhanced with support-awareness: considers both attacks and support edges.
+ * Support edges increase acceptance likelihood when attackers are defeated.
+ */
 export function groundedLabels(af: AF): Record<string, Label> {
-  const { nodes, attacks } = af;
+  const { nodes, attacks, supports = [] } = af;
   const attackersOf = new Map<string, Set<string>>();
-  for (const n of nodes) attackersOf.set(n, new Set());
+  const supportersOf = new Map<string, Set<string>>();
+  
+  for (const n of nodes) {
+    attackersOf.set(n, new Set());
+    supportersOf.set(n, new Set());
+  }
+  
   for (const [a,b] of attacks) attackersOf.get(b)!.add(a);
+  for (const [a,b] of supports) supportersOf.get(b)!.add(a);
 
   const IN = new Set<string>();
   const OUT = new Set<string>();
@@ -15,14 +30,29 @@ export function groundedLabels(af: AF): Record<string, Label> {
 
   while (changed) {
     changed = false;
+    
     // Accept unattacked or whose attackers are all OUT
+    // Support-aware: also consider support strength
     for (const x of nodes) {
       if (!IN.has(x) && !OUT.has(x)) {
         const attackers = attackersOf.get(x)!;
+        const supporters = supportersOf.get(x)!;
         const allOut = [...attackers].every(a => OUT.has(a));
-        if (attackers.size === 0 || allOut) { IN.add(x); changed = true; }
+        
+        // Support strength: count IN supporters
+        const supportStrength = [...supporters].filter(s => IN.has(s)).length;
+        
+        // Accept if: (no attacks OR all attackers OUT) AND has some support OR no attackers
+        const shouldAccept = (attackers.size === 0 || allOut) && 
+                           (supportStrength > 0 || attackers.size === 0);
+        
+        if (shouldAccept) { 
+          IN.add(x); 
+          changed = true; 
+        }
       }
     }
+    
     // Reject anything attacked by an IN
     for (const x of nodes) {
       if (!OUT.has(x)) {
@@ -31,6 +61,7 @@ export function groundedLabels(af: AF): Record<string, Label> {
       }
     }
   }
+  
   const labels: Record<string, Label> = {};
   for (const x of nodes) labels[x] = IN.has(x) ? 'IN' : OUT.has(x) ? 'OUT' : 'UNDEC';
   return labels;

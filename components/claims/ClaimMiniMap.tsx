@@ -187,8 +187,8 @@ const swrConfig = {
   },
 };
 
-export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimClick, currentUserId }: 
-  { deliberationId: string; selectedClaimId?: string; onClaimClick?: (claimId: string) => void; currentUserId?: string; }) {
+export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimClick, claimAuthorId, currentUserId }: 
+  { deliberationId: string; selectedClaimId?: string; onClaimClick?: (claimId: string) => void; claimAuthorId?: string; currentUserId?: string; }) {
   
   // Core data fetching with enhanced endpoints
   const { data: summary, error, isLoading, mutate: mutateSummary } = useSWR(
@@ -640,16 +640,18 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                             <CriticalQuestionsV3
                               targetType="claim"
                               targetId={c.id}
-                              createdById={currentUserId}
+                              createdById={c.createdById ? String(c.createdById) : undefined}
+                              
                               claimAuthorId={c.createdById ? String(c.createdById) : undefined}
                               deliberationId={deliberationId}
+                              
                             />
                           </div>
                         )}
                       </div>
 
                       {/* Thesis Builder */}
-                      <div className="pt-2 border-t border-cyan-500/20 mt-2">
+                      {/* <div className="pt-2 border-t border-cyan-500/20 mt-2">
                         <div className="border bg-white border-teal-500/50 w-full text-left text-md font-semibold text-sky-900 flex items-center gap-2 hover:text-cyan-700 transition-colors py-3 px-3 rounded-lg">
                           <div className="w-2 h-2 rounded-full bg-teal-600" />
                           <div className="flex items-center gap-5 flex-1">
@@ -665,7 +667,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                             </button>
                           </div>
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Legal moves interface */}
                       <div className="pt-2 border-t border-cyan-500/20 mt-2">

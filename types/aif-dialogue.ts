@@ -56,7 +56,7 @@ export interface AifNodeWithDialogue extends Omit<PrismaAifNode, "dialogueMetada
 export interface DialogueMoveWithAif extends DialogueMove {
   /** Primary AIF node representing this move (DM-node) */
   aifNode?: AifNodeWithDialogue | null;
-  
+  nodeType?: string | null;
   /** AIF nodes created by this move (arguments, etc.) */
   createdAifNodes?: AifNodeWithDialogue[];
   
@@ -85,8 +85,9 @@ export interface DialogueAwareEdge {
   
   /** Typed edge role */
   edgeType: 
-    | "inference"       // Standard AIF: premise/conclusion
-    | "conflict"        // Standard AIF: conflicting elements
+    | "inference"       // Standard AIF: premise/conclusion (I→RA, RA→I)
+    | "supports"        // Derived AIF: premise→conclusion claim support (I→I)
+    | "conflict"        // Standard AIF: conflicting elements (CA-node edges)
     | "preference"      // Standard AIF: preferred elements
     | "triggers"        // Dialogue: DM-node triggers CQ
     | "answers"         // Dialogue: DM-node answers challenge
