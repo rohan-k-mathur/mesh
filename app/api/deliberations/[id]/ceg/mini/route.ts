@@ -100,6 +100,83 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       },
     });
 
+    // 3.5. Derive claim-level edges from argument-level conflicts (ConflictApplications)
+    // This fills the gap where argument attacks exist but claim edges don't
+    const conflicts = await prisma.conflictApplication.findMany({
+      where: { deliberationId },
+      select: {
+        id: true,
+        conflictingArgumentId: true,
+        conflictedArgumentId: true,
+        conflictingClaimId: true,
+        conflictedClaimId: true,
+        aspicAttackType: true,
+        legacyAttackType: true,
+      },
+    });
+
+    // Get arguments to extract their conclusion claims
+    const argIds = [...new Set([
+      ...conflicts.map(c => c.conflictingArgumentId).filter(Boolean),
+      ...conflicts.map(c => c.conflictedArgumentId).filter(Boolean),
+    ])] as string[];
+
+    const argConclusionMap = new Map<string, string>();
+    if (argIds.length > 0) {
+      const args = await prisma.argument.findMany({
+        where: { id: { in: argIds } },
+        select: { id: true, conclusionClaimId: true },
+      });
+      args.forEach(arg => {
+        if (arg.conclusionClaimId) {
+          argConclusionMap.set(arg.id, arg.conclusionClaimId);
+        }
+      });
+    }
+
+    // Convert ConflictApplications to derived claim edges
+    const derivedEdges: Array<{
+      id: string;
+      fromClaimId: string;
+      toClaimId: string;
+      type: 'supports' | 'rebuts';
+      attackType: string | null;
+      targetScope: string | null;
+    }> = [];
+
+    for (const conflict of conflicts) {
+      let fromClaimId: string | null = null;
+      let toClaimId: string | null = null;
+
+      // Determine source claim
+      if (conflict.conflictingClaimId) {
+        fromClaimId = conflict.conflictingClaimId;
+      } else if (conflict.conflictingArgumentId) {
+        fromClaimId = argConclusionMap.get(conflict.conflictingArgumentId) ?? null;
+      }
+
+      // Determine target claim
+      if (conflict.conflictedClaimId) {
+        toClaimId = conflict.conflictedClaimId;
+      } else if (conflict.conflictedArgumentId) {
+        toClaimId = argConclusionMap.get(conflict.conflictedArgumentId) ?? null;
+      }
+
+      if (fromClaimId && toClaimId && fromClaimId !== toClaimId) {
+        derivedEdges.push({
+          id: `derived_${conflict.id}`,
+          fromClaimId,
+          toClaimId,
+          type: 'rebuts', // Conflicts are always attacks
+          attackType: conflict.aspicAttackType || conflict.legacyAttackType,
+          targetScope: null,
+        });
+      }
+    }
+
+    // Merge claim edges with derived edges
+    const allClaimEdges = [...claimEdges, ...derivedEdges];
+
     // 4. Build claim-level graph structure
     const edges: EdgeData[] = [];
     const claimInDegree = new Map<string, number>();
@@ -114,8 +191,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       claimAttackStrength.set(c.id, 0);
     });
 
-    // Process edges
-    for (const edge of claimEdges) {
+    // Process edges (both explicit ClaimEdges and derived edges from ConflictApplications)
+    for (const edge of allClaimEdges) {
       // Filter out self-loops
       if (edge.fromClaimId === edge.toClaimId) continue;
 

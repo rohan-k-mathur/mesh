@@ -1,7 +1,7 @@
 // lib/client/ceg/useCegData.ts
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 
 export type CegNode = {
@@ -193,6 +193,3 @@ export function useFocusedCegData(
     refresh,
   };
 }
-
-// Missing import
-import { useMemo } from 'react';

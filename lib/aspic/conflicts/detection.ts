@@ -36,15 +36,10 @@ export async function detectConflicts(
   const paRecords = await prisma.preferenceApplication.findMany({
     where: { 
       deliberationId,
-      conflictStatus: { in: ["none", "detected", null] }, // Exclude already resolved
-    },
-    include: {
-      createdBy: {
-        select: {
-          username: true,
-          displayName: true,
-        },
-      },
+      OR: [
+        { conflictStatus: { in: ["none", "detected"] } }, // Exclude already resolved
+        { conflictStatus: null }, // Include records with no status set
+      ],
     },
     orderBy: { createdAt: "asc" },
   });
@@ -82,7 +77,6 @@ export async function detectConflicts(
           weight: pa.weight ?? 1.0,
           createdAt: pa.createdAt,
           createdBy: pa.createdById,
-          createdByName: (pa.createdBy as any)?.displayName ?? (pa.createdBy as any)?.username,
           justification: pa.justification ?? undefined,
         });
       }
