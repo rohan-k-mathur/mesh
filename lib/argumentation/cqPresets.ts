@@ -70,6 +70,16 @@ export type AttackOption = {
           template:'The evidence source is unreliable or the inference from evidence to claim is unwarranted.' },
       ]
     },
+    {
+      schemeKey: 'claim_relevance',
+      shape: 'conditional',
+      options: [
+        { key:'rebut_off_topic', label:'Rebut (off-topic)', type:'rebut', targetScope:'conclusion',
+          template:'This claim is not relevant to the topic of discussion.' },
+        { key:'undercut_context', label:'Undercut (context mismatch)', type:'undercut', targetScope:'inference',
+          template:'The claim does not address the specific context or scope of the deliberation.' },
+      ]
+    },
     // add more as you need…
   ];
   

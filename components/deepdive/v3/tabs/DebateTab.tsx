@@ -1,20 +1,21 @@
 /**
  * DebateTab Component
  * 
- * Main debate/discussion tab for the deliberation panel. Displays:
- * - Deliberation settings panel (conditional)
- * - Proposition composer
- * - Propositions list
- * - Claims minimap
- * - Dialogue inspector
+ * Main debate/discussion tab with nested tabs structure:
+ * - Propositions: Composer and list
+ * - Claims: MiniMap, Dialogue Inspector, Settings Panel
  * 
  * Part of DeepDivePanel V3 migration - Week 4, Task 4.4
  * Uses SheetAwareTabProps (needs delibState for settings panel)
  */
 
+"use client";
+
 import * as React from "react";
 import { BaseTabProps } from "./types";
 import { SectionCard } from "../../shared/SectionCard";
+import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
+import { MessageSquare, Map, Settings } from "lucide-react";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 import PropositionsList from "@/components/propositions/PropositionsList";
 import ClaimMiniMap from "@/components/claims/ClaimMiniMap";
@@ -39,9 +40,11 @@ export interface DebateTabProps extends BaseTabProps {
 /**
  * DebateTab Component
  * 
- * Primary tab for participating in deliberation discussions. Contains composers
- * for creating propositions, viewing all propositions, visualizing claims structure,
- * and inspecting dialogue timeline.
+ * Primary tab for participating in deliberation discussions with nested tab structure:
+ * 
+ * Subtabs:
+ * 1. Propositions - Create and view propositions
+ * 2. Claims - Visualize claims structure, inspect dialogue, manage settings
  * 
  * @param deliberationId - The ID of the deliberation
  * @param currentUserId - The ID of the current user
@@ -59,42 +62,61 @@ export function DebateTab({
   className,
 }: DebateTabProps) {
   return (
-    <div  className="w-full min-w-0 space-y-5  mt-4">
-      {/* Conditional Settings Panel */}
-      {delibSettingsOpen && (
-        <SectionCard>
-          <DeliberationSettingsPanel deliberationId={deliberationId} />
-        </SectionCard>
-      )}
+    <div className="w-full min-w-0 mt-4">
+      <NestedTabs
+        id={`debate-${deliberationId}`}
+        defaultValue="propositions"
+        variant="secondary"
+        tabs={[
+          {
+            value: "propositions",
+            label: "Propositions",
+            icon: <MessageSquare className="size-3.5" />,
+            content: (
+              <div className="space-y-5">
+                <SectionCard title="Compose Proposition">
+                  <PropositionComposerPro deliberationId={deliberationId} />
+                </SectionCard>
+                
+                <SectionCard>
+                  <PropositionsList deliberationId={deliberationId} />
+                </SectionCard>
+              </div>
+            ),
+          },
+          {
+            value: "claims",
+            label: "Claims",
+            icon: <Map className="size-3.5" />,
+            content: (
+              <div className="space-y-5">
+                {delibSettingsOpen && (
+                  <SectionCard>
+                    <DeliberationSettingsPanel deliberationId={deliberationId} />
+                  </SectionCard>
+                )}
+                
+                <SectionCard>
+                  <ClaimMiniMap
+                    deliberationId={deliberationId}
+                    selectedClaimId={selectedClaimId}
+                    onClaimClick={onClaimClick}
+                    currentUserId={currentUserId}
+                  />
+                </SectionCard>
 
-      {/* Proposition Composer */}
-      <SectionCard title="Compose Proposition">
-        <PropositionComposerPro deliberationId={deliberationId} />
-      </SectionCard>
-    
-      {/* Propositions List */}
-      <SectionCard>
-        <PropositionsList deliberationId={deliberationId} />
-      </SectionCard>
-
-      {/* Claims MiniMap */}
-      <SectionCard>
-        <ClaimMiniMap
-          deliberationId={deliberationId}
-          selectedClaimId={selectedClaimId}
-          onClaimClick={onClaimClick}
-          currentUserId={currentUserId}
-        />
-      </SectionCard>
-
-      {/* Dialogue Inspector */}
-      <SectionCard>
-        <DialogueInspector
-          deliberationId={deliberationId}
-          initialTargetType="claim"
-          initialLocusPath="0"
-        />
-      </SectionCard>
+                <SectionCard>
+                  <DialogueInspector
+                    deliberationId={deliberationId}
+                    initialTargetType="claim"
+                    initialLocusPath="0"
+                  />
+                </SectionCard>
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }
