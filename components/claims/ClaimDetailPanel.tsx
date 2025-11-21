@@ -141,7 +141,8 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
     <div className={`${className}`}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100/50 rounded-lg transition-colors flex items-center justify-between group"
+        className="w-full text-left px-3 py-2 bg-slate-100 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 
+         transition-colors flex items-center justify-between group"
       >
         <span className="flex items-center gap-2">
           <span className={`transform transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
@@ -172,15 +173,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
           {/* Metrics Row */}
           {hasContent && (
             <div className="flex items-center gap-2 flex-wrap px-3">
-              {cqCompletion && (
-                <span className={`text-[11px] px-2 py-1 rounded-lg font-medium border ${
-                  cqCompletion.percentage === 100
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200"
-                }`}>
-                  CQ {cqCompletion.percentage}%
-                </span>
-              )}
+             
               {label !== "UNDEC" && (
                 <span className="text-[11px] px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium flex items-center gap-1">
                   <Tag className="w-3 h-3" />
@@ -289,19 +282,19 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
               claimText={claimText || cegNode?.text || ""}
             />
           </div>
-
+<div className="inline-flex w-full ">
           {/* Phase F: Direct Attack Creation */}
           <div className="px-3 py-2">
             <button
               onClick={() => setShowAttackModal(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2  btnv2 text-slate-700 text-sm font-medium rounded-lg "
+              className="w-fit flex items-center justify-center gap-2 px-4 py-2  
+              btnv2 text-slate-700 text-xs font-medium rounded-xl "
             >
              
               Create ASPIC+ Attack
+             
             </button>
-            <p className="text-[10px] text-slate-500 text-center mt-1">
-              Direct attack specification (undermine/rebut/undercut)
-            </p>
+            
           </div>
 
           {/* Critical Questions Button */}
@@ -309,7 +302,8 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             <button
               onClick={() => handleOpenCQ(claimId)}
               disabled={loadingSchemes}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 btnv2 text-slate-700 text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-fit flex items-center justify-center gap-2 px-4 py-2 btnv2 text-slate-700 text-xs 
+              font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loadingSchemes ? "Loading..." : "View Critical Questions"}
             </button>
@@ -319,7 +313,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
               </p>
             )}
           </div>
-
+</div>
           {/* Citations */}
           {citations.length > 0 && (
             <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
@@ -353,9 +347,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             className="!z-[60] bg-white/95 backdrop-blur-xl rounded-xl max-w-[90vw] w-full sm:max-w-[880px] max-h-[85vh] overflow-y-auto shadow-2xl"
             overlayClassName="!z-[60]"
           >
-            {/* Water droplets */}
-            <div className="absolute top-10 right-20 w-24 h-24 bg-sky-400/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
-            <div className="absolute bottom-20 left-10 w-32 h-32 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+           
             
             <div className="relative z-10">
               <DialogHeader>

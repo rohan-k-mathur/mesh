@@ -2,7 +2,7 @@
 
 "use client";
 import useSWR from "swr";
-import { useState, useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -10,20 +10,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import ArgumentPopout from "./ArgumentPopout";
+import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
 import React from "react";
-import clsx from "clsx";
 import { useConfidence } from "./useConfidence";
 import { fetchClaimScores, ClaimScore } from '@/lib/client/evidential';
 import { SupportBar } from "../evidence/SupportBar";
-import { SchemeBadge } from "@/components/aif/SchemeBadge";
-import { CQStatusIndicator } from "@/components/aif/CQStatusIndicator";
-import { AttackBadge } from "@/components/aif/AttackBadge";
-import { PreferenceBadge } from "@/components/aif/PreferenceBadge";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
 import { ArgumentActionsSheet } from "@/components/arguments/ArgumentActionsSheet";
-import { Waypoints } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { useDebateFilters } from "@/components/deepdive/v3/hooks/useDebateFilters";
+import { useDebateModals } from "@/components/deepdive/v3/hooks/useDebateModals";
+import {
+  DebateSheetHeader,
+  DebateSheetFilters,
+  ArgumentNetworkCard,
+  type SupportValue,
+} from "@/components/deepdive/v3/debate-sheet";
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type EvNode = {
@@ -86,142 +89,178 @@ export function ClaimsPane({ deliberationId, claims }: { deliberationId: string;
   );
 }
 
-export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
+export default function DebateSheetReader({ 
+  sheetId, 
+  deliberationId 
+}: { 
+  sheetId?: string; 
+  deliberationId?: string;
+}) {
   const { user } = useAuth();
   const authorId = user?.userId != null ? String(user.userId) : "";
   
-  const { data, error } = useSWR(
-    `/api/sheets/${sheetId}`,
+  // Extract deliberationId from sheetId if using legacy prop
+  const delibId = useMemo(() => {
+    if (deliberationId) return deliberationId;
+    if (sheetId?.startsWith("delib:")) return sheetId.slice("delib:".length);
+    return null;
+  }, [deliberationId, sheetId]);
+  
+  // Legacy: fetch sheet data if sheetId provided (for non-synthetic sheets)
+  const isSynthetic = sheetId?.startsWith("delib:") ?? false;
+  const { data: sheetData, error: sheetError } = useSWR(
+    sheetId && !isSynthetic ? `/api/sheets/${sheetId}` : null,
     r => fetch(r).then(x => x.json()),
     { refreshInterval: 0 }
   );
 
-// const [mode, setMode] = useState<"product"|"min"|"ds">("product");
-const { mode, setMode } = useConfidence();
+  const { mode, setMode } = useConfidence();
+  const [imports, setImports] = React.useState<'off'|'materialized'|'virtual'|'all'>('off');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const itemsPerPage = 15;
 
-  // Read room default mode on mount (only sync once when sheet loads)
-  const [hasSyncedRoomMode, setHasSyncedRoomMode] = React.useState(false);
-  React.useEffect(() => {
-    if (!data?.sheet?.rulesetJson || hasSyncedRoomMode) return;
-    const roomMode = (data.sheet.rulesetJson as any)?.confidence?.mode;
-    if (roomMode && roomMode !== mode) {
-      setMode(roomMode);
-      setHasSyncedRoomMode(true);
-    }
-  }, [data?.sheet?.rulesetJson, mode, setMode, hasSyncedRoomMode]);
-
-  const [openNodeId, setOpenNodeId] = useState<string | null>(null);
-  const [showArgsFor, setShowArgsFor] = useState<string | null>(null); // claimId
-  
-  // State for MiniNeighborhoodPreview modal (button-triggered)
-  const [previewNodeId, setPreviewNodeId] = useState<string | null>(null);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  
-  // State for ArgumentActionsSheet modal
-  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
-  const [selectedArgumentForActions, setSelectedArgumentForActions] = useState<{
-    id: string;
-    text?: string;
-    conclusionText?: string;
-    conclusionClaimId?: string;
-    schemeKey?: string;
-    schemeId?: string;
-    schemeName?: string;
-    premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
-  } | null>(null);
-  
-  // Refresh counter for AIF data
-  const [refreshCounter, setRefreshCounter] = useState(0);
-
-const [imports, setImports] = React.useState<'off'|'materialized'|'virtual'|'all'>('off');
-
-  // Filter state
-  const [filterScheme, setFilterScheme] = useState<string | null>(null);
-  const [filterOpenCQs, setFilterOpenCQs] = useState(false);
-  const [filterAttacked, setFilterAttacked] = useState(false);
-
-  // inside DebateSheetReader
-const isSynthetic = sheetId.startsWith('delib:');
-
-// when mode changes:
-
-React.useEffect(() => {
-  if (isSynthetic) return;
-  const sid = data?.sheet?.id ?? sheetId; // curated id
-  fetch(`/api/sheets/${sid}/ruleset`, {
-    method: 'PATCH',
-    headers: { 'Content-Type':'application/json' },
-    body: JSON.stringify({ confidence: { mode } }),
-  }).catch(()=>{ /* non-blocking */ });
-}, [mode, isSynthetic, data?.sheet?.id, sheetId]);
-
-
-  const delibId = useMemo(() => {
-    return data?.sheet?.deliberationId
-      ?? (sheetId.startsWith("delib:") ? sheetId.slice("delib:".length) : null);
-  }, [data?.sheet?.deliberationId, sheetId]);
-
-  // Fetch AIF metadata for all arguments in this deliberation
-  const { data: aifData } = useSWR(
-    delibId ? `/api/deliberations/${delibId}/arguments/aif?limit=100` : null,
-    fetcher,
+  // Fetch unified data (AIF + evidential) from new endpoint
+  // Note: Using high limit (500) since debate sheets typically need all arguments at once
+  // TODO: Consider implementing pagination UI if debates regularly exceed 500 arguments
+  const { data: fullData, mutate: refetchData, error: dataError } = useSWR(
+    delibId ? `/api/deliberations/${delibId}/arguments/full?limit=500&mode=${mode}&imports=${imports}` : null,
+    (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json()),
     { revalidateOnFocus: false }
   );
 
-  // Build lookup map: argumentId -> aif metadata
+  // Build lookup map: argumentId -> full argument data (with AIF + support inline)
+  const argumentById = useMemo(() => {
+    const m = new Map<string, any>();
+    if (fullData?.items) {
+      for (const item of fullData.items) {
+        m.set(item.id, item);
+      }
+    }
+    return m;
+  }, [fullData]);
+
+  // Build AIF lookup for backward compatibility with existing code
   const aifByArgId = useMemo(() => {
     const m = new Map<string, any>();
-    if (aifData?.items) {
-      for (const item of aifData.items) {
+    if (fullData?.items) {
+      for (const item of fullData.items) {
         m.set(item.id, item.aif);
       }
     }
     return m;
-  }, [aifData]);
+  }, [fullData]);
 
-  //  const [imports, setImports] = React.useState<'none'|'virtual'>('none');
-  const { data: ev, mutate: refetchEv } = useSWR<EvResp>(
-    delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}&imports=${imports}` : null,
+  // Create nodes structure for hooks (from sheet or synthesized from arguments)
+  const nodes = useMemo(() => {
+    if (sheetData?.sheet?.nodes) return sheetData.sheet.nodes;
+    if (fullData?.items) {
+      return fullData.items.map((arg: any) => ({
+        id: arg.id,
+        argumentId: arg.id,
+        title: arg.text,
+        claimId: arg.aif?.conclusion?.id,
+        diagramId: arg.id,
+      }));
+    }
+    return [];
+  }, [sheetData?.sheet?.nodes, fullData?.items]);
+
+  // Use custom hooks for filters and modals
+  const {
+    filters,
+    filteredNodes,
+    availableSchemes,
+    setSchemeFilter,
+    setOpenCQsFilter,
+    setAttackedFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useDebateFilters({ nodes, aifByArgId });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredNodes.length / itemsPerPage);
+  const paginatedNodes = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredNodes.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredNodes, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.scheme, filters.openCQsOnly, filters.attackedOnly]);
+
+  const {
+    previewModal,
+    openPreview,
+    closePreview,
+    actionsSheet,
+    openActionsSheet,
+    closeActionsSheet,
+    expandModal,
+    openExpand,
+    closeExpand,
+    contributingModal,
+    openContributing,
+    closeContributing,
+  } = useDebateModals();
+
+  // Helper to get bar data for a claim
+  const barFor = (claimId?: string | null): SupportValue | null => {
+    if (!claimId || !fullData?.items) return null;
+    const arg = fullData.items.find((a: any) => a.aif?.conclusion?.id === claimId);
+    if (!arg) return null;
     
-  (u: string) => fetch(u, { cache:'no-store' }).then(r => r.json())
-);
+    if (mode === 'ds' && typeof arg.support === 'object') {
+      return { kind: 'ds', bel: arg.support.bel, pl: arg.support.pl };
+    }
+    const s = typeof arg.support === 'number' ? arg.support : arg.support?.bel ?? 0;
+    return { kind: 'scalar', s };
+  };
 
-// const { data: ev } = useSWR<EvResp>(
-//   delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}` : null,
-//   (u) => fetch(u, { cache: 'no-store' }).then(r => r.json())
-// );
-
-
-// bar value helper
-function barFor(claimId?: string|null) {
-  if (!claimId || !ev) return null;
-  if (mode === 'ds') {
-    const pair = ev.dsSupport?.[claimId];
-    return pair ? { kind:'ds', bel: pair.bel, pl: pair.pl } : null;
-  }
-  const s = ev.support?.[claimId];
-  return typeof s === 'number' ? { kind:'scalar', s } : null;
-}
-
-  // Build quick lookup maps from ev.nodes
+  // Build support lookup by claim (from arguments' conclusion claims)
   const supportByClaim = useMemo(() => {
     const m = new Map<string, number>();
-    (ev?.nodes ?? []).forEach(n => m.set(n.id, n.score));
+    if (fullData?.items) {
+      for (const arg of fullData.items) {
+        if (arg.aif?.conclusion?.id) {
+          const claimId = arg.aif.conclusion.id;
+          const supportValue = typeof arg.support === 'number' 
+            ? arg.support 
+            : arg.support?.bel ?? 0;
+          if (!m.has(claimId) || supportValue > (m.get(claimId) ?? 0)) {
+            m.set(claimId, supportValue);
+          }
+        }
+      }
+    }
     return m;
-  }, [ev]);
+  }, [fullData, mode]);
 
-  const topByClaim = useMemo(() => {
-    const m = new Map<string, { argumentId: string; score: number }[]>();
-    (ev?.nodes ?? []).forEach(n => m.set(n.id, n.top ?? []));
+  // Build contributing arguments map from API data
+  const contributingByClaimId = useMemo(() => {
+    const m = new Map<string, Array<{ 
+      argumentId: string; 
+      contributionScore: number; 
+      argumentText: string | null;
+      occurrences: number;
+    }>>();
+    if (fullData?.items) {
+      for (const arg of fullData.items) {
+        if (arg.aif?.conclusion?.id && arg.contributingArguments?.length) {
+          m.set(arg.aif.conclusion.id, arg.contributingArguments);
+        }
+      }
+    }
     return m;
-  }, [ev]);
+  }, [fullData]);
 
-  // Fetch neighborhood for previewed node (button-triggered)
+  // Fetch neighborhood for previewed argument
   const previewedArgumentId = useMemo(() => {
-    if (!previewNodeId) return null;
-    const node = data?.sheet?.nodes?.find((n: any) => n.id === previewNodeId);
+    if (!previewModal.nodeId) return null;
+    if (previewModal.argumentId) return previewModal.argumentId;
+    const node = nodes.find((n: any) => n.id === previewModal.nodeId);
     return node?.argumentId || null;
-  }, [previewNodeId, data?.sheet?.nodes]);
+  }, [previewModal.nodeId, previewModal.argumentId, nodes]);
 
   const { data: neighborhoodData, error: neighborhoodError, isLoading: neighborhoodLoading } = useSWR(
     previewedArgumentId ? `/api/arguments/${previewedArgumentId}/aif-neighborhood?depth=1` : null,
@@ -229,154 +268,65 @@ function barFor(claimId?: string|null) {
     { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
 
-  // Toggle preview modal for a node
-  const togglePreview = (nodeId: string) => {
-    setPreviewNodeId(nodeId);
-    setPreviewModalOpen(true);
-  };
-
   // Handle node click to open ArgumentActionsSheet
   const handleNodeClick = (node: any) => {
     if (!node.argumentId) return;
     
     try {
       const aif = aifByArgId?.get(node.argumentId);
-      setSelectedArgumentForActions({
+      openActionsSheet({
         id: node.argumentId,
         text: node.title || node.id,
         conclusionText: node.title || node.id,
         schemeKey: aif?.scheme?.key,
       });
-      setActionsSheetOpen(true);
     } catch (error) {
       console.error("Error opening argument actions sheet:", error);
     }
   };
 
-  // Get unique schemes for filter dropdown (must be before early returns)
-  const availableSchemes = useMemo(() => {
-    const schemes = new Set<string>();
-    if (!aifData?.items) return [];
-    
-    for (const item of aifData.items) {
-      if (item.aif?.scheme?.key) {
-        schemes.add(item.aif.scheme.key);
-      }
-    }
-    return Array.from(schemes).sort();
-  }, [aifData]);
+  if (sheetError || dataError) return <div className="text-xs text-red-600">Failed to load data</div>;
+  if (!delibId) return <div className="text-xs text-red-600">No deliberation ID provided</div>;
+  if (!fullData && !sheetData) return <div className="text-xs text-neutral-500">Loading…</div>;
 
-  // Filter nodes based on criteria (must be before early returns)
-  const filteredNodes = useMemo(() => {
-    const nodes = data?.sheet?.nodes;
-    if (!nodes) return [];
-    let filtered = [...nodes];
+  // Extract sheet metadata (for legacy sheet mode) or create defaults
+  const sheetInfo = sheetData?.sheet ?? {
+    edges: [],
+    acceptance: { semantics: 'grounded', labels: {} },
+    unresolved: [],
+    loci: [],
+    title: 'Debate Sheet',
+    deliberationId: delibId,
+  };
+  const { edges, acceptance, unresolved, loci, title } = sheetInfo;
 
-    if (filterScheme) {
-      filtered = filtered.filter((n: any) => {
-        const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
-        return aif?.scheme?.key === filterScheme;
-      });
-    }
-
-    if (filterOpenCQs) {
-      filtered = filtered.filter((n: any) => {
-        const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
-        return aif?.cq && aif.cq.satisfied < aif.cq.required;
-      });
-    }
-
-    if (filterAttacked) {
-      filtered = filtered.filter((n: any) => {
-        const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
-        const total = aif?.attacks ? (aif.attacks.REBUTS + aif.attacks.UNDERCUTS + aif.attacks.UNDERMINES) : 0;
-        return total > 0;
-      });
-    }
-
-    return filtered;
-  }, [data?.sheet?.nodes, filterScheme, filterOpenCQs, filterAttacked, aifByArgId]);
-
-  if (error) return <div className="text-xs text-red-600">Failed to load sheet</div>;
-  if (!data?.sheet) return <div className="text-xs text-neutral-500">Loading…</div>;
-
-  const { nodes, edges, acceptance, unresolved, loci, title, deliberationId } = data.sheet;
-
-  const argText = (id: string) => ev?.arguments?.find(a => a.id === id)?.text;
-
-  const supportOfClaimId = (claimId?: string|null) =>
-    (claimId && supportByClaim.has(claimId)) ? supportByClaim.get(claimId)! : undefined;
-
-  function refreshEv() {
-    throw new Error("Function not implemented.");
-  }
+  const argText = (id: string) => argumentById.get(id)?.text;
+  const supportOfClaimId = (claimId?: string | null) =>
+    claimId && supportByClaim.has(claimId) ? supportByClaim.get(claimId)! : undefined;
 
   return (
     <>
     <div className="border rounded-xl p-3 bg-slate-50 flex flex-col flex-wrap w-full gap-4 ">
       <aside className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">{title}</h2>
-          <div className="flex items-center gap-2">
-            <label className="text-[11px] text-neutral-600">Confidence</label>
-            <select
-              className="menuv2--lite rounded px-2 py-1 text-[12px]"
-              value={mode}
-              // onChange={e=>{ setMode(e.target.value as any); refreshEv(); }}
-                onChange={(e) => { setMode(e.target.value as any); refetchEv(); }}
+        {/* Extracted Header Component */}
+        <DebateSheetHeader
+          title={title}
+          mode={mode}
+          onModeChange={(newMode) => { setMode(newMode); refetchData(); }}
+          imports={imports}
+          onImportsChange={setImports}
+        />
 
-            >
-              <option value="min">weakest‑link (min)</option>
-              <option value="product">independent (product)</option>
-              <option value="ds">DS (β/π) — (UI only for now)</option>
-            </select>
-            <label className="text-[11px] text-neutral-600">Imported</label>
-<select
-  className="menuv2--lite rounded px-2 py-1 text-[12px]"
-  value={imports}
-  onChange={e => setImports(e.target.value as any)}
->
-  <option value="off">hide</option>
-  <option value="materialized">materialized</option>
-  <option value="virtual">virtual</option>
-  <option value="all">all</option>
-</select>
-
-            <label className="ml-3 text-[11px] inline-flex items-center gap-1">
-     <input type="checkbox" checked={imports==='virtual'}
-            onChange={e=> setImports(e.target.checked ? 'virtual' : 'off')} />
-     include imported lines (read‑only)
-   </label>
-          </div>
-        </div>
-
-        {/* Filter controls */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <label className="text-[11px] text-neutral-600">Filters:</label>
-          <select
-            className="menuv2--lite rounded px-2 py-1 text-[12px]"
-            value={filterScheme ?? ""}
-            onChange={(e) => setFilterScheme(e.target.value || null)}
-          >
-            <option value="">All schemes</option>
-            {availableSchemes.map(s => (
-              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
-            ))}
-          </select>
-          <label className="text-[11px] inline-flex items-center gap-1">
-            <input type="checkbox" checked={filterOpenCQs} onChange={(e) => setFilterOpenCQs(e.target.checked)} />
-            Open CQs only
-          </label>
-          <label className="text-[11px] inline-flex items-center gap-1">
-            <input type="checkbox" checked={filterAttacked} onChange={(e) => setFilterAttacked(e.target.checked)} />
-            Attacked only
-          </label>
-          {(filterScheme || filterOpenCQs || filterAttacked) && (
-            <button className="text-[11px] underline text-blue-600" onClick={() => { setFilterScheme(null); setFilterOpenCQs(false); setFilterAttacked(false); }}>
-              Clear filters
-            </button>
-          )}
-        </div>
+        {/* Extracted Filters Component */}
+        <DebateSheetFilters
+          filters={filters}
+          availableSchemes={availableSchemes}
+          onSchemeChange={setSchemeFilter}
+          onOpenCQsChange={setOpenCQsFilter}
+          onAttackedChange={setAttackedFilter}
+          onClearFilters={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
 
         <div className="text-xs">Semantics: {acceptance.semantics}</div>
 
@@ -395,12 +345,10 @@ function barFor(claimId?: string|null) {
           <div className="text-xs space-y-2 font-medium ">Unresolved CQs</div>
           <ul className="text-xs flex  mt-2 flex-wrap gap-2 ">
             {unresolved.map((u:any) => {
-              // Format CQ text display
               const cqDisplay = u.cqText 
                 ? u.cqText 
                 : u.cqKey.replace(/^aif_attack_/, "").replace(/_/g, " ");
               
-              // Get argument title from nodes array for better context
               const argNode = nodes.find((n: any) => n.id === u.nodeId || n.argumentId === u.nodeId);
               const nodeDisplay = argNode?.title 
                 ? (argNode.title.length > 40 ? argNode.title.slice(0, 40) + "..." : argNode.title)
@@ -419,166 +367,125 @@ function barFor(claimId?: string|null) {
 
       <main className="space-y-3">
         <div className="rounded border p-2">
-          <div className="text-xs text-neutral-600 mb-2">
-            Debate graph ({filteredNodes.length} {filteredNodes.length === 1 ? "node" : "nodes"})
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-neutral-600">
+              Debate graph ({filteredNodes.length} {filteredNodes.length === 1 ? "node" : "nodes"})
+              {totalPages > 1 && (
+                <span className="ml-1 text-neutral-500">
+                  • Page {currentPage} of {totalPages}
+                </span>
+              )}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-xs btnv2 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-xs btnv2 rounded-full rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
-          <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredNodes.map((n:any) => {
+          <ul className="grid md:grid-cols-2 lg:grid-cols-2 gap-3">
+            {paginatedNodes.map((n:any) => {
               const label = acceptance.labels[n.id] ?? 'undecided';
               const s = supportOfClaimId(n.claimId);
               const v = barFor(n.claimId);
               const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
+              const edgeCount = edges.filter((e:any)=>e.fromId===n.id || e.toId===n.id).length;
 
               return (
-                <li 
-                  key={n.id} 
-                  className="panelv2 panelv2--aurora px-4 py-3 relative transition-all"
-                >
+                <ArgumentNetworkCard
+                  key={n.id}
+                  node={n}
+                  aif={aif}
+                  label={label}
+                  supportValue={v}
+                  supportScore={s}
+                  edgeCount={edgeCount}
+                  onPreview={(nodeId) => openPreview(nodeId, n.argumentId)}
+                  onActions={handleNodeClick}
+                  onExpand={() => openExpand(n.id)}
+                  onViewContributing={(claimId) => openContributing(claimId)}
                   
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm mb-2">{n.title ?? n.id}</div>
-                      {/* Metadata badges */}
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {aif?.scheme && (
-                          <SchemeBadge schemeKey={aif.scheme.key} schemeName={aif.scheme.name} />
-                        )}
-                        {aif?.cq && (
-                          <CQStatusIndicator required={aif.cq.required} satisfied={aif.cq.satisfied} />
-                        )}
-                        {aif?.attacks && (
-                          <AttackBadge attacks={aif.attacks} />
-                        )}
-                        {aif?.preferences && (
-                          <PreferenceBadge 
-                            preferredBy={aif.preferences.preferredBy} 
-                            dispreferredBy={aif.preferences.dispreferredBy} 
-                          />
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Preview toggle button */}
-                      {n.argumentId && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePreview(n.id);
-                          }}
-                          className="p-1.5 rounded-lg border transition-all bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400"
-                          title="View AIF neighborhood"
-                        >
-                          <Waypoints className="w-4 h-4" />
-                        </button>
-
-                      )}
-                        <button                     onClick={() => handleNodeClick(n)}
- className="btnv2--ghost text-xs rounded-lg p-2 bg-white"><span>Actions</span></button>
-
-                      <Badge
-                        variant={
-                          label === 'accepted'
-                            ? 'secondary'
-                            : label === 'rejected'
-                              ? 'destructive'
-                              : 'outline'
-                        }
-                        className="text-[10px] shrink-0"
-                      >
-                        {label}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {/* Click node card to open full argument sheet */}
-                  <div 
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    
-                  >
-                  {v && v.kind === 'scalar' && (
-                    <div className="mt-2">
-                      <div className="h-1.5 bg-neutral-200 rounded">
-                        <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.s ?? 0)) * 100}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  {v && v.kind === 'ds' && (
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5 gap-1">
-                        <span>{"Belief:" + " "}</span>
-                        <span>{typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + "%" : "N/A"}</span>
-                      </div>
-                      <div className="h-1.5 bg-neutral-200 rounded">
-                        <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.bel ?? 0)) * 100}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {typeof s === 'number' && (
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
-                        <span>Support</span>
-                        <span>{(s*100).toFixed(0)}%</span>
-                      </div>
-                      <div className="h-1.5 bg-neutral-200 rounded">
-                        <div className="h-1.5 rounded bg-emerald-500 transition-all"
-                             style={{ width: `${Math.max(0,Math.min(1,s))*100}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="justify-end items-end align-end mt-auto text-xs flex gap-3">
-                      
-
-                    <button 
-                      className="underline disabled:opacity-50 disabled:cursor-not-allowed" 
-                      onClick={() => setOpenNodeId(n.id)} 
-                      disabled={!n.diagramId && !n.argumentId}
-                    >
-                      Expand
-                    </button>
-                    {n.claimId && (
-                      <button className="underline" onClick={() => setShowArgsFor(n.claimId)}>
-                        View contributing arguments
-                      </button>
-                    )}
-                    <span className="text-neutral-500">
-                      Edges: {edges.filter((e:any)=>e.fromId===n.id || e.toId===n.id).length}
-                    </span>
-                  </div>
-                  </div>
-                  {/* End clickable wrapper */}
-                </li>
+                />
               );
             })}
           </ul>
         </div>
 
-        {openNodeId && (
-          <ArgumentPopout node={nodes.find((nn:any)=>nn.id===openNodeId)} onClose={() => setOpenNodeId(null)} />
-        )}
+        {expandModal.isOpen && expandModal.nodeId && (() => {
+          const node = nodes.find((nn:any) => nn.id === expandModal.nodeId);
+          const argData = node?.argumentId ? argumentById.get(node.argumentId) : null;
+          const aifData = argData?.aif;
+          
+          if (!argData || !aifData?.conclusion) return null;
 
-        {showArgsFor && (
-          <div className="rounded border p-3 ">
+          return (
+            <Dialog open={expandModal.isOpen} onOpenChange={(open) => !open && closeExpand()}>
+              <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-semibold">Argument Details</DialogTitle>
+                </DialogHeader>
+                <ArgumentCardV2
+                  deliberationId={delibId!}
+                  authorId={authorId}
+                  id={argData.id}
+                  conclusion={{
+                    id: aifData.conclusion.id,
+                    text: aifData.conclusion.text || argData.text || "Untitled claim"
+                  }}
+                  premises={aifData.premises?.map((p: any) => ({
+                    id: p.id,
+                    text: p.text || "Untitled premise"
+                  })) ?? []}
+                  schemeKey={aifData.scheme?.key}
+                  schemeName={aifData.scheme?.name}
+                  onAnyChange={() => refetchData()}
+                />
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
+
+        {contributingModal.isOpen && contributingModal.claimId && (
+          <div className="rounded border p-3 w-full max-w-4xl h-full bg-slate-100">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold">Contributing arguments (I → φ)</div>
-              <button className="text-xs underline" onClick={()=>setShowArgsFor(null)}>Close</button>
+              <button className="text-xs underline" onClick={() => closeContributing()}>Close</button>
             </div>
             <p className="text-[11px] text-neutral-600 mb-2">
-              Mode: <code>{mode}</code>. These are the lines of support accrued by ∨ for this claim.
+              Mode: <code>{mode}</code>. These are the arguments that contribute support to this claim.
             </p>
             <ul className="space-y-2 text-sm">
-              {(topByClaim.get(showArgsFor) ?? []).map((c) => (
-                <li key={c.argumentId} className="p-2 border rounded flex items-center justify-between">
-                  <div className="truncate">
-                    {argText(c.argumentId) ?? `Argument ${c.argumentId.slice(0,8)}…`}
+              {(contributingByClaimId.get(contributingModal.claimId) ?? []).map((c) => (
+                <li key={c.argumentId} className="p-2 border rounded flex items-center justify-between gap-2 bg-white">
+                  <div className="truncate flex-1">
+                    {c.argumentText ?? `Argument ${c.argumentId.slice(0,8)}…`}
                   </div>
-                  <div className="text-[11px] tabular-nums">{Math.round(c.score*100)}%</div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {c.occurrences > 1 && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                        ×{c.occurrences}
+                      </Badge>
+                    )}
+                    <div className="text-[11px] tabular-nums font-medium text-emerald-700 min-w-[3ch] text-right">
+                      {Math.round(c.contributionScore*100)}%
+                    </div>
+                  </div>
                 </li>
               ))}
-              {!(topByClaim.get(showArgsFor)?.length) && (
-                <li className="text-xs text-neutral-600">No atomic supports recorded yet.</li>
+              {!(contributingByClaimId.get(contributingModal.claimId)?.length) && (
+                <li className="text-xs text-neutral-600">No contributing arguments recorded yet.</li>
               )}
             </ul>
           </div>
@@ -587,10 +494,10 @@ function barFor(claimId?: string|null) {
     </div>
 
     {/* AIF Neighborhood Preview Modal */}
-    <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
-      <DialogContent className="max-w-[750px] bg-white/15 backdrop-blur-md border-2  border-white rounded-xl ">
+    <Dialog open={previewModal.isOpen} onOpenChange={(open) => !open && closePreview()}>
+      <DialogContent className="max-w-[750px] backdrop-blur-md border-2  border-white rounded-xl ">
         <DialogHeader>
-          <DialogTitle className="tracking-wide font-medium">AIF Neighborhood Preview</DialogTitle>
+          <DialogTitle className="tracking-wide text-white font-medium">AIF Neighborhood Preview</DialogTitle>
         </DialogHeader>
         <div className="py-0">
           <MiniNeighborhoodPreview 
@@ -608,15 +515,15 @@ function barFor(claimId?: string|null) {
     </Dialog>
 
     {/* ArgumentActionsSheet Modal for detailed argument exploration */}
-    {deliberationId && (
+    {delibId && (
       <ArgumentActionsSheet
-        open={actionsSheetOpen}
-        onOpenChange={setActionsSheetOpen}
-        deliberationId={deliberationId}
+        open={actionsSheet.isOpen}
+        onOpenChange={(open) => !open && closeActionsSheet()}
+        deliberationId={delibId}
         authorId={authorId}
-        selectedArgument={selectedArgumentForActions}
+        selectedArgument={actionsSheet.selectedArgument}
         onRefresh={() => {
-          setRefreshCounter(c => c + 1);
+          refetchData();
         }}
       />
     )}

@@ -7,6 +7,7 @@ import { getUserFromCookies } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
 import { inferAndAssignScheme } from '@/lib/argumentation/schemeInference';
 import { ensureArgumentSupportInTx } from '@/lib/arguments/ensure-support';
+import { markArgumentAsComposedInTx } from '@/lib/arguments/detect-composition';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 /**
@@ -242,6 +243,11 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
             isAxiom: premisesAreAxioms ?? false  // Phase B: Mark as axiom if checkbox checked
           }));
     await tx.argumentPremise.createMany({ data: premData, skipDuplicates:true });
+    
+    // NEW (Phase 2): Mark as composed if has premises
+    if (premData.length > 0) {
+      await markArgumentAsComposedInTx(tx, a.id, "Composed via ArgumentPremise creation");
+    }
     
     // NEW: Create ArgumentSchemeInstance if scheme is provided
     if (schemeId) {

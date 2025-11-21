@@ -6,6 +6,16 @@ type Suggestion =
   | { type: 'undercut'; scope?: never }
   | { type: 'rebut'; scope: RebutScope };
 
+/**
+ * Create a claim attack edge based on a CQ suggestion
+ * 
+ * Maps suggestion type to ClaimEdge fields:
+ * - 'undercut' → attackType: 'UNDERCUTS', targetScope: 'inference'
+ * - 'rebut' → attackType: 'REBUTS', targetScope from suggestion.scope
+ * 
+ * Uses upsert for idempotency based on unique constraint:
+ * (fromClaimId, toClaimId, type, attackType)
+ */
 export async function createClaimAttack(opts: {
   fromClaimId: string;           // the attacking claim (you can wire this later)
   toClaimId: string;             // the target claim (the one with unmet CQ)

@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
   let requiredAttack: 'rebut'|'undercut'|null = null;
   let nli: { relation: NliRel; score: number } | null = null;
   let warning: string | null = null;
+  let proofMet = false; // Declare outside the if block so it's accessible in return statement
 
   if (satisfied === true) {
     const suggest = suggestionForCQ(schemeKey, cqKey); // may be null
@@ -194,7 +195,7 @@ export async function POST(req: NextRequest) {
       hasEdge = await anyInboundAttack();
     }
 
-    const proofMet =
+    proofMet =
       hasEdge ||
       (requiredAttack === 'rebut' && nli?.relation === 'contradicts' && (nli?.score ?? 0) >= NLI_THRESHOLD);
 

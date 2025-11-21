@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Spinner } from "./FX";
 import { motion } from "framer-motion";
 import {
-  Bookmark,
+ 
   Share2,
   ChevronsUpDown,
   Minimize,
@@ -15,13 +15,15 @@ import {
   Pencil,
   TextQuote,
   MessageSquareQuote,
-CornerDownRight,
+
   ArrowDownNarrowWide,
   ArrowUpNarrowWide,
   Trash2,
   ArrowUpWideNarrow,
   TextQuoteIcon,
 } from "lucide-react";
+import { Bookmark, CornerDownRight } from "@mynaui/icons-react";
+
 
 /* ----------------------------- types & utils ----------------------------- */
 
@@ -59,21 +61,22 @@ function hueFromSeed(seed: string | number) {
  */
 function toneStyles(depth: number, authorId: string | number) {
   const GOLDEN = 67.50776405;
-  const base = hueFromSeed(authorId);
-  const h = (base + depth * GOLDEN) % 360;
+  const SILVER = 12;
+  const base = hueFromSeed(36);
+  const h = (base + depth * SILVER) % 360;
 
   // Gentle variety by hue bucket
   const bucket = Math.round((h / 360) * 6) % 6; // 0..5
   const sat = 56 + (bucket % 3) * 3; // 56–62% (↓ from ~74–82)
-  const lift = 0.98 + (bucket % 2) * 0.01; // tiny brightness wobble
+  const lift = 0.8 + (bucket % 2) * 0.01; // tiny brightness wobble
 
   // Lighter, subtler gradient
   const L_TOP = Math.max(96 - depth * 0.6, 92) * lift; // 96→92
   const L_BOT = Math.max(98 - depth * 0.4, 94) * lift; // 98→94
 
   // Lower alpha overall
-  const A_TOP = depth === 0 ? 0.16 : 0.12;
-  const A_BOT = depth === 0 ? 0.26 : 0.2;
+  const A_TOP = depth === 0 ? 0.1 : 0.08;
+  const A_BOT = depth === 0 ? 0.1 : 0.08;
 
   // Smaller hue shift for a calmer blend
   const h2 = (h + 14) % 360;
@@ -84,12 +87,12 @@ function toneStyles(depth: number, authorId: string | number) {
     `hsla(${h2} ${Math.min(sat + 4, 66)}% ${L_TOP}% / ${A_TOP}) )`;
 
   // Softer border/left rule
-  const border = `hsla(${h} ${sat + 6}% ${Math.max(L_BOT - 18, 60)}% / .28)`;
+  const border = `hsla(${h} ${sat + 6}% ${Math.max(L_BOT - 18, 60)}% / .58)`;
 
   return {
     background,
     borderColor: border,
-    ...(depth > 0 ? { boxShadow: `inset 3px 0 0 0 ${border}` } : null),
+    ...(depth > -1 ? { boxShadow: `inset 3px 1px 0 0 ${border}` } : null),
   } as React.CSSProperties;
 }
 
@@ -433,7 +436,7 @@ export default function ForumPane({
       {/* Load more */}
       <div className="flex justify-center">
         <button
-          className="btnv2 btnv2--sm btnv2--ghost"
+          className="btnv2 btnv2--sm btnv2--ghost px-2 py-2"
           onClick={() => {
             const last = data?.items?.[data.items.length - 1];
             if (last) setCursor(String(last.id));
@@ -672,7 +675,7 @@ function ForumCommentItem({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
         className={cx(
-          "rounded-xl border bg-white/80 p-3 transition",
+          "rounded-xl border bg-white/80 px-5 py-3 transition",
           "panel-edge",
           compact && "p-2",
           flash && "ring-2 ring-indigo-300 bg-indigo-50/70"
@@ -692,8 +695,8 @@ function ForumCommentItem({
         aria-controls={`comment-body-${comment.id}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center justify-between ">
+          <div className="flex items-center gap-2 min-w-0 ">
             <PatternAvatar id={comment.authorId} />
             <div className={cx("text-sm truncate", compact && "text-[12px]")}>
               <span className="font-medium">
@@ -707,19 +710,30 @@ function ForumCommentItem({
               <span className="ml-2 text-[12px] text-slate-600">
                 {timeAgo(comment.createdAt)}
               </span>
-
+<div className="flex gap-1">
               {overflow > 0 && (
                 <span
-                  className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px]"
+                  className="ml-2 inline-flex items-center rounded px-2   text-xs"
                   style={{
                     // derive a pill from parent hue; slightly stronger for visibility
-                    background: "hsla(0 0% 100% / .6)",
-                    boxShadow: "inset 0 0 0 1px rgba(148,163,184,.35)",
+                    background:"rgba(234,234,255,0.7)",
+                    boxShadow: "inset 1px 1px 0 1px rgba(148,163,184,.35)",
                   }}
                   title={`Reply depth +${overflow} (clamped)`}
                 >
                   ↳ depth +{overflow}
                 </span>
+              )}
+              
+
+              {/* Optional: show once when overflow begins */}
+              {overflow === 1 && parentAnchor && (
+                <div className="flex gap-1  text-[12px] text-slate-500 italic">
+                  in reply to{" "}
+                  <a className="underline" href={parentAnchor}>
+                    parent
+                  </a>
+                </div>
               )}
               {overflow > 0 && (
                 <button
@@ -739,18 +753,11 @@ function ForumCommentItem({
                   Collapse chain
                 </button>
               )}
-
-              {/* Optional: show once when overflow begins */}
-              {overflow === 1 && parentAnchor && (
-                <div className="mt-1 text-[12px] text-slate-500 italic">
-                  in reply to{" "}
-                  <a className="underline" href={parentAnchor}>
-                    parent
-                  </a>
-                </div>
-              )}
+              </div>
             </div>
           </div>
+
+          
           <div className="flex items-center gap-3">
             <VoteControls
               score={score}
@@ -759,7 +766,7 @@ function ForumCommentItem({
               compact={!!compact}
             />
             <button
-              className="btnv2 btnv2--sm btnv2--ghost"
+              className="btnv2  btnv2--ghost"
               onClick={() => setCollapsed((v) => !v)}
               aria-label={collapsed ? "Expand" : "Collapse"}
             >
@@ -777,8 +784,7 @@ function ForumCommentItem({
           <div
             id={`comment-body-${comment.id}`}
             className={cx(
-              "mt-2 pl-1 whitespace-pre-wrap",
-              compact ? "text-[13px]" : "text-sm"
+              "mt-2 mb-3 tracking-wider pl-1 whitespace-pre-wrap text-sm font-semibold"
             )}
           >
             {text || "(no text)"}
@@ -794,11 +800,11 @@ function ForumCommentItem({
             )}
           >
             <button
-              className="flex gap-1 btnv2--ghost rounded-xl py-1 text-center align-center my-auto px-2 text-xs"
+              className="flex gap-1 forumbutton rounded-xl py-1 text-center align-center my-auto px-3 text-xs"
               onClick={() => setReplyOpen((v) => !v)}
             >
-              <CornerDownRight className="h-3.5 w-3.5" />
-              <div className="flex align-center text-center my-auto ">Reply</div>
+              <CornerDownRight className="flex items-center h-3.5 w-3.5" />
+              <div className="flex align-center text-center my-auto "> Reply</div>
             </button>
 
             <span className="text-slate-400">•</span>
@@ -810,8 +816,8 @@ function ForumCommentItem({
             <span className="text-slate-400">•</span>
 
             <SaveButton saved={saved} onToggle={toggleSave} />
-            <span className="text-slate-400">•</span>
-            <ShareButton discussionId={discussionId} commentId={comment.id} />
+           
+            
             {mine && (
               <>
                 <span className="text-slate-400">•</span>
@@ -922,7 +928,7 @@ function VoteControls({
     <div className="flex items-center gap-2">
       <button
         className={cx(
-          "btnv2  leading-none",
+          "forumbutton px-3 bg-white  leading-none",
           vote === 1 && "ring-1 ring-emerald-300"
         )}
         title="Upvote (u)"
@@ -933,14 +939,14 @@ function VoteControls({
       <span
         className={cx(
           "min-w-[2ch] text-center",
-          compact ? "text-[12px]" : "text-sm"
+          compact ? "text-[12px]" : "text-xs font-bold items-center rounded px-2 py-1 shadow-sm bg-white"
         )}
       >
         {formatCount(score)}
       </span>
       <button
         className={cx(
-          "btnv2  leading-none",
+          "forumbutton px-3 bg-white  leading-none",
           vote === -1 && "ring-1 ring-rose-300"
         )}
         onClick={() => onVote(-1)}
@@ -1092,13 +1098,14 @@ function SaveButton({
   return (
     <button
       className={cx(
-        "flex items-center p-1 btnv2--ghost rounded-xl gap-1 ",
+        "flex items-center px-3 py-1 forumbutton rounded-xl gap-1 ",
         saved && "text-emerald-700"
       )}
       onClick={onToggle}
     >
-      <Bookmark className="h-3.5 w-3.5" />
-      {saved ? "Saved" : "Save"}
+      <Bookmark className="flex items-center h-3.5 w-3.5 " />
+
+      {saved ? <span className="flex text-xs"> Saved</span> : <span className="flex text-xs">Save</span>}
     </button>
   );
 }
@@ -1123,10 +1130,10 @@ function ShareButton({
   }
   return (
     <button
-      className="flex  items-center gap-1 p-1 btnv2--ghost rounded-xl"
+      className="flex  items-center gap-1 py-1 px-3 forumbutton rounded-xl"
       onClick={copy}
     >
-      <Share2 className="h-3.5 w-3.5" />
+      <Share2 className="flex items-center h-3.5 w-3.5" />
       {copied ? "Copied!" : "Share"}
     </button>
   );
@@ -1147,10 +1154,11 @@ function PatternAvatar({ id }: { id: string | number }) {
       .toUpperCase() || "U";
   return (
     <div
-      className="h-7 w-7 rounded-full text-slate-700 text-xs flex items-center justify-center border"
+      className="h-4 w-4 p-2 rounded-full text-slate-700 text-xs flex items-center justify-center border"
       style={{ background: bg, borderColor: "rgba(148,163,184,.35)" }}
     >
       {ch}
+    
     </div>
   );
 }
@@ -1197,11 +1205,12 @@ function QuoteInChatButton({
 
   return (
     <button
-      className="flex gap-1 btnv2--ghost rounded-xl py-1 text-center align-center my-auto px-2 text-xs"
+      className="flex gap-1 forumbutton rounded-xl py-1 text-center align-center my-auto px-3 text-xs"
       onClick={go}
     >
-      <TextQuoteIcon className="h-3.5 w-3.5" />
-      <div className="flex align-center text-center my-auto  "><span className="flex  align-center text-center my-auto">Quote</span></div>
+      <TextQuoteIcon className="flex items-center h-3.5 w-3.5" />
+      <div className="flex align-center text-center my-auto  ">
+        <span className="flex  align-center text-center my-auto"> Quote</span></div>
     </button>
   );
 }

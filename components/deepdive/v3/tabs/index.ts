@@ -14,6 +14,7 @@
 export { AnalyticsTab } from "./AnalyticsTab";
 export { DebateTab, type DebateTabProps } from "./DebateTab";
 export { ArgumentsTab } from "./ArgumentsTab";
+export { ThreadedDiscussionTab, type ThreadedDiscussionTabProps } from "./ThreadedDiscussionTab";
 
 // Type Definitions
 export type {

@@ -73,7 +73,7 @@ export function DiscourseDashboard({ deliberationId, userId }: DiscourseDashboar
             onClick={() => setActiveTab("actions-on-me")}
             icon={Target}
             label="Actions on My Work"
-            badge="NEW"
+            
           />
           <TabButton
             active={activeTab === "activity"}

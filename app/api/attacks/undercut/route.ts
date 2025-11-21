@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
+import { ensureArgumentSupport } from '@/lib/arguments/ensure-support';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -131,9 +132,21 @@ const deliberationId = parsed.data.deliberationId ?? (targetArg ? targetArg.deli
        text: safeText,
        authorId: String(userId),
      },
-     select: { id: true }
+     select: { id: true, claimId: true }
    });
    fromId = newArg.id;
+   
+   // PHASE 1: Ensure ArgumentSupport record exists
+   // Note: Middleware should handle this, but explicit call ensures transaction safety
+   if (newArg.claimId) {
+     await ensureArgumentSupport({
+       argumentId: newArg.id,
+       claimId: newArg.claimId,
+       deliberationId,
+     }).catch(err => {
+       console.error('[undercut] Failed to ensure ArgumentSupport:', err.message);
+     });
+   }
 }
 
   // Verify the target argument exists

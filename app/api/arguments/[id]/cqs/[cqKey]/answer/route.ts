@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { TargetType, EdgeType, AttackType } from '@prisma/client';
 import { Edge } from '@xyflow/react';
+import { ensureArgumentSupportInTx } from '@/lib/arguments/ensure-support';
 
 export async function POST(req: Request, { params }: { params:{ id:string; cqKey:string } }) {
   const body = await req.json().catch(()=> ({}));
@@ -59,6 +60,18 @@ export async function POST(req: Request, { params }: { params:{ id:string; cqKey
           text: attackerArgument.text ?? ''
         }
       });
+      
+      // PHASE 1: Ensure ArgumentSupport record exists
+      if (attacker.conclusionClaimId) {
+        await ensureArgumentSupportInTx(tx, {
+          argumentId: attacker.id,
+          claimId: attacker.conclusionClaimId,
+          deliberationId,
+        }).catch((err: any) => {
+          console.error('[cq/answer] Failed to ensure ArgumentSupport:', err.message);
+        });
+      }
+      
       await tx.argumentPremise.createMany({
         data: (attackerArgument.premiseClaimIds ?? []).map((cid:string)=>({ argumentId: attacker.id, claimId: cid, isImplicit:false })),
         skipDuplicates:true

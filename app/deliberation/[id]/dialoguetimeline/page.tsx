@@ -181,7 +181,7 @@ function formatTargetText(move: DialogueMove, claimTexts: Map<string, string>, a
     const text = claimTexts.get(move.targetId);
     return text ? (
       <span className="text-xs  text-gray-700 italic">
-        "{text.length > 80 ? text.slice(0, 80) + "..." : text}"
+        &ldquo;{text.length > 80 ? text.slice(0, 80) + "..." : text}&rdquo;
       </span>
     ) : (
       <span className="text-xs px-3 text-gray-700 font-mono">{move.targetId.slice(0, 18)}...</span>
@@ -192,7 +192,7 @@ function formatTargetText(move: DialogueMove, claimTexts: Map<string, string>, a
     const text = argTexts.get(move.targetId);
     return text ? (
       <span className="text-xs text-gray-700 italic">
-        "{text.length > 80 ? text.slice(0, 80) + "..." : text}"
+        &ldquo;{text.length > 80 ? text.slice(0, 80) + "..." : text}&rdquo;
       </span>
     ) : (
       <span className="text-xs px-3 text-gray-700  font-mono">{move.targetId.slice(0, 18)}...</span>
@@ -717,7 +717,7 @@ export default function DialogueTimelinePage() {
 
   const [filterKind, setFilterKind] = useState<string | null>(null);
   const [filterActor, setFilterActor] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({
     start: null,
     end: null,
@@ -758,7 +758,7 @@ export default function DialogueTimelinePage() {
 
   // Fetch dialogue moves
   const { data: movesData, error: movesError, isLoading: movesLoading } = useSWR(
-    `/api/dialogue/moves?deliberationId=${deliberationId}&limit=500&order=asc`,
+    `/api/dialogue/moves?deliberationId=${deliberationId}&limit=500&order=desc`,
     fetcher
   );
 

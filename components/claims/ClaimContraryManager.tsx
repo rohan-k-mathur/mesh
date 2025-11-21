@@ -185,9 +185,7 @@ export function ClaimContraryManager({
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-2"
+              className="rounded-lg px-2 py-3 flex items-center gap-2 text-xs"
               onClick={() => {
                 setSelectedContrary(null);
                 setReason("");
@@ -200,7 +198,7 @@ export function ClaimContraryManager({
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="max-w-2xl bg-white">
+          <DialogContent className="max-w-5xl w-full bg-white">
             <DialogHeader>
               <DialogTitle>Add Contrary Relationship</DialogTitle>
               <DialogDescription>
@@ -357,7 +355,7 @@ export function ClaimContraryManager({
 
       {/* Contraries list */}
       {!loading && activeContraries.length === 0 && (
-        <div className="text-center py-8 text-sm text-gray-500">
+        <div className="text-center py-3 text-sm text-gray-500">
           No contrary relationships defined.
           <br />
           <span className="text-xs">

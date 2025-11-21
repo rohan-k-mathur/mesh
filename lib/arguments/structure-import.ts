@@ -387,5 +387,10 @@ export async function recursivelyImportPremises(
     }
   }
 
+  // NEW (Phase 2): Mark parent argument as composed if premises were imported
+  if (importedIds.length > 0) {
+    await markArgumentAsComposed(targetArgumentId, "Composed via recursive premise import");
+  }
+
   return importedIds;
 }

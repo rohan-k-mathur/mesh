@@ -142,7 +142,7 @@ export function MiniNeighborhoodPreview({
 
   return (
     <div className=" panel-edge rounded-xl overflow-hidden">
-      <svg width={maxWidth} height={maxHeight} className="bg-white/25 rounded-t-lg border-none">
+      <svg width={maxWidth} height={maxHeight} className="bg-white/45 rounded-t-lg border-none">
         {/* Draw edges first (behind nodes) */}
         {edges.map((edge: AifEdge) => {
           const fromPos = positions.get(edge.from);

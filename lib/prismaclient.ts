@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_ARGUMENT_CONFIDENCE } from "@/lib/config/confidence";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
@@ -11,15 +12,58 @@ const enhancedUrl = datasourceUrl
   ? `${datasourceUrl}${datasourceUrl.includes('?') ? '&' : '?'}connection_limit=20&pool_timeout=20`
   : undefined;
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    datasources: enhancedUrl ? { db: { url: enhancedUrl } } : undefined,
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
+// ============================================================================
+// PHASE 1: Auto-create ArgumentSupport for all arguments with conclusions
+// ============================================================================
+// Using Prisma Client Extensions (v5+ compatible) instead of deprecated middleware
+// This ensures ArgumentSupport records are created automatically whenever an
+// Argument is created with a claimId, preventing integration gaps.
+
+const basePrisma = new PrismaClient({
+  datasources: enhancedUrl ? { db: { url: enhancedUrl } } : undefined,
+  log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+});
+
+// Extend Prisma client with auto-ArgumentSupport creation
+const extendedPrisma = basePrisma.$extends({
+  query: {
+    argument: {
+      async create({ args, query }) {
+        // Execute the original create operation
+        const result = await query(args);
+        
+        // Auto-create ArgumentSupport if argument has a conclusion
+        if (result.claimId && result.deliberationId) {
+          try {
+            await basePrisma.argumentSupport.create({
+              data: {
+                argumentId: result.id,
+                claimId: result.claimId,
+                deliberationId: result.deliberationId,
+                base: result.confidence ?? DEFAULT_ARGUMENT_CONFIDENCE,
+                rationale: "Auto-created via Prisma extension",
+              },
+            });
+            console.log(`[ArgumentSupport Extension] Created support record for argument ${result.id}`);
+          } catch (err: any) {
+            // Ignore duplicate errors (@@unique constraint on [claimId, argumentId, mode])
+            if (err.code !== "P2002") {
+              console.error(`[ArgumentSupport Extension] Failed to create support for ${result.id}:`, err.message);
+              // Don't fail the argument creation, just log the error
+            }
+          }
+        }
+        
+        return result;
+      },
+    },
+  },
+});
+
+export const prisma = (globalForPrisma.prisma || extendedPrisma) as typeof basePrisma;
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prisma = prisma as any;
 }
 
 // Don't eagerly connect - let Prisma handle connections on-demand

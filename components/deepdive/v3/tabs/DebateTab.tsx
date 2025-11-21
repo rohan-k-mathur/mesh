@@ -15,12 +15,13 @@ import * as React from "react";
 import { BaseTabProps } from "./types";
 import { SectionCard } from "../../shared/SectionCard";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
-import { MessageSquare, Map, Settings } from "lucide-react";
+import { MessageSquare, Map, Settings, Network } from "lucide-react";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 import PropositionsList from "@/components/propositions/PropositionsList";
 import ClaimMiniMap from "@/components/claims/ClaimMiniMap";
 import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
 import { DeliberationSettingsPanel } from "@/components/deliberations/DeliberationSettingsPanel";
+import DebateSheetReader from "@/components/agora/DebateSheetReader";
 
 /**
  * Props for DebateTab
@@ -45,6 +46,7 @@ export interface DebateTabProps extends BaseTabProps {
  * Subtabs:
  * 1. Propositions - Create and view propositions
  * 2. Claims - Visualize claims structure, inspect dialogue, manage settings
+ * 3. Sheet View - Argument network visualization with confidence scores
  * 
  * @param deliberationId - The ID of the deliberation
  * @param currentUserId - The ID of the current user
@@ -62,7 +64,7 @@ export function DebateTab({
   className,
 }: DebateTabProps) {
   return (
-    <div className="w-full min-w-0 mt-4">
+    <div className="w-full min-w-0   mt-4">
       <NestedTabs
         id={`debate-${deliberationId}`}
         defaultValue="propositions"
@@ -112,6 +114,16 @@ export function DebateTab({
                     initialLocusPath="0"
                   />
                 </SectionCard>
+              </div>
+            ),
+          },
+          {
+            value: "sheet",
+            label: "Sheet View",
+            icon: <Network className="size-3.5" />,
+            content: (
+              <div className="space-y-5 mt-2  ">
+                <DebateSheetReader deliberationId={deliberationId} />
               </div>
             ),
           },
