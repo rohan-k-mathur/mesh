@@ -15,13 +15,15 @@ import * as React from "react";
 import { BaseTabProps } from "./types";
 import { SectionCard } from "../../shared/SectionCard";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
-import { MessageSquare, Map, Settings, Network } from "lucide-react";
+import { MessageSquare, Map, Settings, Network, MessagesSquare } from "lucide-react";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 import PropositionsList from "@/components/propositions/PropositionsList";
 import ClaimMiniMap from "@/components/claims/ClaimMiniMap";
 import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
 import { DeliberationSettingsPanel } from "@/components/deliberations/DeliberationSettingsPanel";
 import DebateSheetReader from "@/components/agora/DebateSheetReader";
+import { ThreadedDiscussionTab } from "./ThreadedDiscussionTab";
+import type { DeliberationTab } from "../hooks/useDeliberationState";
 
 /**
  * Props for DebateTab
@@ -36,6 +38,9 @@ export interface DebateTabProps extends BaseTabProps {
   
   /** Callback when a claim is clicked in the minimap */
   onClaimClick: (id: string, locusPath?: string | null) => void;
+  
+  /** Callback to switch main panel tabs (debate/arguments/ludics/analytics) */
+  onTabChange?: (tab: DeliberationTab) => void;
 }
 
 /**
@@ -44,15 +49,17 @@ export interface DebateTabProps extends BaseTabProps {
  * Primary tab for participating in deliberation discussions with nested tab structure:
  * 
  * Subtabs:
- * 1. Propositions - Create and view propositions
- * 2. Claims - Visualize claims structure, inspect dialogue, manage settings
- * 3. Sheet View - Argument network visualization with confidence scores
+ * 1. Discussion - Threaded view of all discussion items (propositions, claims, arguments)
+ * 2. Propositions - Create and view propositions
+ * 3. Claims - Visualize claims structure, inspect dialogue, manage settings
+ * 4. Sheet View - Argument network visualization with confidence scores
  * 
  * @param deliberationId - The ID of the deliberation
  * @param currentUserId - The ID of the current user
  * @param delibSettingsOpen - Whether settings panel should be visible
  * @param selectedClaimId - Currently selected claim (for highlighting)
  * @param onClaimClick - Handler for claim selection
+ * @param onTabChange - Handler to switch main panel tabs
  * @param className - Optional additional CSS classes
  */
 export function DebateTab({
@@ -61,15 +68,28 @@ export function DebateTab({
   delibSettingsOpen,
   selectedClaimId,
   onClaimClick,
+  onTabChange,
   className,
 }: DebateTabProps) {
   return (
     <div className="w-full min-w-0   mt-4">
       <NestedTabs
         id={`debate-${deliberationId}`}
-        defaultValue="propositions"
+        defaultValue="discussion"
         variant="secondary"
         tabs={[
+          {
+            value: "discussion",
+            label: "Discussion",
+            icon: <MessagesSquare className="size-3.5" />,
+            content: (
+              <ThreadedDiscussionTab
+                deliberationId={deliberationId}
+                currentUserId={currentUserId}
+                onTabChange={onTabChange}
+              />
+            ),
+          },
           {
             value: "propositions",
             label: "Propositions",

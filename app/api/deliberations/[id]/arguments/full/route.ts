@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prismaclient";
 import { PaginationQuery, makePage } from "@/lib/server/pagination";
 import type { TargetType } from "@prisma/client";
 import { DEFAULT_ARGUMENT_CONFIDENCE, DEFAULT_PREMISE_BASE } from "@/lib/config/confidence";
+import { batchLazyRecompute } from "@/lib/evidential/lazy-recompute";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -256,6 +257,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const base = await prisma.argumentSupport.findMany({
     where: { deliberationId: params.id, claimId: { in: allClaimIds } },
     select: { claimId: true, argumentId: true, base: true, provenanceJson: true },
+  });
+
+  // Phase 3: Lazy recomputation - recompute stale composed arguments
+  const allArgumentIds = base.map(s => s.argumentId);
+  await batchLazyRecompute(allArgumentIds).catch(err => {
+    console.error("Lazy recomputation failed:", err);
+    // Continue even if recomputation fails
   });
 
   // Filter based on imports setting

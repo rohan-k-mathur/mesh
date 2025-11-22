@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { DEFAULT_ARGUMENT_CONFIDENCE, DEFAULT_PREMISE_BASE } from "@/lib/config/confidence";
+import { batchLazyRecompute } from "@/lib/evidential/lazy-recompute";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -48,6 +49,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const base = await prisma.argumentSupport.findMany({
     where: { deliberationId, claimId: { in: claimIds } },
     select: { claimId:true, argumentId:true, base:true, provenanceJson:true }
+  });
+
+  // Phase 3: Lazy recomputation - recompute stale composed arguments
+  const allArgumentIds = base.map(s => s.argumentId);
+  await batchLazyRecompute(allArgumentIds).catch(err => {
+    console.error("Lazy recomputation failed:", err);
+    // Continue even if recomputation fails
   });
 
   // include/exclude materialized imports

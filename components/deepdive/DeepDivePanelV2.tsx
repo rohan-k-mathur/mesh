@@ -1291,6 +1291,7 @@ const {
               delibSettingsOpen={delibState.delibSettingsOpen}
               selectedClaimId={selectedClaim?.id}
               onClaimClick={handleClaimSelect}
+              onTabChange={delibActions.setTab}
             />
           </TabsContent>
 

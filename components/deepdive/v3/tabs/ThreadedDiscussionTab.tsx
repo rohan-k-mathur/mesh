@@ -19,6 +19,7 @@ import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { BaseTabProps } from "./types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,14 +46,20 @@ import { SchemeBadge } from "@/components/aif/SchemeBadge";
 import { CQStatusIndicator } from "@/components/aif/CQStatusIndicator";
 import { AttackBadge } from "@/components/aif/AttackBadge";
 import { PreferenceBadge } from "@/components/aif/PreferenceBadge";
-import { ArgumentActionsSheet } from "@/components/arguments/ArgumentActionsSheet";
+import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
+import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
+import { AIFArgumentWithSchemeComposer } from "@/components/arguments/AIFArgumentWithSchemeComposer";
+import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
+import { AttackArgumentWizard } from "@/components/argumentation/AttackArgumentWizard";
+import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { DeliberationTab } from "../hooks/useDeliberationState";
 
 const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json());
 
@@ -95,6 +102,9 @@ interface ThreadNode {
 export interface ThreadedDiscussionTabProps extends BaseTabProps {
   /** Current user ID for actions */
   currentUserId?: string;
+  
+  /** Callback to switch main panel tabs (for quick action buttons) */
+  onTabChange?: (tab: DeliberationTab) => void;
 }
 
 /**
@@ -141,6 +151,9 @@ function ThreadCard({
   onToggle,
   onNodeClick,
   onPreview,
+  onReply,
+  onSupport,
+  onAttack,
   depth = 0,
   userNames,
   aifMetadata,
@@ -150,6 +163,9 @@ function ThreadCard({
   onToggle: () => void;
   onNodeClick: (node: ThreadNode) => void;
   onPreview: (nodeId: string) => void;
+  onReply: (node: ThreadNode) => void;
+  onSupport: (node: ThreadNode) => void;
+  onAttack: (node: ThreadNode) => void;
   depth?: number;
   userNames: Map<string, string>;
   aifMetadata: Map<string, any>;
@@ -277,13 +293,22 @@ function ThreadCard({
                 Preview Network
               </button>
             )}
-            <button className="text-xs text-gray-600 hover:underline">
+            <button 
+              onClick={() => onReply(node)}
+              className="text-xs text-gray-600 hover:underline"
+            >
               Reply
             </button>
-            <button className="text-xs text-gray-600 hover:underline">
+            <button 
+              onClick={() => onSupport(node)}
+              className="text-xs text-gray-600 hover:underline"
+            >
               Support
             </button>
-            <button className="text-xs text-gray-600 hover:underline">
+            <button 
+              onClick={() => onAttack(node)}
+              className="text-xs text-gray-600 hover:underline"
+            >
               Attack
             </button>
           </div>
@@ -301,6 +326,9 @@ function ThreadCard({
               onToggle={() => {}} // Nested responses don't collapse individually
               onNodeClick={onNodeClick}
               onPreview={onPreview}
+              onReply={onReply}
+              onSupport={onSupport}
+              onAttack={onAttack}
               depth={depth + 1}
               userNames={userNames}
               aifMetadata={aifMetadata}
@@ -333,26 +361,26 @@ function ThreadStats({ threads, totalItems }: { threads: ThreadNode[]; totalItem
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <Card className="surfacev2 panel-edge">
-        <CardContent className="p-3">
+      <Card className="surfacev2  panel-edge">
+        <CardContent className="flex flex-col w-full items-center p-1">
           <div className="text-2xl font-bold text-gray-900">{stats.threads}</div>
           <div className="text-xs text-gray-500">Threads</div>
         </CardContent>
       </Card>
       <Card className="surfacev2 panel-edge">
-        <CardContent className="p-3">
+        <CardContent className="flex flex-col w-full items-center p-1">
           <div className="text-2xl font-bold text-gray-900">{stats.totalItems}</div>
           <div className="text-xs text-gray-500">Total Items</div>
         </CardContent>
       </Card>
       <Card className="surfacev2 panel-edge">
-        <CardContent className="p-3">
+        <CardContent className="flex flex-col w-full items-center p-1">
           <div className="text-2xl font-bold text-gray-900">{stats.byType.argument || 0}</div>
           <div className="text-xs text-gray-500">Arguments</div>
         </CardContent>
       </Card>
       <Card className="surfacev2 panel-edge">
-        <CardContent className="p-3">
+        <CardContent className="flex flex-col w-full items-center p-1">
           <div className="text-2xl font-bold text-gray-900">{stats.byType.proposition || 0}</div>
           <div className="text-xs text-gray-500">Propositions</div>
         </CardContent>
@@ -367,6 +395,7 @@ function ThreadStats({ threads, totalItems }: { threads: ThreadNode[]; totalItem
 export function ThreadedDiscussionTab({
   deliberationId,
   currentUserId,
+  onTabChange,
   className,
 }: ThreadedDiscussionTabProps) {
   const [viewMode, setViewMode] = useState<"timeline" | "analytics">("timeline");
@@ -383,119 +412,92 @@ export function ThreadedDiscussionTab({
   // Modal state
   const [previewNodeId, setPreviewNodeId] = useState<string | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
+  const [expandModalOpen, setExpandModalOpen] = useState(false);
+  const [expandNodeId, setExpandNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<ThreadNode | null>(null);
+  
+  // Action modal state
+  const [replyMode, setReplyMode] = useState(false);
+  const [supportMode, setSupportMode] = useState(false);
+  const [attackMode, setAttackMode] = useState(false);
+  const [actionTarget, setActionTarget] = useState<ThreadNode | null>(null);
+  
+  // Attack flow state
+  const [selectedAttack, setSelectedAttack] = useState<AttackSuggestion | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
-  // TODO: Fetch real data - these are placeholder queries
-  // In production, create unified API endpoint that returns all discussion items
-  const { data: propositionsData } = useSWR(
-    `/api/deliberations/${deliberationId}/propositions?limit=100`,
-    fetcher
+  // Fetch unified discussion items from new API endpoint
+  const { data: discussionData, error, mutate, isLoading } = useSWR(
+    `/api/deliberations/${deliberationId}/discussion-items?limit=200&includeMetadata=true&includeAuthors=true`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 10000, // 10 seconds
+    }
   );
 
-  const { data: claimsData } = useSWR(
-    `/api/deliberations/${deliberationId}/claims?limit=100`,
-    fetcher
-  );
+  // Extract items and authors from unified response
+  const items = discussionData?.items || [];
+  const authors = discussionData?.authors || [];
 
-  const { data: aifData } = useSWR(
-    `/api/deliberations/${deliberationId}/arguments/aif?limit=100`,
-    fetcher
-  );
-
-  // Fetch user names for authors
-  const authorIds = useMemo(() => {
-    const ids = new Set<string>();
-    // Extract unique author IDs from all data sources
-    // TODO: Implement based on actual data structure
-    return Array.from(ids);
-  }, []);
-
-  const { data: usersData } = useSWR(
-    authorIds.length > 0 ? `/api/users/batch?ids=${authorIds.join(",")}` : null,
-    fetcher
-  );
-
+  // Build user names map from authors
   const userNames = useMemo(() => {
     const map = new Map<string, string>();
-    if (usersData?.users) {
-      usersData.users.forEach((u: any) => {
-        const displayName = u.name || u.username || `User ${u.id.slice(0, 8)}`;
-        map.set(u.id, displayName);
-      });
-    }
+    authors.forEach((u: any) => {
+      const displayName = u.name || u.username || `User ${u.id.slice(0, 8)}`;
+      map.set(u.id, displayName);
+    });
     return map;
-  }, [usersData]);
+  }, [authors]);
 
-  // Build AIF metadata lookup
+  // Build AIF metadata lookup (for arguments only)
   const aifMetadata = useMemo(() => {
     const map = new Map<string, any>();
-    if (aifData?.items) {
-      aifData.items.forEach((item: any) => {
-        map.set(item.id, item.aif);
+    items
+      .filter((item: any) => item.type === "argument")
+      .forEach((item: any) => {
+        // Store relevant AIF metadata
+        map.set(item.argumentId, {
+          schemeKey: item.schemeKey,
+          schemeName: item.schemeName,
+          cqRequired: item.cqRequired,
+          cqSatisfied: item.cqSatisfied,
+          support: item.support,
+          attacks: item.attacks,
+          metadata: item.metadata,
+        });
       });
-    }
     return map;
-  }, [aifData]);
+  }, [items]);
 
-  // Convert data to unified ThreadNode format
+  // Convert API items to ThreadNode format
   const allNodes = useMemo((): ThreadNode[] => {
-    const nodes: ThreadNode[] = [];
-
-    // Add propositions
-    if (propositionsData?.propositions) {
-      propositionsData.propositions.forEach((p: any) => {
-        nodes.push({
-          id: p.id,
-          type: "proposition",
-          text: p.text || p.content || "",
-          authorId: p.authorId || p.createdById || "",
-          timestamp: p.createdAt,
-          parentId: p.replyToId || null,
-        });
-      });
-    }
-
-    // Add claims
-    if (claimsData?.claims) {
-      claimsData.claims.forEach((c: any) => {
-        nodes.push({
-          id: c.id,
-          type: "claim",
-          text: c.text,
-          authorId: c.authorId || c.createdById || "",
-          timestamp: c.createdAt,
-          claimId: c.id,
-          parentId: c.replyToId || null,
-        });
-      });
-    }
-
-    // Add arguments (with AIF metadata)
-    if (aifData?.items) {
-      aifData.items.forEach((arg: any) => {
-        const aif = arg.aif || {};
-        nodes.push({
-          id: arg.id,
-          type: "argument",
-          text: arg.text || arg.conclusion?.text || "",
-          authorId: arg.authorId || arg.createdById || "",
-          timestamp: arg.createdAt,
-          argumentId: arg.id,
-          claimId: arg.conclusionClaimId,
-          schemeKey: aif.scheme?.key,
-          schemeName: aif.scheme?.name,
-          cqRequired: aif.cq?.required,
-          cqSatisfied: aif.cq?.satisfied,
-          support: arg.support,
-          attacks: aif.attacks,
-          preferences: aif.preferences,
-        });
-      });
-    }
-
-    return nodes;
-  }, [propositionsData, claimsData, aifData]);
+    return items.map((item: any) => ({
+      id: item.id,
+      type: item.type,
+      text: item.text,
+      authorId: item.authorId,
+      timestamp: item.timestamp,
+      parentId: item.parentId,
+      targetId: item.targetId,
+      targetType: item.targetType,
+      // Additional fields based on type
+      ...(item.type === "argument" && {
+        argumentId: item.argumentId,
+        claimId: item.claimId,
+        schemeKey: item.schemeKey,
+        schemeName: item.schemeName,
+        cqRequired: item.cqRequired,
+        cqSatisfied: item.cqSatisfied,
+        support: item.support,
+        attacks: item.attacks,
+        preferences: item.preferences,
+      }),
+      ...(item.type === "claim" && {
+        claimId: item.claimId,
+      }),
+    }));
+  }, [items]);
 
   // Apply filters
   const filteredNodes = useMemo(() => {
@@ -569,17 +571,56 @@ export function ThreadedDiscussionTab({
     });
   };
 
-  // Handle node click
+  // Handle node click - open ArgumentCardV2 modal for arguments
   const handleNodeClick = (node: ThreadNode) => {
     if (!node.argumentId) return;
+    setExpandNodeId(node.id);
     setSelectedNode(node);
-    setActionsSheetOpen(true);
+    setExpandModalOpen(true);
   };
 
   // Handle preview
   const handlePreview = (nodeId: string) => {
     setPreviewNodeId(nodeId);
     setPreviewModalOpen(true);
+  };
+  
+  // Handle reply action - open PropositionComposerPro
+  const handleReply = (node: ThreadNode) => {
+    setActionTarget(node);
+    setReplyMode(true);
+  };
+  
+  // Handle support action - open AIFArgumentWithSchemeComposer
+  const handleSupport = (node: ThreadNode) => {
+    if (!node.claimId && !node.argumentId) {
+      toast.error("Cannot support this item - no claim or argument ID found");
+      return;
+    }
+    setActionTarget(node);
+    setSupportMode(true);
+  };
+  
+  // Handle attack action - open AttackSuggestions dialog
+  const handleAttack = (node: ThreadNode) => {
+    if (!node.argumentId) {
+      toast.error("Can only attack arguments");
+      return;
+    }
+    setActionTarget(node);
+    setAttackMode(true);
+  };
+  
+  // Close composer modals and refresh data
+  const handleComposerSuccess = () => {
+    setReplyMode(false);
+    setSupportMode(false);
+    setAttackMode(false);
+    setWizardOpen(false);
+    setActionTarget(null);
+    setSelectedAttack(null);
+    mutate(); // Refresh discussion items
+    toast.success("Successfully posted!");
   };
 
   // Fetch neighborhood for preview
@@ -594,31 +635,112 @@ export function ThreadedDiscussionTab({
     fetcher
   );
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className={className}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center space-y-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
+            <p className="text-sm text-gray-500">Loading discussion items...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className={className}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 m-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800 mb-1">Failed to load discussion items</h3>
+              <p className="text-sm text-red-700 mb-3">
+                {error.message || "An unexpected error occurred while fetching the discussion data."}
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => mutate()}
+                className="text-red-700 border-red-300 hover:bg-red-100"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!discussionData || items.length === 0) {
+    return (
+      <div className={className}>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 m-4 text-center">
+          <div className="max-w-md mx-auto space-y-3">
+            <div className="text-slate-400 mx-auto w-16 h-16 flex items-center justify-center">
+              <MessageSquare className="w-12 h-12" />
+            </div>
+            <h3 className="text-lg font-medium text-slate-700">No discussion items yet</h3>
+            <p className="text-sm text-slate-500">
+              Be the first to contribute by creating a proposition, claim, or argument in this deliberation.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
       {/* Overview Bar */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200 p-3 rounded-lg mb-4">
+      <div className=" z-10 bg-white/50 backdrop-blur-md border-b border-slate-200 p-3 rounded-lg mb-4">
         <div className="flex items-center justify-between mb-3">
           <ThreadStats threads={threads} totalItems={allNodes.length} />
 
           <div className="flex items-center gap-2">
             {/* Quick action launchers to other tabs */}
-            <Button variant="outline" size="sm" title="View Argument Map">
+            <Button 
+              
+              title="View Argument Map"
+              onClick={() => onTabChange?.("arguments")}
+            >
               <Network className="w-4 h-4 mr-1" />
               Map
             </Button>
-            <Button variant="outline" size="sm" title="View Ludics">
+            <Button 
+              
+              title="View Ludics"
+              onClick={() => onTabChange?.("ludics")}
+            >
               <Scale className="w-4 h-4 mr-1" />
               Ludics
             </Button>
-            <Button variant="outline" size="sm" title="View Analytics">
+            <Button 
+              
+              title="View Analytics"
+              onClick={() => onTabChange?.("analytics")}
+            >
               <BarChart3 className="w-4 h-4 mr-1" />
               Analytics
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              
+              onClick={() => mutate()}
+              title="Refresh discussion items"
+            >
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm">
+            <Button  title="Export discussion">
               <Download className="w-4 h-4" />
             </Button>
           </div>
@@ -721,6 +843,9 @@ export function ThreadedDiscussionTab({
                 onToggle={() => toggleThread(thread.id)}
                 onNodeClick={handleNodeClick}
                 onPreview={handlePreview}
+                onReply={handleReply}
+                onSupport={handleSupport}
+                onAttack={handleAttack}
                 userNames={userNames}
                 aifMetadata={aifMetadata}
               />
@@ -759,24 +884,159 @@ export function ThreadedDiscussionTab({
         </DialogContent>
       </Dialog>
 
-      {/* Argument Actions Sheet */}
-      {selectedNode && (
-        <ArgumentActionsSheet
-          open={actionsSheetOpen}
-          onOpenChange={setActionsSheetOpen}
-          deliberationId={deliberationId}
-          authorId={currentUserId || ""}
-          selectedArgument={{
-            id: selectedNode.argumentId || selectedNode.id,
-            text: selectedNode.text,
-            conclusionText: selectedNode.text,
-            schemeKey: selectedNode.schemeKey,
+      {/* Argument Details Modal (ArgumentCardV2) */}
+      {expandModalOpen && expandNodeId && (() => {
+        const node = allNodes.find((n) => n.id === expandNodeId);
+        if (!node?.argumentId) return null;
+
+        // For arguments, we need to fetch the full AIF data
+        // The items already have basic metadata, but ArgumentCardV2 needs full structure
+        const argData = items.find((item: any) => item.argumentId === node.argumentId);
+        if (!argData) return null;
+
+        return (
+          <Dialog open={expandModalOpen} onOpenChange={(open) => !open && setExpandModalOpen(false)}>
+            <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-semibold">Argument Details</DialogTitle>
+              </DialogHeader>
+              <ArgumentCardV2
+                deliberationId={deliberationId}
+                authorId={currentUserId || ""}
+                id={argData.argumentId}
+                conclusion={{
+                  id: argData.claimId || argData.argumentId,
+                  text: argData.text || "Untitled claim"
+                }}
+                premises={[]} // TODO: Fetch premises from API if needed
+                schemeKey={argData.schemeKey}
+                schemeName={argData.schemeName}
+                onAnyChange={() => mutate()}
+              />
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
+      {/* Reply Composer Modal */}
+      {replyMode && actionTarget && (
+        <Dialog open={replyMode} onOpenChange={(open) => !open && setReplyMode(false)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] bg-white overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">
+                Reply to {actionTarget.type}
+              </DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Replying to: {actionTarget.text.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            <PropositionComposerPro
+              deliberationId={deliberationId}
+              replyTarget={
+                actionTarget.type === "proposition"
+                  ? { kind: "proposition", id: actionTarget.id }
+                  : actionTarget.claimId
+                  ? { kind: "claim", id: actionTarget.claimId }
+                  : actionTarget.argumentId
+                  ? { kind: "argument", id: actionTarget.argumentId }
+                  : undefined
+              }
+              onPosted={handleComposerSuccess}
+              placeholder="Write your reply..."
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Support Composer Modal */}
+      {supportMode && actionTarget && (
+        <Dialog open={supportMode} onOpenChange={(open) => !open && setSupportMode(false)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">
+                Create Supporting Argument
+              </DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Supporting: {actionTarget.text.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            <AIFArgumentWithSchemeComposer
+              deliberationId={deliberationId}
+              authorId={currentUserId || ""}
+              conclusionClaim={
+                actionTarget.claimId
+                  ? { id: actionTarget.claimId, text: actionTarget.text }
+                  : null
+              }
+              onCreated={handleComposerSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Attack Suggestions Dialog */}
+      {attackMode && actionTarget && actionTarget.argumentId && actionTarget.claimId && !wizardOpen && (
+        <Dialog 
+          open={attackMode && !wizardOpen} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setAttackMode(false);
+              setActionTarget(null);
+            }
           }}
-          onRefresh={() => {
-            // Trigger data refresh
-            // TODO: Implement refresh mechanism
-          }}
-        />
+        >
+          <DialogContent className="max-w-4xl bg-white max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Generate Strategic Attack</DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Attacking: {actionTarget.text.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            {currentUserId && (
+              <AttackSuggestions
+                targetClaimId={actionTarget.claimId}
+                targetArgumentId={actionTarget.argumentId}
+                userId={currentUserId}
+                onAttackSelect={(suggestion) => {
+                  console.log("[ThreadedDiscussionTab] Attack selected:", suggestion);
+                  setSelectedAttack(suggestion);
+                  setWizardOpen(true);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Attack Construction Wizard Dialog */}
+      {wizardOpen && actionTarget && actionTarget.argumentId && actionTarget.claimId && selectedAttack && (
+        <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+          <DialogContent className="max-w-6xl bg-white max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Construct Attack</DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Attacking: {actionTarget.text.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            {currentUserId && (
+              <AttackArgumentWizard
+                suggestion={selectedAttack}
+                targetArgumentId={actionTarget.argumentId}
+                targetClaimId={actionTarget.claimId}
+                deliberationId={deliberationId}
+                currentUserId={currentUserId}
+                onComplete={(attackClaimId) => {
+                  console.log("[ThreadedDiscussionTab] Attack completed, claim ID:", attackClaimId);
+                  handleComposerSuccess();
+                }}
+                onCancel={() => {
+                  setWizardOpen(false);
+                  setSelectedAttack(null);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

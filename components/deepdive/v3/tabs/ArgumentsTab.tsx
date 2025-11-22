@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
 import { getUserFromCookies } from "@/lib/server/getUser";
 import { NetsTab } from "@/components/nets/NetsTab";
+import type { DeliberationTab } from "../hooks/useDeliberationState";
 
 interface ArgumentsTabProps {
   deliberationId: string;
@@ -27,7 +28,7 @@ interface ArgumentsTabProps {
   onArgumentClick?: (argument: any) => void;
   onViewDialogueMove?: (moveId: string, delibId: string) => void;
   onVisibleTextsChanged?: (texts: string[]) => void;
-  onTabChange?: (tab: string) => void;
+  onTabChange?: (tab: DeliberationTab) => void;
   setHighlightedDialogueMoveId?: (id: string | null) => void;
 }
 
@@ -154,10 +155,10 @@ export function ArgumentsTab({
                   Construct a new argument using argumentation schemes. Your argument will be validated against
                   critical questions and integrated with AIF, ASPIC+, and dialogue systems.
                 </div>
-                {currentUserId ? (
+                {(authorId || currentUserId) ? (
                   <AIFArgumentWithSchemeComposer
                     deliberationId={deliberationId}
-                    authorId={currentUserId}
+                    authorId={authorId || currentUserId}
                     conclusionClaim={null}
                     onCreated={(argumentId) => {
                       console.log("[ArgumentsTab] Argument created:", argumentId);
@@ -267,7 +268,7 @@ export function ArgumentsTab({
               targetArgumentId={attackTargetId}
               userId={currentUserId}
               onAttackSelect={(suggestion) => {
-                console.log("[ArgumentsTab] Attack selected:", { suggestion, currentUserId });
+                console.log("[ArgumentsTab] Attack selected:", { suggestion, authorId });
                 setSelectedAttack(suggestion);
                 setWizardOpen(true);
               }}

@@ -676,7 +676,7 @@ function RowImpl({
             <div className="flex items-center flex-wrap gap-1.5 justify-end">
               <time className="text-xs text-slate-500 font-medium">{created}</time>
               <MemoizedSchemeBadge scheme={meta?.scheme} />
-              <MemoizedCqMeter cq={meta?.cq} />
+             
               {typeof support === 'number' && (
                 <div className="inline-flex items-center gap-2 ml-1">
                   <SupportBar value={support} />
