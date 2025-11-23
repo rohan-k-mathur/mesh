@@ -143,6 +143,247 @@ function buildThreadHierarchy(items: ThreadNode[]): ThreadNode[] {
 }
 
 /**
+ * DiscussionAnalytics Component - Analytics dashboard for thread discussions
+ */
+function DiscussionAnalytics({ 
+  threads, 
+  allNodes, 
+  userNames 
+}: { 
+  threads: ThreadNode[]; 
+  allNodes: ThreadNode[]; 
+  userNames: Map<string, string>;
+}) {
+  const analytics = useMemo(() => {
+    // Type distribution
+    const typeCounts = { proposition: 0, claim: 0, argument: 0 };
+    allNodes.forEach(node => {
+      if (node.type in typeCounts) typeCounts[node.type as keyof typeof typeCounts]++;
+    });
+
+    // Participation metrics
+    const userPosts = new Map<string, number>();
+    allNodes.forEach(node => {
+      userPosts.set(node.authorId, (userPosts.get(node.authorId) || 0) + 1);
+    });
+    const topContributors = Array.from(userPosts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Scheme usage
+    const schemeCounts = new Map<string, number>();
+    allNodes.forEach(node => {
+      if (node.schemeName) {
+        schemeCounts.set(node.schemeName, (schemeCounts.get(node.schemeName) || 0) + 1);
+      }
+    });
+    const topSchemes = Array.from(schemeCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Thread depth analysis
+    const calculateDepth = (node: ThreadNode, currentDepth = 0): number => {
+      if (!node.responses || node.responses.length === 0) return currentDepth;
+      return Math.max(...node.responses.map(r => calculateDepth(r, currentDepth + 1)));
+    };
+    const depths = threads.map(t => calculateDepth(t));
+    const maxDepth = depths.length > 0 ? Math.max(...depths) : 0;
+    const avgDepth = depths.length > 0 ? depths.reduce((a, b) => a + b, 0) / depths.length : 0;
+
+    // Engagement metrics
+    const nodesWithResponses = allNodes.filter(n => n.responses && n.responses.length > 0);
+    const totalResponses = nodesWithResponses.reduce((sum, n) => sum + (n.responses?.length || 0), 0);
+    const avgResponsesPerPost = allNodes.length > 0 ? totalResponses / allNodes.length : 0;
+
+    // Activity over time (by day)
+    const activityByDay = new Map<string, number>();
+    allNodes.forEach(node => {
+      const date = new Date(node.timestamp).toISOString().split('T')[0];
+      activityByDay.set(date, (activityByDay.get(date) || 0) + 1);
+    });
+    const activityData = Array.from(activityByDay.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, count]) => ({ date, count }));
+
+    return {
+      typeCounts,
+      topContributors,
+      topSchemes,
+      maxDepth,
+      avgDepth,
+      avgResponsesPerPost,
+      activityData,
+      totalNodes: allNodes.length,
+      totalThreads: threads.length,
+    };
+  }, [threads, allNodes]);
+
+  return (
+    <div className="space-y-4">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="panelv2">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-indigo-600">{analytics.totalNodes}</div>
+            <div className="text-xs text-gray-600">Total Items</div>
+          </CardContent>
+        </Card>
+        <Card className="panelv2">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-blue-600">{analytics.totalThreads}</div>
+            <div className="text-xs text-gray-600">Root Threads</div>
+          </CardContent>
+        </Card>
+        <Card className="panelv2">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">{analytics.maxDepth}</div>
+            <div className="text-xs text-gray-600">Max Depth</div>
+          </CardContent>
+        </Card>
+        <Card className="panelv2">
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-green-600">{analytics.avgResponsesPerPost.toFixed(1)}</div>
+            <div className="text-xs text-gray-600">Avg Responses/Post</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Type Distribution */}
+        <Card className="panelv2">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Type Distribution</h3>
+            <div className="space-y-3">
+              {Object.entries(analytics.typeCounts).map(([type, count]) => {
+                const percentage = analytics.totalNodes > 0 ? (count / analytics.totalNodes) * 100 : 0;
+                const colors = {
+                  proposition: 'bg-blue-500',
+                  claim: 'bg-purple-500',
+                  argument: 'bg-green-500',
+                };
+                return (
+                  <div key={type}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="capitalize">{type}</span>
+                      <span className="font-medium">{count} ({percentage.toFixed(0)}%)</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${colors[type as keyof typeof colors]} transition-all`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Contributors */}
+        <Card className="panelv2">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Top Contributors</h3>
+            <div className="space-y-3">
+              {analytics.topContributors.map(([userId, count], idx) => {
+                const name = userNames.get(userId) || `User ${userId.slice(0, 8)}`;
+                const percentage = analytics.totalNodes > 0 ? (count / analytics.totalNodes) * 100 : 0;
+                return (
+                  <div key={userId}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="flex items-center gap-2">
+                        <span className="text-indigo-600 font-bold">#{idx + 1}</span>
+                        {name}
+                      </span>
+                      <span className="font-medium">{count} posts</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-500 transition-all"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Scheme Usage */}
+        {analytics.topSchemes.length > 0 && (
+          <Card className="panelv2">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Top Argumentation Schemes</h3>
+              <div className="space-y-2">
+                {analytics.topSchemes.map(([scheme, count]) => (
+                  <div key={scheme} className="flex justify-between items-center text-sm p-2 bg-gray-50 rounded">
+                    <span className="font-medium truncate flex-1 mr-2">{scheme}</span>
+                    <Badge variant="secondary">{count}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Thread Depth */}
+        <Card className="panelv2">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Thread Depth Analysis</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                <span className="text-sm font-medium">Maximum Depth</span>
+                <span className="text-2xl font-bold text-purple-600">{analytics.maxDepth}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                <span className="text-sm font-medium">Average Depth</span>
+                <span className="text-2xl font-bold text-blue-600">{analytics.avgDepth.toFixed(1)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Activity Timeline */}
+        {analytics.activityData.length > 0 && (
+          <Card className="panelv2 lg:col-span-2">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Activity Over Time</h3>
+              <div className="flex items-end gap-1 h-32">
+                {analytics.activityData.map(({ date, count }) => {
+                  const maxCount = Math.max(...analytics.activityData.map(d => d.count));
+                  const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                  return (
+                    <div 
+                      key={date} 
+                      className="flex-1 bg-indigo-500 rounded-t hover:bg-indigo-600 transition-colors relative group"
+                      style={{ height: `${height}%` }}
+                      title={`${date}: ${count} items`}
+                    >
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        {date}: {count}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                {analytics.activityData.length > 0 && (
+                  <>
+                    {new Date(analytics.activityData[0].date).toLocaleDateString()} - {' '}
+                    {new Date(analytics.activityData[analytics.activityData.length - 1].date).toLocaleDateString()}
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * ThreadCard Component - Renders a single thread with nested responses
  */
 function ThreadCard({
@@ -305,12 +546,15 @@ function ThreadCard({
             >
               Support
             </button>
-            <button 
-              onClick={() => onAttack(node)}
-              className="text-xs text-gray-600 hover:underline"
-            >
-              Attack
-            </button>
+            {/* Only show Attack for arguments with conclusion claims */}
+            {node.argumentId && node.claimId && (
+              <button 
+                onClick={() => onAttack(node)}
+                className="text-xs text-gray-600 hover:underline"
+              >
+                Attack
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -607,6 +851,17 @@ export function ThreadedDiscussionTab({
       toast.error("Can only attack arguments");
       return;
     }
+    
+    if (!node.claimId) {
+      toast.error("Argument missing conclusion claim");
+      return;
+    }
+    
+    if (!currentUserId) {
+      toast.error("Please sign in to create attacks");
+      return;
+    }
+    
     setActionTarget(node);
     setAttackMode(true);
   };
@@ -854,15 +1109,11 @@ export function ThreadedDiscussionTab({
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <Card className="panelv2">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Discussion Analytics</h3>
-              <p className="text-sm text-gray-600">
-                Analytics view coming soon: activity heatmap, participation stats, trending topics, etc.
-              </p>
-              {/* TODO: Add charts similar to DialogueTimeline analytics */}
-            </CardContent>
-          </Card>
+          <DiscussionAnalytics 
+            threads={threads} 
+            allNodes={allNodes} 
+            userNames={userNames}
+          />
         </TabsContent>
       </Tabs>
 

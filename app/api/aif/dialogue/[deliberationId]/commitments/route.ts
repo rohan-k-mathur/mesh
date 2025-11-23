@@ -13,11 +13,15 @@ import { prisma } from "@/lib/prismaclient";
  * Query params:
  * - participantId (optional): Filter to specific participant
  * - asOf (optional): ISO timestamp to get commitments as of a specific point in time
+ * - limit (optional): Max commitments per participant (default: 100, max: 500)
+ * - offset (optional): Skip first N commitments (default: 0)
  */
 export async function GET(
   req: NextRequest,
   { params }: { params: { deliberationId: string } }
 ) {
+  const startTime = Date.now();
+  
   try {
     // Get current user ID for authorization
     const userId = await getCurrentUserId();
@@ -41,10 +45,13 @@ export async function GET(
     const searchParams = req.nextUrl.searchParams;
     const participantId = searchParams.get("participantId") || undefined;
     const asOf = searchParams.get("asOf") || undefined;
+    const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 500);
+    const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
     // Verify user has access to this deliberation
     const deliberation = await prisma.deliberation.findUnique({
       where: { id: deliberationId },
+      select: { id: true, roomId: true }
     });
 
     if (!deliberation) {
@@ -54,19 +61,53 @@ export async function GET(
       );
     }
 
-    // Get commitment stores
-    const commitments = await getCommitmentStores(
+    // Check room access if deliberation has a roomId
+    if (deliberation.roomId) {
+      const roomMember = await prisma.roomMember.findFirst({
+        where: {
+          roomId: deliberation.roomId,
+          userId: userId
+        }
+      });
+
+      if (!roomMember) {
+        return NextResponse.json(
+          { error: "Access denied to this deliberation" },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Get commitment stores (with caching and pagination)
+    const result = await getCommitmentStores(
       deliberationId,
       participantId,
-      asOf
+      asOf,
+      limit,
+      offset
     );
 
-    return NextResponse.json(commitments, { status: 200 });
+    const duration = Date.now() - startTime;
+    console.log(`[commitments] Fetched stores for ${deliberationId} in ${duration}ms (cached: ${result.cached})`);
+
+    return NextResponse.json(result.data, { 
+      status: 200,
+      headers: {
+        'X-Response-Time': `${duration}ms`,
+        'X-Cache-Status': result.cached ? 'HIT' : 'MISS'
+      }
+    });
   } catch (error) {
+    const duration = Date.now() - startTime;
     console.error("Error getting commitment stores:", error);
     return NextResponse.json(
       { error: "Failed to get commitment stores" },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'X-Response-Time': `${duration}ms`
+        }
+      }
     );
   }
 }

@@ -16,6 +16,7 @@ import { validateMove } from '@/lib/dialogue/validate';
  import { onDialogueMove } from '@/lib/issues/hooks';
 import type { MoveKind } from '@/lib/dialogue/types';
 import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
+import { invalidateCommitmentStoresCache } from '@/lib/aif/graph-builder';
 
 function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
 const WHY_TTL_HOURS = 24;
@@ -550,6 +551,14 @@ if (prop) {
   // bus/SSE
   emitBus("dialogue:changed", { deliberationId, moveId: move?.id, kind });         // ✅ fix: move.id
   emitBus("dialogue:moves:refresh", { deliberationId });
+
+  // Invalidate commitment stores cache (Phase 1: Critical Fixes)
+  try {
+    await invalidateCommitmentStoresCache(deliberationId);
+  } catch (error) {
+    console.error('[move] Failed to invalidate commitment stores cache:', error);
+    // Don't fail the request if cache invalidation fails
+  }
 
   try {
     await onDialogueMove({ deliberationId, targetType, targetId, kind, payload });

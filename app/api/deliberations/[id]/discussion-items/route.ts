@@ -176,6 +176,7 @@ export async function GET(
         authorId: true,
         createdAt: true,
         claimId: true,
+        conclusionClaimId: true, // For attack generation
         confidence: true,
         // AIF metadata
         argumentSchemes: {
@@ -273,7 +274,7 @@ export async function GET(
           authorId: arg.authorId,
           timestamp: arg.createdAt.toISOString(),
           argumentId: arg.id,
-          claimId: arg.claimId,
+          claimId: arg.conclusionClaimId, // Use conclusion claim for attacks
           parentId,
           targetId: parentId, // For arguments, parent and target are same
           targetType: parentId ? "argument" : null,

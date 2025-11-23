@@ -2,8 +2,9 @@
 
 **Component**: `ThreadedDiscussionTab.tsx`  
 **Pattern**: Option A - Extend DialogueTimeline threading pattern  
-**Status**: 🚧 Initial Scaffold Complete  
+**Status**: ✅ Phase 1-3 Complete, 🎯 Ready for Phase 4 Polish  
 **Created**: November 20, 2025
+**Last Updated**: November 22, 2025
 
 ---
 
@@ -19,6 +20,50 @@
 - [x] Added modal support (preview, actions sheet)
 - [x] Exported from barrel (`v3/tabs/index.ts`)
 - [x] Zero TypeScript errors
+
+### Phase 1: Data Integration (November 21, 2025) ✅
+- [x] Created unified API endpoint `/api/deliberations/[id]/discussion-items`
+- [x] Returns propositions, claims, arguments in single response with ThreadNode format
+- [x] Fixed CQ counting logic (replaced raw SQL with proper Prisma queries)
+- [x] Fixed author ID extraction from unified data
+- [x] Updated ThreadedDiscussionTab to use unified endpoint
+- [x] Added error/loading/empty states
+- [x] Fixed conclusionClaimId for attack generation (was using wrong claimId field)
+- [x] Tested with real data (test-delib-week5-nets)
+
+### Phase 2: Integration with DebateTab (November 21, 2025) ✅
+- [x] Added ThreadedDiscussionTab as first nested subtab in DebateTab
+- [x] Changed default subtab from "propositions" to "discussion"
+- [x] Wired up quick action buttons (Map/Ludics/Analytics) to switch main tabs
+- [x] Implemented cross-tab navigation using DeliberationTab type
+- [x] Replaced ArgumentActionsSheet with ArgumentCardV2 modal
+
+### Phase 3: Enhanced Features (November 21-22, 2025) ✅
+- [x] **Task 3.1: Reply/Interact Actions** ✅
+  - Reply: Opens PropositionComposerPro with replyTarget pre-filled
+  - Support: Opens AIFArgumentWithSchemeComposer with conclusionClaim
+  - Attack: Full two-step flow (AttackSuggestions → AttackArgumentWizard)
+  - All actions trigger data refresh and show toast notifications
+  - Attack button only visible for arguments with conclusion claims
+
+- [x] **Task 3.2: Analytics View** ✅
+  - Overview stats cards (total items, threads, max depth, avg responses)
+  - Type distribution chart with visual progress bars
+  - Top 5 contributors ranked list
+  - Top 5 argumentation schemes usage
+  - Thread depth analysis (max/avg metrics)
+  - Activity timeline bar chart (posts over time)
+  - All analytics computed with useMemo for performance
+  - Pure CSS/Tailwind implementation (no external chart libs)
+
+- [ ] **Task 3.3: Export Functionality** (Deferred)
+  - CSV/JSON export with full thread hierarchy
+  - Metadata export (schemes, CQs, support scores)
+  - Filter-aware export (only visible items)
+
+- [ ] **Task 3.4: Date Range Filtering** (Deferred)
+  - Date picker controls for start/end dates
+  - Filter discussion items by date range
 
 ### Component Structure
 ```tsx
@@ -42,110 +87,25 @@ ThreadedDiscussionTab
 
 ## 🚧 In Progress / Next Steps
 
-### Phase 1: Data Integration (1-2 days)
+### Phase 3: Enhanced Features (Continuing)
 
-#### Task 1.1: Implement Unified Data Fetching ⏳ PRIORITY
-Currently using placeholder SWR queries. Need to:
-
-1. **Create unified API endpoint** (recommended):
-   ```
-   GET /api/deliberations/[id]/discussion-items
-   ```
-   Returns: propositions, claims, arguments with metadata in single response
-
-   **OR**
-
-2. **Enhance existing queries** to include threading metadata:
-   - Add `replyToId` to propositions/claims queries
-   - Include AIF metadata by default
-   - Add support scores to arguments
-
-**Files to modify**:
-- [ ] `app/api/deliberations/[id]/discussion-items/route.ts` (new)
-- [ ] Update ThreadedDiscussionTab data fetching logic
-
-#### Task 1.2: Fix Author ID Extraction
-Currently returns empty array. Implement:
-```tsx
-const authorIds = useMemo(() => {
-  const ids = new Set<string>();
-  
-  propositionsData?.propositions?.forEach((p: any) => {
-    if (p.authorId) ids.add(p.authorId);
-  });
-  
-  claimsData?.claims?.forEach((c: any) => {
-    if (c.authorId || c.createdById) ids.add(c.authorId || c.createdById);
-  });
-  
-  aifData?.items?.forEach((a: any) => {
-    if (a.authorId || a.createdById) ids.add(a.authorId || a.createdById);
-  });
-  
-  return Array.from(ids);
-}, [propositionsData, claimsData, aifData]);
-```
-
-#### Task 1.3: Test with Real Data
-- [ ] Connect to actual deliberation
-- [ ] Verify thread hierarchy builds correctly
-- [ ] Check metadata badges display properly
-- [ ] Test filter/sort functionality
-
----
-
-### Phase 2: Integration with DebateTab (2-3 hours)
-
-#### Task 2.1: Add to DebateTab as Default Subtab
-**File**: `components/deepdive/v3/tabs/DebateTab.tsx`
-
-```tsx
-import { ThreadedDiscussionTab } from "./ThreadedDiscussionTab";
-
-// In DebateTab component, add new subtab:
-<NestedTabs defaultValue="discussion"> {/* Changed from "propositions" */}
-  <TabsList>
-    <TabsTrigger value="discussion">Discussion</TabsTrigger> {/* NEW - default */}
-    <TabsTrigger value="propositions">Propositions</TabsTrigger>
-    <TabsTrigger value="claims">Claims</TabsTrigger>
-  </TabsList>
-  
-  <TabsContent value="discussion">
-    <ThreadedDiscussionTab
-      deliberationId={deliberationId}
-      currentUserId={currentUserId}
-    />
-  </TabsContent>
-  
-  {/* Existing tabs... */}
-</NestedTabs>
-```
-
-#### Task 2.2: Cross-Tab Navigation
-Implement quick action buttons that switch to other main tabs:
-- "View Map" → Switch to Arguments tab, Networks subtab
-- "View Ludics" → Switch to Ludics tab
-- "View Analytics" → Switch to Analytics tab
-
-**Pattern**: Use parent `DeepDivePanelV2` tab state management
-
----
-
-### Phase 3: Enhanced Features (2-3 days)
-
-#### Task 3.1: Reply/Interact Actions
-Currently just placeholder buttons. Implement:
-- **Reply**: Open PropositionComposerPro with `replyToId` set
-- **Support**: Open AIFArgumentComposer with support scheme
-- **Attack**: Open AIFArgumentComposer with attack scheme
-
-#### Task 3.2: Analytics View
-Replace placeholder with real analytics:
+#### Task 3.2: Analytics View ⏳ NEXT
+Replace placeholder analytics tab with real metrics:
 - Activity heatmap (adapted from DialogueTimeline)
-- Type distribution chart
-- Participation metrics
-- Scheme usage breakdown
-- Thread depth analysis
+- Type distribution chart (propositions vs claims vs arguments)
+- Participation metrics (posts per user)
+- Scheme usage breakdown (which schemes are most used)
+- Thread depth analysis (average nesting level)
+- Engagement metrics (replies per post, response time)
+
+#### Task 3.2: Analytics View ⏳ NEXT
+Replace placeholder analytics tab with real metrics:
+- Activity heatmap (adapted from DialogueTimeline)
+- Type distribution chart (propositions vs claims vs arguments)
+- Participation metrics (posts per user)
+- Scheme usage breakdown (which schemes are most used)
+- Thread depth analysis (average nesting level)
+- Engagement metrics (replies per post, response time)
 
 #### Task 3.3: Export Functionality
 Implement CSV/JSON export of threaded discussion:
@@ -215,9 +175,19 @@ Add date picker controls (similar to DialogueTimeline):
 
 ---
 
-## 📊 Success Metrics
+## 📊 Success Metrics (To Be Measured)
 
-### User Adoption
+### Current Implementation Status
+- ✅ Unified data endpoint with proper threading
+- ✅ Full composer integration (reply/support/attack)
+- ✅ Comprehensive analytics dashboard
+- ✅ Cross-tab navigation working
+- ✅ ArgumentCardV2 modal integration
+- ⏳ Export functionality (deferred)
+- ⏳ Date range filtering (deferred)
+- ⏳ Phase 4 polish tasks (deferred)
+
+### User Adoption (To Be Measured)
 - % of users who view ThreadedDiscussionTab (vs. other DebateTab subtabs)
 - Average time spent in threaded view
 - Click-through rate on quick action buttons
@@ -303,36 +273,42 @@ Add date picker controls (similar to DialogueTimeline):
 
 ---
 
-## 🐛 Known Issues
+## 🐛 Known Issues / Tech Debt
 
-- [ ] authorIds extraction returns empty array (needs implementation)
-- [ ] Analytics view is placeholder (needs real charts)
-- [ ] Reply/Support/Attack buttons are non-functional (need composer integration)
-- [ ] No loading states/skeletons yet
-- [ ] Date range filter not implemented
-
----
-
-## 📝 Notes
-
-- Threading logic assumes `parentId` or `targetId` fields exist in data
-  - Verify schema: do propositions/claims have reply relationships?
-  - May need DB migration to add `replyToId` column
-  
-- Consider adding "collapse below threshold" feature
-  - Hide deeply nested threads (depth > 3) behind "Show more" button
-  - Reduces initial render complexity
-  
-- Badge system is powerful but can get cluttered
-  - Implement badge priority system (only show top 2-3)
-  - "View all metadata" expandable section
-
-- Quick action buttons need confirmation with UX team
-  - Should they switch tabs or open modals?
-  - Consider user preference setting
+- [ ] Date range filter not implemented (Task 3.4 deferred)
+- [ ] Export functionality not implemented (Task 3.3 deferred)
+- [ ] No loading skeletons (Phase 4 deferred)
+- [ ] Not optimized for mobile (Phase 4 deferred)
+- [ ] No virtualization for long lists (Phase 4 deferred)
+- [ ] No keyboard navigation (Phase 4 deferred)
 
 ---
 
-**Last Updated**: November 20, 2025  
-**Next Review**: After Phase 1 completion  
+## 📝 Implementation Notes (November 2025)
+
+### What Worked Well
+- **Unified API endpoint**: Single `/discussion-items` endpoint drastically simplified data fetching
+- **conclusionClaimId fix**: Using the correct claim field for attacks was crucial
+- **Pure CSS analytics**: No chart.js needed - Tailwind progress bars work great
+- **Two-step attack flow**: AttackSuggestions → AttackArgumentWizard pattern is intuitive
+- **useMemo optimization**: Analytics compute instantly even with 100+ items
+
+### Challenges Encountered
+- **claimId confusion**: Arguments have both `claimId` (debate link) and `conclusionClaimId` (actual conclusion)
+- **CQ counting**: Had to replace raw SQL with proper Prisma groupBy queries
+- **Toast notifications**: Required tracking down root Toaster component in layout
+- **Type narrowing**: JSX conditions needed explicit checks for optional fields
+
+### Architectural Decisions
+- **Component co-location**: Kept DiscussionAnalytics in same file (not separate) for simplicity
+- **No external charts**: Used pure CSS to avoid bundle size increase
+- **Filter-aware**: All analytics respect current filter state
+- **Immutable patterns**: useMemo ensures analytics only recompute when data changes
+
+---
+
+**Status Summary**: Core functionality complete and production-ready. Polish and optimization tasks deferred for future iterations.
+
+**Last Updated**: November 22, 2025  
+**Next Steps**: Audit CommitmentStore system integration
 **Owner**: TBD
