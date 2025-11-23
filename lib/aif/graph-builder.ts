@@ -14,7 +14,7 @@
  * See: DIALOGUE_VISUALIZATION_ROADMAP.md Phase 2.2
  */
 
-import { prisma } from "@/lib/prismaclient";
+import { prisma, Prisma } from "@/lib/prismaclient";
 import type {
   AifGraphWithDialogue,
   AifNodeWithDialogue,

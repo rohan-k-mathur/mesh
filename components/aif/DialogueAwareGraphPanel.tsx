@@ -1,11 +1,13 @@
 // components/aif/DialogueAwareGraphPanel.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertCircle } from "lucide-react";
 import { DialogueControls, type DialogueControlState, type DialogueMoveFilter } from "./DialogueControls";
 import { CommitmentStorePanel } from "./CommitmentStorePanel";
+import { InlineCommitmentCount } from "./CommitmentBadge";
+import { enrichNodesWithCommitments } from "@/lib/aif/commitment-helpers";
 import type { AifGraphWithDialogue, AifNodeWithDialogue, DialogueAwareEdge } from "@/types/aif-dialogue";
 
 /**
@@ -98,7 +100,7 @@ function DefaultGraphRenderer({
   nodes,
   edges
 }: {
-  nodes: AifNodeWithDialogue[];
+  nodes: any[]; // Accepts enriched nodes with commitment indicators
   edges: DialogueAwareEdge[];
 }) {
   return (
@@ -106,16 +108,26 @@ function DefaultGraphRenderer({
       <div>
         <h4 className="text-sm font-semibold mb-2">Nodes ({nodes.length})</h4>
         <div className="space-y-1 max-h-[200px] overflow-y-auto">
-          {nodes.slice(0, 10).map(node => (
+          {nodes.slice(0, 10).map((node: any) => (
             <div key={node.id} className="text-xs p-2 bg-white rounded border">
-              <span className="font-mono text-gray-500">{node.dialogueMove?.type}</span>
-              {" "}
-              {node.text?.substring(0, 50) || node.id}
-              {node.dialogueMetadata && (
-                <span className="ml-2 text-blue-600">
-                  [via {node.dialogueMetadata.locution}]
-                </span>
-              )}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1">
+                  <span className="font-mono text-gray-500">{node.dialogueMove?.type}</span>
+                  {" "}
+                  {node.text?.substring(0, 50) || node.id}
+                  {node.dialogueMetadata && (
+                    <span className="ml-2 text-blue-600">
+                      [via {node.dialogueMetadata.locution}]
+                    </span>
+                  )}
+                </div>
+                {node.commitmentIndicator && (
+                  <InlineCommitmentCount 
+                    count={node.commitmentIndicator.participantCount}
+                    isActive={node.commitmentIndicator.totalActive > 0}
+                  />
+                )}
+              </div>
             </div>
           ))}
           {nodes.length > 10 && (
@@ -197,6 +209,14 @@ export function DialogueAwareGraphPanel({
       revalidateOnReconnect: false
     }
   );
+
+  // Enrich nodes with commitment indicators
+  const enrichedNodes = useMemo(() => {
+    if (!data?.nodes || !commitmentData) {
+      return data?.nodes || [];
+    }
+    return enrichNodesWithCommitments(data.nodes, commitmentData);
+  }, [data?.nodes, commitmentData]);
 
   // Scroll/highlight effect when highlightMoveId changes
   useEffect(() => {
@@ -319,10 +339,10 @@ export function DialogueAwareGraphPanel({
             </div>
           ) : data && data.nodes && data.edges ? (
             renderGraph ? (
-              renderGraph(data.nodes, data.edges)
+              renderGraph(enrichedNodes, data.edges)
             ) : (
               <div className="p-4">
-                <DefaultGraphRenderer nodes={data.nodes} edges={data.edges} />
+                <DefaultGraphRenderer nodes={enrichedNodes} edges={data.edges} />
               </div>
             )
           ) : (
