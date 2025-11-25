@@ -1,7 +1,8 @@
 "use client";
 import * as React from "react";
 import useSWR from "swr";
-import { Activity, Link as LinkIcon, Tag, Swords, ChevronDown } from "lucide-react";
+import { Activity, Link as LinkIcon, Tag, Swords, ChevronDown, Users } from "lucide-react";
+import { InlineCommitmentCount } from "@/components/aif/CommitmentBadge";
 import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
 import { AttackCreationModal } from "@/components/aspic/AttackCreationModal";
 import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
@@ -86,6 +87,13 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
     { revalidateOnFocus: false }
   );
 
+  // Fetch commitment data for this claim
+  const { data: commitmentData } = useSWR(
+    expanded && deliberationId ? `/api/aif/dialogue/${deliberationId}/commitments` : null,
+    fetcher,
+    { revalidateOnFocus: false, refreshInterval: 60000 }
+  );
+
   const cegNode = cegData?.node;
   const citations = citationsData?.citations || [];
   const label = cegNode?.label || "UNDEC";
@@ -123,6 +131,31 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
     return { required, satisfied, percentage: Math.round((satisfied / required) * 100) };
   }, [cqData]);
 
+  // Extract commitments for this specific claim
+  const claimCommitments = React.useMemo(() => {
+    if (!commitmentData || !Array.isArray(commitmentData)) return [];
+    const commitments: Array<{ participantId: string; participantName: string; isActive: boolean; timestamp: string }> = [];
+    
+    for (const store of commitmentData) {
+      for (const commitment of store.commitments || []) {
+        if (commitment.claimId === claimId) {
+          commitments.push({
+            participantId: store.participantId,
+            participantName: store.participantName || "Unknown",
+            isActive: commitment.isActive,
+            timestamp: commitment.timestamp,
+          });
+        }
+      }
+    }
+    
+    return commitments.sort((a, b) => {
+      // Active commitments first, then by timestamp
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [commitmentData, claimId]);
+
   const hasActivity = dialogicalActivity.whyCount + dialogicalActivity.groundsCount + 
                       dialogicalActivity.concedeCount + dialogicalActivity.retractCount > 0;
   
@@ -134,7 +167,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
     cegNode.label !== "UNDEC"
   );
   
-  const hasContent = hasActivity || citations.length > 0 || hasCegData || cqCompletion !== null;
+  const hasContent = hasActivity || citations.length > 0 || hasCegData || cqCompletion !== null || claimCommitments.length > 0;
 
   // Always show the expand button, even if no content yet
   return (
@@ -152,6 +185,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
               {[
                 hasActivity && "activity",
                 citations.length > 0 && `${citations.length} cite`,
+                claimCommitments.length > 0 && `${claimCommitments.length} committed`,
                 isControversial && "controversial",
                 label !== "UNDEC" && label
               ].filter(Boolean).join(", ")}
@@ -314,6 +348,40 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             )}
           </div>
 </div>
+          {/* Commitments - Social Proof */}
+          {claimCommitments.length > 0 && (
+            <div className="px-3 py-2 bg-sky-50/50 rounded-lg border border-sky-200">
+              <div className="text-xs font-semibold text-sky-900 mb-2 flex items-center gap-2">
+                <Users className="w-3.5 h-3.5" />
+                Commitments ({claimCommitments.length})
+                {claimCommitments.filter(c => c.isActive).length > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-sky-600 text-white rounded-full">
+                    {claimCommitments.filter(c => c.isActive).length} active
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                {claimCommitments.map((commitment, idx) => (
+                  <div
+                    key={`${commitment.participantId}-${idx}`}
+                    className={`flex items-center justify-between text-xs px-2 py-1.5 rounded-lg ${
+                      commitment.isActive 
+                        ? "bg-sky-100/70 border border-sky-300" 
+                        : "bg-slate-100 border border-slate-200"
+                    }`}
+                  >
+                    <span className={commitment.isActive ? "text-sky-900 font-medium" : "text-slate-600"}>
+                      {commitment.participantName}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {new Date(commitment.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Citations */}
           {citations.length > 0 && (
             <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">

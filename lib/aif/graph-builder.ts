@@ -585,7 +585,7 @@ async function computeCommitmentStores(
       u.name as user_name,
       c.text as claim_text
     FROM "DialogueMove" dm
-    LEFT JOIN "User" u ON CAST(dm."actorId" AS BIGINT) = u.id
+    LEFT JOIN users u ON CAST(dm."actorId" AS BIGINT) = u.id
     LEFT JOIN "Claim" c ON dm."targetId" = c.id AND dm."targetType" = 'claim'
     WHERE dm."deliberationId" = ${deliberationId}
       ${participantId ? Prisma.sql`AND dm."actorId" = ${participantId}` : Prisma.empty}

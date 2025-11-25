@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { DEFAULT_ARGUMENT_CONFIDENCE } from "@/lib/config/confidence";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
@@ -61,6 +61,7 @@ const extendedPrisma = basePrisma.$extends({
 });
 
 export const prisma = (globalForPrisma.prisma || extendedPrisma) as typeof basePrisma;
+export { Prisma };
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma as any;

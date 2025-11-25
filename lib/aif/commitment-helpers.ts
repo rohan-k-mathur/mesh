@@ -37,6 +37,12 @@ export function enrichNodesWithCommitments(
     }>;
   }>
 ): Array<AifNodeWithDialogue & { commitmentIndicator?: CommitmentIndicator }> {
+  // Guard: If commitmentStores is null, undefined, or not an array, return nodes unchanged
+  if (!commitmentStores || !Array.isArray(commitmentStores)) {
+    console.warn("[enrichNodesWithCommitments] Invalid commitmentStores, returning nodes unchanged");
+    return nodes;
+  }
+
   // Build map: claimId -> participants who committed
   const commitmentMap = new Map<string, CommitmentIndicator>();
 

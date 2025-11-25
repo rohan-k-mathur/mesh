@@ -44,6 +44,7 @@ import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
 import { Button } from "@/components/ui/button";
 import { GlossaryText } from "@/components/glossary/GlossaryText";
+import { InlineCommitmentCount } from "@/components/aif/CommitmentBadge";
 import { 
   formatSchemeDisplay, 
   shouldShowMultiSchemeUI, 
@@ -512,6 +513,35 @@ export function ArgumentCardV2({
     fetcher
   );
 
+  // Fetch commitment data for this deliberation to show inline badges
+  const { data: commitmentData } = useSWR(
+    deliberationId ? `/api/aif/dialogue/${deliberationId}/commitments` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 60000, // Refresh every minute
+    }
+  );
+
+  // Build map of claim ID -> commitment count
+  const commitmentCounts = React.useMemo(() => {
+    if (!commitmentData || !Array.isArray(commitmentData)) return new Map<string, { total: number; active: number }>();
+    
+    const counts = new Map<string, { total: number; active: number }>();
+    
+    for (const store of commitmentData) {
+      for (const commitment of store.commitments || []) {
+        const current = counts.get(commitment.claimId) || { total: 0, active: 0 };
+        counts.set(commitment.claimId, {
+          total: current.total + 1,
+          active: commitment.isActive ? current.active + 1 : current.active,
+        });
+      }
+    }
+    
+    return counts;
+  }, [commitmentData]);
+
   // Compute CQ status for claim
   const cqStatus = React.useMemo(() => {
     if (!cqData) return null;
@@ -837,8 +867,15 @@ export function ArgumentCardV2({
             <div className="flex items-start gap-2 mb-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-slate-900 leading-snug">
-                  {conclusion.text}
+                <h3 className="text-sm font-semibold text-slate-900 leading-snug inline-flex items-center gap-2 flex-wrap">
+                  <span>{conclusion.text}</span>
+                  {commitmentCounts.get(conclusion.id) && (
+                    <InlineCommitmentCount 
+                      count={commitmentCounts.get(conclusion.id)!.total}
+                      isActive={commitmentCounts.get(conclusion.id)!.active > 0}
+                      className="ml-1"
+                    />
+                  )}
                 </h3>
                 
                 {/* Collapsible Claim Details */}
@@ -1123,7 +1160,15 @@ export function ArgumentCardV2({
                         {idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-700 leading-relaxed">{p.text}</p>
+                        <p className="text-sm text-slate-700 leading-relaxed inline-flex items-center gap-2 flex-wrap">
+                          <span>{p.text}</span>
+                          {commitmentCounts.get(p.id) && (
+                            <InlineCommitmentCount 
+                              count={commitmentCounts.get(p.id)!.total}
+                              isActive={commitmentCounts.get(p.id)!.active > 0}
+                            />
+                          )}
+                        </p>
                         
                         {/* Collapsible Claim Details */}
                         <ClaimDetailPanel 

@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, memo } from 'react';
 import useSWR from 'swr';
 import React from 'react';
 import { GlossaryText } from '@/components/glossary/GlossaryText';
+import { InlineCommitmentCount } from '@/components/aif/CommitmentBadge';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
   import {
@@ -227,6 +228,13 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
     swrConfig
   );
 
+  // Fetch commitment data for badges
+  const { data: commitmentData } = useSWR(
+    deliberationId ? `/api/aif/dialogue/${deliberationId}/commitments` : null,
+    fetcher,
+    { revalidateOnFocus: false, refreshInterval: 60000 }
+  );
+
   // Debounced event handler for better performance
   const handleDataRefresh = useCallback(() => {
     mutateSummary();
@@ -394,6 +402,25 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
     ),
     [labelsData]
   );
+
+  // Build commitment counts map
+  const commitmentCounts = useMemo(() => {
+    if (!commitmentData || !Array.isArray(commitmentData)) return new Map<string, { total: number; active: number }>();
+    
+    const counts = new Map<string, { total: number; active: number }>();
+    
+    for (const store of commitmentData) {
+      for (const commitment of store.commitments || []) {
+        const current = counts.get(commitment.claimId) || { total: 0, active: 0 };
+        counts.set(commitment.claimId, {
+          total: current.total + 1,
+          active: commitment.isActive ? current.active + 1 : current.active,
+        });
+      }
+    }
+    
+    return counts;
+  }, [commitmentData]);
   
   // Pagination calculations
   const totalPages = Math.ceil(enrichedClaims.length / PAGE_SIZE);
@@ -530,6 +557,14 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       
                       {/* Scheme badge */}
                       <SchemeBadge scheme={c.scheme} />
+                      
+                      {/* Commitment badge */}
+                      {commitmentCounts.get(c.id) && (
+                        <InlineCommitmentCount 
+                          count={commitmentCounts.get(c.id)!.total}
+                          isActive={commitmentCounts.get(c.id)!.active > 0}
+                        />
+                      )}
                       
                       {/* Attack types */}
                       <AttackBadges attacks={c.attacks} />

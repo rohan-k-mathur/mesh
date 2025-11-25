@@ -67,6 +67,7 @@ import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPane
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
 import { EvidenceList } from "@/components/evidence/EvidenceList";
 import { DiscourseDashboard } from "@/components/discourse/DiscourseDashboard";
+import { CommitmentStorePanel } from "@/components/aif/CommitmentStorePanel";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -154,6 +155,73 @@ function usePersisted(key: string, def = true) {
   return { open, setOpen };
 }
 
+// Helper component for commitments tab content
+function CommitmentsTabContent({ 
+  deliberationId, 
+  onClaimClick 
+}: { 
+  deliberationId: string; 
+  onClaimClick: (claimId: string) => void;
+}) {
+  const { data: commitmentData, error: commitmentError, isLoading: commitmentLoading } = useSWR(
+    `/api/aif/dialogue/${deliberationId}/commitments`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 30000, // Refresh every 30 seconds
+    }
+  );
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">
+          Participant Commitments
+        </h3>
+        <p className="text-xs text-slate-500 mb-3">
+          Track which claims participants have asserted, conceded, or retracted
+        </p>
+      </div>
+
+      {commitmentLoading ? (
+        <div className="h-[400px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+            <div className="text-sm text-slate-600">Loading commitments...</div>
+          </div>
+        </div>
+      ) : commitmentError ? (
+        <div className="h-[400px] rounded-lg border border-red-200 bg-red-50 flex items-center justify-center">
+          <div className="text-center p-4">
+            <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="text-sm text-red-900 font-medium mb-1">Failed to load</div>
+            <div className="text-xs text-red-700">{String(commitmentError)}</div>
+          </div>
+        </div>
+      ) : !commitmentData || commitmentData.length === 0 ? (
+        <div className="h-[400px] rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center">
+          <div className="text-center p-4">
+            <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="text-sm text-slate-600 font-medium mb-1">No commitments yet</div>
+            <div className="text-xs text-slate-500">Participants will appear here as they make commitments</div>
+          </div>
+        </div>
+      ) : (
+        <CommitmentStorePanel 
+          stores={commitmentData}
+          onClaimClick={onClaimClick}
+          showTimeline={true}
+          className="border-0 shadow-none"
+        />
+      )}
+    </div>
+  );
+}
+
 export default function DeepDivePanel({
   deliberationId,
   containerClassName,
@@ -209,7 +277,7 @@ export default function DeepDivePanel({
     storageKey: `dd:sheets:${deliberationId}`,
     defaultState: { left: false, right: false, terms: false },
   });
-  const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('claims');
+  const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims' | 'commitments'>('claims');
   const [selectedTermId, setSelectedTermId] = useState<string | undefined>();
   const [selectedArgumentForActions, setSelectedArgumentForActions] = useState<{
     id: string;
@@ -701,10 +769,28 @@ const {
               Claims
             </div>
           </button>
+          <button
+            onClick={() => setLeftSheetTab('commitments')}
+            className={clsx(
+              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              leftSheetTab === 'commitments'
+                ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            )}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Commitments
+            </div>
+          </button>
         </div>
 
         {/* Tab Content */}
-        {leftSheetTab === 'arguments' ? (
+        {leftSheetTab === 'commitments' ? (
+          <CommitmentsTabContent deliberationId={deliberationId} onClaimClick={handleClaimSelect} />
+        ) : leftSheetTab === 'arguments' ? (
           <>
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-slate-700 mb-2">
