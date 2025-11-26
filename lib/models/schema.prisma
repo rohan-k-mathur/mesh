@@ -4163,6 +4163,34 @@ model Commitment {
   @@index([deliberationId, participantId])
 }
 
+// ----- commitment-ludics mapping -----
+model CommitmentLudicMapping {
+  id String @id @default(cuid())
+
+  // Dialogue commitment reference
+  dialogueCommitmentId String
+  deliberationId       String
+  participantId        String
+  proposition          String @db.Text
+
+  // Ludics commitment reference
+  ludicCommitmentElementId String
+  ludicOwnerId             String
+  ludicLocusId             String
+
+  // Metadata
+  promotedAt      DateTime @default(now())
+  promotedBy      String // userId who clicked promote
+  promotionContext Json? // Additional context (e.g., which panel)
+
+  // Relations
+  ludicCommitmentElement LudicCommitmentElement @relation(fields: [ludicCommitmentElementId], references: [id], onDelete: Cascade)
+
+  @@unique([dialogueCommitmentId, ludicCommitmentElementId])
+  @@index([deliberationId, participantId])
+  @@index([ludicOwnerId])
+}
+
 // ----- bounties -----
 model Bounty {
   id          String             @id @default(cuid())
@@ -4722,6 +4750,9 @@ model LudicCommitmentElement {
   designs                LudicDesign[]
   LudicCommitmentState   LudicCommitmentState? @relation(fields: [ludicCommitmentStateId], references: [id])
   ludicCommitmentStateId String?
+  
+  // Reverse relation for commitment-ludics mapping
+  commitmentMappings     CommitmentLudicMapping[]
 
   @@index([ownerId, basePolarity])
 }

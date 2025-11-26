@@ -565,6 +565,7 @@ async function computeCommitmentStores(
 ) {
   // Phase 2 Optimization: Single query with joins instead of 3 separate queries
   // This reduces database round-trips from 3 to 1
+  // Phase 4 Enhancement: Add CommitmentLudicMapping join for promotion status
   const movesWithData = await prisma.$queryRaw<Array<{
     move_id: string;
     move_kind: string;
@@ -574,6 +575,10 @@ async function computeCommitmentStores(
     move_created_at: Date;
     user_name: string | null;
     claim_text: string | null;
+    mapping_id: string | null;
+    promoted_at: Date | null;
+    ludic_owner_id: string | null;
+    ludic_polarity: string | null;
   }>>`
     SELECT 
       dm.id as move_id,
@@ -583,10 +588,25 @@ async function computeCommitmentStores(
       dm."targetId" as move_target_id,
       dm."createdAt" as move_created_at,
       u.name as user_name,
-      c.text as claim_text
+      c.text as claim_text,
+      clm.id as mapping_id,
+      clm."promotedAt" as promoted_at,
+      clm."ludicOwnerId" as ludic_owner_id,
+      lce."basePolarity" as ludic_polarity
     FROM "DialogueMove" dm
-    LEFT JOIN users u ON CAST(dm."actorId" AS BIGINT) = u.id
+    LEFT JOIN users u ON (
+      CASE 
+        WHEN dm."actorId" ~ '^[0-9]+$' THEN CAST(dm."actorId" AS BIGINT) = u.id
+        ELSE FALSE
+      END
+    )
     LEFT JOIN "Claim" c ON dm."targetId" = c.id AND dm."targetType" = 'claim'
+    LEFT JOIN "CommitmentLudicMapping" clm 
+      ON clm."deliberationId" = dm."deliberationId" 
+      AND clm."participantId" = dm."actorId"
+      AND c.text = clm.proposition
+    LEFT JOIN "LudicCommitmentElement" lce 
+      ON clm."ludicCommitmentElementId" = lce.id
     WHERE dm."deliberationId" = ${deliberationId}
       ${participantId ? Prisma.sql`AND dm."actorId" = ${participantId}` : Prisma.empty}
       ${asOf ? Prisma.sql`AND dm."createdAt" <= ${new Date(asOf)}` : Prisma.empty}
@@ -604,6 +624,10 @@ async function computeCommitmentStores(
       moveKind: "ASSERT" | "CONCEDE" | "RETRACT";
       timestamp: string;
       isActive: boolean;
+      isPromoted?: boolean;
+      promotedAt?: string;
+      ludicOwnerId?: string;
+      ludicPolarity?: string;
     }>;
   }
 
@@ -653,6 +677,10 @@ async function computeCommitmentStores(
         moveKind: row.move_kind as "ASSERT" | "CONCEDE",
         timestamp: row.move_created_at.toISOString(),
         isActive: true, // Will be updated if retracted later
+        isPromoted: !!row.mapping_id,
+        promotedAt: row.promoted_at?.toISOString(),
+        ludicOwnerId: row.ludic_owner_id || undefined,
+        ludicPolarity: row.ludic_polarity || undefined,
       });
     }
 

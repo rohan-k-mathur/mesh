@@ -2,10 +2,13 @@
 "use client";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, User, History } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent, TabsListDropdown } from "@/components/ui/tabs";
+import { CheckCircle2, XCircle, User, History, ArrowRight, Link2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PromoteToLudicsModal } from "./PromoteToLudicsModal";
+import type { PromoteCommitmentResponse } from "@/lib/aif/commitment-ludics-types";
 
 /**
  * CommitmentStorePanel Component
@@ -36,6 +39,10 @@ export interface CommitmentRecord {
   moveKind: "ASSERT" | "CONCEDE" | "RETRACT";
   timestamp: string;
   isActive: boolean; // false if retracted
+  isPromoted?: boolean; // promoted to Ludics
+  promotedAt?: string;
+  ludicOwnerId?: string;
+  ludicPolarity?: string;
 }
 
 export interface CommitmentStore {
@@ -48,8 +55,14 @@ interface CommitmentStorePanelProps {
   /** Commitment stores for all participants */
   stores: CommitmentStore[];
   
+  /** Deliberation ID for promotion */
+  deliberationId?: string;
+  
   /** Callback when claim is clicked */
   onClaimClick?: (claimId: string) => void;
+  
+  /** Callback when commitments are refreshed */
+  onRefresh?: () => void;
   
   /** Show timeline view */
   showTimeline?: boolean;
@@ -63,10 +76,16 @@ interface CommitmentStorePanelProps {
  */
 function CommitmentItem({
   record,
-  onClick
+  onClick,
+  onPromote,
+  deliberationId,
+  participantId
 }: {
   record: CommitmentRecord;
   onClick?: () => void;
+  onPromote?: (commitment: { participantId: string; proposition: string; claimId: string; claimText: string }) => void;
+  deliberationId?: string;
+  participantId?: string;
 }) {
   const moveIcons = {
     ASSERT: <CheckCircle2 className="h-3 w-3 text-sky-600" />,
@@ -81,46 +100,78 @@ function CommitmentItem({
     minute: "2-digit"
   });
 
+  const canPromote = record.isActive && !record.isPromoted && deliberationId && participantId && onPromote;
+
   return (
     <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className={`
-              p-2 rounded border text-sm
-              ${record.isActive 
-                ? "bg-white border-gray-200 hover:border-sky-300" 
-                : "bg-gray-50 border-gray-300 opacity-60 line-through"
-              }
-              ${onClick ? "cursor-pointer" : ""}
-              transition-colors
-            `}
-            onClick={onClick}
-            role={onClick ? "button" : undefined}
-            tabIndex={onClick ? 0 : undefined}
+      <div className="space-y-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`
+                p-2 rounded border text-sm
+                ${record.isActive 
+                  ? "bg-white border-gray-200 hover:border-sky-300" 
+                  : "bg-gray-50 border-gray-300 opacity-60 line-through"
+                }
+                ${onClick ? "cursor-pointer" : ""}
+                transition-colors
+              `}
+              onClick={onClick}
+              role={onClick ? "button" : undefined}
+              tabIndex={onClick ? 0 : undefined}
+            >
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5">{moveIcons[record.moveKind]}</span>
+                <span className="flex-1 text-gray-800">
+                  {record.claimText}
+                </span>
+                {record.isPromoted && (
+                  <Badge variant="secondary" className="text-[9px] bg-sky-100 text-sky-700 border-sky-200 flex items-center gap-1">
+                    <Link2 className="h-2.5 w-2.5" />
+                    Ludics
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="bg-gray-900 text-white border-gray-800">
+            <div className="space-y-1 text-xs">
+              <div className="font-semibold">
+                {record.moveKind === "ASSERT" && "Asserted"}
+                {record.moveKind === "CONCEDE" && "Conceded"}
+                {record.moveKind === "RETRACT" && "Retracted"}
+              </div>
+              <div className="text-gray-400">{formattedTime}</div>
+              {!record.isActive && (
+                <div className="text-red-400">No longer committed</div>
+              )}
+              {record.isPromoted && (
+                <div className="text-sky-400 border-t border-gray-700 pt-1 mt-1">
+                  Promoted to {record.ludicOwnerId} as {record.ludicPolarity === "pos" ? "fact" : "rule"}
+                </div>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Promote Button */}
+        {canPromote && (
+          <Button
+       
+            className="w-full text-xs h-7 text-sky-600 border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+            onClick={() => onPromote({
+              participantId,
+              proposition: record.claimText,
+              claimId: record.claimId,
+              claimText: record.claimText
+            })}
           >
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5">{moveIcons[record.moveKind]}</span>
-              <span className="flex-1 text-gray-800">
-                {record.claimText}
-              </span>
-            </div>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="bg-gray-900 text-white border-gray-800">
-          <div className="space-y-1 text-xs">
-            <div className="font-semibold">
-              {record.moveKind === "ASSERT" && "Asserted"}
-              {record.moveKind === "CONCEDE" && "Conceded"}
-              {record.moveKind === "RETRACT" && "Retracted"}
-            </div>
-            <div className="text-gray-400">{formattedTime}</div>
-            {!record.isActive && (
-              <div className="text-red-400">No longer committed</div>
-            )}
-          </div>
-        </TooltipContent>
-      </Tooltip>
+            <ArrowRight className="h-3 w-3 mr-1" />
+            Promote to Ludics
+          </Button>
+        )}
+      </div>
     </TooltipProvider>
   );
 }
@@ -188,13 +239,33 @@ function CommitmentTimeline({
 
 export function CommitmentStorePanel({
   stores,
+  deliberationId,
   onClaimClick,
+  onRefresh,
   showTimeline = false,
   className = ""
 }: CommitmentStorePanelProps) {
   const [selectedParticipant, setSelectedParticipant] = useState<string | null>(
     stores.length > 0 ? stores[0].participantId : null
   );
+  const [promotionModal, setPromotionModal] = useState<{
+    isOpen: boolean;
+    commitment: { participantId: string; proposition: string; claimId: string; claimText: string } | null;
+  }>({ isOpen: false, commitment: null });
+
+  const handleOpenPromoteModal = (commitment: { participantId: string; proposition: string; claimId: string; claimText: string }) => {
+    setPromotionModal({ isOpen: true, commitment });
+  };
+
+  const handleClosePromoteModal = () => {
+    setPromotionModal({ isOpen: false, commitment: null });
+  };
+
+  const handlePromotionSuccess = (response: PromoteCommitmentResponse) => {
+    console.log("Promotion successful:", response);
+    // Refresh commitment stores
+    onRefresh?.();
+  };
 
   const selectedStore = stores.find(s => s.participantId === selectedParticipant);
 
@@ -238,17 +309,37 @@ export function CommitmentStorePanel({
       </CardHeader>
       <CardContent>
         <Tabs value={selectedParticipant || undefined} onValueChange={setSelectedParticipant}>
-          {/* Participant selector */}
-          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${stores.length}, 1fr)` }}>
-            {stores.map(store => (
-              <TabsTrigger key={store.participantId} value={store.participantId} className="text-xs">
-                {store.participantName}
-                <Badge variant="secondary" className="ml-1 text-[9px] h-4 px-1">
-                  {store.commitments.filter(c => c.isActive).length}
-                </Badge>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* Participant selector - Use dropdown when there are many participants */}
+          {stores.length > 4 ? (
+            <TabsListDropdown
+              value={selectedParticipant || undefined}
+              onValueChange={setSelectedParticipant}
+              placeholder="Select participant..."
+              className="mb-4"
+            >
+              {stores.map(store => (
+                <TabsTrigger key={store.participantId} value={store.participantId}>
+                  <span className="flex items-center gap-2">
+                    {store.participantName}
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                      {store.commitments.filter(c => c.isActive).length}
+                    </Badge>
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsListDropdown>
+          ) : (
+            <TabsList className="flex flex-col w-full" >
+              {stores.map(store => (
+                <TabsTrigger key={store.participantId} value={store.participantId} className="text-xs">
+                  {store.participantName}
+                  <Badge variant="secondary" className="ml-1 text-[9px] h-4 px-1">
+                    {store.commitments.filter(c => c.isActive).length}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          )}
 
           {/* Commitment list per participant */}
           {stores.map(store => (
@@ -297,6 +388,9 @@ export function CommitmentStorePanel({
                           key={`${record.moveId}-${idx}`}
                           record={record}
                           onClick={() => onClaimClick?.(record.claimId)}
+                          onPromote={deliberationId ? handleOpenPromoteModal : undefined}
+                          deliberationId={deliberationId}
+                          participantId={store.participantId}
                         />
                       ))}
                     
@@ -313,6 +407,9 @@ export function CommitmentStorePanel({
                               key={`${record.moveId}-${idx}`}
                               record={record}
                               onClick={() => onClaimClick?.(record.claimId)}
+                              onPromote={undefined}
+                              deliberationId={deliberationId}
+                              participantId={store.participantId}
                             />
                           ))}
                       </>
@@ -324,6 +421,17 @@ export function CommitmentStorePanel({
           ))}
         </Tabs>
       </CardContent>
+
+      {/* Promotion Modal */}
+      {promotionModal.commitment && deliberationId && (
+        <PromoteToLudicsModal
+          isOpen={promotionModal.isOpen}
+          onClose={handleClosePromoteModal}
+          deliberationId={deliberationId}
+          commitment={promotionModal.commitment}
+          onSuccess={handlePromotionSuccess}
+        />
+      )}
     </Card>
   );
 }
