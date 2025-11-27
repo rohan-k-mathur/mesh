@@ -198,7 +198,7 @@ export function ArgumentNetworkCard({
           </button>
           
           {node.claimId && (
-            <button className="underline" onClick={() => onViewContributing(node.claimId)}>
+            <button className="underline" onClick={() => onViewContributing(node.claimId!)}>
               View contributing arguments
             </button>
           )}
