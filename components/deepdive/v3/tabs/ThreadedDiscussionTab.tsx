@@ -604,28 +604,28 @@ function ThreadStats({ threads, totalItems }: { threads: ThreadNode[]; totalItem
   }, [threads, totalItems]);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      <Card className="surfacev2  panel-edge">
+    <div className="flex flex-wrap gap-3 ">
+      <Card className="surfacev2  panel-edge px-5 py-1">
         <CardContent className="flex flex-col w-full items-center p-1">
-          <div className="text-2xl font-bold text-gray-900">{stats.threads}</div>
+          <div className="text-lg font-bold text-gray-900">{stats.threads}</div>
           <div className="text-xs text-gray-500">Threads</div>
         </CardContent>
       </Card>
-      <Card className="surfacev2 panel-edge">
+      <Card className="surfacev2 panel-edge  px-5 py-1">
         <CardContent className="flex flex-col w-full items-center p-1">
-          <div className="text-2xl font-bold text-gray-900">{stats.totalItems}</div>
+          <div className="text-lg font-bold text-gray-900">{stats.totalItems}</div>
           <div className="text-xs text-gray-500">Total Items</div>
         </CardContent>
       </Card>
-      <Card className="surfacev2 panel-edge">
+      <Card className="surfacev2 panel-edge  px-5 py-1">
         <CardContent className="flex flex-col w-full items-center p-1">
-          <div className="text-2xl font-bold text-gray-900">{stats.byType.argument || 0}</div>
+          <div className="text-lg font-bold text-gray-900">{stats.byType.argument || 0}</div>
           <div className="text-xs text-gray-500">Arguments</div>
         </CardContent>
       </Card>
-      <Card className="surfacev2 panel-edge">
+      <Card className="surfacev2 panel-edge  px-5 py-1">
         <CardContent className="flex flex-col w-full items-center p-1">
-          <div className="text-2xl font-bold text-gray-900">{stats.byType.proposition || 0}</div>
+          <div className="text-lg font-bold text-gray-900">{stats.byType.proposition || 0}</div>
           <div className="text-xs text-gray-500">Propositions</div>
         </CardContent>
       </Card>
@@ -965,7 +965,7 @@ export function ThreadedDiscussionTab({
           <div className="flex items-center gap-2">
             {/* Quick action launchers to other tabs */}
             <Button 
-              
+               className="bg-white/50 h-full  text-md"
               title="View Argument Map"
               onClick={() => onTabChange?.("arguments")}
             >
@@ -973,7 +973,8 @@ export function ThreadedDiscussionTab({
               Map
             </Button>
             <Button 
-              
+                           className="bg-white/50 h-full  text-md"
+
               title="View Ludics"
               onClick={() => onTabChange?.("ludics")}
             >
@@ -981,7 +982,8 @@ export function ThreadedDiscussionTab({
               Ludics
             </Button>
             <Button 
-              
+                           className="bg-white/50 h-full  text-md"
+
               title="View Analytics"
               onClick={() => onTabChange?.("analytics")}
             >
@@ -989,13 +991,16 @@ export function ThreadedDiscussionTab({
               Analytics
             </Button>
             <Button 
-              
+                           className="bg-white/50 h-full  text-md"
+
               onClick={() => mutate()}
               title="Refresh discussion items"
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button  title="Export discussion">
+            <Button               className="bg-white/50 h-full  text-md "
+  title="Export discussion">
+                
               <Download className="w-4 h-4" />
             </Button>
           </div>

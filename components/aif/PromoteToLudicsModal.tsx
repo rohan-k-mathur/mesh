@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
-import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 import type { PromoteCommitmentRequest, PromoteCommitmentResponse } from "@/lib/aif/commitment-ludics-types";
 
@@ -31,7 +31,6 @@ export function PromoteToLudicsModal({
   commitment,
   onSuccess,
 }: PromoteToLudicsModalProps) {
-  const { toast } = Toaster();
   const [isPromoting, setIsPromoting] = useState(false);
   const [targetOwnerId, setTargetOwnerId] = useState<string>("Proponent");
   const [basePolarity, setBasePolarity] = useState<"pos" | "neg">("pos");
@@ -64,8 +63,7 @@ export function PromoteToLudicsModal({
         throw new Error(data.error || "Failed to promote commitment");
       }
 
-      toast({
-        title: "✓ Promoted to Ludics",
+      toast.success("✓ Promoted to Ludics", {
         description: `Commitment promoted as ${basePolarity === "pos" ? "fact" : "rule"} for ${targetOwnerId}`,
         duration: 3000,
       });
@@ -74,10 +72,8 @@ export function PromoteToLudicsModal({
       onClose();
     } catch (error) {
       console.error("Error promoting commitment:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to promote commitment",
-        variant: "destructive",
+      toast.error("Failed to promote commitment", {
+        description: error instanceof Error ? error.message : "An error occurred",
         duration: 5000,
       });
     } finally {

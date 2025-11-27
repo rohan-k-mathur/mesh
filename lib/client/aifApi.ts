@@ -99,12 +99,25 @@ export async function createArgument(payload: {
   justification?: string;  // Justification for scheme selection
   ruleType?: 'STRICT' | 'DEFEASIBLE';  // ASPIC+ Phase 1b.3: Rule type
   ruleName?: string;  // ASPIC+ Phase 1b.3: Optional rule name
+  bypassContradictionCheck?: boolean;  // Allow bypassing contradiction warnings
 }) {
   const res = await fetch('/api/arguments', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
+  
+  // Handle contradiction detection (409 status)
+  if (res.status === 409) {
+    const j = await res.json();
+    // Throw a special error that includes contradiction data
+    const error = new Error('Contradiction detected') as any;
+    error.isContradiction = true;
+    error.contradictions = j.contradictions;
+    error.message = j.message || 'Your conclusion contradicts an existing commitment';
+    throw error;
+  }
+  
   const j = await asJson<{ argumentId: string }>(res);
   return j.argumentId;
 }

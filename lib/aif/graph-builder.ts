@@ -566,6 +566,7 @@ async function computeCommitmentStores(
   // Phase 2 Optimization: Single query with joins instead of 3 separate queries
   // This reduces database round-trips from 3 to 1
   // Phase 4 Enhancement: Add CommitmentLudicMapping join for promotion status
+  // Phase 4.3: Also fetch conclusion claims for arguments (ASSERT argument = commitment to conclusion)
   const movesWithData = await prisma.$queryRaw<Array<{
     move_id: string;
     move_kind: string;
@@ -575,6 +576,8 @@ async function computeCommitmentStores(
     move_created_at: Date;
     user_name: string | null;
     claim_text: string | null;
+    argument_conclusion_id: string | null;
+    argument_conclusion_text: string | null;
     mapping_id: string | null;
     promoted_at: Date | null;
     ludic_owner_id: string | null;
@@ -589,6 +592,8 @@ async function computeCommitmentStores(
       dm."createdAt" as move_created_at,
       u.name as user_name,
       c.text as claim_text,
+      arg."conclusionClaimId" as argument_conclusion_id,
+      arg_claim.text as argument_conclusion_text,
       clm.id as mapping_id,
       clm."promotedAt" as promoted_at,
       clm."ludicOwnerId" as ludic_owner_id,
@@ -601,10 +606,12 @@ async function computeCommitmentStores(
       END
     )
     LEFT JOIN "Claim" c ON dm."targetId" = c.id AND dm."targetType" = 'claim'
+    LEFT JOIN "Argument" arg ON dm."targetId" = arg.id AND dm."targetType" = 'argument'
+    LEFT JOIN "Claim" arg_claim ON arg."conclusionClaimId" = arg_claim.id
     LEFT JOIN "CommitmentLudicMapping" clm 
       ON clm."deliberationId" = dm."deliberationId" 
       AND clm."participantId" = dm."actorId"
-      AND c.text = clm.proposition
+      AND (c.text = clm.proposition OR arg_claim.text = clm.proposition)
     LEFT JOIN "LudicCommitmentElement" lce 
       ON clm."ludicCommitmentElementId" = lce.id
     WHERE dm."deliberationId" = ${deliberationId}
@@ -657,15 +664,25 @@ async function computeCommitmentStores(
     const store = storesByParticipant.get(actorId)!;
     const activeSet = activeCommitments.get(actorId)!;
 
+    // Determine the claim ID and text based on target type
+    let claimId: string | null = null;
+    let claimText: string | null = null;
+    
+    if (row.move_target_type === "claim" && row.move_target_id) {
+      claimId = row.move_target_id;
+      claimText = row.claim_text || claimId;
+    } else if (row.move_target_type === "argument" && row.argument_conclusion_id) {
+      // ASSERT argument = commitment to its conclusion
+      claimId = row.argument_conclusion_id;
+      claimText = row.argument_conclusion_text || claimId;
+    }
+
     // Process commitment-relevant moves
     if (
       ["ASSERT", "CONCEDE", "THEREFORE"].includes(row.move_kind) &&
-      row.move_target_type === "claim" &&
-      row.move_target_id
+      claimId &&
+      claimText
     ) {
-      const claimId = row.move_target_id;
-      const claimText = row.claim_text || claimId;
-
       // Add to active set
       activeSet.add(claimId);
 
@@ -685,10 +702,7 @@ async function computeCommitmentStores(
     }
 
     // Handle retractions
-    if (row.move_kind === "RETRACT" && row.move_target_type === "claim" && row.move_target_id) {
-      const claimId = row.move_target_id;
-      const claimText = row.claim_text || claimId;
-
+    if (row.move_kind === "RETRACT" && claimId && claimText) {
       // Remove from active set
       activeSet.delete(claimId);
 

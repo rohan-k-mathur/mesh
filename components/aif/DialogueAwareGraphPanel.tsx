@@ -172,7 +172,7 @@ function DefaultGraphRenderer({
 export function DialogueAwareGraphPanel({
   deliberationId,
   renderGraph,
-  showCommitmentStore = true,
+  showCommitmentStore = false,
   showAdvancedFilters = true,
   initialState,
   initialShowDialogue,
@@ -201,7 +201,7 @@ export function DialogueAwareGraphPanel({
   const commitmentUrl = controlState.showDialogue 
     ? `/api/aif/dialogue/${deliberationId}/commitments${controlState.participantFilter ? `?participantId=${controlState.participantFilter}` : ""}`
     : null;
-  const { data: commitmentData, error: commitmentError, isLoading: commitmentLoading } = useSWR(
+  const { data: commitmentData, error: commitmentError, isLoading: commitmentLoading, mutate: commitmentMutate } = useSWR(
     commitmentUrl,
     fetcher,
     {
@@ -381,10 +381,12 @@ export function DialogueAwareGraphPanel({
           {commitmentData && Array.isArray(commitmentData) && commitmentData.length > 0 && (
             <CommitmentStorePanel
               stores={commitmentData}
+              deliberationId={deliberationId}
               onClaimClick={(claimId) => {
                 console.log("Clicked claim:", claimId);
                 // TODO: Navigate to claim in graph or open claim detail
               }}
+              onRefresh={() => commitmentMutate()}
               showTimeline={false}
             />
           )}

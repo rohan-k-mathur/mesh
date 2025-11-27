@@ -164,7 +164,7 @@ function CommitmentsTabContent({
   deliberationId: string; 
   onClaimClick: (claimId: string) => void;
 }) {
-  const { data: commitmentData, error: commitmentError, isLoading: commitmentLoading } = useSWR(
+  const { data: commitmentData, error: commitmentError, isLoading: commitmentLoading, mutate: commitmentMutate } = useSWR(
     `/api/aif/dialogue/${deliberationId}/commitments`,
     fetcher,
     {
@@ -214,7 +214,9 @@ function CommitmentsTabContent({
       ) : (
         <CommitmentStorePanel 
           stores={commitmentData}
+          deliberationId={deliberationId}
           onClaimClick={onClaimClick}
+          onRefresh={() => commitmentMutate()}
           showTimeline={true}
           className="border-0 shadow-none"
         />

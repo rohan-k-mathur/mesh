@@ -8,6 +8,8 @@ import { TargetType } from '@prisma/client';
 import { inferAndAssignScheme } from '@/lib/argumentation/schemeInference';
 import { ensureArgumentSupportInTx } from '@/lib/arguments/ensure-support';
 import { markArgumentAsComposedInTx } from '@/lib/arguments/detect-composition';
+import { checkNewCommitmentContradictions } from '@/lib/aif/dialogue-contradictions';
+import { getCommitmentStores } from '@/lib/aif/graph-builder';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 /**
@@ -289,6 +291,76 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
         },
       }
     });
+    
+    // Also create a commitment for the conclusion claim (for contradiction detection)
+    // Get the conclusion claim text
+    const conclusionClaim = await prisma.claim.findUnique({
+      where: { id: conclusionClaimId },
+      select: { text: true }
+    });
+    
+    if (conclusionClaim) {
+      // Check for contradictions BEFORE creating commitment
+      // Get existing commitments for this participant
+      const commitmentStoresResult = await getCommitmentStores(
+        deliberationId, 
+        String(authorId)
+      );
+      
+      // Extract the data array from the result
+      const commitmentStores = Array.isArray(commitmentStoresResult) 
+        ? commitmentStoresResult 
+        : commitmentStoresResult.data || [];
+      
+      const myCommitments = commitmentStores.find(
+        store => store.participantId === String(authorId)
+      )?.commitments || [];
+      
+      // Check if new conclusion contradicts existing commitments
+      const contradictions = checkNewCommitmentContradictions(
+        conclusionClaim.text,
+        myCommitments
+      );
+      
+      // If contradictions found and user hasn't bypassed the check, return 409
+      const bypassCheck = b.bypassContradictionCheck === true;
+      if (contradictions.length > 0 && !bypassCheck) {
+        console.log(`[arguments/POST] Contradiction detected for: "${conclusionClaim.text}"`);
+        return NextResponse.json({
+          ok: false,
+          error: 'contradiction_detected',
+          contradictions: contradictions.map(c => ({
+            existingClaim: c.claimA.id === 'temp-new-claim' ? c.claimB : c.claimA,
+            newClaim: {
+              text: conclusionClaim.text,
+            },
+            reason: c.reason,
+            confidence: c.confidence,
+            type: c.type,
+          })),
+          message: 'Your conclusion contradicts an existing commitment. Please review.',
+        }, { status: 409, ...NO_STORE });
+      }
+      
+      // Create commitment record (if not already exists)
+      try {
+        await prisma.commitment.create({
+          data: {
+            deliberationId,
+            participantId: String(authorId),
+            proposition: conclusionClaim.text,
+          }
+        });
+        console.log(`[arguments/POST] Created commitment for conclusion: "${conclusionClaim.text}"`);
+      } catch (err: any) {
+        // Ignore if commitment already exists (duplicate key error)
+        if (err.code === 'P2002') {
+          console.log(`[arguments/POST] Commitment already exists for: "${conclusionClaim.text}"`);
+        } else {
+          console.error('[arguments/POST] Failed to create commitment:', err);
+        }
+      }
+    }
   } catch (err) {
     console.error('[arguments/POST] Failed to create dialogue move:', err);
     // Non-fatal - argument is already created

@@ -16,7 +16,8 @@ import { validateMove } from '@/lib/dialogue/validate';
  import { onDialogueMove } from '@/lib/issues/hooks';
 import type { MoveKind } from '@/lib/dialogue/types';
 import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
-import { invalidateCommitmentStoresCache } from '@/lib/aif/graph-builder';
+import { invalidateCommitmentStoresCache, getCommitmentStores } from '@/lib/aif/graph-builder';
+import { checkNewCommitmentContradictions, type Contradiction } from '@/lib/aif/dialogue-contradictions';
 
 function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
 const WHY_TTL_HOURS = 24;
@@ -442,6 +443,53 @@ try {
 
   const prop = await resolveProposition();
 
+// ✨ PHASE 4: Contradiction detection for ASSERT moves
+// Check if new commitment would contradict existing commitments
+let detectedContradictions: Contradiction[] = [];
+if (prop && kind === 'ASSERT' && !wasConcede && !wasAccept) {
+  try {
+    // Get existing commitments for this participant
+    const storesResult = await getCommitmentStores(deliberationId);
+    if (storesResult.ok) {
+      const participantStore = storesResult.data.find(s => s.participantId === actorId);
+      if (participantStore) {
+        // Convert to simple commitment records
+        const existingCommitments = participantStore.commitments
+          .filter(c => !c.retractedAt) // Only active commitments
+          .map(c => ({
+            claimId: c.claimId,
+            claimText: c.claimText,
+            moveId: c.moveId,
+            moveKind: c.moveKind,
+            timestamp: c.timestamp,
+            isActive: true,
+          }));
+        
+        // Check for contradictions with new claim
+        detectedContradictions = checkNewCommitmentContradictions(prop, existingCommitments);
+        
+        // If contradictions found AND bypassContradictionCheck is not set, return them
+        if (detectedContradictions.length > 0 && !payload?.bypassContradictionCheck) {
+          return NextResponse.json({
+            ok: false,
+            error: 'CONTRADICTION_DETECTED',
+            contradictions: detectedContradictions,
+            newCommitment: {
+              text: prop,
+              targetId: actualTargetId,
+              targetType: actualTargetType,
+            },
+            message: `This claim contradicts ${detectedContradictions.length} of your existing commitments.`,
+          }, { status: 409 });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[dialogue/move] Contradiction check failed:', error);
+    // Don't block the move if contradiction check fails
+  }
+}
+
 if (prop) {
   if (wasConcede) {
     await prisma.commitment.upsert({
@@ -564,7 +612,13 @@ if (prop) {
     await onDialogueMove({ deliberationId, targetType, targetId, kind, payload });
     emitBus('issues:changed', { deliberationId });
   } catch {}
-  return NextResponse.json({ ok: true, move, step, dedup });
+  return NextResponse.json({ 
+    ok: true, 
+    move, 
+    step, 
+    dedup,
+    contradictionsBypassed: detectedContradictions.length > 0 ? detectedContradictions : undefined,
+  });
 }
 
 

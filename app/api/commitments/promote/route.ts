@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
         ludicCommitmentElementId,
         ludicOwnerId: targetOwnerId,
         ludicLocusId: ludicElement.baseLocusId,
-        promotedBy: userId,
+        promotedBy: String(userId),
         promotionContext: {
           sourcePanel: "API",
           timestamp: new Date().toISOString(),

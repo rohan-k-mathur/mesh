@@ -1,14 +1,15 @@
 // components/aif/CommitmentStorePanel.tsx
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent, TabsListDropdown } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, User, History, ArrowRight, Link2 } from "lucide-react";
+import { CheckCircle2, XCircle, User, History, ArrowRight, Link2, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PromoteToLudicsModal } from "./PromoteToLudicsModal";
 import type { PromoteCommitmentResponse } from "@/lib/aif/commitment-ludics-types";
+import { detectContradictions, getContradictionsForClaim, getContradictingClaim, type Contradiction } from "@/lib/aif/dialogue-contradictions";
 
 /**
  * CommitmentStorePanel Component
@@ -37,7 +38,7 @@ export interface CommitmentRecord {
   claimText: string;
   moveId: string;
   moveKind: "ASSERT" | "CONCEDE" | "RETRACT";
-  timestamp: string;
+  timestamp: string | Date;
   isActive: boolean; // false if retracted
   isPromoted?: boolean; // promoted to Ludics
   promotedAt?: string;
@@ -79,13 +80,17 @@ function CommitmentItem({
   onClick,
   onPromote,
   deliberationId,
-  participantId
+  participantId,
+  contradictions = [],
+  allContradictions = []
 }: {
   record: CommitmentRecord;
   onClick?: () => void;
   onPromote?: (commitment: { participantId: string; proposition: string; claimId: string; claimText: string }) => void;
   deliberationId?: string;
   participantId?: string;
+  contradictions?: Contradiction[];
+  allContradictions?: Contradiction[];
 }) {
   const moveIcons = {
     ASSERT: <CheckCircle2 className="h-3 w-3 text-sky-600" />,
@@ -101,6 +106,12 @@ function CommitmentItem({
   });
 
   const canPromote = record.isActive && !record.isPromoted && deliberationId && participantId && onPromote;
+  const hasContradiction = contradictions.length > 0;
+  
+  // Get contradicting claims for tooltip
+  const contradictingClaims = contradictions.map(c => 
+    getContradictingClaim(record.claimId, c)
+  ).filter(Boolean);
 
   return (
     <TooltipProvider>
@@ -111,7 +122,9 @@ function CommitmentItem({
               className={`
                 p-2 rounded border text-sm
                 ${record.isActive 
-                  ? "bg-white border-gray-200 hover:border-sky-300" 
+                  ? hasContradiction
+                    ? "bg-amber-50 border-amber-300 hover:border-amber-400"
+                    : "bg-white border-gray-200 hover:border-sky-300"
                   : "bg-gray-50 border-gray-300 opacity-60 line-through"
                 }
                 ${onClick ? "cursor-pointer" : ""}
@@ -126,6 +139,9 @@ function CommitmentItem({
                 <span className="flex-1 text-gray-800">
                   {record.claimText}
                 </span>
+                {hasContradiction && (
+                  <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                )}
                 {record.isPromoted && (
                   <Badge variant="secondary" className="text-[9px] bg-sky-100 text-sky-700 border-sky-200 flex items-center gap-1">
                     <Link2 className="h-2.5 w-2.5" />
@@ -135,7 +151,7 @@ function CommitmentItem({
               </div>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top" className="bg-gray-900 text-white border-gray-800">
+          <TooltipContent side="top" className="bg-gray-900 text-white border-gray-800 max-w-md">
             <div className="space-y-1 text-xs">
               <div className="font-semibold">
                 {record.moveKind === "ASSERT" && "Asserted"}
@@ -145,6 +161,24 @@ function CommitmentItem({
               <div className="text-gray-400">{formattedTime}</div>
               {!record.isActive && (
                 <div className="text-red-400">No longer committed</div>
+              )}
+              {hasContradiction && (
+                <div className="text-amber-400 border-t border-gray-700 pt-1 mt-1">
+                  <div className="font-semibold flex items-center gap-1 mb-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    ⚠️ Contradiction Detected
+                  </div>
+                  {contradictingClaims.map((claim, idx) => (
+                    <div key={idx} className="text-gray-300 text-[11px] mt-1">
+                      Contradicts: "{claim?.text}"
+                    </div>
+                  ))}
+                  {contradictions.length > 0 && (
+                    <div className="text-amber-300 text-[10px] mt-1">
+                      Confidence: {(contradictions[0].confidence * 100).toFixed(0)}%
+                    </div>
+                  )}
+                </div>
               )}
               {record.isPromoted && (
                 <div className="text-sky-400 border-t border-gray-700 pt-1 mt-1">
@@ -158,10 +192,10 @@ function CommitmentItem({
         {/* Promote Button */}
         {canPromote && (
           <Button
-       
+            variant="outline"
             className="w-full text-xs h-7 text-sky-600 border-sky-200 hover:bg-sky-50 hover:text-sky-700"
             onClick={() => onPromote({
-              participantId,
+              participantId: participantId!,
               proposition: record.claimText,
               claimId: record.claimId,
               claimText: record.claimText
@@ -253,6 +287,33 @@ export function CommitmentStorePanel({
     commitment: { participantId: string; proposition: string; claimId: string; claimText: string } | null;
   }>({ isOpen: false, commitment: null });
 
+  // Detect contradictions for all participants
+  const participantContradictions = useMemo(() => {
+    const result = new Map<string, Contradiction[]>();
+    
+    stores.forEach(store => {
+      // Convert timestamp strings to Date objects for contradiction detection
+      const commitmentsWithDates = store.commitments.map(c => ({
+        ...c,
+        timestamp: typeof c.timestamp === "string" ? new Date(c.timestamp) : c.timestamp
+      }));
+      
+      const contradictions = detectContradictions(commitmentsWithDates);
+      result.set(store.participantId, contradictions);
+    });
+    
+    return result;
+  }, [stores]);
+
+  // Count total contradictions across all participants
+  const totalContradictions = useMemo(() => {
+    let count = 0;
+    participantContradictions.forEach(contradictions => {
+      count += contradictions.length;
+    });
+    return count;
+  }, [participantContradictions]);
+
   const handleOpenPromoteModal = (commitment: { participantId: string; proposition: string; claimId: string; claimText: string }) => {
     setPromotionModal({ isOpen: true, commitment });
   };
@@ -268,12 +329,16 @@ export function CommitmentStorePanel({
   };
 
   const selectedStore = stores.find(s => s.participantId === selectedParticipant);
+  const selectedContradictions = selectedParticipant 
+    ? participantContradictions.get(selectedParticipant) || []
+    : [];
 
   // Calculate statistics
   const stats = selectedStore ? {
     total: selectedStore.commitments.length,
     active: selectedStore.commitments.filter(c => c.isActive).length,
-    retracted: selectedStore.commitments.filter(c => !c.isActive).length
+    retracted: selectedStore.commitments.filter(c => !c.isActive).length,
+    contradictions: selectedContradictions.length
   } : null;
 
   if (stores.length === 0) {
@@ -300,7 +365,13 @@ export function CommitmentStorePanel({
         <CardTitle className="text-sm flex items-center gap-2">
           <User className="h-4 w-4" />
           Commitment Stores
-          {stats && (
+          {totalContradictions > 0 && (
+            <Badge variant="destructive" className="ml-auto text-[10px] bg-amber-100 text-amber-800 border-amber-300 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {totalContradictions} contradiction{totalContradictions !== 1 ? "s" : ""}
+            </Badge>
+          )}
+          {stats && totalContradictions === 0 && (
             <Badge variant="secondary" className="ml-auto text-[10px]">
               {stats.active} active
             </Badge>
@@ -359,7 +430,13 @@ export function CommitmentStorePanel({
 
               {/* Statistics */}
               {stats && (
-                <div className="flex gap-2 mb-3 text-xs">
+                <div className="flex gap-2 mb-3 text-xs flex-wrap">
+                  {stats.contradictions > 0 && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {stats.contradictions} contradiction{stats.contradictions !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
                   <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
                     {stats.active} active
                   </Badge>
@@ -368,6 +445,23 @@ export function CommitmentStorePanel({
                       {stats.retracted} retracted
                     </Badge>
                   )}
+                </div>
+              )}
+
+              {/* Contradiction Summary */}
+              {selectedContradictions.length > 0 && (
+                <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                  <div className="font-semibold text-amber-800 mb-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Contradictions Detected
+                  </div>
+                  <div className="text-amber-700 space-y-1">
+                    {selectedContradictions.map((contradiction, idx) => (
+                      <div key={idx} className="text-[11px]">
+                        • {contradiction.reason}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -383,16 +477,25 @@ export function CommitmentStorePanel({
                     {/* Active commitments first */}
                     {store.commitments
                       .filter(c => c.isActive)
-                      .map((record, idx) => (
-                        <CommitmentItem
-                          key={`${record.moveId}-${idx}`}
-                          record={record}
-                          onClick={() => onClaimClick?.(record.claimId)}
-                          onPromote={deliberationId ? handleOpenPromoteModal : undefined}
-                          deliberationId={deliberationId}
-                          participantId={store.participantId}
-                        />
-                      ))}
+                      .map((record, idx) => {
+                        const recordContradictions = getContradictionsForClaim(
+                          record.claimId,
+                          selectedContradictions
+                        );
+                        
+                        return (
+                          <CommitmentItem
+                            key={`${record.moveId}-${idx}`}
+                            record={record}
+                            onClick={() => onClaimClick?.(record.claimId)}
+                            onPromote={deliberationId ? handleOpenPromoteModal : undefined}
+                            deliberationId={deliberationId}
+                            participantId={store.participantId}
+                            contradictions={recordContradictions}
+                            allContradictions={selectedContradictions}
+                          />
+                        );
+                      })}
                     
                     {/* Retracted commitments (if any) */}
                     {store.commitments.filter(c => !c.isActive).length > 0 && (
@@ -410,6 +513,8 @@ export function CommitmentStorePanel({
                               onPromote={undefined}
                               deliberationId={deliberationId}
                               participantId={store.participantId}
+                              contradictions={[]}
+                              allContradictions={selectedContradictions}
                             />
                           ))}
                       </>
