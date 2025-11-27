@@ -196,16 +196,6 @@ export default function LudicsPanel({
     designs[1] ??
     designs[0];
 
-  // Fetch Ludics insights (Phase 1: Week 2)
-  const { data: insightsData, isLoading: insightsLoading } = useSWR<{
-    ok: boolean;
-    insights: LudicsInsights | null;
-  }>(
-    `/api/ludics/insights?deliberationId=${deliberationId}`,
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60000 } // Cache for 1 min client-side
-  );
-
   // Panel local UI state
   const [trace, setTrace] = React.useState<StepResult | null>(null);
   const [badges, setBadges] = React.useState<Record<number, string>>({});
@@ -221,6 +211,54 @@ export default function LudicsPanel({
   );
   const [commitOpen, setCommitOpen] = React.useState(false);
   const [commitPath, setCommitPath] = React.useState<string | null>(null);
+
+  // Scoped designs state (Phase 4 integration)
+  const [scopingStrategy, setScopingStrategy] = React.useState<
+    "legacy" | "topic" | "actor-pair" | "argument"
+  >("legacy");
+  const [activeScope, setActiveScope] = React.useState<string | null>(null);
+
+  // Compute scopes and labels
+  const scopes = React.useMemo(() => {
+    const scopeSet = new Set<string>();
+    designs.forEach((d: any) => {
+      const scope = d.scope ?? "legacy";
+      scopeSet.add(scope);
+    });
+    return Array.from(scopeSet);
+  }, [designs]);
+
+  const scopeLabels = React.useMemo(() => {
+    const labels: Record<string, string> = {};
+    designs.forEach((d: any) => {
+      const scope = d.scope ?? "legacy";
+      if (scope === "legacy") {
+        labels[scope] = "Legacy (All)";
+      } else if (d.scopeMetadata?.label) {
+        labels[scope] = d.scopeMetadata.label;
+      } else {
+        labels[scope] = scope;
+      }
+    });
+    return labels;
+  }, [designs]);
+
+  // Auto-select first scope if activeScope is null
+  React.useEffect(() => {
+    if (scopes.length > 0 && !activeScope) {
+      setActiveScope(scopes[0]);
+    }
+  }, [scopes, activeScope]);
+
+  // Fetch Ludics insights (Phase 1: Week 2)
+  const { data: insightsData, isLoading: insightsLoading } = useSWR<{
+    ok: boolean;
+    insights: LudicsInsights | null;
+  }>(
+    `/api/ludics/insights?deliberationId=${deliberationId}`,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60000 } // Cache for 1 min client-side
+  );
 
   const [showAttach, setShowAttach] = React.useState(false);
   const [attachLoading, setAttachLoading] = React.useState(false);
@@ -400,33 +438,54 @@ const suggestClose = React.useCallback((path: string) => {
       compRef.current = true;
       setBusy("compile");
       try {
-        const r = await fetch("/api/ludics/compile-step", {
+        // Use new /api/ludics/compile endpoint with scopingStrategy
+        const compileRes = await fetch("/api/ludics/compile", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ deliberationId, phase: p }),
-        })
-          .then((r) => r.json())
-          .catch(() => null);
+          body: JSON.stringify({
+            deliberationId,
+            scopingStrategy,
+            forceRecompile: true,
+          }),
+        }).then((r) => r.json());
 
-        if (r?.trace) {
-          setTrace({
-            steps: r.trace.pairs ?? [],
-            status: r.trace.status,
-            endedAtDaimonForParticipantId:
-              r.trace.endedAtDaimonForParticipantId,
-            endorsement: r.trace.endorsement,
-            decisiveIndices: r.trace.decisiveIndices,
-            usedAdditive: r.trace.usedAdditive,
-          });
+        if (!compileRes.ok) {
+          toast.show(compileRes.error || "Compilation failed", "err");
+          return;
+        }
+
+        // Sync to AIF
+        await fetch("/api/ludics/sync-to-aif", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ deliberationId }),
+        }).catch(() => {
+          console.warn("[LudicsPanel] AIF sync failed (non-fatal)");
+        });
+
+        // Invalidate insights cache
+        await fetch("/api/ludics/insights/invalidate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ deliberationId }),
+        }).catch(() => {
+          console.warn("[LudicsPanel] Cache invalidation failed (non-fatal)");
+        });
+
+        // Step the active scope if available
+        await mutateDesigns();
+        
+        // Auto-step after compilation if we have designs
+        if (activeScope) {
+          await step();
         }
       } finally {
         compRef.current = false;
         setBusy(false);
         lastCompileAt.current = Date.now();
-        mutateDesigns();
       }
     },
-    [deliberationId, phase, mutateDesigns]
+    [deliberationId, phase, mutateDesigns, scopingStrategy, activeScope, toast]
   );
   const compileStepRef = React.useRef(compileStep);
   React.useEffect(() => {
@@ -453,12 +512,34 @@ const suggestClose = React.useCallback((path: string) => {
     if (!designs?.length) return;
     setBusy("step");
     try {
-      const pos =
-        designs.find((d: any) => d.participantId === "Proponent") ?? designs[0];
-      const neg =
-        designs.find((d: any) => d.participantId === "Opponent") ??
-        designs[1] ??
-        designs[0];
+      // Filter designs by active scope
+      const scopeDesigns = designs.filter(
+        (d: any) => (d.scope ?? "legacy") === activeScope
+      );
+
+      if (scopeDesigns.length === 0) {
+        toast.show(
+          `No designs found for scope: ${scopeLabels[activeScope ?? "legacy"] || activeScope}`,
+          "err"
+        );
+        return;
+      }
+
+      const pos = scopeDesigns.find(
+        (d: any) => d.participantId === "Proponent"
+      );
+      const neg = scopeDesigns.find(
+        (d: any) => d.participantId === "Opponent"
+      );
+
+      if (!pos || !neg) {
+        toast.show(
+          `No P/O pair found for scope: ${scopeLabels[activeScope ?? "legacy"] || activeScope}`,
+          "err"
+        );
+        return;
+      }
+
       const res = await fetch("/api/ludics/step", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -476,11 +557,12 @@ const suggestClose = React.useCallback((path: string) => {
         decisiveIndices: res.decisiveIndices,
         usedAdditive: res.usedAdditive,
       });
-      toast.show("Stepped", "ok");
+      const scopeLabel = scopeLabels[activeScope ?? "legacy"] || activeScope;
+      toast.show(`Stepped scope: ${scopeLabel}`, "ok");
     } finally {
       setBusy(false);
     }
-  }, [deliberationId, designs, toast]);
+  }, [deliberationId, designs, activeScope, scopeLabels, toast]);
 
   const appendDaimonToNext = React.useCallback(async () => {
     if (!designs?.length) return;
@@ -550,11 +632,19 @@ const suggestClose = React.useCallback((path: string) => {
     if (!designs?.length) return;
     setBusy("orth");
     try {
-      // Find Proponent and Opponent designs safely
-      const A = designs.find((d: any) => d.participantId === "Proponent") ?? designs[0];
-      const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1] ?? designs[0];
+      // Filter designs by active scope
+      const scopeDesigns = designs.filter(
+        (d: any) => (d.scope ?? "legacy") === activeScope
+      );
+
+      const A = scopeDesigns.find((d: any) => d.participantId === "Proponent");
+      const B = scopeDesigns.find((d: any) => d.participantId === "Opponent");
+      
       if (!A || !B) {
-        toast.show("Missing designs for orthogonality check", "err");
+        toast.show(
+          `Missing P/O pair for scope: ${scopeLabels[activeScope ?? "legacy"] || activeScope}`,
+          "err"
+        );
         return;
       }
       const r = await fetch(
@@ -573,15 +663,18 @@ const suggestClose = React.useCallback((path: string) => {
           usedAdditive: r.trace.usedAdditive,
         });
       }
+      const scopeLabel = scopeLabels[activeScope ?? "legacy"] || activeScope;
       toast.show(
-        r?.orthogonal ? "Orthogonal ✓" : "Not orthogonal",
+        r?.orthogonal
+          ? `Orthogonal ✓ (${scopeLabel})`
+          : `Not orthogonal (${scopeLabel})`,
         r?.orthogonal ? "ok" : "err"
       );
       refreshOrth();
     } finally {
       setBusy(false);
     }
-  }, [designs, deliberationId, toast, refreshOrth]);
+  }, [designs, deliberationId, activeScope, scopeLabels, toast, refreshOrth]);
 
   const analyzeNLI = React.useCallback(async () => {
     if (!trace || !designs?.length) return;
@@ -875,6 +968,45 @@ const suggestClose = React.useCallback((path: string) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Scoping Strategy Selector */}
+          <div className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2 py-1 text-[11px] backdrop-blur">
+            <label className="text-slate-600 font-medium">Strategy:</label>
+            <select
+              value={scopingStrategy}
+              onChange={(e) =>
+                setScopingStrategy(
+                  e.target.value as "legacy" | "topic" | "actor-pair" | "argument"
+                )
+              }
+              className="border-0 bg-transparent text-[11px] font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
+              disabled={!!busy}
+            >
+              <option value="legacy">Legacy</option>
+              <option value="topic">Topic</option>
+              <option value="actor-pair">Actor-Pair</option>
+              <option value="argument">Argument</option>
+            </select>
+          </div>
+
+          {/* Active Scope Selector (only show if multiple scopes) */}
+          {scopes.length > 1 && (
+            <div className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2 py-1 text-[11px] backdrop-blur">
+              <label className="text-slate-600 font-medium">Scope:</label>
+              <select
+                value={activeScope ?? ""}
+                onChange={(e) => setActiveScope(e.target.value || null)}
+                className="border-0 bg-transparent text-[11px] font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1 max-w-[200px]"
+                disabled={!!busy}
+              >
+                {scopes.map((scope) => (
+                  <option key={scope} value={scope}>
+                    {scopeLabels[scope] || scope}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <Segmented
             ariaLabel="Phase"
             value={phase}
@@ -904,6 +1036,7 @@ const suggestClose = React.useCallback((path: string) => {
             aria-label="Compile from moves"
             onClick={() => compileStep("neutral")}
             disabled={!!busy}
+            title={`Compile with ${scopingStrategy} scoping strategy`}
           >
             {busy === "compile" ? "Compiling…" : "Compile"}
           </button>
