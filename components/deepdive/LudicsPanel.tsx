@@ -484,10 +484,15 @@ const suggestClose = React.useCallback((path: string) => {
 
   const appendDaimonToNext = React.useCallback(async () => {
     if (!designs?.length) return;
+    // Need at least 2 designs (Proponent and Opponent)
+    const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1];
+    if (!B) {
+      toast.show("No Opponent design found", "err");
+      return;
+    }
     setBusy("append");
     try {
-      const [, B] = designs;
-      await fetch("/api/ludics/acts", {
+      const res = await fetch("/api/ludics/acts", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -496,11 +501,18 @@ const suggestClose = React.useCallback((path: string) => {
           acts: [{ kind: "DAIMON" }],
         }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to append daimon");
+      }
+      toast.show("Daimon appended", "ok");
       await step();
+    } catch (e: any) {
+      toast.show(e?.message || "Append failed", "err");
     } finally {
       setBusy(false);
     }
-  }, [designs, step]);
+  }, [designs, step, toast]);
 
   const pickAdditive = React.useCallback(
     async (parentPath: string, child: string) => {
@@ -538,7 +550,13 @@ const suggestClose = React.useCallback((path: string) => {
     if (!designs?.length) return;
     setBusy("orth");
     try {
-      const [A, B] = designs;
+      // Find Proponent and Opponent designs safely
+      const A = designs.find((d: any) => d.participantId === "Proponent") ?? designs[0];
+      const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1] ?? designs[0];
+      if (!A || !B) {
+        toast.show("Missing designs for orthogonality check", "err");
+        return;
+      }
       const r = await fetch(
         `/api/ludics/orthogonal?dialogueId=${encodeURIComponent(
           deliberationId
@@ -569,14 +587,20 @@ const suggestClose = React.useCallback((path: string) => {
     if (!trace || !designs?.length) return;
     setBusy("nli");
     try {
-      const pairs = (trace.steps ?? []).map((p) => ({
+      const pairs = (trace.pairs ?? []).map((p) => ({
         premise: String(byAct.get(p.posActId)?.expression ?? ""),
         hypothesis: String(byAct.get(p.negActId)?.expression ?? ""),
-      }));
+      })).filter(p => p.premise && p.hypothesis); // Filter out empty pairs
+      
+      if (pairs.length === 0) {
+        toast.show("No valid pairs to analyze", "err");
+        return;
+      }
+      
       const res = await fetch("/api/nli/batch", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items: pairs }),
+        body: JSON.stringify({ pairs }), // Fixed: was 'items', API expects 'pairs'
       }).then((r) => r.json());
 
       const TAU = Number(process.env.NEXT_PUBLIC_CQ_NLI_THRESHOLD ?? "0.72");
@@ -592,11 +616,25 @@ const suggestClose = React.useCallback((path: string) => {
   }, [trace, designs, byAct]);
 
   const checkStable = React.useCallback(async () => {
-    const res = await fetch(
-      `/api/af/stable?deliberationId=${encodeURIComponent(deliberationId)}`
-    ).then((r) => r.json());
-    setStable(res.count ?? 0);
-  }, [deliberationId]);
+    setBusy("orth"); // Reuse busy state
+    try {
+      const res = await fetch(
+        `/api/af/stable?deliberationId=${encodeURIComponent(deliberationId)}`
+      ).then((r) => r.json());
+      
+      if (!res.ok) {
+        toast.show(res.error || "Failed to compute stable sets", "err");
+        return;
+      }
+      
+      setStable(res.count ?? 0);
+      toast.show(`Found ${res.count ?? 0} stable extension(s)`, "ok");
+    } catch (e: any) {
+      toast.show("Stable sets computation failed", "err");
+    } finally {
+      setBusy(false);
+    }
+  }, [deliberationId, toast]);
 
   // Build prefix path up to index i from the trace, as (pol,locus) acts:
   const prefixActs = React.useCallback(
@@ -651,7 +689,8 @@ const suggestClose = React.useCallback((path: string) => {
   const onForceConcession = React.useCallback(
     async (locus: string, text: string) => {
       if (!designs?.length) return;
-      const [, B] = designs;
+      const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1];
+      if (!B) return;
       await fetch("/api/ludics/judge/force", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -671,7 +710,8 @@ const suggestClose = React.useCallback((path: string) => {
   const onCloseBranch = React.useCallback(
     async (locus: string) => {
       if (!designs?.length) return;
-      const [, B] = designs;
+      const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1];
+      if (!B) return;
       await fetch("/api/ludics/judge/force", {
         method: "POST",
         headers: { "content-type": "application/json" },

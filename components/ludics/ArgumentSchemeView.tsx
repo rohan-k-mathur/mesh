@@ -71,12 +71,12 @@ export function ArgumentSchemeView({ acts, participantId }: Props) {
   }
 
   return (
-    <div className="argument-scheme-view space-y-4 p-4">
+    <div className="argument-scheme-view space-y-1 px-2">
       {/* Header */}
-      <div className={`flex items-center gap-2 pb-2 border-b ${
+      <div className={`flex items-center gap-2 pb-1 border-b ${
         isProp ? 'border-emerald-200' : 'border-rose-200'
       }`}>
-        <div className={`text-lg font-semibold ${
+        <div className={`text-xs font-semibold ${
           isProp ? 'text-emerald-700' : 'text-rose-700'
         }`}>
           {participantId}'s Arguments
@@ -86,15 +86,15 @@ export function ArgumentSchemeView({ acts, participantId }: Props) {
       {/* Claims Section */}
       {claims.length > 0 && (
         <div className="claims-section">
-          <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-            <span className="text-lg">💬</span>
+          <h3 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-2">
+            
             Claims ({claims.length})
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-1">
             {claims.map((claim, i) => (
               <div
                 key={claim.claimId}
-                className={`p-3 rounded-lg border ${
+                className={`p-1 rounded-lg border ${
                   isProp 
                     ? 'bg-emerald-50 border-emerald-200' 
                     : 'bg-rose-50 border-rose-200'
@@ -105,9 +105,9 @@ export function ArgumentSchemeView({ acts, participantId }: Props) {
                     {i + 1}.
                   </span>
                   <div className="flex-1">
-                    <div className="text-sm text-slate-800">{claim.text}</div>
+                    <div className="text-xs text-slate-800">{claim.text}</div>
                     {claim.moid && (
-                      <div className="text-xs text-slate-500 mt-1 font-mono">
+                      <div className="text-[10px] text-slate-500 mt-.5 font-mono">
                         {claim.moid}
                       </div>
                     )}

@@ -179,7 +179,7 @@ export function FloatingSheet({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden relative z-10">
-          <div className="p-3 mt-2 space-y-4">
+          <div className="p-3 mt-0 space-y-4">
             {children}
           </div>
         </div>

@@ -115,12 +115,12 @@ function CommitmentItem({
 
   return (
     <TooltipProvider>
-      <div className="space-y-1">
+      <div className=" border p-1 rounded-md border-indigo-300 flex justify-between items-start gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <div
               className={`
-                p-2 rounded border text-sm
+                flex items-center px-2 py-2 rounded-lg border text-xs
                 ${record.isActive 
                   ? hasContradiction
                     ? "bg-amber-50 border-amber-300 hover:border-amber-400"
@@ -191,9 +191,9 @@ function CommitmentItem({
 
         {/* Promote Button */}
         {canPromote && (
-          <Button
-            variant="outline"
-            className="w-full text-xs h-7 text-sky-600 border-sky-200 hover:bg-sky-50 hover:text-sky-700"
+          <button
+          
+            className="flex w-fit text-[11px] gap-2 items-center btnv2--ghost rounded-lg px-2 bg-white  py-2 whitespace-nowrap text-sky-800 border-sky-200 hover:bg-sky-50 hover:text-sky-700"
             onClick={() => onPromote({
               participantId: participantId!,
               proposition: record.claimText,
@@ -201,9 +201,9 @@ function CommitmentItem({
               claimText: record.claimText
             })}
           >
-            <ArrowRight className="h-3 w-3 mr-1" />
-            Promote to Ludics
-          </Button>
+            <ArrowRight className="flex h-3 w-3 " />
+            Add to Ludics
+          </button>
         )}
       </div>
     </TooltipProvider>
@@ -361,21 +361,11 @@ export function CommitmentStorePanel({
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-sm flex items-center gap-2">
+      <CardHeader className="p-3">
+        <CardTitle className="text-sm  flex items-center gap-2">
           <User className="h-4 w-4" />
           Commitment Stores
-          {totalContradictions > 0 && (
-            <Badge variant="destructive" className="ml-auto text-[10px] bg-amber-100 text-amber-800 border-amber-300 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              {totalContradictions} contradiction{totalContradictions !== 1 ? "s" : ""}
-            </Badge>
-          )}
-          {stats && totalContradictions === 0 && (
-            <Badge variant="secondary" className="ml-auto text-[10px]">
-              {stats.active} active
-            </Badge>
-          )}
+         
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -430,7 +420,7 @@ export function CommitmentStorePanel({
 
               {/* Statistics */}
               {stats && (
-                <div className="flex gap-2 mb-3 text-xs flex-wrap">
+                <div className="flex gap-2 mb-2 text-xs flex-wrap">
                   {stats.contradictions > 0 && (
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
@@ -448,25 +438,10 @@ export function CommitmentStorePanel({
                 </div>
               )}
 
-              {/* Contradiction Summary */}
-              {selectedContradictions.length > 0 && (
-                <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
-                  <div className="font-semibold text-amber-800 mb-1 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Contradictions Detected
-                  </div>
-                  <div className="text-amber-700 space-y-1">
-                    {selectedContradictions.map((contradiction, idx) => (
-                      <div key={idx} className="text-[11px]">
-                        • {contradiction.reason}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+             
 
               {/* Commitment list or timeline */}
-              <div className="h-[300px] overflow-y-auto pr-4">
+              <div className="h-full overflow-y-auto border border-slate-400 p-1 rounded-md">
                 {showTimeline ? (
                   <CommitmentTimeline
                     records={store.commitments}
@@ -522,6 +497,22 @@ export function CommitmentStorePanel({
                   </div>
                 )}
               </div>
+               {/* Contradiction Summary */}
+              {selectedContradictions.length > 0 && (
+                <div className="mb-0 mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                  <div className="font-semibold text-amber-800 mb-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Contradictions Detected
+                  </div>
+                  <div className="text-amber-700 space-y-1">
+                    {selectedContradictions.map((contradiction, idx) => (
+                      <div key={idx} className="text-[11px]">
+                        • {contradiction.reason}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>

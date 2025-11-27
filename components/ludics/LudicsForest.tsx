@@ -9,6 +9,17 @@ import type { StepResult } from '@/packages/ludics-core/types';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
+// Batch fetcher for semantic data
+const batchSemanticFetcher = async (designIds: string[]) => {
+  if (!designIds || designIds.length === 0) return { ok: true, designs: {} };
+  const res = await fetch('/api/ludics/designs/semantic/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ designIds }),
+  });
+  return res.json();
+};
+
 type ViewMode = 'forest' | 'split-screen' | 'merged';
 type ScopingStrategy = 'legacy' | 'topic' | 'actor-pair' | 'argument';
 
@@ -21,6 +32,10 @@ export function LudicsForest({
   const [selectedDesignId, setSelectedDesignId] = React.useState<string | null>(null);
   const [scopingStrategy, setScopingStrategy] = React.useState<ScopingStrategy>('topic');
   const [isRecompiling, setIsRecompiling] = React.useState(false);
+  
+  // Pagination state
+  const SCOPES_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = React.useState(1);
   
   // Fetch all designs (not merged!)
   const { data: designsData, isLoading: designsLoading, mutate: refreshDesigns } = useSWR(
@@ -40,6 +55,50 @@ export function LudicsForest({
   const grouped = designsData?.grouped || {};
   const scopes = designsData?.scopes || [];
   const scopeMetadata = designsData?.scopeMetadata || {};
+  
+  // Pagination calculations
+  const totalScopes = scopes.length;
+  const totalPages = Math.ceil(totalScopes / SCOPES_PER_PAGE);
+  const startIndex = (currentPage - 1) * SCOPES_PER_PAGE;
+  const endIndex = startIndex + SCOPES_PER_PAGE;
+  const paginatedScopes = scopes.slice(startIndex, endIndex);
+  
+  // Collect visible design IDs for batch semantic fetch
+  const visibleDesignIds = React.useMemo(() => {
+    // Get designs from paginated scopes
+    const idsFromScopes = paginatedScopes.flatMap((scopeKey: string) => {
+      const scopeDesigns = grouped[scopeKey] || [];
+      return scopeDesigns.map((d: any) => d.id);
+    });
+    
+    // Include proponent/opponent designs for split view
+    const proponentId = designs.find((d: any) => d.participantId === 'Proponent')?.id;
+    const opponentId = designs.find((d: any) => d.participantId === 'Opponent')?.id;
+    
+    const allIds = [...idsFromScopes];
+    if (proponentId && !allIds.includes(proponentId)) allIds.push(proponentId);
+    if (opponentId && !allIds.includes(opponentId)) allIds.push(opponentId);
+    
+    return allIds.filter(Boolean);
+  }, [paginatedScopes, grouped, designs]);
+  
+  // Batch fetch semantic data for visible designs
+  const { data: semanticBatchData } = useSWR(
+    visibleDesignIds.length > 0 ? ['semantic-batch', ...visibleDesignIds] : null,
+    () => batchSemanticFetcher(visibleDesignIds),
+    { revalidateOnFocus: false }
+  );
+  
+  // Map of design ID to enriched design data
+  const enrichedDesignsMap = React.useMemo(() => {
+    if (!semanticBatchData?.ok) return new Map<string, any>();
+    return new Map(Object.entries(semanticBatchData.designs));
+  }, [semanticBatchData]);
+  
+  // Reset to page 1 when scopes change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [totalScopes, scopingStrategy]);
   
   // Recompile handler
   const handleRecompile = async () => {
@@ -224,12 +283,42 @@ export function LudicsForest({
                   isSelected={selectedDesignId === design.id}
                   onSelect={() => setSelectedDesignId(design.id)}
                   trace={trace}
+                  preEnrichedDesign={enrichedDesignsMap.get(design.id)}
                 />
               ))}
             </div>
           ) : (
-            // Grouped by scope
-            scopes.map((scopeKey: string) => {
+            // Grouped by scope with pagination
+            <>
+              {/* Pagination controls - top */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 py-2 bg-white/60 rounded-lg border">
+                  <div className="text-xs text-slate-600">
+                    Showing scopes {startIndex + 1}–{Math.min(endIndex, totalScopes)} of {totalScopes}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-xs text-slate-700 font-medium">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {paginatedScopes.map((scopeKey: string) => {
               const scopeDesigns = grouped[scopeKey] || [];
               const metadata = scopeMetadata[scopeKey];
               const label = metadata?.label || scopeKey;
@@ -308,12 +397,42 @@ export function LudicsForest({
                         isSelected={selectedDesignId === design.id}
                         onSelect={() => setSelectedDesignId(design.id)}
                         trace={trace}
+                        preEnrichedDesign={enrichedDesignsMap.get(design.id)}
                       />
                     ))}
                   </div>
                 </div>
               );
-            })
+            })}
+              
+              {/* Pagination controls - bottom */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 py-2 bg-white/60 rounded-lg border">
+                  <div className="text-xs text-slate-600">
+                    Showing scopes {startIndex + 1}–{Math.min(endIndex, totalScopes)} of {totalScopes}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-xs text-slate-700 font-medium">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -326,6 +445,7 @@ export function LudicsForest({
             deliberationId={deliberationId}
             trace={trace}
             highlight="positive"
+            preEnrichedDesign={proponentDesign ? enrichedDesignsMap.get(proponentDesign.id) : undefined}
           />
           
           <DesignTreeView
@@ -333,6 +453,7 @@ export function LudicsForest({
             deliberationId={deliberationId}
             trace={trace}
             highlight="negative"
+            preEnrichedDesign={opponentDesign ? enrichedDesignsMap.get(opponentDesign.id) : undefined}
           />
         </div>
       )}

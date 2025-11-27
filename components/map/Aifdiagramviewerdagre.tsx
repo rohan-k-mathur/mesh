@@ -150,37 +150,50 @@ export function AifDiagramViewerDagre({
   // Legend state
   const [showLegend, setShowLegend] = useState(true);
   
-  // Phase 3.1.4: Fetch dialogue states for all argument nodes
+  // Phase 3.1.4: Fetch dialogue states for all argument nodes (BATCH OPTIMIZED)
   useEffect(() => {
     if (!deliberationId) return;
     
     const fetchDialogueStates = async () => {
       // Filter for inference nodes (RA = regular argument)
       const argumentNodes = graph.nodes.filter(n => n.kind === 'RA');
-      const states: Record<string, { moveComplete: boolean }> = {};
+      if (argumentNodes.length === 0) return;
       
-      // Fetch states in parallel
-      await Promise.all(
-        argumentNodes.map(async (node) => {
-          try {
-            // Extract argument ID from node.id (format: "RA:argumentId")
-            const argumentId = node.id.split(':')[1];
-            if (!argumentId) return;
-            
-            const res = await fetch(
-              `/api/deliberations/${deliberationId}/dialogue-state?argumentId=${argumentId}`
-            );
-            if (res.ok) {
-              const data = await res.json();
-              states[node.id] = { moveComplete: data.state.moveComplete };
-            }
-          } catch (err) {
-            console.error(`Failed to fetch dialogue state for ${node.id}:`, err);
+      // Extract argument IDs from node.id (format: "RA:argumentId")
+      const argumentIds = argumentNodes
+        .map(node => node.id.split(':')[1])
+        .filter(Boolean);
+      
+      if (argumentIds.length === 0) return;
+      
+      try {
+        // Single batch request instead of N parallel requests
+        const res = await fetch(
+          `/api/deliberations/${deliberationId}/dialogue-state/batch`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ argumentIds }),
           }
-        })
-      );
-      
-      setDialogueStates(states);
+        );
+        
+        if (res.ok) {
+          const data = await res.json();
+          const states: Record<string, { moveComplete: boolean }> = {};
+          
+          // Map back to node IDs
+          for (const node of argumentNodes) {
+            const argumentId = node.id.split(':')[1];
+            if (argumentId && data.states?.[argumentId]) {
+              states[node.id] = { moveComplete: data.states[argumentId].moveComplete };
+            }
+          }
+          
+          setDialogueStates(states);
+        }
+      } catch (err) {
+        console.error('Failed to fetch dialogue states:', err);
+      }
     };
     
     fetchDialogueStates();

@@ -11,8 +11,11 @@ const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
  * - totalAttacks: Number of incoming attacks (ArgumentEdges)
  * - answeredAttacks: Number of attacks with GROUNDS responses
  * - moveComplete: Boolean indicating if all attacks have been answered
+ * - attacks: Detailed list of attacks with response status
  * 
- * Used by DialogueStateBadge (Phase 3) to show attack response status.
+ * Used by DialogueStateBadge and AnsweredAttacksPanel.
+ * 
+ * OPTIMIZED: Uses single query with aggregation instead of N+1 queries.
  */
 export async function GET(
   req: NextRequest,
@@ -30,7 +33,7 @@ export async function GET(
   }
 
   try {
-    // 1. Get all incoming attacks for this argument
+    // Single optimized query: Get all attacks with their source argument info
     const attacks = await prisma.argumentEdge.findMany({
       where: {
         toArgumentId: argumentId,
@@ -41,42 +44,54 @@ export async function GET(
         id: true,
         attackType: true,
         fromArgumentId: true,
+        from: {
+          select: {
+            id: true,
+            conclusion: {
+              select: { text: true }
+            }
+          }
+        }
       },
     });
 
+    // Get all GROUNDS moves for this argument in one query
+    const groundsMoves = await prisma.dialogueMove.findMany({
+      where: {
+        deliberationId,
+        targetType: "argument",
+        targetId: argumentId,
+        kind: "GROUNDS",
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        // Get the argument that was used as grounds
+        targetId: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Build a set of attack IDs that have been answered
+    // A GROUNDS move on an argument counts as answering attacks on that argument
+    const hasGroundsResponse = groundsMoves.length > 0;
+    const lastResponseAt = groundsMoves[0]?.createdAt || null;
+
+    // Build detailed attack list for AnsweredAttacksPanel
+    const attackDetails = attacks.map((attack) => ({
+      attackId: attack.id,
+      attackerArgumentId: attack.fromArgumentId,
+      attackerTitle: attack.from?.conclusion?.text?.slice(0, 60) || "Unknown",
+      attackType: attack.attackType?.toLowerCase() || "rebut",
+      // For now, if there's any GROUNDS response, consider attacks answered
+      // More precise tracking would require linking specific responses to specific attacks
+      answered: hasGroundsResponse,
+      responseId: hasGroundsResponse ? groundsMoves[0]?.id : undefined,
+    }));
+
     const totalAttacks = attacks.length;
-
-    // 2. For each attack, check if there's a GROUNDS response
-    let answeredAttacks = 0;
-    let lastResponseAt: Date | null = null;
-
-    for (const attack of attacks) {
-      // Check for GROUNDS moves targeting the attacked argument (this argument)
-      // These represent defenses against the attack
-      const groundsMove = await prisma.dialogueMove.findFirst({
-        where: {
-          deliberationId,
-          targetType: "argument",
-          targetId: argumentId,
-          kind: "GROUNDS",
-          // Optional: Could filter by createdAt > attack createdAt
-        },
-        select: {
-          id: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (groundsMove) {
-        answeredAttacks++;
-        if (!lastResponseAt || groundsMove.createdAt > lastResponseAt) {
-          lastResponseAt = groundsMove.createdAt;
-        }
-      }
-    }
-
-    const moveComplete = totalAttacks > 0 && answeredAttacks === totalAttacks;
+    const answeredAttacks = hasGroundsResponse ? totalAttacks : 0;
+    const moveComplete = totalAttacks > 0 && hasGroundsResponse;
 
     return NextResponse.json(
       {
@@ -86,6 +101,7 @@ export async function GET(
           answeredAttacks,
           moveComplete,
           lastResponseAt: lastResponseAt?.toISOString(),
+          attacks: attackDetails,
         },
       },
       NO_STORE

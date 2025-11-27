@@ -40,6 +40,7 @@ export function DesignTreeView({
   onSelect,
   trace,
   highlight,
+  preEnrichedDesign,
 }: {
   design: Design | undefined | null;
   deliberationId: string;
@@ -47,17 +48,21 @@ export function DesignTreeView({
   onSelect?: () => void;
   trace?: StepResult | null;
   highlight?: 'positive' | 'negative';
+  /** If provided, skip the SWR fetch and use this pre-enriched design data */
+  preEnrichedDesign?: Design | null;
 }) {
   const [viewMode, setViewMode] = React.useState<ViewMode>('tree');
   
-  // Fetch semantic enriched design data
+  // Fetch semantic enriched design data only if not pre-enriched
   const { data: semanticData } = useSWR(
-    design?.id ? `/api/ludics/designs/${design.id}/semantic` : null,
+    // Skip fetch if we have pre-enriched data
+    design?.id && !preEnrichedDesign ? `/api/ludics/designs/${design.id}/semantic` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
   
-  const enrichedDesign = semanticData?.ok ? semanticData.design : design;
+  // Use pre-enriched data if available, otherwise use fetched data
+  const enrichedDesign = preEnrichedDesign || (semanticData?.ok ? semanticData.design : design);
   
   // Build tree from SINGLE design (with semantic annotations if available)
   const tree = React.useMemo(() => {
@@ -187,37 +192,80 @@ export function DesignTreeView({
       </div>
       
       {/* Tree: ONLY this design's acts */}
-      <div className={`design-content-container  max-h-[500px]  overflow-y-auto border rounded-b-lg bg-white/30 backdrop-blur ${
+      <div className={`design-content-container border rounded-b-lg bg-white/30 backdrop-blur ${
         isProponent ? 'border-sky-200' : 'border-rose-200'
-      } ${viewMode === 'both' ? 'grid grid-cols-2 gap-2 p-2' : 'p-2'}`}>
-        
-        {/* Ludics Tree View */}
-        {(viewMode === 'tree' || viewMode === 'both') && (
-          <div className={viewMode === 'both' ? 'border-r border-slate-200 pr-2' : ''}>
-            {tree && enrichedDesign?.acts && enrichedDesign.acts.length > 0 ? (
-              <LociTree
-                root={tree}
-                showExpressions
-                stepIndexByActId={stepIndexByActId}
-                defaultCollapsedDepth={2}
-                enableKeyboardNav={false}
-                autoScrollOnFocus={false}
-              />
-            ) : (
-              <div className="empty-design p-4 text-sm text-slate-500 text-center">
-                No acts in this design yet
+      }`}>
+        {viewMode === 'both' ? (
+          // Both view: side-by-side grid with synchronized scrolling
+          <div className="grid grid-cols-2 divide-x divide-slate-200">
+            {/* Left: Ludics Tree View */}
+            <div className="max-h-[500px] overflow-y-auto p-3">
+              <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                <span>𐂷</span> Ludics Tree
               </div>
-            )}
+              {tree && enrichedDesign?.acts && enrichedDesign.acts.length > 0 ? (
+                <LociTree
+                  root={tree}
+                  showExpressions
+                  stepIndexByActId={stepIndexByActId}
+                  defaultCollapsedDepth={2}
+                  enableKeyboardNav={false}
+                  autoScrollOnFocus={false}
+                />
+              ) : (
+                <div className="empty-design p-4 text-sm text-slate-500 text-center">
+                  No acts in this design yet
+                </div>
+              )}
+            </div>
+            
+            {/* Right: Argument Scheme View */}
+            <div className="max-h-[500px] overflow-y-auto p-3">
+              <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1">
+                <span>⛭</span> Argument Schemes
+              </div>
+              {enrichedDesign ? (
+                <ArgumentSchemeView 
+                  acts={enrichedDesign.acts || []} 
+                  participantId={design.participantId}
+                />
+              ) : (
+                <div className="p-4 text-sm text-slate-500 text-center">
+                  Loading schemes...
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        
-        {/* Argument Scheme View */}
-        {(viewMode === 'scheme' || viewMode === 'both') && enrichedDesign && (
-          <div className={viewMode === 'both' ? 'pl-2' : ''}>
-            <ArgumentSchemeView 
-              acts={enrichedDesign.acts || []} 
-              participantId={design.participantId}
-            />
+        ) : (
+          // Single view mode (tree or scheme)
+          <div className="max-h-[500px] overflow-y-auto p-2">
+            {/* Ludics Tree View */}
+            {viewMode === 'tree' && (
+              <>
+                {tree && enrichedDesign?.acts && enrichedDesign.acts.length > 0 ? (
+                  <LociTree
+                    root={tree}
+                    showExpressions
+                    stepIndexByActId={stepIndexByActId}
+                    defaultCollapsedDepth={2}
+                    enableKeyboardNav={false}
+                    autoScrollOnFocus={false}
+                  />
+                ) : (
+                  <div className="empty-design p-4 text-sm text-slate-500 text-center">
+                    No acts in this design yet
+                  </div>
+                )}
+              </>
+            )}
+            
+            {/* Argument Scheme View */}
+            {viewMode === 'scheme' && enrichedDesign && (
+              <ArgumentSchemeView 
+                acts={enrichedDesign.acts || []} 
+                participantId={design.participantId}
+              />
+            )}
           </div>
         )}
       </div>

@@ -150,17 +150,8 @@ export function ArgumentNetworkCard({
       </div>
 
       {/* Support visualization */}
-      <div className="cursor-pointer hover:opacity-80 transition-opacity">
-        {supportValue && supportValue.kind === "scalar" && (
-          <div className="mt-2">
-            <div className="h-1.5 bg-neutral-200 rounded">
-              <div
-                className="h-1.5 rounded bg-emerald-500 transition-all"
-                style={{ width: `${Math.max(0, Math.min(1, supportValue.s ?? 0)) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
+      <div className="cursor-pointer space-y-3 hover:opacity-80 transition-opacity">
+        
         
         {supportValue && supportValue.kind === "ds" && (
           <div className="mt-2">
@@ -189,7 +180,7 @@ export function ArgumentNetworkCard({
             </div>
             <div className="h-1.5 bg-neutral-200 rounded">
               <div
-                className="h-1.5 rounded bg-emerald-500 transition-all"
+                className="h-1.5 mt-1.5 rounded bg-emerald-500 transition-all"
                 style={{ width: `${Math.max(0, Math.min(1, supportScore)) * 100}%` }}
               />
             </div>

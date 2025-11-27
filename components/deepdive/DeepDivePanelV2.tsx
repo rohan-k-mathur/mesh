@@ -175,7 +175,7 @@ function CommitmentsTabContent({
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="px-3">
         <h3 className="text-sm font-semibold text-slate-700 mb-2">
           Participant Commitments
         </h3>
@@ -217,8 +217,8 @@ function CommitmentsTabContent({
           deliberationId={deliberationId}
           onClaimClick={onClaimClick}
           onRefresh={() => commitmentMutate()}
-          showTimeline={true}
-          className="border-0 shadow-none"
+          showTimeline={false}
+          className="border p-0 overflow-none shadow-none"
         />
       )}
     </div>
@@ -739,7 +739,7 @@ const {
         }
       >
         {/* Tab Selector */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex mt-0 gap-2 mb-4 ">
           <button
             onClick={() => setLeftSheetTab('arguments')}
             className={clsx(
