@@ -1,6 +1,7 @@
 # Ludics-Dialogue Integration: How AIF Moves Become Ludics Acts
 
-**Date:** November 3, 2025  
+**Date:** November 27, 2025 (Updated)  
+**Last Major Update:** November 4, 2025 (Phase 4 Scoped Designs)  
 **Context:** Understanding the current state and ideal design of the DialogueMove → LudicAct → AifNode pipeline
 
 ---
@@ -587,6 +588,238 @@ GROUNDS at child of attack locus → '0.1.i.1', '0.1.p1.1'
 - Trace visualization shows **where** attack targets
 - Orthogonality check can detect "attacking same premise twice"
 - Insights: "2 inference attacks, 1 premise attack"
+
+---
+
+## Phase 4: Scoped Designs Architecture (November 2025)
+
+### Overview
+
+**Date Implemented:** November 4, 2025  
+**Purpose:** Support multi-scope deliberations where different topics/actors are tracked separately
+
+Previously, `compileFromMoves()` created exactly **2 designs** (Proponent + Opponent) for the entire deliberation. Phase 4 extends this to create **2N designs** where N = number of scopes determined by the chosen scoping strategy.
+
+### Scoping Strategies
+
+Four strategies are now supported via the `scopingStrategy` parameter:
+
+#### 1. **Legacy (Default)**
+```typescript
+// Single scope for entire deliberation
+scopingStrategy: "legacy"
+// → 2 designs: P + O (backward compatible)
+```
+
+#### 2. **Topic-Based Scoping**
+```typescript
+// Group by deliberation topic
+scopingStrategy: "topic"
+// → 2N designs where N = number of topics
+// Example: Climate Policy (P+O), Budget (P+O), Healthcare (P+O) = 6 designs
+```
+
+#### 3. **Actor-Pair Scoping**
+```typescript
+// Group by interacting actor pairs
+scopingStrategy: "actor-pair"
+// → 2N designs where N = number of unique actor pairs
+// Example: Alice-vs-Bob (P+O), Alice-vs-Carol (P+O) = 4 designs
+```
+
+#### 4. **Argument-Level Scoping**
+```typescript
+// Each argument gets its own scope
+scopingStrategy: "argument"
+// → 2N designs where N = number of arguments
+// Example: Arg1 (P+O), Arg2 (P+O), Arg3 (P+O) = 6 designs
+```
+
+### Updated Schema (Phase 4)
+
+```prisma
+model LudicDesign {
+  id              String   @id @default(cuid())
+  deliberationId  String
+  participantId   String   // "Proponent" | "Opponent"
+  
+  // NEW: Phase 4 scoping fields
+  scope           String?  // "topic:climate" | "actors:Alice-Bob" | null for legacy
+  scopeType       String?  // "topic" | "actor-pair" | "argument" | null
+  scopeMetadata   Json?    // { label: "Climate Policy", topicId: "T_xyz", ... }
+  
+  rootLocusId     String
+  semantics       String   @default("ludics-v1")
+  // ... rest of fields
+}
+```
+
+### Compilation Flow with Scopes
+
+```
+DialogueMoves
+    ↓
+computeScopes(scopingStrategy, moves)
+    ↓
+Group moves by computed scope
+    ↓
+For each scope:
+  ├─ compileFromMoves(moves in scope)
+  ├─ Create P + O designs with scope metadata
+  └─ Store scope, scopeType, scopeMetadata
+    ↓
+Result: 2N designs (N scopes × 2 polarities)
+```
+
+**Example with Topic Scoping:**
+
+```typescript
+// Input: 20 moves across 3 topics
+const moves = [
+  { kind: 'ASSERT', topic: 'Climate', ... },  // 8 moves
+  { kind: 'ASSERT', topic: 'Budget', ... },   // 7 moves
+  { kind: 'ASSERT', topic: 'Healthcare', ... }, // 5 moves
+];
+
+await compileFromMoves(deliberationId, { scopingStrategy: 'topic' });
+
+// Result: 6 designs
+// ├─ Climate:P, Climate:O (8 moves compiled)
+// ├─ Budget:P, Budget:O (7 moves compiled)
+// └─ Healthcare:P, Healthcare:O (5 moves compiled)
+```
+
+### Per-Scope Operations
+
+All Ludics operations now respect scope boundaries:
+
+#### Stepping (Interaction)
+```typescript
+// Before Phase 4: Global step
+await stepInteraction({ deliberationId, posDesignId, negDesignId });
+
+// After Phase 4: Per-scope step
+await stepInteraction({ 
+  deliberationId, 
+  posDesignId: climateP.id,  // Only step Climate scope
+  negDesignId: climateO.id 
+});
+```
+
+#### Orthogonality Check
+```typescript
+// Before: Global check (meaningless with multiple scopes)
+const orthogonal = await checkOrthogonal(deliberationId);
+
+// After: Per-scope check
+const results = [];
+for (const scope of scopes) {
+  const orthogonal = await checkOrthogonal(deliberationId, { scope });
+  results.push({ scope, orthogonal });
+}
+```
+
+#### Stable Extensions
+```typescript
+// Before: Global (mixed all topics)
+GET /api/af/stable?deliberationId=D_xyz
+
+// After: Per-scope
+GET /api/af/stable?deliberationId=D_xyz&scope=topic:climate
+```
+
+### UI Updates: Forest View
+
+**Component:** `components/ludics/LudicsForest.tsx`
+
+Previously: Single tree visualization (one P/O pair)  
+Now: **Forest visualization** showing multiple trees side-by-side
+
+```tsx
+<LudicsForest designs={allDesigns} />
+// Renders:
+//   [Climate Tree] [Budget Tree] [Healthcare Tree]
+//   Each tree shows P+O interaction for that scope
+```
+
+### Backward Compatibility
+
+Legacy mode ensures existing deliberations continue working:
+
+```typescript
+// Old deliberations (no scope field)
+const designs = await prisma.ludicDesign.findMany({
+  where: { deliberationId, scope: null }
+});
+// → Treated as single "legacy" scope
+
+// New deliberations
+const designs = await prisma.ludicDesign.findMany({
+  where: { deliberationId, scope: { not: null } }
+});
+// → Grouped by scope value
+```
+
+### Migration Notes
+
+No database migration required. Existing designs:
+- Have `scope: null`, `scopeType: null`
+- Work with legacy strategy by default
+- Can be recompiled with scoping strategies if needed
+
+To enable scoping for an existing deliberation:
+```typescript
+// Delete old designs
+await prisma.ludicDesign.deleteMany({ where: { deliberationId } });
+
+// Recompile with scoping
+await compileFromMoves(deliberationId, { scopingStrategy: 'topic' });
+```
+
+### Key Differences from Legacy
+
+| Aspect | Legacy (Pre-Phase 4) | Scoped (Phase 4) |
+|--------|---------------------|------------------|
+| **Design Count** | Always 2 (P + O) | 2N (N scopes) |
+| **Orthogonality** | Global | Per-scope |
+| **Step Operation** | Single trace | N traces |
+| **UI** | Single tree | Forest view |
+| **Compilation** | One pass | N passes (one per scope) |
+| **Backward Compat** | N/A | Legacy mode preserves old behavior |
+
+### Common Patterns
+
+#### Scope-Aware Command
+```typescript
+const activeScope = scopes[selectedScopeIndex];
+const scopeDesigns = designs.filter(d => d.scope === activeScope);
+const pro = scopeDesigns.find(d => d.participantId === "Proponent");
+const opp = scopeDesigns.find(d => d.participantId === "Opponent");
+
+// Operate on this scope only
+await stepInteraction({ deliberationId, posDesignId: pro.id, negDesignId: opp.id });
+```
+
+#### Batch Operations Across Scopes
+```typescript
+const results = await Promise.all(
+  scopes.map(async (scope) => {
+    const scopeDesigns = designs.filter(d => d.scope === scope);
+    return await checkOrthogonal(deliberationId, { scope });
+  })
+);
+// → Array of per-scope results
+```
+
+#### Scope Metadata Usage
+```typescript
+// Access scope label for UI display
+const scopeLabel = design.scopeMetadata?.label ?? design.scope ?? "Legacy";
+
+// Filter by scope type
+const topicScopes = designs.filter(d => d.scopeType === "topic");
+const actorScopes = designs.filter(d => d.scopeType === "actor-pair");
+```
 
 ---
 

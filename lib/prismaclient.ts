@@ -8,8 +8,9 @@ const datasourceUrl = process.env.DATABASE_URL
   : undefined;
 
 // Add connection pool parameters to the URL
+// Increased limits to handle long-running Ludics compilation transactions
 const enhancedUrl = datasourceUrl
-  ? `${datasourceUrl}${datasourceUrl.includes('?') ? '&' : '?'}connection_limit=20&pool_timeout=20`
+  ? `${datasourceUrl}${datasourceUrl.includes('?') ? '&' : '?'}connection_limit=30&pool_timeout=60`
   : undefined;
 
 // ============================================================================

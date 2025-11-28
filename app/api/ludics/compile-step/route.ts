@@ -21,11 +21,15 @@ export async function POST(req: NextRequest) {
 
   try {
     // 1) Compile from moves (direct function call, no internal fetch)
+    // Note: withCompileLock inside compileFromMoves serializes concurrent calls
     await compileFromMoves(deliberationId).catch((e) => {
       console.warn('[compile-step] compile warning:', e?.message);
     });
 
-    // 2) Pick designs
+    // 2) Wait for designs to be fully committed and lock to release
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 3) Pick designs
     const designs = await prisma.ludicDesign.findMany({
       where: { deliberationId },
       orderBy: { participantId: 'asc' },
@@ -39,7 +43,7 @@ export async function POST(req: NextRequest) {
     const pro = designs.find(d => d.participantId === 'Proponent') ?? designs[0];
     const opp = designs.find(d => d.participantId === 'Opponent') ?? designs[1] ?? designs[0];
 
-    // 3) Step interaction (direct function call, no internal fetch)
+    // 4) Step interaction (direct function call, no internal fetch)
     const trace = await stepInteraction({
       dialogueId: deliberationId,
       posDesignId: pro.id,

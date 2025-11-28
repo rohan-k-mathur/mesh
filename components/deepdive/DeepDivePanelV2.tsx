@@ -92,21 +92,11 @@ function useCompileStep(deliberationId: string | undefined) {
     oppId?: string;
     trace?: any;
     loading: boolean;
-  }>({ loading: true });
+  }>({ loading: false });
 
-  React.useEffect(() => {
-    if (!deliberationId) return;
-    setState({ loading: true });
-    (async () => {
-      const r = await fetch('/api/ludics/compile-step', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ deliberationId }),
-      }).then(res => res.json());
-      setState({ proId: r.proId, oppId: r.oppId, trace: r.trace, loading: false });
-    })();
-  }, [deliberationId]);
-
+  // Auto-compilation removed - designs will be fetched only when user navigates to Ludics tab
+  // or manually clicks compile button
+  
   return state;
 }
 
@@ -268,8 +258,8 @@ export default function DeepDivePanel({
     });
   }, []);
 
-
-  const ready = !loading && !!proId && !!oppId;
+  // Ludics designs are only needed for the Ludics tab, not for the entire deliberation
+  const ludicsReady = !!proId && !!oppId;
 
   const [diagramData, setDiagramData] = useState<AifSubgraph | null>(null);
   const [commandActions, setCommandActions] = useState<CommandCardAction[]>([]);
@@ -483,9 +473,9 @@ const {
       );
 
       // If the action was a CLOSE or major state change, recompute viewpoints
-      if (action.kind === 'CLOSE' || action.kind === 'RETRACT') {
-        await compute(sel?.rule);
-      }
+      // if (action.kind === 'CLOSE' || action.kind === 'RETRACT') {
+      //   await compute(sel?.rule);
+      // }
 
     } catch (error) {
       console.error('Command execution failed:', error);
@@ -508,34 +498,34 @@ const {
   const aifArgsState = usePersisted(`dd:aifargs:${deliberationId}`, false);
   const schemeComposerState = usePersisted(`dd:scheme:${deliberationId}`, false);
 
-  const compute = async (
-    forcedRule?: "utilitarian" | "harmonic" | "maxcov",
-    forcedK?: number
-  ) => {
-    delibActions.setPending(true);
-    try {
-      const res = await fetch(
-        `/api/deliberations/${deliberationId}/viewpoints/select`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rule: forcedRule ?? delibState.rule,
-            k: forcedK ?? sel?.k ?? 3,
-          }),
-          cache: "no-store",
-        }
-      );
-      if (!res.ok) {
-        console.error("Viewpoints select failed", res.status);
-        return;
-      }
-      const data = await res.json().catch(() => null);
-      if (data?.selection) setSel(data.selection);
-    } finally {
-      delibActions.setPending(false);
-    }
-  };
+  // const compute = async (
+  //   forcedRule?: "utilitarian" | "harmonic" | "maxcov",
+  //   forcedK?: number
+  // ) => {
+  //   delibActions.setPending(true);
+  //   try {
+  //     const res = await fetch(
+  //       `/api/deliberations/${deliberationId}/viewpoints/select`,
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           rule: forcedRule ?? delibState.rule,
+  //           k: forcedK ?? sel?.k ?? 3,
+  //         }),
+  //         cache: "no-store",
+  //       }
+  //     );
+  //     if (!res.ok) {
+  //       console.error("Viewpoints select failed", res.status);
+  //       return;
+  //     }
+  //     const data = await res.json().catch(() => null);
+  //     if (data?.selection) setSel(data.selection);
+  //   } finally {
+  //     delibActions.setPending(false);
+  //   }
+  // };
 
   useEffect(() => {
     fetch(
@@ -547,7 +537,7 @@ const {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliberationId]); // Only re-fetch when deliberationId changes
 
-  useEffect(() => { compute(); }, [deliberationId]);
+  // useEffect(() => { compute(); }, [deliberationId]);
 
   const ftch = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -1284,7 +1274,7 @@ const {
             <div className="flex items-center gap-3">
               {delibState.status && <StatusChip status={delibState.status} />}
 
-              <ChipBar>
+              {/* <ChipBar>
                 <label className="text-xs text-neutral-600 flex items-center gap-1">
                   Rule:
                   <select
@@ -1300,7 +1290,7 @@ const {
                     <option value="maxcov">MaxCov</option>
                   </select>
                 </label>
-              </ChipBar>
+              </ChipBar> */}
 
               <ChipBar>
                 <label className="text-xs text-neutral-600 flex items-center gap-1">
@@ -1528,20 +1518,17 @@ const {
 
           {/* LUDICS TAB */}
           <TabsContent value="ludics" className="w-full min-w-0 space-y-4">
-            {proId && oppId ? (
-              <>
-                  <LudicsPanel
-                    deliberationId={deliberationId}
-                    proDesignId={proId}
-                    oppDesignId={oppId}
-                  />
-                <SectionCard title="Behaviour Inspector">
-                  <BehaviourInspectorCard deliberationId={deliberationId} />
-                </SectionCard>
-              </>
-            ) : (
-              <SectionCard emptyText="Preparing designs…">
-                <div className="text-sm text-neutral-600">Loading...</div>
+            {/* Always show LudicsPanel so users can access the Compile button */}
+            <LudicsPanel
+              deliberationId={deliberationId}
+              proDesignId={proId}
+              oppDesignId={oppId}
+            />
+            
+            {/* Only show Behaviour Inspector when designs are ready */}
+            {ludicsReady && (
+              <SectionCard title="Behaviour Inspector">
+                <BehaviourInspectorCard deliberationId={deliberationId} />
               </SectionCard>
             )}
           </TabsContent>
@@ -1845,20 +1832,8 @@ const {
     </ConfidenceProvider>
   );
 
-  const placeholder = loading ? (
-        <div className="mt-[-2] overflow-y-hidden min-h-screen">
-
-    <DeliberationLoadingScreen hostName={hostName} />
-    </div>
-  ) : (
-    <div className="text-xs w-full text-neutral-500 px-4 py-2">
-      No designs found
-    </div>
-  );
-
-  const content = ready ? inner : placeholder;
-
+  // Show main content immediately - ludics designs only needed for Ludics tab
   return containerClassName
-    ? <div className={clsx(containerClassName)}>{content}</div>
-    : content;
+    ? <div className={clsx(containerClassName)}>{inner}</div>
+    : inner;
 }

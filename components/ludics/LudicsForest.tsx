@@ -100,7 +100,7 @@ export function LudicsForest({
     setCurrentPage(1);
   }, [totalScopes, scopingStrategy]);
   
-  // Recompile handler
+  // Recompile handler (aligned with compile API)
   const handleRecompile = async () => {
     setIsRecompiling(true);
     try {

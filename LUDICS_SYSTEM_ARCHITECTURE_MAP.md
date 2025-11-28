@@ -1,6 +1,7 @@
 # Ludics System Architecture Map & Modernization Plan
 
-**Date**: November 3, 2025  
+**Date**: November 27, 2025 (Updated)  
+**Last Major Update:** November 4, 2025 (Phase 4 Scoped Designs)  
 **Status**: Architecture Review & Modernization Planning  
 **Purpose**: Map current Ludics implementation and plan integration with modern AIF/argument/debate systems
 
@@ -250,6 +251,235 @@ LudicsPanel displays:
 - DialogueMove → acts may reference `targetType: 'argument'`
 - No direct link to AIF nodes/edges yet
 - Schemes stored as `metaJson.schemeKey` in acts
+
+---
+
+### 1.4 Phase 4 Scoped Designs Architecture (November 2025)
+
+**Implementation Date:** November 4, 2025  
+**Status:** ✅ Complete (Backend + Forest UI)  
+**Scope:** Multi-scope deliberation support
+
+#### Overview
+
+Phase 4 extended the Ludics system to support **multi-scope deliberations** where different topics, actor pairs, or arguments are tracked in separate P/O design pairs. This enables:
+
+- Topic-based deliberations (e.g., Climate + Budget + Healthcare)
+- Actor-pair interactions (e.g., Alice-vs-Bob, Alice-vs-Carol)
+- Argument-level scoping (each argument as separate scope)
+
+#### Schema Extensions
+
+```prisma
+model LudicDesign {
+  id              String   @id
+  deliberationId  String
+  participantId   String   // "Proponent" | "Opponent"
+  
+  // Phase 4 additions:
+  scope           String?  // "topic:climate" | "actors:Alice-Bob" | null
+  scopeType       String?  // "topic" | "actor-pair" | "argument" | null
+  scopeMetadata   Json?    // { label: "Climate Policy", topicId: "..." }
+  
+  // ... existing fields
+}
+```
+
+**Backward Compatibility:**
+- `scope: null` → Legacy mode (single P/O pair)
+- Existing deliberations continue working unchanged
+
+#### Scoping Strategies
+
+Four strategies implemented in `compileFromMoves()`:
+
+| Strategy | Grouping Logic | Example |
+|----------|---------------|---------|
+| **legacy** | All moves → 1 scope | 2 designs (P + O) |
+| **topic** | By deliberation topic | 2N designs (N topics) |
+| **actor-pair** | By interacting actors | 2N designs (N pairs) |
+| **argument** | By argument ID | 2N designs (N arguments) |
+
+#### Updated Data Flow (Multi-Scope)
+
+```
+DialogueMoves
+    ↓
+POST /api/ludics/compile { deliberationId, scopingStrategy }
+    ↓
+computeScopes(strategy, moves)  // Group moves by scope
+    ↓
+For each scope:
+  ├─ Create P + O designs with scope metadata
+  ├─ Compile moves → acts for this scope only
+  └─ Store scope, scopeType, scopeMetadata
+    ↓
+Result: 2N designs (N scopes × 2 polarities)
+    ↓
+Forest View: LudicsForest.tsx renders N trees side-by-side
+```
+
+**Example (Topic Scoping):**
+```typescript
+// 15 moves across 3 topics
+await compileFromMoves(delibId, { scopingStrategy: 'topic' });
+
+// Result: 6 designs
+// ├─ scope: "topic:climate" → Climate:P, Climate:O
+// ├─ scope: "topic:budget"  → Budget:P, Budget:O
+// └─ scope: "topic:health"  → Health:P, Health:O
+```
+
+#### Per-Scope Operations
+
+All Ludics operations now accept scope parameters:
+
+**Step Interaction:**
+```typescript
+// GET /api/ludics/step?deliberationId={id}&scope={scopeKey}
+// Only steps the specified scope (finds P/O pair in that scope)
+
+const climateDesigns = designs.filter(d => d.scope === 'topic:climate');
+const { trace } = await stepInteraction({
+  deliberationId,
+  posDesignId: climateDesigns.find(d => d.participantId === 'Proponent').id,
+  negDesignId: climateDesigns.find(d => d.participantId === 'Opponent').id,
+});
+```
+
+**Orthogonality Check:**
+```typescript
+// GET /api/ludics/orthogonal?deliberationId={id}&scope={scopeKey}
+// Checks if P and O designs in this scope are orthogonal
+
+await checkOrthogonal(deliberationId, { scope: 'topic:climate' });
+// → true/false for Climate scope only
+```
+
+**Stable Extensions:**
+```typescript
+// GET /api/af/stable?deliberationId={id}&scope={scopeKey}
+// Computes stable extensions for arguments in this scope
+
+const extensions = await fetch('/api/af/stable?scope=topic:budget');
+```
+
+#### UI Components Updated
+
+**LudicsForest.tsx** (NEW)
+- Renders multiple trees side-by-side
+- One tree per scope
+- Color-coded by scope type
+- Click to focus on individual scope
+
+**LudicsPanel.tsx** (UPDATED - Weeks 1-2)
+- Scope selector dropdown
+- Per-scope command buttons (Compile, Step, Orthogonality)
+- Per-scope results tracking (NLI, Stable Sets)
+- Scope-aware testers attachment
+
+**Tree Visualization:**
+```
+Before (Legacy):        After (Multi-Scope Forest):
+   [P+O Tree]           [Climate P+O] [Budget P+O] [Health P+O]
+```
+
+#### API Routes with Scope Support
+
+| Endpoint | Scope Parameter | Behavior |
+|----------|----------------|----------|
+| `/api/ludics/compile` | `scopingStrategy` (body) | Creates 2N designs |
+| `/api/ludics/step` | `scope` (query) | Steps single scope |
+| `/api/ludics/orthogonal` | `scope` (query) | Checks single scope |
+| `/api/af/stable` | `scope` (query) | AF for single scope |
+| `/api/ludics/designs` | N/A | Returns all designs (filter client-side) |
+
+#### Scope Metadata Structure
+
+```typescript
+// Topic scoping
+scopeMetadata: {
+  label: "Climate Policy",
+  topicId: "T_abc123",
+  topicName: "Climate Change"
+}
+
+// Actor-pair scoping
+scopeMetadata: {
+  label: "Alice vs Bob",
+  actors: ["Alice", "Bob"],
+  pairKey: "Alice-Bob"
+}
+
+// Argument scoping
+scopeMetadata: {
+  label: "Argument: Carbon tax is effective",
+  argumentId: "A_xyz789",
+  argumentTitle: "Carbon tax is effective"
+}
+```
+
+#### Week 1-2 UI Enhancements (November 26-27, 2025)
+
+**Week 1: Critical Fixes** ✅
+- Added scope selector to LudicsPanel header
+- Updated Compile button to accept `scopingStrategy`
+- Made Step button scope-aware (finds P/O in active scope)
+- Per-scope orthogonality check
+
+**Week 2: Command Enhancements** ✅
+- Append Daimon: Locus/scope picker with available loci
+- NLI Analysis: Per-scope contradiction tracking
+- Stable Sets: Per-scope extension computation
+- Testers Attach: Scope-filtered design attachment
+
+**Result:** All LudicsPanel commands now fully scope-aware with per-scope state tracking and UI feedback.
+
+#### Common Patterns
+
+**Filter designs by scope:**
+```typescript
+const activeScope = scopes[selectedIndex];
+const scopeDesigns = designs.filter(d => (d.scope ?? 'legacy') === activeScope);
+const pro = scopeDesigns.find(d => d.participantId === 'Proponent');
+const opp = scopeDesigns.find(d => d.participantId === 'Opponent');
+```
+
+**Batch operations:**
+```typescript
+const results = await Promise.all(
+  scopes.map(async (scope) => ({
+    scope,
+    orthogonal: await checkOrthogonal(deliberationId, { scope })
+  }))
+);
+```
+
+**Scope label display:**
+```typescript
+const scopeLabel = design.scopeMetadata?.label ?? design.scope ?? 'Legacy (All)';
+```
+
+#### Migration Path
+
+No migration required. To enable scoping for existing deliberation:
+
+```typescript
+// 1. Delete old designs (optional - can coexist)
+await prisma.ludicDesign.deleteMany({ where: { deliberationId } });
+
+// 2. Recompile with scoping strategy
+await compileFromMoves(deliberationId, { scopingStrategy: 'topic' });
+
+// 3. UI automatically detects scopes and shows forest view
+```
+
+#### Performance Considerations
+
+- **Compilation:** O(N) where N = number of scopes (embarrassingly parallel)
+- **Stepping:** Each scope stepped independently (can parallelize)
+- **Rendering:** Forest view uses virtualization for >10 scopes
+- **Database:** Indexed on `(deliberationId, scope, participantId)` for fast queries
 
 ---
 

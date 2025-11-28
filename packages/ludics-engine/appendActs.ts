@@ -37,23 +37,36 @@ type Tx = Prisma.TransactionClient | PrismaClient;
      db: DB,
      dialogueId: string,
      path: string,
-     parentPath?: string
+     parentPath?: string,
+     cache?: Map<string, { id: string; path: string }>
    ): Promise<{ id: string; path: string }> {
+     // Check cache first to avoid repeated lookups within long transactions
+     if (cache?.has(path)) {
+       return cache.get(path)!;
+     }
+     
      const existing = await db.ludicLocus.findFirst({
        where: { dialogueId, path },
        select: { id: true, path: true },
      });
-     if (existing) return existing;
+     if (existing) {
+       cache?.set(path, existing);
+       return existing;
+     }
+     
      let parentId: string | undefined = undefined;
      if (parentPath && parentPath.length) {
        const pp = parentPath.split('.').slice(0, -1).join('.');
-       const parent = await ensureLocus(db, dialogueId, parentPath, pp);
+       const parent = await ensureLocus(db, dialogueId, parentPath, pp, cache);
        parentId = parent.id;
      }
-     return db.ludicLocus.create({
+     
+     const created = await db.ludicLocus.create({
        data: { dialogueId, path, parentId },
        select: { id: true, path: true },
      });
+     cache?.set(path, created);
+     return created;
    }
 
 // (optional) strict additive guard — pass db and use it
@@ -124,10 +137,27 @@ export async function appendActs(
   designId: string,
   acts: DialogueAct[],
   opts?: { enforceAlternation?: boolean; enforceAdditiveOnce?: boolean },
-  db: DB = prisma
+  db: DB = prisma,
+  locusCache?: Map<string, { id: string; path: string }>,
+  designCache?: Map<string, { id: string; deliberationId: string; participantId: string }>
 ) {
-  const design = await db.ludicDesign.findUnique({ where: { id: designId } });
-  if (!design) throw new Error('NO_SUCH_DESIGN');
+  // Use design cache if available to avoid repeated database lookups (major performance bottleneck)
+  let design: { id: string; deliberationId: string; participantId: string } | null = null;
+  if (designCache?.has(designId)) {
+    design = designCache.get(designId)!;
+  } else {
+    // Fallback to database lookup if no cache
+    design = await prisma.ludicDesign.findUnique({ 
+      where: { id: designId },
+      select: { id: true, deliberationId: true, participantId: true }
+    });
+  }
+  
+  if (!design) {
+    console.error(`[appendActs] Design not found: ${designId}`);
+    throw new Error('NO_SUCH_DESIGN');
+  }
+
 
   const last = await db.ludicAct.findFirst({ where: { designId }, orderBy: { orderInDesign: 'desc' } });
   let order = last?.orderInDesign ?? 0;
@@ -154,7 +184,7 @@ export async function appendActs(
         await assertAdditiveNotReused(db, design.deliberationId, locusPath);
       }
 
-      const locus = await ensureLocus(db, design.deliberationId, locusPath, parent);
+      const locus = await ensureLocus(db, design.deliberationId, locusPath, parent, locusCache);
 
       // ❌ remove per-design alternation check
       // if (opts?.enforceAlternation && lastPolarity && lastPolarity === a.polarity) throw new Error('ALTERNATION');

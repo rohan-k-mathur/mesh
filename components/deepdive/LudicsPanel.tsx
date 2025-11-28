@@ -174,8 +174,8 @@ export default function LudicsPanel({
   oppDesignId,
 }: {
   deliberationId: string;
-  proDesignId: string;
-  oppDesignId: string;
+  proDesignId?: string;
+  oppDesignId?: string;
 }) {
   // Designs SWR
   const {
@@ -212,11 +212,26 @@ export default function LudicsPanel({
   const [commitOpen, setCommitOpen] = React.useState(false);
   const [commitPath, setCommitPath] = React.useState<string | null>(null);
 
+  // NLI per-scope results (Task 6: Week 2)
+  const [nliResultsByScope, setNliResultsByScope] = React.useState<
+    Record<string, { contradictions: number; timestamp: string }>
+  >({});
+
+  // Stable sets per-scope results (Task 7: Week 2)
+  const [stableSetsByScope, setStableSetsByScope] = React.useState<
+    Record<string, number>
+  >({});
+
   // Scoped designs state (Phase 4 integration)
   const [scopingStrategy, setScopingStrategy] = React.useState<
     "legacy" | "topic" | "actor-pair" | "argument"
   >("legacy");
   const [activeScope, setActiveScope] = React.useState<string | null>(null);
+
+  // Append Daimon controls (Task 5: Week 2) - moved here before useMemo that uses them
+  const [showAppendDaimon, setShowAppendDaimon] = React.useState(false);
+  const [daimonTargetLocus, setDaimonTargetLocus] = React.useState<string>("");
+  const [daimonTargetScope, setDaimonTargetScope] = React.useState<string | null>(null);
 
   // Compute scopes and labels
   const scopes = React.useMemo(() => {
@@ -250,6 +265,46 @@ export default function LudicsPanel({
     }
   }, [scopes, activeScope]);
 
+  // Compute available loci for daimon append (from Opponent designs)
+  const availableLoci = React.useMemo(() => {
+    const targetScope = daimonTargetScope ?? activeScope;
+    const scopeDesigns = designs.filter(
+      (d: any) => (d.scope ?? "legacy") === targetScope
+    );
+    const oppDesign = scopeDesigns.find((d: any) => d.participantId === "Opponent");
+    
+    if (!oppDesign?.acts) return [];
+    
+    // Get unique locus paths from acts
+    const lociSet = new Set<string>();
+    oppDesign.acts.forEach((act: any) => {
+      if (act.locus?.path) {
+        lociSet.add(act.locus.path);
+      }
+    });
+    
+    return Array.from(lociSet).sort((a, b) => {
+      // Sort by depth (number of dots) then alphabetically
+      const depthA = (a.match(/\./g) || []).length;
+      const depthB = (b.match(/\./g) || []).length;
+      return depthA - depthB || a.localeCompare(b);
+    });
+  }, [designs, daimonTargetScope, activeScope]);
+
+  // Auto-select first locus when available loci change
+  React.useEffect(() => {
+    if (availableLoci.length > 0 && !daimonTargetLocus) {
+      setDaimonTargetLocus(availableLoci[0]);
+    }
+  }, [availableLoci, daimonTargetLocus]);
+
+  // Sync daimon target scope with active scope
+  React.useEffect(() => {
+    if (!showAppendDaimon) {
+      setDaimonTargetScope(activeScope);
+    }
+  }, [showAppendDaimon, activeScope]);
+
   // Fetch Ludics insights (Phase 1: Week 2)
   const { data: insightsData, isLoading: insightsLoading } = useSWR<{
     ok: boolean;
@@ -263,6 +318,7 @@ export default function LudicsPanel({
   const [showAttach, setShowAttach] = React.useState(false);
   const [attachLoading, setAttachLoading] = React.useState(false);
   const [attachPick, setAttachPick] = React.useState(""); // selected workId
+  const [attachTargetScope, setAttachTargetScope] = React.useState<string | null>(null); // Task 8: Week 2
   const [attachCandidates, setAttachCandidates] = React.useState<
     { id: string; title: string; theoryType: "IH" | "TC" | "DN" | "OP" }[]
   >([]);
@@ -272,6 +328,8 @@ export default function LudicsPanel({
   // When the attach section opens, list IH/TC works in this deliberation
   React.useEffect(() => {
     if (!showAttach) return;
+    // Sync scope with active scope when opening
+    setAttachTargetScope(activeScope);
     let cancelled = false;
     (async () => {
       try {
@@ -400,6 +458,7 @@ export default function LudicsPanel({
   const focusPath = React.useMemo(() => {
     if (focusIdx == null || !trace) return null;
     const p = trace.pairs[focusIdx];
+    if (!p) return null; // Handle summary lines that don't have pairs
     const pos = byAct.get(p.posActId ?? "");
     const neg = byAct.get(p.negActId ?? "");
     return pos?.locus?.path ?? neg?.locus?.path ?? null;
@@ -503,11 +562,6 @@ const suggestClose = React.useCallback((path: string) => {
       window.removeEventListener("dialogue:moves:refresh", onRefresh);
   }, [deliberationId]);
 
-  React.useEffect(() => {
-    compileStepRef.current("neutral");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deliberationId]);
-
   const step = React.useCallback(async () => {
     if (!designs?.length) return;
     setBusy("step");
@@ -566,12 +620,29 @@ const suggestClose = React.useCallback((path: string) => {
 
   const appendDaimonToNext = React.useCallback(async () => {
     if (!designs?.length) return;
-    // Need at least 2 designs (Proponent and Opponent)
-    const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1];
-    if (!B) {
-      toast.show("No Opponent design found", "err");
+    
+    // Validate inputs
+    if (!daimonTargetLocus) {
+      toast.show("Please select a locus for the daimon", "err");
       return;
     }
+
+    const targetScope = daimonTargetScope ?? activeScope;
+    
+    // Filter designs by target scope
+    const scopeDesigns = designs.filter(
+      (d: any) => (d.scope ?? "legacy") === targetScope
+    );
+    
+    const B = scopeDesigns.find((d: any) => d.participantId === "Opponent");
+    if (!B) {
+      toast.show(
+        `No Opponent design found for scope: ${scopeLabels[targetScope ?? "legacy"] || targetScope}`,
+        "err"
+      );
+      return;
+    }
+    
     setBusy("append");
     try {
       const res = await fetch("/api/ludics/acts", {
@@ -580,21 +651,48 @@ const suggestClose = React.useCallback((path: string) => {
         body: JSON.stringify({
           designId: B.id,
           enforceAlternation: false,
-          acts: [{ kind: "DAIMON" }],
+          acts: [{ 
+            kind: "DAIMON",
+            locusPath: daimonTargetLocus,
+          }],
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to append daimon");
       }
-      toast.show("Daimon appended", "ok");
-      await step();
+      
+      const scopeLabel = scopeLabels[targetScope ?? "legacy"] || targetScope;
+      toast.show(
+        `Daimon appended at ${daimonTargetLocus} in scope: ${scopeLabel}`,
+        "ok"
+      );
+      
+      // Re-step only the affected scope
+      if (targetScope === activeScope) {
+        await step();
+      } else {
+        // If different scope, just refresh designs
+        await mutateDesigns();
+      }
+      
+      // Close the append panel after success
+      setShowAppendDaimon(false);
     } catch (e: any) {
       toast.show(e?.message || "Append failed", "err");
     } finally {
       setBusy(false);
     }
-  }, [designs, step, toast]);
+  }, [
+    designs,
+    daimonTargetLocus,
+    daimonTargetScope,
+    activeScope,
+    scopeLabels,
+    step,
+    mutateDesigns,
+    toast,
+  ]);
 
   const pickAdditive = React.useCallback(
     async (parentPath: string, child: string) => {
@@ -698,36 +796,90 @@ const suggestClose = React.useCallback((path: string) => {
 
       const TAU = Number(process.env.NEXT_PUBLIC_CQ_NLI_THRESHOLD ?? "0.72");
       const b: Record<number, string> = {};
+      let contradictionCount = 0;
+      
       res?.results?.forEach((r: any, i: number) => {
-        if (r?.relation === "contradicts" && (r.score ?? 0) >= TAU)
+        if (r?.relation === "contradicts" && (r.score ?? 0) >= TAU) {
           b[i] = "NLI⊥";
+          contradictionCount++;
+        }
       });
+      
       setBadges(b);
+      
+      // Store NLI results per scope
+      const scopeKey = activeScope ?? "legacy";
+      const scopeLabel = scopeLabels[scopeKey] || scopeKey;
+      
+      setNliResultsByScope(prev => ({
+        ...prev,
+        [scopeKey]: {
+          contradictions: contradictionCount,
+          timestamp: new Date().toISOString(),
+        },
+      }));
+      
+      // Persist to trace extJson (if trace has an ID)
+      // Note: This would require a trace update endpoint which may not exist yet
+      // For now, we store in component state
+      
+      toast.show(
+        contradictionCount > 0
+          ? `Found ${contradictionCount} contradiction(s) in scope: ${scopeLabel}`
+          : `No contradictions found in scope: ${scopeLabel}`,
+        contradictionCount > 0 ? "err" : "ok"
+      );
     } finally {
       setBusy(false);
     }
-  }, [trace, designs, byAct]);
+  }, [trace, designs, byAct, activeScope, scopeLabels, toast]);
 
   const checkStable = React.useCallback(async () => {
     setBusy("orth"); // Reuse busy state
     try {
-      const res = await fetch(
-        `/api/af/stable?deliberationId=${encodeURIComponent(deliberationId)}`
-      ).then((r) => r.json());
+      const scopeKey = activeScope ?? "legacy";
+      const scopeLabel = scopeLabels[scopeKey] || scopeKey;
+      
+      // Add scope parameter to API call
+      const url = new URL(
+        `/api/af/stable`,
+        window.location.origin
+      );
+      url.searchParams.set("deliberationId", deliberationId);
+      
+      // Add scope parameter if not legacy
+      if (scopeKey !== "legacy") {
+        url.searchParams.set("scope", scopeKey);
+      }
+      
+      const res = await fetch(url.toString()).then((r) => r.json());
       
       if (!res.ok) {
         toast.show(res.error || "Failed to compute stable sets", "err");
         return;
       }
       
-      setStable(res.count ?? 0);
-      toast.show(`Found ${res.count ?? 0} stable extension(s)`, "ok");
+      const count = res.count ?? 0;
+      
+      // Update global stable state (for backward compat)
+      setStable(count);
+      
+      // Store per-scope result
+      setStableSetsByScope(prev => ({
+        ...prev,
+        [scopeKey]: count,
+      }));
+      
+      toast.show(
+        `Found ${count} stable extension(s) in scope: ${scopeLabel}`,
+        "ok"
+      );
     } catch (e: any) {
       toast.show("Stable sets computation failed", "err");
     } finally {
       setBusy(false);
     }
-  }, [deliberationId, toast]);
+  }, [deliberationId, activeScope, scopeLabels, toast]);
 
   // Build prefix path up to index i from the trace, as (pol,locus) acts:
   const prefixActs = React.useCallback(
@@ -1050,11 +1202,11 @@ const suggestClose = React.useCallback((path: string) => {
           </button>
           <button
             className="btnv2"
-            aria-label="Append daimon to next"
-            onClick={appendDaimonToNext}
-            disabled={!!busy}
+            aria-label="Append daimon"
+            onClick={() => setShowAppendDaimon((v) => !v)}
+            aria-expanded={showAppendDaimon}
           >
-            {busy === "append" ? "Working…" : "Append †"}
+            {showAppendDaimon ? "Hide †" : "Append †"}
           </button>
           <button
             className="btnv2"
@@ -1069,8 +1221,24 @@ const suggestClose = React.useCallback((path: string) => {
             aria-label="Analyze NLI"
             onClick={analyzeNLI}
             disabled={!!busy}
+            title={
+              nliResultsByScope[activeScope ?? "legacy"]
+                ? `Last analyzed: ${new Date(
+                    nliResultsByScope[activeScope ?? "legacy"].timestamp
+                  ).toLocaleTimeString()}`
+                : "Analyze Natural Language Inference"
+            }
           >
-            {busy === "nli" ? "Analyzing…" : "NLI"}
+            {busy === "nli" ? "Analyzing…" : (
+              <>
+                NLI
+                {nliResultsByScope[activeScope ?? "legacy"] && (
+                  <span className="ml-1 text-[10px] opacity-70">
+                    ({nliResultsByScope[activeScope ?? "legacy"].contradictions})
+                  </span>
+                )}
+              </>
+            )}
           </button>
           <button
             className="btnv2 btnv2--ghost"
@@ -1081,10 +1249,20 @@ const suggestClose = React.useCallback((path: string) => {
           </button>
           <button
             className="btnv2 btnv2--ghost"
-            aria-label="Stable ets"
+            aria-label="Stable sets"
             onClick={checkStable}
+            title={
+              stableSetsByScope[activeScope ?? "legacy"] !== undefined
+                ? `${stableSetsByScope[activeScope ?? "legacy"]} stable extension(s) in this scope`
+                : "Compute stable sets for active scope"
+            }
           >
             Stable sets
+            {stableSetsByScope[activeScope ?? "legacy"] !== undefined && (
+              <span className="ml-1 text-[10px] opacity-70">
+                ({stableSetsByScope[activeScope ?? "legacy"]})
+              </span>
+            )}
           </button>
           <button
             className="btnv2 btnv2--ghost"
@@ -1120,8 +1298,108 @@ const suggestClose = React.useCallback((path: string) => {
           refreshKey={`${trace?.status}:${trace?.pairs?.length ?? 0}`}
         />
       </div>
+      {/* Append Daimon Panel (Task 5: Week 2) */}
+      {showAppendDaimon && (
+        <div className="rounded border border-amber-200 bg-amber-50/80 p-3 text-xs space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-amber-900">Append Daimon (†)</h4>
+            <button
+              className="text-xs text-amber-600 hover:text-amber-800 underline"
+              onClick={() => setShowAppendDaimon(false)}
+            >
+              Close
+            </button>
+          </div>
+          
+          <div className="grid gap-2">
+            {/* Scope selector (if multiple scopes) */}
+            {scopes.length > 1 && (
+              <div className="flex items-center gap-2">
+                <label className="text-amber-800 font-medium min-w-[60px]">
+                  Scope:
+                </label>
+                <select
+                  className="border rounded px-2 py-1 bg-white flex-1"
+                  value={daimonTargetScope ?? ""}
+                  onChange={(e) => {
+                    setDaimonTargetScope(e.target.value || null);
+                    setDaimonTargetLocus(""); // Reset locus when scope changes
+                  }}
+                  disabled={!!busy}
+                >
+                  {scopes.map((scope) => (
+                    <option key={scope} value={scope}>
+                      {scopeLabels[scope] || scope}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* Locus selector */}
+            <div className="flex items-center gap-2">
+              <label className="text-amber-800 font-medium min-w-[60px]">
+                Locus:
+              </label>
+              <select
+                className="border rounded px-2 py-1 bg-white flex-1 font-mono text-[11px]"
+                value={daimonTargetLocus}
+                onChange={(e) => setDaimonTargetLocus(e.target.value)}
+                disabled={!!busy || availableLoci.length === 0}
+              >
+                {availableLoci.length === 0 ? (
+                  <option value="">No loci available</option>
+                ) : (
+                  <>
+                    <option value="">— Select locus —</option>
+                    {availableLoci.map((locus) => (
+                      <option key={locus} value={locus}>
+                        {locus}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
+            
+            {/* Append button */}
+            <div className="flex items-center justify-between pt-2 border-t border-amber-200">
+              <div className="text-[11px] text-amber-700">
+                {availableLoci.length} loci available
+              </div>
+              <button
+                className="px-3 py-1.5 border rounded bg-white hover:bg-amber-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={appendDaimonToNext}
+                disabled={!!busy || !daimonTargetLocus || availableLoci.length === 0}
+              >
+                {busy === "append" ? "Appending…" : "Append †"}
+              </button>
+            </div>
+          </div>
+          
+          <div className="text-[10px] text-amber-600 bg-amber-100 rounded p-2 mt-2">
+            <strong>Tip:</strong> Appending a daimon (†) to a locus marks it as terminal/closed.
+            This signals convergence or concession at that point in the interaction.
+          </div>
+        </div>
+      )}
+
       {showAttach && (
         <div className="mt-2 rounded border bg-white/60 p-2 text-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-neutral-600">Target Scope:</span>
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={attachTargetScope ?? ""}
+              onChange={(e) => setAttachTargetScope(e.target.value || null)}
+            >
+              {scopes.map((s) => (
+                <option key={s} value={s}>
+                  {scopeLabels[s] ?? s}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-neutral-600">Source Work:</span>
             <select
@@ -1151,10 +1429,19 @@ const suggestClose = React.useCallback((path: string) => {
                     .then((r) => r.json())
                     .catch(() => null);
 
-                  // Resolve designs (pos/neg) from SWR data you already loaded
-                  const pos = pro?.id ?? designs[0]?.id;
-                  const neg = opp?.id ?? designs[1]?.id ?? designs[0]?.id;
-                  if (!pos || !neg) throw new Error("Missing designs");
+                  const targetScope = attachTargetScope ?? activeScope;
+                  const scopeKey = targetScope ?? "legacy";
+                  const scopeLabel = scopeLabels[scopeKey] ?? scopeKey;
+
+                  // Filter designs by target scope
+                  const scopeDesigns = designs.filter(
+                    (d: any) => (d.scope ?? "legacy") === scopeKey
+                  );
+                  
+                  // Resolve designs (pos/neg) from filtered scope designs
+                  const pos = scopeDesigns.find((d: any) => d.participantId === "Proponent")?.id;
+                  const neg = scopeDesigns.find((d: any) => d.participantId === "Opponent")?.id;
+                  if (!pos || !neg) throw new Error(`Missing P/O designs in scope: ${scopeLabel}`);
 
                   // Attach testers by stepping with them
                   const r = await fetch("/api/ludics/step", {
@@ -1170,7 +1457,7 @@ const suggestClose = React.useCallback((path: string) => {
                   });
 
                   if (!r.ok) throw new Error(await r.text());
-                  toast.show("Testers attached", "ok");
+                  toast.show(`Testers attached to scope: ${scopeLabel}`, "ok");
 
                   // Refresh panels that depend on the run/designs
                   await Promise.all([refreshOrth(), mutateDesigns()]);
@@ -1185,86 +1472,341 @@ const suggestClose = React.useCallback((path: string) => {
             </button>
           </div>
           <div className="text-[11px] text-neutral-500 mt-1">
-            Tip: you can refine loci in Evaluation/Loci tools after attaching.
+            Tip: Testers will be attached to the selected scope. Refine loci in Evaluation/Loci tools after attaching.
           </div>
         </div>
       )}
 
-      {/* Legend + narrative */}
+      {/* Enhanced Trace Log */}
       {showGuide && (
-        <div className="grid gap-2 md:grid-cols-2">
-          <div className="border rounded p-2 bg-slate-50">
-            <div className="font-semibold text-sm mb-1">Legend</div>
-            <ul className="list-disc ml-4 space-y-1 text-xs">
-              <li>
-                <b>P</b> / <b>O</b>: Proponent / Opponent
-              </li>
-              <li>
-                <b>† Daimon</b>: branch ends (accept/fail)
-              </li>
-              <li>
-                <b>⊕ Additive</b>: choice node
-              </li>
-              <li>
-                <b>Locus</b> <code>0.1.2</code>: root → child 1 → child 2
-              </li>
-              <li>
-                <b>Orthogonal</b>: no illegal reuse across designs
-              </li>
-            </ul>
-          </div>
+        <div className="grid gap-4">
+          {/* Plain Text Trace Output */}
+          {lines.length > 0 && (
+            <div className="border rounded-lg bg-slate-900 p-4 font-mono text-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-slate-300 font-semibold text-xs uppercase tracking-wide">Plain Text Output</div>
+                <button
+                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors"
+                  onClick={() => {
+                    const txt = lines.map((l, i) => `${i + 1}. ${l.text}`).join("\n");
+                    navigator.clipboard?.writeText(txt).catch(() => {});
+                  }}
+                  title="Copy plain text"
+                >
+                  📋 Copy
+                </button>
+              </div>
+              <div className="text-slate-200 space-y-1 max-h-48 overflow-y-auto">
+                {lines.map((l, i) => (
+                  <div key={i} className="hover:bg-slate-800 px-2 py-1 rounded transition-colors">
+                    <span className="text-slate-500">{i + 1}.</span> {l.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <div className="border rounded p-2 bg-slate-50">
-            <div className="flex items-center justify-between">
-              <div className="font-semibold text-sm mb-1">Narrated trace</div>
-              <button
-                className="text-[11px] underline decoration-dotted"
-                onClick={() => {
-                  if (!lines.length) return;
-                  const txt = lines
-                    .map((l, i) => `${i + 1}) ${l.text}`)
-                    .join("\n");
-                  navigator.clipboard?.writeText(txt).catch(() => {});
-                }}
-                title="Copy narrated trace"
-              >
-                Copy
-              </button>
+          {/* Header with Stats */}
+          <div className="border rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-slate-900">Trace Log Analysis</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-3 py-1.5 text-xs bg-white hover:bg-slate-50 border border-slate-300 rounded-md transition-colors"
+                  onClick={() => {
+                    if (!lines.length) return;
+                    const txt = lines
+                      .map((l, i) => `${i + 1}. ${l.text}`)
+                      .join("\n");
+                    navigator.clipboard?.writeText(txt).catch(() => {});
+                  }}
+                  title="Copy narrated trace to clipboard"
+                >
+                  📋 Copy
+                </button>
+                <button
+                  className="px-3 py-1.5 text-xs bg-white hover:bg-slate-50 border border-slate-300 rounded-md transition-colors"
+                  onClick={() => setShowGuide(false)}
+                >
+                  ✕ Close
+                </button>
+              </div>
             </div>
 
-            {!trace ? (
-              <div className="text-xs text-neutral-500">
-                No trace yet — post a WHY or GROUNDS.
+            {/* Trace Statistics */}
+            {trace && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="bg-white rounded-lg p-3 border border-slate-200">
+                  <div className="text-xs text-slate-600 mb-1">Total Pairs</div>
+                  <div className="text-2xl font-bold text-slate-900">{trace.pairs.length}</div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-200">
+                  <div className="text-xs text-slate-600 mb-1">Decisive Steps</div>
+                  <div className="text-2xl font-bold text-indigo-600">
+                    {trace.decisiveIndices?.length ?? 0}
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-200">
+                  <div className="text-xs text-slate-600 mb-1">Status</div>
+                  <div className={[
+                    "text-sm font-bold uppercase",
+                    trace.status === "CONVERGENT" ? "text-emerald-600" :
+                    trace.status === "DIVERGENT" ? "text-rose-600" :
+                    "text-amber-600"
+                  ].join(" ")}>
+                    {trace.status === "CONVERGENT" ? "✓ Convergent" :
+                     trace.status === "DIVERGENT" ? "✗ Divergent" :
+                     "⋯ Ongoing"}
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-slate-200">
+                  <div className="text-xs text-slate-600 mb-1">Unique Loci</div>
+                  <div className="text-2xl font-bold text-slate-900">
+                    {new Set(trace.pairs.map(p => {
+                      const pos = byAct.get(p.posActId ?? "");
+                      const neg = byAct.get(p.negActId ?? "");
+                      return pos?.locus?.path ?? neg?.locus?.path ?? "0";
+                    })).size}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <ol className="list-decimal ml-5 space-y-1 text-sm">
-                {lines.map((ln, i) => (
-                  <li key={i}>
-                    <button
-                      className={[
-                        "text-left underline decoration-dotted",
-                        focusIdx === i ? "text-sky-700" : "text-neutral-800",
-                        ln.decisive ? "font-semibold" : "",
-                      ].join(" ")}
-                      onClick={() => setFocusIdx(i)}
-                      title={ln.hover}
-                    >
-                      {i + 1}) {ln.text}
-                    </button>
-                  </li>
-                ))}
-              </ol>
+            )}
+
+            {/* Outcome Summary */}
+            {trace && trace.status === "CONVERGENT" && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">✓</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-emerald-900 mb-1">
+                      Dialogue Converged Successfully
+                    </div>
+                    <div className="text-sm text-emerald-700">
+                      {trace.endedAtDaimonForParticipantId && (
+                        <span>Ended with daimon by <strong>{trace.endedAtDaimonForParticipantId}</strong></span>
+                      )}
+                      {trace.endorsement && (
+                        <span className="ml-2">
+                          • Endorsed by <strong>{trace.endorsement.byParticipantId}</strong> at locus <code className="bg-emerald-100 px-1 rounded">{trace.endorsement.locusPath}</code>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {trace && trace.status === "DIVERGENT" && (
+              <div className="bg-rose-50 border border-rose-200 rounded-lg p-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">✗</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-rose-900 mb-1">
+                      Dialogue Diverged
+                    </div>
+                    <div className="text-sm text-rose-700">
+                      Unresolved obligations remain. Further moves required to reach convergence.
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
+
+          {/* Main Content: Legend and Trace */}
+          <div className="grid gap-4 md:grid-cols-[300px_1fr]">
+            {/* Legend Panel */}
+            <div className="border rounded-lg p-4 bg-white h-fit">
+              <div className="font-semibold text-sm mb-3 text-slate-900">Quick Reference</div>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <div className="font-medium text-slate-700 mb-1">Participants</div>
+                  <div className="space-y-1 text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-[10px]">P</span>
+                      <span>Proponent (positive polarity)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-[10px]">O</span>
+                      <span>Opponent (negative polarity)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="font-medium text-slate-700 mb-1">Move Types</div>
+                  <div className="space-y-1 text-slate-600">
+                    <div><strong>Assert:</strong> Initial claim at locus</div>
+                    <div><strong>Challenge (WHY):</strong> Question/attack</div>
+                    <div><strong>Grounds:</strong> Supporting evidence</div>
+                    <div><strong>† Daimon:</strong> Terminal/acceptance</div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="font-medium text-slate-700 mb-1">Locus Notation</div>
+                  <div className="space-y-1 text-slate-600">
+                    <div><code className="bg-slate-100 px-1 rounded">0</code> = Root position</div>
+                    <div><code className="bg-slate-100 px-1 rounded">0.1</code> = First child of root</div>
+                    <div><code className="bg-slate-100 px-1 rounded">0.1.2</code> = Second child of 0.1</div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="font-medium text-slate-700 mb-1">Indicators</div>
+                  <div className="space-y-1 text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold">⭐</span>
+                      <span>Decisive step</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">⊕</span>
+                      <span>Additive choice</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded text-[10px] font-bold">⊙</span>
+                      <span>Reversibility failure</span>
+                    </div>
+                  </div>
+                </div>
+
+                {badges && Object.keys(badges).length > 0 && (
+                  <div className="pt-2 border-t border-slate-200">
+                    <div className="font-medium text-slate-700 mb-1">NLI Results</div>
+                    <div className="text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">NLI⊥</span>
+                        <span>Detected contradiction</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Narrated Trace */}
+            <div className="border rounded-lg p-4 bg-white">
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-semibold text-sm text-slate-900">Step-by-Step Narrative</div>
+                {lines.length > 0 && (
+                  <div className="text-xs text-slate-500">
+                    {lines.length} step{lines.length !== 1 ? 's' : ''}
+                  </div>
+                )}
+              </div>
+
+              {!trace ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3 opacity-30">📝</div>
+                  <div className="text-sm text-slate-600 font-medium mb-1">No trace yet</div>
+                  <div className="text-xs text-slate-500">
+                    Start the dialogue by posting WHY or GROUNDS moves
+                  </div>
+                </div>
+              ) : lines.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3 opacity-30">⏳</div>
+                  <div className="text-sm text-slate-600 font-medium mb-1">Trace processing</div>
+                  <div className="text-xs text-slate-500">
+                    Click "Step" to generate the trace narrative
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {lines.map((ln, i) => {
+                    const isDecisive = ln.decisive;
+                    const isSelected = focusIdx === i;
+                    const hasNLI = badges[i];
+                    const hasRevFail = revFail[i];
+                    const pair = trace?.pairs[i];
+                    const hasValidPair = pair && (pair.posActId || pair.negActId);
+                    
+                    return (
+                      <div key={i} className="space-y-2">
+                        <div
+                          className={[
+                            "group relative rounded-lg border p-3 transition-all cursor-pointer",
+                            isSelected 
+                              ? "bg-sky-50 border-sky-300 shadow-sm" 
+                              : "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300",
+                            isDecisive && "ring-2 ring-indigo-200"
+                          ].join(" ")}
+                          onClick={() => setFocusIdx(i)}
+                        >
+                          {/* Step number and badges */}
+                          <div className="flex items-start gap-3">
+                            <div className={[
+                              "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
+                              isSelected
+                                ? "bg-sky-600 text-white"
+                                : isDecisive
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-300 text-slate-700"
+                            ].join(" ")}>
+                              {i + 1}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              {/* Main text */}
+                              <div className={[
+                                "text-sm leading-relaxed mb-1",
+                                isDecisive ? "font-semibold text-slate-900" : "text-slate-700"
+                              ].join(" ")}>
+                                {ln.text}
+                              </div>
+                              
+                              {/* Hover details */}
+                              {ln.hover && (
+                                <div className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
+                                  <div className="font-medium mb-1">Full expressions:</div>
+                                  <div className="space-y-1 font-mono text-[10px] bg-slate-100 p-2 rounded">
+                                    {ln.hover.split(' • ').map((expr, idx) => (
+                                      <div key={idx} className="truncate">{expr}</div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Badges */}
+                            <div className="flex flex-col gap-1 items-end">
+                              {isDecisive && (
+                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold">
+                                  ⭐ DECISIVE
+                                </span>
+                              )}
+                              {hasNLI && (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-bold">
+                                  NLI⊥
+                                </span>
+                              )}
+                              {hasRevFail && (
+                                <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-[10px] font-bold">
+                                  ⊙
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Inline Act Inspector - only show for valid pairs */}
+                        {isSelected && hasValidPair && pair && (
+                          <div className="ml-10 border-l-2 border-sky-400 pl-4">
+                            <ActInspector
+                              pos={byAct.get(pair.posActId ?? "")}
+                              neg={byAct.get(pair.negActId ?? "")}
+                              onClose={() => setFocusIdx(null)}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
-      {/* Inspector */}
-      {focusIdx !== null && trace && (
-        <ActInspector
-          pos={byAct.get(trace.pairs[focusIdx]?.posActId ?? "")}
-          neg={byAct.get(trace.pairs[focusIdx]?.negActId ?? "")}
-          onClose={() => setFocusIdx(null)}
-        />
       )}
       {/* Trees */}
       <div className="grid  gap-4">

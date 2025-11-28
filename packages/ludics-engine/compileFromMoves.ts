@@ -102,7 +102,7 @@ interface MoveWithScope extends DialogueMoveRow {
   scopeType: string | null;
 }
 
-type ScopingStrategy = 'legacy' | 'topic' | 'actor-pair' | 'argument';
+export type ScopingStrategy = 'legacy' | 'topic' | 'actor-pair' | 'argument';
 
 interface CompileOptions {
   scopingStrategy?: ScopingStrategy;
@@ -397,7 +397,11 @@ export async function compileFromMoves(
   const { scopingStrategy = 'legacy', forceRecompile = false } = options ?? {};
   
   return withCompileLock(dialogueId, async () => {
+    console.log(`[compile] Lock acquired for ${dialogueId}`);
+    const startTime = Date.now();
+    
     // 1) wipe+recreate designs inside a short tx (relation-safe)
+    // Increased timeout to handle large deliberations with many designs/acts
     const rootId = await prisma.$transaction(async (tx) => {
       const root = await ensureRoot(tx as Tx, dialogueId);
       
@@ -407,32 +411,38 @@ export async function compileFromMoves(
         select: { id: true }
       });
       const designIds = designs.map(d => d.id);
+      console.log(`[compile] Cleaning up ${designIds.length} existing designs for ${dialogueId}`);
       
       // Delete in correct order to avoid foreign key constraint violations
+      
+      // 1. Delete LudicTrace FIRST (references LudicDesign)
+      const traceCount = await tx.ludicTrace.deleteMany({ 
+        where: { deliberationId: dialogueId } 
+      });
+      console.log(`[compile] Deleted ${traceCount.count} traces`);
+      
       if (designIds.length > 0) {
-        // Delete LudicChronicle (references both LudicDesign and LudicAct)
-        await tx.ludicChronicle.deleteMany({ 
+        // 2. Delete LudicChronicle (references both LudicDesign and LudicAct)
+        const chronicleCount = await tx.ludicChronicle.deleteMany({ 
           where: { designId: { in: designIds } } 
         });
+        console.log(`[compile] Deleted ${chronicleCount.count} chronicle entries`);
         
-        // Delete LudicAct (references LudicDesign via designId foreign key)
-        await tx.ludicAct.deleteMany({ 
+        // 3. Delete LudicAct (references LudicDesign via designId foreign key)
+        const actCount = await tx.ludicAct.deleteMany({ 
           where: { designId: { in: designIds } } 
         });
+        console.log(`[compile] Deleted ${actCount.count} acts`);
+        
+        // 4. IMMEDIATELY delete LudicDesign (before any other operation can create new acts)
+        const designCount = await tx.ludicDesign.deleteMany({ 
+          where: { id: { in: designIds } }  // Delete ONLY these specific designs, not all
+        });
+        console.log(`[compile] Deleted ${designCount.count} designs`);
       }
       
-      // Delete LudicTrace (references LudicDesign but has deliberationId directly)
-      await tx.ludicTrace.deleteMany({ 
-        where: { deliberationId: dialogueId } 
-      });
-      
-      // Finally, delete LudicDesign (no dependencies left)
-      await tx.ludicDesign.deleteMany({ 
-        where: { deliberationId: dialogueId } 
-      });
-      
       return root.id;
-    }, { timeout: 30_000, maxWait: 5_000 });
+    }, { timeout: 60_000, maxWait: 15_000 });
 
     // 2) read moves + compute scopes
     const moves: DialogueMoveRow[] = await prisma.dialogueMove.findMany({
@@ -462,6 +472,15 @@ export async function compileFromMoves(
 
     const loci = await prisma.ludicLocus.findMany({ where: { dialogueId }, select: { id:true, path:true } });
     const pathById = new Map(loci.map(l => [l.id, l.path]));
+    
+    // Pre-fetch locus cache once for all scopes (major performance optimization)
+    console.log(`[compile] Pre-fetching locus cache for all scopes`);
+    const existingLoci = await prisma.ludicLocus.findMany({
+      where: { dialogueId: dialogueId },
+      select: { id: true, path: true }
+    });
+    const sharedLocusCache = new Map(existingLoci.map(l => [l.path, { id: l.id, path: l.path }]));
+    console.log(`[compile] Cached ${sharedLocusCache.size} loci for reuse across ${movesByScope.size} scopes`);
     
     const allDesignIds: string[] = [];
 
@@ -501,17 +520,20 @@ export async function compileFromMoves(
 
       allDesignIds.push(proponentId, opponentId);
       
-      // 6) Compile acts for this scope
+      // 6) Compile acts for this scope (pass shared cache)
       await compileScopeActs(
         dialogueId,
         scopeMoves,
         { id: proponentId, participantId: 'Proponent' as const },
         { id: opponentId, participantId: 'Opponent' as const },
-        pathById
+        pathById,
+        sharedLocusCache
       );
     }
     
     await Promise.allSettled(allDesignIds.map(id => validateVisibility(id)));
+    const elapsed = Date.now() - startTime;
+    console.log(`[compile] Compilation complete for ${dialogueId} (took ${elapsed}ms)`);
     return { ok: true, designs: allDesignIds };
   });
 }
@@ -522,7 +544,8 @@ async function compileScopeActs(
   moves: MoveWithScope[],
   P: { id: string; participantId: 'Proponent' },
   O: { id: string; participantId: 'Opponent' },
-  pathById: Map<string, string>
+  pathById: Map<string, string>,
+  sharedLocusCache?: Map<string, { id: string; path: string }>
 ) {
     let nextTopIdx = 0;
     let lastAssertLocus: string | null = null;
@@ -851,15 +874,39 @@ async function compileScopeActs(
     }
 
     // 4) batched appends (D) — robust to concurrent compiles
-    const BATCH = 100;
+    // Increased batch size and timeout to handle large deliberations
+    const BATCH = 200;
      const skippedAdditive: Array<{ locus: string; designId: string }> = [];
+    
+    // Use shared locus cache if provided (multi-scope optimization), otherwise fetch
+    let locusCache: Map<string, { id: string; path: string }>;
+    if (sharedLocusCache) {
+      locusCache = sharedLocusCache;
+    } else {
+      const existingLoci = await prisma.ludicLocus.findMany({
+        where: { dialogueId: dialogueId },
+        select: { id: true, path: true }
+      });
+      locusCache = new Map(existingLoci.map(l => [l.path, { id: l.id, path: l.path }]));
+    }
+    
+    // Pre-fetch all design information to avoid repeated lookups (major performance bottleneck)
+    const uniqueDesignIds = Array.from(new Set(outActs.map(a => a.designId)));
+    const designs = await prisma.ludicDesign.findMany({
+      where: { id: { in: uniqueDesignIds } },
+      select: { id: true, deliberationId: true, participantId: true }
+    });
+    const designCache = new Map(designs.map(d => [d.id, d]));
+    
     for (let i = 0; i < outActs.length; i += BATCH) {
       const chunk = outActs.slice(i, i + BATCH);
+      // Increased timeout to 180s (3 minutes) and maxWait to 60s to handle very large compilations
+      // This prevents "Transaction not found" errors on large deliberations with complex locus structures
       await prisma.$transaction(async (tx2) => {
                for (const { designId, act } of chunk) {
                  try {
                    // compile should be tolerant; stepper will report violations
-                   await appendActs(designId, [act], { enforceAdditiveOnce: false }, tx2);
+                   await appendActs(designId, [act], { enforceAdditiveOnce: false }, tx2, locusCache, designCache);
                   } catch (e: any) {
                                if (String(e?.message || e) === 'ADDITIVE_REUSE') {
                                  skippedAdditive.push({ locus: act.locus, designId });
@@ -868,7 +915,7 @@ async function compileScopeActs(
                    throw e;
                  }
                }
-             }, { timeout: 60_000, maxWait: 10_000 });
+             }, { timeout: 180_000, maxWait: 60_000 });
     }
     (globalThis as any).__ludics__compile_skipped_additive = skippedAdditive;
 }
