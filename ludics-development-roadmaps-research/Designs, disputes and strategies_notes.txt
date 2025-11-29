@@ -1,0 +1,1242 @@
+================================================================================
+RESEARCH PAPER ANALYSIS: "Designs, disputes and strategies"
+by Claudia Faggian & Martin Hyland (2002)
+================================================================================
+
+PURPOSE: Evaluate potential improvements for the Mesh ludics system implementation
+
+================================================================================
+ABSTRACT - KEY INSIGHTS
+================================================================================
+
+Core Thesis:
+- Ludics can be understood through TWO equivalent presentations:
+  1. Traditional: Designs as skeletal sequent calculus derivations
+  2. Alternative: Designs as sets of possible interactions (disputes)
+
+Major Contribution:
+Establishes precise correspondences between Ludics and Games Semantics:
+  • Actions ↔ Moves
+  • Disputes ↔ Plays  
+  • Chronicles ↔ Views
+  • Designs ↔ Innocent Strategies
+
+Why This Matters:
+- Makes Ludics concepts more accessible through game-theoretic lens
+- Enables transfer of techniques between Ludics and Games Semantics
+- Provides alternative computational model based on interaction traces
+
+================================================================================
+SECTION 1 - INTRODUCTION
+================================================================================
+
+Historical Context:
+-----------------
+1. Computation as Interaction paradigm is dominant in modern CS
+2. Logic has evolved toward interactive & dynamical models:
+   - Geometry of Interaction (from Linear Logic)
+   - Games Semantics (dialog between program/environment)
+   - Ludics (Girard) - interaction as fundamental notion
+
+What Are Designs?
+-----------------
+Designs are DUAL in nature:
+  (i)  Abstraction of formal proofs
+  (ii) Concretion of their semantical interpretation
+
+Key Metaphor: "Skeleton of sequent calculus derivation"
+- Instead of manipulating formulas, we manipulate their LOCATIONS (addresses)
+- This is the address-based computational model
+
+The Central Insight:
+-------------------
+"A design can be presented as the collection of its possible interactions"
+
+Critical Correspondence (the Rosetta Stone):
+  VIEW ↔ CHRONICLE ↔ SEQUENT CALCULUS BRANCH
+
+This allows bidirectional translation:
+- Game Semantics conditions → Sequent calculus conditions
+- Keep concepts concrete by remembering: chronicle = branch in derivation
+
+================================================================================
+SECTION 2 - LUDICS IN A NUTSHELL
+================================================================================
+
+2.1 The Universe of Proofs
+--------------------------
+
+Philosophical Foundation:
+- Overcome syntax/semantics distinction
+- Properties tested INTERNALLY through interaction
+- "Proofs are tested with proofs"
+
+The Daimon (†):
+- New rule that "assumes conclusion without justification"
+- Creates "aborted proofs" - still well-defined formal objects
+- Critical benefit: Universe now has enough inhabitants for A to be tested by A⊥
+
+Key Paradigm Shift:
+- Proofs as "proof search" or "proof construction"
+- Work backwards from conclusion
+- Can stop at any point with daimon
+
+2.2 Designs - Detailed Structure
+--------------------------------
+
+Definition 2.2 - ACTIONS:
+An action is a pair (ξ, I) where:
+  • ξ = address (list of natural numbers, location of formula)
+  • I ∈ Pf(N) = finite set of natural numbers (relative addresses of subformulas)
+  • ξ is called the FOCUS
+  • I is called the RAMIFICATION
+  • † is a special "improper action"
+
+Design Components:
+  1. BASE: A sequent giving the conclusion (process specification)
+  2. TREE OF ACTIONS: With specific properties (see Appendix)
+  3. BRANCH = CHRONICLE (if κ1 before κ2, write κ1 < κ2)
+
+Example Transformation (Formula → Design):
+```
+Sequent calculus with labeled rules:
+  ⊢ a0, c0 (axiom)
+  ⊢ b0, d0 (axiom)
+  ... (rules with labels like (a⊥ ⊗ b⊥, {a⊥, b⊥}))
+
+Becomes tree of labels (typed design):
+  Tree structure with actions and ramifications
+
+Further abstraction to pure addresses:
+  ξ, σ as addresses
+  ξ1, ξ2 as sub-addresses  
+  Actions: (ξ, {1,2}), (σ, {1,2}), etc.
+```
+
+Slices and Additives:
+--------------------
+Concept from Linear Logic proof-nets for &-rules:
+  • &-rule seen as superimposition of two unary rules
+  • Design = superimposition of slices
+  • In a slice: each address appears ONCE
+  • Therefore: action uniquely determined by focus
+
+Notation 2.3: When working with slices, identify action κ = (σ, I) with focus σ
+
+Normalization Process:
+---------------------
+
+Cut-Net: Set of designs to be cut together
+Cut: Coincidence of addresses of opposite polarity in bases
+Closed case: All addresses cut, base is empty
+
+Given designs D, E with opposite bases:
+  Notation: [[D, E]] for normalization result
+  
+  Two possible outcomes:
+    • Converges: [[D, E]] = † (designs are ORTHOGONAL)
+    • Fails: [[D, E]] = Ω
+
+The Interaction Trace:
+The real interest is the INTERACTION ITSELF:
+  • Token travels along cut-net
+  • Draws a path (sequence of visited actions)
+  • This sequence is called a DISPUTE: [D E]
+  • Visited portion = PULL-BACK of that dispute
+
+Chronicle Identification:
+- Same action may appear multiple times (additive duplications)
+- Chronicle from base to action identifies specific occurrence
+- Dispute contains enough info to retrieve identifying chronicle (Prop 3.6)
+
+Key Bidirectionality:
+  Design + Counter-design → Dispute
+  Dispute → Reconstructed design (pull-back)
+
+The Plan (Research Goals):
+-------------------------
+Present design as collection of possible interactions.
+
+Need to characterize:
+1. Which action sequences correspond to disputes
+2. Which dispute sets correspond to same design
+
+Requires:
+  (i)  COHERENCE CONDITION: All disputes are paths on same design
+  (ii) SATURATION CONDITION: We have ALL possible paths
+
+================================================================================
+POTENTIAL APPLICATIONS TO MESH LUDICS SYSTEM
+================================================================================
+
+Based on Abstract, Intro, and Section 2:
+
+1. DUAL REPRESENTATION ARCHITECTURE
+   Current: Likely tree/graph-based design representation
+   Enhancement: Add dispute-based representation layer
+   Benefit: Can compute/visualize interactions as traces
+   
+2. INTERACTION TRACING & VISUALIZATION
+   - Implement token-traveling normalization
+   - Visualize disputes as paths through design space
+   - Show pull-backs (visited portions during interaction)
+   - Display chronicle extraction from disputes
+
+3. ORTHOGONALITY TESTING
+   - Implement [[D, E]] normalization check
+   - Fast convergence/failure testing
+   - Could optimize argument validation in Mesh
+
+4. SLICE DECOMPOSITION
+   - Decompose designs into slices (additive branches)
+   - Each slice represents one path through & choices
+   - UI could show slice-by-slice exploration
+
+5. ADDRESS-BASED COMPUTATION MODEL
+   - Current implementation might be formula-centric
+   - Could refactor to pure address-based operations
+   - Focuses, ramifications as first-class data structures
+
+6. DAIMON (†) HANDLING
+   - Explicit handling of "incomplete" arguments/proofs
+   - Allow users to mark "assumed" conclusions
+   - Useful for exploratory argumentation
+
+7. GAMES SEMANTICS BRIDGE
+   - Import techniques from HO Games literature
+   - Provide game-theoretic explanations to users
+   - "Player/Opponent" mental model for argumentation
+
+================================================================================
+QUESTIONS FOR FURTHER SECTIONS
+================================================================================
+
+Before diving into Sections 3+ (Arenas, Strategies):
+
+Q1: Does current Mesh implementation use designs or something closer to disputes?
+Q2: Is there chronicle/view extraction capability currently?
+Q3: How is normalization/orthogonality currently computed?
+Q4: Are slices explicitly represented or implicit?
+Q5: What is the user-facing mental model - proof-theoretic or game-theoretic?
+
+================================================================================
+SECTION 3 - ARENAS, PLAYERS AND LEGAL POSITIONS
+================================================================================
+
+Context: This section works with designs on empty base <>.
+The "dependency tree" = Universal Arena.
+
+3.0 Players - Fundamental Split
+--------------------------------
+
+Address Universe Splits by Parity:
+  • EVEN-length addresses → One player
+  • ODD-length addresses → Other player
+
+Perspective Assignment:
+  • Proponent (P) = player who starts (owns initial move)
+  • Opponent (O) = the other player
+  
+Key Property: Complete symmetry - both players same nature, same rules
+
+3.1 Universal Arena - Definition 3.1
+------------------------------------
+
+An arena consists of:
+  1. Set of MOVES
+  2. LABELLING function (moves → {P, O})
+  3. ENABLING relation (justification)
+
+Universal Arena Components:
+
+MOVES: All actions (ξ, J) where:
+  - ξ = address
+  - J ∈ ℘fin(N) (finite set of natural numbers)
+
+LABELS: Implicit in address
+  - Even-length addresses → One player
+  - Odd-length addresses → Other player
+
+ENABLING RELATION (Justification):
+  - (ξ, I) JUSTIFIES (ξi, J) if i ∈ I
+  - INITIAL MOVE = action not justified (focus is <>)
+
+Delocalization:
+  - Arena A can be delocated to any initial address ξ
+  - ξ(A) moves = A moves with renaming: ξ(σ, I) = (ξσ, I)
+  - Creates ATOMIC ARENA (identified by atomic base)
+  - Universal arena has base ⊢<>
+
+Polarity (Notation 3.2):
+----------------------
+
+Relative to player:
+  • POSITIVE move = "mine" (same parity)
+  • NEGATIVE move = "yours" (opposite parity)
+
+Equivalences:
+  P-move = P-positive = O-negative
+  O-move = O-positive = P-negative
+
+Notation for move κ:
+  κP, κO, κ+, κ−
+
+Variable X ∈ {P, O} with X̄ for dual
+
+3.1 Plays - The Core Definitions
+---------------------------------
+
+Definition 3.3 - LINEAR POSITIONS:
+
+Sequence of actions s is linear position if satisfies:
+
+1. PARITY: Parity alternates
+2. JUSTIFICATION: Each move either initial OR justified by earlier move
+3. LINEARITY: Any address appears AT MOST ONCE
+
+Definition 3.4 - X-POSITIONS:
+
+Position ownership by last move:
+  • P-Position = expects Opponent action (last move was P)
+  • O-Position = expects Proponent action (last move was O)
+  • Empty sequence ϵ = O-position (P starts)
+
+Notation: pP, pO, p+, p−
+
+Definition 3.5 - VIEWS (The Key Notion!)
+-----------------------------------------
+
+For linear position q and player X, view q̄ X defined inductively:
+
+Base cases:
+  • ϵ̄ = ϵ
+  • sκ+ = s̄−κ+  (positive move: keep from other player's view)
+  • sκ− = κ−  if κ initial (negative initial: just the move)
+  • sκ′tκ− = s̄−κ′κ  if κ = (ξi, J) and κ′ = (ξ, I)+
+
+Notation:
+  • q̄ O = Opponent view
+  • q̄ P = Proponent view  
+  • qκ+ = view of player for which κ positive
+
+VIEW = CHRONICLE EXTRACTION MECHANISM
+
+Proposition 3.6 - Chronicles Extraction:
+Given dispute p = [D E] and qκ ⊑ p, if κ has parity X:
+  • Chronicle identifying κ+ = q̄κ+ (that is q̄κ X)
+  • Chronicle identifying κ− = q̄κ− (that is q̄κ X̄)
+
+Key Insight: Same action appears multiple times (n-ary negative rules).
+View operation extracts the identifying chronicle from the dispute!
+
+Definition 3.7 - LEGAL POSITIONS / PLAYS:
+
+Linear position p is LEGAL (a play) if satisfies:
+
+VISIBILITY: If tκ ⊑ p where κ non-initial, 
+            then justifier of κ occurs in t̄κ+
+
+Translation: 
+  - P-move κ: justifier in t̄κ P (and therefore in t̄ P)
+  - O-move κ: justifier in t̄ O
+
+Proposition 3.8 - DISPUTES AS PLAYS:
+
+Any dispute p on closed net (base ⊢<>) is a legal position on universal arena.
+
+Proof sketch:
+  - Parity, justification: obvious from design structure
+  - Visibility: t̄κ P = cκ is a chronicle, justifier in c by chronicle definition
+
+BIDIRECTIONAL CORRESPONDENCE:
+  Dispute → Legal position (Prop 3.8)
+  Legal position → Design + Counter-design (Prop 3.15)
+
+3.2 Pull-back Construction
+---------------------------
+
+From DISPUTES to DESIGNS:
+
+Definition 3.9 - Daimon in Arena:
+  • Extend arena with formal action †
+  • † is positive for ANY player
+  • † does not justify and is not justified by other actions
+  • Used for compact definitions
+
+Definition 3.10 - Dai-closure:
+For collection of plays S:
+  p†X = p ∗ † if p is X-negative
+  p†X = p otherwise
+  S†X = {p†X, p ∈ S}
+
+Completes maximal negative plays with daimon.
+
+Definition 3.11 - Chronicle Extraction from Play:
+For legal position p:
+  ChP(p) = {q̄ P : q ⊑ p, q ≠ ϵ}
+  ChO(p) = {q̄ O : q ⊑ p, q ≠ ϵ}
+
+Proposition 3.12 - PULL-BACK:
+For play p:
+  • ChP(p†P) is a P-slice
+  • ChO(p†O) is an O-slice
+
+Proof verifies:
+  (i) Elements of Ch(p) are chronicles (alternation, daimon, foci, linearity)
+  (ii) Ch(p) forms a design/slice (closure, coherence, propagation)
+
+Example 3.13 - Empty base:
+  ChP(ϵ†P) = {†}  → corresponds to derivation ⊢<>
+  ChO(ϵ†P) = ∅   → corresponds to derivation <>⊢ with action (<>, ∅)
+
+Remark 3.14: If qX ⊑ p then ChX(q) ⊆ ChX(p) (monotonicity)
+
+Proposition 3.15 - PLAYS AS DISPUTES (The Reverse Direction):
+
+To each play p on universal arena, can associate:
+  • Pair of slices S, T with bases ⊢<> and <>⊢
+  • Such that [S T] = p
+  • {S, T} is exactly the pull-back associated to p
+
+Construction:
+  S = ChP(p)
+  T = ChO(p)
+
+Proof verifies [S T] = p by induction on length, using normalization procedure.
+
+KEY RESULT: Complete bidirectional correspondence established!
+  Disputes ↔ Legal positions (plays)
+  Both directions constructive with explicit algorithms
+
+================================================================================
+TECHNICAL INSIGHTS FROM SECTION 3
+================================================================================
+
+1. ADDRESS PARITY = PLAYER OWNERSHIP
+   Even/odd length addresses cleanly split players
+   No external labeling needed - inherent in structure
+
+2. VIEW AS PROJECTION OPERATOR
+   View extracts "what player X sees/knows" from full play
+   Filters interaction history to relevant chronicle
+   
+3. VISIBILITY = GAME CONDITION
+   Move must be justified by something in player's view
+   Ensures moves respond to visible context
+   Corresponds to chronicle's justification structure
+
+4. DAI-CLOSURE = COMPLETION OPERATOR
+   Technical device for handling incomplete plays
+   Ensures all maximal plays end positively
+   Simplifies definitions and proofs
+
+5. PULL-BACK = RECONSTRUCTION
+   From trace (play) → recover designs (programs)
+   ChP(p), ChO(p) extract respective player strategies
+   Demonstrates interaction traces carry full structural info
+
+6. LINEARITY = NO REVISITING
+   Each address visited at most once
+   Corresponds to resource usage in Linear Logic
+   Critical for well-defined pull-back
+
+================================================================================
+POTENTIAL APPLICATIONS TO MESH LUDICS - SECTION 3 INSIGHTS
+================================================================================
+
+1. PLAYER-BASED ARGUMENTATION MODEL
+   Current: Arguments might not have explicit player roles
+   Enhancement: 
+     - Assign Proponent/Opponent roles based on address parity
+     - Even-depth arguments = P, odd-depth = O
+     - Enable turn-based interaction visualization
+
+2. VIEW-BASED CONTEXT DISPLAY
+   Implementation:
+     - Compute view for each player at any point in interaction
+     - Show "what P sees" vs "what O sees"
+     - Highlight visible justifications in UI
+     - Users understand context for each move
+
+3. LEGAL POSITION VALIDATION
+   Check if argument sequence is "legal play":
+     ✓ Parity alternation
+     ✓ Justification chains
+     ✓ Linearity (no address reuse)
+     ✓ Visibility (moves justified by visible context)
+   
+   Real-time validation during argument construction
+
+4. PULL-BACK VISUALIZATION
+   Given interaction trace (dispute):
+     - Extract designs for both players: ChP(p), ChO(p)
+     - Show dual perspectives on same interaction
+     - Visualize how trace unfolds from both strategies
+
+5. CHRONICLE EXTRACTION API
+   Implement view operation as core API:
+     - extractView(play, player) → chronicle
+     - Enables debugging/analysis of interactions
+     - Shows dependency chains clearly
+
+6. INITIAL MOVE DETECTION
+   Identify starting points in argument structures:
+     - Initial moves (not justified) = argument roots
+     - Can validate argument has proper grounding
+     - Detect floating/unjustified sub-arguments
+
+7. DAI-CLOSURE FOR INCOMPLETE ARGUMENTS
+   When argument chains don't reach conclusion:
+     - Apply dai-closure to "complete" them virtually
+     - Allow analysis of partial arguments
+     - Show what would need to be added
+
+8. ATOMIC ARENA PER ARGUMENT
+   Each argument/subargument defines atomic arena:
+     - Delocalize universal arena to argument's address
+     - Enables modular argument analysis
+     - Supports hierarchical argument structures
+
+9. BIDIRECTIONAL DISPUTE ↔ DESIGN CONVERTER
+   Build converter tools:
+     - Trace → Design reconstruction (pull-back)
+     - Design → All possible traces (disputes)
+     - Supports both analytical and generative workflows
+
+10. ADDRESS LINEARITY CHECKER
+    Validate resource usage:
+      - No address appears twice (linearity check)
+      - Ensures well-formed argument structure
+      - Prevents circular dependencies
+
+================================================================================
+THEORETICAL FOUNDATIONS ESTABLISHED
+================================================================================
+
+Section 3 provides the GAME-THEORETIC FOUNDATION:
+
+✓ Arena structure (universal, atomic)
+✓ Player mechanics (P/O, polarity, symmetry)
+✓ Position types (linear, legal, X-positions)
+✓ View operation (chronicle extraction from plays)
+✓ Visibility condition (justification in view)
+✓ Pull-back construction (plays → designs)
+✓ Bidirectional correspondence (disputes ↔ plays)
+
+This completes the DESCRIPTIVE framework.
+
+Next (Section 4): PRESCRIPTIVE framework
+- What collections of plays form strategies?
+- Coherence & saturation conditions
+- Innocent strategies
+- Design ↔ Strategy correspondence
+
+================================================================================
+SECTION 4 - STRATEGIES
+================================================================================
+
+Goal: Describe designs as collections of possible interactions, forgetting the 
+notion of design itself. Move from structural to behavioral characterization.
+
+4.0 Motivation & Overview
+-------------------------
+
+Definition 4.1 - Disp(D):
+For design D: Disp D = {[D E] : E⊥D}
+(All disputes of D with orthogonal counter-designs)
+
+The Challenge:
+Need TWO conditions for collection of disputes to represent a design:
+  (i)  COHERENCE: Disputes are paths on same design
+  (ii) SATURATION: We have ALL possible paths
+
+Definition 4.2 - X-STRATEGY (Basic):
+-----------------------------------------
+
+P-strategy (or O-strategy) S on universal arena ⊢<> is:
+  • Collection of plays
+  • Closed under positive prefix
+  • Satisfying COHERENCE condition
+
+COHERENCE: If p ≠ q ∈ S, then p ⌢ q is a positive position
+  - For P-strategy: p ⌢ q is P-position
+  - For O-strategy: p ⌢ q is O-position
+
+Remark 4.3: 
+Only maximal positions can be negative (followed by † in design)
+
+Fact 4.4 - Equivalent Definition (Standard Game Semantics):
+
+For S† (dai-closure of S):
+  s0. Closed under positive prefix
+  s1. All plays in S† are positive
+  s2. DETERMINISM: If s̄bX, s̄cX ∈ S†, then b = c
+
+Key insight: Strategy determines unique response to any view
+
+Definition 4.5 - Ch(S):
+For X-strategy S:
+  ChX(S) = ⋃(p∈S†X) ChX(p)
+
+Remark 4.6: Ch(S) is super-imposition of slices from plays in S
+
+CRITICAL PROBLEM - Example 4.7:
+-------------------------------
+
+NOT every strategy corresponds to a design!
+
+Example: O-strategy S with plays:
+  p1 = ⟨(<>, {0,1,2}), (0, I₀), (01, I₀₁), (1, J)⟩
+  p2 = ⟨(<>, {0,1,2}), (0, I₀), (02, I₀₂), (020, I₀₂₀), (01, I₀₁), (2, K)⟩
+
+ChO(p₁) and ChO(p₂) produce incompatible slices:
+  - Both have chronicle ⟨<>, 0, 01⁻⟩
+  - But they complete it differently
+  - The resulting chronicles are NOT coherent
+
+Problem: Two paths reach same negative action but continue differently.
+Solution: Need INNOCENCE condition!
+
+Definition 4.8 - INNOCENT STRATEGY:
+-----------------------------------
+
+X-strategy S is innocent if S† satisfies:
+
+  sab+ ∈ S†, p+ ∈ S†, pa is legal, p̄aX = s̄aX  ⟹  pab ∈ S†  (*)
+
+Translation: If strategy knows how to respond to view s̄a (with move b),
+             and position p has same view, then p gets same response.
+
+TWO ROLES OF INNOCENCE:
+
+1. UNIQUENESS: Move following negative action is uniquely determined
+   (Fact 4.15 - determinism under view)
+
+2. SATURATION: Guarantees all possible disputes are included
+   (If you can respond to a view, respond in all contexts with that view)
+
+Remark 4.9: Innocence = algorithm to calculate all disputes on design
+            (see Appendix C for procedural interpretation)
+
+Well-Known from Games Semantics:
+1. Views of innocent strategy generate complete strategy (by innocence)
+2. Views of innocent strategy S are contained in S
+
+KEY IDEA: Design = collection of views of innocent strategy
+         Can recover strategy from views, extract views from strategy
+
+4.1 Innocent Strategies: Views and Plays
+-----------------------------------------
+
+Context: All strategies in this section are dai-closed (S = S†)
+
+Definition 4.10 - Views(S):
+For X-strategy S:
+  Views(S) = {p̄ X : p ∈ S}
+
+Strategy V is STABLE UNDER VIEW if p̄ = p for all p ∈ V
+
+Definition 4.11 - Plays(V):
+For X-strategy V with Views(V) = V, construct plays iteratively:
+
+  P₀(V) = {p ∈ V : p minimal for ⊑}
+  
+  Pₙ₊₁(V) = {pab : p ∈ Pₙ(V), ∃cab ∈ V, p̄a = c̄a, pa is legal}
+  
+  Plays(V) = ⋃ₙ Pₙ(V)
+
+Algorithm: Start with minimal views, extend by matching views
+
+Fact 4.12: Plays(V) is closed under extension by view-matching
+
+Fact 4.13 - Innocence by Views:
+If Views(S) ⊆ S, innocence (*) equivalent to:
+  cab+ ∈ Views(S), p ∈ S, pa legal, p̄a = c̄a  ⟹  pab ∈ S  (**)
+
+Remark 4.14: Use c for p̄ to remember it's like a chronicle
+
+4.1.1 Key Properties
+--------------------
+
+Fact 4.15 - DETERMINISM UNDER VIEW:
+For innocent X-strategy S:
+  If pab ∈ S, qac ∈ S, p̄a = q̄a  then  b = c
+
+Solves Example 4.7 problem!
+Also means Views(S) is itself a strategy (deterministic)
+
+Proposition 4.16 - Closure Under View:
+If S innocent X-strategy, then Views(S) ⊆ S
+
+Proposition 4.17 - SATURATION:
+Let T be any strategy, S innocent strategy.
+If Views(T) ⊆ S  then  T ⊆ S
+
+Innocent strategy is largest strategy with given views!
+
+4.1.2 Plays vs Views - The Correspondence
+------------------------------------------
+
+Proposition 4.18:
+For innocent X-strategy S:
+  Views(S) is X-strategy, stable under view
+
+Proposition 4.19:
+For X-strategy V stable under view:
+  Views(Plays(V)) = V
+
+Proposition 4.20:
+For X-strategy V stable under view:
+  Plays(V) is smallest innocent strategy containing V
+
+Proof: Plays(V) is deterministic (V is), innocent (by construction 
+satisfies (**)), and minimal by saturation (Prop 4.17)
+
+Proposition 4.21 - ISOMORPHISM:
+For innocent X-strategy S:
+  Plays(Views(S)) = S
+
+Proof by induction on play length using view matching.
+
+CONCLUSION: Innocent strategies ↔ View-stable strategies
+           Via Plays(−) and Views(−) operations (mutual inverses)
+
+4.2 Designs and Innocent Strategies
+------------------------------------
+
+Definition 4.22 - Notation:
+  Views*(S) = Views(S) ∖ {ϵ}
+  S̄ = closure under non-empty negative prefix of S
+
+Fact 4.23:
+  Ch(S)⁺ = Views*(S†)
+  D = D⁺ and Ch(S) = Views*(S†)
+
+Proposition 4.24:
+For design D of base X:
+  D⁺ is X-strategy stable under view
+
+THE PROPAGATION ISSUE:
+---------------------
+
+Problem: View-stable strategy ≠ design
+Missing: LINEARITY condition ("propagation")
+
+Each play being linear doesn't guarantee all slices are linear!
+(Similar to interactive observability issues)
+
+Definition 4.25 - PROPAGATION:
+Strategy S satisfies propagation if:
+  If tκ, t′κ ∈ Views(S) and
+     t = c * (ξ, I) * d
+     t′ = c * (ξ′, I′) * d′
+  then ξ = ξ′
+
+Translation: Same prefix in two views → same addresses
+
+Reformulation: "In each slice, any address appears only once"
+
+Proposition 4.26:
+X-strategy V that is:
+  - Stable under view AND
+  - Satisfies propagation
+Then: V = D⁺ for some design D
+
+Proposition 4.27 - MAIN CORRESPONDENCE:
+
+(i) For design D:
+    • Disp(D) is innocent strategy
+    • Smallest innocent strategy containing D⁺
+
+(ii) For innocent strategy S satisfying propagation:
+     • Ch(S) is a design
+
+Proposition 4.28 - ISOMORPHISM:
+
+  Disp(Ch(S)) = S
+  Ch(Disp D) = D
+
+Proof:
+  Disp(Ch(S)) = Plays(Ch(S)⁺) = Plays(Views(S)) = S
+  Ch(Disp D) = Views(Plays(D⁺)) = D⁺ = D
+
+COMPLETE CORRESPONDENCE ESTABLISHED:
+  Designs ↔ Innocent strategies (with propagation)
+
+================================================================================
+SECTION 5 - SOME ISSUES ON LINEARITY
+================================================================================
+
+5.1 Extracting Strategies from Plays
+------------------------------------
+
+Result: From play p can extract both design and counter-design
+
+Critical requirement: p must be LINEAR
+
+Counter-example: Play ⟨α, α₀, α⟩ (revisits α)
+  • Can extract design
+  • Cannot extract counter-design
+  • Belongs to innocent strategy, not innocent counter-strategy
+
+5.2 Propagation and Linear Plays
+--------------------------------
+
+Key Issue: Linear plays alone not sufficient for design correspondence
+          Must explicitly require PROPAGATION
+
+Without propagation:
+  • Corresponds to LOCAL linearity (vs global)
+  • Design behaves correctly computationally
+  • Similar to lambda calculus non-linearity (e.g., "if-then-else")
+
+Propagation = separation of contexts in Tensor rule
+
+Abolishing propagation:
+  • Requires radical theory change
+  • Lose chronicle linearity
+  • Cannot handle separation (Böhm theorem analogue)
+
+Example: Innocent strategy {⟨ξ⁺, ξ₁, α⟩, ⟨ξ⁺, ξ₂, α⟩}
+Associates to chronicles where α⁺ appears twice
+
+Objects from innocent linear strategies are "linear for computational purposes"
+But: Don't achieve full MALL completeness
+
+Typical problematic proof:
+  Uses same address α (↓⊤) twice in different branches
+  No play satisfying justification can detect this
+  Cannot detect weakening interactively
+
+5.3 Proposed Solution
+---------------------
+
+Plays approach suggests: More liberal notion of play (as in [1])
+
+Special case: Without constants (all winning designs end with fax),
+              linear play entails propagation via η-expansions
+
+================================================================================
+SECTION 6 - FURTHER WORK (FUTURE DIRECTIONS)
+================================================================================
+
+6.1 Dispute-Based Ludics Presentation
+-------------------------------------
+
+Natural continuation: Develop full Ludics presentation based on disputes
+(Rather than designs as primitive)
+
+6.2 Ludics ↔ Games Semantics Bridge
+-----------------------------------
+
+Bridge established enables:
+  • Transfer experiences between settings
+  • Transfer techniques bidirectionally
+
+Open Questions:
+  • Designs ↔ Innocent strategies (established)
+  • What corresponds to GENERAL strategies in Ludics?
+  • What corresponds to LOCATIONS (from Games) in Ludics?
+
+6.3 Behaviours and Games
+------------------------
+
+Sketch of dispute-based approach:
+
+Definition 6.1 - Orthogonality:
+  S ⊥ T if S ∩ T = p (intersect in a play)
+
+Definition 6.2 - Behaviours/Games:
+  Game G on arena ⊢<> = set of innocent strategies
+                        equal to its biorthogonal
+
+Internal definition: No special rules per type!
+
+Definition 6.3 - Incarnation:
+  |S| = disputes occurring in both S and strategy from G⊥
+  
+  Strategy is INCARNATED/MATERIAL when S = |S|
+  |G| = set of material designs in G
+
+Pleasant properties preserved:
+  • A&B = A ∩ B
+  • |A&B| = |A| × |B|
+
+Standard game definition = direct incarnation definition
+
+6.4 Related Developments
+------------------------
+
+Many related structures across contexts:
+  • Designs
+  • Innocent strategies (variations)
+  • Behaviours
+  • Orthogonality
+  • Double gluing
+
+This work establishes foundation for deeper investigation
+
+================================================================================
+COMPLETE THEORETICAL ARCHITECTURE
+================================================================================
+
+LAYER 1 - LUDICS PRIMITIVES:
+  Actions (ξ, I)
+  Chronicles (branches)
+  Designs (tree of actions)
+  Normalization [[D, E]]
+  Disputes [D E]
+
+LAYER 2 - GAME-THEORETIC PRIMITIVES:
+  Arena (moves, labels, enabling)
+  Players (P/O, polarity)
+  Positions (linear, legal, X-positions)
+  Views (projection operator)
+  Plays (legal positions)
+
+LAYER 3 - STRATEGIC LEVEL:
+  Strategies (coherent play collections)
+  Innocent strategies (view-determined)
+  Propagation (linearity constraint)
+  Views(S) and Plays(V) operations
+  
+LAYER 4 - CORRESPONDENCES:
+  Actions ↔ Moves
+  Chronicles ↔ Views
+  Disputes ↔ Plays
+  Designs ↔ Innocent strategies (+ propagation)
+  
+  Operations:
+    Disp(D) = disputes of design
+    Ch(S) = chronicles of strategy
+    Views(S) = view projections
+    Plays(V) = plays from views
+  
+  Isomorphisms:
+    Plays(Views(S)) = S
+    Views(Plays(V)) = V
+    Disp(Ch(S)) = S
+    Ch(Disp(D)) = D
+
+LAYER 5 - TYPE THEORY:
+  Orthogonality (S ⊥ T)
+  Behaviours/Games (biorthogonal closure)
+  Incarnation (material strategies)
+
+================================================================================
+COMPREHENSIVE APPLICATIONS TO MESH LUDICS SYSTEM
+================================================================================
+
+Based on complete paper analysis:
+
+1. DUAL ARCHITECTURE IMPLEMENTATION
+   --------------------------------
+   Current: Likely design-centric (tree/graph structures)
+   
+   Enhancement:
+   • Implement full dual representation:
+     - Design layer (structural)
+     - Strategy layer (behavioral)
+   • Converters: Disp(D) and Ch(S)
+   • Enable switching between perspectives in UI
+   
+   Benefit: Users can think structurally OR behaviorally
+
+2. INNOCENT STRATEGY ENGINE
+   -------------------------
+   Core algorithm from Remark 4.9 / Appendix C:
+   
+   ```pseudocode
+   function computeDisputes(design D):
+     P₀ = {c ∈ D⁺ : c minimal}
+     for n = 0 to maxDepth:
+       Pₙ₊₁ = {pab : p ∈ Pₙ, ∃cab ∈ D⁺, 
+                     pa legal, p̄aˣ = c̄a}
+     return ⋃ₙ Pₙ
+   ```
+   
+   Applications:
+   • Generate all possible interaction traces
+   • Validate completeness of arguments
+   • Identify missing responses
+
+3. VIEW-BASED NAVIGATION & DEBUGGING
+   ----------------------------------
+   Implement Views(−) operation:
+   
+   UI Features:
+   • Show view at any point in interaction
+   • Highlight what each player "sees"
+   • Trace why move was justified
+   • Compare views: "same view, different context"
+   • View-based breakpoints in dispute traces
+   
+   Debug tool: Check determinism under view
+   • Alert if p̄a = q̄a but different responses
+
+4. PROPAGATION CHECKER
+   -------------------
+   Implement Definition 4.25 validation:
+   
+   For each pair tκ, t′κ in Views(S):
+     Parse t = c * (ξ, I) * d
+     Parse t′ = c * (ξ′, I′) * d′
+     Assert ξ = ξ′ (same prefix → same address)
+   
+   Critical for:
+   • Design integrity validation
+   • Detecting invalid argument structures
+   • Ensuring proper linearity
+
+5. ORTHOGONALITY TESTING SUITE
+   ---------------------------
+   Two approaches (both valuable):
+   
+   a) Structural (current): [[D, E]] normalization
+   b) Behavioral (new): S ∩ T = p check
+   
+   Behavioral approach faster for:
+   • Quick validation (check intersection)
+   • Incremental testing (add plays progressively)
+   • Partial argument validation
+
+6. INTERACTION TRACE ANALYZER
+   ---------------------------
+   Given dispute/play p:
+   
+   Analyze:
+   • Extract ChP(p) and ChO(p) (pull-back)
+   • Show both player perspectives
+   • Identify chronicle for each action (Prop 3.6)
+   • Validate legality (parity, justification, linearity, visibility)
+   • Compute view at each step
+   
+   Visualize:
+   • Side-by-side P/O chronicles
+   • Step-by-step interaction animation
+   • Justification links highlighted
+
+7. INCREMENTAL ARGUMENT CONSTRUCTION
+   ---------------------------------
+   Support view-stable strategy building:
+   
+   Workflow:
+   1. User builds views (chronicles)
+   2. System computes Plays(V) automatically
+   3. Show "auto-completed" interactions
+   4. User sees: "If you respond here, must respond there"
+   
+   Enforces consistency through innocence
+
+8. STRATEGY COMPLETION ENGINE
+   --------------------------
+   Given partial strategy T:
+   
+   • Compute Views(T)
+   • Generate Plays(Views(T)) = smallest innocent S with T ⊆ S
+   • Show user what innocent strategy "means"
+   • Highlight new plays added by innocence
+   
+   Educational: "Your responses imply these interactions"
+
+9. POSITION TYPE INDICATORS
+   -------------------------
+   Real-time UI indicators:
+   
+   • Current position type: P-position / O-position
+   • "Waiting for Opponent" vs "Waiting for Proponent"
+   • Color coding by player ownership
+   • Turn indicators
+   
+   Based on Definition 3.4
+
+10. CHRONICLE STABILITY VALIDATOR
+    -----------------------------
+    Check design coherence:
+    
+    For all chronicles c, c′ in design:
+      • Verify comparability (one extends other OR differ on negative)
+      • Verify propagation (distinct foci → distinct continuations)
+    
+    From Definitions A.2, A.3
+
+11. ADDRESS DELOCALIZATION
+    ----------------------
+    Support atomic arenas:
+    
+    • Each sub-argument defines arena delocated to its address
+    • Modular argument construction
+    • Local address spaces per context
+    • Hierarchical argument structures
+    
+    Based on Universal Arena delocalization
+
+12. DAI-CLOSURE AUTOMATION
+    -----------------------
+    Automatically complete negative plays:
+    
+    • Apply S†X operation (Definition 3.10)
+    • Show implicit † terminations
+    • Allow partial argument exploration
+    • "Complete with assumption" feature
+
+13. BEHAVIOUR/TYPE SYSTEM
+    ----------------------
+    Implement Section 6 concepts:
+    
+    • Define types as biorthogonal closures
+    • Compute incarnation |S|
+    • Type checking via orthogonality
+    • Support A&B = A ∩ B operations
+    
+    Advanced: Full type system for arguments
+
+14. SATURATION ANALYSIS
+    -------------------
+    Check if strategy is saturated:
+    
+    • Verify Proposition 4.17 condition
+    • Identify "missing" interactions
+    • Suggest completions
+    • Validate comprehensive coverage
+
+15. PLAY GENERATION ALGORITHMS
+    --------------------------
+    Multiple generators:
+    
+    a) From design: Disp(D) (Appendix C algorithm)
+    b) From views: Plays(V) (Definition 4.11)
+    c) From pull-back: Given p, generate ChP(p), ChO(p)
+    
+    Support multiple computational workflows
+
+================================================================================
+IMPLEMENTATION PRIORITY RECOMMENDATIONS
+================================================================================
+
+PHASE 1 - FOUNDATION (High Impact, Core Theory):
+  1. View extraction (Definition 3.5)
+  2. Legal position validator (Definitions 3.3, 3.7)
+  3. Pull-back construction (Proposition 3.12)
+  4. Chronicle extraction from disputes (Prop 3.6)
+
+PHASE 2 - STRATEGY LAYER (Enables Behavioral Perspective):
+  5. Views(S) and Plays(V) operations (Defs 4.10, 4.11)
+  6. Innocent strategy checker (Definition 4.8)
+  7. Propagation validator (Definition 4.25)
+  8. Disp(D) generator (Section 4, Appendix C)
+
+PHASE 3 - USER FEATURES (Visible Improvements):
+  9. Dual perspective UI (structural + behavioral)
+  10. View-based navigation and debugging
+  11. Interaction trace analyzer with visualization
+  12. Position type indicators and turn management
+
+PHASE 4 - ADVANCED (Power User Features):
+  13. Strategy completion engine
+  14. Orthogonality testing suite (behavioral approach)
+  15. Behaviour/type system implementation
+
+PHASE 5 - OPTIMIZATION (Performance & Scale):
+  16. Incremental computation of Views/Plays
+  17. Caching of pull-backs
+  18. Lazy dispute generation
+  19. Parallel orthogonality testing
+
+================================================================================
+KEY THEORETICAL INSIGHTS FOR IMPLEMENTATION
+================================================================================
+
+1. VIEWS ARE THE ROSETTA STONE
+   Everything translates through views:
+   Disputes → Views → Chronicles → Designs
+   
+2. INNOCENCE = FUNCTIONAL BEHAVIOR
+   Innocent strategy = function from views to moves
+   Can implement as lookup table: View → Move
+   
+3. PROPAGATION = WELL-FORMEDNESS
+   Not automatically satisfied by innocent strategies
+   Must explicitly validate for design correspondence
+   
+4. LINEARITY = RESOURCE DISCIPLINE
+   Each address used at most once
+   Enforces Linear Logic resource semantics
+   
+5. DAIMON = ABSTRACTION BOUNDARY
+   † marks "assumed" conclusions
+   Enables modular/partial argument construction
+   
+6. PULL-BACK = DECOMPILATION
+   From execution trace → recover programs
+   Powerful debugging/analysis capability
+   
+7. ORTHOGONALITY = TYPE CHECKING
+   D ⊥ E via normalization OR via Disp(D) ∩ Disp(E)
+   Behavioral approach may be faster
+   
+8. SATURATION = COMPLETENESS
+   Innocent strategy is "complete" for its views
+   All view-compatible plays included
+   
+9. PLAYER SYMMETRY = NO PRIVILEGED PERSPECTIVE
+   P and O completely symmetric
+   Choose perspective freely
+   
+10. ALTERNATION = DIALOG STRUCTURE
+    Enforces turn-taking
+    Fundamental to interactive model
+
+================================================================================
+RESEARCH QUESTIONS FOR MESH DEVELOPMENT
+================================================================================
+
+1. What corresponds to general (non-innocent) strategies in Mesh?
+   Could enable more expressive argument patterns?
+   
+2. Can location (from Games) inform address structure in Mesh?
+   Might improve spatial/contextual organization?
+   
+3. Should Mesh expose both presentations (design/strategy) equally?
+   Or privilege one with other as computed view?
+   
+4. How to visualize propagation violations for users?
+   What's intuitive explanation of linearity failure?
+   
+5. Can dispute-based presentation simplify user model?
+   Is "interaction traces" more intuitive than "tree structures"?
+   
+6. Performance: Which operations should be eager vs lazy?
+   Disp(D) can be large - generate on demand?
+   
+7. What level of type system (Section 6) is useful for users?
+   Full biorthogonal closure or simpler subset?
+   
+8. Can innocence be relaxed for any use cases?
+   Or is it fundamental to computational model?
+
+================================================================================
+CONCLUSION
+================================================================================
+
+This paper establishes that Ludics can be understood through TWO equivalent lenses:
+
+1. STRUCTURAL (traditional): Designs as trees of actions
+2. BEHAVIORAL (alternative): Designs as sets of interaction traces
+
+The correspondence is complete and constructive:
+  • Every design determines innocent strategy (+ propagation)
+  • Every innocent strategy (+ propagation) determines design
+  • Explicit algorithms for conversion both directions
+
+For Mesh implementation:
+  • Dual representation enables flexible user interaction
+  • View-based operations provide powerful debugging
+  • Game-theoretic perspective may be more intuitive
+  • Behavioral validation complements structural validation
+  • Rich theoretical foundation for systematic development
+
+The bridge to Games Semantics opens access to mature body of techniques
+and suggests natural extensions (general strategies, types, incarnation).
+
+================================================================================
