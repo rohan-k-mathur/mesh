@@ -218,6 +218,8 @@ export function LociTree({
 
   // ------------------------- chips -------------------------------
   function ActChip({ a }: { a: LociNode["acts"][number] }) {
+    const [showTooltip, setShowTooltip] = React.useState(false);
+    
     const base =
       a.polarity === "P"
         ? "bg-emerald-50 border-emerald-400 text-emerald-700"
@@ -226,7 +228,8 @@ export function LociTree({
         : "bg-slate-50 border-slate-200 text-slate-700"; // †
 
     const ring = a.isAdditive ? "ring-1 ring-amber-300" : "";
-    const label = a.polarity ?? "†";
+    const labeltext = a.polarity === "P" ? "PRO" : a.polarity === "O" ? "OPP" : "†";
+    const label = labeltext;
     const stepIdx = stepIndexByActId?.[a.id];
 
     // Build tooltip with semantic content
@@ -247,9 +250,9 @@ export function LociTree({
     }
 
     return (
-      <div className="relative  group/act">
+      <div className="relative group/act">
         <span
-          title={tooltipText}
+          title={!a.semantic ? tooltipText : undefined}
           className={[
             "text-[11px] px-1.5 py-0.5 rounded border",
             base,
@@ -262,22 +265,39 @@ export function LociTree({
             <sup className="ml-1 text-[11px] text-indigo-600">{stepIdx}</sup>
           ) : null}
           {a.semantic && (
-            <span className="ml-0.5 text-[11px] opacity-60">
-              {a.semantic.type === "claim" ? "cl" : "arg"}
-            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTooltip((prev) => !prev);
+              }}
+              className={[
+                "ml-0.5 text-[11px] px-1 py-0.5 rounded transition-colors",
+                showTooltip
+                  ? "bg-slate-700 text-white"
+                  : "bg-slate-50 text-slate-800 hover:bg-slate-100",
+              ].join(" ")}
+              title={showTooltip ? "Hide details" : "Show details"}
+            >
+              {a.semantic.type === "claim" ? "claim" : "arg"}
+            </button>
           )}
         </span>
-        {/* Hover tooltip with semantic details */}
-        {a.semantic && (
-          <div className="absolute hidden group-hover/act:block z-50 left-0 top-full mt-1 p-2 bg-slate-800 text-white text-xs rounded shadow-lg max-w-md">
+        {/* Click-toggled tooltip with semantic details */}
+        {a.semantic && showTooltip && (
+          <div className="absolute z-50 right-0 top-full w-max mt-1 p-2 bg-slate-800 text-white text-xs rounded shadow-lg max-w-md">
             {a.semantic.type === "claim" ? (
-              <div>
-                <div className="font-semibold text-emerald-300 mb-1">Claim</div>
-                <div className="text-slate-200">{a.semantic.text}</div>
+                            <div className=" flex flex-col w-full">
+
+                <div className="font-semibold text-emerald-300 ">Claim</div>
+                <div className=" font-semibold w-full whitespace-nowrap text-slate-300 ">
+                  ------------------------
+                </div>
+                <div className="text-slate-200 w-max">{a.semantic.text}</div>
               </div>
             ) : (
-              <div>
-                <div className="font-semibold text-amber-300 mb-1">
+              <div className=" flex flex-col w-full">
+                <div className="font-semibold w-full whitespace-nowrap text-amber-300 mb-1">
                   Argument: {a.semantic.scheme?.name || a.semantic.scheme?.key}
                 </div>
                 <div className="space-y-1">

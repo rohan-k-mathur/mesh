@@ -42,7 +42,8 @@ export function JudgeConsole(props: {
       setBusy(null);
     }
   }
-  const listId = React.useId();
+  // Using a constant list id keeps SSR/CSR markup identical to avoid hydration drift
+  const listId = "judge-locus-suggestions";
 
   const ActionButton = (p: {label:string; onClick:()=>void; danger?:boolean; disabled?:boolean}) => (
     <button
@@ -58,7 +59,7 @@ export function JudgeConsole(props: {
   );
 
   return (
-    <div className="rounded-lg border p-3 space-y-3">
+    <div className="rounded-lg bg-white/70 border p-3 space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-sm">Judge Tools</h4>
         <label className="text-[11px] flex items-center gap-2">

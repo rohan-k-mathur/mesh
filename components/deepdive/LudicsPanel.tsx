@@ -265,23 +265,29 @@ export default function LudicsPanel({
     }
   }, [scopes, activeScope]);
 
-  // Compute available loci for daimon append (from Opponent designs)
+  // Compute available loci for daimon append (from ALL designs in scope, not just Opponent)
   const availableLoci = React.useMemo(() => {
     const targetScope = daimonTargetScope ?? activeScope;
     const scopeDesigns = designs.filter(
       (d: any) => (d.scope ?? "legacy") === targetScope
     );
-    const oppDesign = scopeDesigns.find((d: any) => d.participantId === "Opponent");
     
-    if (!oppDesign?.acts) return [];
-    
-    // Get unique locus paths from acts
+    // Get unique locus paths from ALL acts across all designs in scope
     const lociSet = new Set<string>();
-    oppDesign.acts.forEach((act: any) => {
-      if (act.locus?.path) {
-        lociSet.add(act.locus.path);
+    scopeDesigns.forEach((design: any) => {
+      if (design.acts) {
+        design.acts.forEach((act: any) => {
+          if (act.locus?.path) {
+            lociSet.add(act.locus.path);
+          }
+        });
       }
     });
+    
+    // Always include root locus "0" as an option
+    if (lociSet.size === 0) {
+      lociSet.add("0");
+    }
     
     return Array.from(lociSet).sort((a, b) => {
       // Sort by depth (number of dots) then alphabetically
@@ -914,62 +920,119 @@ const suggestClose = React.useCallback((path: string) => {
   }, [trace, prefixActs]);
 
   const onConcede = React.useCallback(
-    async (locus: string, proposition: string) => {
-      await fetch("/api/ludics/concession", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dialogueId: deliberationId,
-          concedingParticipantId: "Opponent",
-          anchorLocus: locus,
-          proposition: { text: proposition },
-        }),
-      });
-      await mutateDesigns();
-      await step();
+    async (locus: string, proposition: string, conceding?: "Proponent" | "Opponent") => {
+      const concedingParticipantId = conceding ?? "Opponent";
+      const receiver = concedingParticipantId === "Proponent" ? "Opponent" : "Proponent";
+      
+      // Find the conceding design
+      const scopeDesigns = designs.filter(
+        (d: any) => (d.scope ?? "legacy") === activeScope
+      );
+      const concedingDesign = scopeDesigns.find(
+        (d: any) => d.participantId === concedingParticipantId
+      );
+      
+      if (!concedingDesign) {
+        toast.show(`No ${concedingParticipantId} design found`, "err");
+        return;
+      }
+      
+      try {
+        await fetch("/api/ludics/concession", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            dialogueId: deliberationId,
+            concedingParticipantId,
+            receiverParticipantId: receiver,
+            anchorDesignId: concedingDesign.id,
+            anchorLocus: locus,
+            proposition: { text: proposition, csLocus: locus },
+          }),
+        });
+        await mutateDesigns();
+        await step();
+        toast.show(`Concession recorded at ${locus}`, "ok");
+      } catch (e: any) {
+        toast.show(e?.message || "Concession failed", "err");
+      }
     },
-    [deliberationId, mutateDesigns, step]
+    [deliberationId, designs, activeScope, mutateDesigns, step, toast]
   );
 
   const onForceConcession = React.useCallback(
-    async (locus: string, text: string) => {
+    async (locus: string, text: string, target?: "Proponent" | "Opponent") => {
       if (!designs?.length) return;
-      const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1];
-      if (!B) return;
-      await fetch("/api/ludics/judge/force", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dialogueId: deliberationId,
-          action: "FORCE_CONCESSION",
-          target: { designId: B.id, locusPath: locus },
-          data: { text },
-        }),
-      });
-      await mutateDesigns();
-      await step();
+      
+      const targetParticipant = target ?? "Opponent";
+      const scopeDesigns = designs.filter(
+        (d: any) => (d.scope ?? "legacy") === activeScope
+      );
+      const targetDesign = scopeDesigns.find(
+        (d: any) => d.participantId === targetParticipant
+      );
+      
+      if (!targetDesign) {
+        toast.show(`No ${targetParticipant} design found`, "err");
+        return;
+      }
+      
+      try {
+        await fetch("/api/ludics/judge/force", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            dialogueId: deliberationId,
+            action: "FORCE_CONCESSION",
+            target: { designId: targetDesign.id, locusPath: locus },
+            data: { text },
+          }),
+        });
+        await mutateDesigns();
+        await step();
+        toast.show(`Forced concession at ${locus}`, "ok");
+      } catch (e: any) {
+        toast.show(e?.message || "Force concession failed", "err");
+      }
     },
-    [designs, deliberationId, mutateDesigns, step]
+    [designs, deliberationId, activeScope, mutateDesigns, step, toast]
   );
 
   const onCloseBranch = React.useCallback(
-    async (locus: string) => {
+    async (locus: string, target?: "Proponent" | "Opponent") => {
       if (!designs?.length) return;
-      const B = designs.find((d: any) => d.participantId === "Opponent") ?? designs[1];
-      if (!B) return;
-      await fetch("/api/ludics/judge/force", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          dialogueId: deliberationId,
-          action: "CLOSE_BRANCH",
-          target: { designId: B.id, locusPath: locus },
-        }),
-      });
-      await mutateDesigns();
-      await step();
+      
+      const targetParticipant = target ?? "Opponent";
+      const scopeDesigns = designs.filter(
+        (d: any) => (d.scope ?? "legacy") === activeScope
+      );
+      const targetDesign = scopeDesigns.find(
+        (d: any) => d.participantId === targetParticipant
+      );
+      
+      if (!targetDesign) {
+        toast.show(`No ${targetParticipant} design found`, "err");
+        return;
+      }
+      
+      try {
+        await fetch("/api/ludics/judge/force", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            dialogueId: deliberationId,
+            action: "CLOSE_BRANCH",
+            target: { designId: targetDesign.id, locusPath: locus },
+          }),
+        });
+        await mutateDesigns();
+        await step();
+        toast.show(`Branch closed at ${locus}`, "ok");
+      } catch (e: any) {
+        toast.show(e?.message || "Close branch failed", "err");
+      }
     },
-    [designs, deliberationId, mutateDesigns, step]
+    [designs, deliberationId, activeScope, mutateDesigns, step, toast]
   );
 
   //    const commitAtPath = React.useCallback(async (path: string) => {
@@ -1482,23 +1545,13 @@ const suggestClose = React.useCallback((path: string) => {
         <div className="grid gap-4">
           {/* Plain Text Trace Output */}
           {lines.length > 0 && (
-            <div className="border rounded-lg bg-slate-900 p-4 font-mono text-sm">
+            <div className="border rounded-lg bg-slate-100 p-4 font-mono text-sm">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-slate-300 font-semibold text-xs uppercase tracking-wide">Plain Text Output</div>
-                <button
-                  className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors"
-                  onClick={() => {
-                    const txt = lines.map((l, i) => `${i + 1}. ${l.text}`).join("\n");
-                    navigator.clipboard?.writeText(txt).catch(() => {});
-                  }}
-                  title="Copy plain text"
-                >
-                  📋 Copy
-                </button>
+                
               </div>
-              <div className="text-slate-200 space-y-1 max-h-48 overflow-y-auto">
+              <div className="text-slate-800 space-y-1 max-h-48 overflow-y-auto">
                 {lines.map((l, i) => (
-                  <div key={i} className="hover:bg-slate-800 px-2 py-1 rounded transition-colors">
+                  <div key={i} className="hover:bg-slate-200 px-2 py-1 rounded transition-colors">
                     <span className="text-slate-500">{i + 1}.</span> {l.text}
                   </div>
                 ))}
@@ -1656,7 +1709,7 @@ const suggestClose = React.useCallback((path: string) => {
                   <div className="font-medium text-slate-700 mb-1">Indicators</div>
                   <div className="space-y-1 text-slate-600">
                     <div className="flex items-center gap-2">
-                      <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold">⭐</span>
+                      <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold">✓</span>
                       <span>Decisive step</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1772,7 +1825,7 @@ const suggestClose = React.useCallback((path: string) => {
                             <div className="flex flex-col gap-1 items-end">
                               {isDecisive && (
                                 <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold">
-                                  ⭐ DECISIVE
+                                  ✓ DECISIVE
                                 </span>
                               )}
                               {hasNLI && (
@@ -1939,7 +1992,7 @@ const suggestClose = React.useCallback((path: string) => {
         onCloseBranch={onCloseBranch}
         onConcede={onConcede}
         onStepNow={step}
-        locusSuggestions={["0", "0.1", "0.2"]}
+        locusSuggestions={availableLoci.length > 0 ? availableLoci : ["0"]}
         defaultTarget="Opponent"
       />
       {toast.node}

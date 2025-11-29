@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Verify commitment exists in dialogue system
-    const commitment = await prisma.commitment.findFirst({
+    // 4. Verify commitment exists in dialogue system (or create it)
+    let commitment = await prisma.commitment.findFirst({
       where: {
         deliberationId,
         participantId,
@@ -91,11 +91,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // If commitment doesn't exist, create it (enables direct ludics → dialogue flow)
     if (!commitment) {
-      return NextResponse.json(
-        { ok: false, error: "Active commitment not found" },
-        { status: 404 }
-      );
+      console.log(`[promote] Creating new Commitment record for participant ${participantId}`);
+      commitment = await prisma.commitment.create({
+        data: {
+          deliberationId,
+          participantId,
+          proposition,
+          isRetracted: false,
+        },
+      });
     }
 
     // Generate a stable dialogueCommitmentId (use actual Commitment.id if available)

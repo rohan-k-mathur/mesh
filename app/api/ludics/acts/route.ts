@@ -17,7 +17,11 @@ const zAppend = z.object({
         meta: z.record(z.any()).optional(),
         additive: z.boolean().optional(),
       }),
-      z.object({ kind: z.literal('DAIMON'), expression: z.string().optional() }),
+      z.object({ 
+        kind: z.literal('DAIMON'), 
+        locusPath: z.string().optional(), // Optional: locus where daimon closes the branch
+        expression: z.string().optional(),
+      }),
     ])),
   });
   
@@ -25,7 +29,7 @@ const zAppend = z.object({
     const { designId, acts, enforceAlternation } = zAppend.parse(await req.json());
     const transformed = acts.map(a => a.kind === 'PROPER'
       ? { kind: 'PROPER' as const, polarity: a.polarity, locus: a.locusPath, ramification: a.ramification, expression: a.expression, meta: a.meta, additive: a.additive }
-      : { kind: 'DAIMON' as const, expression: a.expression }
+      : { kind: 'DAIMON' as const, locus: a.locusPath, expression: a.expression }
     );
     const res = await appendActs(designId, transformed, { enforceAlternation });
     return NextResponse.json(res);

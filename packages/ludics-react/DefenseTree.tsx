@@ -1,22 +1,28 @@
 'use client';
 import * as React from 'react';
 
-type ActRef = { posActId: string; negActId: string; ts: number };
+type ActRef = { 
+  posActId: string; 
+  negActId: string; 
+  locusPath?: string;
+  ts: number;
+};
+
 type TraceLike = {
   steps?: ActRef[] | null;
-  status?: 'ONGOING'|'CONVERGENT'|'DIVERGENT';
+  status?: 'ONGOING'|'CONVERGENT'|'DIVERGENT'|'STUCK';
   endedAtDaimonForParticipantId?: string;
 };
 
 export function DefenseTree(props: {
-  designs?: any[];                   // make optional + default
-  trace?: TraceLike | null;          // <-- make optional + default
+  designs?: any[];
+  trace?: TraceLike | null;
   decisiveWindow?: number;
   highlightIndices?: number[];
 }) {
   const designs = props.designs ?? [];
   const steps: ActRef[] = Array.isArray(props.trace?.steps) ? props.trace!.steps as ActRef[] : [];
-  const status: 'ONGOING'|'CONVERGENT'|'DIVERGENT' = props.trace?.status ?? 'ONGOING';
+  const status: 'ONGOING'|'CONVERGENT'|'DIVERGENT'|'STUCK' = props.trace?.status ?? 'ONGOING';
   const windowSize = Math.max(1, props.decisiveWindow ?? 3);
 
   // map actId -> act (+participant)
@@ -41,7 +47,7 @@ export function DefenseTree(props: {
     (startHi >= 0 && i >= startHi);
 
   return (
-    <div className="border rounded p-2">
+    <div className="border bg-white/70 rounded-md p-2">
       <div className="text-sm font-semibold mb-2 flex items-center gap-2">
         Defense tree (last traversal)
         {status === 'CONVERGENT' && (
@@ -55,6 +61,8 @@ export function DefenseTree(props: {
         {steps.map((s, i) => {
           const P = byId.get(s.posActId), O = byId.get(s.negActId);
           const decisive = isDecisive(i);
+          const locus = s.locusPath || P?.locus?.path || O?.locus?.path || '0';
+          
           return (
             <li
               key={i}
@@ -63,12 +71,15 @@ export function DefenseTree(props: {
               }`}
             >
               <span className="opacity-70">#{i + 1}</span>
-              <span className="px-1.5 py-0.5 border rounded">
-                {P?._who ?? 'P'}: {P?.expression ?? P?.kind}
+              <code className="text-[10px] px-1 py-0.5 bg-slate-100 rounded font-mono opacity-60">
+                @{locus}
+              </code>
+              <span className="px-1.5 py-0.5 border rounded bg-blue-50/50">
+                {P?._who ?? 'P'}: {P?.expression ?? P?.kind ?? '—'}
               </span>
               <span>⇄</span>
-              <span className="px-1.5 py-0.5 border rounded">
-                {O?._who ?? 'O'}: {O?.expression ?? O?.kind}
+              <span className="px-1.5 py-0.5 border rounded bg-rose-50/50">
+                {O?._who ?? 'O'}: {O?.expression ?? O?.kind ?? '—'}
               </span>
             </li>
           );
@@ -76,9 +87,13 @@ export function DefenseTree(props: {
       </ol>
 
       <div className="mt-2 text-[11px] opacity-75">
-        {status === 'CONVERGENT'
-          ? <>Highlighted block shows the <b>decisive chain</b> (last {Math.min(windowSize, n)} pairs).</>
-          : <>No decisive block highlighted (status: <b>{status}</b>).</>}
+        {status === 'CONVERGENT' ? (
+          <>Highlighted block shows the <b>decisive chain</b> (last {Math.min(windowSize, n)} pairs).</>
+        ) : status === 'STUCK' ? (
+          <>Status: <b className="text-amber-600">STUCK</b> — dialogue cannot proceed (timeout, collision, or incoherent move).</>
+        ) : (
+          <>No decisive block highlighted (status: <b>{status}</b>).</>
+        )}
       </div>
     </div>
   );

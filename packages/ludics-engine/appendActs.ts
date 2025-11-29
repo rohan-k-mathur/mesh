@@ -221,8 +221,26 @@ export async function appendActs(
                    },
       });
     } else {
+      // DAIMON act - optionally at a specific locus
+      const locusPath = (a as any).locus ?? (a as any).locusPath;
+      let locusId: string | undefined = undefined;
+      
+      if (locusPath) {
+        const parts = locusPath.split('.').filter(Boolean);
+        const parent = parts.length > 1 ? parts.slice(0, -1).join('.') : undefined;
+        const locus = await ensureLocus(db, design.deliberationId, locusPath, parent, locusCache);
+        locusId = locus.id;
+      }
+      
       const act = await db.ludicAct.create({
-        data: { designId, kind: 'DAIMON', polarity: designPolarity, orderInDesign: ++order, expression: a.expression },
+        data: { 
+          designId, 
+          kind: 'DAIMON', 
+          polarity: designPolarity, 
+          locusId, // Now can be associated with a specific locus
+          orderInDesign: ++order, 
+          expression: a.expression,
+        },
       });
       await db.ludicChronicle.create({ data: { designId, order, actId: act.id } });
       appended.push({ actId: act.id, orderInDesign: order });
@@ -234,7 +252,7 @@ export async function appendActs(
         actId: act.id,
 
         orderInDesign: order,
-        act: { kind: 'DAIMON', polarity: designPolarity, expression: a.expression },
+        act: { kind: 'DAIMON', polarity: designPolarity, locusPath, expression: a.expression },
       });
     }
   }
