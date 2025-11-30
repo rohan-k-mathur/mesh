@@ -4673,6 +4673,14 @@ model LudicDesign {
   // ⬇️ add this (implicit M:N back-relation)
   commitmentElements LudicCommitmentElement[]
 
+  // DDS Phase 1: Views and Disputes
+  views            LudicView[]    @relation("DesignViews")
+  positiveDisputes LudicDispute[] @relation("PositiveDisputes")
+  negativeDisputes LudicDispute[] @relation("NegativeDisputes")
+
+  // DDS Phase 2: Strategies
+  strategies       LudicStrategy[] @relation("DesignStrategies")
+
   @@index([deliberationId, participantId])
   @@index([deliberationId, scope]) // NEW: Query designs by scope
   @@index([deliberationId, scopeType]) // NEW: Query by scope type
@@ -4780,6 +4788,82 @@ model LudicFaxMap {
   to   LudicLocus @relation("FaxTo", fields: [toLocusId], references: [id])
 }
 
+/// =========================
+/// DDS (Designs, Disputes, Strategies) - Phase 1
+/// Based on Faggian & Hyland (2002)
+/// =========================
+
+/// LudicView - First-class view representation
+/// Views are what a player "sees" at any point in the interaction
+model LudicView {
+  id              String       @id @default(cuid())
+  designId        String
+  design          LudicDesign  @relation("DesignViews", fields: [designId], references: [id], onDelete: Cascade)
+  player          String       // "P" | "O"
+  viewSequence    Json         // Array of actions in view: { focus, ramification, polarity, actId? }[]
+  parentDisputeId String?
+  parentDispute   LudicDispute? @relation("DisputeViews", fields: [parentDisputeId], references: [id], onDelete: SetNull)
+  extJson         Json?
+  createdAt       DateTime     @default(now())
+
+  @@index([designId, player])
+  @@index([parentDisputeId])
+}
+
+/// LudicDispute - First-class dispute representation
+/// Disputes are interactions between a positive (P) and negative (O) design
+model LudicDispute {
+  id              String          @id @default(cuid())
+  deliberationId  String
+  posDesignId     String
+  posDesign       LudicDesign     @relation("PositiveDisputes", fields: [posDesignId], references: [id], onDelete: Cascade)
+  negDesignId     String
+  negDesign       LudicDesign     @relation("NegativeDisputes", fields: [negDesignId], references: [id], onDelete: Cascade)
+  actionPairs     Json            // Array of {posActId, negActId, locusPath, ts?}
+  status          LudicDisputeStatus @default(ONGOING)
+  length          Int             @default(0)
+  isLegal         Boolean?        // Cached legality check result
+  legalityLog     Json?           // Details of legality validation
+  extJson         Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  views           LudicView[]     @relation("DisputeViews")
+  positions       LudicPosition[] @relation("DisputePositions")
+
+  @@index([deliberationId])
+  @@index([posDesignId, negDesignId])
+  @@index([status])
+}
+
+enum LudicDisputeStatus {
+  ONGOING
+  CONVERGENT
+  DIVERGENT
+  STUCK
+}
+
+/// LudicPosition - Legal position in a dispute
+/// A position is a sequence of actions satisfying legality conditions
+model LudicPosition {
+  id              String        @id @default(cuid())
+  disputeId       String?
+  dispute         LudicDispute? @relation("DisputePositions", fields: [disputeId], references: [id], onDelete: SetNull)
+  sequence        Json          // Ordered action sequence
+  isLinear        Boolean       @default(true)   // No address appears twice
+  isParity        Boolean       @default(true)   // Polarity alternates
+  isJustified     Boolean       @default(true)   // Each move justified
+  isVisible       Boolean       @default(true)   // Justifier in view
+  isLegal         Boolean       @default(false)  // All conditions satisfied
+  player          String        // "P" | "O" - whose turn is next
+  validationLog   Json?         // Details of validation checks
+  extJson         Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([disputeId])
+  @@index([isLegal])
+}
+
 model LudicBehaviour {
   id             String   @id @default(cuid())
   deliberationId String // scope to a dialogue
@@ -4817,6 +4901,97 @@ model LudicDecisionReceipt {
   updatedAt      DateTime @updatedAt
 
   @@index([deliberationId, subjectType, subjectId])
+}
+
+// =============================================================================
+// DDS Phase 2: Strategy Layer (Strategies, Innocence, Propagation)
+// Based on Faggian & Hyland (2002) - Definitions 4.8, 4.10, 4.11, 4.25
+// =============================================================================
+
+/// LudicStrategy - First-class strategy representation
+/// A strategy is a set of plays (positions) that determines responses to opponent moves
+model LudicStrategy {
+  id                   String               @id @default(cuid())
+  designId             String
+  design               LudicDesign          @relation("DesignStrategies", fields: [designId], references: [id], onDelete: Cascade)
+  player               String               // "P" | "O"
+  isInnocent           Boolean              @default(false)
+  satisfiesPropagation Boolean              @default(false)
+  playCount            Int                  @default(0)
+  extJson              Json?                // Stores: determinism map, saturation info
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  plays                LudicPlay[]          @relation("StrategyPlays")
+  viewCache            LudicStrategyView[]  @relation("StrategyViews")
+  innocenceCheck       LudicInnocenceCheck? @relation("StrategyInnocence")
+  propagationCheck     LudicPropagationCheck? @relation("StrategyPropagation")
+
+  @@unique([designId, player])
+  @@index([isInnocent, satisfiesPropagation])
+}
+
+/// LudicPlay - Individual play in a strategy
+/// A play is a sequence of actions representing one complete interaction path
+model LudicPlay {
+  id           String             @id @default(cuid())
+  strategyId   String
+  strategy     LudicStrategy      @relation("StrategyPlays", fields: [strategyId], references: [id], onDelete: Cascade)
+  sequence     Json               // Array of actions: {focus, ramification, polarity, actId?}[]
+  length       Int                @default(0)
+  isPositive   Boolean            // Ends on player's own polarity
+  viewId       String?            // Cached view reference
+  view         LudicStrategyView? @relation("PlayView", fields: [viewId], references: [id], onDelete: SetNull)
+  extJson      Json?
+  createdAt    DateTime           @default(now())
+
+  @@index([strategyId])
+  @@index([isPositive])
+}
+
+/// LudicStrategyView - Views in strategy (for view-stability check)
+/// Views(S) is the set of all player views extracted from plays
+model LudicStrategyView {
+  id             String        @id @default(cuid())
+  strategyId     String
+  strategy       LudicStrategy @relation("StrategyViews", fields: [strategyId], references: [id], onDelete: Cascade)
+  viewSequence   Json          // Array of actions in view
+  determinedMove Json?         // Next move determined by this view (for determinism)
+  playCount      Int           @default(0) // How many plays have this view
+  extJson        Json?
+  createdAt      DateTime      @default(now())
+
+  plays          LudicPlay[]   @relation("PlayView")
+
+  @@index([strategyId])
+}
+
+/// LudicInnocenceCheck - Cached innocence validation result
+/// A strategy is innocent if: same view → same response (Definition 4.8)
+model LudicInnocenceCheck {
+  id              String        @id @default(cuid())
+  strategyId      String        @unique
+  strategy        LudicStrategy @relation("StrategyInnocence", fields: [strategyId], references: [id], onDelete: Cascade)
+  isInnocent      Boolean
+  isDeterministic Boolean       // s̄b, s̄c ∈ S† ⟹ b = c
+  isViewStable    Boolean       // Views(S) ⊆ S
+  violationLog    Json?         // Details of violations if not innocent
+  checkedAt       DateTime      @default(now())
+
+  @@index([isInnocent])
+}
+
+/// LudicPropagationCheck - Cached propagation validation result
+/// Propagation: same prefix → same addresses (Definition 4.25)
+model LudicPropagationCheck {
+  id            String        @id @default(cuid())
+  strategyId    String        @unique
+  strategy      LudicStrategy @relation("StrategyPropagation", fields: [strategyId], references: [id], onDelete: Cascade)
+  satisfiesProp Boolean
+  violations    Json?         // Details of propagation failures
+  checkedAt     DateTime      @default(now())
+
+  @@index([satisfiesProp])
 }
 
 model VoteSession {
