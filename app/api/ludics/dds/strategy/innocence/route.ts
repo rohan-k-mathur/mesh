@@ -1,24 +1,22 @@
 /**
- * DDS Phase 2: Propagation Checking API
- * POST /api/ludics/dds/strategies/propagation
+ * DDS Strategy Innocence API - Alias Route
+ * GET/POST /api/ludics/dds/strategy/innocence
  * 
- * Checks if a strategy satisfies the propagation condition.
- * Propagation: Views with same prefix must agree on continuation addresses.
+ * Alias for /api/ludics/dds/strategies/innocence
+ * Created for UI component consistency.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import {
   constructStrategy,
-  checkPropagation,
-  checkFullPropagation,
-  analyzePropagationStructure,
+  checkInnocence,
 } from "@/packages/ludics-core/dds/strategy";
 import type { Dispute } from "@/packages/ludics-core/dds/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { designId, forceRecheck, includeAnalysis } = await req.json();
+    const { designId, forceRecheck } = await req.json();
 
     if (!designId) {
       return NextResponse.json(
@@ -29,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     // Check for cached result if not forcing recheck
     if (!forceRecheck) {
-      const cached = await prisma.ludicPropagationCheck.findFirst({
+      const cached = await prisma.ludicInnocenceCheck.findFirst({
         where: {
           strategy: {
             designId,
@@ -41,8 +39,10 @@ export async function POST(req: NextRequest) {
       if (cached) {
         return NextResponse.json({
           ok: true,
-          satisfiesPropagation: cached.satisfiesProp,
-          violations: cached.violations,
+          isInnocent: cached.isInnocent,
+          isDeterministic: cached.isDeterministic,
+          isViewStable: cached.isViewStable,
+          violations: cached.violationLog,
           cached: true,
           checkedAt: cached.checkedAt,
         });
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine player
+    // Determine player based on participantId
     const player = design.participantId === "Proponent" ? "P" : "O";
 
     // Fetch disputes involving this design
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Convert to Dispute type
+    // Convert to Dispute type for the algorithm
     const disputeData: Dispute[] = disputes.map((d) => ({
       id: d.id,
       dialogueId: d.deliberationId,
@@ -86,14 +86,8 @@ export async function POST(req: NextRequest) {
     // Construct strategy
     const strategy = constructStrategy(designId, player, disputeData);
 
-    // Check propagation (full check if requested)
-    const propagationCheck = checkFullPropagation(strategy);
-
-    // Optionally include detailed analysis
-    let analysis = null;
-    if (includeAnalysis) {
-      analysis = analyzePropagationStructure(strategy);
-    }
+    // Check innocence
+    const innocenceCheck = checkInnocence(strategy);
 
     // Upsert strategy record
     const strategyRecord = await prisma.ludicStrategy.upsert({
@@ -104,46 +98,50 @@ export async function POST(req: NextRequest) {
         },
       },
       update: {
-        satisfiesPropagation: propagationCheck.satisfiesPropagation,
+        isInnocent: innocenceCheck.isInnocent,
         playCount: strategy.plays.length,
         updatedAt: new Date(),
       },
       create: {
         designId,
         player,
-        satisfiesPropagation: propagationCheck.satisfiesPropagation,
+        isInnocent: innocenceCheck.isInnocent,
         playCount: strategy.plays.length,
       },
     });
 
-    // Store propagation check result
-    await prisma.ludicPropagationCheck.upsert({
+    // Store innocence check result
+    await prisma.ludicInnocenceCheck.upsert({
       where: { strategyId: strategyRecord.id },
       update: {
-        satisfiesProp: propagationCheck.satisfiesPropagation,
-        violations: propagationCheck.violations as any,
+        isInnocent: innocenceCheck.isInnocent,
+        isDeterministic: innocenceCheck.isDeterministic,
+        isViewStable: innocenceCheck.isViewStable,
+        violationLog: innocenceCheck.violations as any,
         checkedAt: new Date(),
       },
       create: {
         strategyId: strategyRecord.id,
-        satisfiesProp: propagationCheck.satisfiesPropagation,
-        violations: propagationCheck.violations as any,
+        isInnocent: innocenceCheck.isInnocent,
+        isDeterministic: innocenceCheck.isDeterministic,
+        isViewStable: innocenceCheck.isViewStable,
+        violationLog: innocenceCheck.violations as any,
       },
     });
 
     return NextResponse.json({
       ok: true,
-      satisfiesPropagation: propagationCheck.satisfiesPropagation,
-      satisfiesSliceLinearity: propagationCheck.satisfiesSliceLinearity,
-      satisfiesPairPropagation: propagationCheck.satisfiesPairPropagation,
-      violations: propagationCheck.violations,
+      isInnocent: innocenceCheck.isInnocent,
+      isDeterministic: innocenceCheck.isDeterministic,
+      isViewStable: innocenceCheck.isViewStable,
+      isSaturated: innocenceCheck.isSaturated,
+      violations: innocenceCheck.violations,
       strategyId: strategyRecord.id,
       playCount: strategy.plays.length,
-      analysis,
       cached: false,
     });
   } catch (error: any) {
-    console.error("[DDS Propagation Check Error]", error);
+    console.error("[DDS Innocence Check Error]", error);
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 }
@@ -163,8 +161,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch cached propagation check
-    const cached = await prisma.ludicPropagationCheck.findFirst({
+    // Fetch cached innocence check
+    const cached = await prisma.ludicInnocenceCheck.findFirst({
       where: {
         strategy: {
           designId,
@@ -180,20 +178,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         ok: true,
         hasResult: false,
-        message: "No propagation check found. POST to run check.",
+        message: "No innocence check found. POST to run check.",
       });
     }
 
     return NextResponse.json({
       ok: true,
       hasResult: true,
-      satisfiesPropagation: cached.satisfiesProp,
-      violations: cached.violations,
+      isInnocent: cached.isInnocent,
+      isDeterministic: cached.isDeterministic,
+      isViewStable: cached.isViewStable,
+      violations: cached.violationLog,
       strategyId: cached.strategyId,
       checkedAt: cached.checkedAt,
     });
   } catch (error: any) {
-    console.error("[DDS Propagation GET Error]", error);
+    console.error("[DDS Innocence GET Error]", error);
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 }

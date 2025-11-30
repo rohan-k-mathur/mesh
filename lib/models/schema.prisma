@@ -5064,6 +5064,238 @@ model LudicChronicleCache {
   computedAt     DateTime      @default(now())
 }
 
+// =============================================================================
+// DDS Phase 5 Part 1: Orthogonality & Behaviours
+// Based on Faggian & Hyland (2002) - Definition 6.1, biorthogonal closure
+// =============================================================================
+
+/// LudicOrthogonalityCheck - Cached orthogonality check between strategies
+/// Two strategies S, T are orthogonal (S ⊥ T) if all disputes converge
+model LudicOrthogonalityCheck {
+  id             String   @id @default(cuid())
+  strategyAId    String
+  strategyBId    String
+  isOrthogonal   Boolean
+  reason         String?
+  counterDesigns Json?    // Counter-examples if not orthogonal
+  checkedAt      DateTime @default(now())
+
+  @@unique([strategyAId, strategyBId])
+  @@index([isOrthogonal])
+}
+
+/// LudicBiorthogonalClosure - Biorthogonal closure computation (D⊥⊥)
+/// The smallest behaviour containing a set of designs
+model LudicBiorthogonalClosure {
+  id             String   @id @default(cuid())
+  deliberationId String
+  inputDesignIds Json     // Array of input design IDs
+  closureIds     Json     // Array of design IDs in closure
+  iterations     Int      @default(0)
+  reachedFixpoint Boolean @default(false)
+  computedAt     DateTime @default(now())
+
+  @@index([deliberationId])
+  @@index([reachedFixpoint])
+}
+
+/// LudicGame - Game constructed from behaviour pair (A, A⊥)
+/// Games are pairs of mutually orthogonal behaviours
+model LudicGame {
+  id             String   @id @default(cuid())
+  deliberationId String
+  name           String?
+  positiveBehaviourId String
+  negativeBehaviourId String
+  arenaJson      Json?    // Arena structure: {Γ, Λ, λ}
+  positionsJson  Json?    // Legal positions in game
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([deliberationId])
+}
+
+/// LudicGamePosition - Position in a game (legal or not)
+model LudicGamePosition {
+  id          String   @id @default(cuid())
+  gameId      String
+  sequence    Json     // Action sequence reaching this position
+  isLegal     Boolean  @default(false)
+  player      String   // "P" | "O" - whose turn
+  validMoves  Json?    // Available moves from this position
+  createdAt   DateTime @default(now())
+
+  @@index([gameId])
+  @@index([isLegal])
+}
+
+// =============================================================================
+// DDS Phase 5 Part 2: Incarnation & Types
+// Based on Faggian & Hyland (2002) - Definition 6.3, 6.4
+// =============================================================================
+
+/// LudicIncarnation - Incarnation relationship between designs
+/// D incarnates in E (D ⊂ E) if actions of D are subset of actions of E
+model LudicIncarnation {
+  id              String   @id @default(cuid())
+  sourceDesignId  String
+  targetDesignId  String
+  incarnationType String   // "lax" | "sharp"
+  isValid         Boolean
+  witnessActions  Json?    // Actions proving incarnation
+  checkedAt       DateTime @default(now())
+
+  @@unique([sourceDesignId, targetDesignId, incarnationType])
+  @@index([incarnationType, isValid])
+}
+
+/// LudicType - Type as behaviour (types are specific behaviours)
+model LudicType {
+  id             String   @id @default(cuid())
+  name           String
+  deliberationId String
+  typeCategory   String   // "base" | "arrow" | "product" | "sum" | "variable"
+  behaviourId    String?  // Reference to underlying behaviour
+  inhabitants    Json     // Array of design IDs inhabiting this type
+  formula        String?  // Type formula (e.g., "A → B")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  typingsAsType  LudicTyping[]         @relation("TypingType")
+  inferenceFrom  LudicTypeInference[]  @relation("InferenceType")
+  equiv1         LudicTypeEquivalence[] @relation("TypeEquiv1")
+  equiv2         LudicTypeEquivalence[] @relation("TypeEquiv2")
+
+  @@index([deliberationId])
+  @@index([typeCategory])
+}
+
+/// LudicTyping - Design typing judgment (D : A)
+model LudicTyping {
+  id        String   @id @default(cuid())
+  designId  String
+  typeId    String
+  isValid   Boolean
+  proof     Json?    // Proof/witness of typing judgment
+  checkedAt DateTime @default(now())
+
+  type LudicType @relation("TypingType", fields: [typeId], references: [id], onDelete: Cascade)
+
+  @@unique([designId, typeId])
+  @@index([isValid])
+}
+
+/// LudicTypeInference - Type inference result for a design
+model LudicTypeInference {
+  id           String   @id @default(cuid())
+  designId     String
+  inferredType Json     // TypeStructure: {kind, name?, left?, right?}
+  confidence   Float    @default(0.5)
+  method       String   // "structural" | "behavioural"
+  alternatives Json?    // Alternative type interpretations
+  inferredAt   DateTime @default(now())
+
+  typeId String?
+  type   LudicType? @relation("InferenceType", fields: [typeId], references: [id], onDelete: SetNull)
+
+  @@index([designId])
+  @@index([method, confidence])
+}
+
+/// LudicTypeEquivalence - Type equivalence checking
+model LudicTypeEquivalence {
+  id              String   @id @default(cuid())
+  type1Id         String
+  type2Id         String
+  areEquivalent   Boolean
+  equivalenceType String   // "syntactic" | "semantic" | "behavioural"
+  proof           Json?    // Proof/witness of equivalence
+  checkedAt       DateTime @default(now())
+
+  type1 LudicType @relation("TypeEquiv1", fields: [type1Id], references: [id], onDelete: Cascade)
+  type2 LudicType @relation("TypeEquiv2", fields: [type2Id], references: [id], onDelete: Cascade)
+
+  @@unique([type1Id, type2Id, equivalenceType])
+  @@index([areEquivalent])
+}
+
+// =============================================================================
+// DDS Phase 5 Part 3: Saturation & Advanced Analysis
+// Based on Faggian & Hyland (2002) - Proposition 4.17
+// =============================================================================
+
+/// LudicSaturation - Saturation analysis (Proposition 4.17: Views(S) = S)
+model LudicSaturation {
+  id              String   @id @default(cuid())
+  strategyId      String   @unique
+  isSaturated     Boolean
+  saturationProof Json?    // Witness of saturation property
+  violations      Json?    // Counter-examples if not saturated
+  checkedAt       DateTime @default(now())
+
+  @@index([isSaturated])
+}
+
+/// LudicCorrespondenceValidation - Full correspondence chain validation
+/// Validates: Design ↔ Strategy ↔ Game ↔ Type
+model LudicCorrespondenceValidation {
+  id                  String   @id @default(cuid())
+  designId            String
+  strategyId          String?
+  gameId              String?
+  typeId              String?
+  validationLevel     String   // "design-strategy" | "strategy-game" | "design-game" | "full"
+  isValid             Boolean
+  correspondenceChain Json     // Full transformation chain details
+  validatedAt         DateTime @default(now())
+
+  @@unique([designId, validationLevel])
+  @@index([isValid])
+}
+
+/// LudicPropertyAnalysis - Advanced property analysis for designs/strategies/games
+model LudicPropertyAnalysis {
+  id         String   @id @default(cuid())
+  targetId   String
+  targetType String   // "design" | "strategy" | "game"
+  properties Json     // Map of property → boolean
+  proofs     Json?    // Proofs for each property
+  analyzedAt DateTime @default(now())
+
+  @@unique([targetId, targetType])
+  @@index([targetType])
+}
+
+/// LudicComplexity - Complexity metrics for designs
+model LudicComplexity {
+  id          String   @id @default(cuid())
+  designId    String   @unique
+  depthMetric Int      // Max depth of design tree
+  widthMetric Int      // Max branching factor
+  actCount    Int      // Total actions
+  locuCount   Int      // Total loci
+  complexity  String   // "low" | "medium" | "high"
+  computedAt  DateTime @default(now())
+
+  @@index([complexity])
+}
+
+/// LudicPerformanceMetric - Performance tracking for operations
+model LudicPerformanceMetric {
+  id         String   @id @default(cuid())
+  operation  String   // Operation name
+  inputSize  Int      // Size of input
+  duration   Float    // Duration in seconds
+  memoryUsed Float?   // Memory in MB
+  successful Boolean  @default(true)
+  metadata   Json?
+  recordedAt DateTime @default(now())
+
+  @@index([operation, recordedAt])
+  @@index([successful])
+}
+
 model VoteSession {
   id             String    @id @default(cuid())
   deliberationId String

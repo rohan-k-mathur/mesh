@@ -170,14 +170,14 @@ export function JudgeConsole(props: {
       {props.locusSuggestions?.length ? (
         <div className="flex flex-wrap gap-1 pt-1">
           <span className="text-[11px] opacity-70 pr-1">Suggested:</span>
-          {props.locusSuggestions.map(x => (
-            <button
-              key={'sugg-'+x}
-              onClick={()=>setLocus(x)}
-              className="text-[11px] px-2 py-0.5 btnv2 mx-1 rounded "
-            >
-              {x}
-            </button>
+          {props.locusSuggestions.slice(0, 10).map(x => (
+        <button
+          key={'sugg-'+x}
+          onClick={()=>setLocus(x)}
+          className="text-[11px] px-2 py-0.5 btnv2 mx-1 rounded "
+        >
+          {x}
+        </button>
           ))}
         </div>
       ) : null}

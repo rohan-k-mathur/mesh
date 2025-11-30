@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prismaclient";
 import { computePlays } from "@/packages/ludics-core/dds/strategy";
 import type { View } from "@/packages/ludics-core/dds/types";
 

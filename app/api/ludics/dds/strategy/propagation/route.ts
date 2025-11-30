@@ -1,9 +1,9 @@
 /**
- * DDS Phase 2: Propagation Checking API
- * POST /api/ludics/dds/strategies/propagation
+ * DDS Strategy Propagation API - Alias Route
+ * GET/POST /api/ludics/dds/strategy/propagation
  * 
- * Checks if a strategy satisfies the propagation condition.
- * Propagation: Views with same prefix must agree on continuation addresses.
+ * Alias for /api/ludics/dds/strategies/propagation
+ * Created for UI component consistency.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,42 +11,18 @@ import { prisma } from "@/lib/prismaclient";
 import {
   constructStrategy,
   checkPropagation,
-  checkFullPropagation,
-  analyzePropagationStructure,
 } from "@/packages/ludics-core/dds/strategy";
 import type { Dispute } from "@/packages/ludics-core/dds/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { designId, forceRecheck, includeAnalysis } = await req.json();
+    const { designId, forceRecheck } = await req.json();
 
     if (!designId) {
       return NextResponse.json(
         { ok: false, error: "designId is required" },
         { status: 400 }
       );
-    }
-
-    // Check for cached result if not forcing recheck
-    if (!forceRecheck) {
-      const cached = await prisma.ludicPropagationCheck.findFirst({
-        where: {
-          strategy: {
-            designId,
-          },
-        },
-        orderBy: { checkedAt: "desc" },
-      });
-
-      if (cached) {
-        return NextResponse.json({
-          ok: true,
-          satisfiesPropagation: cached.satisfiesProp,
-          violations: cached.violations,
-          cached: true,
-          checkedAt: cached.checkedAt,
-        });
-      }
     }
 
     // Fetch design
@@ -62,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine player
+    // Determine player based on participantId
     const player = design.participantId === "Proponent" ? "P" : "O";
 
     // Fetch disputes involving this design
@@ -72,7 +48,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Convert to Dispute type
+    // Convert to Dispute type for the algorithm
     const disputeData: Dispute[] = disputes.map((d) => ({
       id: d.id,
       dialogueId: d.deliberationId,
@@ -86,16 +62,10 @@ export async function POST(req: NextRequest) {
     // Construct strategy
     const strategy = constructStrategy(designId, player, disputeData);
 
-    // Check propagation (full check if requested)
-    const propagationCheck = checkFullPropagation(strategy);
+    // Check propagation
+    const propagationCheck = checkPropagation(strategy);
 
-    // Optionally include detailed analysis
-    let analysis = null;
-    if (includeAnalysis) {
-      analysis = analyzePropagationStructure(strategy);
-    }
-
-    // Upsert strategy record
+    // Find or create strategy record
     const strategyRecord = await prisma.ludicStrategy.upsert({
       where: {
         designId_player: {
@@ -104,14 +74,12 @@ export async function POST(req: NextRequest) {
         },
       },
       update: {
-        satisfiesPropagation: propagationCheck.satisfiesPropagation,
-        playCount: strategy.plays.length,
         updatedAt: new Date(),
       },
       create: {
         designId,
         player,
-        satisfiesPropagation: propagationCheck.satisfiesPropagation,
+        isInnocent: false,
         playCount: strategy.plays.length,
       },
     });
@@ -120,26 +88,28 @@ export async function POST(req: NextRequest) {
     await prisma.ludicPropagationCheck.upsert({
       where: { strategyId: strategyRecord.id },
       update: {
-        satisfiesProp: propagationCheck.satisfiesPropagation,
-        violations: propagationCheck.violations as any,
+        satisfiesPropagation: propagationCheck.satisfiesPropagation,
+        isTotallyOrdered: propagationCheck.isTotallyOrdered,
+        isLinearlyExtended: propagationCheck.isLinearlyExtended,
+        violationLog: propagationCheck.violations as any,
         checkedAt: new Date(),
       },
       create: {
         strategyId: strategyRecord.id,
-        satisfiesProp: propagationCheck.satisfiesPropagation,
-        violations: propagationCheck.violations as any,
+        satisfiesPropagation: propagationCheck.satisfiesPropagation,
+        isTotallyOrdered: propagationCheck.isTotallyOrdered,
+        isLinearlyExtended: propagationCheck.isLinearlyExtended,
+        violationLog: propagationCheck.violations as any,
       },
     });
 
     return NextResponse.json({
       ok: true,
       satisfiesPropagation: propagationCheck.satisfiesPropagation,
-      satisfiesSliceLinearity: propagationCheck.satisfiesSliceLinearity,
-      satisfiesPairPropagation: propagationCheck.satisfiesPairPropagation,
+      isTotallyOrdered: propagationCheck.isTotallyOrdered,
+      isLinearlyExtended: propagationCheck.isLinearlyExtended,
       violations: propagationCheck.violations,
       strategyId: strategyRecord.id,
-      playCount: strategy.plays.length,
-      analysis,
       cached: false,
     });
   } catch (error: any) {
@@ -187,8 +157,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       hasResult: true,
-      satisfiesPropagation: cached.satisfiesProp,
-      violations: cached.violations,
+      satisfiesPropagation: cached.satisfiesPropagation,
+      isTotallyOrdered: cached.isTotallyOrdered,
+      isLinearlyExtended: cached.isLinearlyExtended,
+      violations: cached.violationLog,
       strategyId: cached.strategyId,
       checkedAt: cached.checkedAt,
     });

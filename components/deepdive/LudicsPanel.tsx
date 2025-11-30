@@ -25,6 +25,18 @@ import {
   type Act as VeAct,
 } from "@/packages/ludics-core/ve/pathCheck";
 
+// Phase 1-5 Analysis Components
+import {
+  AnalysisPanel,
+  createDefaultAnalysisState,
+  type LudicsAnalysisState,
+} from "@/components/ludics/analysis";
+import { StrategyInspector } from "@/components/ludics/StrategyInspector";
+import { ViewInspector } from "@/components/ludics/ViewInspector";
+import { ChronicleViewer } from "@/components/ludics/ChronicleViewer";
+import { CorrespondenceViewer } from "@/components/ludics/CorrespondenceViewer";
+import { BehaviourHUD } from "@/components/ludics/BehaviourHUD";
+
 const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
@@ -232,6 +244,15 @@ export default function LudicsPanel({
   const [showAppendDaimon, setShowAppendDaimon] = React.useState(false);
   const [daimonTargetLocus, setDaimonTargetLocus] = React.useState<string>("");
   const [daimonTargetScope, setDaimonTargetScope] = React.useState<string | null>(null);
+
+  // Phase 1-5 Analysis Panel State
+  const [showAnalysisPanel, setShowAnalysisPanel] = React.useState(false);
+  const [analysisState, setAnalysisState] = React.useState<LudicsAnalysisState>(() =>
+    createDefaultAnalysisState()
+  );
+  const handleAnalysisUpdate = React.useCallback((update: Partial<LudicsAnalysisState>) => {
+    setAnalysisState((prev) => ({ ...prev, ...update }));
+  }, []);
 
   // Compute scopes and labels
   const scopes = React.useMemo(() => {
@@ -1334,6 +1355,14 @@ const suggestClose = React.useCallback((path: string) => {
           >
             {showAttach ? "Hide testers" : "Attach testers"}
           </button>
+          <button
+            className={`btnv2 ${showAnalysisPanel ? "btnv2--primary" : "btnv2--ghost"}`}
+            onClick={() => setShowAnalysisPanel((v) => !v)}
+            aria-expanded={showAnalysisPanel}
+            title="Phase 1-5 Analysis Panel: Views, Chronicles, Strategy, Types, Behaviours"
+          >
+            {showAnalysisPanel ? "◀ Analysis" : "▶ Analysis"}
+          </button>
         </div>
       </div>
 
@@ -1761,7 +1790,7 @@ const suggestClose = React.useCallback((path: string) => {
                   <div className="text-4xl mb-3 opacity-30">⏳</div>
                   <div className="text-sm text-slate-600 font-medium mb-1">Trace processing</div>
                   <div className="text-xs text-slate-500">
-                    Click "Step" to generate the trace narrative
+                    Click &quot;Step&quot; to generate the trace narrative
                   </div>
                 </div>
               ) : (
@@ -1995,6 +2024,35 @@ const suggestClose = React.useCallback((path: string) => {
         locusSuggestions={availableLoci.length > 0 ? availableLoci : ["0"]}
         defaultTarget="Opponent"
       />
+
+      {/* Phase 1-5 Analysis Panel (DDS Analysis: Views, Chronicles, Strategy, Types, Behaviours) */}
+      {showAnalysisPanel && (pro?.id || designs.length > 0) && (
+        <div className="border-t border-slate-200 pt-4 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span className="text-base">📊</span>
+              DDS Analysis Panel
+              <span className="text-[10px] font-normal text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                Phases 1-5
+              </span>
+            </h3>
+            <button
+              className="text-xs text-slate-500 hover:text-slate-700 underline"
+              onClick={() => setShowAnalysisPanel(false)}
+            >
+              Close
+            </button>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white/80 shadow-sm overflow-hidden">
+            <AnalysisPanel
+              designId={pro?.id || designs[0]?.id || ""}
+              analysisState={analysisState}
+              onAnalysisUpdate={handleAnalysisUpdate}
+            />
+          </div>
+        </div>
+      )}
+
       {toast.node}
     </div>
   );
