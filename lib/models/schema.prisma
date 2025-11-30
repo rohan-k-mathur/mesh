@@ -4681,6 +4681,10 @@ model LudicDesign {
   // DDS Phase 2: Strategies
   strategies       LudicStrategy[] @relation("DesignStrategies")
 
+  // DDS Phase 3: Correspondences
+  correspondences  LudicCorrespondence[] @relation("DesignCorrespondences")
+  disputeCache     LudicDisputeCache?    @relation("DesignDisputeCache")
+
   @@index([deliberationId, participantId])
   @@index([deliberationId, scope]) // NEW: Query designs by scope
   @@index([deliberationId, scopeType]) // NEW: Query by scope type
@@ -4927,6 +4931,10 @@ model LudicStrategy {
   innocenceCheck       LudicInnocenceCheck? @relation("StrategyInnocence")
   propagationCheck     LudicPropagationCheck? @relation("StrategyPropagation")
 
+  // DDS Phase 3: Correspondences
+  correspondences      LudicCorrespondence[] @relation("StrategyCorrespondences")
+  chronicleCache       LudicChronicleCache?  @relation("StrategyChronicleCache")
+
   @@unique([designId, player])
   @@index([isInnocent, satisfiesPropagation])
 }
@@ -4992,6 +5000,68 @@ model LudicPropagationCheck {
   checkedAt     DateTime      @default(now())
 
   @@index([satisfiesProp])
+}
+
+// =============================================================================
+// DDS Phase 3: Correspondences & Isomorphisms
+// Based on Faggian & Hyland (2002) - Propositions 4.18 and 4.27
+// =============================================================================
+
+/// LudicCorrespondence - Cached correspondence mapping between design and strategy
+/// Records verified Design ↔ Strategy correspondences
+model LudicCorrespondence {
+  id                 String                    @id @default(cuid())
+  designId           String
+  design             LudicDesign               @relation("DesignCorrespondences", fields: [designId], references: [id], onDelete: Cascade)
+  strategyId         String
+  strategy           LudicStrategy             @relation("StrategyCorrespondences", fields: [strategyId], references: [id], onDelete: Cascade)
+  correspondenceType String                    // "design-to-strategy" | "strategy-to-design"
+  isVerified         Boolean                   @default(false)
+  isomorphisms       Json                      // Which isomorphisms hold: {playsViews, viewsPlays, dispCh, chDisp}
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  isomorphismChecks  LudicIsomorphismCheck[]   @relation("CorrespondenceIsomorphisms")
+
+  @@unique([designId, strategyId])
+  @@index([isVerified])
+}
+
+/// LudicIsomorphismCheck - Cached isomorphism validation result
+/// One of four isomorphisms: plays-views, views-plays, disp-ch, ch-disp
+model LudicIsomorphismCheck {
+  id               String              @id @default(cuid())
+  correspondenceId String
+  correspondence   LudicCorrespondence @relation("CorrespondenceIsomorphisms", fields: [correspondenceId], references: [id], onDelete: Cascade)
+  isomorphismType  String              // "plays-views" | "views-plays" | "disp-ch" | "ch-disp"
+  holds            Boolean
+  evidence         Json?               // Proof/counterexample details
+  checkedAt        DateTime            @default(now())
+
+  @@unique([correspondenceId, isomorphismType])
+  @@index([holds])
+}
+
+/// LudicDisputeCache - Precomputed disputes for Disp(D) operation
+/// Caches all disputes of a design with orthogonal counter-designs
+model LudicDisputeCache {
+  id           String      @id @default(cuid())
+  designId     String      @unique
+  design       LudicDesign @relation("DesignDisputeCache", fields: [designId], references: [id], onDelete: Cascade)
+  allDisputes  Json        // Array of all disputes Disp(D)
+  disputeCount Int         @default(0)
+  computedAt   DateTime    @default(now())
+}
+
+/// LudicChronicleCache - Precomputed chronicles for Ch(S) operation
+/// Caches all chronicles extracted from strategy
+model LudicChronicleCache {
+  id             String        @id @default(cuid())
+  strategyId     String        @unique
+  strategy       LudicStrategy @relation("StrategyChronicleCache", fields: [strategyId], references: [id], onDelete: Cascade)
+  allChronicles  Json          // Array of all chronicles Ch(S)
+  chronicleCount Int           @default(0)
+  computedAt     DateTime      @default(now())
 }
 
 model VoteSession {

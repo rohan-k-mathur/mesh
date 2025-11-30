@@ -49,3 +49,6 @@ export {
 
 // Phase 2: Strategy Layer
 export * from "./strategy";
+
+// Phase 3: Correspondences & Isomorphisms
+export * from "./correspondence";
