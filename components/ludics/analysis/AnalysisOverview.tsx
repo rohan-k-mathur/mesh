@@ -27,7 +27,7 @@ function StatCard({
   );
 }
 
-export function AnalysisOverview({ designId }: { designId: string }) {
+export function AnalysisOverview({ designId, deliberationId, scope }: { designId: string; deliberationId?: string; scope?: string }) {
   const [runningAnalysis, setRunningAnalysis] = React.useState(false);
 
   // Fetch basic stats
@@ -37,8 +37,15 @@ export function AnalysisOverview({ designId }: { designId: string }) {
     { revalidateOnFocus: false }
   );
 
+  // Use deliberationId for views if available (aggregates all designs)
+  // Add scope filter if provided
+  const viewsQueryParams = new URLSearchParams();
+  if (deliberationId) viewsQueryParams.set("deliberationId", deliberationId);
+  else viewsQueryParams.set("designId", designId);
+  if (scope) viewsQueryParams.set("scope", scope);
+  
   const { data: viewsData, mutate: mutateViews } = useSWR(
-    designId ? `/api/ludics/dds/views?designId=${designId}` : null,
+    designId ? `/api/ludics/dds/views?${viewsQueryParams.toString()}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -59,11 +66,17 @@ export function AnalysisOverview({ designId }: { designId: string }) {
     setRunningAnalysis(true);
     try {
       // Run all analyses in parallel
+      // Use deliberationId for views if available, include scope filter
+      const viewsBody: Record<string, any> = deliberationId 
+        ? { deliberationId, forceRecompute: true }
+        : { designId };
+      if (scope) viewsBody.scope = scope;
+        
       await Promise.all([
         fetch(`/api/ludics/dds/views`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ designId }),
+          body: JSON.stringify(viewsBody),
         }),
         fetch(`/api/ludics/dds/chronicles`, {
           method: "POST",
@@ -151,6 +164,7 @@ export function AnalysisOverview({ designId }: { designId: string }) {
       <div className="correspondence-section">
         <CorrespondenceViewer
           designId={designId}
+          deliberationId={deliberationId}
           strategyId={strategyData?.strategyId}
         />
       </div>

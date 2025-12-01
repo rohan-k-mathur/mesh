@@ -234,10 +234,7 @@ export default function LudicsPanel({
     Record<string, number>
   >({});
 
-  // Scoped designs state (Phase 4 integration)
-  const [scopingStrategy, setScopingStrategy] = React.useState<
-    "legacy" | "topic" | "actor-pair" | "argument"
-  >("legacy");
+  // Scoped designs state - activeScope filters which scope to show/analyze
   const [activeScope, setActiveScope] = React.useState<string | null>(null);
 
   // Append Daimon controls (Task 5: Week 2) - moved here before useMemo that uses them
@@ -524,13 +521,12 @@ const suggestClose = React.useCallback((path: string) => {
       compRef.current = true;
       setBusy("compile");
       try {
-        // Use new /api/ludics/compile endpoint with scopingStrategy
+        // Use new /api/ludics/compile endpoint (uses existing designs' scoping)
         const compileRes = await fetch("/api/ludics/compile", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             deliberationId,
-            scopingStrategy,
             forceRecompile: true,
           }),
         }).then((r) => r.json());
@@ -561,17 +557,15 @@ const suggestClose = React.useCallback((path: string) => {
         // Step the active scope if available
         await mutateDesigns();
         
-        // Auto-step after compilation if we have designs
-        if (activeScope) {
-          await step();
-        }
+        // Note: We don't auto-step here to avoid circular dependency
+        // User can click Step button after compilation
       } finally {
         compRef.current = false;
         setBusy(false);
         lastCompileAt.current = Date.now();
       }
     },
-    [deliberationId, phase, mutateDesigns, scopingStrategy, activeScope, toast]
+    [deliberationId, phase, mutateDesigns, activeScope, toast]
   );
   const compileStepRef = React.useRef(compileStep);
   React.useEffect(() => {
@@ -1204,28 +1198,8 @@ const suggestClose = React.useCallback((path: string) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Scoping Strategy Selector */}
-          <div className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2 py-1 text-[11px] backdrop-blur">
-            <label className="text-slate-600 font-medium">Strategy:</label>
-            <select
-              value={scopingStrategy}
-              onChange={(e) =>
-                setScopingStrategy(
-                  e.target.value as "legacy" | "topic" | "actor-pair" | "argument"
-                )
-              }
-              className="border-0 bg-transparent text-[11px] font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
-              disabled={!!busy}
-            >
-              <option value="legacy">Legacy</option>
-              <option value="topic">Topic</option>
-              <option value="actor-pair">Actor-Pair</option>
-              <option value="argument">Argument</option>
-            </select>
-          </div>
-
-          {/* Active Scope Selector (only show if multiple scopes) */}
-          {scopes.length > 1 && (
+          {/* Active Scope Selector (for filtering results) */}
+          {scopes.length > 0 && (
             <div className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2 py-1 text-[11px] backdrop-blur">
               <label className="text-slate-600 font-medium">Scope:</label>
               <select
@@ -1272,7 +1246,7 @@ const suggestClose = React.useCallback((path: string) => {
             aria-label="Compile from moves"
             onClick={() => compileStep("neutral")}
             disabled={!!busy}
-            title={`Compile with ${scopingStrategy} scoping strategy`}
+            title="Recompile designs from dialogue moves"
           >
             {busy === "compile" ? "Compiling…" : "Compile"}
           </button>
@@ -2047,6 +2021,7 @@ const suggestClose = React.useCallback((path: string) => {
             <AnalysisPanel
               designId={pro?.id || designs[0]?.id || ""}
               deliberationId={deliberationId}
+              scope={activeScope || undefined}
               analysisState={analysisState}
               onAnalysisUpdate={handleAnalysisUpdate}
             />

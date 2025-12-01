@@ -5,10 +5,9 @@ import * as React from 'react';
 import useSWR from 'swr';
 import { CompositionModeToggle } from '../engine/CompositionModeToggle';
 import LocusControls from './LocusControls';
-import { LociTree } from 'packages/ludics-react/LociTree';
+import { LociTreeLegacy } from 'packages/ludics-react/LociTreeLegacy';
 import { mergeDesignsToTree } from '@/packages/ludics-react/mergeDesignsToTree';
-import { MODE_LABEL } from 'packages/ludics-react/modeLabels';
-type Mode = 'assoc' | 'partial' | 'spiritual' | 'split';
+import { MODE_LABEL, type Mode } from 'packages/ludics-react/modeLabels';
 
 // helpers
 const get = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
@@ -26,7 +25,7 @@ const post = async <T,>(u: string, body: any): Promise<T> => {
    dialogueId: string;
    posDesignId: string;
    negDesignId: string;
-   defaultMode?: 'assoc' | 'split';
+   defaultMode?: Mode;
   suggestCloseDaimonAt?: (path: string) => boolean;
  };
  export default function LociTreeWithControls(props: Props) {
@@ -161,7 +160,7 @@ const post = async <T,>(u: string, body: any): Promise<T> => {
       <div className="rounded border bg-white/70 backdrop-blur overflow-auto p-1"
            style={{ minHeight: 320, maxHeight: 480 }}>
         {root ? (
-          <LociTree
+          <LociTreeLegacy
             key={version}
             root={root}
             usedAdditive={usedAdditive}

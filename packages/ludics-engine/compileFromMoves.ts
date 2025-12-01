@@ -422,19 +422,36 @@ export async function compileFromMoves(
       console.log(`[compile] Deleted ${traceCount.count} traces`);
       
       if (designIds.length > 0) {
-        // 2. Delete LudicChronicle (references both LudicDesign and LudicAct)
+        // Get all act IDs for the designs we're about to delete
+        const actsToDelete = await tx.ludicAct.findMany({
+          where: { designId: { in: designIds } },
+          select: { id: true }
+        });
+        const actIds = actsToDelete.map(a => a.id);
+        console.log(`[compile] Found ${actIds.length} acts to delete for ${designIds.length} designs`);
+        
+        // 2. Nullify AifNode.ludicActId references (prevents FK constraint issues)
+        if (actIds.length > 0) {
+          const aifNullCount = await tx.aifNode.updateMany({
+            where: { ludicActId: { in: actIds } },
+            data: { ludicActId: null }
+          });
+          console.log(`[compile] Nullified ${aifNullCount.count} AifNode references`);
+        }
+        
+        // 3. Delete LudicChronicle (references both LudicDesign and LudicAct)
         const chronicleCount = await tx.ludicChronicle.deleteMany({ 
           where: { designId: { in: designIds } } 
         });
         console.log(`[compile] Deleted ${chronicleCount.count} chronicle entries`);
         
-        // 3. Delete LudicAct (references LudicDesign via designId foreign key)
+        // 4. Delete LudicAct (references LudicDesign via designId foreign key)
         const actCount = await tx.ludicAct.deleteMany({ 
           where: { designId: { in: designIds } } 
         });
         console.log(`[compile] Deleted ${actCount.count} acts`);
         
-        // 4. IMMEDIATELY delete LudicDesign (before any other operation can create new acts)
+        // 5. IMMEDIATELY delete LudicDesign (before any other operation can create new acts)
         const designCount = await tx.ludicDesign.deleteMany({ 
           where: { id: { in: designIds } }  // Delete ONLY these specific designs, not all
         });
