@@ -2021,7 +2021,6 @@ const suggestClose = React.useCallback((path: string) => {
             <AnalysisPanel
               designId={pro?.id || designs[0]?.id || ""}
               deliberationId={deliberationId}
-              scope={activeScope || undefined}
               analysisState={analysisState}
               onAnalysisUpdate={handleAnalysisUpdate}
             />

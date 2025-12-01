@@ -2,7 +2,21 @@
 
 import * as React from "react";
 import useSWR from "swr";
-import type { Chronicle } from "@/packages/ludics-core/dds/chronicles";
+
+// Chronicle type matching API response format
+type Chronicle = {
+  id: string;
+  designId: string;
+  sequence: Array<{
+    focus: string;
+    polarity: string;
+    ramification: number[];
+    actId?: string;
+    order?: number;
+  }>;
+  length: number;
+  isMaximal: boolean;
+};
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -45,15 +59,22 @@ function ChronicleCard({
 
 export function ChroniclesExplorer({
   designId,
+  deliberationId,
   selectedChronicle,
   onSelectChronicle,
 }: {
-  designId: string;
+  designId?: string;
+  deliberationId?: string;
   selectedChronicle: Chronicle | null;
   onSelectChronicle: (chronicle: Chronicle) => void;
 }) {
+  // Prefer deliberationId for deliberation-wide chronicles
+  const queryParam = deliberationId 
+    ? `deliberationId=${deliberationId}`
+    : `designId=${designId}`;
+    
   const { data, isLoading, mutate } = useSWR(
-    designId ? `/api/ludics/dds/chronicles?designId=${designId}` : null,
+    (deliberationId || designId) ? `/api/ludics/dds/chronicles?${queryParam}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -61,10 +82,11 @@ export function ChroniclesExplorer({
   const chronicles = (data?.chronicles || []) as Chronicle[];
 
   const computeChronicles = async () => {
+    const body = deliberationId ? { deliberationId } : { designId };
     await fetch(`/api/ludics/dds/chronicles`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ designId }),
+      body: JSON.stringify(body),
     });
     await mutate();
   };

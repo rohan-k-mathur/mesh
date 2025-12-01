@@ -41,13 +41,11 @@ function TabButton({
 export function AnalysisPanel({
   designId,
   deliberationId,
-  scope,
   analysisState,
   onAnalysisUpdate,
 }: {
   designId: string;
   deliberationId: string;
-  scope?: string;
   analysisState: LudicsAnalysisState;
   onAnalysisUpdate: (update: Partial<LudicsAnalysisState>) => void;
 }) {
@@ -117,24 +115,24 @@ export function AnalysisPanel({
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {activeSection === "overview" && (
-          <AnalysisOverview designId={designId} deliberationId={deliberationId} scope={scope} />
+          <AnalysisOverview designId={designId} deliberationId={deliberationId} />
         )}
 
         {activeSection === "views" && (
           <ViewsExplorer
             deliberationId={deliberationId}
             designId={designId}
-            scope={scope}
             selectedView={analysisState.selectedView}
-            onSelectView={(view) => onAnalysisUpdate({ selectedView: view })}
+            onSelectView={(view: any) => onAnalysisUpdate({ selectedView: view })}
           />
         )}
 
         {activeSection === "chronicles" && (
           <ChroniclesExplorer
             designId={designId}
+            deliberationId={deliberationId}
             selectedChronicle={analysisState.selectedChronicle}
-            onSelectChronicle={(chr) => onAnalysisUpdate({ selectedChronicle: chr })}
+            onSelectChronicle={(chr: any) => onAnalysisUpdate({ selectedChronicle: chr })}
           />
         )}
 

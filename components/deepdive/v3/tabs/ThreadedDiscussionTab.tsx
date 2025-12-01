@@ -230,7 +230,7 @@ function DiscussionAnalytics({
         </Card>
         <Card className="panelv2">
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{analytics.totalThreads}</div>
+            <div className="text-2xl font-bold text-sky-600">{analytics.totalThreads}</div>
             <div className="text-xs text-gray-600">Root Threads</div>
           </CardContent>
         </Card>
@@ -257,7 +257,7 @@ function DiscussionAnalytics({
               {Object.entries(analytics.typeCounts).map(([type, count]) => {
                 const percentage = analytics.totalNodes > 0 ? (count / analytics.totalNodes) * 100 : 0;
                 const colors = {
-                  proposition: 'bg-blue-500',
+                  proposition: 'bg-sky-500',
                   claim: 'bg-purple-500',
                   argument: 'bg-green-500',
                 };
@@ -336,9 +336,9 @@ function DiscussionAnalytics({
                 <span className="text-sm font-medium">Maximum Depth</span>
                 <span className="text-2xl font-bold text-purple-600">{analytics.maxDepth}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <div className="flex justify-between items-center p-3 bg-sky-50 rounded-lg">
                 <span className="text-sm font-medium">Average Depth</span>
-                <span className="text-2xl font-bold text-blue-600">{analytics.avgDepth.toFixed(1)}</span>
+                <span className="text-2xl font-bold text-sky-600">{analytics.avgDepth.toFixed(1)}</span>
               </div>
             </div>
           </CardContent>

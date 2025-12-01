@@ -74,8 +74,11 @@ export async function GET(req: NextRequest) {
 
     const views = await prisma.ludicView.findMany({
       where,
-      orderBy: { createdAt: "desc" },
-      take: 100,
+      orderBy: [
+        { player: "asc" }, // P before O
+        { createdAt: "desc" },
+      ],
+      // No limit - return all views for deliberation-wide analysis
     });
 
     // Map to View type format
@@ -87,10 +90,18 @@ export async function GET(req: NextRequest) {
       length: ((v.viewSequence as any[]) || []).length,
     }));
 
+    // Return with stats
+    const pCount = formattedViews.filter(v => v.player === "P").length;
+    const oCount = formattedViews.filter(v => v.player === "O").length;
+
     return NextResponse.json({
       ok: true,
       views: formattedViews,
       count: formattedViews.length,
+      stats: {
+        pViewCount: pCount,
+        oViewCount: oCount,
+      },
     });
   } catch (error: any) {
     console.error("[DDS Views GET Error]", error);
@@ -364,22 +375,47 @@ export async function POST(req: NextRequest) {
     }
 
     // Save views to database
+    // First verify the designs still exist (race condition protection)
+    const designsStillExist = await prisma.ludicDesign.findMany({
+      where: { id: { in: [pDesign.id, oDesign.id] } },
+      select: { id: true },
+    });
+    
+    if (designsStillExist.length < 2) {
+      console.log(`[Views] Designs were deleted during computation, aborting save`);
+      return NextResponse.json({
+        ok: false,
+        error: "Designs were deleted during view computation. Please recompute.",
+        views: [],
+        count: 0,
+      }, { status: 409 }); // Conflict
+    }
+    
     const savedViews: ViewWithLength[] = [];
     for (const view of allViews) {
-      const saved = await prisma.ludicView.create({
-        data: {
-          designId: view.designId,
-          player: view.player,
-          viewSequence: view.sequence as any,
-        },
-      });
-      savedViews.push({
-        id: saved.id,
-        designId: saved.designId,
-        player: saved.player as "P" | "O",
-        sequence: view.sequence,
-        length: view.sequence.length,
-      });
+      try {
+        const saved = await prisma.ludicView.create({
+          data: {
+            designId: view.designId,
+            player: view.player,
+            viewSequence: view.sequence as any,
+          },
+        });
+        savedViews.push({
+          id: saved.id,
+          designId: saved.designId,
+          player: saved.player as "P" | "O",
+          sequence: view.sequence,
+          length: view.sequence.length,
+        });
+      } catch (err: any) {
+        // Handle race condition where design is deleted mid-save
+        if (err.code === 'P2003') {
+          console.log(`[Views] Design ${view.designId} was deleted during save, skipping remaining views`);
+          break;
+        }
+        throw err;
+      }
     }
 
     return NextResponse.json({

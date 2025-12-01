@@ -27,35 +27,17 @@ function StatCard({
   );
 }
 
-export function AnalysisOverview({ designId, deliberationId, scope }: { designId: string; deliberationId?: string; scope?: string }) {
+export function AnalysisOverview({ designId, deliberationId }: { designId: string; deliberationId?: string }) {
   const [runningAnalysis, setRunningAnalysis] = React.useState(false);
 
-  // Fetch basic stats
-  const { data: designData, mutate: mutateDesign } = useSWR(
-    designId ? `/api/ludics/designs/${designId}` : null,
+  // Fetch deliberation-wide stats (canonical, not affected by scope)
+  const { data: statsData, mutate: mutateStats } = useSWR(
+    deliberationId ? `/api/ludics/dds/stats?deliberationId=${deliberationId}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
 
-  // Use deliberationId for views if available (aggregates all designs)
-  // Add scope filter if provided
-  const viewsQueryParams = new URLSearchParams();
-  if (deliberationId) viewsQueryParams.set("deliberationId", deliberationId);
-  else viewsQueryParams.set("designId", designId);
-  if (scope) viewsQueryParams.set("scope", scope);
-  
-  const { data: viewsData, mutate: mutateViews } = useSWR(
-    designId ? `/api/ludics/dds/views?${viewsQueryParams.toString()}` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-
-  const { data: chroniclesData, mutate: mutateChronicles } = useSWR(
-    designId ? `/api/ludics/dds/chronicles?designId=${designId}` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-
+  // For strategy inspection, we still need a specific design
   const { data: strategyData, mutate: mutateStrategy } = useSWR(
     designId ? `/api/ludics/dds/strategy/innocence?designId=${designId}` : null,
     fetcher,
@@ -63,26 +45,25 @@ export function AnalysisOverview({ designId, deliberationId, scope }: { designId
   );
 
   const runFullAnalysis = async () => {
+    if (!deliberationId) return;
+    
     setRunningAnalysis(true);
     try {
-      // Run all analyses in parallel
-      // Use deliberationId for views if available, include scope filter
-      const viewsBody: Record<string, any> = deliberationId 
-        ? { deliberationId, forceRecompute: true }
-        : { designId };
-      if (scope) viewsBody.scope = scope;
-        
+      // Run deliberation-wide analyses
       await Promise.all([
+        // Compute views for entire deliberation
         fetch(`/api/ludics/dds/views`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(viewsBody),
+          body: JSON.stringify({ deliberationId, forceRecompute: true }),
         }),
+        // Compute chronicles for all designs
         fetch(`/api/ludics/dds/chronicles`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ designId }),
+          body: JSON.stringify({ deliberationId }),
         }),
+        // Strategy analysis for current design (as reference)
         fetch("/api/ludics/dds/strategy/innocence", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -95,11 +76,9 @@ export function AnalysisOverview({ designId, deliberationId, scope }: { designId
         }),
       ]);
 
-      // Refetch all data
+      // Refetch stats
       await Promise.all([
-        mutateDesign(),
-        mutateViews(),
-        mutateChronicles(),
+        mutateStats(),
         mutateStrategy(),
       ]);
     } finally {
@@ -107,28 +86,39 @@ export function AnalysisOverview({ designId, deliberationId, scope }: { designId
     }
   };
 
-  const actsCount = designData?.design?.acts?.length || 0;
-  const viewsCount = viewsData?.views?.length || viewsData?.count || 0;
-  const chroniclesCount = chroniclesData?.chronicles?.length || chroniclesData?.count || 0;
+  const stats = statsData?.stats || {};
+  const actsCount = stats.acts || 0;
+  const viewsCount = stats.views || 0;
+  const chroniclesCount = stats.chronicles || 0;
+  const designsCount = stats.designs || 0;
+  const scopesCount = stats.scopes || 0;
+  const strategiesCount = stats.strategies || 0;
 
   return (
     <div className="analysis-overview space-y-4">
       {/* Header with Run Analysis Button */}
       <div className="flex items-center justify-between pb-3 border-b">
         <div>
-          <h3 className="text-sm font-bold text-slate-800">Design Analysis</h3>
+          <h3 className="text-sm font-bold text-slate-800">Deliberation Analysis</h3>
           <p className="text-xs text-slate-600 mt-0.5">
-            Complete Games Semantics correspondence check
+            Canonical analysis across all designs in this deliberation
           </p>
         </div>
         <button
           onClick={runFullAnalysis}
-          disabled={runningAnalysis}
+          disabled={runningAnalysis || !deliberationId}
           className="px-4 py-2 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 font-medium"
         >
           {runningAnalysis ? "Analyzing..." : "Run Full Analysis"}
         </button>
       </div>
+
+      {/* Deliberation Summary */}
+      {statsData?.ok && (
+        <div className="text-xs text-slate-500 bg-slate-50 rounded px-2 py-1">
+          📊 {designsCount} designs across {scopesCount} scopes • {strategiesCount} strategies computed
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3">

@@ -50,21 +50,22 @@ function ViewCard({
 export function ViewsExplorer({
   deliberationId,
   designId,
-  scope,
   selectedView,
   onSelectView,
 }: {
   deliberationId?: string;
   designId?: string; // For backward compatibility
-  scope?: string; // Filter by scope
   selectedView: View | null;
   onSelectView: (view: View) => void;
 }) {
-  // Build query params - prefer deliberationId, include scope filter
+  const [pPage, setPPage] = React.useState(0);
+  const [oPage, setOPage] = React.useState(0);
+  const PAGE_SIZE = 20;
+
+  // Build query params - prefer deliberationId for deliberation-wide views
   const queryParams = new URLSearchParams();
   if (deliberationId) queryParams.set("deliberationId", deliberationId);
   else if (designId) queryParams.set("designId", designId);
-  if (scope) queryParams.set("scope", scope);
   
   const queryString = queryParams.toString();
 
@@ -81,7 +82,6 @@ export function ViewsExplorer({
     const body: Record<string, any> = deliberationId 
       ? { deliberationId, forceRecompute: true }
       : { designId, forceRecompute: true };
-    if (scope) body.scope = scope;
       
     await fetch(`/api/ludics/dds/views`, {
       method: "POST",
@@ -128,19 +128,42 @@ export function ViewsExplorer({
       {isLoading ? (
         <div className="text-xs text-slate-500">Loading views...</div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {/* Proponent Views */}
           {pViews.length > 0 && (
             <div>
-              <div className="text-[10px] font-semibold text-emerald-700 mb-1">
-                Proponent Views ({pViews.length})
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] font-semibold text-emerald-700">
+                  Proponent Views ({pViews.length})
+                </div>
+                {pViews.length > PAGE_SIZE && (
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <button
+                      onClick={() => setPPage(Math.max(0, pPage - 1))}
+                      disabled={pPage === 0}
+                      className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      ←
+                    </button>
+                    <span className="text-slate-500">
+                      {pPage * PAGE_SIZE + 1}-{Math.min((pPage + 1) * PAGE_SIZE, pViews.length)} of {pViews.length}
+                    </span>
+                    <button
+                      onClick={() => setPPage(Math.min(Math.ceil(pViews.length / PAGE_SIZE) - 1, pPage + 1))}
+                      disabled={(pPage + 1) * PAGE_SIZE >= pViews.length}
+                      className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="views-grid grid grid-cols-2 gap-2">
-                {pViews.map((view, idx) => (
+              <div className="views-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+                {pViews.slice(pPage * PAGE_SIZE, (pPage + 1) * PAGE_SIZE).map((view, idx) => (
                   <ViewCard
-                    key={view.id || `p-${idx}`}
+                    key={view.id || `p-${pPage * PAGE_SIZE + idx}`}
                     view={view}
-                    index={idx}
+                    index={pPage * PAGE_SIZE + idx}
                     selected={selectedView?.id === view.id}
                     onSelect={() => onSelectView(view)}
                   />
@@ -152,15 +175,38 @@ export function ViewsExplorer({
           {/* Opponent Views */}
           {oViews.length > 0 && (
             <div>
-              <div className="text-[10px] font-semibold text-rose-700 mb-1">
-                Opponent Views ({oViews.length})
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] font-semibold text-rose-700">
+                  Opponent Views ({oViews.length})
+                </div>
+                {oViews.length > PAGE_SIZE && (
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <button
+                      onClick={() => setOPage(Math.max(0, oPage - 1))}
+                      disabled={oPage === 0}
+                      className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      ←
+                    </button>
+                    <span className="text-slate-500">
+                      {oPage * PAGE_SIZE + 1}-{Math.min((oPage + 1) * PAGE_SIZE, oViews.length)} of {oViews.length}
+                    </span>
+                    <button
+                      onClick={() => setOPage(Math.min(Math.ceil(oViews.length / PAGE_SIZE) - 1, oPage + 1))}
+                      disabled={(oPage + 1) * PAGE_SIZE >= oViews.length}
+                      className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-50"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="views-grid grid grid-cols-2 gap-2">
-                {oViews.map((view, idx) => (
+              <div className="views-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+                {oViews.slice(oPage * PAGE_SIZE, (oPage + 1) * PAGE_SIZE).map((view, idx) => (
                   <ViewCard
-                    key={view.id || `o-${idx}`}
+                    key={view.id || `o-${oPage * PAGE_SIZE + idx}`}
                     view={view}
-                    index={idx}
+                    index={oPage * PAGE_SIZE + idx}
                     selected={selectedView?.id === view.id}
                     onSelect={() => onSelectView(view)}
                   />

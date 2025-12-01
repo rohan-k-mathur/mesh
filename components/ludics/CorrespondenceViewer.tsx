@@ -14,11 +14,22 @@ interface StrategyOption {
   player: string;
   isInnocent: boolean;
   satisfiesPropagation: boolean;
+  playCount: number;
+  viewCount: number;
+  isPrimary: boolean;
   label: string;
   design?: {
     participantId?: string;
     scope?: string;
   };
+}
+
+interface StrategySummary {
+  total: number;
+  pStrategies: number;
+  oStrategies: number;
+  innocentCount: number;
+  propagatingCount: number;
 }
 
 interface CorrespondenceViewerProps {
@@ -45,20 +56,57 @@ export function CorrespondenceViewer({
   const [selectedStrategyId, setSelectedStrategyId] = React.useState(strategyId || "");
   const [localCorrespondence, setLocalCorrespondence] = React.useState<Correspondence | undefined>(correspondence);
   const [verifying, setVerifying] = React.useState(false);
+  const [generating, setGenerating] = React.useState(false);
+  const [includeCounter, setIncludeCounter] = React.useState(false);
 
-  // Fetch available strategies for the deliberation
-  const { data: strategiesData } = useSWR<{ ok: boolean; strategies: StrategyOption[] }>(
-    deliberationId ? `/api/ludics/strategies?deliberationId=${encodeURIComponent(deliberationId)}` : null,
+  // Fetch available strategies for the deliberation using the generate endpoint for better data
+  const { data: strategiesData, mutate: mutateStrategies } = useSWR<{ 
+    ok: boolean; 
+    strategies: StrategyOption[];
+    summary?: StrategySummary;
+  }>(
+    deliberationId ? `/api/ludics/dds/strategies/generate?deliberationId=${encodeURIComponent(deliberationId)}` : null,
     fetcher
   );
 
   const strategies = strategiesData?.strategies || [];
+  const summary = strategiesData?.summary;
+  
+  // Group strategies by player
+  const pStrategies = strategies.filter(s => s.player === "P");
+  const oStrategies = strategies.filter(s => s.player === "O");
 
   // Update parent when strategy changes
   const handleStrategyChange = (id: string) => {
     setSelectedStrategyId(id);
     setLocalCorrespondence(undefined); // Reset correspondence when strategy changes
     onStrategyChange?.(id);
+  };
+
+  // Generate strategies for all designs
+  const handleGenerateStrategies = async () => {
+    if (!deliberationId) return;
+    
+    setGenerating(true);
+    try {
+      const res = await fetch(`/api/ludics/dds/strategies/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deliberationId,
+          includeCounterStrategies: includeCounter,
+          forceRegenerate: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        await mutateStrategies();
+      }
+    } catch (err) {
+      console.error("Strategy generation failed:", err);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   // Verify correspondence
@@ -112,29 +160,89 @@ export function CorrespondenceViewer({
         )}
       </div>
 
-      {/* Strategy Selector */}
-      <div className="strategy-selector">
-        <label className="block text-xs font-medium text-slate-600 mb-1">
-          Select Strategy
-        </label>
-        <select
-          value={selectedStrategyId}
-          onChange={(e) => handleStrategyChange(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-        >
-          <option value="">Select a strategy...</option>
-          {strategies.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.player}-Strategy • {s.design?.participantId || "design"} {s.isInnocent ? "✓ innocent" : ""} {s.satisfiesPropagation ? "✓ propagates" : ""}
-            </option>
-          ))}
-        </select>
-        {strategies.length === 0 && deliberationId && (
-          <p className="text-xs text-slate-400 mt-1">
-            No strategies found. Run the compiler to generate strategies from designs.
+      {/* Strategy Summary */}
+      {summary && (
+        <div className="text-xs text-slate-500 bg-slate-50 rounded px-2 py-1 flex gap-3 flex-wrap">
+          <span className="text-emerald-600">P: {summary.pStrategies}</span>
+          <span className="text-rose-600">O: {summary.oStrategies}</span>
+          <span>✓ {summary.innocentCount} innocent</span>
+          <span>↗ {summary.propagatingCount} propagating</span>
+        </div>
+      )}
+
+      {/* Strategy Generator */}
+      {strategies.length === 0 && deliberationId && (
+        <div className="strategy-generator bg-amber-50 border border-amber-200 rounded p-3 space-y-2">
+          <div className="text-xs text-amber-800 font-medium">
+            No strategies found for this deliberation
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerateStrategies}
+              disabled={generating}
+              className="px-3 py-1.5 text-xs rounded bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {generating ? "Generating..." : "Generate Strategies"}
+            </button>
+            <label className="flex items-center gap-1.5 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={includeCounter}
+                onChange={(e) => setIncludeCounter(e.target.checked)}
+                className="rounded"
+              />
+              Include counter-strategies
+            </label>
+          </div>
+          <p className="text-[10px] text-amber-700">
+            Generates P-Strategies for Proponent designs and O-Strategies for Opponent designs.
+            Counter-strategies create the opposite player&apos;s strategy for each design.
           </p>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Strategy Selector - Grouped by Player */}
+      {strategies.length > 0 && (
+        <div className="strategy-selector space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-medium text-slate-600">
+              Select Strategy
+            </label>
+            <button
+              onClick={handleGenerateStrategies}
+              disabled={generating}
+              className="text-[10px] text-slate-500 hover:text-slate-700 underline"
+            >
+              {generating ? "Regenerating..." : "↻ Regenerate"}
+            </button>
+          </div>
+          <select
+            value={selectedStrategyId}
+            onChange={(e) => handleStrategyChange(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">Select a strategy...</option>
+            {pStrategies.length > 0 && (
+              <optgroup label={`Proponent Strategies (${pStrategies.length})`}>
+                {pStrategies.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    P • {s.design?.participantId || "design"} • {s.playCount} plays {s.isInnocent ? "✓" : ""} {s.isPrimary ? "(primary)" : "(counter)"}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {oStrategies.length > 0 && (
+              <optgroup label={`Opponent Strategies (${oStrategies.length})`}>
+                {oStrategies.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    O • {s.design?.participantId || "design"} • {s.playCount} plays {s.isInnocent ? "✓" : ""} {s.isPrimary ? "(primary)" : "(counter)"}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
+      )}
 
       {/* Verification Status */}
       {isCorrespondenceVerified ? (
