@@ -17,11 +17,25 @@ import type { Action } from "@/packages/ludics-core/dds/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { designIds, maxIterations = 10, mode = "closure" } = await req.json();
+    const body = await req.json();
+    const maxIterations = body.maxIterations || 10;
+    const mode = body.mode || "closure";
+    
+    // Support both designIds and strategyIds
+    let designIds = body.designIds;
+    
+    // If strategyIds provided, look up the associated designIds
+    if (body.strategyIds && Array.isArray(body.strategyIds) && body.strategyIds.length > 0) {
+      const strategies = await prisma.ludicStrategy.findMany({
+        where: { id: { in: body.strategyIds } },
+        select: { id: true, designId: true },
+      });
+      designIds = strategies.map(s => s.designId);
+    }
 
     if (!designIds || !Array.isArray(designIds) || designIds.length === 0) {
       return NextResponse.json(
-        { ok: false, error: "designIds array is required" },
+        { ok: false, error: "designIds or strategyIds array is required" },
         { status: 400 }
       );
     }

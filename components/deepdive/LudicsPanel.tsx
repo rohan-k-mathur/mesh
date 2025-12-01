@@ -2046,6 +2046,7 @@ const suggestClose = React.useCallback((path: string) => {
           <div className="rounded-lg border border-slate-200 bg-white/80 shadow-sm overflow-hidden">
             <AnalysisPanel
               designId={pro?.id || designs[0]?.id || ""}
+              deliberationId={deliberationId}
               analysisState={analysisState}
               onAnalysisUpdate={handleAnalysisUpdate}
             />

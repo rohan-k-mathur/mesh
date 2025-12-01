@@ -10,9 +10,24 @@ import useSWR from "swr";
 
 const fetcher = (u: string) => fetch(u, { cache: "no-store" }).then((r) => r.json());
 
+interface StrategyOption {
+  id: string;
+  designId: string;
+  player: string;
+  isInnocent: boolean;
+  satisfiesPropagation: boolean;
+  label: string;
+  design?: {
+    participantId?: string;
+    scope?: string;
+  };
+}
+
 interface BehaviourPanelProps {
   strategyId?: string;
   designId: string;
+  deliberationId?: string;
+  onStrategyChange?: (strategyId: string) => void;
 }
 
 type OrthogonalityResult = {
@@ -28,22 +43,52 @@ type OrthogonalityResult = {
 };
 
 type ClosureResult = {
-  strategyId: string;
-  closureIds: string[];
-  iterationsNeeded: number;
-  fixpointReached: boolean;
+  strategyId?: string;
+  closureIds?: string[];
+  closedDesignIds?: string[];
+  iterationsNeeded?: number;
+  iterations?: number;
+  fixpointReached?: boolean;
+  isClosed?: boolean;
+  converged?: boolean;
+  originalCount?: number;
+  closedCount?: number;
 };
 
-export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
+export function BehaviourPanel({ strategyId, designId, deliberationId, onStrategyChange }: BehaviourPanelProps) {
+  const [selectedStrategyId, setSelectedStrategyId] = React.useState(strategyId || "");
   const [compareStrategyId, setCompareStrategyId] = React.useState("");
   const [orthResult, setOrthResult] = React.useState<OrthogonalityResult | null>(null);
   const [closureResult, setClosureResult] = React.useState<ClosureResult | null>(null);
   const [loading, setLoading] = React.useState<"orth" | "closure" | null>(null);
   const [activeTab, setActiveTab] = React.useState<"orth" | "closure" | "game">("orth");
 
+  // Fetch available strategies for the deliberation
+  const { data: strategiesData } = useSWR<{ ok: boolean; strategies: StrategyOption[] }>(
+    deliberationId ? `/api/ludics/strategies?deliberationId=${encodeURIComponent(deliberationId)}` : null,
+    fetcher
+  );
+
+  const strategies = strategiesData?.strategies || [];
+  const effectiveStrategyId = selectedStrategyId || strategyId;
+
+  // Update when strategyId prop changes
+  React.useEffect(() => {
+    if (strategyId && strategyId !== selectedStrategyId) {
+      setSelectedStrategyId(strategyId);
+    }
+  }, [strategyId]);
+
+  const handleStrategyChange = (id: string) => {
+    setSelectedStrategyId(id);
+    setOrthResult(null);
+    setClosureResult(null);
+    onStrategyChange?.(id);
+  };
+
   // Check orthogonality between two strategies
   const checkOrthogonality = async () => {
-    if (!strategyId || !compareStrategyId) return;
+    if (!effectiveStrategyId || !compareStrategyId) return;
 
     setLoading("orth");
     try {
@@ -51,7 +96,7 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          strategyAId: strategyId,
+          strategyAId: effectiveStrategyId,
           strategyBId: compareStrategyId,
         }),
       });
@@ -68,7 +113,7 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
 
   // Compute biorthogonal closure
   const computeClosure = async () => {
-    if (!strategyId) return;
+    if (!effectiveStrategyId) return;
 
     setLoading("closure");
     try {
@@ -76,7 +121,7 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          strategyIds: [strategyId],
+          strategyIds: [effectiveStrategyId],
         }),
       });
       const result = await response.json();
@@ -99,6 +144,30 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
         </div>
       </div>
 
+      {/* Strategy Selector */}
+      <div className="strategy-selector">
+        <label className="block text-xs font-medium text-slate-600 mb-1">
+          Select Strategy
+        </label>
+        <select
+          value={selectedStrategyId}
+          onChange={(e) => handleStrategyChange(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        >
+          <option value="">Select a strategy...</option>
+          {strategies.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.player}-Strategy • {s.design?.participantId || "design"} {s.isInnocent ? "✓ innocent" : ""}
+            </option>
+          ))}
+        </select>
+        {strategies.length === 0 && deliberationId && (
+          <p className="text-xs text-slate-400 mt-1">
+            No strategies found. Run the compiler to generate strategies from designs.
+          </p>
+        )}
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 border-b">
         {(["orth", "closure", "game"] as const).map((tab) => (
@@ -107,7 +176,7 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
             onClick={() => setActiveTab(tab)}
             className={`px-3 py-1.5 text-xs transition -mb-px ${
               activeTab === tab
-                ? "border-b-2 border-blue-500 text-blue-700 font-medium"
+                ? "border-b-2 border-purple-500 text-purple-700 font-medium"
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
@@ -133,28 +202,42 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
           <div className="space-y-2">
             <div className="text-xs text-slate-600">Compare with strategy:</div>
             <div className="flex gap-2">
-              <input
-                type="text"
+              <select
                 value={compareStrategyId}
                 onChange={(e) => setCompareStrategyId(e.target.value)}
-                placeholder="Strategy ID to compare..."
                 className="flex-1 px-2 py-1.5 text-xs border rounded bg-white"
-              />
+              >
+                <option value="">Select strategy to compare...</option>
+                {strategies
+                  .filter(s => s.id !== effectiveStrategyId)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.player}-Strategy • {s.design?.participantId || "design"}
+                    </option>
+                  ))
+                }
+              </select>
               <button
                 onClick={checkOrthogonality}
-                disabled={!strategyId || !compareStrategyId || loading === "orth"}
+                disabled={!effectiveStrategyId || !compareStrategyId || loading === "orth"}
                 className="px-3 py-1.5 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded transition disabled:opacity-50"
               >
                 {loading === "orth" ? "Checking..." : "Check ⊥"}
               </button>
             </div>
+            {strategies.filter(s => s.id !== effectiveStrategyId).length === 0 && effectiveStrategyId && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded p-2 mt-2">
+                <strong>No other strategies available.</strong> Orthogonality requires at least two strategies 
+                (typically one P-strategy and one O-strategy). Run the compiler on both Proponent and Opponent 
+                designs to generate their strategies.
+              </p>
+            )}
           </div>
 
           {/* No Strategy Warning */}
-          {!strategyId && (
+          {!effectiveStrategyId && (
             <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
-              <strong>No strategy selected.</strong> Run strategy analysis first to generate a
-              strategy from this design.
+              <strong>No strategy selected.</strong> Select a strategy above or run strategy analysis first.
             </div>
           )}
 
@@ -222,7 +305,7 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
             </div>
             <button
               onClick={computeClosure}
-              disabled={!strategyId || loading === "closure"}
+              disabled={!effectiveStrategyId || loading === "closure"}
               className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition disabled:opacity-50"
             >
               {loading === "closure" ? "Computing..." : "Compute S⊥⊥"}
@@ -230,9 +313,9 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
           </div>
 
           {/* No Strategy Warning */}
-          {!strategyId && (
+          {!effectiveStrategyId && (
             <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
-              <strong>No strategy selected.</strong> Run strategy analysis first.
+              <strong>No strategy selected.</strong> Select a strategy above first.
             </div>
           )}
 
@@ -241,29 +324,37 @@ export function BehaviourPanel({ strategyId, designId }: BehaviourPanelProps) {
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-2xl">
-                  {closureResult.fixpointReached ? "∞" : "↺"}
+                  {(closureResult.fixpointReached || closureResult.isClosed || closureResult.converged) ? "∞" : "↺"}
                 </span>
                 <div>
                   <div className="font-bold text-indigo-700">
-                    {closureResult.fixpointReached ? "Fixpoint Reached" : "Closure Computed"}
+                    {(closureResult.fixpointReached || closureResult.isClosed || closureResult.converged) 
+                      ? "Fixpoint Reached" 
+                      : "Closure Computed"}
                   </div>
                   <div className="text-xs text-slate-600">
-                    {closureResult.iterationsNeeded} iteration(s)
+                    {closureResult.iterationsNeeded || closureResult.iterations || 0} iteration(s)
                   </div>
                 </div>
               </div>
 
               <div className="bg-white/50 rounded p-3">
                 <div className="text-xs font-semibold text-indigo-800 mb-2">
-                  Closure contains {closureResult.closureIds.length} design(s):
+                  Closure contains {closureResult.closedCount || (closureResult.closureIds || closureResult.closedDesignIds || []).length} design(s):
                 </div>
-                <div className="max-h-32 overflow-y-auto space-y-1">
-                  {closureResult.closureIds.map((id, idx) => (
-                    <div key={id} className="text-xs font-mono text-slate-600">
-                      {idx + 1}. {id.slice(0, 16)}...
-                    </div>
-                  ))}
-                </div>
+                {(closureResult.closureIds || closureResult.closedDesignIds) && (closureResult.closureIds || closureResult.closedDesignIds)!.length > 0 ? (
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {(closureResult.closureIds || closureResult.closedDesignIds)!.map((id, idx) => (
+                      <div key={id} className="text-xs font-mono text-slate-600">
+                        {idx + 1}. {id.slice(0, 16)}...
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-500">
+                    Original: {closureResult.originalCount || 1} → Closed: {closureResult.closedCount || 1}
+                  </div>
+                )}
               </div>
             </div>
           )}

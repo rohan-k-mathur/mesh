@@ -152,7 +152,55 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const designId = url.searchParams.get("designId");
+    const strategyId = url.searchParams.get("strategyId");
     const deliberationId = url.searchParams.get("deliberationId");
+
+    // Handle strategyId directly
+    if (strategyId) {
+      const strategyRecord = await prisma.ludicStrategy.findUnique({
+        where: { id: strategyId },
+        include: {
+          design: { select: { id: true, participantId: true } },
+          innocenceCheck: true,
+          propagationCheck: true,
+          plays: true,
+        },
+      });
+
+      if (!strategyRecord) {
+        return NextResponse.json(
+          { ok: false, error: "Strategy not found" },
+          { status: 404 }
+        );
+      }
+
+      // Implied saturation from innocence
+      const impliedSaturation = strategyRecord.isInnocent;
+
+      return NextResponse.json({
+        ok: true,
+        hasStrategy: true,
+        strategyId: strategyRecord.id,
+        designId: strategyRecord.designId,
+        isInnocent: strategyRecord.isInnocent,
+        // Support both naming conventions for UI compatibility
+        isSaturated: impliedSaturation,
+        impliedSaturation,
+        viewsEqualStrategy: impliedSaturation,
+        playCount: strategyRecord.plays.length,
+        innocenceCheck: strategyRecord.innocenceCheck
+          ? {
+              isDeterministic: strategyRecord.innocenceCheck.isDeterministic,
+              isViewStable: strategyRecord.innocenceCheck.isViewStable,
+            }
+          : null,
+        propagationCheck: strategyRecord.propagationCheck
+          ? {
+              satisfiesProp: strategyRecord.propagationCheck.satisfiesProp,
+            }
+          : null,
+      });
+    }
 
     if (designId) {
       // Get saturation status for specific design

@@ -9,12 +9,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import {
-  inferType,
-  structuralInference,
-  behavioralInference,
+  inferTypeStructural,
+  inferTypeBehavioural,
+  inferDesignType,
+  unifyTypes,
 } from "@/packages/ludics-core/dds/types/inference";
-import { createType, equivalentTypes } from "@/packages/ludics-core/dds/types/operations";
-import type { Action } from "@/packages/ludics-core/dds/types";
+import type { DesignForCorrespondence } from "@/packages/ludics-core/dds/correspondence/types";
+
+/**
+ * Helper to convert Prisma design to DesignForCorrespondence format
+ */
+function toDesignForCorr(design: {
+  id: string;
+  deliberationId: string;
+  participantId: string;
+  acts: Array<{
+    id: string;
+    designId: string;
+    locusPath: string;
+    polarity: string;
+    subLoci: unknown;
+    kind: string;
+    expression: string | null;
+    orderInDesign: number;
+  }>;
+}): DesignForCorrespondence {
+  return {
+    id: design.id,
+    deliberationId: design.deliberationId,
+    participantId: design.participantId,
+    acts: design.acts.map((act) => ({
+      id: act.id,
+      designId: act.designId,
+      locusPath: act.locusPath,
+      polarity: act.polarity as "P" | "O",
+      ramification: (act.subLoci as (string | number)[]) || [],
+      kind: act.kind as "PROPER" | "DAIMON",
+      expression: act.expression || undefined,
+      orderInDesign: act.orderInDesign,
+    })),
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,52 +75,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert to actions
-    const actions: Action[] = design.acts.map((act) => ({
-      focus: act.locusPath,
-      ramification: (act.subLoci as string[]) || [],
-      polarity: (act.polarity as "P" | "O") || "P",
-      actId: act.id,
-      expression: act.expression || undefined,
-    }));
+    const designForCorr = toDesignForCorr(design);
 
     if (mode === "structural") {
       // Structural type inference based on design shape
-      const result = structuralInference(actions);
+      const typeStructure = inferTypeStructural(designForCorr);
 
       return NextResponse.json({
         ok: true,
         designId,
         mode: "structural",
-        type: result.type,
-        confidence: result.confidence,
-        details: result.details,
+        type: typeStructure,
+        confidence: 0.75,
+        details: { method: "structural", actCount: design.acts.length },
       });
     } else if (mode === "behavioral") {
       // Behavioral type inference based on interaction patterns
-      const behaviours = await prisma.ludicBehaviour.findMany({
-        where: {
-          deliberationId: design.deliberationId,
-          designIds: { has: designId },
-        },
+      const allDesigns = await prisma.ludicDesign.findMany({
+        where: { deliberationId: design.deliberationId },
+        include: { acts: true },
       });
 
-      const behaviourData = behaviours.map((b) => ({
-        id: b.id,
-        designIds: b.designIds as string[],
-        isClosed: b.isClosed,
-      }));
-
-      const result = behavioralInference(actions, behaviourData);
+      const allDesignsForCorr = allDesigns.map(toDesignForCorr);
+      const typeStructure = await inferTypeBehavioural(designForCorr, allDesignsForCorr);
 
       return NextResponse.json({
         ok: true,
         designId,
         mode: "behavioral",
-        type: result.type,
-        confidence: result.confidence,
-        behaviourCount: behaviours.length,
-        details: result.details,
+        type: typeStructure,
+        confidence: 0.8,
+        details: { method: "behavioral", designCount: allDesigns.length },
       });
     } else if (mode === "compare" && compareDesignId) {
       // Compare types of two designs
@@ -101,48 +121,49 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const compareActions: Action[] = compareDesign.acts.map((act) => ({
-        focus: act.locusPath,
-        ramification: (act.subLoci as string[]) || [],
-        polarity: (act.polarity as "P" | "O") || "P",
-        actId: act.id,
-      }));
-
-      const typeA = inferType(actions);
-      const typeB = inferType(compareActions);
-      const equiv = equivalentTypes(typeA.type, typeB.type);
+      const compareDesignForCorr = toDesignForCorr(compareDesign);
+      const typeA = inferTypeStructural(designForCorr);
+      const typeB = inferTypeStructural(compareDesignForCorr);
+      const unification = unifyTypes(typeA, typeB);
 
       return NextResponse.json({
         ok: true,
         designA: {
           id: designId,
-          type: typeA.type,
-          confidence: typeA.confidence,
+          type: typeA,
+          confidence: 0.75,
         },
         designB: {
           id: compareDesignId,
-          type: typeB.type,
-          confidence: typeB.confidence,
+          type: typeB,
+          confidence: 0.75,
         },
         typeEquivalence: {
-          areEquivalent: equiv.equivalent,
-          reason: equiv.reason,
+          areEquivalent: unification !== null,
+          substitution: unification ? Object.fromEntries(unification) : null,
         },
       });
     } else {
-      // Default: full type inference
-      const result = inferType(actions);
+      // Default: full type inference using both methods
+      const allDesigns = await prisma.ludicDesign.findMany({
+        where: { deliberationId: design.deliberationId },
+        include: { acts: true },
+      });
 
-      // Create and store type
-      const ludicsType = createType(result.type);
+      const allDesignsForCorr = allDesigns.map(toDesignForCorr);
+      const result = await inferDesignType(designForCorr, allDesignsForCorr);
 
       return NextResponse.json({
         ok: true,
         designId,
         mode: "infer",
-        type: ludicsType,
+        type: result.inferredType,
         confidence: result.confidence,
-        inferenceDetails: result.details,
+        method: result.method,
+        alternatives: result.alternatives,
+        inferenceDetails: {
+          designCount: allDesigns.length,
+        },
       });
     }
   } catch (error: any) {
@@ -174,21 +195,26 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      const actions: Action[] = design.acts.map((act) => ({
-        focus: act.locusPath,
-        ramification: (act.subLoci as string[]) || [],
-        polarity: (act.polarity as "P" | "O") || "P",
-        actId: act.id,
-      }));
+      // Fetch all designs for behavioral inference
+      const allDesigns = await prisma.ludicDesign.findMany({
+        where: { deliberationId: design.deliberationId },
+        include: { acts: true },
+      });
 
-      const result = inferType(actions);
+      const designForCorr = toDesignForCorr(design);
+      const allDesignsForCorr = allDesigns.map(toDesignForCorr);
+      const result = await inferDesignType(designForCorr, allDesignsForCorr);
 
       return NextResponse.json({
         ok: true,
         designId,
-        type: result.type,
+        type: result.inferredType,
         confidence: result.confidence,
-        details: result.details,
+        method: result.method,
+        details: {
+          alternatives: result.alternatives,
+          designCount: allDesigns.length,
+        },
       });
     }
 
@@ -199,21 +225,19 @@ export async function GET(req: NextRequest) {
         include: { acts: true },
       });
 
-      const types = designs.map((d) => {
-        const actions: Action[] = d.acts.map((act) => ({
-          focus: act.locusPath,
-          ramification: (act.subLoci as string[]) || [],
-          polarity: (act.polarity as "P" | "O") || "P",
-          actId: act.id,
-        }));
+      const allDesignsForCorr = designs.map(toDesignForCorr);
 
-        const result = inferType(actions);
+      const typesPromises = allDesignsForCorr.map(async (d) => {
+        const result = await inferDesignType(d, allDesignsForCorr);
         return {
           designId: d.id,
-          type: result.type,
+          type: result.inferredType,
           confidence: result.confidence,
+          method: result.method,
         };
       });
+
+      const types = await Promise.all(typesPromises);
 
       // Group by type equivalence
       const typeGroups: Record<string, string[]> = {};

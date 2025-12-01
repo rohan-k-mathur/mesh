@@ -18,13 +18,36 @@ import type { Action, Dispute } from "@/packages/ludics-core/dds/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { designIdA, designIdB, mode = "check" } = await req.json();
+    const body = await req.json();
+    const mode = body.mode || "check";
+    
+    // Support both designId and strategyId naming
+    let designIdA = body.designIdA;
+    let designIdB = body.designIdB;
+    
+    // If strategyIds provided, look up the associated designIds
+    if (body.strategyAId || body.strategyBId) {
+      const strategyIds = [body.strategyAId, body.strategyBId].filter(Boolean);
+      const strategies = await prisma.ludicStrategy.findMany({
+        where: { id: { in: strategyIds } },
+        select: { id: true, designId: true },
+      });
+      
+      const strategyToDesign = new Map(strategies.map(s => [s.id, s.designId]));
+      
+      if (body.strategyAId) {
+        designIdA = strategyToDesign.get(body.strategyAId) || designIdA;
+      }
+      if (body.strategyBId) {
+        designIdB = strategyToDesign.get(body.strategyBId) || designIdB;
+      }
+    }
 
     if (mode === "check") {
       // Check orthogonality between two specific designs
       if (!designIdA || !designIdB) {
         return NextResponse.json(
-          { ok: false, error: "designIdA and designIdB are required" },
+          { ok: false, error: "designIdA/strategyAId and designIdB/strategyBId are required" },
           { status: 400 }
         );
       }

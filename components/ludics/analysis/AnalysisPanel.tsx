@@ -40,10 +40,12 @@ function TabButton({
 
 export function AnalysisPanel({
   designId,
+  deliberationId,
   analysisState,
   onAnalysisUpdate,
 }: {
   designId: string;
+  deliberationId: string;
   analysisState: LudicsAnalysisState;
   onAnalysisUpdate: (update: Partial<LudicsAnalysisState>) => void;
 }) {
@@ -139,7 +141,13 @@ export function AnalysisPanel({
         {activeSection === "correspondence" && (
           <CorrespondenceViewer
             designId={designId}
+            deliberationId={deliberationId}
             strategyId={analysisState.correspondence.strategyId}
+            onStrategyChange={(strategyId) =>
+              onAnalysisUpdate({
+                correspondence: { ...analysisState.correspondence, strategyId }
+              })
+            }
           />
         )}
 
@@ -148,6 +156,7 @@ export function AnalysisPanel({
           <div className="space-y-4">
             <TypeSystemPanel
               designId={designId}
+              deliberationId={deliberationId}
               strategyId={analysisState.correspondence.strategyId}
             />
             <SaturationPanel
@@ -161,7 +170,13 @@ export function AnalysisPanel({
         {activeSection === "behaviours" && (
           <BehaviourPanel
             designId={designId}
+            deliberationId={deliberationId}
             strategyId={analysisState.correspondence.strategyId}
+            onStrategyChange={(strategyId) =>
+              onAnalysisUpdate({
+                correspondence: { ...analysisState.correspondence, strategyId }
+              })
+            }
           />
         )}
 

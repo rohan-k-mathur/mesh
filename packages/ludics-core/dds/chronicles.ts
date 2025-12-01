@@ -75,8 +75,9 @@ export function extractChronicles(
 export function disputeToPosition(dispute: Dispute): Position {
   const sequence: Action[] = [];
 
-  // Convert pairs to action sequence
-  for (const pair of dispute.pairs) {
+  // Convert pairs to action sequence - use actionPairs from DB or pairs from type
+  const pairs = (dispute as any).actionPairs || dispute.pairs || [];
+  for (const pair of pairs) {
     // Add positive action (Proponent)
     sequence.push({
       focus: pair.locusPath,

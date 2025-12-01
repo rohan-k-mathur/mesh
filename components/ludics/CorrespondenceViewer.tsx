@@ -1,28 +1,99 @@
 "use client";
 
 import * as React from "react";
+import useSWR from "swr";
 import type {
   Correspondence,
   IsomorphismResults,
   IsomorphismCheck,
 } from "@/packages/ludics-core/dds/correspondence";
 
+interface StrategyOption {
+  id: string;
+  designId: string;
+  player: string;
+  isInnocent: boolean;
+  satisfiesPropagation: boolean;
+  label: string;
+  design?: {
+    participantId?: string;
+    scope?: string;
+  };
+}
+
 interface CorrespondenceViewerProps {
   designId: string;
+  deliberationId?: string;
   strategyId?: string;
   correspondence?: Correspondence;
+  onStrategyChange?: (strategyId: string) => void;
   onVerify?: () => void;
   isVerifying?: boolean;
 }
 
+const fetcher = (url: string) => fetch(url).then(r => r.json());
+
 export function CorrespondenceViewer({
   designId,
+  deliberationId,
   strategyId,
   correspondence,
+  onStrategyChange,
   onVerify,
   isVerifying = false,
 }: CorrespondenceViewerProps) {
-  const isomorphisms = correspondence?.isomorphisms;
+  const [selectedStrategyId, setSelectedStrategyId] = React.useState(strategyId || "");
+  const [localCorrespondence, setLocalCorrespondence] = React.useState<Correspondence | undefined>(correspondence);
+  const [verifying, setVerifying] = React.useState(false);
+
+  // Fetch available strategies for the deliberation
+  const { data: strategiesData } = useSWR<{ ok: boolean; strategies: StrategyOption[] }>(
+    deliberationId ? `/api/ludics/strategies?deliberationId=${encodeURIComponent(deliberationId)}` : null,
+    fetcher
+  );
+
+  const strategies = strategiesData?.strategies || [];
+
+  // Update parent when strategy changes
+  const handleStrategyChange = (id: string) => {
+    setSelectedStrategyId(id);
+    setLocalCorrespondence(undefined); // Reset correspondence when strategy changes
+    onStrategyChange?.(id);
+  };
+
+  // Verify correspondence
+  const handleVerify = async () => {
+    if (!selectedStrategyId) return;
+    
+    if (onVerify) {
+      onVerify();
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const res = await fetch(`/api/ludics/dds/correspondence?strategyId=${encodeURIComponent(selectedStrategyId)}`);
+      const data = await res.json();
+      if (data.ok) {
+        setLocalCorrespondence({
+          id: data.id || `corr-${Date.now()}`,
+          type: "design-to-strategy",
+          designId,
+          strategyId: selectedStrategyId,
+          isVerified: data.isomorphisms?.allHold ?? false,
+          isomorphisms: data.isomorphisms,
+        });
+      }
+    } catch (err) {
+      console.error("Verification failed:", err);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const effectiveStrategyId = selectedStrategyId || strategyId;
+  const isomorphisms = localCorrespondence?.isomorphisms || correspondence?.isomorphisms;
+  const isCorrespondenceVerified = localCorrespondence?.isVerified || correspondence?.isVerified;
 
   return (
     <div className="correspondence-viewer border rounded-lg p-4 bg-white/70 space-y-4">
@@ -30,19 +101,43 @@ export function CorrespondenceViewer({
         <h3 className="text-sm font-bold text-slate-800">
           Design ↔ Strategy Correspondence
         </h3>
-        {strategyId && onVerify && (
+        {effectiveStrategyId && (
           <button
-            onClick={onVerify}
-            disabled={isVerifying}
+            onClick={handleVerify}
+            disabled={verifying || isVerifying}
             className="px-3 py-1 text-xs rounded bg-indigo-700 text-white hover:bg-indigo-800 disabled:opacity-50"
           >
-            {isVerifying ? "Verifying..." : "Verify Isomorphisms"}
+            {(verifying || isVerifying) ? "Verifying..." : "Verify Isomorphisms"}
           </button>
         )}
       </div>
 
+      {/* Strategy Selector */}
+      <div className="strategy-selector">
+        <label className="block text-xs font-medium text-slate-600 mb-1">
+          Select Strategy
+        </label>
+        <select
+          value={selectedStrategyId}
+          onChange={(e) => handleStrategyChange(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          <option value="">Select a strategy...</option>
+          {strategies.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.player}-Strategy • {s.design?.participantId || "design"} {s.isInnocent ? "✓ innocent" : ""} {s.satisfiesPropagation ? "✓ propagates" : ""}
+            </option>
+          ))}
+        </select>
+        {strategies.length === 0 && deliberationId && (
+          <p className="text-xs text-slate-400 mt-1">
+            No strategies found. Run the compiler to generate strategies from designs.
+          </p>
+        )}
+      </div>
+
       {/* Verification Status */}
-      {correspondence?.isVerified ? (
+      {isCorrespondenceVerified ? (
         <div className="verified-badge bg-emerald-50 border border-emerald-200 rounded p-3">
           <div className="flex items-center gap-2 text-emerald-700">
             <span className="text-xl">✓</span>
@@ -57,7 +152,7 @@ export function CorrespondenceViewer({
       ) : (
         <div className="unverified-badge bg-slate-50 border border-slate-200 rounded p-3">
           <div className="text-xs text-slate-600">
-            {strategyId
+            {effectiveStrategyId
               ? "Correspondence not yet verified. Click 'Verify Isomorphisms' to check."
               : "Select a strategy to verify correspondence."}
           </div>
@@ -102,10 +197,10 @@ export function CorrespondenceViewer({
             <span className="font-medium">Design:</span>{" "}
             <code className="bg-slate-100 px-1 rounded">{designId}</code>
           </div>
-          {strategyId && (
+          {effectiveStrategyId && (
             <div>
               <span className="font-medium">Strategy:</span>{" "}
-              <code className="bg-slate-100 px-1 rounded">{strategyId}</code>
+              <code className="bg-slate-100 px-1 rounded">{effectiveStrategyId}</code>
             </div>
           )}
         </div>

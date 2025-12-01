@@ -88,18 +88,14 @@ export async function POST(req: NextRequest) {
     await prisma.ludicPropagationCheck.upsert({
       where: { strategyId: strategyRecord.id },
       update: {
-        satisfiesPropagation: propagationCheck.satisfiesPropagation,
-        isTotallyOrdered: propagationCheck.isTotallyOrdered,
-        isLinearlyExtended: propagationCheck.isLinearlyExtended,
-        violationLog: propagationCheck.violations as any,
+        satisfiesProp: propagationCheck.satisfiesPropagation,
+        violations: propagationCheck.violations as any,
         checkedAt: new Date(),
       },
       create: {
         strategyId: strategyRecord.id,
-        satisfiesPropagation: propagationCheck.satisfiesPropagation,
-        isTotallyOrdered: propagationCheck.isTotallyOrdered,
-        isLinearlyExtended: propagationCheck.isLinearlyExtended,
-        violationLog: propagationCheck.violations as any,
+        satisfiesProp: propagationCheck.satisfiesPropagation,
+        violations: propagationCheck.violations as any,
       },
     });
 
@@ -157,10 +153,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       hasResult: true,
-      satisfiesPropagation: cached.satisfiesPropagation,
-      isTotallyOrdered: cached.isTotallyOrdered,
-      isLinearlyExtended: cached.isLinearlyExtended,
-      violations: cached.violationLog,
+      satisfiesPropagation: cached.satisfiesProp,
+      violations: cached.violations,
       strategyId: cached.strategyId,
       checkedAt: cached.checkedAt,
     });
