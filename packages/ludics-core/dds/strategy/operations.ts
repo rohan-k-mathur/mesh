@@ -13,6 +13,14 @@ import type { Action, Position, View } from "../types";
 import type { Strategy, Play, ViewsResult, PlaysResult } from "./types";
 import { extractView, viewToKey, isViewPrefix } from "../views";
 
+// Debug logging
+const DEBUG_OPERATIONS = true;
+function logOp(label: string, ...args: any[]) {
+  if (DEBUG_OPERATIONS) {
+    console.log(`[OPS] ${label}`, ...args);
+  }
+}
+
 /**
  * Views(S) - Extract all views from strategy (Definition 4.10)
  * 
@@ -23,6 +31,8 @@ import { extractView, viewToKey, isViewPrefix } from "../views";
  * @returns ViewsResult with all unique views
  */
 export function computeViews(strategy: Strategy): ViewsResult {
+  logOp("computeViews called:", { playCount: strategy.plays.length, player: strategy.player });
+  
   const viewsSet = new Set<string>();
   const views: View[] = [];
 
@@ -51,6 +61,8 @@ export function computeViews(strategy: Strategy): ViewsResult {
       }
     }
   }
+  
+  logOp("computeViews result:", { uniqueViews: views.length });
 
   // Check view stability: p̄ = p for all views
   // A view is stable if extracting view from it returns itself
@@ -97,10 +109,13 @@ export function computePlays(
   views: View[],
   options: { maxIterations?: number; maxPlays?: number } = {}
 ): PlaysResult {
+  logOp("computePlays called:", { viewCount: views.length });
+  
   const maxIterations = options.maxIterations ?? 100;
   const maxPlays = options.maxPlays ?? 10000;
 
   if (views.length === 0) {
+    logOp("computePlays: empty views, returning empty");
     return {
       plays: [],
       playCount: 0,
@@ -114,6 +129,7 @@ export function computePlays(
 
   // P₀(V) = minimal views (not proper prefixes of other views)
   const minimalViews = findMinimalViews(views);
+  logOp("computePlays: minimal views (P₀):", minimalViews.length);
 
   const plays: Play[] = minimalViews.map((view, idx) => ({
     id: `play-${idx}`,
@@ -127,6 +143,7 @@ export function computePlays(
   }));
 
   const playSequences = new Set(plays.map((p) => JSON.stringify(p.sequence)));
+  logOp("computePlays: initial plays from minimal views:", plays.length);
 
   // Iteratively extend plays: Pₙ₊₁(V) = Pₙ(V) ∪ extensions
   let iterations = 0;
@@ -161,7 +178,10 @@ export function computePlays(
     }
 
     plays.push(...newPlays);
+    logOp(`computePlays: iteration ${iterations}, added ${newPlays.length} plays, total: ${plays.length}`);
   }
+
+  logOp("computePlays result:", { totalPlays: plays.length, iterations });
 
   return {
     plays,
@@ -172,15 +192,30 @@ export function computePlays(
 }
 
 /**
- * Find minimal views (not proper prefixes of other views)
+ * Find minimal views (views that are not proper EXTENSIONS of other views)
+ * These are the "starting points" - shortest views in prefix chains
+ * 
+ * A view v is minimal if there's no other view that is a proper prefix of v.
+ * i.e., v is minimal if it's not an extension of anything else.
  */
 function findMinimalViews(views: View[]): View[] {
-  return views.filter((v1) => {
-    return !views.some((v2) => {
+  const minimal = views.filter((v1) => {
+    // v1 is minimal if no other view v2 is a proper prefix of v1
+    const hasShorterPrefix = views.some((v2) => {
       if (v1.id === v2.id) return false;
-      return isProperPrefix(v1.sequence, v2.sequence);
+      // Check if v2 is a proper prefix of v1 (v2 is shorter and v1 extends it)
+      return isProperPrefix(v2.sequence, v1.sequence);
     });
+    return !hasShorterPrefix;
   });
+  
+  logOp("findMinimalViews:", {
+    totalViews: views.length,
+    minimalCount: minimal.length,
+    minimalLengths: minimal.map(v => v.sequence.length),
+  });
+  
+  return minimal;
 }
 
 /**

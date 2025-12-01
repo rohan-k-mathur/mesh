@@ -8,6 +8,14 @@
 import type { Action, Dispute, Position } from "../types";
 import type { DesignForCorrespondence, DesignAct, DispResult } from "./types";
 
+// Debug logging
+const DEBUG_DISP = true;
+function logDisp(label: string, ...args: any[]) {
+  if (DEBUG_DISP) {
+    console.log(`[DISP] ${label}`, ...args);
+  }
+}
+
 /**
  * Compute Disp(D) - all disputes of design D
  * A dispute is an interaction D ⊢ E with orthogonal counter-design E
@@ -16,6 +24,12 @@ export function computeDisp(
   design: DesignForCorrespondence,
   counterDesigns: DesignForCorrespondence[]
 ): DispResult {
+  logDisp("computeDisp called:", {
+    designId: design.id,
+    designActCount: design.acts.length,
+    counterDesignCount: counterDesigns.length,
+  });
+  
   const disputes: Dispute[] = [];
 
   // For each counter-design, compute dispute
@@ -25,6 +39,14 @@ export function computeDisp(
       const dispute = computeDispute(design, counter);
       if (dispute) {
         disputes.push(dispute);
+        logDisp("Computed dispute:", {
+          posDesign: design.id.slice(-8),
+          negDesign: counter.id.slice(-8),
+          pairCount: dispute.pairs.length,
+          status: dispute.status,
+        });
+      } else {
+        logDisp("No dispute computed for:", { posDesign: design.id.slice(-8), negDesign: counter.id.slice(-8) });
       }
     } catch (error) {
       // Skip failed dispute computations
@@ -34,6 +56,7 @@ export function computeDisp(
 
   // Remove duplicate disputes (same sequence)
   const uniqueDisputes = deduplicateDisputes(disputes);
+  logDisp("computeDisp result:", { totalDisputes: uniqueDisputes.length });
 
   return {
     designId: design.id,
@@ -45,6 +68,9 @@ export function computeDisp(
 
 /**
  * Compute single dispute between two designs
+ * 
+ * A dispute traces through the locus tree, matching acts from both designs.
+ * The interaction follows the tree structure where P and O take turns.
  */
 export function computeDispute(
   posDesign: DesignForCorrespondence,
@@ -55,57 +81,85 @@ export function computeDispute(
   // Build act maps by locus path
   const posActsByPath = buildActMap(posDesign.acts);
   const negActsByPath = buildActMap(negDesign.acts);
+  
+  logDisp("computeDispute:", {
+    posDesign: posDesign.id.slice(-8),
+    negDesign: negDesign.id.slice(-8),
+    posPaths: Array.from(posActsByPath.keys()),
+    negPaths: Array.from(negActsByPath.keys()),
+  });
 
-  // Start from root
-  const rootPath = "0";
-  let currentPaths = [rootPath];
-  let status: Dispute["status"] = "ONGOING";
-
-  // Step through interaction
-  while (currentPaths.length > 0 && pairs.length < 1000) {
-    const nextPaths: string[] = [];
-
-    for (const path of currentPaths) {
-      const posAct = posActsByPath.get(path);
-      const negAct = negActsByPath.get(path);
-
-      if (posAct && negAct) {
-        // Both designs have action at this path - create pair
-        pairs.push({
-          posActId: posAct.id,
-          negActId: negAct.id,
-          locusPath: path,
-          ts: pairs.length,
-        });
-
-        // Add children to explore
-        const posChildren = posAct.ramification.map(i => `${path}.${i}`);
-        const negChildren = negAct.ramification.map(i => `${path}.${i}`);
-
-        // Continue with intersection of children
-        const intersection = posChildren.filter(p => negChildren.includes(p));
-        nextPaths.push(...intersection);
-      } else if (posAct && !negAct) {
-        // Positive design continues, negative stops - CONVERGENT
-        status = "CONVERGENT";
-      } else if (!posAct && negAct) {
-        // Negative design continues, positive stops - DIVERGENT
-        status = "DIVERGENT";
+  // Find all paths from both designs
+  const allPosPaths = Array.from(posActsByPath.keys()).sort();
+  const allNegPaths = Array.from(negActsByPath.keys()).sort();
+  
+  // Find common paths or paths where one is prefix of another
+  // This represents the interaction tree
+  const interactionPaths = new Set<string>();
+  
+  for (const pPath of allPosPaths) {
+    for (const nPath of allNegPaths) {
+      // Check if they're on the same branch (one is prefix of other, or same)
+      if (pPath === nPath || pPath.startsWith(nPath + ".") || nPath.startsWith(pPath + ".")) {
+        interactionPaths.add(pPath);
+        interactionPaths.add(nPath);
       }
-      // Neither has act - branch ends
     }
+  }
+  
+  if (interactionPaths.size === 0) {
+    logDisp("No interaction paths found - designs don't overlap");
+    return null;
+  }
+  
+  // Sort paths by depth (shorter first) to process in order
+  const sortedPaths = Array.from(interactionPaths).sort((a, b) => {
+    const depthA = a.split(".").length;
+    const depthB = b.split(".").length;
+    return depthA - depthB || a.localeCompare(b);
+  });
+  
+  logDisp("Interaction paths:", sortedPaths);
 
-    currentPaths = nextPaths;
+  // Build pairs by traversing the interaction tree
+  let status: Dispute["status"] = "ONGOING";
+  
+  for (const path of sortedPaths) {
+    const posAct = posActsByPath.get(path);
+    const negAct = negActsByPath.get(path);
+    
+    if (posAct) {
+      pairs.push({
+        posActId: posAct.id,
+        negActId: negAct?.id || "∅",
+        locusPath: path,
+        ts: pairs.length,
+      });
+    } else if (negAct) {
+      pairs.push({
+        posActId: "∅",
+        negActId: negAct.id,
+        locusPath: path,
+        ts: pairs.length,
+      });
+    }
   }
 
   if (pairs.length === 0) {
     return null;
   }
-
-  // Determine final status
-  if (status === "ONGOING" && currentPaths.length === 0) {
-    status = "CONVERGENT"; // Both designs completed
+  
+  // Determine status based on how the interaction ended
+  const lastPair = pairs[pairs.length - 1];
+  if (lastPair.posActId === "∅") {
+    status = "DIVERGENT"; // O continued, P stopped
+  } else if (lastPair.negActId === "∅") {
+    status = "CONVERGENT"; // P continued, O stopped
+  } else {
+    status = "CONVERGENT"; // Both reached same point
   }
+
+  logDisp("Dispute computed:", { pairCount: pairs.length, status });
 
   return {
     id: `dispute-${posDesign.id}-${negDesign.id}`,
@@ -115,7 +169,7 @@ export function computeDispute(
     pairs,
     status,
     length: pairs.length,
-    isLegal: true, // Computed disputes are legal by construction
+    isLegal: true,
   };
 }
 
@@ -159,33 +213,73 @@ function disputeToKey(dispute: Dispute): string {
 
 /**
  * Convert disputes to strategy plays
+ * 
+ * Each dispute generates MULTIPLE plays - one for each prefix of the interaction.
+ * The plays should have ALTERNATING polarities (P, O, P, O, ...) to match
+ * how actual game play works.
  */
 export function disputesToPlays(
   disputes: Dispute[],
   player: "P" | "O"
 ): { sequence: Action[]; length: number; isPositive: boolean }[] {
-  return disputes.map(dispute => {
-    const sequence: Action[] = [];
+  logDisp("disputesToPlays called:", { disputeCount: disputes.length, player });
+  
+  const result: { sequence: Action[]; length: number; isPositive: boolean }[] = [];
+  const seenSequences = new Set<string>();
 
+  for (const dispute of disputes) {
+    // Build the full alternating sequence from dispute pairs
+    // Each pair represents an exchange: posAct then negAct (or just one if the other is ∅)
+    const fullSequence: Action[] = [];
+    
     for (const pair of dispute.pairs) {
-      // Add the player's action from each pair
-      sequence.push({
-        focus: pair.locusPath,
-        ramification: [], // Will be filled from act data
-        polarity: player,
-        actId: player === "P" ? pair.posActId : pair.negActId,
-      });
+      // Add P action if present
+      if (pair.posActId && pair.posActId !== "∅") {
+        fullSequence.push({
+          focus: pair.locusPath,
+          ramification: [],
+          polarity: "P",
+          actId: pair.posActId,
+        });
+      }
+      // Add O action if present
+      if (pair.negActId && pair.negActId !== "∅") {
+        fullSequence.push({
+          focus: pair.locusPath,
+          ramification: [],
+          polarity: "O",
+          actId: pair.negActId,
+        });
+      }
     }
 
-    const lastAction = sequence[sequence.length - 1];
-    const isPositive = lastAction ? lastAction.polarity === player : false;
+    // Generate plays for all prefixes
+    for (let prefixLen = 1; prefixLen <= fullSequence.length; prefixLen++) {
+      const sequence = fullSequence.slice(0, prefixLen);
+      
+      if (sequence.length === 0) continue;
 
-    return {
-      sequence,
-      length: sequence.length,
-      isPositive,
-    };
+      // Deduplicate by sequence key
+      const seqKey = sequence.map(a => `${a.focus}:${a.polarity}`).join("|");
+      if (seenSequences.has(seqKey)) continue;
+      seenSequences.add(seqKey);
+
+      const lastAction = sequence[sequence.length - 1];
+      const isPositive = lastAction.polarity === player;
+
+      result.push({
+        sequence,
+        length: sequence.length,
+        isPositive,
+      });
+    }
+  }
+  
+  logDisp("disputesToPlays result:", { 
+    playCount: result.length, 
+    sampleLengths: result.slice(0, 5).map(r => r.length) 
   });
+  return result;
 }
 
 /**

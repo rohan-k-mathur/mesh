@@ -51,7 +51,12 @@ export async function POST(req: NextRequest) {
     // Fetch all designs for this deliberation
     const designs = await prisma.ludicDesign.findMany({
       where: { deliberationId },
-      include: { acts: true },
+      include: { 
+        acts: {
+          include: { locus: true },
+          orderBy: { orderInDesign: "asc" }
+        }
+      },
     });
 
     if (designs.length === 0) {
@@ -83,6 +88,11 @@ export async function POST(req: NextRequest) {
           const pActs = pDesign.acts || [];
           const oActs = oDesign.acts || [];
           
+          console.log(`[Strategies Generate] P design ${pDesign.id.slice(-8)} acts:`, 
+            pActs.map(a => ({ id: a.id.slice(-8), path: a.locus?.path })));
+          console.log(`[Strategies Generate] O design ${oDesign.id.slice(-8)} acts:`, 
+            oActs.map(a => ({ id: a.id.slice(-8), path: a.locus?.path })));
+          
           // Match acts by locus path to form interaction pairs
           const actionPairs: Array<{
             posActId: string;
@@ -94,21 +104,24 @@ export async function POST(req: NextRequest) {
           // For each P act, find an O act at the same or related locus
           let ts = 0;
           for (const pAct of pActs) {
-            const pLocus = pAct.locusPath || "0";
+            const pLocus = (pAct.locus?.path as string) || "0";
             // Find O acts that interact at this locus
             const matchingOActs = oActs.filter((oAct) => {
-              const oLocus = oAct.locusPath || "0";
+              const oLocus = (oAct.locus?.path as string) || "0";
               // Match if same locus or one is prefix of other
               return oLocus === pLocus || 
                      oLocus.startsWith(pLocus + ".") || 
                      pLocus.startsWith(oLocus + ".");
             });
             
+            console.log(`[Strategies Generate] P act at "${pLocus}" matches O acts:`, 
+              matchingOActs.map(a => a.locus?.path));
+            
             for (const oAct of matchingOActs) {
               actionPairs.push({
                 posActId: pAct.id,
                 negActId: oAct.id,
-                locusPath: pAct.locusPath || "0",
+                locusPath: pLocus,
                 ts: ts++,
               });
             }
@@ -122,7 +135,7 @@ export async function POST(req: NextRequest) {
               actionPairs.push({
                 posActId: pAct.id,
                 negActId: "∅", // No matching O act
-                locusPath: pAct.locusPath || "0",
+                locusPath: (pAct.locus?.path as string) || "0",
                 ts: ts++,
               });
             }
@@ -133,7 +146,7 @@ export async function POST(req: NextRequest) {
               actionPairs.push({
                 posActId: "∅", // No matching P act
                 negActId: oAct.id,
-                locusPath: oAct.locusPath || "0",
+                locusPath: (oAct.locus?.path as string) || "0",
                 ts: ts++,
               });
             }
