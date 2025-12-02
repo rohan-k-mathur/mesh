@@ -520,10 +520,12 @@ export async function stepInteraction(opts: {
   const byId = new Map(acts.map(a => [a.id, { ...a, locus: a.locusId ? { path: pathById.get(a.locusId) } : undefined }]));
   const decisiveIndices = computeDecisiveIndices(pairs, byId);
 
-  await prisma.ludicTrace.update({
+  // Update trace with decisive indices - use updateMany to avoid Prisma error logging
+  // when trace was deleted by concurrent compile (updateMany silently returns count: 0)
+  await prisma.ludicTrace.updateMany({
     where: { id: traceRow.id },
     data: { extJson: { usedAdditive, decisiveIndices } },
-  }).catch(() => undefined);
+  });
 
   return {
     status,

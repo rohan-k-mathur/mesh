@@ -4,7 +4,7 @@ import { syncToAif } from "./aif-sync";
 export async function endWithDaimon(designId: string, reason: "accept"|"fail"="accept") {
   const design = await prisma.ludicDesign.findUnique({ 
     where: { id: designId },
-    select: { id: true, deliberationId: true, participantId: true, defenderPolar: true }
+    select: { id: true, deliberationId: true, participantId: true }
   });
   if (!design) throw new Error("NO_SUCH_DESIGN");
 
@@ -20,10 +20,11 @@ export async function endWithDaimon(designId: string, reason: "accept"|"fail"="a
   await prisma.ludicDesign.update({ where: { id: designId }, data: { hasDaimon: true } });
 
   // Sync to AIF/Dialogue systems
+  // Use participantId directly, defaulting to "Proponent" if not set
   await syncToAif({
     deliberationId: design.deliberationId,
     actionType: "DAIMON",
-    actorId: design.participantId ?? (design.defenderPolar === "P" ? "Proponent" : "Opponent"),
+    actorId: design.participantId ?? "Proponent",
     locusPath: "0", // Root locus for design-level daimon
     expression,
     ludicActId: act.id,

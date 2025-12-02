@@ -170,20 +170,30 @@ function chronicleToKey(chronicle: Chronicle): string {
  * Convert chronicles back to design acts
  * In Faggian-Hyland: polarity is determined by locus depth
  * Odd depth (1, 3, 5...) = P, Even depth (2, 4, 6...) = O
+ * 
+ * @param chronicles - The chronicles to convert
+ * @param designId - The design ID (unused, kept for compatibility)
+ * @param filterToPlayer - If provided, only include acts matching this player's polarity
  */
 export function chroniclesToActs(
   chronicles: Chronicle[],
-  designId: string
+  designId: string,
+  filterToPlayer?: "P" | "O"
 ): { locusPath: string; polarity: "P" | "O"; ramification: number[] }[] {
   const actsMap = new Map<string, { polarity: "P" | "O"; ramification: number[] }>();
 
   for (const chronicle of chronicles) {
     for (const action of chronicle.actions) {
-      const existing = actsMap.get(action.focus);
-      
       // Determine polarity from depth (Faggian-Hyland semantics)
       const depth = action.focus.split(".").length;
       const depthPolarity: "P" | "O" = depth % 2 === 1 ? "P" : "O";
+      
+      // If filtering to a specific player, skip acts that don't match
+      if (filterToPlayer && depthPolarity !== filterToPlayer) {
+        continue;
+      }
+      
+      const existing = actsMap.get(action.focus);
       
       if (!existing) {
         actsMap.set(action.focus, {

@@ -95,6 +95,8 @@ export function isInitial(action: Action): boolean {
  * Action at (ξ.i, J) is justified by action at (ξ, I) if i ∈ I
  * 
  * In tree-traversal: parent address must have opened this child index
+ * For sparse trees (where intermediate levels may be missing), we walk
+ * up the tree to find the nearest ancestor that exists in the view.
  * 
  * @param action - The action needing justification
  * @param view - The current view to search
@@ -104,22 +106,28 @@ export function findJustifier(action: Action, view: Action[]): Action | null {
   const focusParts = action.focus.split(".");
   if (focusParts.length <= 1) return null;
 
-  const parentFocus = focusParts.slice(0, -1).join(".");
-  const childIndex = parseInt(focusParts[focusParts.length - 1], 10);
-
-  // Search backwards through view for matching justifier
-  for (let i = view.length - 1; i >= 0; i--) {
-    const candidate = view[i];
-    if (candidate.focus === parentFocus) {
-      // Found parent - check if it opened this child index
-      if (candidate.ramification.length === 0 || candidate.ramification.includes(childIndex)) {
+  // Walk up the tree looking for an ancestor that exists in the view
+  for (let depth = focusParts.length - 1; depth >= 1; depth--) {
+    const ancestorFocus = focusParts.slice(0, depth).join(".");
+    const childIndex = parseInt(focusParts[depth], 10);
+    
+    // Search backwards through view for matching justifier at this ancestor level
+    for (let i = view.length - 1; i >= 0; i--) {
+      const candidate = view[i];
+      if (candidate.focus === ancestorFocus) {
+        // Found ancestor - check if ramification allows this descendant
+        // If ramification is empty or includes any child, accept it (sparse tree tolerance)
+        if (candidate.ramification.length === 0 || candidate.ramification.includes(childIndex)) {
+          return candidate;
+        }
+        // Even if ramification doesn't include this child, in a sparse tree
+        // the ancestor is still the best justifier we have
         return candidate;
       }
     }
   }
 
-  // If not found in view, check all actions in position
-  // (for cases where justifier was elided from view)
+  // If not found in view, no justifier available
   return null;
 }
 

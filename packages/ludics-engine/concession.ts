@@ -7,7 +7,7 @@ export async function concede(params: {
   dialogueId: string,
   concedingParticipantId: string,         // "Proponent" | "Opponent"
   anchorLocus: string,                     // L
-  proposition: { text: string, baseLocus?: string }, // P at L
+  proposition: { text: string, baseLocus?: string, claimId?: string }, // P at L, optionally with claimId
 }) {
   const { dialogueId, concedingParticipantId, anchorLocus, proposition } = params;
 
@@ -30,7 +30,23 @@ export async function concede(params: {
     add: [{ label: proposition.text, basePolarity: "pos", baseLocusPath: proposition.baseLocus ?? "0" }]
   });
 
-  // Sync to AIF/Dialogue systems
+  // Try to find the claimId if not provided
+  let claimId = proposition.claimId;
+  if (!claimId && proposition.text) {
+    // Try to find a claim with matching text in this deliberation
+    const matchingClaim = await prisma.claim.findFirst({
+      where: {
+        deliberationId: dialogueId,
+        text: proposition.text,
+      },
+      select: { id: true },
+    });
+    if (matchingClaim) {
+      claimId = matchingClaim.id;
+    }
+  }
+
+  // Sync to AIF/Dialogue systems with commitment edge creation
   const firstActId = result?.appended?.[0]?.actId;
   await syncToAif({
     deliberationId: dialogueId,
@@ -38,6 +54,7 @@ export async function concede(params: {
     actorId: concedingParticipantId,
     locusPath: anchorLocus,
     expression: proposition.text,
+    targetClaimId: claimId,
     ludicActId: firstActId,
     ludicDesignId: design.id,
   }).catch(err => console.warn("[concession] AIF sync failed:", err.message));

@@ -27,10 +27,12 @@ export async function closeBranch(targetDesignId: string, locusPath: string) {
   });
 
   // Sync to AIF/Dialogue systems
+  // Determine actor based on participantId (Proponent/Opponent) or default to Opponent for branch close
+  const actorId = design.participantId === "Proponent" ? "Opponent" : "Proponent";
   await syncToAif({
     deliberationId: design.deliberationId,
     actionType: "BRANCH_CLOSE",
-    actorId: design.defenderPolar === "P" ? "Opponent" : "Proponent",
+    actorId,
     locusPath,
     expression: "BRANCH_CLOSED",
     ludicActId: act.id,
@@ -42,8 +44,9 @@ export async function closeBranch(targetDesignId: string, locusPath: string) {
 
 export async function forceConcession(params: {
   dialogueId: string; judgeId: string; targetDesignId: string; locus: string; text: string;
+  targetClaimId?: string; // Optional: claim being conceded
 }) {
-  const { dialogueId, targetDesignId, locus, text } = params;
+  const { dialogueId, targetDesignId, locus, text, targetClaimId } = params;
   const design = await prisma.ludicDesign.findUnique({ where: { id: targetDesignId } });
   if (!design) throw new Error("NO_SUCH_DESIGN");
 
@@ -72,13 +75,24 @@ export async function forceConcession(params: {
     act: { kind: "PROPER", polarity: "O", locusPath: locus, expression: text },
   });
 
-  // Sync to AIF/Dialogue systems
+  // Try to find a claim if not provided
+  let claimId = targetClaimId;
+  if (!claimId && text) {
+    const matchingClaim = await prisma.claim.findFirst({
+      where: { deliberationId: dialogueId, text },
+      select: { id: true },
+    });
+    if (matchingClaim) claimId = matchingClaim.id;
+  }
+
+  // Sync to AIF/Dialogue systems with commitment edge
   await syncToAif({
     deliberationId: dialogueId,
     actionType: "FORCE_CONCESSION",
     actorId: "Opponent", // Force concession is always O acknowledging P
     locusPath: locus,
     expression: text,
+    targetClaimId: claimId,
     ludicActId: act.id,
     ludicDesignId: targetDesignId,
   }).catch(err => console.warn("[judge] AIF sync failed for forceConcession:", err.message));

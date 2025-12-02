@@ -451,11 +451,38 @@ export async function compileFromMoves(
         });
         console.log(`[compile] Deleted ${actCount.count} acts`);
         
-        // 5. IMMEDIATELY delete LudicDesign (before any other operation can create new acts)
-        const designCount = await tx.ludicDesign.deleteMany({ 
-          where: { id: { in: designIds } }  // Delete ONLY these specific designs, not all
-        });
-        console.log(`[compile] Deleted ${designCount.count} designs`);
+        // 5. Delete LudicDesign with retry loop to handle concurrent act creation
+        // Other processes (judge, daimon, fax, delocate) may create acts during compile
+        let designDeleteAttempts = 0;
+        const maxAttempts = 5;
+        
+        while (designDeleteAttempts < maxAttempts) {
+          designDeleteAttempts++;
+          
+          // Re-delete any acts that may have been created by concurrent requests
+          const lateActs = await tx.ludicAct.deleteMany({ 
+            where: { designId: { in: designIds } } 
+          });
+          if (lateActs.count > 0) {
+            console.log(`[compile] Deleted ${lateActs.count} late-arriving acts (attempt ${designDeleteAttempts})`);
+          }
+          
+          try {
+            const designCount = await tx.ludicDesign.deleteMany({ 
+              where: { id: { in: designIds } }
+            });
+            console.log(`[compile] Deleted ${designCount.count} designs`);
+            break; // Success, exit loop
+          } catch (deleteError: any) {
+            if (deleteError?.code === 'P2003' && designDeleteAttempts < maxAttempts) {
+              console.log(`[compile] FK constraint on attempt ${designDeleteAttempts}, retrying...`);
+              // Small delay to let concurrent operation complete
+              await new Promise(r => setTimeout(r, 100));
+            } else {
+              throw deleteError;
+            }
+          }
+        }
       }
       
       return root.id;

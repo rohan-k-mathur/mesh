@@ -62,9 +62,32 @@ export async function POST(req: NextRequest) {
   try {
     let traceRow;
     if (last) {
-      traceRow = await prisma.ludicTrace.update({
+      // Use updateMany to avoid Prisma error logging when trace deleted by concurrent compile
+      const updated = await prisma.ludicTrace.updateMany({
         where: { id: last.id },
         data: { extJson: { ...(last.extJson as any), usedAdditive } },
+      });
+      
+      if (updated.count > 0) {
+        // Return the existing trace info
+        return NextResponse.json({
+          ok: true,
+          traceId: last.id,
+          usedDesigns: { posDesignId: posUse.id, negDesignId: negUse.id },
+          usedAdditive,
+        });
+      }
+      
+      // Trace was deleted, create new one
+      traceRow = await prisma.ludicTrace.create({
+        data: {
+          deliberationId: dialogueId,
+          posDesignId: posUse.id,
+          negDesignId: negUse.id,
+          status: 'ONGOING',
+          steps: [],
+          extJson: { usedAdditive },
+        },
       });
     } else {
       traceRow = await prisma.ludicTrace.create({

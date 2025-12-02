@@ -56,6 +56,14 @@ export type IsomorphismEvidence = {
     extra: string[];
   };
   error?: string;
+  // Extended evidence for subset-based checks
+  missingPlays?: string[];
+  extraPlays?: string[];
+  extraPlaysFromBroaderScope?: number;
+  // Loci-based comparison
+  originalLociCount?: number;
+  reconstructedLociCount?: number;
+  missingLoci?: string[];
 };
 
 /**
