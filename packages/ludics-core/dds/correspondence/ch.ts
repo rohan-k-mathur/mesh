@@ -71,6 +71,7 @@ export function computeChOptimized(strategy: Strategy): ChResult {
 
 /**
  * Extract chronicles from a single play
+ * Uses depth-based polarity: odd depth = P, even depth = O
  */
 function extractChroniclesFromPlay(play: Play, player: "P" | "O"): Chronicle[] {
   const chronicles: Chronicle[] = [];
@@ -78,10 +79,16 @@ function extractChroniclesFromPlay(play: Play, player: "P" | "O"): Chronicle[] {
   // For each prefix of the play, extract the view
   for (let i = 1; i <= play.sequence.length; i++) {
     const prefix = play.sequence.slice(0, i);
+    
+    // Determine current player based on last action's depth
+    const lastAction = prefix[prefix.length - 1];
+    const lastDepth = lastAction.focus.split(".").length;
+    const lastPolarity: "P" | "O" = lastDepth % 2 === 1 ? "P" : "O";
+    
     const position: Position = {
       id: `${play.id}-prefix-${i}`,
       sequence: prefix,
-      player: prefix.length % 2 === 0 ? player : (player === "P" ? "O" : "P"),
+      player: lastPolarity === "P" ? "O" : "P", // Next player is opposite of last
       isLinear: true,
       isLegal: true,
     };
@@ -91,12 +98,17 @@ function extractChroniclesFromPlay(play: Play, player: "P" | "O"): Chronicle[] {
 
     // View forms a chronicle
     if (view.length > 0) {
+      // Determine if chronicle is positive (ends on player's own move)
+      const tipAction = view[view.length - 1];
+      const tipDepth = tipAction.focus.split(".").length;
+      const tipPolarity: "P" | "O" = tipDepth % 2 === 1 ? "P" : "O";
+      
       chronicles.push({
         id: `chronicle-${play.id}-${i}`,
         designId: play.strategyId,
         actions: view,
         polarity: player,
-        isPositive: view[view.length - 1].polarity === player,
+        isPositive: tipPolarity === player,
       });
     }
   }
@@ -156,6 +168,8 @@ function chronicleToKey(chronicle: Chronicle): string {
 
 /**
  * Convert chronicles back to design acts
+ * In Faggian-Hyland: polarity is determined by locus depth
+ * Odd depth (1, 3, 5...) = P, Even depth (2, 4, 6...) = O
  */
 export function chroniclesToActs(
   chronicles: Chronicle[],
@@ -166,9 +180,14 @@ export function chroniclesToActs(
   for (const chronicle of chronicles) {
     for (const action of chronicle.actions) {
       const existing = actsMap.get(action.focus);
+      
+      // Determine polarity from depth (Faggian-Hyland semantics)
+      const depth = action.focus.split(".").length;
+      const depthPolarity: "P" | "O" = depth % 2 === 1 ? "P" : "O";
+      
       if (!existing) {
         actsMap.set(action.focus, {
-          polarity: action.polarity,
+          polarity: depthPolarity,
           ramification: [...action.ramification],
         });
       } else {

@@ -96,15 +96,80 @@ function classify(act?: Act | null) {
       lines.push({ text: `Additive choice at ${parent}: chose branch ${child}` });
     }
   
+    // Build detailed status summary
+    const pairCount = trace.pairs?.length ?? 0;
+    const lastPair = pairCount > 0 ? trace.pairs[pairCount - 1] : null;
+    const lastLocus = lastPair?.locusPath ?? '0';
+    
     if (trace.status === 'CONVERGENT') {
-      lines.push({ text: `→ Convergent: daimon by ${trace.endedAtDaimonForParticipantId}` });
+      const daimonBy = trace.endedAtDaimonForParticipantId;
+      lines.push({ 
+        text: `✓ Convergent: ${daimonBy ? `daimon (†) placed by ${daimonBy}` : 'interaction completed successfully'}`,
+        hover: `The dialogue reached a successful termination point${lastLocus !== '0' ? ` at locus ${lastLocus}` : ''}.`
+      });
       if (trace.endorsement) {
-        lines.push({ text: `Endorsed by ${trace.endorsement.byParticipantId} at ${trace.endorsement.locusPath}` });
+        lines.push({ 
+          text: `  └─ Endorsed by ${trace.endorsement.byParticipantId} at locus ${trace.endorsement.locusPath}`,
+          hover: 'This point was explicitly accepted/endorsed.'
+        });
       }
     } else if (trace.status === 'DIVERGENT') {
-      lines.push({ text: `→ Divergent: unresolved obligations remain` });
+      // Provide reason-specific messages
+      const reasonMap: Record<string, string> = {
+        'incoherent-move': pairCount === 0 
+          ? 'No P↔O pairs at same locus (challenge/response creates child loci)'
+          : `No matching response found at locus ${lastLocus}`,
+        'additive-violation': 'Conflicting additive choices detected',
+        'no-response': 'One party has no remaining moves',
+        'consensus-draw': 'Reached a consensus draw point',
+        'dir-collision': 'Directory collision in additive branches',
+        'timeout': 'Traversal fuel exhausted',
+      };
+      const reasonText = trace.reason ? reasonMap[trace.reason] || trace.reason : 'unresolved obligations remain';
+      lines.push({ 
+        text: `✗ Divergent: ${reasonText}`,
+        hover: pairCount === 0 
+          ? 'The stepper requires P and O acts at the SAME locus. Challenge/response dialogues create child loci (e.g., 0.1 → 0.1.1), so no direct pairing is possible.'
+          : `After ${pairCount} step(s), the interaction could not continue. Last active locus: ${lastLocus}`
+      });
+      
+      // Add hint about what's needed
+      if (trace.reason === 'incoherent-move' || trace.reason === 'no-response') {
+        const hintText = pairCount === 0 
+          ? '  └─ Hint: Use concessions to add O-acts at P-act loci, or use Analysis Panel (Views/Chronicles)'
+          : `  └─ Hint: Add a response at locus ${lastLocus} or append a daimon (†) to close`;
+        lines.push({
+          text: hintText,
+          hover: pairCount === 0
+            ? 'The stepper is designed for direct P↔O interaction at same locus. For nested dialogues, use the Analysis Panel which handles parent-child relationships.'
+            : 'The Opponent needs to respond to the Proponent\'s assertion, or the branch can be closed with a daimon.'
+        });
+      }
+    } else if (trace.status === 'STUCK') {
+      lines.push({ 
+        text: `⏸ Stuck: ${trace.reason === 'no-response' ? 'awaiting next move' : 'traversal blocked'}`,
+        hover: `The stepper paused at locus ${lastLocus}. More moves may be needed.`
+      });
     } else {
-      lines.push({ text: `→ Ongoing: partial traversal only` });
+      // ONGOING
+      const reasonText = trace.reason 
+        ? `paused (${trace.reason})` 
+        : pairCount > 0 
+          ? `${pairCount} interaction(s) processed, more moves possible`
+          : 'awaiting dialogue moves';
+      lines.push({ 
+        text: `⋯ Ongoing: ${reasonText}`,
+        hover: `Traversal is not complete. Last processed locus: ${lastLocus}. The dialogue can continue with additional moves.`
+      });
+      
+      // Show daimon hints if available
+      if (trace.daimonHints && trace.daimonHints.length > 0) {
+        const hintLoci = trace.daimonHints.slice(0, 3).map(h => h.locusPath).join(', ');
+        lines.push({
+          text: `  └─ Daimon (†) available at: ${hintLoci}${trace.daimonHints.length > 3 ? ` (+${trace.daimonHints.length - 3} more)` : ''}`,
+          hover: 'These loci have no remaining openings and can be closed with a daimon.'
+        });
+      }
     }
   
     return lines;

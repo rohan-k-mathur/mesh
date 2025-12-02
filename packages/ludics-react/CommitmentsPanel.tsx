@@ -515,12 +515,12 @@ export function CommitmentsPanel({
         </button>
         <button className="px-2 py-1 btnv2 rounded-lg text-xs" onClick={apply} disabled={busy}>Infer</button>
         <button 
-          className="px-2 py-1 btnv2 btnv2--ghost rounded-lg text-xs border-sky-300 bg-sky-50" 
+          className="flex px-2 py-1 btnv2 w-fit btnv2--ghost rounded-lg text-xs border-sky-300 bg-sky-50 gap-2" 
           onClick={runScopedInference} 
           disabled={busy}
           title="Run inference at selected locus with inheritance from parent loci"
         >
-          🔍 Infer @{selectedLocusPath}
+          <span className='flex gap-1'>Infer @{selectedLocusPath}</span>
         </button>
       </div>
 

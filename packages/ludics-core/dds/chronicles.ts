@@ -69,40 +69,121 @@ export function extractChronicles(
 }
 
 /**
- * Convert dispute to position
- * Maps the dispute pairs to an alternating action sequence
+ * Convert dispute to position (Faggian-Hyland semantics)
+ * 
+ * A position is a single path through the tree. Since a dispute may contain
+ * multiple branches, we pick the FIRST maximal (deepest) path.
+ * 
+ * Each action is at a UNIQUE address (linearity constraint).
+ * Polarity is determined by depth: odd depth = P, even depth = O.
  */
 export function disputeToPosition(dispute: Dispute): Position {
   const sequence: Action[] = [];
 
   // Convert pairs to action sequence - use actionPairs from DB or pairs from type
   const pairs = (dispute as any).actionPairs || dispute.pairs || [];
+  
+  if (pairs.length === 0) {
+    return {
+      id: dispute.id,
+      sequence: [],
+      player: "P",
+      isLinear: true,
+      isLegal: true,
+      disputeId: dispute.id,
+    };
+  }
+  
+  // Build set of all paths
+  const pathSet = new Set<string>();
   for (const pair of pairs) {
-    // Add positive action (Proponent)
+    pathSet.add(pair.locusPath);
+  }
+  
+  // Find all maximal (leaf) paths
+  const maximalPaths: string[] = [];
+  const allPaths = Array.from(pathSet);
+  for (const path of allPaths) {
+    const hasChild = allPaths.some(other => 
+      other !== path && other.startsWith(path + ".")
+    );
+    if (!hasChild) {
+      maximalPaths.push(path);
+    }
+  }
+  
+  // Sort maximal paths to pick a consistent one (deepest, then lexicographically first)
+  maximalPaths.sort((a, b) => {
+    const depthA = a.split(".").length;
+    const depthB = b.split(".").length;
+    return depthB - depthA || a.localeCompare(b); // Deeper first
+  });
+  
+  // Use the first (deepest) maximal path
+  const chosenLeaf = maximalPaths[0];
+  const leafParts = chosenLeaf.split(".");
+  
+  // Build path from root to chosen leaf
+  const pathSequence: string[] = [];
+  for (let i = 1; i <= leafParts.length; i++) {
+    const ancestorPath = leafParts.slice(0, i).join(".");
+    if (pathSet.has(ancestorPath)) {
+      pathSequence.push(ancestorPath);
+    }
+  }
+  
+  // Build actions for this path
+  const usedAddresses = new Set<string>();
+  for (const locusPath of pathSequence) {
+    if (usedAddresses.has(locusPath)) continue;
+    usedAddresses.add(locusPath);
+    
+    const depth = locusPath.split(".").length;
+    const polarity: "P" | "O" = depth % 2 === 1 ? "P" : "O";
+    
+    // Find the pair to get act IDs
+    const pair = pairs.find((p: any) => p.locusPath === locusPath);
+    
+    // Compute ramification
+    const ramification: number[] = [];
+    for (const otherPath of allPaths) {
+      if (otherPath.startsWith(locusPath + ".")) {
+        const suffix = otherPath.slice(locusPath.length + 1);
+        const childIdx = parseInt(suffix.split(".")[0], 10);
+        if (!isNaN(childIdx) && !ramification.includes(childIdx)) {
+          ramification.push(childIdx);
+        }
+      }
+    }
+    ramification.sort((a, b) => a - b);
+    
     sequence.push({
-      focus: pair.locusPath,
-      ramification: [], // Will be filled from act data if available
-      polarity: "P",
-      actId: pair.posActId,
-      ts: pair.ts,
+      focus: locusPath,
+      ramification,
+      polarity,
+      actId: polarity === "P" ? pair?.posActId : pair?.negActId,
+      ts: pair?.ts,
     });
+  }
 
-    // Add negative action (Opponent)
-    sequence.push({
-      focus: pair.locusPath,
-      ramification: [],
-      polarity: "O",
-      actId: pair.negActId,
-      ts: pair.ts,
-    });
+  // Validate linearity
+  const isLinear = sequence.length === usedAddresses.size;
+  
+  // Validate parity alternation
+  let parityValid = true;
+  for (let i = 1; i < sequence.length; i++) {
+    if (sequence[i].polarity === sequence[i - 1].polarity) {
+      parityValid = false;
+      break;
+    }
   }
 
   return {
     id: dispute.id,
     sequence,
     player: sequence.length % 2 === 0 ? "O" : "P",
-    isLinear: true, // Will be validated
-    isLegal: true, // Will be validated
+    isLinear,
+    isLegal: isLinear && parityValid,
     disputeId: dispute.id,
   };
 }

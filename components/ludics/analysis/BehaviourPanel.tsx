@@ -40,6 +40,27 @@ type OrthogonalityResult = {
     designB: string;
     reason: string;
   }>;
+  details?: {
+    designA: {
+      id: string;
+      participantId?: string;
+      actCount: number;
+      initialPolarity?: string;
+      initialLocus?: string;
+    };
+    designB: {
+      id: string;
+      participantId?: string;
+      actCount: number;
+      initialPolarity?: string;
+      initialLocus?: string;
+    };
+  };
+  diagnostics?: {
+    polarityCompatible: boolean;
+    locusCompatible: boolean;
+    hint: string;
+  };
 };
 
 type ClosureResult = {
@@ -263,6 +284,58 @@ export function BehaviourPanel({ strategyId, designId, deliberationId, onStrateg
                   <div className="text-xs text-slate-600">{orthResult.reason}</div>
                 </div>
               </div>
+
+              {/* Design Details */}
+              {orthResult.details && (
+                <div className="mt-3 border-t pt-3 grid grid-cols-2 gap-3">
+                  <div className="text-xs bg-white/50 rounded p-2">
+                    <div className="font-semibold text-slate-700">Design A ({orthResult.details.designA.participantId || "?"})</div>
+                    <div className="text-slate-500">
+                      Polarity: <span className="font-mono">{orthResult.details.designA.initialPolarity || "?"}</span>
+                    </div>
+                    <div className="text-slate-500">
+                      Locus: <span className="font-mono">{orthResult.details.designA.initialLocus || "?"}</span>
+                    </div>
+                    <div className="text-slate-500">
+                      Acts: {orthResult.details.designA.actCount}
+                    </div>
+                  </div>
+                  <div className="text-xs bg-white/50 rounded p-2">
+                    <div className="font-semibold text-slate-700">Design B ({orthResult.details.designB.participantId || "?"})</div>
+                    <div className="text-slate-500">
+                      Polarity: <span className="font-mono">{orthResult.details.designB.initialPolarity || "?"}</span>
+                    </div>
+                    <div className="text-slate-500">
+                      Locus: <span className="font-mono">{orthResult.details.designB.initialLocus || "?"}</span>
+                    </div>
+                    <div className="text-slate-500">
+                      Acts: {orthResult.details.designB.actCount}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Diagnostics for non-orthogonal results */}
+              {orthResult.diagnostics && (
+                <div className="mt-3 border-t pt-3">
+                  <div className="text-xs font-semibold text-amber-800 mb-2">Diagnosis:</div>
+                  <div className="text-xs bg-amber-50 border border-amber-200 rounded p-2 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span>{orthResult.diagnostics.polarityCompatible ? "✅" : "❌"}</span>
+                      <span>Polarity compatibility (requires P ⊥ O)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>{orthResult.diagnostics.locusCompatible ? "✅" : "❌"}</span>
+                      <span>Locus compatibility (requires same initial locus)</span>
+                    </div>
+                    {orthResult.diagnostics.hint && (
+                      <div className="mt-2 pt-2 border-t border-amber-200 text-amber-700">
+                        <strong>💡 Hint:</strong> {orthResult.diagnostics.hint}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Counter-examples */}
               {orthResult.counterExamples && orthResult.counterExamples.length > 0 && (

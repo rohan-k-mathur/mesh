@@ -4,6 +4,10 @@
  * 
  * View extracts the relevant actions visible to a player from a position.
  * The view is what a player "sees" at any point in the interaction.
+ * 
+ * Key semantic: In the tree-traversal model, polarity is determined by
+ * locus depth. Odd depth = P (Proponent), Even depth = O (Opponent).
+ * Root "0" is depth 1 = P, "0.1" is depth 2 = O, etc.
  */
 
 import type { Action, Position, View, ViewExtractionOptions } from "./types";
@@ -11,8 +15,10 @@ import type { Action, Position, View, ViewExtractionOptions } from "./types";
 /**
  * Extract view for player X from position
  * Definition 3.5 from paper:
- * - For positive moves: keep from other player's view + this move
- * - For negative moves: justifier + this move (or just this if initial)
+ * - ε̄ = ε (empty stays empty)
+ * - sκ⁺ = s̄⁻κ⁺ (positive move: keep from opponent's view + this move)
+ * - sκ⁻ = κ⁻ if κ initial (negative initial: just that move)
+ * - sκ′tκ⁻ = s̄⁻κ′κ if κ justified by κ′ (negative: jump to justifier + this)
  * 
  * @param position - The current position in the dispute
  * @param player - Which player's view to extract ("P" or "O")
@@ -27,25 +33,45 @@ export function extractView(
   const view: Action[] = [];
 
   for (const action of position.sequence) {
-    if (action.polarity === player) {
+    // Determine if this action is positive for the player
+    // In tree-traversal model: odd depth = P, even depth = O
+    const depth = action.focus.split(".").length;
+    const depthPolarity: "P" | "O" = depth % 2 === 1 ? "P" : "O";
+    const isPositiveForPlayer = depthPolarity === player;
+    
+    if (isPositiveForPlayer) {
       // Positive move (player's own): keep previous view + this move
+      // Definition 3.5: sκ⁺ = s̄⁻κ⁺
       view.push(action);
     } else {
       // Negative move (opponent's)
-      if (view.length === 0 || isInitial(action)) {
+      if (isInitial(action)) {
         // Initial negative move: just the move
+        // Definition 3.5: sκ⁻ = κ⁻ if κ initial
         view.length = 0;
         view.push(action);
       } else {
-        // Non-initial negative: justifier + this move
+        // Non-initial negative: find justifier and jump back
+        // Definition 3.5: sκ′tκ⁻ = s̄⁻κ′κ
         const justifier = findJustifier(action, view);
         if (justifier) {
-          view.length = 0;
-          view.push(justifier);
+          // Find position of justifier in view and truncate there
+          const justifierIdx = view.findIndex(a => 
+            a.focus === justifier.focus && 
+            a.polarity === justifier.polarity
+          );
+          if (justifierIdx >= 0) {
+            // Keep up to and including justifier, then add this action
+            view.length = justifierIdx + 1;
+          } else {
+            // Justifier not in current view - start fresh with it
+            view.length = 0;
+            view.push(justifier);
+          }
           view.push(action);
         } else {
-          // If no justifier found, just add the action
-          // This handles edge cases gracefully
+          // No justifier found - treat as initial-like
+          view.length = 0;
           view.push(action);
         }
       }
@@ -57,15 +83,18 @@ export function extractView(
 
 /**
  * Check if action is initial (not justified by prior action)
- * Initial actions are at the root locus or special initial markers
+ * Initial actions are at depth 1 (root locus)
  */
 export function isInitial(action: Action): boolean {
-  return action.focus === "0" || action.focus === "<>" || action.focus === "";
+  const depth = action.focus.split(".").filter(p => p !== "").length;
+  return depth <= 1 || action.focus === "<>" || action.focus === "";
 }
 
 /**
  * Find justifier for an action in the current view
- * Action (ξi, J) is justified by (ξ, I) if i ∈ I
+ * Action at (ξ.i, J) is justified by action at (ξ, I) if i ∈ I
+ * 
+ * In tree-traversal: parent address must have opened this child index
  * 
  * @param action - The action needing justification
  * @param view - The current view to search
@@ -81,15 +110,26 @@ export function findJustifier(action: Action, view: Action[]): Action | null {
   // Search backwards through view for matching justifier
   for (let i = view.length - 1; i >= 0; i--) {
     const candidate = view[i];
-    if (
-      candidate.focus === parentFocus &&
-      candidate.ramification.includes(childIndex)
-    ) {
-      return candidate;
+    if (candidate.focus === parentFocus) {
+      // Found parent - check if it opened this child index
+      if (candidate.ramification.length === 0 || candidate.ramification.includes(childIndex)) {
+        return candidate;
+      }
     }
   }
 
+  // If not found in view, check all actions in position
+  // (for cases where justifier was elided from view)
   return null;
+}
+
+/**
+ * Get the polarity for an action based on locus depth
+ * Odd depth (1, 3, 5...) = P, Even depth (2, 4, 6...) = O
+ */
+export function getPolarityForDepth(focus: string): "P" | "O" {
+  const depth = focus.split(".").filter(p => p !== "").length;
+  return depth % 2 === 1 ? "P" : "O";
 }
 
 /**

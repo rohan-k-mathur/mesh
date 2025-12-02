@@ -347,6 +347,40 @@ export default function LudicsPanel({
     { id: string; title: string; theoryType: "IH" | "TC" | "DN" | "OP" }[]
   >([]);
 
+  // AIF Sync Status
+  const [syncStatus, setSyncStatus] = React.useState<{
+    totalLudicActs: number;
+    significantActs: number;
+    daimonActs: number;
+    concessionActs: number;
+    regularActs: number;
+    syncedSignificant: number;
+    totalSynced: number;
+    dialogueMovesWithLudics: number;
+    syncPercentage: number;
+    needsSync: number;
+  } | null>(null);
+  const [showSyncPanel, setShowSyncPanel] = React.useState(false);
+
+  // Fetch sync status when panel opens
+  React.useEffect(() => {
+    if (!showSyncPanel) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/ludics/aif-sync?deliberationId=${encodeURIComponent(deliberationId)}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.ok) {
+          setSyncStatus(data.stats);
+        }
+      } catch (e) {
+        console.error("Failed to fetch sync status:", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showSyncPanel, deliberationId]);
+
   // When the attach section opens, list IH/TC works in this deliberation
 
   // When the attach section opens, list IH/TC works in this deliberation
@@ -398,7 +432,7 @@ export default function LudicsPanel({
   const compRef = React.useRef(false);
   const lastCompileAt = React.useRef(0);
   const [busy, setBusy] = React.useState<
-    false | "compile" | "step" | "nli" | "orth" | "append"
+    false | "compile" | "step" | "nli" | "orth" | "append" | "fix-all"
   >(false);
   const toast = useMicroToast();
 
@@ -438,6 +472,8 @@ export default function LudicsPanel({
         endorsement: t.endorsement,
         decisiveIndices: t.decisiveIndices,
         usedAdditive: t.usedAdditive,
+        daimonHints: t.daimonHints,
+        reason: t.reason,
       });
     }
   }, [orthoData]);
@@ -625,23 +661,29 @@ const suggestClose = React.useCallback((path: string) => {
         }),
       }).then((r) => r.json());
       setTrace({
-        steps: res.pairs || [],
+        pairs: res.pairs || [],
         status: res.status,
         endedAtDaimonForParticipantId: res.endedAtDaimonForParticipantId,
         endorsement: res.endorsement,
         decisiveIndices: res.decisiveIndices,
         usedAdditive: res.usedAdditive,
+        daimonHints: res.daimonHints,
+        reason: res.reason,
       });
       const scopeLabel = scopeLabels[activeScope ?? "legacy"] || activeScope;
-      toast.show(`Stepped scope: ${scopeLabel}`, "ok");
+      const pairCount = res.pairs?.length ?? 0;
+      toast.show(
+        pairCount > 0 
+          ? `Stepped ${pairCount} pair(s) in scope: ${scopeLabel}`
+          : `No pairs matched in scope: ${scopeLabel} (${res.status})`,
+        pairCount > 0 ? "ok" : "err"
+      );
     } finally {
       setBusy(false);
     }
   }, [deliberationId, designs, activeScope, scopeLabels, toast]);
 
   const appendDaimonToNext = React.useCallback(async () => {
-    if (!designs?.length) return;
-    
     // Validate inputs
     if (!daimonTargetLocus) {
       toast.show("Please select a locus for the daimon", "err");
@@ -650,22 +692,34 @@ const suggestClose = React.useCallback((path: string) => {
 
     const targetScope = daimonTargetScope ?? activeScope;
     
-    // Filter designs by target scope
-    const scopeDesigns = designs.filter(
-      (d: any) => (d.scope ?? "legacy") === targetScope
-    );
-    
-    const B = scopeDesigns.find((d: any) => d.participantId === "Opponent");
-    if (!B) {
-      toast.show(
-        `No Opponent design found for scope: ${scopeLabels[targetScope ?? "legacy"] || targetScope}`,
-        "err"
-      );
-      return;
-    }
-    
     setBusy("append");
     try {
+      // Fetch fresh designs to avoid stale IDs after Compile
+      const freshDesignsRes = await fetch(
+        `/api/ludics/designs?deliberationId=${encodeURIComponent(deliberationId)}`
+      );
+      const freshDesignsData = await freshDesignsRes.json();
+      const freshDesigns = freshDesignsData?.designs ?? [];
+      
+      if (!freshDesigns.length) {
+        toast.show("No designs found. Try running Compile first.", "err");
+        return;
+      }
+      
+      // Filter designs by target scope
+      const scopeDesigns = freshDesigns.filter(
+        (d: any) => (d.scope ?? "legacy") === targetScope
+      );
+      
+      const B = scopeDesigns.find((d: any) => d.participantId === "Opponent");
+      if (!B) {
+        toast.show(
+          `No Opponent design found for scope: ${scopeLabels[targetScope ?? "legacy"] || targetScope}`,
+          "err"
+        );
+        return;
+      }
+      
       const res = await fetch("/api/ludics/acts", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -689,12 +743,12 @@ const suggestClose = React.useCallback((path: string) => {
         "ok"
       );
       
+      // Refresh designs in SWR cache
+      await mutateDesigns();
+      
       // Re-step only the affected scope
       if (targetScope === activeScope) {
         await step();
-      } else {
-        // If different scope, just refresh designs
-        await mutateDesigns();
       }
       
       // Close the append panel after success
@@ -705,7 +759,7 @@ const suggestClose = React.useCallback((path: string) => {
       setBusy(false);
     }
   }, [
-    designs,
+    deliberationId,
     daimonTargetLocus,
     daimonTargetScope,
     activeScope,
@@ -774,12 +828,14 @@ const suggestClose = React.useCallback((path: string) => {
       setOrthogonal(r?.orthogonal ?? null);
       if (r?.trace) {
         setTrace({
-          steps: r.trace.pairs ?? [],
+          pairs: r.trace.pairs ?? [],
           status: r.trace.status,
           endedAtDaimonForParticipantId: r.trace.endedAtDaimonForParticipantId,
           endorsement: r.trace.endorsement,
           decisiveIndices: r.trace.decisiveIndices,
           usedAdditive: r.trace.usedAdditive,
+          daimonHints: r.trace.daimonHints,
+          reason: r.trace.reason,
         });
       }
       const scopeLabel = scopeLabels[activeScope ?? "legacy"] || activeScope;
@@ -1322,13 +1378,13 @@ const suggestClose = React.useCallback((path: string) => {
               </span>
             )}
           </button>
-          <button
+          {/* <button
             className="btnv2 btnv2--ghost"
             onClick={() => setShowAttach((v) => !v)}
             aria-expanded={showAttach}
           >
             {showAttach ? "Hide testers" : "Attach testers"}
-          </button>
+          </button> */}
           <button
             className={`btnv2 ${showAnalysisPanel ? "btnv2--primary" : "btnv2--ghost"}`}
             onClick={() => setShowAnalysisPanel((v) => !v)}
@@ -1337,8 +1393,180 @@ const suggestClose = React.useCallback((path: string) => {
           >
             {showAnalysisPanel ? "◀ Analysis" : "▶ Analysis"}
           </button>
+          <button
+            className={`btnv2 ${showSyncPanel ? "btnv2--primary" : "btnv2--ghost"}`}
+            disabled={!!busy}
+            onClick={() => setShowSyncPanel((v) => !v)}
+            title="AIF/Dialogue Sync Status"
+          >
+            {busy === "sync-aif" ? "Syncing…" : (
+              <>
+                Sync AIF
+                {syncStatus && syncStatus.significantActs > 0 && (
+                  <span className="ml-1 text-[10px] opacity-70">
+                    ({syncStatus.syncedSignificant}/{syncStatus.significantActs})
+                  </span>
+                )}
+              </>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* AIF Sync Status Panel */}
+      {showSyncPanel && (
+        <div className="rounded border border-blue-200 bg-blue-50/80 p-3 text-xs space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-blue-900">AIF/Dialogue Sync</h4>
+            <button
+              className="text-xs text-blue-600 hover:text-blue-800 underline"
+              onClick={() => setShowSyncPanel(false)}
+            >
+              Close
+            </button>
+          </div>
+          
+          {/* Status Display */}
+          <div className="grid grid-cols-3 gap-2 text-slate-700">
+            <div className="bg-white/60 rounded p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Total Acts</div>
+              <div className="text-lg font-bold">{syncStatus?.totalLudicActs ?? "—"}</div>
+            </div>
+            <div className="bg-white/60 rounded p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Significant</div>
+              <div className="text-lg font-bold text-amber-600">{syncStatus?.significantActs ?? "—"}</div>
+              <div className="text-[9px] text-slate-500">
+                {syncStatus ? `${syncStatus.daimonActs} daimons, ${syncStatus.concessionActs} concessions` : ""}
+              </div>
+            </div>
+            <div className="bg-white/60 rounded p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Needs Sync</div>
+              <div className={`text-lg font-bold ${(syncStatus?.needsSync ?? 0) > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                {syncStatus?.needsSync ?? "—"}
+              </div>
+            </div>
+            <div className="bg-white/60 rounded p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Synced (Sig.)</div>
+              <div className="text-lg font-bold text-emerald-600">{syncStatus?.syncedSignificant ?? "—"}</div>
+            </div>
+            <div className="bg-white/60 rounded p-2">
+              <div className="text-[10px] text-slate-500 uppercase">Total Synced</div>
+              <div className="text-lg font-bold text-blue-600">{syncStatus?.totalSynced ?? "—"}</div>
+            </div>
+            <div className="bg-white/60 rounded p-2">
+              <div className="text-[10px] text-slate-500 uppercase">DialogueMoves</div>
+              <div className="text-lg font-bold text-indigo-600">{syncStatus?.dialogueMovesWithLudics ?? "—"}</div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          {syncStatus && syncStatus.significantActs > 0 && (
+            <div className="mt-2">
+              <div className="flex justify-between text-[10px] text-slate-600 mb-1">
+                <span>Sync Progress (Significant Acts)</span>
+                <span>{syncStatus.syncedSignificant}/{syncStatus.significantActs} ({syncStatus.syncPercentage}%)</span>
+              </div>
+              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-300 ${syncStatus.syncPercentage >= 100 ? "bg-emerald-500" : "bg-amber-500"}`}
+                  style={{ width: `${Math.min(100, syncStatus.syncPercentage)}%` }}
+                />
+              </div>
+              {syncStatus.needsSync > 0 && (
+                <div className="text-[10px] text-rose-600 mt-1">
+                  ⚠ {syncStatus.needsSync} significant acts not yet synced
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 mt-3">
+            <button
+              className="flex-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium transition-colors disabled:opacity-50"
+              disabled={busy === "sync-status"}
+              onClick={async () => {
+                setBusy("sync-status");
+                try {
+                  const res = await fetch(`/api/ludics/aif-sync?deliberationId=${encodeURIComponent(deliberationId)}`);
+                  const data = await res.json();
+                  if (data.ok) {
+                    setSyncStatus(data.stats);
+                  }
+                } catch (e) {
+                  console.error("Failed to fetch sync status:", e);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy === "sync-status" ? "Checking…" : "Refresh Status"}
+            </button>
+            <button
+              className="flex-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-xs font-medium transition-colors disabled:opacity-50"
+              disabled={busy === "sync-verify"}
+              onClick={async () => {
+                setBusy("sync-verify");
+                try {
+                  const res = await fetch("/api/ludics/aif-sync", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ deliberationId, mode: "verify" }),
+                  });
+                  const data = await res.json();
+                  if (data.ok) {
+                    toast.show(`Verify: ${data.stats.shouldSync} acts need sync, ${data.stats.alreadySynced} already synced`, "ok");
+                  }
+                } catch (e: any) {
+                  toast.show(e?.message || "Verify error", "err");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy === "sync-verify" ? "Verifying…" : "Verify"}
+            </button>
+            <button
+              className="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium transition-colors disabled:opacity-50"
+              disabled={!!busy}
+              onClick={async () => {
+                setBusy("sync-aif");
+                try {
+                  const res = await fetch("/api/ludics/aif-sync", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ deliberationId, mode: "backfill" }),
+                  });
+                  const data = await res.json();
+                  if (data.ok) {
+                    toast.show(`Synced ${data.stats?.synced ?? 0} acts (${data.stats?.skipped ?? 0} skipped)`, "ok");
+                    // Refresh status after sync
+                    const statusRes = await fetch(`/api/ludics/aif-sync?deliberationId=${encodeURIComponent(deliberationId)}`);
+                    const statusData = await statusRes.json();
+                    if (statusData.ok) {
+                      setSyncStatus(statusData.stats);
+                    }
+                  } else {
+                    toast.show(data.error?.message || "Sync failed", "err");
+                  }
+                } catch (e: any) {
+                  toast.show(e?.message || "Sync error", "err");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy === "sync-aif" ? "Syncing…" : "Sync Now"}
+            </button>
+          </div>
+
+          {/* Info Text */}
+          <div className="text-[10px] text-slate-500 mt-2">
+            <strong>Note:</strong> Only significant ludics actions (daimons, concessions, force concessions) are synced to the AIF/DialogueMove system. 
+            Regular P/O interaction acts remain in the ludics layer only.
+          </div>
+        </div>
+      )}
 
       {/* Ribbon */}
       <div className="rounded-md border border-slate-200 bg-white/60 p-2">
@@ -1667,6 +1895,315 @@ const suggestClose = React.useCallback((path: string) => {
                 </div>
               </div>
             )}
+
+            {/* ONGOING/STUCK Panel with Daimon Hints */}
+            {trace && (trace.status === "ONGOING" || trace.status === "STUCK") && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">{trace.status === "STUCK" ? "⏸" : "⋯"}</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-amber-900 mb-1">
+                      {trace.status === "STUCK" ? "Dialogue Stuck" : "Dialogue In Progress"}
+                    </div>
+                    <div className="text-sm text-amber-700 mb-2">
+                      {trace.status === "STUCK" 
+                        ? "The stepper is awaiting the next move. Some branches may need closure."
+                        : `${trace.pairs.length} interaction pair(s) processed. More moves may be possible.`
+                      }
+                    </div>
+                    
+                    {/* Daimon Hints for ONGOING/STUCK */}
+                    {trace.daimonHints && trace.daimonHints.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm">💡</span>
+                          <span className="text-xs font-semibold text-amber-800">
+                            Suggested Daimons ({trace.daimonHints.length})
+                          </span>
+                        </div>
+                        <div className="text-xs text-amber-700 mb-2">
+                          Appending a daimon (†) at these loci can help reach convergence:
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {trace.daimonHints.slice(0, 12).map((hint: any, i: number) => (
+                            <button
+                              key={i}
+                              onClick={() => {
+                                setDaimonTargetLocus(hint.locusPath);
+                                setShowAppendDaimon(true);
+                              }}
+                              className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded text-xs font-mono flex items-center gap-1 transition-colors"
+                              title={`Click to append daimon at ${hint.locusPath}`}
+                            >
+                              <span className="text-amber-600">†</span>
+                              {hint.locusPath}
+                            </button>
+                          ))}
+                          {trace.daimonHints.length > 12 && (
+                            <span className="text-xs text-amber-600 px-2 py-1">
+                              +{trace.daimonHints.length - 12} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Zero Pairs Diagnostic - shows why no interaction happened */}
+            {trace && trace.pairs.length === 0 && designs.length >= 2 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-3">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="text-xl">🔍</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-amber-900 mb-1">
+                      No Interaction Pairs Generated
+                    </div>
+                    <div className="text-sm text-amber-700">
+                      The stepper couldn&apos;t match any P/O act pairs at the same locus.
+                    </div>
+                  </div>
+                </div>
+                
+                {(() => {
+                  // Compute loci analysis
+                  const scopeDesigns = designs.filter((d: any) => (d.scope ?? "legacy") === activeScope);
+                  const proDesign = scopeDesigns.find((d: any) => d.participantId === "Proponent");
+                  const oppDesign = scopeDesigns.find((d: any) => d.participantId === "Opponent");
+                  
+                  const proActs = proDesign?.acts ?? [];
+                  const oppActs = oppDesign?.acts ?? [];
+                  
+                  const proPLoci = new Set(proActs.filter((a: any) => a.polarity === "P").map((a: any) => a.locus?.path ?? "0"));
+                  const proOLoci = new Set(proActs.filter((a: any) => a.polarity === "O").map((a: any) => a.locus?.path ?? "0"));
+                  const oppPLoci = new Set(oppActs.filter((a: any) => a.polarity === "P").map((a: any) => a.locus?.path ?? "0"));
+                  const oppOLoci = new Set(oppActs.filter((a: any) => a.polarity === "O").map((a: any) => a.locus?.path ?? "0"));
+                  
+                  // For interaction: need P-acts from one side to match O-acts from other side at same locus
+                  const proPArr = Array.from(proPLoci);
+                  const oppOArr = Array.from(oppOLoci);
+                  const matchingLoci = proPArr.filter(l => oppOLoci.has(l));
+                  
+                  // Loci where P-acts exist but no O-acts - these need concessions
+                  const missingOLoci = proPArr.filter(l => !oppOLoci.has(l));
+                  
+                  return (
+                    <>
+                      {/* Loci Analysis */}
+                      <div className="bg-white/80 rounded p-3 mb-3">
+                        <div className="text-xs font-semibold text-slate-700 mb-2">Loci Analysis</div>
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div>
+                            <div className="font-medium text-blue-700 mb-1">Proponent P-acts at:</div>
+                            <div className="font-mono text-[10px] text-slate-600 bg-blue-50 p-1.5 rounded max-h-20 overflow-y-auto">
+                              {proPArr.length > 0 ? proPArr.sort().join(", ") : "(none)"}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-rose-700 mb-1">Opponent O-acts at:</div>
+                            <div className="font-mono text-[10px] text-slate-600 bg-rose-50 p-1.5 rounded max-h-20 overflow-y-auto">
+                              {oppOArr.length > 0 ? oppOArr.sort().join(", ") : "(none)"}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t border-slate-200">
+                          <div className="flex items-center gap-2">
+                            <span className={matchingLoci.length > 0 ? "text-emerald-600" : "text-rose-600"}>
+                              {matchingLoci.length > 0 ? "✓" : "✗"}
+                            </span>
+                            <span className="text-xs text-slate-700">
+                              <strong>Overlapping loci:</strong>{" "}
+                              {matchingLoci.length > 0 
+                                ? <span className="font-mono text-emerald-700">{matchingLoci.join(", ")}</span>
+                                : <span className="text-rose-600">None - P and O acts are at different loci</span>
+                              }
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Quick Fix: Add concessions at missing loci */}
+                        {missingOLoci.length > 0 && oppDesign && (
+                          <div className="mt-3 pt-3 border-t border-slate-200">
+                            <div className="text-xs font-medium text-slate-700 mb-2">
+                              Missing O-acts at {missingOLoci.length} P-loci:
+                            </div>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {missingOLoci.sort().slice(0, 8).map((locus) => {
+                                const locusStr = String(locus);
+                                return (
+                                <button
+                                  key={locusStr}
+                                  onClick={async () => {
+                                    try {
+                                      await fetch("/api/ludics/judge/force", {
+                                        method: "POST",
+                                        headers: { "content-type": "application/json" },
+                                        body: JSON.stringify({
+                                          dialogueId: deliberationId,
+                                          action: "FORCE_CONCESSION",
+                                          target: { designId: oppDesign.id, locusPath: locusStr },
+                                          data: { text: "ACK" },
+                                        }),
+                                      });
+                                      await mutateDesigns();
+                                      await step();
+                                      toast.show(`Added ACK at ${locusStr}`, "ok");
+                                    } catch (e: any) {
+                                      toast.show(e?.message || "Failed", "err");
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-violet-100 hover:bg-violet-200 text-violet-800 rounded text-[10px] font-mono transition-colors"
+                                  title={`Add O-act (ACK) at ${locusStr}`}
+                                >
+                                  +O@{locusStr}
+                                </button>);
+                              })}
+                              {missingOLoci.length > 8 && (
+                                <span className="text-[10px] text-slate-500">+{missingOLoci.length - 8} more</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setBusy("fix-all");
+                                  for (const locus of missingOLoci) {
+                                    const locusStr = String(locus);
+                                    await fetch("/api/ludics/judge/force", {
+                                      method: "POST",
+                                      headers: { "content-type": "application/json" },
+                                      body: JSON.stringify({
+                                        dialogueId: deliberationId,
+                                        action: "FORCE_CONCESSION",
+                                        target: { designId: oppDesign.id, locusPath: locusStr },
+                                        data: { text: "ACK" },
+                                      }),
+                                    });
+                                  }
+                                  await mutateDesigns();
+                                  await step();
+                                  toast.show(`Added ACK at ${missingOLoci.length} loci`, "ok");
+                                } catch (e: any) {
+                                  toast.show(e?.message || "Failed", "err");
+                                } finally {
+                                  setBusy(false);
+                                }
+                              }}
+                              disabled={busy === "fix-all"}
+                              className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded text-xs font-medium transition-colors disabled:opacity-50"
+                            >
+                              {busy === "fix-all" ? "Adding..." : `Add ACK to all ${missingOLoci.length} missing loci`}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Design summaries */}
+                      <div className="grid md:grid-cols-2 gap-3 mb-3">
+                        {scopeDesigns.slice(0, 2).map((d: any) => {
+                          const acts = d.acts ?? [];
+                          const pActs = acts.filter((a: any) => a.polarity === "P");
+                          const oActs = acts.filter((a: any) => a.polarity === "O");
+                          const daimons = acts.filter((a: any) => a.kind === "DAIMON");
+                          
+                          return (
+                            <div key={d.id} className="bg-white/80 rounded p-3 text-xs">
+                              <div className="font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                                <span className={d.participantId === "Proponent" ? "text-blue-600" : "text-rose-600"}>
+                                  {d.participantId === "Proponent" ? "P" : "O"}
+                                </span>
+                                {d.participantId}
+                              </div>
+                              <div className="space-y-1 text-slate-600">
+                                <div>Acts: <span className="font-mono">{acts.length}</span></div>
+                                <div>
+                                  Polarity: 
+                                  <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">P: {pActs.length}</span>
+                                  <span className="ml-1 px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded">O: {oActs.length}</span>
+                                  {daimons.length > 0 && (
+                                    <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">†: {daimons.length}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
+                
+                {/* Daimon Hints from stepper */}
+                {trace.daimonHints && trace.daimonHints.length > 0 && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded p-3 mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">💡</span>
+                      <span className="font-semibold text-emerald-800 text-sm">
+                        Suggested Daimons ({trace.daimonHints.length})
+                      </span>
+                    </div>
+                    <div className="text-xs text-emerald-700 mb-2">
+                      The stepper found leaf loci where appending a daimon (†) would help reach convergence:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {trace.daimonHints.map((hint: any, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setDaimonTargetLocus(hint.locusPath);
+                            setShowAppendDaimon(true);
+                          }}
+                          className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded text-xs font-mono flex items-center gap-1 transition-colors"
+                          title={`Click to append daimon at ${hint.locusPath}`}
+                        >
+                          <span className="text-amber-600">†</span>
+                          {hint.locusPath}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-emerald-600 mt-2">
+                      Click a locus to open the daimon append dialog
+                    </div>
+                  </div>
+                )}
+                
+                {/* Divergence reason */}
+                {trace.reason && (
+                  <div className="bg-slate-100 rounded p-2 mb-3 text-xs">
+                    <span className="font-medium text-slate-700">Reason: </span>
+                    <span className="text-slate-600 font-mono">
+                      {trace.reason === "incoherent-move" && "Incoherent move detected"}
+                      {trace.reason === "no-response" && "No matching response found"}
+                      {trace.reason === "additive-violation" && "Additive choice violation"}
+                      {trace.reason === "dir-collision" && "Direction collision at locus"}
+                      {trace.reason === "timeout" && "Computation timed out"}
+                      {trace.reason === "consensus-draw" && "Reached consensus (draw)"}
+                      {!["incoherent-move", "no-response", "additive-violation", "dir-collision", "timeout", "consensus-draw"].includes(trace.reason) && trace.reason}
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-xs text-amber-800 bg-amber-100 rounded p-2 space-y-1">
+                  <div><strong>Why no pairs?</strong></div>
+                  <div className="text-[11px] text-amber-700 mt-1">
+                    The stepper requires P-acts and O-acts to be at the <strong>same locus</strong> to form a pair. 
+                    In dialogue terms, when Opponent &quot;challenges&quot; a claim, it creates a <em>child</em> locus 
+                    (e.g., 0.1 → 0.1.1), not a response at the same locus. This is expected for challenge/response 
+                    dialogues but means the stepper can&apos;t match acts directly.
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-amber-200">
+                    <strong>To generate pairs:</strong>
+                    <ul className="list-disc list-inside space-y-0.5 ml-2 mt-1">
+                      <li>Use the <strong>Analysis Panel</strong> for Views/Chronicles (works with child loci)</li>
+                      <li>Append a daimon (†) at leaf loci to mark convergence</li>
+                      <li>The stepper is designed for direct P↔O interaction at same locus</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Main Content: Legend and Trace */}
@@ -1759,12 +2296,53 @@ const suggestClose = React.useCallback((path: string) => {
                     Start the dialogue by posting WHY or GROUNDS moves
                   </div>
                 </div>
-              ) : lines.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-3 opacity-30">⏳</div>
-                  <div className="text-sm text-slate-600 font-medium mb-1">Trace processing</div>
-                  <div className="text-xs text-slate-500">
-                    Click &quot;Step&quot; to generate the trace narrative
+              ) : lines.length === 0 || (lines.length === 1 && trace.pairs.length === 0) ? (
+                <div className="space-y-4">
+                  {/* Show the status line even with 0 pairs */}
+                  {lines.length > 0 && (
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="text-sm font-medium text-slate-700">{lines[0]?.text}</div>
+                    </div>
+                  )}
+                  
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-3 opacity-30">🔄</div>
+                    <div className="text-sm text-slate-600 font-medium mb-1">No interaction pairs found</div>
+                    <div className="text-xs text-slate-500 max-w-md mx-auto">
+                      The stepper couldn&apos;t match P-acts with O-acts at the same loci. 
+                      This happens when designs don&apos;t have compatible moves for interaction.
+                    </div>
+                  </div>
+                  
+                  {/* Show acts summary from designs */}
+                  <div className="border-t pt-4">
+                    <div className="text-xs font-semibold text-slate-700 mb-3">Acts Summary (from designs)</div>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      {designs.filter((d: any) => (d.scope ?? "legacy") === activeScope).slice(0, 2).map((d: any) => {
+                        const acts = (d.acts ?? []).slice(0, 10);
+                        return (
+                          <div key={d.id} className="bg-slate-50 rounded p-3 text-xs">
+                            <div className="font-semibold text-slate-800 mb-2">
+                              {d.participantId} ({d.acts?.length ?? 0} acts)
+                            </div>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {acts.map((act: any, idx: number) => (
+                                <div key={act.id || idx} className="flex items-start gap-2 text-[11px]">
+                                  <span className={`px-1 rounded ${act.polarity === "P" ? "bg-blue-100 text-blue-700" : act.polarity === "O" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>
+                                    {act.kind === "DAIMON" ? "†" : act.polarity}
+                                  </span>
+                                  <span className="font-mono text-slate-500">{act.locus?.path ?? "0"}</span>
+                                  <span className="text-slate-600 truncate flex-1">{act.expression?.slice(0, 40) || "—"}</span>
+                                </div>
+                              ))}
+                              {(d.acts?.length ?? 0) > 10 && (
+                                <div className="text-slate-400 italic">...and {(d.acts?.length ?? 0) - 10} more</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -1806,20 +2384,36 @@ const suggestClose = React.useCallback((path: string) => {
                               {/* Main text */}
                               <div className={[
                                 "text-sm leading-relaxed mb-1",
-                                isDecisive ? "font-semibold text-slate-900" : "text-slate-700"
-                              ].join(" ")}>
+                                isDecisive ? "font-semibold text-slate-900" : "text-slate-700",
+                                // Style status lines differently
+                                ln.text.startsWith('✓') ? "text-emerald-700" : "",
+                                ln.text.startsWith('✗') ? "text-rose-700" : "",
+                                ln.text.startsWith('⋯') ? "text-amber-700" : "",
+                                ln.text.startsWith('⏸') ? "text-slate-600" : "",
+                                ln.text.startsWith('  └─') ? "text-xs text-slate-500 ml-4" : "",
+                              ].filter(Boolean).join(" ")}>
                                 {ln.text}
                               </div>
                               
-                              {/* Hover details */}
+                              {/* Hover details - show differently for status lines vs pair lines */}
                               {ln.hover && (
                                 <div className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
-                                  <div className="font-medium mb-1">Full expressions:</div>
-                                  <div className="space-y-1 font-mono text-[10px] bg-slate-100 p-2 rounded">
-                                    {ln.hover.split(' • ').map((expr, idx) => (
-                                      <div key={idx} className="truncate">{expr}</div>
-                                    ))}
-                                  </div>
+                                  {ln.hover.includes('P:') && ln.hover.includes('O:') ? (
+                                    // This is a pair line with P/O expressions
+                                    <>
+                                      <div className="font-medium mb-1">Full expressions:</div>
+                                      <div className="space-y-1 font-mono text-[10px] bg-slate-100 p-2 rounded">
+                                        {ln.hover.split(' • ').map((expr, idx) => (
+                                          <div key={idx} className="truncate">{expr}</div>
+                                        ))}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    // This is a status line with explanatory hover
+                                    <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-200">
+                                      💡 {ln.hover}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>

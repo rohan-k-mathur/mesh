@@ -293,17 +293,24 @@ export async function stepInteraction(opts: {
     return null;
   };
 
-  const findNextNegativeAtLocus = (acts: typeof posDesign.acts, from: number, locusId: string) => {
-    for (let i = from; i < acts.length; i++) {
+  // Track which O-acts have been used in pairs to avoid reusing them
+  const usedNegActIds = new Set<string>();
+
+  const findNextNegativeAtLocus = (acts: typeof posDesign.acts, _from: number, locusId: string) => {
+    // Search ALL acts for a matching O-act at this locus (not just from cursor)
+    // This handles dialogues where acts were appended out of order (e.g., concessions)
+    for (let i = 0; i < acts.length; i++) {
       const a = acts[i];
       if (a.kind === 'PROPER' && a.polarity === 'O' && a.locusId === locusId) {
+        // Skip if already used in a previous pair
+        if (usedNegActIds.has(a.id)) continue;
         return { idx: i, act: a };
       }
     }
     // virtual negative synthesized by tester
     const p = pathById.get(locusId);
     if (p && virtualNegByPath.has(p)) {
-      return { idx: from, act: { id: undefined, kind:'PROPER', polarity:'O', locusId } as any };
+      return { idx: _from, act: { id: undefined, kind:'PROPER', polarity:'O', locusId } as any };
     }
     return null;
   };
@@ -373,6 +380,11 @@ export async function stepInteraction(opts: {
         reason = reason ?? 'incoherent-move';
       }
       break;
+    }
+
+    // Mark this O-act as used so it won't be matched again
+    if (dual.act.id) {
+      usedNegActIds.add(dual.act.id);
     }
 
     pairs.push({

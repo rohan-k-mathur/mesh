@@ -67,10 +67,14 @@ export function computeDisp(
 }
 
 /**
- * Compute single dispute between two designs
+ * Compute single dispute between two designs (Faggian-Hyland semantics)
  * 
- * A dispute traces through the locus tree, matching acts from both designs.
- * The interaction follows the tree structure where P and O take turns.
+ * A dispute traces through the locus tree where P and O designs interact.
+ * Each locus appears at most once (linearity).
+ * Polarity is determined by locus depth (odd = P, even = O).
+ * 
+ * The interaction follows the tree structure: P at root opens children,
+ * O responds at a child, which opens grandchildren, P responds, etc.
  */
 export function computeDispute(
   posDesign: DesignForCorrespondence,
@@ -89,60 +93,52 @@ export function computeDispute(
     negPaths: Array.from(negActsByPath.keys()),
   });
 
-  // Find all paths from both designs
-  const allPosPaths = Array.from(posActsByPath.keys()).sort();
-  const allNegPaths = Array.from(negActsByPath.keys()).sort();
+  // Collect all paths from both designs
+  const allPaths = new Set<string>();
+  Array.from(posActsByPath.keys()).forEach(path => allPaths.add(path));
+  Array.from(negActsByPath.keys()).forEach(path => allPaths.add(path));
   
-  // Find common paths or paths where one is prefix of another
-  // This represents the interaction tree
-  const interactionPaths = new Set<string>();
-  
-  for (const pPath of allPosPaths) {
-    for (const nPath of allNegPaths) {
-      // Check if they're on the same branch (one is prefix of other, or same)
-      if (pPath === nPath || pPath.startsWith(nPath + ".") || nPath.startsWith(pPath + ".")) {
-        interactionPaths.add(pPath);
-        interactionPaths.add(nPath);
-      }
-    }
-  }
-  
-  if (interactionPaths.size === 0) {
-    logDisp("No interaction paths found - designs don't overlap");
+  if (allPaths.size === 0) {
+    logDisp("No paths found in either design");
     return null;
   }
   
-  // Sort paths by depth (shorter first) to process in order
-  const sortedPaths = Array.from(interactionPaths).sort((a, b) => {
+  // Sort paths by depth (tree traversal order)
+  const sortedPaths = Array.from(allPaths).sort((a, b) => {
     const depthA = a.split(".").length;
     const depthB = b.split(".").length;
     return depthA - depthB || a.localeCompare(b);
   });
   
-  logDisp("Interaction paths:", sortedPaths);
+  logDisp("All locus paths (sorted):", sortedPaths);
 
-  // Build pairs by traversing the interaction tree
+  // Build pairs for each locus path
+  // In Faggian-Hyland, polarity is determined by locus depth:
+  // - Odd depth (1, 3, 5, ...) = P (root "0" is depth 1)
+  // - Even depth (2, 4, 6, ...) = O
   let status: Dispute["status"] = "ONGOING";
   
-  for (const path of sortedPaths) {
+  for (let i = 0; i < sortedPaths.length; i++) {
+    const path = sortedPaths[i];
+    const depth = path.split(".").length;
+    const expectedPolarity: "P" | "O" = depth % 2 === 1 ? "P" : "O";
+    
+    // Get the act from the design that should act at this depth
     const posAct = posActsByPath.get(path);
     const negAct = negActsByPath.get(path);
     
-    if (posAct) {
-      pairs.push({
-        posActId: posAct.id,
-        negActId: negAct?.id || "∅",
-        locusPath: path,
-        ts: pairs.length,
-      });
-    } else if (negAct) {
-      pairs.push({
-        posActId: "∅",
-        negActId: negAct.id,
-        locusPath: path,
-        ts: pairs.length,
-      });
-    }
+    // The "owning" act is based on depth parity
+    const owningAct = expectedPolarity === "P" ? posAct : negAct;
+    const respondingAct = expectedPolarity === "P" ? negAct : posAct;
+    
+    pairs.push({
+      posActId: posAct?.id || "∅",
+      negActId: negAct?.id || "∅",
+      locusPath: path,
+      ts: i,
+    });
+    
+    logDisp(`Pair at ${path}: depth=${depth}, expected=${expectedPolarity}, posAct=${posAct?.id?.slice(-8) || "∅"}, negAct=${negAct?.id?.slice(-8) || "∅"}`);
   }
 
   if (pairs.length === 0) {
@@ -151,12 +147,15 @@ export function computeDispute(
   
   // Determine status based on how the interaction ended
   const lastPair = pairs[pairs.length - 1];
-  if (lastPair.posActId === "∅") {
-    status = "DIVERGENT"; // O continued, P stopped
-  } else if (lastPair.negActId === "∅") {
-    status = "CONVERGENT"; // P continued, O stopped
+  const lastDepth = lastPair.locusPath.split(".").length;
+  const lastExpectedPolarity = lastDepth % 2 === 1 ? "P" : "O";
+  
+  // Check if the expected player has an act at the last position
+  const lastOwner = lastExpectedPolarity === "P" ? lastPair.posActId : lastPair.negActId;
+  if (lastOwner === "∅") {
+    status = "DIVERGENT"; // Expected player didn't have a move
   } else {
-    status = "CONVERGENT"; // Both reached same point
+    status = "CONVERGENT"; // Normal termination
   }
 
   logDisp("Dispute computed:", { pairCount: pairs.length, status });
@@ -212,11 +211,31 @@ function disputeToKey(dispute: Dispute): string {
 }
 
 /**
- * Convert disputes to strategy plays
+ * Convert disputes to strategy plays (Faggian-Hyland semantics)
  * 
- * Each dispute generates MULTIPLE plays - one for each prefix of the interaction.
- * The plays should have ALTERNATING polarities (P, O, P, O, ...) to match
- * how actual game play works.
+ * Each dispute represents a tree structure. A PLAY is a single path through
+ * this tree - it cannot include sibling nodes (nodes at the same depth that
+ * share a parent but are different branches).
+ * 
+ * Key insight: At each branching point, we must choose ONE child branch.
+ * This generates multiple plays - one for each complete path through the tree.
+ * 
+ * Example tree:
+ *        0 (P)
+ *        |
+ *       0.1 (O)
+ *        |
+ *      0.1.1 (P)
+ *      /    \
+ *  0.1.1.1  0.1.1.2
+ *    (O)      (O)
+ * 
+ * This generates plays:
+ *   - 0:P
+ *   - 0:P|0.1:O
+ *   - 0:P|0.1:O|0.1.1:P
+ *   - 0:P|0.1:O|0.1.1:P|0.1.1.1:O  (left branch)
+ *   - 0:P|0.1:O|0.1.1:P|0.1.1.2:O  (right branch)
  */
 export function disputesToPlays(
   disputes: Dispute[],
@@ -228,56 +247,97 @@ export function disputesToPlays(
   const seenSequences = new Set<string>();
 
   for (const dispute of disputes) {
-    // Build the full alternating sequence from dispute pairs
-    // Each pair represents an exchange: posAct then negAct (or just one if the other is ∅)
-    const fullSequence: Action[] = [];
+    // Get all unique locus paths from the dispute
+    const pairs = dispute.pairs || [];
+    if (pairs.length === 0) continue;
     
-    for (const pair of dispute.pairs) {
-      // Add P action if present
-      if (pair.posActId && pair.posActId !== "∅") {
-        fullSequence.push({
-          focus: pair.locusPath,
-          ramification: [],
-          polarity: "P",
-          actId: pair.posActId,
-        });
-      }
-      // Add O action if present
-      if (pair.negActId && pair.negActId !== "∅") {
-        fullSequence.push({
-          focus: pair.locusPath,
-          ramification: [],
-          polarity: "O",
-          actId: pair.negActId,
-        });
+    // Build a tree structure from paths
+    const pathSet = new Set<string>();
+    for (const pair of pairs) {
+      pathSet.add(pair.locusPath);
+    }
+    
+    // Find all maximal (leaf) paths - paths that have no children
+    const maximalPaths: string[] = [];
+    const allPaths = Array.from(pathSet);
+    for (const path of allPaths) {
+      const hasChild = allPaths.some(other => 
+        other !== path && other.startsWith(path + ".")
+      );
+      if (!hasChild) {
+        maximalPaths.push(path);
       }
     }
-
-    // Generate plays for all prefixes
-    for (let prefixLen = 1; prefixLen <= fullSequence.length; prefixLen++) {
-      const sequence = fullSequence.slice(0, prefixLen);
+    
+    logDisp("Maximal (leaf) paths:", maximalPaths);
+    
+    // For each maximal path, generate the complete play from root to that leaf
+    for (const leafPath of maximalPaths) {
+      // Build the path from root to this leaf
+      const pathParts = leafPath.split(".");
+      const pathSequence: string[] = [];
       
-      if (sequence.length === 0) continue;
-
-      // Deduplicate by sequence key
-      const seqKey = sequence.map(a => `${a.focus}:${a.polarity}`).join("|");
-      if (seenSequences.has(seqKey)) continue;
-      seenSequences.add(seqKey);
-
-      const lastAction = sequence[sequence.length - 1];
-      const isPositive = lastAction.polarity === player;
-
-      result.push({
-        sequence,
-        length: sequence.length,
-        isPositive,
-      });
+      for (let i = 1; i <= pathParts.length; i++) {
+        const ancestorPath = pathParts.slice(0, i).join(".");
+        if (pathSet.has(ancestorPath)) {
+          pathSequence.push(ancestorPath);
+        }
+      }
+      
+      // Build actions for this path
+      const actions: Action[] = [];
+      for (const locusPath of pathSequence) {
+        const depth = locusPath.split(".").length;
+        const polarity: "P" | "O" = depth % 2 === 1 ? "P" : "O";
+        
+        // Find the pair to get act ID
+        const pair = pairs.find(p => p.locusPath === locusPath);
+        const actId = pair ? (polarity === "P" ? pair.posActId : pair.negActId) : undefined;
+        
+        // Compute ramification: child indices that exist in pathSet
+        const ramification: number[] = [];
+        for (const otherPath of allPaths) {
+          if (otherPath.startsWith(locusPath + ".")) {
+            const suffix = otherPath.slice(locusPath.length + 1);
+            const childIdx = parseInt(suffix.split(".")[0], 10);
+            if (!isNaN(childIdx) && !ramification.includes(childIdx)) {
+              ramification.push(childIdx);
+            }
+          }
+        }
+        ramification.sort((a, b) => a - b);
+        
+        actions.push({
+          focus: locusPath,
+          ramification,
+          polarity,
+          actId: actId !== "∅" ? actId : undefined,
+        });
+      }
+      
+      // Generate plays for all prefixes of this path
+      for (let prefixLen = 1; prefixLen <= actions.length; prefixLen++) {
+        const sequence = actions.slice(0, prefixLen);
+        
+        const seqKey = sequence.map(a => `${a.focus}:${a.polarity}`).join("|");
+        if (seenSequences.has(seqKey)) continue;
+        seenSequences.add(seqKey);
+        
+        const lastAction = sequence[sequence.length - 1];
+        const isPositive = lastAction.polarity === player;
+        
+        result.push({
+          sequence,
+          length: sequence.length,
+          isPositive,
+        });
+      }
     }
   }
   
   logDisp("disputesToPlays result:", { 
     playCount: result.length, 
-    sampleLengths: result.slice(0, 5).map(r => r.length) 
+    samplePlays: result.slice(0, 8).map(r => r.sequence.map(a => `${a.focus}:${a.polarity}`).join("|"))
   });
   return result;
 }

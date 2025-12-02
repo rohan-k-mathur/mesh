@@ -3,18 +3,74 @@
  * POST /api/ludics/dds/behaviours/orthogonality
  * 
  * Checks if two designs are orthogonal (D ⊥ E).
- * Based on Definition 4.3 from Faggian & Hyland (2002):
+ * Based on Definition 6.1 from Faggian & Hyland (2002):
  * Two designs are orthogonal if their interaction converges.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import {
-  checkOrthogonality,
-  findCounterDesigns,
-  verifyOrthogonality,
+  checkOrthogonalityBasic,
+  findOrthogonalDesigns,
+  verifyOrthogonalitySymmetry,
 } from "@/packages/ludics-core/dds/behaviours";
-import type { Action, Dispute } from "@/packages/ludics-core/dds/types";
+import type { DesignForCorrespondence, DesignAct } from "@/packages/ludics-core/dds/correspondence/types";
+
+// Type for Prisma design with acts
+type PrismaDesignWithActs = {
+  id: string;
+  deliberationId: string;
+  participantId: string;
+  acts: Array<{
+    id: string;
+    designId: string;
+    kind: string;
+    polarity: string | null;
+    expression: string | null;
+    locusId: string | null;
+    ramification: string[];
+    orderInDesign: number;
+  }>;
+};
+
+/**
+ * Helper to convert Prisma design to DesignForCorrespondence
+ * Fetches locus paths for acts that have locusId
+ */
+async function toDesignForCorrespondence(
+  design: PrismaDesignWithActs
+): Promise<DesignForCorrespondence> {
+  // Collect locus IDs from acts
+  const locusIds = design.acts
+    .map(a => a.locusId)
+    .filter((id): id is string => id !== null);
+  
+  // Fetch locus paths if there are any locus IDs
+  const loci = locusIds.length > 0 
+    ? await prisma.ludicLocus.findMany({
+        where: { id: { in: locusIds } },
+        select: { id: true, path: true },
+      })
+    : [];
+  const locusMap = new Map(loci.map(l => [l.id, l.path]));
+
+  return {
+    id: design.id,
+    deliberationId: design.deliberationId,
+    participantId: design.participantId || "",
+    acts: design.acts.map((act): DesignAct => ({
+      id: act.id,
+      designId: act.designId,
+      kind: (act.kind as "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON") || "POSITIVE",
+      polarity: (act.polarity as "P" | "O") || "P",
+      expression: act.expression || undefined,
+      locusId: act.locusId || undefined,
+      locusPath: act.locusId ? (locusMap.get(act.locusId) || "") : "",
+      ramification: act.ramification?.map(r => parseInt(r, 10)).filter(n => !isNaN(n)) || [],
+    })),
+    loci: loci.map(l => ({ id: l.id, designId: design.id, path: l.path })),
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,15 +108,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Fetch designs
+      // Fetch designs with their acts ordered
       const [designA, designB] = await Promise.all([
         prisma.ludicDesign.findUnique({
           where: { id: designIdA },
-          include: { acts: true },
+          include: { acts: { orderBy: { orderInDesign: "asc" } } },
         }),
         prisma.ludicDesign.findUnique({
           where: { id: designIdB },
-          include: { acts: true },
+          include: { acts: { orderBy: { orderInDesign: "asc" } } },
         }),
       ]);
 
@@ -71,8 +127,26 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Fetch any existing disputes between these designs
-      const disputes = await prisma.ludicDispute.findMany({
+      // Convert to DesignForCorrespondence format (async to fetch locus paths)
+      const [design1, design2] = await Promise.all([
+        toDesignForCorrespondence(designA as PrismaDesignWithActs),
+        toDesignForCorrespondence(designB as PrismaDesignWithActs),
+      ]);
+
+      // Get diagnostic info about the designs
+      const designAPolarity = design1.acts[0]?.polarity || "unknown";
+      const designBPolarity = design2.acts[0]?.polarity || "unknown";
+      const designALocus = design1.acts[0]?.locusPath || "none";
+      const designBLocus = design2.acts[0]?.locusPath || "none";
+      
+      // Check orthogonality using the basic method
+      const result = await checkOrthogonalityBasic(design1, design2);
+
+      // Store result in LudicDispute (orthogonality is recorded as dispute status)
+      const disputeStatus = result.isOrthogonal ? "CONVERGENT" : "DIVERGENT";
+      
+      // Check for existing dispute between these designs
+      const existingDispute = await prisma.ludicDispute.findFirst({
         where: {
           OR: [
             { posDesignId: designIdA, negDesignId: designIdB },
@@ -81,80 +155,80 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Convert acts to actions
-      const actionsA: Action[] = designA.acts.map((act) => ({
-        focus: act.locusPath,
-        ramification: (act.subLoci as string[]) || [],
-        polarity: (act.polarity as "P" | "O") || "P",
-        actId: act.id,
-        expression: act.expression || undefined,
-        ts: act.createdAt.getTime(),
-      }));
-
-      const actionsB: Action[] = designB.acts.map((act) => ({
-        focus: act.locusPath,
-        ramification: (act.subLoci as string[]) || [],
-        polarity: (act.polarity as "P" | "O") || "O",
-        actId: act.id,
-        expression: act.expression || undefined,
-        ts: act.createdAt.getTime(),
-      }));
-
-      // Convert disputes
-      const disputeData: Dispute[] = disputes.map((d) => ({
-        id: d.id,
-        dialogueId: d.deliberationId,
-        posDesignId: d.posDesignId,
-        negDesignId: d.negDesignId,
-        pairs: (d.actionPairs as any) || [],
-        status: d.status as "ONGOING" | "CONVERGENT" | "DIVERGENT" | "STUCK",
-        length: d.length,
-      }));
-
-      // Check orthogonality
-      const result = checkOrthogonality(actionsA, actionsB, disputeData);
-
-      // Store result in LudicBehaviour if converged
-      if (result.converges) {
-        await prisma.ludicBehaviour.upsert({
-          where: {
-            deliberationId_name: {
-              deliberationId: designA.deliberationId,
-              name: `orth:${designIdA}:${designIdB}`,
+      if (existingDispute) {
+        await prisma.ludicDispute.update({
+          where: { id: existingDispute.id },
+          data: {
+            status: disputeStatus,
+            extJson: {
+              ...(existingDispute.extJson as object || {}),
+              orthogonalityCheck: {
+                method: result.method,
+                convergenceType: result.convergenceType,
+                checkedAt: new Date().toISOString(),
+              },
             },
           },
-          update: {
-            designIds: [designIdA, designIdB],
-            isClosed: result.converges,
-            updatedAt: new Date(),
-          },
-          create: {
+        });
+      } else {
+        await prisma.ludicDispute.create({
+          data: {
             deliberationId: designA.deliberationId,
-            name: `orth:${designIdA}:${designIdB}`,
-            designIds: [designIdA, designIdB],
-            isClosed: result.converges,
+            posDesignId: designIdA,
+            negDesignId: designIdB,
+            actionPairs: [],
+            status: disputeStatus,
+            length: 0,
+            extJson: {
+              orthogonalityCheck: {
+                method: result.method,
+                convergenceType: result.convergenceType,
+                checkedAt: new Date().toISOString(),
+              },
+            },
           },
         });
       }
 
       return NextResponse.json({
         ok: true,
-        isOrthogonal: result.converges,
-        convergenceLength: result.convergenceLength,
-        witnessingDispute: result.witnessingDispute,
+        isOrthogonal: result.isOrthogonal,
+        strategyAId: body.strategyAId,
+        strategyBId: body.strategyBId,
+        method: result.method,
+        convergenceType: result.convergenceType,
+        reason: result.isOrthogonal 
+          ? "Designs interact successfully (interaction converges)"
+          : (result.evidence?.counterexample?.divergencePoint || "Designs are not orthogonal (interaction diverges)"),
         details: {
           designA: {
             id: designIdA,
-            actCount: actionsA.length,
+            participantId: designA.participantId,
+            actCount: designA.acts.length,
+            initialPolarity: designAPolarity,
+            initialLocus: designALocus,
           },
           designB: {
             id: designIdB,
-            actCount: actionsB.length,
+            participantId: designB.participantId,
+            actCount: designB.acts.length,
+            initialPolarity: designBPolarity,
+            initialLocus: designBLocus,
           },
         },
+        // Diagnostic hints for non-orthogonal results
+        diagnostics: !result.isOrthogonal ? {
+          polarityCompatible: designAPolarity !== designBPolarity,
+          locusCompatible: designALocus === designBLocus,
+          hint: designAPolarity === designBPolarity 
+            ? "Orthogonality requires designs with opposite initial polarities (P vs O). Try comparing a Proponent design with an Opponent design."
+            : designALocus !== designBLocus
+              ? `Designs have different initial loci (${designALocus} vs ${designBLocus}). Orthogonality requires matching loci for interaction.`
+              : "Check the interaction trace for divergence points.",
+        } : undefined,
       });
     } else if (mode === "verify") {
-      // Verify orthogonality property with witnesses
+      // Verify orthogonality symmetry between two designs
       if (!designIdA || !designIdB) {
         return NextResponse.json(
           { ok: false, error: "designIdA and designIdB are required for verify mode" },
@@ -162,22 +236,60 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const result = verifyOrthogonality([designIdA], [designIdB]);
+      // Fetch designs
+      const [designA, designB] = await Promise.all([
+        prisma.ludicDesign.findUnique({
+          where: { id: designIdA },
+          include: { acts: { orderBy: { orderInDesign: "asc" } } },
+        }),
+        prisma.ludicDesign.findUnique({
+          where: { id: designIdB },
+          include: { acts: { orderBy: { orderInDesign: "asc" } } },
+        }),
+      ]);
+
+      if (!designA || !designB) {
+        return NextResponse.json(
+          { ok: false, error: "One or both designs not found" },
+          { status: 404 }
+        );
+      }
+
+      const [design1, design2] = await Promise.all([
+        toDesignForCorrespondence(designA as PrismaDesignWithActs),
+        toDesignForCorrespondence(designB as PrismaDesignWithActs),
+      ]);
+
+      const result = await verifyOrthogonalitySymmetry(design1, design2);
 
       return NextResponse.json({
         ok: true,
-        allOrthogonal: result.allOrthogonal,
-        pairs: result.pairs,
+        allOrthogonal: result.isSymmetric && result.forward.isOrthogonal,
+        isSymmetric: result.isSymmetric,
+        pairs: [
+          {
+            designA: designIdA,
+            designB: designIdB,
+            orthogonal: result.forward.isOrthogonal,
+            direction: "forward",
+          },
+          {
+            designA: designIdB,
+            designB: designIdA,
+            orthogonal: result.backward.isOrthogonal,
+            direction: "backward",
+          },
+        ],
         summary: {
-          totalPairs: result.pairs.length,
-          orthogonalCount: result.pairs.filter((p) => p.orthogonal).length,
+          totalPairs: 2,
+          orthogonalCount: [result.forward.isOrthogonal, result.backward.isOrthogonal].filter(Boolean).length,
         },
       });
-    } else if (mode === "counter") {
-      // Find counter-designs (non-orthogonal designs)
+    } else if (mode === "counter" || mode === "find-orthogonal") {
+      // Find orthogonal designs (counter-designs are non-orthogonal)
       if (!designIdA) {
         return NextResponse.json(
-          { ok: false, error: "designIdA is required for counter mode" },
+          { ok: false, error: "designIdA is required for counter/find-orthogonal mode" },
           { status: 400 }
         );
       }
@@ -185,7 +297,7 @@ export async function POST(req: NextRequest) {
       // Fetch the design
       const design = await prisma.ludicDesign.findUnique({
         where: { id: designIdA },
-        include: { acts: true },
+        include: { acts: { orderBy: { orderInDesign: "asc" } } },
       });
 
       if (!design) {
@@ -201,38 +313,40 @@ export async function POST(req: NextRequest) {
           deliberationId: design.deliberationId,
           id: { not: designIdA },
         },
-        include: { acts: true },
+        include: { acts: { orderBy: { orderInDesign: "asc" } } },
       });
 
-      const actions: Action[] = design.acts.map((act) => ({
-        focus: act.locusPath,
-        ramification: (act.subLoci as string[]) || [],
-        polarity: (act.polarity as "P" | "O") || "P",
-        actId: act.id,
-      }));
-
-      // Find counter-designs
-      const candidateActions = allDesigns.map((d) =>
-        d.acts.map((act) => ({
-          focus: act.locusPath,
-          ramification: (act.subLoci as string[]) || [],
-          polarity: (act.polarity as "P" | "O") || "O",
-          actId: act.id,
-        }))
+      const targetDesign = await toDesignForCorrespondence(design as PrismaDesignWithActs);
+      const candidateDesigns = await Promise.all(
+        allDesigns.map(d => toDesignForCorrespondence(d as PrismaDesignWithActs))
       );
 
-      const counterResult = findCounterDesigns(actions, candidateActions);
+      // Find orthogonal designs
+      const orthogonalDesigns = await findOrthogonalDesigns(targetDesign, candidateDesigns, "basic");
+
+      // Counter-designs are those NOT in the orthogonal set
+      const orthogonalIds = new Set(orthogonalDesigns.map(d => d.id));
+      const counterDesigns = candidateDesigns.filter(d => !orthogonalIds.has(d.id));
 
       return NextResponse.json({
         ok: true,
-        counterDesigns: counterResult.counterDesigns,
-        hasCounterDesigns: counterResult.counterDesigns.length > 0,
-        candidatesChecked: candidateActions.length,
+        orthogonalDesigns: orthogonalDesigns.map(d => ({
+          id: d.id,
+          participantId: d.participantId,
+          actCount: d.acts.length,
+        })),
+        counterDesigns: counterDesigns.map(d => ({
+          id: d.id,
+          participantId: d.participantId,
+          actCount: d.acts.length,
+        })),
+        hasCounterDesigns: counterDesigns.length > 0,
+        candidatesChecked: candidateDesigns.length,
       });
     }
 
     return NextResponse.json(
-      { ok: false, error: "Invalid mode. Use: check, verify, or counter" },
+      { ok: false, error: "Invalid mode. Use: check, verify, counter, or find-orthogonal" },
       { status: 400 }
     );
   } catch (error: any) {
@@ -249,47 +363,80 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const designIdA = url.searchParams.get("designIdA");
     const designIdB = url.searchParams.get("designIdB");
+    const deliberationId = url.searchParams.get("deliberationId");
 
-    if (!designIdA) {
+    if (!designIdA && !deliberationId) {
       return NextResponse.json(
-        { ok: false, error: "designIdA query param required" },
+        { ok: false, error: "designIdA or deliberationId query param required" },
         { status: 400 }
       );
     }
 
-    // Fetch orthogonality records for this design
-    const behaviours = await prisma.ludicBehaviour.findMany({
-      where: {
-        name: { startsWith: `orth:${designIdA}` },
+    // Build query for disputes (which store orthogonality results)
+    const whereClause: any = {};
+    
+    if (designIdA) {
+      whereClause.OR = [
+        { posDesignId: designIdA },
+        { negDesignId: designIdA },
+      ];
+    }
+    
+    if (deliberationId) {
+      whereClause.deliberationId = deliberationId;
+    }
+
+    // Fetch disputes with orthogonality info
+    const disputes = await prisma.ludicDispute.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        posDesignId: true,
+        negDesignId: true,
+        status: true,
+        extJson: true,
+        createdAt: true,
+        updatedAt: true,
       },
+      orderBy: { updatedAt: "desc" },
     });
 
-    if (designIdB) {
+    if (designIdB && designIdA) {
       // Return specific orthogonality check
-      const specific = behaviours.find(
-        (b) =>
-          b.name === `orth:${designIdA}:${designIdB}` ||
-          b.name === `orth:${designIdB}:${designIdA}`
+      const specific = disputes.find(
+        (d) =>
+          (d.posDesignId === designIdA && d.negDesignId === designIdB) ||
+          (d.posDesignId === designIdB && d.negDesignId === designIdA)
       );
 
       return NextResponse.json({
         ok: true,
         hasResult: !!specific,
-        isOrthogonal: specific?.isClosed ?? null,
-        behaviour: specific,
+        isOrthogonal: specific?.status === "CONVERGENT",
+        dispute: specific ? {
+          id: specific.id,
+          posDesignId: specific.posDesignId,
+          negDesignId: specific.negDesignId,
+          status: specific.status,
+          orthogonalityCheck: (specific.extJson as any)?.orthogonalityCheck,
+        } : null,
       });
     }
 
-    // Return all orthogonality results for this design
+    // Return all orthogonality results
     return NextResponse.json({
       ok: true,
       designId: designIdA,
-      orthogonalPairs: behaviours.map((b) => ({
-        name: b.name,
-        designIds: b.designIds,
-        isOrthogonal: b.isClosed,
+      deliberationId,
+      orthogonalPairs: disputes.map((d) => ({
+        id: d.id,
+        posDesignId: d.posDesignId,
+        negDesignId: d.negDesignId,
+        isOrthogonal: d.status === "CONVERGENT",
+        status: d.status,
+        orthogonalityCheck: (d.extJson as any)?.orthogonalityCheck,
       })),
-      totalPairs: behaviours.length,
+      totalPairs: disputes.length,
     });
   } catch (error: any) {
     console.error("[DDS Orthogonality GET Error]", error);

@@ -93,7 +93,38 @@ export async function POST(req: NextRequest) {
           console.log(`[Strategies Generate] O design ${oDesign.id.slice(-8)} acts:`, 
             oActs.map(a => ({ id: a.id.slice(-8), path: a.locus?.path })));
           
-          // Match acts by locus path to form interaction pairs
+          // Collect all unique locus paths from both designs
+          // In Faggian-Hyland: each locus path represents one node in the interaction tree
+          const allPaths = new Set<string>();
+          const actsByPath = new Map<string, { pActId?: string; oActId?: string }>();
+          
+          for (const pAct of pActs) {
+            const path = (pAct.locus?.path as string) || "0";
+            allPaths.add(path);
+            const existing = actsByPath.get(path) || {};
+            existing.pActId = pAct.id;
+            actsByPath.set(path, existing);
+          }
+          
+          for (const oAct of oActs) {
+            const path = (oAct.locus?.path as string) || "0";
+            allPaths.add(path);
+            const existing = actsByPath.get(path) || {};
+            existing.oActId = oAct.id;
+            actsByPath.set(path, existing);
+          }
+          
+          // Sort paths by depth (tree traversal order)
+          const sortedPaths = Array.from(allPaths).sort((a, b) => {
+            const depthA = a.split(".").length;
+            const depthB = b.split(".").length;
+            return depthA - depthB || a.localeCompare(b);
+          });
+          
+          console.log(`[Strategies Generate] Sorted locus paths:`, sortedPaths);
+          
+          // Build action pairs with proper tree structure
+          // Each pair represents one node in the tree, with polarity determined by depth
           const actionPairs: Array<{
             posActId: string;
             negActId: string;
@@ -101,56 +132,21 @@ export async function POST(req: NextRequest) {
             ts: number;
           }> = [];
           
-          // For each P act, find an O act at the same or related locus
-          let ts = 0;
-          for (const pAct of pActs) {
-            const pLocus = (pAct.locus?.path as string) || "0";
-            // Find O acts that interact at this locus
-            const matchingOActs = oActs.filter((oAct) => {
-              const oLocus = (oAct.locus?.path as string) || "0";
-              // Match if same locus or one is prefix of other
-              return oLocus === pLocus || 
-                     oLocus.startsWith(pLocus + ".") || 
-                     pLocus.startsWith(oLocus + ".");
+          for (let i = 0; i < sortedPaths.length; i++) {
+            const path = sortedPaths[i];
+            const acts = actsByPath.get(path) || {};
+            
+            actionPairs.push({
+              posActId: acts.pActId || "∅",
+              negActId: acts.oActId || "∅",
+              locusPath: path,
+              ts: i,
             });
-            
-            console.log(`[Strategies Generate] P act at "${pLocus}" matches O acts:`, 
-              matchingOActs.map(a => a.locus?.path));
-            
-            for (const oAct of matchingOActs) {
-              actionPairs.push({
-                posActId: pAct.id,
-                negActId: oAct.id,
-                locusPath: pLocus,
-                ts: ts++,
-              });
-            }
           }
           
-          // Also include singleton acts (acts without a match)
-          // These represent plays where one player moves without immediate response
-          for (const pAct of pActs) {
-            const hasMatch = actionPairs.some((p) => p.posActId === pAct.id);
-            if (!hasMatch) {
-              actionPairs.push({
-                posActId: pAct.id,
-                negActId: "∅", // No matching O act
-                locusPath: (pAct.locus?.path as string) || "0",
-                ts: ts++,
-              });
-            }
-          }
-          for (const oAct of oActs) {
-            const hasMatch = actionPairs.some((p) => p.negActId === oAct.id);
-            if (!hasMatch) {
-              actionPairs.push({
-                posActId: "∅", // No matching P act
-                negActId: oAct.id,
-                locusPath: (oAct.locus?.path as string) || "0",
-                ts: ts++,
-              });
-            }
-          }
+          console.log(`[Strategies Generate] Action pairs created:`, actionPairs.map(p => 
+            `${p.locusPath}: P=${p.posActId?.slice(-8) || "∅"}, O=${p.negActId?.slice(-8) || "∅"}`
+          ));
 
           // Create the dispute
           const dispute = await prisma.ludicDispute.create({
