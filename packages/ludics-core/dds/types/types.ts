@@ -202,6 +202,7 @@ export type TypeInference = {
 export type TypeInferenceMethod =
   | "structural"    // Based on design structure
   | "behavioural"   // Based on dispute analysis
+  | "chronicle"     // Based on chronicle analysis (Prop 4.27)
   | "unification"   // Based on type unification
   | "heuristic";    // Heuristic-based
 

@@ -6,7 +6,7 @@
  * This module implements:
  * - Incarnation checking (lax and sharp)
  * - Type system (base, arrow, product, sum types)
- * - Type inference (structural and behavioural)
+ * - Type inference (structural, behavioural, and chronicle-based)
  * - Type checking and equivalence
  */
 
@@ -51,4 +51,10 @@ export {
   inferTypesForDesigns,
   suggestTypeRefinements,
   unifyTypes,
+  // Chronicle-based inference (leverages Prop 4.27)
+  analyzeChronicles,
+  inferTypeFromChronicles,
+  inferTypeFromDesignChronicles,
+  computeChronicleConfidence,
+  type ChronicleAnalysis,
 } from "./inference";

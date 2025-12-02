@@ -16,6 +16,73 @@ import {
 } from "@/packages/ludics-core/dds/types/incarnation";
 import type { DesignForCorrespondence, DesignAct } from "@/packages/ludics-core/dds/correspondence/types";
 
+/**
+ * Prisma design type with acts including locus relation
+ */
+type PrismaDesignWithActs = {
+  id: string;
+  deliberationId: string;
+  participantId: string;
+  acts: Array<{
+    id: string;
+    designId: string;
+    locusId: string | null;
+    locus: { id: string; path: string } | null;
+    polarity: string | null;
+    ramification: string[];
+    kind: string;
+    expression: string | null;
+    orderInDesign: number;
+  }>;
+};
+
+/**
+ * Convert Prisma design to DesignForCorrespondence format
+ */
+function toDesignForCorr(design: PrismaDesignWithActs): DesignForCorrespondence {
+  return {
+    id: design.id,
+    deliberationId: design.deliberationId,
+    participantId: design.participantId || "unknown",
+    acts: design.acts.map((act): DesignAct => ({
+      id: act.id,
+      designId: act.designId,
+      kind: act.kind as "PROPER" | "DAIMON",
+      polarity: (act.polarity as "P" | "O") || "P",
+      expression: act.expression || undefined,
+      locusId: act.locusId || undefined,
+      locusPath: act.locus?.path || `${act.orderInDesign}`,
+      ramification: (act.ramification || []).map((r) => {
+        const num = parseInt(r, 10);
+        return isNaN(num) ? r : num;
+      }),
+      orderInDesign: act.orderInDesign,
+    })),
+    loci: design.acts
+      .filter((act) => act.locus)
+      .map((act) => ({
+        id: act.locus!.id,
+        designId: design.id,
+        path: act.locus!.path,
+      })),
+  };
+}
+
+/**
+ * Fetch design with acts including locus paths
+ */
+async function fetchDesignWithLocus(designId: string) {
+  return prisma.ludicDesign.findUnique({
+    where: { id: designId },
+    include: {
+      acts: {
+        include: { locus: true },
+        orderBy: { orderInDesign: "asc" },
+      },
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -34,18 +101,8 @@ export async function POST(req: NextRequest) {
 
     // Fetch designs with their loci
     const [designA, designB] = await Promise.all([
-      prisma.ludicDesign.findUnique({
-        where: { id: designIdA },
-        include: { 
-          acts: { include: { locus: true } }
-        },
-      }),
-      prisma.ludicDesign.findUnique({
-        where: { id: designIdB },
-        include: { 
-          acts: { include: { locus: true } }
-        },
-      }),
+      fetchDesignWithLocus(designIdA),
+      fetchDesignWithLocus(designIdB),
     ]);
 
     if (!designA || !designB) {
@@ -56,51 +113,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Convert to DesignForCorrespondence format
-    const sourceDesign: DesignForCorrespondence = {
-      id: designA.id,
-      deliberationId: designA.deliberationId,
-      participantId: designA.participantId || "unknown",
-      acts: designA.acts.map((act): DesignAct => ({
-        id: act.id,
-        designId: act.designId,
-        kind: (act.kind as "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON") || "POSITIVE",
-        polarity: (act.polarity as "P" | "O") || "P",
-        expression: act.expression || undefined,
-        locusId: act.locusId || undefined,
-        locusPath: act.locus?.path || "0",
-        ramification: [], // Will be populated from extJson if needed
-      })),
-      loci: designA.acts
-        .filter((act) => act.locus)
-        .map((act) => ({
-          id: act.locus!.id,
-          designId: designA.id,
-          path: act.locus!.path,
-        })),
-    };
-
-    const targetDesign: DesignForCorrespondence = {
-      id: designB.id,
-      deliberationId: designB.deliberationId,
-      participantId: designB.participantId || "unknown",
-      acts: designB.acts.map((act): DesignAct => ({
-        id: act.id,
-        designId: act.designId,
-        kind: (act.kind as "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON") || "POSITIVE",
-        polarity: (act.polarity as "P" | "O") || "P",
-        expression: act.expression || undefined,
-        locusId: act.locusId || undefined,
-        locusPath: act.locus?.path || "0",
-        ramification: [], // Will be populated from extJson if needed
-      })),
-      loci: designB.acts
-        .filter((act) => act.locus)
-        .map((act) => ({
-          id: act.locus!.id,
-          designId: designB.id,
-          path: act.locus!.path,
-        })),
-    };
+    const sourceDesign = toDesignForCorr(designA as PrismaDesignWithActs);
+    const targetDesign = toDesignForCorr(designB as PrismaDesignWithActs);
 
     let result: any;
 
@@ -171,12 +185,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch the design and its deliberation context
-    const design = await prisma.ludicDesign.findUnique({
-      where: { id: designId },
-      include: { 
-        acts: { include: { locus: true } }
-      },
-    });
+    const design = await fetchDesignWithLocus(designId);
 
     if (!design) {
       return NextResponse.json(
@@ -192,61 +201,22 @@ export async function GET(req: NextRequest) {
         id: { not: designId },
       },
       include: { 
-        acts: { include: { locus: true } }
+        acts: { 
+          include: { locus: true },
+          orderBy: { orderInDesign: "asc" },
+        }
       },
     });
 
     // Convert target design to DesignForCorrespondence
-    const targetDesign: DesignForCorrespondence = {
-      id: design.id,
-      deliberationId: design.deliberationId,
-      participantId: design.participantId || "unknown",
-      acts: design.acts.map((act): DesignAct => ({
-        id: act.id,
-        designId: act.designId,
-        kind: (act.kind as "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON") || "POSITIVE",
-        polarity: (act.polarity as "P" | "O") || "P",
-        expression: act.expression || undefined,
-        locusId: act.locusId || undefined,
-        locusPath: act.locus?.path || "0",
-        ramification: [],
-      })),
-      loci: design.acts
-        .filter((act) => act.locus)
-        .map((act) => ({
-          id: act.locus!.id,
-          designId: design.id,
-          path: act.locus!.path,
-        })),
-    };
+    const targetDesign = toDesignForCorr(design as PrismaDesignWithActs);
 
     // Check incarnation relationships
     const incarnatedIn: string[] = [];
     const incarnates: string[] = [];
 
     for (const related of relatedDesigns) {
-      const relatedDesign: DesignForCorrespondence = {
-        id: related.id,
-        deliberationId: related.deliberationId,
-        participantId: related.participantId || "unknown",
-        acts: related.acts.map((act): DesignAct => ({
-          id: act.id,
-          designId: act.designId,
-          kind: (act.kind as "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON") || "POSITIVE",
-          polarity: (act.polarity as "P" | "O") || "P",
-          expression: act.expression || undefined,
-          locusId: act.locusId || undefined,
-          locusPath: act.locus?.path || "0",
-          ramification: [],
-        })),
-        loci: related.acts
-          .filter((act) => act.locus)
-          .map((act) => ({
-            id: act.locus!.id,
-            designId: related.id,
-            path: act.locus!.path,
-          })),
-      };
+      const relatedDesign = toDesignForCorr(related as PrismaDesignWithActs);
 
       // Check if target is incarnated in related
       const forwardResult = checkIncarnation(targetDesign, relatedDesign);

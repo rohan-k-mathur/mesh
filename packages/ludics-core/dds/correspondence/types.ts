@@ -100,27 +100,36 @@ export type TransformResult = {
 
 /**
  * Design representation for correspondence
+ * 
+ * Note: loci is optional when acts already have locusPath embedded
  */
 export type DesignForCorrespondence = {
   id: string;
   deliberationId: string;
   participantId: string;
   acts: DesignAct[];
-  loci: DesignLocus[];
+  loci?: DesignLocus[];
 };
 
 /**
  * Design act
+ * 
+ * Note: kind can be:
+ * - From Prisma schema: "PROPER" | "DAIMON"
+ * - From theoretical types: "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON"
+ * 
+ * PROPER maps to POSITIVE/NEGATIVE based on polarity context
  */
 export type DesignAct = {
   id: string;
   designId: string;
-  kind: "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON";
+  kind: "INITIAL" | "POSITIVE" | "NEGATIVE" | "DAIMON" | "PROPER";
   polarity: "P" | "O";
   expression?: string;
   locusId?: string;
   locusPath?: string;
-  ramification: number[];
+  ramification: (string | number)[];
+  orderInDesign?: number;
 };
 
 /**

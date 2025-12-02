@@ -48,12 +48,28 @@ export function TypeSystemPanel({ designId, deliberationId, strategyId }: TypeSy
   // Fetch type inference
   const { data: inferenceData, isLoading: inferenceLoading, mutate: refetchInference } = useSWR<{
     ok: boolean;
-    inference: TypeInference;
+    designId: string;
+    type: TypeStructure;
+    confidence: number;
+    method: "structural" | "behavioural" | "chronicle";
+    details?: {
+      alternatives?: TypeStructure[];
+      designCount?: number;
+    };
   }>(
     designId ? `/api/ludics/dds/types/infer?designId=${designId}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
+
+  // Transform API response to UI format
+  const inference = inferenceData?.ok ? {
+    designId: inferenceData.designId,
+    inferredType: inferenceData.type,
+    confidence: inferenceData.confidence,
+    method: inferenceData.method,
+    alternatives: inferenceData.details?.alternatives,
+  } : null;
 
   // Fetch designs for incarnation comparison - use deliberationId if provided
   const { data: designsData } = useSWR(
@@ -89,7 +105,7 @@ export function TypeSystemPanel({ designId, deliberationId, strategyId }: TypeSy
     }
   };
 
-  const inference = inferenceData?.inference;
+  // inference is now computed above from inferenceData
 
   return (
     <div className="type-system-panel border rounded-lg bg-white/70 overflow-hidden">
