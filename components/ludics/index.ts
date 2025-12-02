@@ -1,6 +1,7 @@
 /**
  * Ludics UI Components
  * Phase 1-5: Badge, Tooltip, Analysis, Type System, Behaviours Components
+ * Phase 6: DDS Arena & Game Components
  */
 
 // Phase 1: Badge and Tooltip Components
@@ -20,3 +21,7 @@ export * from "./analysis";
 export { BehaviourHUD } from "./BehaviourHUD";
 export { BehaviourInspectorCard } from "./BehaviourInspectorCard";
 export { default as TensorProbeCard } from "./TensorProbeCard";
+
+// Phase 6: DDS Arena & Game Components (Faggian-Hyland)
+export * from "./arena";
+export * from "./game";

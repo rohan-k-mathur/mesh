@@ -1150,19 +1150,226 @@ describe("Arena-Behaviour Integration", () => {
 
 ---
 
-## 8. Open Questions / Design Decisions
+## 8. Design Decisions (Finalized)
 
-1. **Arena Visualization**: Tree vs Graph vs List? (Recommend tree for enabling relation)
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| **Arena Visualization** | Tree view | Shows enabling hierarchy naturally; sufficient for our use case |
+| **Position Storage** | Compute on-demand with caching | Optimize for performance; avoid storing large position sets upfront |
+| **Game State Persistence** | Compact encoded format | Space-efficient storage; decode/load on access (see §8.1) |
+| **Multiplayer Support** | Not implemented | Future consideration; not needed for current requirements |
+| **AI Opponent** | Simple greedy/heuristic | Minimal complexity; avoid expensive minimax for now |
 
-2. **Position Storage**: Store all enumerated positions, or compute on-demand?
+### 8.1 Compact Game State Encoding
 
-3. **Game State Persistence**: Store game state in DB, or in-memory only?
+Games will be stored in a compact binary-like JSON structure for space efficiency:
 
-4. **Multiplayer Support**: Allow real-time two-player games via WebSocket?
+```typescript
+/**
+ * Compact encoded game state for storage
+ * Designed for minimal storage footprint
+ */
+export type EncodedGameState = {
+  /** Version for forward compatibility */
+  v: number;
+  /** Game ID (compressed) */
+  g: string;
+  /** Arena reference (not duplicated) */
+  a: string;
+  /** Move sequence as address:ramification pairs */
+  m: string; // e.g., "0:1,2|01:3|012:1,4" 
+  /** Current player: 0=P, 1=O */
+  p: 0 | 1;
+  /** Status: 0=playing, 1=p_wins, 2=o_wins, 3=draw */
+  s: 0 | 1 | 2 | 3;
+  /** Timestamp (unix seconds) */
+  t: number;
+};
 
-5. **AI Opponent**: Implement minimax/alpha-beta for optimal play?
+/**
+ * Encode game state for storage
+ */
+export function encodeGameState(state: GamePlayState): EncodedGameState {
+  return {
+    v: 1,
+    g: state.gameId,
+    a: state.currentPosition.arenaId,
+    m: state.moveLog.map(entry => 
+      `${entry.move.address}:${entry.move.ramification.join(",")}`
+    ).join("|"),
+    p: state.currentPosition.currentPlayer === "P" ? 0 : 1,
+    s: state.status === "playing" ? 0 
+       : state.status === "p_wins" ? 1 
+       : state.status === "o_wins" ? 2 : 3,
+    t: Math.floor(Date.now() / 1000),
+  };
+}
 
-6. **Performance**: How to handle very large arenas efficiently?
+/**
+ * Decode game state from storage
+ */
+export function decodeGameState(
+  encoded: EncodedGameState,
+  arena: UniversalArena
+): GamePlayState {
+  const moves = encoded.m.split("|").filter(Boolean).map(moveStr => {
+    const [address, ramStr] = moveStr.split(":");
+    const ramification = ramStr ? ramStr.split(",").map(Number) : [];
+    return reconstructMove(address, ramification, arena);
+  });
+  
+  // Rebuild position by replaying moves
+  let position = createInitialPosition(arena);
+  for (const move of moves) {
+    position = applyMoveToPosition(position, move, arena);
+  }
+  
+  return {
+    gameId: encoded.g,
+    currentPosition: position,
+    positionHistory: [], // Reconstructed on demand
+    status: ["playing", "p_wins", "o_wins", "draw"][encoded.s] as any,
+    moveLog: moves.map((m, i) => ({
+      moveNumber: i + 1,
+      player: i % 2 === 0 ? "P" : "O",
+      move: m,
+      timestamp: new Date(encoded.t * 1000),
+      resultingPositionId: `pos-${i}`,
+    })),
+  };
+}
+```
+
+**Storage Estimate:**
+- Typical game (20 moves): ~200 bytes encoded vs ~5KB uncompressed
+- Can store ~25x more games in same space
+
+### 8.2 On-Demand Position Computation
+
+Instead of pre-enumerating all positions, compute them lazily:
+
+```typescript
+/**
+ * Position cache for on-demand computation
+ */
+class PositionCache {
+  private cache = new Map<string, LegalPosition>();
+  private maxSize = 1000;
+  
+  /**
+   * Get or compute a position
+   */
+  getPosition(
+    arena: UniversalArena,
+    moveSequence: ArenaMove[]
+  ): LegalPosition {
+    const key = this.computeKey(moveSequence);
+    
+    if (this.cache.has(key)) {
+      return this.cache.get(key)!;
+    }
+    
+    // Compute position
+    const position = this.computePosition(arena, moveSequence);
+    
+    // Cache with LRU eviction
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, position);
+    
+    return position;
+  }
+  
+  /**
+   * Get available moves from position (computed, not stored)
+   */
+  getAvailableMoves(
+    arena: UniversalArena,
+    position: LegalPosition
+  ): ArenaMove[] {
+    // Compute valid next moves based on:
+    // 1. Unused addresses in arena
+    // 2. Current player
+    // 3. Enabling relation (must be justified)
+    // 4. Visibility constraint
+    
+    const usedAddresses = new Set(position.sequence.map(m => m.address));
+    const currentPlayer = position.currentPlayer;
+    
+    return arena.moves.filter(move => {
+      if (usedAddresses.has(move.address)) return false;
+      if (move.player !== currentPlayer) return false;
+      if (!move.isInitial && !this.hasJustifierInView(move, position)) return false;
+      return true;
+    });
+  }
+}
+```
+
+### 8.3 Simple AI Strategy
+
+Use greedy heuristics instead of expensive minimax:
+
+```typescript
+/**
+ * Simple greedy AI for game play
+ * Prioritizes moves that maximize immediate advantage
+ */
+export function computeGreedyMove(
+  position: LegalPosition,
+  arena: UniversalArena,
+  player: "P" | "O"
+): ArenaMove | null {
+  const availableMoves = getAvailableMoves(position, arena);
+  
+  if (availableMoves.length === 0) return null;
+  
+  // Score each move with simple heuristics
+  const scoredMoves = availableMoves.map(move => ({
+    move,
+    score: scoreMove(move, position, arena, player),
+  }));
+  
+  // Sort by score descending
+  scoredMoves.sort((a, b) => b.score - a.score);
+  
+  return scoredMoves[0].move;
+}
+
+/**
+ * Simple scoring heuristics
+ */
+function scoreMove(
+  move: ArenaMove,
+  position: LegalPosition,
+  arena: UniversalArena,
+  player: "P" | "O"
+): number {
+  let score = 0;
+  
+  // Prefer moves that open more sub-addresses (more options)
+  score += move.ramification.length * 10;
+  
+  // Prefer moves closer to root (more central)
+  score += (10 - move.address.length) * 5;
+  
+  // Prefer moves that limit opponent's options
+  const nextPosition = applyMove(position, move, arena);
+  if (nextPosition) {
+    const opponentMoves = getAvailableMoves(nextPosition, arena);
+    score += (10 - opponentMoves.length) * 3;
+  }
+  
+  // Bonus for terminal moves (winning)
+  if (nextPosition?.isTerminal) {
+    score += 1000;
+  }
+  
+  return score;
+}
+```
 
 ---
 

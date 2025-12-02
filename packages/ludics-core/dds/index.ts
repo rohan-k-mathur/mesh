@@ -66,3 +66,9 @@ export * as LudicsTypes from "./types/index";
 
 // Analysis - Saturation, Validation & Performance
 export * from "./analysis";
+
+// Arena - Universal Arena, Positions, Games
+export * as Arena from "./arena";
+
+// Game - Game Construction, Play, AI, Simulation
+export * as Game from "./game";
