@@ -64,6 +64,7 @@ export type SaturationClosureResult = {
   iterations: number;
   converged: boolean;
   addedPlays: number;
+  isSaturated: boolean;
 };
 
 // ============================================================================

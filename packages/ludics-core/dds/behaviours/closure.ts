@@ -3,13 +3,25 @@
  * 
  * Based on Faggian & Hyland (2002) - Definition 6.2
  * 
- * D⊥ = {E : ∀ F ∈ D, E ⊥ F}  (orthogonal set)
- * D⊥⊥ = (D⊥)⊥               (biorthogonal closure)
+ * Definition 6.1: S ⊥ T if S ∩ T = p (strategies orthogonal if one play in intersection)
  * 
- * A behaviour is a set B such that B⊥⊥ = B
+ * Definition 6.2: A behaviour/game G on arena ⊢<> is a set of innocent strategies
+ * on the same arena equal to its biorthogonal: G = G⊥⊥
+ * 
+ * For a set of designs/strategies S:
+ * - S⊥ = {T : ∀ D ∈ S, T ⊥ D}  (orthogonal set: all strategies orthogonal to everything in S)
+ * - S⊥⊥ = (S⊥)⊥                (biorthogonal closure: smallest behaviour containing S)
+ * 
+ * Key Properties:
+ * - S ⊆ S⊥⊥ (closure is always a superset)
+ * - S⊥⊥⊥ = S⊥ (odd number of ⊥ gives same result)
+ * - A set is a behaviour iff S = S⊥⊥
+ * 
+ * The biorthogonal closure S⊥⊥ is the smallest behaviour containing S.
  */
 
 import type { DesignForCorrespondence } from "../correspondence/types";
+import type { Strategy, Play } from "../strategy/types";
 import type {
   Behaviour,
   ClosureResult,
@@ -24,6 +36,7 @@ import {
   checkOrthogonalityRefined,
   checkOrthogonalityBasic,
   areOrthogonal,
+  checkStrategyOrthogonality,
 } from "./orthogonality";
 
 /**
@@ -36,12 +49,136 @@ const DEFAULT_CLOSURE_OPTIONS: Required<ClosureComputationOptions> = {
   timeout: 30000, // 30 seconds
 };
 
+// ============================================================================
+// Strategy-Level Biorthogonal Closure (Definition 6.2)
+// ============================================================================
+
+/**
+ * Compute strategy-level orthogonal set S⊥
+ * 
+ * S⊥ = {T : ∀ D ∈ S, T ⊥ D}
+ * 
+ * Returns all strategies from the candidate pool that are orthogonal to
+ * every strategy in the input set.
+ */
+export async function computeStrategyOrthogonal(
+  strategies: Strategy[],
+  candidatePool: Strategy[],
+  options?: ClosureComputationOptions
+): Promise<Strategy[]> {
+  const opts = { ...DEFAULT_CLOSURE_OPTIONS, ...options };
+  const orthogonal: Strategy[] = [];
+
+  // Cache for orthogonality checks
+  const orthCache = new Map<string, boolean>();
+
+  for (const candidate of candidatePool) {
+    // Skip strategies in the input set
+    const inInputSet = strategies.some((s) => s.id === candidate.id);
+    if (inInputSet) continue;
+
+    let isOrthogonalToAll = true;
+
+    for (const strategy of strategies) {
+      // Check cache first
+      const cacheKey = `${candidate.id}-${strategy.id}`;
+      const reverseCacheKey = `${strategy.id}-${candidate.id}`;
+
+      let isOrth: boolean;
+
+      if (orthCache.has(cacheKey)) {
+        isOrth = orthCache.get(cacheKey)!;
+      } else if (orthCache.has(reverseCacheKey)) {
+        isOrth = orthCache.get(reverseCacheKey)!;
+      } else {
+        // Compute strategy orthogonality (Definition 6.1)
+        const result = await checkStrategyOrthogonality(candidate, strategy);
+        isOrth = result.isOrthogonal;
+
+        if (opts.cacheIntermediates) {
+          orthCache.set(cacheKey, isOrth);
+        }
+      }
+
+      if (!isOrth) {
+        isOrthogonalToAll = false;
+        break;
+      }
+    }
+
+    if (isOrthogonalToAll) {
+      orthogonal.push(candidate);
+    }
+  }
+
+  return orthogonal;
+}
+
+/**
+ * Compute strategy-level biorthogonal closure S⊥⊥ (Definition 6.2)
+ * 
+ * S⊥⊥ = (S⊥)⊥
+ * 
+ * Computes the smallest behaviour containing the input strategies.
+ */
+export async function computeStrategyBiorthogonal(
+  strategies: Strategy[],
+  allStrategies: Strategy[],
+  options?: ClosureComputationOptions
+): Promise<{
+  closureStrategies: Strategy[];
+  iterations: number;
+  isComplete: boolean;
+}> {
+  const opts = { ...DEFAULT_CLOSURE_OPTIONS, ...options };
+  const startTime = Date.now();
+
+  let iteration = 0;
+  let currentSet = [...strategies];
+  let previousSize = 0;
+
+  while (iteration < opts.maxIterations && currentSet.length !== previousSize) {
+    if (Date.now() - startTime > opts.timeout) {
+      console.warn(`Strategy biorthogonal closure timed out after ${iteration} iterations`);
+      break;
+    }
+
+    previousSize = currentSet.length;
+    iteration++;
+
+    // Step 1: Compute S⊥
+    const orthogonal = await computeStrategyOrthogonal(currentSet, allStrategies, opts);
+
+    // Step 2: Compute (S⊥)⊥
+    const biorthogonal = await computeStrategyOrthogonal(orthogonal, allStrategies, opts);
+
+    // Merge with current set
+    const currentIds = new Set(currentSet.map((s) => s.id));
+    const newStrategies = biorthogonal.filter((s) => !currentIds.has(s.id));
+
+    currentSet = [...currentSet, ...newStrategies];
+  }
+
+  return {
+    closureStrategies: currentSet,
+    iterations: iteration,
+    isComplete: currentSet.length === previousSize,
+  };
+}
+
+// ============================================================================
+// Design-Level Biorthogonal Closure (Legacy/Compatibility)
+// ============================================================================
+
 /**
  * Compute orthogonal set D⊥ (Definition 6.2)
  * 
  * D⊥ = {E : ∀ F ∈ D, E ⊥ F}
  * 
  * Returns all designs that are orthogonal to every design in the input set.
+ * 
+ * Note: This operates at the design level. For theoretical purity,
+ * use computeStrategyOrthogonal which implements Definition 6.1 properly.
  */
 export async function computeOrthogonal(
   designs: DesignForCorrespondence[],

@@ -647,6 +647,10 @@ export function analyzeChronicles(chronicles: Chronicle[]): ChronicleAnalysis {
   // Analyze polarity patterns
   let startsPositive = true;
   let alternatesConsistently = true;
+  let hasMultipleDepths = false;
+
+  // Track depths for depth-based arrow detection
+  const depths = new Set<number>();
 
   for (const chronicle of chronicles) {
     if (chronicle.actions.length > 0) {
@@ -655,14 +659,33 @@ export function analyzeChronicles(chronicles: Chronicle[]): ChronicleAnalysis {
         startsPositive = false;
       }
 
-      // Check alternation
+      // Check explicit polarity alternation
+      let hasExplicitAlternation = true;
       for (let i = 1; i < chronicle.actions.length; i++) {
         if (chronicle.actions[i].polarity === chronicle.actions[i - 1].polarity) {
-          alternatesConsistently = false;
+          hasExplicitAlternation = false;
           break;
         }
       }
+
+      // Also check depth-based alternation (Faggian-Hyland semantics)
+      // Odd depth = P, Even depth = O
+      for (const action of chronicle.actions) {
+        const depth = action.focus?.split(".").filter(Boolean).length || 0;
+        depths.add(depth);
+      }
+
+      // If explicit alternation fails, check depth-based
+      if (!hasExplicitAlternation && depths.size < 2) {
+        alternatesConsistently = false;
+      }
     }
+  }
+
+  // Multiple depths indicates arrow pattern even without explicit polarity alternation
+  hasMultipleDepths = depths.size >= 2;
+  if (hasMultipleDepths) {
+    alternatesConsistently = true; // Depth-based alternation counts
   }
 
   return {
@@ -1193,9 +1216,32 @@ export async function inferDesignType(
     }))
   });
 
-  // Sort by confidence and pick best
-  candidates.sort((a, b) => b.confidence - a.confidence);
+  // Type specificity ranking: more specific types are preferred when confidence is equal
+  // arrow > product > sum > base > variable > unit > void
+  const typeSpecificity: Record<string, number> = {
+    arrow: 7,
+    product: 6,
+    sum: 5,
+    base: 4,
+    variable: 3,
+    unit: 2,
+    void: 1,
+  };
+
+  // Sort by confidence first, then by type specificity as tie-breaker
+  candidates.sort((a, b) => {
+    const confidenceDiff = b.confidence - a.confidence;
+    if (Math.abs(confidenceDiff) > 0.01) {
+      return confidenceDiff; // Significant confidence difference
+    }
+    // Tie-breaker: prefer more specific types
+    const specA = typeSpecificity[a.type.kind] || 0;
+    const specB = typeSpecificity[b.type.kind] || 0;
+    return specB - specA;
+  });
   const best = candidates[0];
+
+  log(`inferDesignType: Tie-breaker applied, specificity ranking used`);
 
   log(`inferDesignType: Selected best method: ${best.method} (confidence: ${best.confidence})`);
 

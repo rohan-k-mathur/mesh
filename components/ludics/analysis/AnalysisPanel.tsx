@@ -163,6 +163,7 @@ export function AnalysisPanel({
             />
             <SaturationPanel
               designId={designId}
+              deliberationId={deliberationId}
               strategyId={analysisState.correspondence.strategyId}
             />
           </div>

@@ -1,13 +1,26 @@
 /**
  * DDS Phase 5 - Part 3: Saturation Analysis
  * 
- * Based on Faggian & Hyland (2002) - Proposition 4.17
+ * Based on Faggian & Hyland (2002) - Propositions 4.17, 4.21
  * 
- * Strategy S is saturated if Views(S) = S
- * i.e., extracting views and reconstructing gives back the same strategy.
+ * Saturation Property (Prop 4.17):
+ *   Let T be any strategy and S an innocent strategy.
+ *   If Views(T) ⊆ S then T ⊆ S.
+ * 
+ * Isomorphism (Prop 4.21):
+ *   For innocent X-strategy S: Plays(Views(S)) = S
+ * 
+ * A strategy is saturated if extracting views and reconstructing
+ * via Plays(−) gives back the same strategy.
+ * 
+ * Key Definitions:
+ * - Views(S) = {p̄_X : p ∈ S} (extract player's moves from each play)
+ * - Plays(V) = iterative construction (Definition 4.11):
+ *   P₀(V) = minimal elements
+ *   Pₙ₊₁(V) = {pab : p ∈ Pₙ, ∃ cab ∈ V with p̄a = c̄a and pa legal}
  */
 
-import type { View } from "../types";
+import type { Action, View } from "../types";
 import type { Strategy, Play } from "../strategy/types";
 import type { DesignForCorrespondence } from "../correspondence/types";
 import type {
@@ -15,30 +28,36 @@ import type {
   SaturationProof,
   SaturationViolation,
   SaturationClosureResult,
-  createSaturationResult,
 } from "./types";
 
 /**
- * Check saturation property (Proposition 4.17)
+ * Check saturation property (Propositions 4.17, 4.21)
  * 
- * Strategy S is saturated if Views(S) = S
- * i.e., extracting views and reconstructing gives back the same strategy.
+ * For an innocent strategy S, we check: Plays(Views(S)) = S
+ * 
+ * This verifies that:
+ * 1. Views(S) ⊆ S (Prop 4.16 - closure under view)
+ * 2. Plays(Views(S)) = S (Prop 4.21 - isomorphism)
+ * 
+ * @param strategy - The strategy to check
+ * @param _allDesigns - Optional context (unused in current implementation)
+ * @returns SaturationResult with detailed analysis
  */
 export async function checkSaturation(
   strategy: Strategy,
-  allDesigns: DesignForCorrespondence[]
-): Promise<SaturationResult> {
-  // Step 1: Extract all views from strategy
+  _allDesigns?: DesignForCorrespondence[]
+): Promise<SaturationResult & { viewsEqualStrategy: boolean; details: any }> {
+  // Step 1: Extract all views from strategy - Views(S)
   const views = await extractViewsFromStrategy(strategy);
 
-  // Step 2: Compute Plays(views) to reconstruct strategy
+  // Step 2: Compute Plays(Views(S)) to reconstruct strategy
   const playsResult = await computePlaysFromViews(views, strategy.player);
 
   // Step 3: Compare reconstructed strategy with original
   const originalPlayIds = new Set(strategy.plays.map((p) => playToKey(p)));
   const reconstructedPlayIds = new Set(playsResult.plays.map((p) => playToKey(p)));
 
-  // Check forward containment: original ⊆ reconstructed
+  // Check forward containment: original ⊆ Plays(Views(S))
   const missingInReconstructed: string[] = [];
   for (const playKey of originalPlayIds) {
     if (!reconstructedPlayIds.has(playKey)) {
@@ -46,7 +65,7 @@ export async function checkSaturation(
     }
   }
 
-  // Check backward containment: reconstructed ⊆ original
+  // Check backward containment: Plays(Views(S)) ⊆ original
   const extraInReconstructed: string[] = [];
   for (const playKey of reconstructedPlayIds) {
     if (!originalPlayIds.has(playKey)) {
@@ -54,8 +73,12 @@ export async function checkSaturation(
     }
   }
 
+  // Saturation: Plays(Views(S)) = S (bidirectional equality)
   const isSaturated =
     missingInReconstructed.length === 0 && extraInReconstructed.length === 0;
+  
+  // Views equal strategy check (Prop 4.16 variant)
+  const viewsEqualStrategy = isSaturated;
 
   // Build violations if not saturated
   const violations: SaturationViolation[] = [];
@@ -64,7 +87,7 @@ export async function checkSaturation(
     violations.push({
       type: "missing",
       itemIds: missingInReconstructed,
-      description: `${missingInReconstructed.length} plays from original not in reconstructed`,
+      description: `${missingInReconstructed.length} plays from original not in Plays(Views(S))`,
     });
   }
 
@@ -72,13 +95,31 @@ export async function checkSaturation(
     violations.push({
       type: "extra",
       itemIds: extraInReconstructed,
-      description: `${extraInReconstructed.length} extra plays in reconstructed`,
+      description: `${extraInReconstructed.length} extra plays in Plays(Views(S))`,
     });
   }
+
+  // Build detailed analysis
+  const details = {
+    viewCount: views.length,
+    originalPlayCount: strategy.plays.length,
+    reconstructedPlayCount: playsResult.plays.length,
+    missingCount: missingInReconstructed.length,
+    extraCount: extraInReconstructed.length,
+    prop417: "Saturation: If Views(T) ⊆ S then T ⊆ S",
+    prop421: "Isomorphism: Plays(Views(S)) = S for innocent S",
+    interpretation: isSaturated
+      ? "Strategy is saturated - all plays are determined by views (innocent)"
+      : extraInReconstructed.length > 0
+        ? "Strategy is missing plays required by innocence condition"
+        : "Strategy has plays not derivable from views",
+  };
 
   return {
     strategyId: strategy.id,
     isSaturated,
+    viewsEqualStrategy,
+    details,
     proof: isSaturated
       ? {
           iterations: 1,
@@ -122,16 +163,28 @@ async function extractViewsFromStrategy(strategy: Strategy): Promise<View[]> {
 }
 
 /**
- * Compute Plays from views (minimal innocent strategy containing views)
+ * Compute Plays from views - Definition 4.11 (Faggian & Hyland)
+ * 
+ * This implements the iterative construction:
+ * - P₀(V) = {p ∈ V : p is minimal for ⊑}
+ * - Pₙ₊₁(V) = {pab : p ∈ Pₙ(V), ∃ cab ∈ V with p̄a = c̄a and pa legal}
+ * - Plays(V) = ∪ₙ Pₙ(V)
+ * 
+ * For a view-stable strategy V, Plays(V) is the smallest innocent strategy
+ * containing V (Proposition 4.20).
  */
 async function computePlaysFromViews(
   views: View[],
   player: "P" | "O"
 ): Promise<{ plays: Play[] }> {
-  const plays: Play[] = [];
-  const seenPlays = new Set<string>();
+  const allPlays: Play[] = [];
+  const seenPlayKeys = new Set<string>();
 
-  // For each view, generate plays that realize it
+  // P₀(V): Start with minimal views (those that are prefixes of nothing else)
+  // In practice, since views are player-actions-only, we include all views
+  // and then extend them based on the innocence condition
+  let currentLevel: Play[] = [];
+  
   for (const view of views) {
     const play: Play = {
       id: `play-${view.id}`,
@@ -142,15 +195,88 @@ async function computePlaysFromViews(
         view.sequence[view.sequence.length - 1].polarity === player,
       view: view,
     };
-
-    const playKey = playToKey(play);
-    if (!seenPlays.has(playKey)) {
-      seenPlays.add(playKey);
-      plays.push(play);
+    
+    const key = playToKey(play);
+    if (!seenPlayKeys.has(key)) {
+      seenPlayKeys.add(key);
+      currentLevel.push(play);
+      allPlays.push(play);
     }
   }
 
-  return { plays };
+  // Iteratively extend plays using the saturation/innocence condition:
+  // If p ∈ Pₙ and ∃ cab ∈ V with p̄a = c̄a (same view at a), then pab ∈ Pₙ₊₁
+  // This ensures all plays with the same view get the same response
+  let changed = true;
+  let iterations = 0;
+  const maxIterations = 100; // Safety limit
+
+  while (changed && iterations < maxIterations) {
+    changed = false;
+    iterations++;
+    const nextLevel: Play[] = [];
+
+    for (const play of currentLevel) {
+      // Extract the view of the current play
+      const playView = extractViewFromSequence(play.sequence, player);
+      
+      // Look for views that extend this view
+      for (const view of views) {
+        // Check if view is an extension of playView
+        if (view.sequence.length > playView.length) {
+          // Check if view starts with playView
+          const viewPrefix = view.sequence.slice(0, playView.length);
+          if (sequencesMatch(viewPrefix, playView)) {
+            // view extends playView - extract the extension
+            const extension = view.sequence.slice(playView.length);
+            
+            // Create extended play
+            const extendedSequence = [...play.sequence, ...extension];
+            const extendedPlay: Play = {
+              id: `play-extended-${iterations}-${nextLevel.length}`,
+              strategyId: "",
+              sequence: extendedSequence,
+              length: extendedSequence.length,
+              isPositive: extendedSequence.length > 0 &&
+                extendedSequence[extendedSequence.length - 1].polarity === player,
+            };
+            
+            const key = playToKey(extendedPlay);
+            if (!seenPlayKeys.has(key)) {
+              seenPlayKeys.add(key);
+              nextLevel.push(extendedPlay);
+              allPlays.push(extendedPlay);
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+
+    currentLevel = nextLevel;
+  }
+
+  return { plays: allPlays };
+}
+
+/**
+ * Extract view (player's actions only) from a sequence
+ */
+function extractViewFromSequence(sequence: Action[], player: "P" | "O"): Action[] {
+  return sequence.filter(action => action.polarity === player);
+}
+
+/**
+ * Check if two action sequences match
+ */
+function sequencesMatch(seq1: Action[], seq2: Action[]): boolean {
+  if (seq1.length !== seq2.length) return false;
+  for (let i = 0; i < seq1.length; i++) {
+    if (seq1[i].focus !== seq2[i].focus || seq1[i].polarity !== seq2[i].polarity) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -174,28 +300,38 @@ function viewToKey(view: View): string {
 /**
  * Compute saturation closure
  * 
- * Repeatedly apply Views/Plays until fixpoint (saturated strategy)
+ * Repeatedly apply Views/Plays until fixpoint (saturated strategy).
+ * This computes the smallest innocent strategy containing the original.
+ * 
+ * Based on Proposition 4.20: Plays(V) is the smallest innocent strategy
+ * which contains V (for V stable under view).
+ * 
+ * @param strategy - The strategy to saturate
+ * @param _allDesigns - Optional context (unused in current implementation)
+ * @param maxIterations - Maximum iterations before stopping
  */
 export async function computeSaturationClosure(
   strategy: Strategy,
-  allDesigns: DesignForCorrespondence[],
+  _allDesigns?: DesignForCorrespondence[],
   maxIterations: number = 10
-): Promise<SaturationClosureResult> {
+): Promise<SaturationClosureResult & { closedStrategy: Strategy }> {
   let currentStrategy = strategy;
   let iteration = 0;
   let addedPlays = 0;
 
   while (iteration < maxIterations) {
-    const satCheck = await checkSaturation(currentStrategy, allDesigns);
+    const satCheck = await checkSaturation(currentStrategy);
 
     if (satCheck.isSaturated) {
       // Already saturated - done
       return {
         originalStrategyId: strategy.id,
         saturatedStrategy: currentStrategy,
+        closedStrategy: currentStrategy, // Alias for API compatibility
         iterations: iteration,
         converged: true,
         addedPlays,
+        isSaturated: true,
       };
     }
 
@@ -230,14 +366,16 @@ export async function computeSaturationClosure(
   }
 
   // Check final saturation
-  const finalCheck = await checkSaturation(currentStrategy, allDesigns);
+  const finalCheck = await checkSaturation(currentStrategy);
 
   return {
     originalStrategyId: strategy.id,
     saturatedStrategy: currentStrategy,
+    closedStrategy: currentStrategy, // Alias for API compatibility
     iterations: iteration,
     converged: finalCheck.isSaturated,
     addedPlays,
+    isSaturated: finalCheck.isSaturated,
   };
 }
 
@@ -277,26 +415,31 @@ export async function checkViewStability(
 /**
  * Get saturation deficiency
  * 
- * Returns plays that need to be added for saturation
+ * Returns plays that need to be added for saturation.
+ * These are plays in Plays(Views(S)) that are not in S.
+ * 
+ * @param strategy - The strategy to analyze
+ * @param _allDesigns - Optional context (unused)
+ * @returns Object with deficiency count and missing plays
  */
 export async function getSaturationDeficiency(
   strategy: Strategy,
-  allDesigns: DesignForCorrespondence[]
-): Promise<Play[]> {
-  const satCheck = await checkSaturation(strategy, allDesigns);
+  _allDesigns?: DesignForCorrespondence[]
+): Promise<{ deficiency: number; missingPlays: Play[] }> {
+  const satCheck = await checkSaturation(strategy);
 
   if (satCheck.isSaturated) {
-    return [];
+    return { deficiency: 0, missingPlays: [] };
   }
 
-  // Find missing plays
-  const missingViolation = satCheck.violations?.find((v) => v.type === "missing");
-  if (!missingViolation) {
-    return [];
+  // Find plays that should be added (from "extra" violations - plays in Plays(Views(S)) not in S)
+  const extraViolation = satCheck.violations?.find((v) => v.type === "extra");
+  if (!extraViolation) {
+    return { deficiency: 0, missingPlays: [] };
   }
 
-  // Convert violation to plays (simplified)
-  const missingPlays: Play[] = missingViolation.itemIds.map((key, i) => ({
+  // Convert violation to plays
+  const missingPlays: Play[] = extraViolation.itemIds.map((key, i) => ({
     id: `missing-play-${i}`,
     strategyId: strategy.id,
     sequence: parsePlayKey(key),
@@ -304,7 +447,10 @@ export async function getSaturationDeficiency(
     isPositive: true,
   }));
 
-  return missingPlays;
+  return {
+    deficiency: missingPlays.length,
+    missingPlays,
+  };
 }
 
 /**

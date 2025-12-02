@@ -7,7 +7,8 @@
  * - Incarnation checking (lax and sharp)
  * - Type system (base, arrow, product, sum types)
  * - Type inference (structural, behavioural, and chronicle-based)
- * - Type checking and equivalence
+ * - Type checking (D : A judgment verification)
+ * - Type equivalence
  */
 
 // Types
@@ -58,3 +59,10 @@ export {
   computeChronicleConfidence,
   type ChronicleAnalysis,
 } from "./inference";
+
+// Type checking (D : A judgment)
+export {
+  checkDesignType,
+  typeToString,
+  type TypeCheckOptions,
+} from "./typecheck";

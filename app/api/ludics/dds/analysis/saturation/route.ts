@@ -57,9 +57,9 @@ export async function POST(req: NextRequest) {
         plays: strategyRecord.plays.map((p) => ({
           id: p.id,
           strategyId: p.strategyId,
-          sequence: (p.actions as any) || [],
-          length: (p.actions as any[])?.length || 0,
-          isPositive: (p.actions as any[])?.slice(-1)[0]?.polarity === player,
+          sequence: (p.sequence as any) || [],
+          length: (p.sequence as any[])?.length || p.length || 0,
+          isPositive: p.isPositive,
         })),
         isInnocent: strategyRecord.isInnocent,
       };
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     if (mode === "check") {
       // Standard saturation check
-      const result = checkSaturation(strategy);
+      const result = await checkSaturation(strategy);
 
       return NextResponse.json({
         ok: true,
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       });
     } else if (mode === "closure") {
       // Compute saturation closure
-      const result = computeSaturationClosure(strategy);
+      const result = await computeSaturationClosure(strategy);
 
       return NextResponse.json({
         ok: true,
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       });
     } else if (mode === "deficiency") {
       // Compute saturation deficiency
-      const result = getSaturationDeficiency(strategy);
+      const result = await getSaturationDeficiency(strategy);
 
       return NextResponse.json({
         ok: true,

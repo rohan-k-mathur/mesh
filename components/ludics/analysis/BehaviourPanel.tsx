@@ -211,11 +211,16 @@ export function BehaviourPanel({ strategyId, designId, deliberationId, onStrateg
         <div className="space-y-4">
           {/* Explanation */}
           <div className="text-xs text-slate-600 bg-purple-50 border border-purple-200 rounded p-3">
-            <strong>Orthogonality (⊥)</strong>
+            <strong>Orthogonality (⊥) — Definition 6.1</strong>
             <p className="mt-1">
-              Two designs D and E are <em>orthogonal</em> (D ⊥ E) if their interaction normalizes
-              to a successful termination. This extends to strategies: S ⊥ T if every pair (D, E)
-              with D ∈ S and E ∈ T is orthogonal.
+              Two strategies S and T of opposite polarities are <em>orthogonal</em> (S ⊥ T) if
+              they intersect in exactly one play: <strong>S ∩ T = p</strong>
+            </p>
+            <div className="font-mono text-center my-2 text-purple-700">
+              S ⊥ T &nbsp;⟺&nbsp; |S ∩ T| = 1
+            </div>
+            <p className="mt-1 text-[10px] text-slate-500">
+              This means when the strategies interact, they converge to a single deterministic outcome.
             </p>
           </div>
 
@@ -361,14 +366,20 @@ export function BehaviourPanel({ strategyId, designId, deliberationId, onStrateg
         <div className="space-y-4">
           {/* Explanation */}
           <div className="text-xs text-slate-600 bg-indigo-50 border border-indigo-200 rounded p-3">
-            <strong>Biorthogonal Closure (S⊥⊥)</strong>
+            <strong>Biorthogonal Closure (S⊥⊥) — Definition 6.2</strong>
             <p className="mt-1">
-              The biorthogonal closure S⊥⊥ of a strategy S contains all designs orthogonal to everything
-              orthogonal to S. This is the smallest <em>behaviour</em> containing S.
+              A <em>behaviour</em> G is a set of innocent strategies equal to its biorthogonal: G = G⊥⊥.
+              The biorthogonal closure S⊥⊥ is the smallest behaviour containing S.
             </p>
             <div className="font-mono text-center my-2 text-indigo-700">
-              S⊥⊥ = {"{"} D | ∀E ∈ S⊥. D ⊥ E {"}"}
+              S⊥ = {"{"} T | ∀D ∈ S. T ⊥ D {"}"} &nbsp;&nbsp;(orthogonal set)
             </div>
+            <div className="font-mono text-center my-2 text-indigo-700">
+              S⊥⊥ = (S⊥)⊥ &nbsp;&nbsp;(biorthogonal closure)
+            </div>
+            <p className="mt-1 text-[10px] text-slate-500">
+              Based on Definition 6.1: Two strategies S ⊥ T are orthogonal if S ∩ T = p (exactly one play in intersection).
+            </p>
           </div>
 
           {/* Action */}

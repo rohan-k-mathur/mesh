@@ -139,6 +139,107 @@ export type IncarnationCheck = {
 };
 
 // ============================================================================
+// Type Checking Types (D : A judgment)
+// ============================================================================
+
+/**
+ * Type check result - verifies D : A judgment
+ * 
+ * A design D has type A if:
+ * 1. Structural: D's structure matches A's structure
+ * 2. Behavioral: D is orthogonal to all counter-designs of A⊥
+ * 3. Inference: Inferred type of D matches or is subtype of A
+ */
+export type TypeCheckResult = {
+  /** Design being checked */
+  designId: string;
+  /** Target type structure */
+  targetType: TypeStructure;
+  /** Overall result */
+  isValid: boolean;
+  /** Confidence score (0-1) */
+  confidence: number;
+  /** Method used for checking */
+  method: TypeCheckMethod;
+  /** Detailed analysis */
+  analysis: TypeCheckAnalysis;
+  /** Human-readable judgment string */
+  judgment: string;
+  /** Timestamp of check */
+  checkedAt: Date;
+};
+
+export type TypeCheckMethod =
+  | "structural"   // Check design structure matches type structure
+  | "inference"    // Infer type and compare
+  | "orthogonality" // Check orthogonality with counter-designs
+  | "combined";    // Use multiple methods
+
+/**
+ * Detailed type check analysis
+ */
+export type TypeCheckAnalysis = {
+  /** Structural match details */
+  structural?: {
+    /** Does structure match? */
+    matches: boolean;
+    /** Pattern detected in design */
+    designPattern: TypeStructureKind;
+    /** Target type kind */
+    targetKind: TypeStructureKind;
+    /** Specific mismatches */
+    mismatches?: TypeMismatch[];
+    /** Depth comparison */
+    depthMatch?: boolean;
+    /** Branching comparison */
+    branchingMatch?: boolean;
+  };
+  /** Inference-based comparison */
+  inference?: {
+    /** Inferred type */
+    inferredType: TypeStructure;
+    /** Inference confidence */
+    inferenceConfidence: number;
+    /** Does inferred match target? */
+    typesMatch: boolean;
+    /** Unification result if applicable */
+    unification?: Map<string, TypeStructure> | null;
+    /** Is inferred a subtype of target? */
+    isSubtype?: boolean;
+  };
+  /** Orthogonality-based check */
+  orthogonality?: {
+    /** Number of counter-designs tested */
+    counterDesignsTested: number;
+    /** All orthogonality checks passed */
+    allOrthogonal: boolean;
+    /** Failed orthogonality checks */
+    failedChecks?: Array<{
+      counterDesignId: string;
+      reason: string;
+    }>;
+  };
+  /** Why check failed (if applicable) */
+  failureReason?: string;
+  /** Suggestions for fixing type mismatch */
+  suggestions?: string[];
+};
+
+/**
+ * Type mismatch detail
+ */
+export type TypeMismatch = {
+  /** Path to mismatch in type tree */
+  path: string;
+  /** Expected structure */
+  expected: TypeStructureKind;
+  /** Actual structure found */
+  actual: TypeStructureKind;
+  /** Additional context */
+  context?: string;
+};
+
+// ============================================================================
 // Typing Judgment Types
 // ============================================================================
 

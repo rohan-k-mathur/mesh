@@ -3,12 +3,24 @@
  * 
  * Based on Faggian & Hyland (2002) - Definition 6.1
  * 
- * D ⊥ E iff for all disputes [D F] and [E G], [D F] ∩ [E G] converges
+ * Definition 6.1 (Orthogonality): S ⊥ T if S ∩ T = p
+ * Two strategies belonging to opposite players are orthogonal if they
+ * intersect in exactly one play p.
+ * 
+ * For designs (as representatives of strategies), orthogonality is checked
+ * by verifying that the interaction normalizes to a successful termination.
+ * 
+ * Key theoretical points:
+ * - Orthogonality is defined on STRATEGIES, not designs
+ * - A strategy is a set of plays (innocent: determined by views)
+ * - S ⊥ T means the strategies share exactly one play when interacting
+ * - This play is the result of normalization (cut elimination)
  * 
  * Orthogonality is the fundamental relation that defines behaviours.
  */
 
 import type { Action, Dispute } from "../types";
+import type { Strategy, Play } from "../strategy/types";
 import type { DesignForCorrespondence } from "../correspondence/types";
 import type {
   OrthogonalityResult,
@@ -17,6 +29,78 @@ import type {
   IntersectionTraceStep,
   createOrthogonalityResult,
 } from "./types";
+
+// ============================================================================
+// Strategy-Level Orthogonality (Definition 6.1)
+// ============================================================================
+
+/**
+ * Check strategy-level orthogonality (Definition 6.1)
+ * 
+ * S ⊥ T if S ∩ T = p (exactly one play in intersection)
+ * 
+ * Two strategies are orthogonal if when played against each other,
+ * they produce exactly one resulting play (convergent interaction).
+ */
+export async function checkStrategyOrthogonality(
+  strategy1: Strategy,
+  strategy2: Strategy
+): Promise<{
+  isOrthogonal: boolean;
+  intersectionPlay?: Play;
+  intersectionSize: number;
+  reason?: string;
+}> {
+  // Strategies must be of opposite polarity
+  if (strategy1.player === strategy2.player) {
+    return {
+      isOrthogonal: false,
+      intersectionSize: 0,
+      reason: `Both strategies are ${strategy1.player}-strategies. Orthogonality requires opposite polarities.`,
+    };
+  }
+
+  // Compute intersection of play sets
+  // Two plays "intersect" if they represent the same interaction
+  const plays1Keys = new Set(strategy1.plays.map(p => playToKey(p)));
+  const plays2Keys = new Set(strategy2.plays.map(p => playToKey(p)));
+  
+  // Find common plays (by key)
+  const intersection: Play[] = [];
+  for (const play of strategy1.plays) {
+    const key = playToKey(play);
+    if (plays2Keys.has(key)) {
+      intersection.push(play);
+    }
+  }
+
+  // Orthogonality: exactly one play in intersection
+  const isOrthogonal = intersection.length === 1;
+
+  return {
+    isOrthogonal,
+    intersectionPlay: intersection.length === 1 ? intersection[0] : undefined,
+    intersectionSize: intersection.length,
+    reason: isOrthogonal
+      ? "Strategies intersect in exactly one play"
+      : intersection.length === 0
+        ? "No common plays - strategies don't interact"
+        : `Multiple intersection plays (${intersection.length}) - not deterministic`,
+  };
+}
+
+/**
+ * Helper: Convert play to unique key for comparison
+ */
+function playToKey(play: Play): string {
+  return play.sequence
+    .map((action) => `${action.focus}:${action.polarity}`)
+    .join("-");
+}
+
+// ============================================================================
+// Design-Level Orthogonality (Derived from Strategy Orthogonality)
+// ============================================================================
 
 /**
  * Check orthogonality via dispute intersection (Definition 6.1)

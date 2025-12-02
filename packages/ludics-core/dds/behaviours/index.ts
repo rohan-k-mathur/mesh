@@ -3,9 +3,13 @@
  * 
  * Based on Faggian & Hyland (2002) - §6: Orthogonality and Behaviours
  * 
+ * Key Definitions:
+ * - Definition 6.1: S ⊥ T if S ∩ T = p (strategies orthogonal if one play in intersection)
+ * - Definition 6.2: A behaviour/game G is a set of innocent strategies equal to G⊥⊥
+ * 
  * This module implements:
- * - Orthogonality checking (basic and refined via dispute intersection)
- * - Biorthogonal closure computation (D⊥⊥)
+ * - Orthogonality checking (strategy-level and design-level)
+ * - Biorthogonal closure computation (S⊥⊥)
  * - Behaviour creation and validation
  * - Game construction from behaviours
  */
@@ -15,6 +19,7 @@ export * from "./types";
 
 // Orthogonality operations
 export {
+  checkStrategyOrthogonality,  // Definition 6.1: S ⊥ T
   checkOrthogonalityRefined,
   checkOrthogonalityBasic,
   areOrthogonal,
@@ -24,6 +29,10 @@ export {
 
 // Closure operations
 export {
+  // Strategy-level (Definition 6.2)
+  computeStrategyOrthogonal,
+  computeStrategyBiorthogonal,
+  // Design-level (legacy compatibility)
   computeOrthogonal,
   computeBiorthogonal,
   isBehaviour,
