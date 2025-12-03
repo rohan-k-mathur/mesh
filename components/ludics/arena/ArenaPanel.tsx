@@ -51,6 +51,10 @@ interface ArenaPanelProps {
   selectedBehaviourId?: string;
   className?: string;
   onArenaChange?: (arena: UniversalArena | null) => void;
+  /** Called when user selects an arena */
+  onArenaSelect?: (arenaId: string) => void;
+  /** Currently selected arena ID (for highlighting) */
+  selectedArenaId?: string | null;
 }
 
 export function ArenaPanel({
@@ -59,6 +63,8 @@ export function ArenaPanel({
   selectedBehaviourId,
   className,
   onArenaChange,
+  onArenaSelect,
+  selectedArenaId,
 }: ArenaPanelProps) {
   const [viewMode, setViewMode] = React.useState<ViewMode>("tree");
   const [selectedPosition, setSelectedPosition] = React.useState<LegalPosition | null>(null);
@@ -81,7 +87,10 @@ export function ArenaPanel({
   // Notify parent of arena changes
   React.useEffect(() => {
     onArenaChange?.(arena);
-  }, [arena, onArenaChange]);
+    if (arena?.id) {
+      onArenaSelect?.(arena.id);
+    }
+  }, [arena, onArenaChange, onArenaSelect]);
 
   // Create new arena
   const createArena = async () => {

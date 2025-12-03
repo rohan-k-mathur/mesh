@@ -25,6 +25,9 @@ import {
 import type { LudicsGame, GamePlayState, AIDifficulty } from "@/packages/ludics-core/dds/game";
 import type { UniversalArena } from "@/packages/ludics-core/dds/arena";
 
+// In-memory game state storage (for demo purposes)
+const gameStates = new Map<string, GamePlayState>();
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -58,17 +61,23 @@ export async function POST(req: NextRequest) {
       strategies: [],
     };
 
-    // Decode or initialize game state
+    // Decode, retrieve from cache, or initialize game state
     let state: GamePlayState;
     if (encodedState) {
       state = decodeGameState(encodedState, arena);
+    } else if (gameStates.has(game.id)) {
+      // Use cached state for this game
+      state = gameStates.get(game.id)!;
     } else {
       state = initializeGame(game);
     }
 
     switch (action) {
       case "initialize": {
-        // Return initial game state
+        // Initialize and cache state
+        state = initializeGame(game);
+        gameStates.set(game.id, state);
+        
         const encoded = encodeGameState(state);
         const available = getGameAvailableMoves(state, game);
 
@@ -109,10 +118,13 @@ export async function POST(req: NextRequest) {
         const newState = makeGameMove(state, arenaMove, game, "manual");
         if (!newState) {
           return NextResponse.json(
-            { ok: false, error: "Invalid move" },
+            { ok: false, error: `Invalid move: expected ${state.currentPosition.currentPlayer} to move, got address "${move.address}" (player ${arenaMove.player})` },
             { status: 400 }
           );
         }
+
+        // Cache the new state
+        gameStates.set(game.id, newState);
 
         const encoded = encodeGameState(newState);
         const available = getGameAvailableMoves(newState, game);
@@ -158,6 +170,9 @@ export async function POST(req: NextRequest) {
             { status: 500 }
           );
         }
+
+        // Cache the new state
+        gameStates.set(game.id, newState);
 
         const encoded = encodeGameState(newState);
         const available = getGameAvailableMoves(newState, game);

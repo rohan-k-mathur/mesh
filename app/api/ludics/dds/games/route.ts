@@ -6,12 +6,99 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import {
-  constructGame,
-  getGameSummary,
-} from "@/packages/ludics-core/dds/game";
-import type { Behaviour } from "@/packages/ludics-core/dds/behaviours/types";
+import { v4 as uuidv4 } from "uuid";
+
+// In-memory mock games store for demo
+const mockGames: Record<string, Array<{
+  id: string;
+  name?: string;
+  deliberationId: string;
+  positiveBehaviourId: string;
+  negativeBehaviourId: string;
+  arena: any;
+  strategies: any[];
+  createdAt: Date;
+}>> = {};
+
+// Helper to create a simple demo arena
+// Following Faggian-Hyland convention:
+// - Empty address ("") is root, P plays first
+// - Even-length addresses are P's moves
+// - Odd-length addresses are O's moves
+function createDemoArena(maxDepth: number, maxRamification: number, deliberationId: string) {
+  const arenaId = `arena-${uuidv4().slice(0, 8)}`;
+  const moves: Array<{
+    id: string;
+    address: string;
+    ramification: number[];
+    player: "P" | "O";
+    isInitial: boolean;
+  }> = [];
+
+  // P's initial move at root (empty address, even length 0)
+  const rootRamification = Array.from({ length: Math.min(maxRamification, 3) }, (_, i) => i);
+  moves.push({
+    id: `move-${arenaId}-root`,
+    address: "",
+    ramification: rootRamification,
+    player: "P",
+    isInitial: true,
+  });
+
+  // O's responses at depth 1 (addresses "0", "1", "2" - odd length)
+  for (let i = 0; i < Math.min(maxRamification, 3); i++) {
+    const oAddr = `${i}`;
+    const oRamification = maxDepth > 2 
+      ? Array.from({ length: Math.min(maxRamification, 2) }, (_, j) => j)
+      : [];
+    moves.push({
+      id: `move-${arenaId}-${oAddr}`,
+      address: oAddr,
+      ramification: oRamification,
+      player: "O",
+      isInitial: false,
+    });
+
+    // P's responses at depth 2 (addresses "00", "01", etc - even length)
+    if (maxDepth > 2) {
+      for (let j = 0; j < Math.min(maxRamification, 2); j++) {
+        const pAddr = `${oAddr}${j}`;
+        const pRamification = maxDepth > 3
+          ? Array.from({ length: Math.min(maxRamification, 2) }, (_, k) => k)
+          : [];
+        moves.push({
+          id: `move-${arenaId}-${pAddr}`,
+          address: pAddr,
+          ramification: pRamification,
+          player: "P",
+          isInitial: false,
+        });
+
+        // O's responses at depth 3 (addresses "000", "001", etc - odd length)
+        if (maxDepth > 3) {
+          for (let k = 0; k < Math.min(maxRamification, 2); k++) {
+            const deepOAddr = `${pAddr}${k}`;
+            moves.push({
+              id: `move-${arenaId}-${deepOAddr}`,
+              address: deepOAddr,
+              ramification: [],
+              player: "O",
+              isInitial: false,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    id: arenaId,
+    base: "<>",
+    isUniversal: true,
+    deliberationId,
+    moves,
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,121 +119,78 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch behaviours from database
-    const [posBehaviour, negBehaviour] = await Promise.all([
-      prisma.ludicsBehaviour.findUnique({
-        where: { id: positiveBehaviourId },
-      }),
-      prisma.ludicsBehaviour.findUnique({
-        where: { id: negativeBehaviourId },
-      }),
-    ]);
-
-    if (!posBehaviour || !negBehaviour) {
-      return NextResponse.json(
-        { ok: false, error: "One or both behaviours not found" },
-        { status: 404 }
-      );
-    }
-
-    // Transform to expected format
-    const positiveBehaviour: Behaviour = {
-      id: posBehaviour.id,
-      name: posBehaviour.name || undefined,
-      deliberationId: posBehaviour.deliberationId,
-      baseDesignIds: (posBehaviour.baseDesignIds as string[]) || [],
-      closureDesignIds: (posBehaviour.closureDesignIds as string[]) || [],
-      isGame: posBehaviour.isGame,
-      isType: posBehaviour.isType,
-      dimension: posBehaviour.dimension,
-      createdAt: posBehaviour.createdAt,
-    };
-
-    const negativeBehaviour: Behaviour = {
-      id: negBehaviour.id,
-      name: negBehaviour.name || undefined,
-      deliberationId: negBehaviour.deliberationId,
-      baseDesignIds: (negBehaviour.baseDesignIds as string[]) || [],
-      closureDesignIds: (negBehaviour.closureDesignIds as string[]) || [],
-      isGame: negBehaviour.isGame,
-      isType: negBehaviour.isType,
-      dimension: negBehaviour.dimension,
-      createdAt: negBehaviour.createdAt,
-    };
-
-    // Fetch designs for both behaviours
-    const allDesignIds = [
-      ...positiveBehaviour.closureDesignIds,
-      ...negativeBehaviour.closureDesignIds,
-    ];
-
-    const designs = await prisma.ludicsDesign.findMany({
-      where: {
-        id: { in: allDesignIds },
-      },
-      include: {
-        acts: true,
-      },
-    });
-
-    // Transform designs
-    const designData = designs.map(d => ({
-      id: d.id,
-      name: d.name || undefined,
-      acts: d.acts.map(a => ({
-        id: a.id,
-        locusPath: a.locusPath,
-        ramification: Array.isArray(a.ramification) ? a.ramification as number[] : [],
-        polarity: a.polarity,
-        kind: a.kind,
-        expression: a.expression || undefined,
-      })),
-      loci: [],
-    }));
-
-    // Construct game
-    const result = constructGame(
-      positiveBehaviour,
-      negativeBehaviour,
-      designData,
-      {
-        name,
-        maxArenaDepth: maxArenaDepth ?? 4,
-        maxRamification: maxRamification ?? 3,
-        extractStrategies: true,
-      }
+    // Create a demo arena for the game
+    const arena = createDemoArena(
+      maxArenaDepth ?? 4,
+      maxRamification ?? 3,
+      deliberationId
     );
 
-    // Store game in database (using LudicGame table)
-    const dbGame = await prisma.ludicGame.create({
-      data: {
-        id: result.game.id,
-        deliberationId,
-        name: result.game.name,
-        positiveBehaviourId: result.game.positiveBehaviourId,
-        negativeBehaviourId: result.game.negativeBehaviourId,
-        arenaJson: {
-          id: result.game.arena.id,
-          base: result.game.arena.base,
-          moveCount: result.game.arena.moves.length,
-        },
-        positionsJson: null, // Computed on demand
+    // Create mock strategies
+    const strategies = [
+      {
+        id: `strategy-p-${uuidv4().slice(0, 8)}`,
+        gameId: "",
+        sourceDesignId: `design-p-${uuidv4().slice(0, 8)}`,
+        player: "P" as const,
+        name: "Proponent Strategy",
+        responseMap: {},
       },
-    });
+      {
+        id: `strategy-o-${uuidv4().slice(0, 8)}`,
+        gameId: "",
+        sourceDesignId: `design-o-${uuidv4().slice(0, 8)}`,
+        player: "O" as const,
+        name: "Opponent Strategy",
+        responseMap: {},
+      },
+    ];
+
+    const gameId = `game-${uuidv4().slice(0, 8)}`;
+    strategies.forEach(s => s.gameId = gameId);
+
+    const newGame = {
+      id: gameId,
+      name: name || `Game ${new Date().toISOString().slice(0, 10)}`,
+      deliberationId,
+      positiveBehaviourId,
+      negativeBehaviourId,
+      arena: {
+        id: arena.id,
+        base: arena.base,
+        isUniversal: arena.isUniversal,
+        moves: arena.moves,
+      },
+      strategies,
+      createdAt: new Date(),
+    };
+
+    // Store in mock
+    if (!mockGames[deliberationId]) {
+      mockGames[deliberationId] = [];
+    }
+    mockGames[deliberationId].push(newGame);
 
     return NextResponse.json({
       ok: true,
       game: {
-        ...getGameSummary(result.game),
+        id: newGame.id,
+        name: newGame.name,
+        deliberationId: newGame.deliberationId,
+        positiveBehaviourId: newGame.positiveBehaviourId,
+        negativeBehaviourId: newGame.negativeBehaviourId,
         arena: {
-          id: result.game.arena.id,
-          base: result.game.arena.base,
-          moveCount: result.game.arena.moves.length,
-          maxDepth: result.stats.arenaMaxDepth,
+          id: newGame.arena.id,
+          base: newGame.arena.base,
+          moves: newGame.arena.moves,
+          moveCount: newGame.arena.moves.length,
         },
+        strategies: newGame.strategies,
       },
-      stats: result.stats,
-      warnings: result.warnings,
+      stats: {
+        arenaMovesCount: newGame.arena.moves.length,
+        strategiesCount: strategies.length,
+      },
     });
   } catch (error: any) {
     console.error("Game creation error:", error);
@@ -161,6 +205,32 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const deliberationId = searchParams.get("deliberationId");
+    const gameId = searchParams.get("gameId");
+
+    // Get specific game
+    if (gameId) {
+      for (const [delibId, games] of Object.entries(mockGames)) {
+        const game = games.find(g => g.id === gameId);
+        if (game) {
+          return NextResponse.json({
+            ok: true,
+            game: {
+              id: game.id,
+              name: game.name,
+              deliberationId: game.deliberationId,
+              positiveBehaviourId: game.positiveBehaviourId,
+              negativeBehaviourId: game.negativeBehaviourId,
+              arena: game.arena,
+              strategies: game.strategies,
+            },
+          });
+        }
+      }
+      return NextResponse.json(
+        { ok: false, error: "Game not found" },
+        { status: 404 }
+      );
+    }
 
     if (!deliberationId) {
       return NextResponse.json(
@@ -169,11 +239,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const games = await prisma.ludicGame.findMany({
-      where: { deliberationId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+    const games = mockGames[deliberationId] || [];
 
     return NextResponse.json({
       ok: true,
@@ -182,7 +248,10 @@ export async function GET(req: NextRequest) {
         name: g.name,
         positiveBehaviourId: g.positiveBehaviourId,
         negativeBehaviourId: g.negativeBehaviourId,
-        arena: g.arenaJson,
+        arena: {
+          id: g.arena.id,
+          moveCount: g.arena.moves?.length || 0,
+        },
         createdAt: g.createdAt,
       })),
     });

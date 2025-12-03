@@ -93,3 +93,21 @@ export {
   positionToKey,
   estimateCompressionRatio,
 } from "./encoding";
+
+// Persistence (Phase 4)
+export type {
+  EncodedGameState,
+  ExportedGameState,
+} from "./persistence";
+
+export {
+  exportGameState,
+  importGameState,
+  serializeGameState,
+  deserializeGameState,
+  saveGameToLocalStorage,
+  loadGameFromLocalStorage,
+  listSavedGames,
+  deleteSavedGame,
+  clearAllSavedGames,
+} from "./persistence";

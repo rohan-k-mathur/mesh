@@ -450,14 +450,50 @@ export function BehaviourPanel({ strategyId, designId, deliberationId, onStrateg
         <div className="space-y-4">
           {/* Explanation */}
           <div className="text-xs text-slate-600 bg-teal-50 border border-teal-200 rounded p-3">
-            <strong>Games from Behaviours</strong>
+            <strong>Games from Behaviours — Definition 6.2</strong>
             <p className="mt-1">
-              A <em>game</em> is defined as a pair of behaviours (A, A⊥) where A and A⊥ are
-              mutually orthogonal. The positive player has strategies from A, the negative from A⊥.
+              A <em>game</em> G = (A, A⊥) is defined from two mutually orthogonal behaviours.
+              Proponent plays strategies from A, Opponent plays from A⊥.
             </p>
           </div>
 
-          {/* Visual */}
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-3">
+            <a
+              href={`/test/ludics-arena-game?deliberationId=${deliberationId || ""}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-rose-50 rounded-lg border hover:shadow-sm transition text-sm"
+            >
+              <span className="text-lg">🎲</span>
+              <div>
+                <div className="font-medium text-slate-700">Arena & Game Demo</div>
+                <div className="text-xs text-slate-500">Interactive visualization</div>
+              </div>
+            </a>
+
+            <button
+              onClick={() => {
+                // Navigate to create game with current behaviour
+                if (effectiveStrategyId && deliberationId) {
+                  window.open(
+                    `/test/ludics-arena-game?deliberationId=${deliberationId}&strategyId=${effectiveStrategyId}`,
+                    "_blank"
+                  );
+                }
+              }}
+              disabled={!effectiveStrategyId}
+              className="flex items-center gap-2 px-3 py-2 bg-teal-50 rounded-lg border hover:shadow-sm transition text-sm disabled:opacity-50 disabled:cursor-not-allowed text-left"
+            >
+              <span className="text-lg">🎮</span>
+              <div>
+                <div className="font-medium text-slate-700">Create Game</div>
+                <div className="text-xs text-slate-500">From current strategy</div>
+              </div>
+            </button>
+          </div>
+
+          {/* Game Structure Visual */}
           <div className="bg-slate-50 rounded-lg p-4">
             <div className="text-xs font-semibold text-slate-700 mb-3">Game Structure</div>
             <div className="flex items-center justify-center gap-4">
@@ -465,20 +501,34 @@ export function BehaviourPanel({ strategyId, designId, deliberationId, onStrateg
                 <div className="w-16 h-16 rounded-full border-2 border-blue-400 bg-blue-50 flex items-center justify-center">
                   <span className="text-blue-700 font-bold">A</span>
                 </div>
-                <div className="text-xs text-slate-600 mt-1">Positive</div>
+                <div className="text-xs text-slate-600 mt-1">Proponent (P)</div>
               </div>
               <div className="text-lg text-slate-400">⊥</div>
               <div className="text-center">
                 <div className="w-16 h-16 rounded-full border-2 border-rose-400 bg-rose-50 flex items-center justify-center">
                   <span className="text-rose-700 font-bold">A⊥</span>
                 </div>
-                <div className="text-xs text-slate-600 mt-1">Negative</div>
+                <div className="text-xs text-slate-600 mt-1">Opponent (O)</div>
               </div>
             </div>
           </div>
 
-          <div className="text-xs text-slate-500 text-center">
-            Use the Closure tab to compute behaviours, then define games.
+          {/* Status */}
+          {effectiveStrategyId ? (
+            <div className="text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded p-2 flex items-center gap-2">
+              <span>✓</span>
+              <span>Strategy selected: <span className="font-mono">{effectiveStrategyId.slice(0, 12)}...</span></span>
+            </div>
+          ) : (
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+              <strong>Select a strategy</strong> above to create a game.
+            </div>
+          )}
+
+          {/* Theory Note */}
+          <div className="text-xs text-slate-500 border-t pt-3 mt-2">
+            <strong>Tip:</strong> Use the Closure tab to compute S⊥⊥ and find orthogonal strategies,
+            then create a game from the behaviour pair.
           </div>
         </div>
       )}

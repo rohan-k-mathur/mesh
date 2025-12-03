@@ -83,6 +83,7 @@ export function GamePlayPanel({
     score: number;
     reason: string;
   } | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   // Initialize game state if not present
   React.useEffect(() => {
@@ -142,6 +143,11 @@ export function GamePlayPanel({
 
   const computeAvailableMoves = () => {
     if (!gameState) return;
+    if (!game.arena?.moves) {
+      console.warn("Arena moves not available");
+      setAvailableMoves([]);
+      return;
+    }
 
     const currentPlayer = gameState.currentPosition.currentPlayer;
     const visitedAddresses = new Set(
@@ -163,6 +169,7 @@ export function GamePlayPanel({
     if (!gameState || gameState.status !== "playing") return;
 
     setIsThinking(true);
+    setError(null);
     try {
       const res = await fetch("/api/ludics/dds/games/play", {
         method: "POST",
@@ -182,6 +189,7 @@ export function GamePlayPanel({
 
       const data = await res.json();
       if (data.ok) {
+        setError(null);
         const newLogEntry: MoveLogEntry = {
           moveNumber: gameState.moveLog.length + 1,
           player: move.player,
@@ -205,8 +213,12 @@ export function GamePlayPanel({
         onStateChange(newState);
         setSelectedMove(null);
         setAISuggestion(null);
+      } else {
+        setError(data.error || "Move failed");
+        console.error("Move failed:", data.error);
       }
     } catch (err) {
+      setError("Network error");
       console.error("Failed to make move:", err);
     } finally {
       setIsThinking(false);
@@ -447,6 +459,15 @@ export function GamePlayPanel({
                 </div>
               </div>
             )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="text-sm font-medium text-red-700">
+                  ⚠️ {error}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -508,7 +529,73 @@ export function GamePlayPanel({
 
         {/* Move History */}
         <div className="bg-white rounded-lg p-4 border">
-          <h5 className="text-sm font-semibold mb-3">Move History</h5>
+          <h5 className="text-sm font-semibold mb-3 flex items-center justify-between">
+            <span>Move History</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => {
+                  if (!gameState) return;
+                  // Export game state to clipboard
+                  const exportData = {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    game: { id: game.id, name: game.name },
+                    state: {
+                      moves: gameState.moveLog.map(e => ({
+                        n: e.moveNumber,
+                        p: e.player,
+                        a: e.move.address,
+                        r: e.move.ramification,
+                      })),
+                      status: gameState.status,
+                      currentPlayer: gameState.currentPosition.currentPlayer,
+                    },
+                  };
+                  navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
+                  alert("Game state copied to clipboard!");
+                }}
+                disabled={!gameState}
+                className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded transition-colors disabled:opacity-50"
+                title="Copy game state to clipboard"
+              >
+                📋 Copy
+              </button>
+              <button
+                onClick={() => {
+                  if (!gameState) return;
+                  // Download game state as JSON
+                  const exportData = {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    game: { id: game.id, name: game.name },
+                    arena: { id: game.arena.id, moveCount: game.arena.moves.length },
+                    state: {
+                      moves: gameState.moveLog.map(e => ({
+                        n: e.moveNumber,
+                        p: e.player,
+                        a: e.move.address,
+                        r: e.move.ramification,
+                      })),
+                      status: gameState.status,
+                      currentPlayer: gameState.currentPosition.currentPlayer,
+                    },
+                  };
+                  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `ludics-game-${game.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                disabled={!gameState}
+                className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded transition-colors disabled:opacity-50"
+                title="Download game state as JSON"
+              >
+                💾 Save
+              </button>
+            </div>
+          </h5>
           <div className="max-h-32 overflow-auto">
             {gameState?.moveLog.length === 0 ? (
               <div className="text-slate-400 italic text-sm">No moves yet</div>
