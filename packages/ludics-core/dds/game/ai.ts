@@ -98,12 +98,11 @@ function scoreMove(
     score += restrictionScore * weights.restrictionBonus;
 
     // 4. Winning bonus: huge bonus for winning moves
+    // In Faggian-Hyland: if nextPosition is terminal, opponent (currentPlayer) is stuck
+    // So if WE made the move and opponent is stuck, WE win
     if (nextPosition.isTerminal) {
-      // Check if we win
-      const lastPlayer = move.player;
-      if (lastPlayer === player) {
-        score += weights.winningBonus;
-      }
+      // The move we just made leaves opponent with no moves - we win!
+      score += weights.winningBonus;
     }
   }
 
@@ -173,8 +172,9 @@ export function computeAIMoveWithLookahead(
     }
 
     // If terminal, evaluate immediately
+    // In Faggian-Hyland: the currentPlayer at terminal position is stuck and loses
     if (nextPos.isTerminal) {
-      const winner = nextPos.sequence[nextPos.sequence.length - 1]?.player;
+      const winner = nextPos.currentPlayer === "P" ? "O" : "P";
       return {
         move,
         score: winner === player ? weights.winningBonus : -weights.winningBonus,
@@ -262,16 +262,18 @@ function minimax(
 
 /**
  * Evaluate a position for a player
+ * 
+ * In Faggian-Hyland: currentPlayer at terminal is stuck and loses
  */
 function evaluatePosition(
   position: LegalPosition,
   player: "P" | "O",
   weights: AIScoringWeights
 ): number {
-  // Terminal position
+  // Terminal position - currentPlayer is stuck and loses
   if (position.isTerminal) {
-    const lastMove = position.sequence[position.sequence.length - 1];
-    if (lastMove?.player === player) {
+    const winner = position.currentPlayer === "P" ? "O" : "P";
+    if (winner === player) {
       return weights.winningBonus;
     } else {
       return -weights.winningBonus;

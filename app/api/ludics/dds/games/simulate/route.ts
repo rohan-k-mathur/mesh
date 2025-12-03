@@ -15,12 +15,99 @@ import {
   analyzeStrategy,
   findBestStrategy,
   encodeGameState,
+  makeGameMove,
+  getGameAvailableMoves,
+  isGameOver,
+  getGameWinner,
+  computeAIMove,
+  getRandomMove,
 } from "@/packages/ludics-core/dds/game";
 import {
   createUniversalArena,
 } from "@/packages/ludics-core/dds/arena";
-import type { LudicsGame, SimulationConfig, AIDifficulty } from "@/packages/ludics-core/dds/game";
+import type { LudicsGame, SimulationConfig, AIDifficulty, GamePlayState } from "@/packages/ludics-core/dds/game";
 import type { UniversalArena } from "@/packages/ludics-core/dds/arena";
+
+// AI vs AI simulation that actually works without pre-defined strategies
+function simulateAIvsAI(
+  game: LudicsGame,
+  pDifficulty: AIDifficulty,
+  oDifficulty: AIDifficulty,
+  maxMoves: number = 100
+): {
+  winner: "P" | "O" | "draw";
+  moveCount: number;
+  duration: number;
+  trace: Array<{ moveNumber: number; player: "P" | "O"; address: string; ramification: number[] }>;
+} {
+  const startTime = Date.now();
+  let state = initializeGame(game);
+  const trace: Array<{ moveNumber: number; player: "P" | "O"; address: string; ramification: number[] }> = [];
+
+  while (!isGameOver(state) && state.moveLog.length < maxMoves) {
+    const currentPlayer = state.currentPosition.currentPlayer;
+    const difficulty = currentPlayer === "P" ? pDifficulty : oDifficulty;
+    
+    const aiResult = computeAIMove(state, game, difficulty);
+    if (!aiResult) break;
+
+    const newState = makeGameMove(state, aiResult.move, game, "ai");
+    if (!newState) break;
+
+    trace.push({
+      moveNumber: state.moveLog.length + 1,
+      player: currentPlayer,
+      address: aiResult.move.address,
+      ramification: aiResult.move.ramification,
+    });
+
+    state = newState;
+  }
+
+  return {
+    winner: getGameWinner(state) ?? "draw",
+    moveCount: state.moveLog.length,
+    duration: Date.now() - startTime,
+    trace,
+  };
+}
+
+// Batch AI vs AI simulation
+function batchSimulateAI(
+  game: LudicsGame,
+  pDifficulty: AIDifficulty,
+  oDifficulty: AIDifficulty,
+  gameCount: number = 10
+): {
+  games: number;
+  pWins: number;
+  oWins: number;
+  draws: number;
+  avgMoves: number;
+  avgDuration: number;
+  results: Array<{ winner: string; moveCount: number }>;
+} {
+  const results: Array<{ winner: string; moveCount: number; duration: number }> = [];
+
+  for (let i = 0; i < gameCount; i++) {
+    const result = simulateAIvsAI(game, pDifficulty, oDifficulty);
+    results.push({ winner: result.winner, moveCount: result.moveCount, duration: result.duration });
+  }
+
+  const pWins = results.filter(r => r.winner === "P").length;
+  const oWins = results.filter(r => r.winner === "O").length;
+  const draws = results.filter(r => r.winner === "draw").length;
+
+  return {
+    games: gameCount,
+    pWins,
+    oWins,
+    draws,
+    avgMoves: results.reduce((sum, r) => sum + r.moveCount, 0) / gameCount,
+    avgDuration: results.reduce((sum, r) => sum + r.duration, 0) / gameCount,
+    results: results.map(r => ({ winner: r.winner, moveCount: r.moveCount })),
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -268,6 +355,87 @@ export async function POST(req: NextRequest) {
               pStrategies: game.strategies.filter(s => s.player === "P").length,
               oStrategies: game.strategies.filter(s => s.player === "O").length,
             },
+          },
+        });
+      }
+
+      case "ai_vs_ai": {
+        // Run a single AI vs AI simulation
+        const { pDifficulty, oDifficulty }: { pDifficulty?: AIDifficulty; oDifficulty?: AIDifficulty } = body;
+        
+        const result = simulateAIvsAI(
+          game,
+          pDifficulty || "medium",
+          oDifficulty || "medium",
+          simulationConfig?.maxMoves || 100
+        );
+
+        return NextResponse.json({
+          ok: true,
+          result: {
+            winner: result.winner,
+            moveCount: result.moveCount,
+            duration: result.duration,
+            trace: result.trace,
+          },
+        });
+      }
+
+      case "batch_ai_vs_ai": {
+        // Run batch AI vs AI simulations
+        const { pDifficulty, oDifficulty, gameCount }: { 
+          pDifficulty?: AIDifficulty; 
+          oDifficulty?: AIDifficulty;
+          gameCount?: number;
+        } = body;
+
+        const result = batchSimulateAI(
+          game,
+          pDifficulty || "medium",
+          oDifficulty || "medium",
+          gameCount || 10
+        );
+
+        return NextResponse.json({
+          ok: true,
+          result: {
+            games: result.games,
+            pWins: result.pWins,
+            oWins: result.oWins,
+            draws: result.draws,
+            pWinRate: result.pWins / result.games,
+            oWinRate: result.oWins / result.games,
+            avgMoves: result.avgMoves,
+            avgDuration: result.avgDuration,
+            gameResults: result.results,
+          },
+        });
+      }
+
+      case "analyze_position": {
+        // Analyze available moves at current position
+        const availableMoves = getGameAvailableMoves(initializeGame(game), game);
+        
+        // Score each move using AI
+        const moveAnalysis = availableMoves.map(move => {
+          // Simple scoring based on ramification potential
+          const score = move.isInitial ? 10 : 5 + move.ramification.length;
+          return {
+            address: move.address,
+            ramification: move.ramification,
+            player: move.player,
+            score,
+            isInitial: move.isInitial,
+          };
+        }).sort((a, b) => b.score - a.score);
+
+        return NextResponse.json({
+          ok: true,
+          analysis: {
+            currentPlayer: "P", // Initial position
+            availableMoves: moveAnalysis.length,
+            topMoves: moveAnalysis.slice(0, 5),
+            positionType: moveAnalysis.length === 0 ? "terminal" : "active",
           },
         });
       }

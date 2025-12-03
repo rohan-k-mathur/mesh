@@ -318,13 +318,18 @@ export function isTerminalPosition(
 
 /**
  * Get the winner of a terminal position
+ * 
+ * In Faggian-Hyland game semantics:
+ * - The player who CANNOT move loses
+ * - currentPlayer at a terminal position is the one who's stuck
+ * - The winner is the OPPONENT of currentPlayer
  */
 export function getWinner(position: LegalPosition): "P" | "O" | null {
   if (!position.isTerminal) return null;
   
-  // Last player to move wins (their opponent has no moves)
-  const lastMove = position.sequence[position.sequence.length - 1];
-  return lastMove?.player ?? null;
+  // The current player has no moves - they lose, opponent wins
+  // currentPlayer is stuck, so the OTHER player wins
+  return position.currentPlayer === "P" ? "O" : "P";
 }
 
 // ============================================================================

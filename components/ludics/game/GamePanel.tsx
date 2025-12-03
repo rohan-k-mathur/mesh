@@ -227,7 +227,7 @@ export function GamePanel({
         )}
 
         {mode === "analyze" && game && (
-          <WinningAnalysisPanel game={game} />
+          <WinningAnalysisPanel game={game} gameState={gameState} />
         )}
       </div>
     </div>
