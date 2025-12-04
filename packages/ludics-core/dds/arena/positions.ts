@@ -220,6 +220,11 @@ export function computeOView(position: LegalPosition): ArenaMove[] {
 
 /**
  * Get available moves from a position
+ * 
+ * Key constraints for tree-structured arenas:
+ * 1. Branch commitment: once a branch is chosen, the game is committed to that branch
+ * 2. Sibling exclusion: once one child of a node is played, siblings are excluded
+ * 3. Parent requirement: a move is only available if its parent has been played
  */
 export function getAvailableMoves(
   position: LegalPosition,
@@ -229,7 +234,16 @@ export function getAvailableMoves(
   
   const usedAddresses = new Set(position.sequence.map(m => m.address));
   const currentPlayer = position.currentPlayer;
-  const currentView = computeViewForSequence(position.sequence, currentPlayer);
+  
+  // Build set of "blocked" parent addresses - parents where a sibling was already chosen
+  const blockedParents = new Set<string>();
+  for (const playedMove of position.sequence) {
+    if (playedMove.address.length > 0) {
+      const parentAddr = playedMove.address.slice(0, -1);
+      // If a child of this parent was played, the parent is "consumed"
+      blockedParents.add(parentAddr);
+    }
+  }
   
   return arena.moves.filter(move => {
     // Must be for current player
@@ -238,13 +252,30 @@ export function getAvailableMoves(
     // Address must not be used (linearity)
     if (usedAddresses.has(move.address)) return false;
     
-    // Must be either initial or justified by a move in view
-    if (!move.isInitial) {
-      const hasJustifierInView = currentView.some(v => checkEnabling(v, move));
-      if (!hasJustifierInView) return false;
+    // Initial moves are always available (if not used)
+    if (move.isInitial) return true;
+    
+    // Non-initial moves: parent address must have been played
+    const parentAddress = move.address.slice(0, -1);
+    if (!usedAddresses.has(parentAddress)) return false;
+    
+    // Sibling exclusion: if parent already has a child played (but not this one),
+    // this move is blocked
+    if (blockedParents.has(parentAddress) && !usedAddresses.has(move.address)) {
+      // Check if a DIFFERENT child of this parent was played
+      const siblingPlayed = position.sequence.some(m => 
+        m.address.length === move.address.length &&
+        m.address.slice(0, -1) === parentAddress &&
+        m.address !== move.address
+      );
+      if (siblingPlayed) return false;
     }
     
-    return true;
+    // Also verify the parent actually enables this move (ramification check)
+    const parentMove = position.sequence.find(m => m.address === parentAddress);
+    if (!parentMove) return false;
+    
+    return checkEnabling(parentMove, move);
   });
 }
 

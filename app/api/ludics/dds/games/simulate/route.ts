@@ -20,6 +20,7 @@ import {
   isGameOver,
   getGameWinner,
   computeAIMove,
+  computeAIMoveWithLookahead,
   getRandomMove,
 } from "@/packages/ludics-core/dds/game";
 import {
@@ -48,7 +49,18 @@ function simulateAIvsAI(
     const currentPlayer = state.currentPosition.currentPlayer;
     const difficulty = currentPlayer === "P" ? pDifficulty : oDifficulty;
     
-    const aiResult = computeAIMove(state, game, difficulty);
+    // Use lookahead for hard difficulty, regular heuristics otherwise
+    let aiResult;
+    if (difficulty === "hard") {
+      // Calculate arena max depth to ensure full game tree visibility
+      const arenaMaxDepth = Math.max(...game.arena.moves.map(m => m.address.length), 0);
+      // Use enough lookahead to see all terminals (arenaMaxDepth + 1 for safety)
+      const lookaheadDepth = Math.min(arenaMaxDepth + 2, 8); // Cap at 8 for performance
+      aiResult = computeAIMoveWithLookahead(state, game, lookaheadDepth);
+    } else {
+      aiResult = computeAIMove(state, game, difficulty);
+    }
+    
     if (!aiResult) break;
 
     const newState = makeGameMove(state, aiResult.move, game, "ai");
@@ -63,6 +75,9 @@ function simulateAIvsAI(
 
     state = newState;
   }
+
+  // Debug: log game trace
+  console.log(`[GAME] Winner: ${getGameWinner(state)}, Moves: ${state.moveLog.length}, Path: ${trace.map(t => t.address).join(" → ")}`);
 
   return {
     winner: getGameWinner(state) ?? "draw",

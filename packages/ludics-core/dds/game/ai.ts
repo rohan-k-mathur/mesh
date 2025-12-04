@@ -181,13 +181,12 @@ export function computeAIMoveWithLookahead(
       };
     }
 
-    // Lookahead evaluation
-    const evalScore = minimax(
+    // Lookahead evaluation using negamax-style minimax
+    const evalScore = minimaxFullDepth(
       nextPos,
       game,
       maxDepth - 1,
       player,
-      false, // Next is opponent's turn
       weights
     );
 
@@ -196,6 +195,13 @@ export function computeAIMoveWithLookahead(
 
   // Sort by score
   scoredMoves.sort((a, b) => b.score - a.score);
+
+  // Debug: log P's evaluation when there's a real choice (more than 1 option)
+  if (player === "P" && scoredMoves.length > 1) {
+    console.log(`[AI] P choice at move ${state.moveLog.length + 1}:`, 
+      scoredMoves.map(sm => ({ addr: sm.move.address, score: sm.score }))
+    );
+  }
 
   const selected = scoredMoves[0];
   const computeTime = Date.now() - startTime;
@@ -213,34 +219,45 @@ export function computeAIMoveWithLookahead(
 }
 
 /**
- * Simple minimax evaluation
+ * Minimax that searches to terminal positions (ignores depth for small trees)
+ * This ensures we see the actual game outcome
  */
-function minimax(
+function minimaxFullDepth(
   position: LegalPosition,
   game: LudicsGame,
-  depth: number,
+  depthRemaining: number,
   maximizingPlayer: "P" | "O",
-  isMaximizing: boolean,
   weights: AIScoringWeights
 ): number {
-  // Terminal or depth limit reached
-  if (position.isTerminal || depth <= 0) {
-    return evaluatePosition(position, maximizingPlayer, weights);
+  // Check if terminal first (regardless of depth)
+  if (position.isTerminal) {
+    const winner = position.currentPlayer === "P" ? "O" : "P";
+    return winner === maximizingPlayer ? weights.winningBonus : -weights.winningBonus;
   }
 
   const available = getAvailableMoves(position, game.arena);
+  
+  // No moves = terminal (currentPlayer is stuck)
   if (available.length === 0) {
-    return evaluatePosition(position, maximizingPlayer, weights);
+    const winner = position.currentPlayer === "P" ? "O" : "P";
+    return winner === maximizingPlayer ? weights.winningBonus : -weights.winningBonus;
   }
+
+  // Only use heuristic if depth exhausted AND not close to terminal
+  if (depthRemaining <= 0) {
+    // Fallback heuristic for very deep trees
+    return evaluatePositionHeuristic(position, maximizingPlayer, weights);
+  }
+
+  // Determine if current player is the maximizing player
+  const isMaximizing = position.currentPlayer === maximizingPlayer;
 
   if (isMaximizing) {
     let maxEval = -Infinity;
     for (const move of available) {
       const nextPos = applyMove(position, move, game.arena);
       if (nextPos) {
-        const evalScore = minimax(
-          nextPos, game, depth - 1, maximizingPlayer, false, weights
-        );
+        const evalScore = minimaxFullDepth(nextPos, game, depthRemaining - 1, maximizingPlayer, weights);
         maxEval = Math.max(maxEval, evalScore);
       }
     }
@@ -250,14 +267,52 @@ function minimax(
     for (const move of available) {
       const nextPos = applyMove(position, move, game.arena);
       if (nextPos) {
-        const evalScore = minimax(
-          nextPos, game, depth - 1, maximizingPlayer, true, weights
-        );
+        const evalScore = minimaxFullDepth(nextPos, game, depthRemaining - 1, maximizingPlayer, weights);
         minEval = Math.min(minEval, evalScore);
       }
     }
     return minEval;
   }
+}
+
+/**
+ * Heuristic evaluation for non-terminal positions
+ */
+function evaluatePositionHeuristic(
+  position: LegalPosition,
+  player: "P" | "O",
+  weights: AIScoringWeights
+): number {
+  let score = 0;
+  const pMoves = position.sequence.filter(m => m.player === "P").length;
+  const oMoves = position.sequence.filter(m => m.player === "O").length;
+  
+  if (player === "P") {
+    score += (pMoves - oMoves) * 5;
+  } else {
+    score += (oMoves - pMoves) * 5;
+  }
+
+  if (position.currentPlayer === player) {
+    score += 2;
+  }
+
+  return score;
+}
+
+/**
+ * Simple minimax evaluation (legacy, kept for reference)
+ */
+function minimax(
+  position: LegalPosition,
+  game: LudicsGame,
+  depth: number,
+  maximizingPlayer: "P" | "O",
+  isMaximizing: boolean,
+  weights: AIScoringWeights
+): number {
+  // Use the new full-depth minimax
+  return minimaxFullDepth(position, game, depth, maximizingPlayer, weights);
 }
 
 /**
@@ -280,25 +335,8 @@ function evaluatePosition(
     }
   }
 
-  // Heuristic evaluation based on position advantage
-  let score = 0;
-
-  // Material: count moves played by each player
-  const pMoves = position.sequence.filter(m => m.player === "P").length;
-  const oMoves = position.sequence.filter(m => m.player === "O").length;
-  
-  if (player === "P") {
-    score += (pMoves - oMoves) * 5;
-  } else {
-    score += (oMoves - pMoves) * 5;
-  }
-
-  // Whose turn is it? Having the move is slightly advantageous
-  if (position.currentPlayer === player) {
-    score += 2;
-  }
-
-  return score;
+  // Use heuristic for non-terminal
+  return evaluatePositionHeuristic(position, player, weights);
 }
 
 // ============================================================================
