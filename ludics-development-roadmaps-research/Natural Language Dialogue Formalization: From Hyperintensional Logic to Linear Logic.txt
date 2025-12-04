@@ -1,0 +1,411 @@
+Natural Language Dialogue Formalization: From
+Hyperintensional Logic to Linear Logic
+Zuzana Bilanov´a [0000−0001−6347−2409] and J´an Perh´aˇc [0000−0002−0128−5111]
+Department of Computers and Informatics, Faculty of Electrical Engineering and
+Informatics, Technical University of Koˇsice, Koˇsice, Slovakia
+{zuzana.bilanova,jan.perhac}@tuke.sk
+Abstract. This paper deals with a formalization of a natural language
+dialogue using transparent intensional logic and predicate linear logic. In
+the beginning, it is necessary to choose the dialogue in a natural language.
+Subsequently, this dialogue is analyzed by transparent intensional logic,
+that allows it to capture the meaning of sentences in logical structures.
+At this stage, a three-step method of an analysis will be applied to the
+dialogue: at first, there will be a type analysis of the lexical units, which
+is the base for the logical constructions that capture the meaning of the
+sentences and then we apply a type checking to verify the correctness
+of the solution. In the second part of the paper, the same dialogue is
+analyzed by the Ludics theory, which represents the superstructure of
+the predicate linear logic. In a technical presentation of Ludics theory,
+the dialogue is placed in a logical space and time what allows model
+interactions between its actors.
+Keywords: Logical Analysis of Natural Language · Ludics Theory ·
+Predicate Linear Logic · Transparent Intensional Logic.
+1 Introduction
+Computer programs require people to communicate with them in a formal programming language that is accurate, unambiguous, and structured. Human speech
+does not have these attributes. The natural language has not been discovered,
+but gradually developed spontaneously over the centuries in communicative practice and adapted to changing conditions in the society. This causes that people
+mostly understand themselves, but sometimes their understanding of meaning
+is different. The meaning of the natural language expressions is often ambiguous
+because its logical structure is not identical to the grammatical structure. Explaining the meaning of natural language expressions is dealt by the logic analysis
+of natural language (LANL), which also allows to discovery the mistakes that
+arise from misinterpretations of the premises.
+The most important requirement for a logical system examining the natural
+language semantics is the expressivity. An extensional logic systems (propositional logic, predicate logic...) are not enough expressive - for LANL needs it is
+necessary to work with an intensional logical systems. This paper is built on the
+following research results:
+– in [1][2][3] was presented that the most expressive LANL system is a transparent intensional logic (TIL), which we will deal with in this paper,
+– TIL has not been fully automated for use in the computer science yet, which
+is related to its extraordinary expressive force. The solution would be to link
+its apparatus with another logical system that does not have this deficiency
+- in [4][5] was presented that a suitable logic could be predicate linear logic
+(PLL). PLL is not commonly used in LANL, but this paper will describe
+how it can analyze the natural language dialogues.
+In the future research, the goal is to create the formal specification of a new
+logic linking TIL with PLL. It will be the basis for the implementation of a
+semantic machine [6] that will be able to automate the logical analysis of natural language. A prerequisite for its implementation is to provide the necessary
+architectural [7][8][9] and security requirements [10][11][12]. Previously it will be
+necessary to explore the possibilities of TIL and PLL in formalizing the meaning
+of sentences from several points of view. The aim of this paper is to compare
+how mentioned logic can analyze natural language dialogues.
+2 Transparent Intensional Logic
+The founder of TIL is Pavel Tich´y [13] who (same as Frege) claimed extended
+Church’s simple theory of types (containing a set of individuals and truth values)
+by modal and temporal parameters. TIL is high-order logic based on the concept
+of possible worlds. Language of TIL is a modified version of the typed objectoriented lambda calculus with a ramified hierarchy of types.
+2.1 Basic Objects in TIL
+Logical analysis of natural language is related to a specific object base. The basic
+objects of TIL which represent non-functional element types are:
+– set of truth value (true, false) o,
+– set of individuals ι,
+– set of time points (real numbers) τ ,
+– set of logically possible worlds ω.
+Functional types are sets partial functions (αβ1,.......βm), with arguments
+b1,.....bm of type β1,.......,βm and values in α. Intensions are objects of type
+(αω), i.e. functions from a possible worlds for any type α. Most often, these
+are functions of type ((ατ )ω), for simplicity it is stated in TIL as ατω. Some
+examples of frequently used intensions are shown in Table 1.
+2.2 Constructions in TIL
+Tich´y introduced the concepts of construction [14] as a non-linguistic abstract
+procedures which expressed the meaning of natural language expressions. The
+constructions can be:
+Table 1. Intensions in TIL
+Type intension Description Example
+(oα) object type α prime number(oτ )
+(o(oα)) quantifiers for any types α ∀ ∃
+(ooo) binary logical operators ∨, ∧, ⇔
+(oo) unary logical operator ¬
+ιτω individual roles president of SR
+(oα)τω properties of type objects α surprise
+oτω propositions Peter is looking for a princess.
+– variable x, constructs objects based on their valuation,
+– trivialization 0X, constructs an object X without changes,
+– composition [X1 . . . Xm], constructs the result of an application of function
+to arguments,
+– closure λx.X (based on λ-abstraction), constructs function.
+2.3 Application of TIL to Natural Language Dialogue
+Consider the following example:
+Example 1. Mother: “If you behave well, you’ll either be playing at home with
+ball or toy, or going out to the cinema or shopping. If you want to go out, I will
+decide where to go.“
+Son: “I want to go out.“
+Mother: “Then we will go to the cinema.“
+In TIL , these sentences are analyzed in three steps - type analysis (to each
+object of sentence is assigned a corresponding type), synthesis (create a construction which represents the meaning of a sentence) a type checking (verify if
+the synthesis was correctly done).
+Let’s analyze the first sentence: “If you (son) behave well , you’ll either
+be (choose) playing at home with ball or toy, or going out to the cinema or
+shopping.“ 1
+1. Type analysis:
+son/ι, behave well/(ooι)τω, ⇒/ooo, choose/(oιι)τω, home/(oι)τω, ∨/ooo,
+out/(oι)τω.
+2. Synthesis:
+λw λt [[0
+behave wellw t ⇒ [
+0
+choose w t [
+0home w t ∨
+0out w t]]] 0
+son]
+3. Type checking: (Fig. 1)
+1 This analysis is simplified. The disjunctions of which the objects home and out are
+composed were not analyzed.
+oτω
+oτ
+o
+ι
+0
+son]
+oι
+ιι
+o
+oι
+τ
+t]]]
+(oι)τ
+ω
+w
+(oι)τω
+0
+out
+ooι
+ooo
+N
+oι
+τ
+t
+(oι)τ
+ω
+w
+(oι)τω
+[
+0home
+oιι
+τ
+t
+(oιι)τ
+ω
+w
+(oιι)τω
+[
+0
+choose
+oι
+ooo
+(
+ooι
+τ
+t
+(ooι)τ
+ω
+w
+(ooι)τω
+[[0
+behave well
+τ
+λt
+ω
+λw
+Fig. 1. Type checking of the sentence: “If you behave well, you’ll either be playing at
+home with ball or toy, or going out to the cinema or shopping.“
+Other sentences can be analyzed in the same way. A sentence, the meaning of
+which is correctly expressed, is always a proposition with type (o)τω (same as in
+Fig. 1). From this example it is clear that even though TIL is an effective tool of
+LANL, the individual sentences of the natural language are analyzed separately,
+and so it is not adequate for its application on natural language dialogues. In
+the next section, the same dialogue will be explored through the PLL.
+3 Predicate Linear Logic
+Linear logic, introduced in 1987 by J.Y. Girard [17], has the following characteristics:
+– can describe real processes in the world, because it works with resources and
+their consumption,
+– the formula of it is an action, a source or a literal,
+– introduces new linear logic connectives,
+– does not contain the rules of weakness and contraction.
+Since a intensions in the natural language expressions can be described by
+using predicates, we need to introduce PLL. The formula ϕ in a PLL can be
+formulated by the following production rule [15] [16]:
+ϕ ::= pn | 0 | 1 |⊥| > | ϕ1 ( ϕ2 | ϕ1 ⊗ ϕ2 | ϕ1 ⊕ ϕ2 | ϕ1Oϕ2 | ϕ1Nϕ2 | ϕ
+⊥ | ϕ? |
+ϕ! | P(t, ..., t) | (∀x)ϕ | (∃x)ϕ,
+t ::= x | c | f(t, ..., t),
+(1)
+where 0, 1,>, ⊥ are logical constants (neutral elements), pn are atomic statements, ⊗, N, ⊕, O are logical connectives, ( is linear implication, (.)
+⊥ is negation, !, ? are modal operators, P(t, ..., t) is predicate, ∀, ∃ are quantifiers, x is
+variable, c is constant, and f(t, ..., t) is the application of a functional symbol to
+a term t.
+3.1 Ludics Theory
+The Ludics theory [18] is an extension of the PLL by time and space. Ludics
+is a theory of interaction, which can overcome the difference between grammar
+and semantics. The basic principle of this calculus is handling positions of PLL
+formulas, while ignoring their contents.
+Time and space in linear logic To change the polarity of the blocks (called
+clusters) in proof tree means an increment of time. PLL connectives are divided
+into positive and negative, which also determines the polarity of the PLL formula.
+There are:
+– positive - ⊗, ⊕, 1,0, !, ∃,
+– negative - N, O, >, ⊥, ?, ∀,
+– special - ( represents dependent polarity, (.)
+⊥ causes the flipping of polarity.
+The rules of invertibility and focalization are used to make one-step from few
+follow-up steps in proof tree. In invertibility, a cluster of negative formulas is
+formed, in focalization a cluster of positive formulas is originated.
+Talking about space in Ludics, the truth nor the content of formula, but
+its location, is essential in the proof tree, known as the ξ. The proof tree that
+contains only location data is called a design. Immediate subformulas of the
+A formula are enumerable, while the number of immediate subformulas can be
+labelled as Bi
+, Bij , Bijk..., where i, j, k are positive integers - biases and i, ij, ijk
+are concatenation of particulate biases i, j, k. If all the data, except the formula
+addresses, is removed in the sequences used in argument, we call it a pitchfork:
+ξ ` Λ, (2)
+where ξ represents one address, and context Λ is a finite set of addresses. In
+pitchfork calculus, the following rules are applied:
+Axiom daimon
+` Λ
+(✠) (3)
+Positive and negative rule
+...ξ ∗ i ` Λi
+...
+` Λ, ξ (+, `, ξ, I)
+... ` ΛI , ξ ∗ I...
+ξ ` Λ
+(−, ξ ` N) (4)
+3.2 Application of Ludics Theory to Natural Language Dialogue
+With PLL will be analyzed the same dialogue as with TIL. The PLL formula of
+the sentence: “If you behave well (W), you’ll either be playing at home with ball
+(B) or toy (T), or going out to the cinema (C) or shopping. (S)“ is:
+W ( ((BNT)N(C ⊕ S))2
+(5)
+From this PLL formula is possible to create a proof tree, where the following
+rules of the PLL sequent calculus are used:
+A ` A
+(id)
+Γ ` ϕ, ∆ Γ ` ψ, ∆
+Γ ` ϕNψ, ∆ (N)
+Γ, A ` B, 4
+Γ ` A ( B, 4
+(()
+Γ ` ϕ, 4
+Γ, ϕ⊥ ` 4((.)
+⊥)
+Γ ` ϕ, ∆
+Γ ` ϕ ⊕ ψ, ∆(⊕ r1
+)
+(6)
+In proof tree, the change of the polarity is marked with the signs + a −,
+what creates the polarized tree, shown in Fig. 2.
+(+) (id)
+` W, W ⊥, B, B⊥
+((.)⊥)
+W, W ⊥ ` B, B⊥
+(+) (id)
+` W, W ⊥, T , T ⊥
+((.)⊥)
+W, W ⊥ ` T , T ⊥
+(N)
+W, W ⊥ ` (BNT), Γ3
+(-) (id)
+W, W ⊥ ` C, C⊥
+((.)⊥)
+` W, W ⊥, C, C⊥
+(+) (⊕)
+` (C ⊕ S), Γ2, W, W ⊥
+((.)⊥)
+W, W ⊥ ` (C ⊕ S), Γ2
+(-) (N)
+W, W ⊥ ` ((BNT)N(C ⊕ S)), Γ1
+(+) (()
+` W ( ((BNT)N(C ⊕ S)), Γ
+Fig. 2. Prof tree of the PLL formula with a marked polarity change
+In this proof tree are used contexts such as:
+– Γ = {W⊥, B⊥, T ⊥, C⊥ S
+⊥},
+– Γ1 = {B⊥, T ⊥, C⊥ S
+⊥},
+– Γ2 = {C
+⊥, S⊥},
+– Γ3 = {B⊥, T ⊥}.
+We modify the proof tree into a reduced tree, shown in Fig.3, by closing
+the formulas with the same polarity into the clusters. In the reduced tree, the
+following substitutions and contexts are used:
+– A = W ( ((BNT)N(C ⊕ S)),
+– A1 = {W, B, T, C, S},
+– A2 = {{W}, {B}, {T}, {C}, {S}},
+– D = W ( (C ⊕ S),
+2 N - the choice depends on the son (outer non-determinism), ⊕ - the choice does not
+depend on the son (inner non-determinism).
+(✠)
+` W, W ⊥, B, B⊥
+(✠)
+` W, W ⊥, T , T ⊥
+(✠)
+W, W ⊥ ` C, C⊥
+(+, `, D, D1
+)
+` (C ⊕ S), Γ2, W, W ⊥
+(−, A, ` A
+2
+)
+W, W ⊥ ` (BNT)N(C ⊕ S), Γ1
+(+, `, A, A1
+)
+` A, Γ
+Fig. 3. Reduced tree showing incrementation of logic time
+– D1 = {W, C, S},
+– Γ = {W⊥, B⊥, T ⊥, C⊥ S
+⊥},
+– Γ1 = {B⊥, T ⊥, C⊥ S
+⊥},
+– Γ2 = {C
+⊥, S⊥}.
+A address tree (Fig. 4), in which the addresses are assigned to the formulas
+and subformulas, represents a logical space.
+(✠)
+` ξ.0.1, ξ.0.2
+(✠)
+` ξ.0.1, ξ.0.3
+(✠)
+ξ.0.4.1 ` ξ.0.1
+(+, `, ξ.0.4, {1})
+` ξ.0.1, ξ.0.4
+(−, ξ.0, ` {{1}, {2}, {3}, {4}})
+ξ.0 `
+(+, `, ξ, {0})
+` ξ
+Fig. 4. Adress tree showing logic space
+From the address tree it is possible to create the dialogue strategies. The
+mother has three strategies - she always sets out the offer (positive action
+(ξ, {0})) and after its execution she is ready to allow her son to play with the
+ball (negative action (ξ.0, {1, 2})), or the toy (negative action (−, ξ.0, {1, 3})), or
+to go out with him (negative action (−, ξ.0, {1, 4})). If a son wants to go out, his
+mother chooses from two other strategies - cinema (positive action (ξ.0.4, {1}))
+or shopping (positive action (ξ.0.4, {2})).
+The son has four strategies - he always accepts the mother’s offer (negative action (ξ, {0})) and either wants to play with the ball (positive action (ξ.0, {1, 2})),
+or the toy (positive action (−, ξ.0, {1, 3})), or wants to go out and he is ready
+for both eventualities (two negative actions (ξ.0.4, {1}) and (ξ.0.4, {1})), or is
+ready only for going to the cinema (negative action (ξ.0.4, {2})).
+The strategies of the dialogue actors make it possible to explore their interactions by using principles from the game semantics. PLL allows to describe
+natural language dialogues more effectively than TIL.
+4 Conclusion
+In this paper the possibilities of analyzing natural language dialogues through
+TIL and PLL logic systems are explored. From the presented results is clear
+that each of mentioned logic systems has a certain deficiency - TIL analyzes the
+sentences separately, whether they are in dialogue or not; PLL is not usually used
+in LANL, because it does not allow fine-grained semantics analysis of natural
+language expressions.
+In order to achieve the declared goals of the research, it will be necessary to
+divide it into two parts, where each represents an original contribution in the
+processing of the natural language. The first phase of the project will be based
+on existing and already published results in which a transparent intensional
+logic has been identified as the logical system for LANL with the highest express
+power. Because of several serious disadvantages (the absence of formal definitions
+of syntax and semantics of the system, the impossibility of specifying a complex
+deductive calculus, the impossibility of creating a fully automated practical implementation, etc.) an original logical system of source-oriented character will
+be created. Its ambition will be overcome mentioned disadvantages. Following
+the first phase of the research, its capabilities will be tested and compared with
+existing solutions not only through exact logical proofing, but also through its
+implementation of a semantic machine.
+Acknowledgment
+This work was supported by the following projects:
+– Faculty of Electrical Engineering and Informatics, Technical University of
+Koˇsice under the contract No. FEI-2018-59: Semantic Machine of SourceOriented Transparent Intensional Logic.
+– Slovak Research and Development Agency under the contract No. SK-AT2017-0012: Semantics technologies for computer science education.
+References
+1. Bilanov´a, Z.: Applications of Transparent Intensional Logic and Montague Intensional Logic on Natural Language Sentences: A Review. SCYR 2017. - Koˇsice : TU,
+32–35 (2017).
+2. Vokorokos, L., Bilanov´a, Z., Mih´alyi, D.: Linear logic operators in transparent intensional logic. Informatics 2017. - Danvers : IEEE, 420–424 (2017).
+3. Bilanov´a, Z., Uchn´ar, M.: Comparison of the approaches of Montague and Tich´y
+within a logical analysis of an English sentence. POSTER 2017. - Prague : Czech
+Technical University, 1–6 (2017).
+4. Bilanov´a, Z., Dankoviˇcov´a, Z.: From Extensional Principles in the Logical Analysis
+of Natural Language to Intensional Principles. POSTER 2018. - Praha : CVUT ˇ ,
+1–4 (2018).
+5. Bilanov´a, Z.: Increasing the expressive power of the intensional logic used for logical
+analysis of the natural language sentences. SCYR 2018. - Koˇsce : TU, 128–129
+(2017).
+6. Vokorokos, L., Pek´ar, A., Adam, N., Daranyi, P: Yet Another Attempt in User ´
+Authentication. Acta Polytechnica Hungarica, 10(3), 37–50 (2013).
+7. Juh´ar, J., Vokorokos, L.: Separation of concerns and concern granularity in source
+code. Informatics 2015. - Danvers : IEEE, 139–144 (2015).
+8. Chovanec, M., Chovancov´a, E., Dufala, M.: DIDS based on hybrid detection. ICETA
+2014 : 12th IEEE International Conference on Emerging eLearning Technologies and
+Applications, 79–83 (2014).
+9. Chovancov´a, E., Adam, N., Bal´aˇz, A., Pietrikov´a, E., Feci ´ ˇlak, P., Simoˇn´ak, S., ˇ
+Chovanec, M.: Securing distributed computer systems using an advanced sophisticated hybrid honeypot technology. Computing and Informatics, 36(1), 113–139
+(2017).
+10. Adam, N.: Single input operators of the DF KPI system. ´ Acta Polytechnica Hungarica, 7(1), 73–86 (2010).
+11. Vokorokos, L., Bal´aˇz, A., Madovs, B.: Application Security through Sandbox Virtualization. Acta Polytechnica Hungarica, 12(1), 83–101 (2015).
+12. Vokorokos, L., Madovs, B., Adam, N., Bal´aˇz, A.: Innovative Operating Memory ´
+Architecture for Computers using the Data Driven Computation Model. Acta Polytechnica Hungarica, 10(5), 63–79 (2013).
+13. Tich´y, P.: The Foundations of Frege’s Logic. Berlin and New York: De Gruyter,
+1988.
+14. Materna, P.: Denotation and reference. Organon F: Medzinarodny Casopis Pre
+Analyticku Filozofiu, 17(1), 3–20 (2010).
+15. Vokorokos, L., Bilanov´a, Z., Dankoviˇcov´a, Z.: Logic programming from the point of
+view of type theory and predicate linear logic. International Journal of Innovative
+Science and Research Technology, 3(7), 756–760 (2018).
+16. Perh´aˇc, J.: Modeling Component Composition’s Synchronization Problems by
+Petri Nets and Linear Logic. SCYR 2018. - Koˇsice : TU, 159–160 (2018).
+17. Girard, J. Y.: Locus Solum: From the rules of logic to the logic of rules. Journal
+Mathematical Structures in Computer Science, 11(3), 301–506 (2001).
+18. Fleury M.-R., Quatrini, M., Tron¸con, S.: Dialogues in Ludics. PRELUDE Project
+- 2006-2009. Revised Selected Papers, Logic and Grammar, 138–157 (2011).

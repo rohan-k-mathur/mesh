@@ -1,0 +1,2203 @@
+Baltic International Yearbook of Cognition, Logic and
+Communication
+Volume 8 Games, Game Theory and Game
+Semantics
+Article 7
+2013
+Constructiv Constructive Type Theor ype Theory and the Dialogical Appr y and the Dialogical Approach to Meaning o Meaning
+Shahid Rahman
+Université Lille 3
+Nicolas Clerbout
+Université Lille 3
+Follow this and additional works at: https://newprairiepress.org/biyclc
+Part of the Logic and Foundations Commons
+This work is licensed under a Creative Commons Attribution-Noncommercial-No Derivative
+Works 4.0 License.
+Recommended Citation
+Rahman, Shahid and Clerbout, Nicolas (2013) "Constructive Type Theory and the Dialogical Approach to
+Meaning," Baltic International Yearbook of Cognition, Logic and Communication: Vol. 8. https://doi.org/
+10.4148/1944-3676.1077
+This Proceeding of the Symposium for Cognition, Logic and Communication is brought to you for free and open
+access by the Conferences at New Prairie Press. It has been accepted for inclusion in Baltic International Yearbook
+of Cognition, Logic and Communication by an authorized administrator of New Prairie Press. For more information,
+please contact cads@k-state.edu. 
+The Baltic International Yearbook of
+Cognition, Logic and Communication
+November 2013 Volume 8: Games, Game Theory
+and Game Semantics
+pages 1-72 DOI: 10.4148/1944-3676.1077
+SHAHID
+RAHMAN
+Université de Lille, UMR 8163: STL
+NICOLAS
+CLERBOUT
+Université de Lille, UMR 8163: STL
+CONSTRUCTIVE
+TYPE
+THEORY AND THE
+DIALOGICAL
+APPROACH TO
+MEANING
+ABSTRACT: In its origins Dialogical logic constituted one part
+of a new movement called the Erlangen School or Erlangen Constructivism. Its goal was to provide a new start to a general theory
+of language and of science. According to the Erlangen-School,
+language is not just a fact that we discover, but a human cultural
+accomplishment whose construction reason can and should control. The resulting project of intentionally constructing a scientific
+language was called the Orthosprache-project. Unfortunately, the
+Orthosprache-project was not further developed and seemed to
+fade away. It is possible that one of the reasons for this fading
+away is that the link between dialogical logic and Orthosprache
+was not sufficiently developed—in particular, the new theory of
+meaning to be found in dialogical logic seemed to be cut off from
+both the project of establishing the basis for scientific language
+and also from a general theory of meaning.
+We would like to contribute to clarifying one possible way in
+which a general dialogical theory of meaning could be linked to
+dialogical logic. The idea behind the proposal is to make use of
+constructive type theory in which logical inferences are preceded
+by the description of a fully interpreted language. The latter, we
+think, provides the means for a new start not only for the project
+of Orthosprache, but also for a general dialogical theory of meaning.
+1
+Constructive Type Theory 2
+1. INTRODUCTION: KUNO LORENZ AND THE DIALOGICAL TURN
+Since the time of ancient Greece—where the agora emerged as the first
+public space for discussion and decision-making on diverse and serious
+matters—and after the crucial influence of the Sophists, of Plato and
+of Aristotle, dialectical reasoning won a place in our understanding of
+science and the constitution of society that it has kept ever since.
+In a recent paper M. Marion and H. Rückert (forth)—who for
+the first time since the early papers by Kuno Lorenz and Jürgen Mittlestrass (1966; 1967)
+2 take up the historic roots of the theory of
+meaning underlying dialogical logic—show how the notion of quantified expressions in Aristotle’s syllogistic was based on some specific
+rules for dialectical games presented in the Topics (Θ, 2, 157a 34 and
+8,160b).
+3 However, after Aristotle, the theories of inference and of
+dialectical reasoning followed different paths and thus the dynamic aspects of logic were lost. Furthermore, during the years immediately
+following the failure of the project of logical positivism, the links between science as a body of knowledge and science as a process b
+y
+which knowledge is achieved were cut off. Indeed, it seems as though
+a ban on the logical analysis of science as a dynamic process, which in
+traditional philosophy was overtaken by ‘gnoseology’, produced a gap
+between the sciences and logic (including philosophy of science).
+4
+As happens quite often in philosophy, the motivations for the old
+traditions are rediscovered and reveal the mistakes of younger iconoclastic movements. This is indeed the case concerning the relationship
+between logic and knowledge, where the question of whether or not
+there is an epistemic moment linked with the concept of a proposition
+has provoked a heated debate since the 1960s.
+5 In 1955 Paul Lorenzen proposed an operative approach that delved into the conceptual
+and technical links between procedure and knowledge.
+6 The insights of
+Lorenzen’s Operative Logik, as pointed out by Schröder-Heister (2008),
+had lasting consequences in the literature on proof-theory and still deserve attention. Indeed, the notion of harmony formulated by the logicians who favoured epistemic approaches, and particularly by Dag
+Prawitz,
+7 has been influenced by Lorenzen’s notions of admissibility,
+eliminability and inversion.
+8 The epistemic approaches, coming to be
+known as ‘antirealism’—following Michael Dummett—found their formal argument in the mathematics of Brouwer and intuitionistic logic
+Vol. 8: Games, Game Theory
+and Game Semantics
+3 Shahid Rahman & Nicolas Clerbout
+while other approaches persisted in relying on the formal background
+of the Frege-Tarski tradition, where Cantorian set theory is linked via
+model theory to classical logic.
+This picture is, however, incomplete. On the one hand, already
+in the 1960s Dialogical logic, developed by Paul Lorenzen and Kuno
+Lorenz, appeared as a solution to some of the problems that arose in
+Lorenzen’s Operative Logik (1955).9 Herewith, the epistemic turn initiated by the proof-theory was tackled using the notion of games, which
+reintroduced the dynamic features of traditional dialectical reasoning.
+Inspired by Wittgenstein’s meaning as use, the basic idea of the dialogical approach to logic is that the meaning of the logical constants is
+given by the norms or rules for their use. The approach provides an
+alternative to both model theoretic and proof-theoretic semantics.
+On the other hand, by the sixties, Jaakko Hintikka combined the
+model-theoretical, the epistemic, and the game-based traditions in his
+development of what is now known as explicit epistemic logic, where
+epistemic content is introduced into the object language by means of
+an operator yielding propositions from propositions rather than in the
+form of metalogical constraints on the notion of inference. These kinds
+of operators were rapidly generalized to cover several propositional
+attitudes, including notably knowledge and belief. Furthermore, Hintikka developed game theoretical semantics: an approach to formal semantics that, as in the dialogical framework, grounds the concepts of
+truth or validity on game-theoretic concepts, such as the existence of
+a winning strategy for a player. By contrast with the dialogical framework, this approach is built upon the notion of a model.10
+Games, as stressed by Johan van Benthem, involve a tight interplay
+between what agents know and how they act. The rise of this paradigm
+within logic is unmistakeable and represents a major extension of the
+classical viewpoint. Games are typically an interactive process involving several agents, and indeed many issues in logic today are no longer
+about zero-agent notions like truth, or single-agent notions like proof,
+but rather about processes of verification, argumentation, communication, or in general interaction. In addition, this new approach, where
+epistemic operators are combined with game-theoretical reasoning, experienced a parallel renewal in the fields of theoretical computer science, computational linguistics, artificial intelligence and the formal
+www.thebalticyearbook.org
+Constructive Type Theory 4
+semantics of programming languages. This was triggered by the work
+of Johan van Benthem11 and collaborators in Amsterdam who not only
+looked thoroughly at the interface between logic and games but also
+provided new and powerful tools to tackle the issue of the expressivity
+of a language—in particular the capability of propositional modal logic
+to express some decidable fragments of first-order logic.12 New results
+in linear logic by J-Y. Girard at the interfaces between mathematical
+game theory and proof theory on the one hand and argumentation
+theory and logic on the other, resulted in the work of many others, including S. Abramsky, J. van Benthem, A. Blass, H. van Ditmarsch, D.
+Gabbay, M. Hyland, W. Hodges, R. Jagadessan, G. Japaridze, E. Krabbe,
+L. Ong, H. Prakken, G. Sandu D. Walton, and J. Woods who placed
+game semantics in the center of a new concept of logic according to
+which logic is understood as a dynamic instrument of inference.13
+A dynamic turn, as van Benthem puts it, is taking place and Kuno
+Lorenz’s work is a landmark in this turn. In fact, Lorenz’s work can
+be more accurately described as the dialogical turn that re-established
+the link between dialectical reasoning and the study of logical inference. This link provides the basis for a host of current and ongoing
+researches14 in the history and philosophy of logic, spanning the Indian, Chinese, Greek, Arabic, and Hebraic traditions, from the Obligationes of the Middle Ages to the most contemporary developments in
+the study of epistemic interaction.
+Let us now come to a point that might be seen as a kind of pending task. In its origins Dialogical logic constituted one part of a new
+movement called the Erlangen School or Erlangen Constructivism, which
+was intended to provide the new start for a general theory of language and of science.15 In relation to the theory of language, according to the Erlangen-School, language is not just a fact that we discover, but a human cultural accomplishment whose construction reason can and should control.16 The constructive development of a scientific language was called the Orthosprache-project.17 Unfortunately, the
+Orthosprache-project was not further developed and seemed to fade
+away. Perhaps it could be said that one of the reasons for this is that
+the link between dialogical logic and the Orthosprache was not sufficiently developed. In particular, the systematic development of dialogues based on the norms built by an Orthosprache were not worked
+Vol. 8: Games, Game Theory
+and Game Semantics
+5 Shahid Rahman & Nicolas Clerbout
+out. Because of this the new theory of meaning at work in dialogical
+logic seemed to be cut off from both the project of determining the
+basis for scientific language and also from a general theory of meaning. However, in the last 30 years Lorenz has delved into the roots of
+the problem, work initiated in his Habilitationsschrift,18 and has developed a new theory of predication that appears to be adequate for the
+completion of the dialogical project.19
+We would like to contribute to determining one possible way in
+which a general dialogical theory of meaning could be linked to dialogical logic. However, in the present paper we will only set the preliminaries for such work. On our view, the recent work of Lorenz on predication can be integrated into the project at a precise place. The idea
+behind the proposal is to make use of constructive type theory where
+logical inferences are preceded by the description of a fully interpreted
+language. The latter, we think, provides the means for a new start
+not only for the project of Orthosprache but also for a general dialogical theory of meaning. Indeed, constructive type theoretical grammar
+(Ranta 1994; Ginzburg 2012) has now been successfully applied to the
+semantics of over 60 natural languages and the research is just starting. Particularly interesting is the fact that Ginzburg deploys CTT in
+order to capture the interaction of meaning underlying conversations
+in natural language.
+We are confident that the dialogical theory of meaning has the potential to be integrated with and contribute to the new research paths
+opened by CTT. Spelling this out in detail will bet he task of future
+work. Tthe present paper presents rather a research program and thus
+we will content ourselves here with the task of developing—in typetheoretical setting—the link between dialogical logic and the project of
+an Orthosprache.
+2. ORTHOSPRACHE AND PREDICATOR RULES
+2.1. Predicators and Predicator rules
+As pointed out by G. Sundholm (1997; 2001) the standard approach
+to a formal language for the foundations of science treats the language
+as a meta-mathematical object where syntax is linked to semantics by
+the assignment of truth values to uninterpreted strings of signs (formuwww.thebalticyearbook.org
+Constructive Type Theory 6
+lae). Many contemporary reconstructions of historical logical systems
+follow this metalogical view of formal languages and the foundations
+of science, which had developed by the mid-thirties. However this view
+does not apply to the father of modern formal logic, namely Frege.20 It
+does not apply because in the work before the influence of Hilbert,
+Gödel, Bernays and Tarski, expressions of a scientific language express
+a content, they constitute a meaningful language. The development of
+fully interpreted languages is one of the main features of contemporary constructive type theory, which is based on the idea of making the
+meanings of the terms involved explicit at the level of the object language. This movement against the mainstream was already present in
+the project of an Orthosprache, proposed by Erlangen Constructivism
+by 1970, which also challenged the approach of the mainstream analytic theory of meaning at the time.
+The term Orthosprache was dubbed by Paul Lorenzen in 1972,
+quoted in a footnote of the second edition of the Logische Propädeutik (1972, p. 73, footnote 1), and discussed in the bible of the Erlangen
+School: Konstruktive Logik, Ethik und Wissenschaftstheorie (Lorenzen
+& Schwemmer 1973). The idea behind it is that of the explicit and
+constructive development, by example (exemplarisch), of a language in
+order to build a targeted scientific terminology (Kamlah & Lorenzen
+1972, pp. 70-111).
+The qualification by example refers to one of the major tenets of the
+overall philosophy of language of the Erlangen School, namely the idea
+that we grasp an individual as exemplifying something—type theoreticians will say as exemplifying a type (see below):
+Yet even science cannot avoid the fact that things do not
+proffer themselves everywhere as different of their own accord, more often in important areas (e.g. in the social or
+historical sciences) science must decide for itself what it
+wants to regard as of the same kind and what is of different kind, and address them accordingly.
+[...]
+As we have said already, the world does not “consist of objects” (of “things in themselves”) which are subsequently
+named by men....
+[...]
+Vol. 8: Games, Game Theory
+and Game Semantics
+7 Shahid Rahman & Nicolas Clerbout
+In the world being disclosed to us all along through language we tend to grasp the individual object as individual
+at the same time that we grasp it as specimen of ... Further, when we say “This is a bassoon” we mean thereby
+“this instrument is a bassoon” ... or when we say “This is
+a blackbird”, we presuppose that our discussion partner already knows “what kind of an object is meant”, that we are
+talking about birds (Kamlah & Lorenzen 1984, p. 37).21
+Accordingly, the predicators22 of the Orthosprache are introduced by
+the study of exemplification instances. Now, as already pointed out by
+Henri Poincaré in his disputes with the “logicians”, a scientific terminology does not consist only of a set of predicators or even of sentences
+expressing propositions: an adequate scientific language constitutes a
+system of conceptual interrelations.23 The main logical device of the
+Orthosprache project is to establish the corresponding transitions by
+Predicator rules that will govern the passage from one predicator to
+another. Moreover, these transition rules are formulated within a dialogical frame so that, given the predicator rule:
+xεA ⇒ xεB
+(where x is a free variable and “A” are “B” are predicators) we have: if
+a player brings forward an object to which predicator A is said to apply
+then he is also committed to ascribe the predicator B to the same object.
+The idea is that, for example, if someone claims k is a bassoon then he
+is committed to the further claim that k is a musical instrument (where
+k is a individual constant: in the Logische Propädeutik the application of
+these norms proceeds by substituting individual constants for free variables). The Constructivists of Erlangen called transition rules of this
+sort, which structure a (fully interpreted) scientific language by setting
+the boundaries of a predicator, material-analytic norms.24 Material analytical propositions (or more literally material analytical truths)25 are
+then defined as the universally quantified propositions based on such
+material-analytic norms (Lorenzen & Schwemmer 1973, p. 215).
+The criticism of the formal semantic approach initiated by the constructivists of Erlangen was further developed by Lorenz. Indeed, one
+of the main insights of Lorenz’ interpretation of the relation between
+the so-called early and later Wittgenstein is based on a thorough critwww.thebalticyearbook.org
+Constructive Type Theory 8
+icism of the metalogical approach to meaning (Lorenz 1970, pp. 74-
+79). As pointed out by Lorenz, the heart of Wittgenstein’s philosophy of language is the internal relation between language and world.
+The internal relation is what language games display while they constitute meaning. The roots of this perspective are based on the UnHintergehbarkeit der Sprach: there is no way to ground a logical language outside language (recall the case of Neurath’s sailor on his raft):
+Also propositions of the metalanguage require the understanding of propositions, [...] and thus can not in a sensible way have this same understanding as their proper object. The thesis that a property of a propositional sentence
+must always be internal, therefore amounts to articulating the insight that in propositions about a propositional
+sentence this same propositional sentence does not express
+anymore a meaningful proposition, since in this case it is
+not the propositional sentence that is asserted but something about it.
+Thus, if the original assertion (i.e., the proposition of the
+ground-level) should not be abrogated, then this same
+proposition should not be the object of a metaproposition,
+[...].26 (Lorenz 1970, p.75).
+While originally the semantics developed by the picture
+theory of language aimed at determining unambiguously
+the rules of “logical syntax” (i.e. the logical form of linguistic expressions) and thus to justify them [...]—now language use itself, without the mediation of theoretic constructions, merely via “language games”, should be sufficient to introduce the talk about “meanings” in such a
+way that they supplement the syntactic rules for the use of
+ordinary language expressions (superficial grammar) with
+semantic rules that capture the understanding of these expressions (deep grammar).27 (Lorenz 1970, p.109).
+If we recall Hintikka’s (1996b) extension of van Heijenoort’s distinction between language as universal medium and language as a calculus,
+the point is, as discussed by Tero Tulenheimo (2011, p. 111), that the
+dialogical approach shares some tenets of both conceptions. Indeed,
+Vol. 8: Games, Game Theory
+and Game Semantics
+9 Shahid Rahman & Nicolas Clerbout
+on one hand the dialogical approach shares with universalists the view
+that we cannot place ourselves outside our language, on the other it
+shares with the anti-universalists the view that we can develop a methodical reconstruction of a given complex linguistic practice out of the
+interaction of simpler ones. The reconstruction is at the same time normative and pluralistic. Normative in the sense that the reconstruction
+establishes rules for the correct practice. Pluralistic in the sense that
+different practices might trigger a change of the norms established by
+one reconstruction and thus yield meaning variations.28
+So far so good. But we have yet to ensure that the conceptual
+structure that results from predicator rules is not left at the metalanguage level. Moreover, in order to implement the original project of
+an Orthosprache, more has to be said concerning, among other things,
+the dialogical introduction of predicators by exemplification (What are
+paradigmatic exemplifications? How do we go from one predicator
+to the other?), and how the passage from material-analytic norms to
+material-analytic truths happens. Kuno Lorenz’s recent work on Predication, we think, is linked to the first question.29
+Moreover, in the context of logic the preceding considerations lead
+to a conception according to which meaning is not constituted by an
+external relationship between sentences and truth values, but by means
+of different interactions that determine the reconstruction (specific to
+a given argumentative and/or linguistic practice) that certain kind of
+language games, called dialogues, provide. But how does all this combine with predicator rules?
+The main aim of the present paper is to tighten up all these questions together. In fact, the idea is that the task of implementing a theory of meaning that avoids the metalogical trap can be accomplished
+if the constitution of meaning itself is placed at the object language
+level.30 As already announced we will make use of constructive type
+theory. Thus we now briefly introduce the main features of this approach that are relevant for the purposes of our paper.
+2.2. Constructive Type theory and Orthosprache
+Within Per Martin-Löf’s constructive type theory (for short CTT) the
+logical constants are interpreted through the Curry-Howard correspondence between propositions and sets. A proposition is interpreted as
+www.thebalticyearbook.org
+Constructive Type Theory 10
+a set whose elements represent the proofs of the proposition. It is
+also possible to view a set as a problem description in a way similar
+to Kolmogorov’s explanation of the intuitionistic propositional calculus. In particular, a set can be seen as a specification of a programming
+problem, the elements of the set are then the programs that satisfy the
+specification (Martin-Löf 1984, p. 7). Furthermore in CTT sets are
+understood also as types so that propositions can be seen as data (or
+proof-)-types.31
+The general philosophical idea is linked to the fully interpreted approach mentioned above and in particular to avoid—in Martin-Löf’s
+own words (1984, p.2)—keeping content and form apart. Instead we
+will at the same time display certain forms of judgement and inference
+that are used in mathematical proofs and explain them semantically.
+Thus, we make explicit what is usually implicitly taken for granted. Doing this involves bringing the features that determine meaning to the
+object level instead of formulating them at the meta-level, as is usually
+done.
+According to the CTT view of logic the premises and conclusion of
+a logical inference are not propositions but judgements.
+A rule of inference is justified by explaining the conclusion
+on the assumption that the premisses are known. Hence,
+before a rule of inference can be justified, it must be explained what it is that we must know in order to have
+the right to make a judgement of any one of the various
+forms that the premisses and conclusion can have (MartinLöf 1984, p.2).
+The original work of Martin-Löf had as its main aim to reconstruct (in
+the best possible way) informal mathematical reasoning. But, as already mentioned, Aarne Ranta (1994) applies CTT as a general theory
+of meaning and extends its use for the study of natural languages.
+2.2.1. Kinds as Types
+In order to build up the link between CTT and the project of an Orthosprache, let us start by studying two basic tenets of CTT, namely
+(1) No entity without type
+Vol. 8: Games, Game Theory
+and Game Semantics
+11 Shahid Rahman & Nicolas Clerbout
+(2) No type without identity
+The first tenet is strikingly close to the claim of Erlangen Constructivism
+quoted above, according to which we tend to grasp an individual as the
+instantiation of a kind. Accordingly, we can take the assertion that an
+individual is an element of the set A as the assertion that that individual
+instantiates or exemplifies type A. But what is a type A and how do we
+differentiate between individuals that are examples of it and those that
+are not? Or more fundamentally, what is it that we must know in order
+to have the right to judge something to be of a type?
+Those objects that are of the type set are defined in CTT by means
+of defining their canonical elements, those that “directly” exemplify the
+type, and the non-canonical ones, those that can be shown using some
+prescribed method of transformation to be equal (in type) to a canonical one: the precise requirement is that the equality between objects of
+a type must be an equivalence relation.32 This is what the second tenet
+is about and is the response to Kamlah/Lorenzen’s words quoted above
+concerning the need to specify what is the same and what is different
+in a kind.33
+When we have a type, we know from the semantic explanation of
+what it means to be a type what the conditions for being an object of
+that type are. So, if A is a type and we have an object b that satisfies
+these conditions, then b is an object of type A, which we formally write
+b : A.34 Accordingly,
+b : A A true
+can be read as
+b is an element of the set A A has an element
+b is a proof of the proposition A A is true
+b fulfils the expectation A A is fulfilled
+b is a solution to the problem A A has a solution
+It is essential to distinguish between the proof-object b, the type
+A,
+(proposition if it is of the type proposition, set if it is of the type underlying a quantification) and the judgement b : A, which establishes
+that, in this example, b is a proof-object for the propositio
+n
+A (if
+A is a
+proposition). In standard logic, that there is a proof for a given proposition is expressed at the metalinguistic level. The fact that there is
+www.thebalticyearbook.org
+Constructive Type Theory 12
+something (an object) b that grounds the proposition that Primus owes
+100 coins to Secundus (yielding the corresponding assertion) is given in
+the usual analysis at the metalanguage level.
+Let us now switch to the Orthosprache project. What we are hinting
+at should be clear: to suggest that the role that plays the exemplarische
+introduction of predicators in the Orthosprache is played here (in CTT)
+by the explicit definition of types. More precisely, those types that provide the base for the universally quantified norms are of the type set.
+Furthermore, we would like to explore the possibilities of reconstructing the idea of grasping an object as a kind starting by means of
+the CTT prescriptions to build the type set. Set does not instantiate
+the type set, since we do not have a general method for generating all
+possible ways to build a set. However, given the type set we can build
+the objects that instantiate it by the means described above. Accordingly, set(-objects) are not primitive either, since in fact they instantiate
+the type set. And each of these instantiations is generated by means of
+its canonical elements and of rules. After such a set(-object) is generated, certain propositional functions can be defined on it—as will be
+discussed in the next section.
+Moreover, the type set is one of an infinite number of types. There
+are other types, such as the type prop. In fact, predicators are defined by the interaction of these two types, the ontological type set
+and the type of ‘prop’ which is about what is said. If we follow this
+path, the distinction between canonical and non-canonical elements
+and the requirement of a method by which a non-canonical element
+can be computed so that the result is a canonical element seem an insightful addendum to the project of the constructive development of
+an Orthosprache for sciences. According to this suggestion, grasping
+an object as exemplifying a kind does not only introduce the difference
+between paradigmatic and non-paradigmatic examples: we also need
+to describe a computation method that carries from paradigmatic to
+non-paradigmatic ones.
+The computation method seems to work straight away for mathematics but it is less clear-cut for other sciences or for types in natural language such as the type city. J. G. Granström (2011, pp. 14-15
+and 86-91) suggests linking the distinction between canonical and noncanonical with the difference between mediate concepts, as in the capital
+Vol. 8: Games, Game Theory
+and Game Semantics
+13 Shahid Rahman & Nicolas Clerbout
+of France, and immediate concepts such as Paris—in the context of establishing the reference of the elements of the set City. Moreover, this
+involves the use of a computational method by means of which computing the capital of France gives the value Paris, which is a canonical
+element of the set City.35 It is still not clear how to work up thoroughly
+the details of such a computation device.36 Ranta (1994, pp. 54-55),
+while discussing the criticisms against the fruitfulness of applying CTT
+to natural language, writes:
+The third way to justify everyday objects in type theory,
+and the most modest one, is to study delimited models of
+language use, ‘language games’. Such a ‘game’ shows, in
+an isolated form, some particular aspect of the use of language, without any pretension to covering all aspects. It
+is a model of language in the sense in which theories are
+models of nature. In such a model, the term man is interpreted as some set like
+{Matthew, Mark, Luke, John},
+whose elements are fully presented by the canonical names
+Matthew, etc. (The set could of course be considerably
+larger, for example, a record of one million names, dates
+of birth, professions, hobbies.) The model does not present
+fully present men in blood and flesh, with complete stories
+of life, but it is enough for the formalization of a fragment
+of language that does not appeal to any further structure
+of men)
+Indeed, it looks sensible to restrict the sets of quantification for empirical objects to some finite sets. Two points of the present paper are
+to pick up the idea of language games in a logical framework, namely
+the dialogical one, and bring into consideration a net of such language
+games.
+The first point is linked with the fact that dialogical logic has been
+developed at the interface between constructive logic and Wittgenstein’s language games and the second point involves the idea that the
+relative under-determination of a set of quantification might be minimized by establishing a structure of such sets that results from norms
+governing the passage from one of these sets to the other. This takes
+us to the notion of predicator rules within the CTT-framework.
+www.thebalticyearbook.org
+Constructive Type Theory 14
+2.2.2. Hypotheticals and Predicator Rules
+2.2.2a Hypotheticals:
+The judgements we have introduced so far do not depend on any assumptions. They are categorical judgements. The CTT language also
+has hypothetical judgements of the form
+B type (x : A)
+Where
+A is a type that does not depend on any assumptions and
+B is a
+type when x : A (the hypothesis for
+B). In the case of sets we have that
+b is an element of the set
+B, under the assumption that
+x is an element
+of the
+A:
+b : B (x : A) (more precisely: b : el (B) (x : el (A)))
+The explicit introduction of hypotheticals carries with it the explicit introduction of appropriate substitution rules. Indeed, if in the example
+above, a : A, then the substitution of of
+x by
+a in b yields an element
+of
+B; and if
+a
+= c : A, then the substitutions of
+x by
+a and by c in b are
+equal elements in
+B:37
+a : A b : B (x : A) a
+= c: A b : B (x : A) ———————— —————————— b(a
+/x) : B b(a
+/x)
+= b(c
+/x) : B
+As pointed out by Granström (2011, p. 112) the form of assertion b :
+B (x : A) (b : el (B) (x : el (A))) can be generalized in three directions:
+(1) Any number of assumptions will be allowed, not just one;
+(2) The set over which a variable ranges may depend on previously
+introduced variables;
+(3) The set B may depend on all introduced variables
+Such a list of assumptions will be called a context. Thus we might need
+the forms of assertion
+b : B (
+Γ) – where
+Γ is a context (i.e., a list of assumptions)
+Γ : context
+Vol. 8: Games, Game Theory
+and Game Semantics
+15 Shahid Rahman & Nicolas Clerbout
+In general, a hypothetical judgment has the form
+x1 : A1, x2 : A2, ... xn : An
+where we already know that A1 is a type, A2 is a type in the context x1 :
+A1, ..., and An is a type in the context x1 : A1, x2 : A2, ... xn−1 : An−1 :
+A1 type [depending on no assumption]
+A2 type (x1 : A1)
+...
+An type (x1 : A1, x2 : A2, ... xn−1 : An−1)
+A type (x1 : A1, x2 : A2, ... xn : An) ————————————————– x : A (x1 : A1, x2 : A2, ... xn : An, x : A)
+The rules for substitution and equality are generalized accordingly:
+Hypothetical judgements introduce functions from A to B:
+f(x) : B (x : A)
+It can be read in several ways, for example:
+f(x) : B for arbitrary x : A
+f(x) : B under the hypothesis x :A
+f(x) : B provided x : A
+f(x) : B given x :A
+f(x) : B if x : A
+f(x) : B in the context x : A
+It is crucial to notice that the notion of function is intensional rather
+than extensional. Indeed, the meaning of a hypothetical function that
+introduces a function is that whatever element a is substituted for x
+in (f(x), an element f(a) of B results. Moreover, the equality of two
+functions defined by establishing that substitutions of equal elements
+of A result in equal elements of B as regulated by the rules of substitution given above—where b(x) is interpreted as a function from A to B.38
+In addition to domains of individuals, an interpreted scientific language requires propositions. They are introduced in CTT by laying
+www.thebalticyearbook.org
+Constructive Type Theory 16
+down what counts as proof of a proposition. Accordingly, a proposition
+is true if there is such a proof. We write
+A : prop
+to formalize the judgement that A is a proposition. Propositional functions are introduced by hypothetical judgements. The hypothetical
+judgement required to introduce propositional functions is of the form:
+B(x) : prop (x : A)
+that reads, B(x) is of the type proposition, provided it is applied to elements of the (type-)set A. The rule by which we produce propositions
+from propositional functions is the following:
+a : A B(x) : prop (x : A) ——————————— ba : prop
+And it requires also the formulation of an appropriate rule that defines
+the equivalence relation within the type prop:
+a=b : A B(x) : prop (x : A) ———————————– Ba=Bb : prop
+The notion of propositional function as hypothetical judgement allows
+the (intensional) introduction of subsets by separation:
+A : set B(x) : prop (x : A) b : A Bb true ———————————– ——————— {x : A | B(x)} : set b : {x : A | B(x)}
+This explanation of subsets also justifies the following rules:
+b: {x : A | B(x)} b: {x : A | B(x)} ———————- ——————— b : A Bb true
+Since this method is based on pre-existent sets that have been constructed by description of their canonical elements, the standard paradoxes of set theory do not arise (such paradoxes do appear in some
+early formulations of Lorenzen’s method for the construction of sets).39
+Vol. 8: Games, Game Theory
+and Game Semantics
+17 Shahid Rahman & Nicolas Clerbout
+What is given in a context, the given contextually-dependent knowledge,
+is whatever can be derived from the hypotheses constituting the context. Actually, a distinction is usually made between what is actually
+given in the context (actual knowledge), namely the variables themselves and the judgements involving these variables, and what is potentially given (potential knowledge), namely what can be derived by
+the rules of type theory from what is actually given. Further, actual and
+potential knowledge can be increased by extending a given context in
+ways to be described below.
+2.2.2b Hypotheticals and Extensions of Contexts
+Let us consider once more the hypothetical
+B(x) : prop (x : A)
+Then, we can produce an extension of the context by interpretation by
+means of definitional equalities such as a=x : A yielding
+B(a) : prop (a =x : A)
+Ranta (1994, pp. 135-137) applies it to the study of a literary text
+where the text is seen as defining a context. That is, as a series of hypothetical judgements that can be interpreted by equating the variables
+with actual objects:
+An interpretation of Hemingway’s short story ‘The Battler’
+might start with the definition
+Nick Adams = Ernest Hemingway : man
+and go on assigning events from the young Hemingway’s
+life to the variable proofs of even propositions asserted in
+the story. (Ranta, 1994, p. 136).
+More generally, one could extend a context by another context that
+interprets the variables of the original context in terms of the new
+ones.40 Extension can in principle induce the growing of knowledge.41 In
+fact, a context can be enlarged by:
+a) Addition of hypotheses. For instance the context
+www.thebalticyearbook.org
+Constructive Type Theory 18
+Γ = (x1 : A1, ... xn : An) is extended to the context
+∆ = (x1 : A1, ... xn : An, xn+1 : An+1). It is clear that everything
+that is given in Γ is given in the new context as well and thus in
+the new context we know what we knew in the original one. It may
+also happen that in the new context proofs are now available that
+were not at all available in Γ – not even potentially. In this case an
+increasing growth of knowledge occurs.
+b) Addition of definitions that interpret one of its variables. This is
+the case already mentioned at the start of the paragraph. A more
+general formulation is the following: the context
+Γ = (x1 : A1, ... xn : An) is extended to the context
+∆ = (Γ, xk = a : Ak)
+So that in the new context every occurrence of xk is substituted by
+a. The new context is obtained from Γ by removing the hypothesis
+xk : Ak by a(x1 ... xn). Thus the new context is shorter than the original. Still, this operation furnishes not only the knowledge of the
+original context but also the value assigned to the variable reduces
+the uncertainty within the context.42
+c) Addition of a sequence of definitions of all variables in terms of the
+variables of the new context (the new context need not look the
+same as the original one). The context
+Γ = x1 : A1, ... xn : An(x1... xn−1) is extended to the context
+∆ = y1 : B1, ... ym : Bm(y1... ym−1) by a mapping f from ∆ to Γ
+constituted by a sequence of functions such that
+x1 = f(y1) ...(ym) : A1 (∆)
+...
+xn = f(y1) ...(ym) : An(f(y1) ...(ym)... fn−1(y1) ...(ym)) (∆)
+The third operation of extension can be seen as a generalization of the
+other two (if the new context results by addition of hypotheses we have
+the first case; if the new context results from the introduction of only
+one definition, then we have the second case) by translating the old
+context into the new. Thus, the existence of a mapping f : ∆ → Γ is
+usually taken to be the definition of what it is for a context to be an
+extension of another context.
+It might even be argued, as Primiero (2008, p. 187) does, that this
+Vol. 8: Games, Game Theory
+and Game Semantics
+19 Shahid Rahman & Nicolas Clerbout
+extension amounts to knowledge enlargement in the sense that the
+new context can show that some properties hold in the old context in
+such a way that new concepts might elucidate the older ones.
+2.2.2c Predicator-rules, Hypotheticals and Material-Analytic Norms
+Let us switch now once more to the Orthosprache project. On our
+view, the rule that produces a proposition from a propositional function and a set (as type) reconstructs the predicate rule in the context of
+CTT and renders the form of a basic predicator rule. The main idea here
+is that a predicator is defined over an object that instantiates the type
+set. Predicators, according to the Erlangen School, introduce a classification method in a domain. This is what hypothetical judgements such
+as B(x) : prop (x : A) express. According to this reconstruction, we produce a proposition from a predicator B(x) that is introduced with the
+help of A that is of the type set and that set A is defined by rendering
+its paradigmatic examples and generation method.
+Let us focus our attention on the substitution rule that yields Ba
+from categorical a : A and the hypothetical B(x) : prop (x : A).
+A crucial point is the distinction drawn between two forms of judgement involving a is B, namely:
+a : B
+and
+Ba
+The first concerns the relation between an element and a set and the
+second asserts a proposition—in our example we have a is A and a is
+B. But we are not yet at the level of assertion of propositions. The rule
+above only lays down the condition to produce a proposition from a
+propositional function: in the conclusion of the rule we have the judgement that Ba is a proposition, not that it is true. The original predicator
+rule that regulates the transition from one propositional form to the
+other can be seen as a more complex embedded prescription. Indeed,
+one more general way to see predicator rules is as a case of contextual dependency in the sense that one predicator is dependent on another. Moreover, contextual dependency amounts to the dependency
+of judgements and this, as mentioned above, characterizes hypothetical judgements. Indeed, one way to see complex forms of predicator
+www.thebalticyearbook.org
+Constructive Type Theory 20
+rules is to see them as context-extensions as described in 2.2.2b above.
+In other words, predicator rules from one prop to the other can be rendered as, for instance,
+B(x) : prop (x(y) : A(y) (y : C) (and this assumes that
+A(y) : prop (y : C))
+such that this hypothetical is an extension of (the basic predicator-rule)
+B(x) : prop (x : A(x))
+Extensions can, as discussed above, trigger an extension of both actual
+and potential knowledge. This is what, according to the present approach, material-analytic norms amount to. Perhaps the original sense
+of the Lorenz and Mittelstrass involved potential knowledge.43
+According to us, the present reconstruction is even closer to Lorenz and
+Mittelstrass’ (1967) beautiful analysis of Plato’s Cratylus. Particularly
+so, since such an analysis launches the Erlangen project of a structure
+of predicator rules. Indeed, in the paper mentioned above the authors
+identify two basic acts of predication, namely naming (ìnomzen) and
+stating (lègen). The first one amounts to the act of subsuming one
+individual under a concept and the second establishes a true proposition. Naming is about correctness: one individual reveals the concept it
+instantiates if the naming is correct (names reveal objects for what they
+are):
+Names, i.e. predicates, are tools with which we distinguish
+objects from each other. To name objects or to let an individual fall under some concept is on the other hand the
+means to state something about objects, i.e. to teach and
+to learn about objects, as Plato prefers to say.
+[...] whereas only ‘correct’ names reveal objects for what
+they are (Crat. 422d), i.e. place individuals under an appropriate concept. (Lorenz & Mittelstrass 1967, p. 7).
+Stating is about the truth of the proposition that results from this kind
+of predication act. If an individual is indeed an element of the adequate
+type subset separated by the predicate at stake, the associated sentence
+is true. We believe this is a fair reconstruction of the following lines of
+Vol. 8: Games, Game Theory
+and Game Semantics
+21 Shahid Rahman & Nicolas Clerbout
+Lorenz& Mittelstrass (1967, p.8):
+Therefore, in Plato’s terminology, a name is correct or reveals an object, if the associated elementary sentence is
+true, and incorrect if the associated elementary sentence is
+false.
+In the context of our own reconstruction naming (ìnomzen) corresponds to the assertions that an individual is an element of a given set.
+That is, it involves judgements of the form
+a : A,
+and stating (lègen) corresponds to building a proposition given the
+adequate elements of a set, that is
+Ba (where a is an element of those A separated by Bx).
+Thus, there is a relation between correctness and truth. But on our
+view correctness corresponds to the fact that an object can be shown
+to be an element of the set and this leads to the judgement a : A.
+Then such a judgement provides the basis on which an associated
+proposition—here Ba—is said to be true.
+The adequacy of the distinction between these forms of judgement is
+clear even in simple examples of quantification: if one asserts
+There are small elephants
+the naïve first-order interpretation, there are x that at are small and
+elephants is simply wrong because it involves a confusion between two
+different types. Elephant is the domain over which the propositional
+function small is defined, thus it is of the type of a set of quantification
+whereas small is a function that yields a proposition provided the function is applied to the domain. That is, instead of
+∃x (Lx∧Sx)
+we should have
+(∃x : L) Sx (provided Sx : prop under the proviso that x : L)
+As we will see further on, these forms of judgement are in fact present
+in the particle rules for quantifiers of dialogical logic where a distinction is drawn between the act of choosing a singular term and the act of
+www.thebalticyearbook.org
+Constructive Type Theory 22
+substituting the variable by the chosen term. The Orthosprache framework considered the study of passage from predicator rules to quantified sentences, though a precise system of rules regulating this passage
+was not explicitly developed. The point is that the CTT-approach furnishes such rules, called formation rules. In fact, the rules that describe
+how to build propositions out of hypotheticals are a special case of formation rules.
+2.2.2d Formation Rules and Predicator Rules
+Formation rules simultaneously embody both the syntax and the explanation of the basic types that provide the meaning of the language
+(involving logical and non-logical constants). Another way of looking
+at the rules is to say that the formation rules explain the types of the
+language and that the introduction and elimination rules explain the
+typing rules for expressions. There is also a last kind of rule in CTT,
+called computation rules, which explain the dynamics of the typing.
+One of the most distinctive features of CTT is that before the logical
+process starts the formation rules should be applied: this is the way
+that CTT implements the idea of a fully interpreted language. In fact,
+the process of the application of the formation rule proceeds bottom
+up: from the expression to be proved to the meaning elements of it.
+To give a flavour of the use of the formation rules:
+Let us assume that the task is to prove that the following holds
+(0) Ba→ ∃xBx
+or to write it down in the explicit language of CTT
+(1) Ba→(∃x : A)Bx true
+It if it is to be true it must be a proposition.
+So we must have before
+(2) Ba→(∃x : A)Bx : prop
+Vol. 8: Games, Game Theory
+and Game Semantics
+23 Shahid Rahman & Nicolas Clerbout
+The left part is a prop if the head and tail of the conditional are
+also propositions:
+(3) Ba : prop (4) (∃x : A)Bx : prop
+If the first is a prop then there must be some set such that a is an
+element of that set and a propositional function B(x) such that it
+is a prop (i.e., is of the type proposition) provided that x ranges
+over that set, let us assume that the set is A:
+(5) a : A (6) B(x) : prop (x :A)
+Similarly the formation of 4 requires A to be a set of that set and
+a propositional function B(x) such that it is a prop provided that x
+ranges over A. One can now proceed by checking the constitution
+rules of A. Let us assume that we know how A has been defined
+and that a is indeed of type A and continue with the existential
+sentence. Now that we know what we are talking about we can
+proceed with the proof.
+As already mentioned, in the example above one could continue until
+the formation of each set is defined by exhibiting the adequate proof
+objects. In the context of a legal trial, it corresponds to studying the
+pieces of evidence that constitute the relevant propositions. In the dialogical setting, as discussed in 3, every play of a thesis starts with a
+play where the challenger asks for the formation rules underlying the
+thesis at stake. In such formation-plays predicator-rules will then result as a response to the challenge enquiring about the presuppositions
+underlying a given thesis.
+2.3. Predicator Rules and Formation Plays: The Idea Behind
+Let us start with a presentation of the underlying intuitions. As already
+mentioned, given a transition rule such as
+x ε A ⇒ x ε B
+we have: if a player brings forward an object to which predicator A is
+said to apply then he must also be committed to ascribing the predicator B to the same object.
+www.thebalticyearbook.org
+Constructive Type Theory 24
+In the context of Basic Predicator Rules and of the distinction between the two forms of predication discussed in the preceding paragraphs, we could distinguish between the basic predicator formation
+plays and the basic predicator rules. The former concern the formation
+plays that yield the latter. In other words, we should distinguish between:
+Ax : prop (x : B)
+(Ax constitutes a proposition provided that x is an element of B)
+and
+p : Ax (x : B)
+(p constitutes a play for Ax, provided x is an element of the set B)
+The following provides a first intuitive illustration on the way these
+expressions are handled in a dialogical setting (see a more detailed
+explanation in the next Section):
+1. X ! p : Ak
+2. Y ?t y pe (Y asks for the type)
+3. X ! Ak : prop (X answers that it is of the type proposition)
+4. Y ?F (Y, asks for the formation rule)
+5. X ! Ak/x : prop (x : B)
+If we take a simplified version of the example of the bassoon mentioned above, the point of these rules is that if player X posited that
+the individual k is a bassoon and if this presupposes that Bassoon(x) is
+a proposition when x is an element of the set of instruments, then this
+commits X to posit that Bassoon(k) is a proposition if k is an element of
+the set of instruments.
+Now the (material) dialogue might continue by asking for the formation rule of the set B. The defender must then provide:
+i) the canonical elements
+ii) an algorithm that shows how to compute non canonical from canonical ones (in non-mathematical contexts an exhaustive enumeration might be sufficient)
+iii) rules that determine the equivalence class corresponding to the set
+Vol. 8: Games, Game Theory
+and Game Semantics
+25 Shahid Rahman & Nicolas Clerbout
+In addition to the formation rules, we need to have basic predicator
+rules that should provide the concessions from which a play for the
+corresponding elementary sentence can be produced (if the elementary
+sentence happens to be true).
+X ! p : Ax (x : B)
+Y !
+τ : B (Y chooses a term τ and posits that it is an element of the
+set B)
+X ! p’ : A
+τ (X substitutes x with the term τ)
+If we develop material-analytic dialogues, elementary sentences can be
+challenged: by the formation rules and the applications of adequate
+conceded predicator rules (if there are any such concessions). The idea
+behind the material-analytic dialogues is that, as in formal dialogues,
+O’s elementary sentences can not be challenged whereas
+O can challenge an elementary sentence (posited by
+P) iff himself (the Opponent)
+did not posit it before.
+3. DIALOGICAL LOGIC AND THE INTERFACE BETWEEN SYNTAX,
+SEMANTICS AND PRAGMATICS
+The dialogical approach to logic is not a specific logical system but
+rather a rule-based semantic framework in which different logics can
+be developed, combined and compared. An important point is that
+the rules that fix meaning are of more than one kind. This feature
+of its underlying semantics has often lead to the dialogical approach
+being understood as a pragmatist semantics. More precisely, in a dialogue two parties argue about a thesis respecting certain fixed rules.
+The player that states the thesis is called Proponent (
+P), his rival, who
+contests the thesis is called Opponent (
+O). In its original form, dialogues were designed in such a way that each of the plays end after a
+finite number of moves with one player winning, while the other loses.
+Actions or moves in a dialogue are often understood as speech-acts involving declarative utterances or posits and interrogative utterances or
+requests. The point is that the rules of the dialogue do not operate on
+expressions or sentences isolated from the act of uttering them. The
+rules are divided into particle rules or rules for logical constants (Partikelregeln) and structural rules (Rahmenregeln). The structural rules
+www.thebalticyearbook.org
+Constructive Type Theory 26
+determine the general course of a dialogue game, whereas the particle rules regulate those moves (or utterances) that are requests (to the
+moves of a rival) and those moves that are answers (to the requests)—
+for an explicit presentation of the rules for standard dialogical logic see
+appendix.
+Crucial for the dialogical approach are the following points:44
+1. The distinction between local (rules for logical constants) and global
+meaning (included in the structural rules that determine how to
+play)
+2. The player independence of local meaning
+3. The disinction between the play level (local winning or winning of
+a play) and the strategic level (existence of a winning strategy).
+4. A notion f validity that amounts to winning strategy independently
+of any model instead of winning strategy for every model.
+5. The distintion between non formal and formal plays—the latter notion concerns plays that are played independently of knowing the
+meaning of the elementary sentences involved in the main thesis.
+In the framework of constructive type theory propositions are sets whose
+elements are called proof-objects. When such a set is not empty, it can
+be concluded that the proposition has a proof and that it is true. In
+his 1988 paper, Ranta proposed a way to make use of this approach in
+relation to game-theoretical approaches. Ranta took Hintikka’s Game
+Theoretical Semantics as a case study, but the point does not depend
+on this particular framework. Ranta’s idea was that in the context of
+game-based approaches, a proposition is a set of winning strategies for
+the player positing the proposition.45 Now, in game-based approaches,
+the notion of truth is to be found at the level of such winning strategies. This idea of Ranta’s should thus enable us to apply methods taken
+from constructive type theory to cases of game-based approaches.
+But from the perspective of game theoretical approaches, reducing
+a game to a set of winning strategies is quite unsatisfactory, all the more
+when it comes to a theory of meaning. This is particularly clear in the
+dialogical approach in which different levels of meaning are carefully
+distinguished. There is thus the level of strategies, which is a level of
+Vol. 8: Games, Game Theory
+and Game Semantics
+27 Shahid Rahman & Nicolas Clerbout
+meaning analysis, but there is also a level prior to it, which is usually
+called the level of plays. The role of the latter level for developing an
+analysis is, according to the dialogical approach, crucial, as pointed out
+by Kuno Lorenz in his 2001 paper:
+“[...] for an entity [A] to be a proposition there must exist a
+dialogue game associated with this entity [...] such that an
+individual play where A occupies the initial position [...]
+reaches a final position with either win or loss after a finite
+number of moves [...]”
+For this reason we would rather have propositions interpreted as sets
+of what we shall call play-objects, reading an expression
+p : ϕ
+as “p is a play-object for ϕ”.
+Thus, Ranta’s work on proof objects and strategies constitutes the end
+not the start of the dialogical project.
+3.1. The Formation of Propositions
+Before delving into the details about play-objects, let us first discuss the
+issue of the formation of expressions and, in particular, of propositions
+in the context of dialogical logic.
+In standard dialogical systems, there is a presupposition that the
+players use well-formed formulas. One can check the well-formedness
+at will, but only with the usual meta reasoning by which one checks
+that the formula indeed observe the definition of wff. The first enrichment we want to make is to allow players to question the status
+of expressions, in particular to question the status of something as actually standing for a proposition. Thus, we start with rules giving a
+dialogical explanation of the formation of propositions. These are local
+rules added to the particle rules that give the local meaning of logical
+constants (see next section).
+Let us make a remark before displaying the formation rules. Because the dialogical theory of meaning is based on argumentative interaction, dialogues feature expressions that are not posits of sentences.
+www.thebalticyearbook.org
+Constructive Type Theory 28
+They also feature requests used for challenges, as illustrated by the formation rules below and the particle rules in the next section. Now, by
+the no entity without type principle, the type of these actions, which we
+may write “formation-request”, should be specified during a dialogue.
+Nevertheless we shall assume that the force symbol ?F already makes
+the type explicit. Indeed a request in a dialogue should not be confused with a move by means of which it is posited that some entity is
+of the type request.46 Hence the way requests are written in rules and
+dialogues in this work.47
+Vol. 8: Games, Game Theory
+and Game Semantics
+29 Shahid Rahman & Nicolas Clerbout
+www.thebalticyearbook.org
+Constructive Type Theory 30
+By definition the falsum symbol ⊥ is of type prop. A posit ⊥ cannot
+therefore be challenged.
+The next rule is not formation rules per se but rather a substitution
+rule.48 When ψ is an elementary sentence, the substitution rule helps
+explain the formation of such sentences.
+Posit-substitution
+There are two cases in which Y can ask X to make a substitution in
+the context xi : Ai. The first one is when, in a standard play, a variable
+or list of variables occurs in a posit with a proviso. Then the challenger
+posits an instantiation of the proviso.
+The second case is in a formation-play. In such a play the challenger
+simply posits the whole assumption as in move 7 of the example below:
+Remarks on the formation dialogues
+(a) Conditional formation posits:
+One crucial feature of the formation rules is that they allow displaying the syntactic and semantic presuppositions of a given thesis and
+thus can be examined by the Opponent before the actual dialogue on
+the thesis is run. Thus, if the thesis amounts to positing, say, ψ, then
+before an attack is launched, the opponent can be asked for its formation. The defence of the formation of ψ, might induce the Proponent
+to posit that ψ is a proposition, under the condition that it is conceded
+that, say A is a set. In such a situation the Opponent might accept to
+concede A is a set, but only after P has displayed the constitution of A.
+Vol. 8: Games, Game Theory
+and Game Semantics
+31 Shahid Rahman & Nicolas Clerbout
+(b) Elementary sentences, definitional consistency and material-analytic
+dialogues:
+If we follow thoroughly the idea of formation rules, then we should
+allow elementary sentences to be challenged by the formation rules.
+Defence against such a challenge will make use of applications of relevant already-conceded predicator rules (if there are any such concessions). Thus, the challenge of an elementary sentence is based on the
+definitional consistency in use of the conceded predicator rules. This is
+what we think material-dialogues are about: they are definitional consistency dialogues. This leads to the following material analytic rule
+for formation dialogues:
+O’s elementary sentences can not be challenged, however
+O can challenge an elementary sentence (posited by P) iff
+herself (the opponent) did not posit it before.
+Remark: Once the proponent forced the Opponent to concede the elementary sentence in the formation dialogue, the dialogue will proceed
+making use of the copy-cat strategy.
+(c) Indoor- versus outdoor-games: Hintikka (1973, pp. 77-82), who acknowledges the close links between dialogical logic and GTS, launched
+an attack against the philosophical foundations of dialogic because of
+their indoor- or purely formal approach to meaning as use. He argues
+that formal proof games are not of very much help in accomplishing
+the task of linking the linguistic rules of meaning with the real world.
+In contrast to our games of seeking and finding, the games
+of Lorenzen and Stegmüller are ‘dialogical games’ which
+are played ‘indoors’ by means of verbal ‘challenges’ and
+‘responses’. [...].
+[...]. If one is merely interested in suitable technical problems in logic, there may not be much to choose between
+the two types of games. However, from a philosophical
+point of view, the difference seems to be absolutely crucial.
+Only considerations which pertain to ‘games of exploring
+the world’ can be hoped to throw any light on the role
+of our logical concepts in the meaningful use of language.
+(Hintikka 1973, p. 81).
+www.thebalticyearbook.org
+Constructive Type Theory 32
+Rahman & Keiff (2004, p. 379) pointed out that formal proof, that is
+validity, does not in the dialogical frame provide meaning either: it is
+rather the other way round, i.e. formal plays furnish the basis for the
+notion of dialogical validity (that amounts to the notion of a winning P- strategy). The formation rules add a crucial edge to this discussion: If
+the rules that establish meaning are introduced at the object language
+level, the middle position of the dialogical approach between universalists and anti-universalists mentioned above (2.1) can be successfully
+maintained.49 The latter might also thus suggest that the characterization of dialogical games as indoor-games does not apply any more.
+By way of illustration, we present a dialogue where the Proponent
+posits the thesis (∀x : A)B(x)→C(x) : prop given that A : set, B(x) :
+prop (x : A) and C(x) : prop (x : A), where the three provisos appear
+as initial concessions by the Opponent.50 Good form demands that we
+first present the structural rules that define the conditions under which
+a play can start, proceed, and end. But we leave them for the next
+section. They are not necessary to understand the following:
+Explanations:
+• I to III: O concedes that A is a set and that B(x) and C(x) are
+propositions provided x is an element of A,
+• Move 0: P posits that the main sentence, universally quantified,
+is a proposition (under the concessions made by O),
+Vol. 8: Games, Game Theory
+and Game Semantics
+33 Shahid Rahman & Nicolas Clerbout
+• Moves 1 and 2: the players choose their repetition ranks,
+• Move 3: O challenges the thesis a first time by asking the lefthand part as specified by the formation rule for universal quantification,
+• Move 4: P responds by positing that A is a set. This has already
+been granted with premise I so P can make this move while respecting the Formal rule,
+• Move 5: O challenges the thesis again, this time asking for the
+right-hand part,51
+• Move 6: P responds, positing that B(x)→C(x) is a proposition
+provided x : A,
+• Move 7: O uses the substitution rule to challenge move 6 by
+granting the proviso,
+• Move 8: P responds by positing that B(x)→C(x) is a proposition,
+• Move 9: O then challenges move 8 a first time by asking the
+left-hand part as specified by the formation rule for material implication.
+In order to defend P needs to make an elementary move. But since O
+has not played it yet, P cannot defend at this point. Thus:
+• Move 10: P launches a counterattack against assumption II by
+applying the first case of the substitution rule,
+• Move 11: O answers move 10 and posits that B(x) is a proposition,
+• Move 12: P can now defend in reaction to move 9,
+• Move 13: O challenges move 8 a second time, this time requiring
+the right-hand part of the conditional,
+• Move 14: P launches a counterattack and challenges assumption
+III by applying again the first case of the substitution rule,
+• Move 15: O defends by positing that C(x) is a proposition,
+www.thebalticyearbook.org
+Constructive Type Theory 34
+• Move 16: P can now answer to the request of move 13 and win
+the dialogue (O has no further move).
+From the viewpoint of building a winning strategy, the Proponent’s
+victory only shows that the thesis is justified in this particular play. To
+build a winning strategy we must run all the relevant plays for this
+thesis under these concessions.
+Now that the dialogical account of formation rules has been clarified, we may develop further our analysis of plays by introducing playobjects.
+3.2. Play objects
+The idea is now to design dialogical games in which the players’ posits
+are of the form “p : ϕ” and acquire their meaning in the way they are
+used in the game—i.e., how they are challenged and defended. This
+requires, among other things, analyzing the form of a given play-object
+p, which depends on φ, and how a play-object can be obtained from
+other, simpler, play-objects. The standard dialogical semantics52 for
+logical constants gives us the needed information for this purpose. The
+main logical constant of the expression at stake provides the basic information as to what a play-object for that expression consists of:
+A play for X ! ϕ ∨ ψ is obtained from two plays p1 and p2,
+where p1 is a play for X ! ϕ and p2 is a play for X ! ψ. According to the particle rule for disjunction, it is the player
+X who can switch from p1 to p2 and vice-versa. To show
+this, we write that the play is of the form (p1+p2).
+A play for X ! ϕ ∧ ψ is obtained similarly, except that it
+is the player Y who can switch from p1 to p2. To show this,
+we write that the play is of the form (p1⊗p2).
+A play for X ! ϕ ∧ ψ is obtained from two plays p1 and
+p2, where p1 is a play for Y ! ϕ and p2 is a play for X ! ψ.
+It is the player X who can switch from p1 to p2. We write
+that the play is of the form (p1–op2).
+The standard dialogical particle rule for negation rests on
+Vol. 8: Games, Game Theory
+and Game Semantics
+35 Shahid Rahman & Nicolas Clerbout
+the interpretation of ¬ϕ as an abbreviation for ϕ → ⊥, although it is usually left implicit. It follows that a play for X
+! ¬ϕ is also of the form (p1–op2), where p1 is a play for Y !
+⊥ and p2 is a play for X ! ⊥ and where X can switch from p1
+to p2. Notice that this approach covers the standard gametheoretical interpretation of negation as role-switch: p1 is
+a play for a Y move.
+As for quantifiers, we give a detailed discussion after the particle rules
+(see next page). For now, we would like to point out that, just like what
+is done in constructive type theory, we are dealing with quantifiers for
+which the type of the bound variable is always specified. We thus consider expressions of the form (Qx : A)ϕ, where Q is a quantifier symbol.
+It may seem unfortunate that we use symbols that are usually used
+to denote linear connectives (⊗, –o). We use these because their gametheoretical interpretations53 completely match the descriptions we have
+just given of how play-objects can be obtained from simpler ones.
+www.thebalticyearbook.org
+Constructive Type Theory 36
+Vol. 8: Games, Game Theory
+and Game Semantics
+37 Shahid Rahman & Nicolas Clerbout
+Notice that we have added for each logical constant a challenge
+of the form ‘Y ?prop’ by which the challenger questions the fact that
+the expression at the right-hand side of the semi-colon is a proposition.
+This establishes the connection with the formation rules given in 3.1 via
+X’s defence. More details are given in the discussion after the structural
+rules.
+It may happen, as we shall see in our example in Section 2, that the
+form of play-objects is not explicit at first. In such cases we deal with
+expressions of the form, e.g., “p : ϕ ∧ψ”. We may then use expressions
+of the form L∧(p) and R∧(p)—which we call instructions—in the relevant defences. Their respective interpretations are “take the left part
+of p” and “take the right part of p”. In instructions we indicate the logical constant at stake. First it keeps the formulations explicit enough,
+in particular in the case of embedded instructions. More importantly
+we must keep in mind that there are important differences between
+play-objects depending on the logical constant. Remember, for example, that in the case of conjunction the play-object is a pair, but it is
+not in the case of disjunction. Thus L∧(p) and L∨(p), say, are actually
+different things and the notation takes that into account.
+Let us focus on the rules for quantifiers. Dialogical semantics highlights the fact that there are two distinct moments when considering
+the meaning of quantifiers: the choice of a value given to the bound
+variable, and the instantiation of the formula after replacing the bound
+variable with the chosen value. But at the same time in the standard dialogical approach there is some sort of presupposition that every quantifier symbol ranges over a unique kind of object. Now, things are
+different in the context of the explicit language we borrow from CTT.
+Quantification is always relative to a set, and there are sets of many different kinds of objects (for example: sets of individuals, sets of pairs,
+sets of functions, etc). Thanks to the instructions we can give a general
+form for the particle rules. It is in a third, later, moment that the kind
+of object is specified, when instructions are “resolved” by means of the
+structural rule SR4.1 below.
+Constructive type theory makes it clear that as soon as propositions
+are thought of as sets, there is a basic similarity between conjunction
+and the existential quantifier on the one hand and material implication
+and the universal quantifier on the other hand. Briefly, the point is that
+www.thebalticyearbook.org
+Constructive Type Theory 38
+they are formed in similar ways and their elements are generated by
+the same kind of operations.54 In our approach, this similarity manifests itself in the fact that a play-object for an existentially quantified
+expression is of the same form as a play-object for a conjunction. Similarly, a play-object for a universally quantified expression is of the same
+form as one for a material implication.55
+The particle rule just before the one for universal quantification is
+a novelty in the dialogical approach. It involves expressions commonly
+used in constructive type theory to deal with separated subsets. The
+idea is to understand those elements of A such that ϕ as expressing
+that at least one element L{...}(p) of A witnesses ϕ(L{...}(p)). The same
+correspondence that linked conjunction and existential quantification
+now appears.56 This is not surprising since such posits actually have
+an existential aspect: in {x : A | ϕ} the left part “x : A” signals the
+existence of a play-object.57 Let us point out that since the expression
+stands for a set there is no presupposition that it is a proposition when
+X makes the posit. This is why it cannot be challenged with the request
+“?prop”.
+3.3. From play-objects to strategies
+In this Section we illustrate our enriched dialogical framework by giving a dialogue for the famous donkey sentence. We also take the opportunity to make preliminary remarks on matters related to the level
+of strategies, which we will need to consider to give a precise account of the relation between the dialogical and the type theoretical
+approaches.
+Before doing this, let us say a few words about the other kind of dialogical rules called structural rules. These rules govern the way plays
+globally proceed and are therefore an important aspect of a dialogical
+semantics. We work with the following structural rules:
+SR0 (Starting rule) Any dialogue starts with the Proponent positing
+the thesis. After that the players each choose a positive integer called
+a repetition rank.
+SR1i (Intuitionistic Development rule) Players move alternately. AfVol. 8: Games, Game Theory
+and Game Semantics
+39 Shahid Rahman & Nicolas Clerbout
+ter the repetition ranks have been chosen, each move is a challenge or a
+defence in reaction to a previous move, in accordance with the particle
+rules. The repetition rank of a player bounds the number of challenges
+he can play in reaction to the same type of move. Players can answer
+only against the last non-answered challenge by the adversary.
+[SR1c (Classical Development rule) Players move alternately. After
+the repetition ranks have been chosen, each move is a challenge or a
+defence in reaction to a previous move, in accordance with the particle
+rules. The repetition rank of a player bounds the number of challenges
+and defences he can play in reaction to a same move.]
+SR2 (Formation first) O starts by challenging the thesis with the request ‘?prop’. The game then proceeds by applying the formation rules
+first in order to check that the thesis is indeed a proposition. After that
+the Opponent is free to use the other local rules insofar as the other
+structural rules allow it.
+SR3 (Modified Formal rule) O’s elementary sentences can not be challenged, however O can challenge an elementary sentence (posited by
+P) iff herself (the opponent) did not posit it before.
+SR4.1 (Resolution of instructions) Whenever a player posits a move
+where instructions I1, ..., In occur, the other player can ask him to replace these instructions (or some of them) by suitable play-objects.
+If the instruction (or list of instructions) occurs at the right of the colon
+and the posit is the tail of a universally quantified sentence or of an
+implication (so that these instructions occur at the left of the colon in
+the posit of the head of the implication), then it is the challenger who
+can choose the play-object – in these cases the player who challenges
+the instruction is also the challenger of the universal quantifier and/or
+of the implication.
+Otherwise it is the defender of the instructions who chooses the
+suitable play-object. That is:
+www.thebalticyearbook.org
+Constructive Type Theory 40
+Important remark. In the case of embedded instructions I1(...(Ik )...),
+the substitutions are thought of as being carried out from Ik to I1: first
+substitute Ik with some play-object bk, then Ik−1(bk) with bk−1 ... until
+I1(b2). If such a progressive substitution has actually been carried out
+once, a player can then replace I1(...(Ik )...) directly.
+SR4.2 (Substitution of instructions) When during the play the playobject b has been chosen by either player for an instruction I, and
+player X posits ! πI), then the antagonist can ask to substitute I with b
+in any posit X ! π(I):
+The idea is that the resolution of an instruction in a move yields a
+certain play-object for some substitution term, and therefore the same
+play-object can be assumed to result for any other occurrence of the
+same substitution term: instructions are functions after all and as such
+they must yield the same play-object for the same substitution term.
+In order to quantify into instructions I∨—that is, either L(x) or R(x)—
+Vol. 8: Games, Game Theory
+and Game Semantics
+41 Shahid Rahman & Nicolas Clerbout
+the following substitution rule is added:
+The same applies to I
+∨ and I
+∃
+:
+SR5 (Winning rule for dialogues) For any p, a player who posits “p
+: ⊥” looses the current dialogue. Otherwise the player who makes the
+last move in a dialogue wins it.
+A detailed explanation of the standard rules can be found in Appendix 1. In the rules we just gave there are some additions, namely
+those numbered SR2 and SR4 here, and also the first part of the winning rule. Since we made explicit the use of
+⊥ in our games, we need
+to add a rule for it: the point is that positing falsum leads to immediate
+loss; we could say that it amounts to a withdrawal.58
+We need the rules SR4.1 and SR4.2 because of some features of
+CTT’s explicit language. In CTT it is possible to account for questions
+of dependency, scope, etc directly at the level of the language. In this
+way various puzzles, such as anaphora, get a convincing and successful treatment. The typical example, which we consider below, is the
+so-called donkey sentence “Every man who owns a donkey beats it”.
+The two rules provide a means of accounting for the way play-objects
+can be ascribed to what we have called instructions. See the dialogue
+below for an application.
+The rule SR2 is consistent with the common practice in CTT to
+start derivations by checking or establishing aspects related to the formation of propositions before proving their truth. Notice that this
+step also covers the formation of sets—membership, generation of elements, etc.—which occur in hypothetical posits and in quantifiers. This
+www.thebalticyearbook.org
+Constructive Type Theory 42
+is achieved in dialogues by means of rule SR2, which requires that in a
+dialogue the players first deal with aspects related to formation rules.
+With this we introduce some resemblance between our games and the
+CTT approach that makes the task of investigating their connections
+easier. However, it looks like we could do with a liberalized version
+of this rule. Because of the number of rules we have introduced, a
+careful verification of this is a delicate task that we will not carry out
+in this paper. For now let us simply mention that it looks sensible in
+the context of dialogues to let the process related to formation rules be
+more freely combined with the development of a play on the thesis. In
+fact it does seem perfectly consistent with actual practices of interaction to question the status of expressions once they are introduced in
+the course of the game. Suppose for example player
+X has posited ‘p :
+ϕ
+∨
+ψ’. As soon as he has posited the disjunction to be a proposition—
+i.e., as soon as he has posited ‘
+ϕ
+∨
+ψ : prop’—the other player knows
+how to challenge the disjunction and should be free to keep on exploring the formation of the expression or to challenge the first posit. The
+point is that in a way it seems to make more sense to check whether
+ϕ is a proposition or not after (if)
+X posits it in order to defend the
+disjunction. Doing so in a ‘monological’ framework such as CTT would
+probably give rise to various confusions, but the dialogical approach to
+meaning should allow this additional dynamic aspect quite naturally.
+Notice that there is a principle from CTT that we did not entirely apply in this first paper, namely that “no entity comes without a type”.
+Indeed SR0 introduces repetition ranks (to ensure finiteness of plays)
+and we have not said anything about their type. This is still a job to be
+done.
+Let us take as an example the development of a dialogue related to
+the notorious donkey sentence. In his 1986 paper, G. Sundholm thoroughly discussed this famous puzzle. As he pointed out, the problem is
+to give a way to capture the back-reference of the pronoun “it” in the
+sentence “Every man who owns a donkey beats it”. For that we first
+notice that “a man who owns a donkey” is an element of the set
+{x : M | (∃y : D)Oxy},
+making use of subset separation. From there it is easy to use projections
+Vol. 8: Games, Game Theory
+and Game Semantics
+43 Shahid Rahman & Nicolas Clerbout
+to get the following formula for the donkey sentence:
+(∀z : {x : M | (∃y : D)Oxy})Beats(L(z), L(R(z)))
+where M is the set of men, D is the set of donkeys, Oxy stands for “x
+owns y” and Bxy stands for “x beats y”. In this way we account for the
+fact that the pronoun “it” refers to the donkey mentioned in the first
+part of the sentence.
+In the following dialogue, the donkey sentence is conceded together with other posits by the Opponent. Given these concessions,
+the Proponent posits “Beats(m,d)” as the thesis.
+Explanations. We leave the repetition ranks unspecified (moves 1 and
+2) and simply assume that they are big enough for O to play all her
+challenges and for P to answer. We also ignored redundant repetitions
+and focused on the steps that are relevant for the outcome of the play.
+Now, because of the modified formal rule SR3 the Proponent must delay his answer to move 3. He thus counter-attacks by challenging O’s
+www.thebalticyearbook.org
+Constructive Type Theory 44
+first concession (the donkey sentence). Then the Opponent has various
+choices:59 in this dialogue she starts with a counterattack, asking P to
+choose a play-object for L∀(p). The dialogue goes on with O playing in
+accordance with the particle rules and asking for resolutions of instructions during the process. Notice that when answering to challenge 13,
+the Proponent gives a description of R{...}(z): it is a pair consisting of a
+left part and a right part. This allows him to introduce the instruction
+Lε(R{...}(z)) for the continuation of the play. With move 16 P chooses
+the play-objects d and p’ as parts of the pair in order to use concessions
+III and IV at moves 20 and 24.
+After move 24 the Opponent has no other choice but to answer
+move 4. Then it is easy for P to use rules SR4.2 and SR4.1 (with moves
+26 and 28) in order to get exactly what he needs to play move 30 and
+win this dialogue.
+Notice that as the dialogue unfurls, a more precise formulation of
+the initial play-object for the donkey sentence is revealed. In particular
+we obtained, with moves 8, 12 and 14, important specifications on the
+form of L∀(p). Using the notation we have introduced in Section 1, we
+get the following description for the play-object p:
+(L{...}(z)⊗(Lε(R{...} (z))⊗Rε(R{...}(z)))) –o Beats(L{...}(z),Lε(R{...}(z))) (A)
+We can even keep track of which moves are played by O and by P. For
+this purpose we place the players’ identities in the following way:
+(L{...}(z)⊗P(Lε(R{...}(z))⊗PRε(R{...}(z)))) –oO Beats(L{...}(z),Lε(R{...}(z))) (B)
+We could borrow some terminology from constructive type theory and
+call expression (B) a trace or blue-print of the play for O’s concession
+I. Our interest in such expressions lies in the fact that we can see dialogues such as the one above as resulting from P following a certain
+strategy S. More precisely, the dialogue is one of those which can result when P plays according to S. An expression such as (B) can thus
+be considered as giving a partial description of the strategy S. Here, it
+is the part related to O’s first concession in this dialogue. It is not really
+clear yet how such a description of a strategy can be obtained from
+blue-prints of plays, and a detailed analysis of this matter is mandatory. Actually everything remains to be done on this topic. In this work
+Vol. 8: Games, Game Theory
+and Game Semantics
+45 Shahid Rahman & Nicolas Clerbout
+we can only point out what we believe is a promising starting point
+in order to give precise descriptions of strategies in terms of lists of
+instructions.
+Arguably, a drawback of the approach we suggest is that descriptions such as (B) are heavy and difficult to handle. In spite of its length
+and the notation, the dialogue above is rather simple, so it is likely
+that for more complicated dialogues we will get very abstruse descriptions. What is more, the situation is likely to worsen when we combine
+such traces in order to give descriptions of strategies. An obvious way
+to make things better in this respect is to replace instructions by their
+associated play-objects. We could even consider this to be mandatory
+since resolution of instructions is part of the dialogues. Hence, we
+could think of replacing (B) with the following:
+(m⊗O (m⊗O (m,d))) –oP Beats(m,d) (B’)
+Before discussing this possibility further, let us notice the following
+about the step from (B) to (B’). Notice that this step is reminiscent of
+the computational rules of constructive type theory. In CTT, elimination rules can be thought of as giving information on how to obtain
+a proof-object for a subformula given the proof-object of the starting
+formula. Computational rules then provide the means to compute the
+information in order to get the actual value of the proof-object for the
+subformula. For example, one of the elimination rules for conjunction
+is
+(p1,p2) : ϕ ∧ ψ
+——————– (E1∧)
+fst(p1,p2) : ϕ
+The fact that fst(p1,p2) computes to p1 is accounted for by the computational rule60
+fst(p1,p2) ⇒ p1
+A possible way to deal with these rules from the dialogical perspective, which we leave open for further explorations, is the following.
+We can see such rules as special cases of the rule for functions. Just
+like propositions, we can give a particle rule for functions:
+www.thebalticyearbook.org
+Constructive Type Theory 46
+The idea is that if we see computational rules as special cases of such
+functions, then we can implement them directly within dialogues as
+applied by the players. In this way we would obtain games where the
+players themselves can describe plays or strategies, because such descriptions are done by means of computational rules. This opens a new
+direction where we would have dialogues about plays and strategies,
+i.e., where we could develop a dialogical approach to the strategical
+level.
+Besides simplifying the notation, there are various convincing reasons that make the use of CTT’s computational rules (or something
+very similar) desirable. Applying such a device could be a way to stress
+what different plays (or strategies) have in common. Again, the comparison with CTT is helpful in explaining our point. The point is that in
+constructive type theory different proof processes (i.e., different derivations) can lead to identical proof-objects once the computational rules
+are applied.61 From the dialogical point of view, a device of this kind is
+particularly relevant when we consider strategies. To take a very simple example, this could be the way to accurately formulate the basic
+similarity between different orders of moves and consider as basically
+similar the following two sequences of actions: “asking for the left
+conjunct then asking for the right conjunct” and “asking for the right
+conjunct then asking for the left conjunct”.
+Provided we define dialogical counterparts for the computational
+rules, the question remains whether we should systematically apply
+them and forget about non-simplified traces such as (B). In our view
+we should not consider that their only purpose is to apply simplification in order to get synthesized descriptions of strategies. Even though
+being able to account for similarities between plays or strategies is interesting, it is worth noticing that this would be achieved at the expense of a notation which keeps track of the players’ actions. The point
+is the following: once we have replaced instructions by their associated
+play-objects, as we do from (B) to (B’), we lose the chance to explicitly formulate strategies as lists of instructions. That is to say, there is
+something which is lost when we replace the instructions, namely the
+Vol. 8: Games, Game Theory
+and Game Semantics
+47 Shahid Rahman & Nicolas Clerbout
+way the play-object is obtained. Such differences are precisely the ones
+that hide what different dialogues or strategies may have in common.
+Thus, it is only when we are interested in such common aspects that it
+is better to apply simplifications and forget about instructions.
+4. CONCLUDING REMARKS: STRATEGIES AND PROOF-OBJECTS
+We have explained that the view of propositions as sets of winning
+strategies overlooks the level of plays and that an account more faithful
+to the dialogical approach to meaning is that of propositions as sets of
+play-objects. But play-objects are not the dialogical counterparts of
+CTT proof-objects, and thus are not enough to establish the connection
+between the dialogical and the CTT approaches.
+The local rules of our games—that is, the formation rules together
+with the particle rules—present some resemblances with the CTT rules,
+especially if we read the dialogical rules backwards. But in spite of the
+resemblances, play-objects are in fact very different from CTT proofobjects. The case where the difference is obvious is implication—and
+thus universal quantification, which is similar. In the CTT approach, a
+proof-object for an implication is a lambda-abstract, and a proof-object
+of the tail of the implication is obtained by applying the function to the
+proof-object of the head. But in our account with play-objects, nothing
+requires that the play-object for the right-hand part be obtained by an
+application of some function.
+From this simple observation it is clear that the connection between
+our games and CTT is not to be found at the level of plays. In fact, it is
+well known that the connection between dialogues and proofs is to be
+found at the level of strategies: see for example Rahman et al. (2009)
+for a discussion in relation to natural deduction. Even without the
+question of the relation with CTT, the task of describing and explaining
+the level of strategies is necessary since it is a proper and important
+level of meaning analysis in the dialogical framework. This work is
+still in progress so we end this paper with preliminary observations on
+this topic.
+A strategy for a player is often defined as a function from the set of
+non-terminal plays where it is this player’s turn to move to the set of
+possible moves for this player. Equivalently, a strategy can be defined
+www.thebalticyearbook.org
+Constructive Type Theory 48
+as the set of plays that result when the player follows the strategy.
+From this we propose to consider strategies as certain sets of playobjects. On the one hand they are different from propositions insofar
+as a proposition is the set of all possible play-objects for it, whereas any
+play-object cannot be a member of a given strategy. But on the other
+hand it is clear that every play-object in a strategy for a proposition A
+is also in A itself. Thus, a strategy for A is a certain subset of A. This
+view seems to comply with the dialogical approach according to which
+the level of strategies is part of the meaning of expressions but does
+not cover it entirely.
+Summing up, we have play-objects that carry the interactive aspects
+of the meaning-explanations. A proposition is the set of all possible
+play-objects for it, and a strategy in a game about this proposition is
+some subset of play-objects for it.
+Three important questions must then be addressed. First of all, any
+subset of A should not count as a strategy for A. So our first question
+is: what are the conditions that a set of play-objects must observe in
+order to be called a strategy? Also, the connection between dialogical
+games and proofs relates to winning strategies for the Proponent. So
+the second question is: what additional constraints do we need for a
+strategy to be a winning one? Answering these questions should lead
+us to a good understanding of what counts as a canonical (winning)
+strategy. On this topic, an important remark is that the move from
+uninterpreted to interpreted languages results in a loss of generality.
+The clearest illustration is the case of existential quantification. By the
+particle rule a player making a posit of the form “! p : (∃x : A)ϕ” must
+be ready to provide an element of the set A. If the Proponent is the one
+making the posit, he needs some previous concession by the Opponent
+in order to be able to provide an element of A. This means that there
+cannot be a winning P-strategy for posits of this form in the absence of
+preliminary concessions about the quantification set(s). In other words
+the dialogue games we have introduced in this paper are in any case
+not yet suitable enough to get general validity. To move to validity, an
+abstraction process must still be worked out such as the one described
+by Sundholm (2013, pp. 33-35). The dialogical perspective of the
+abstraction process will presumably involve a more general approach
+to the copy-cat strategy triggered by the formal rule.
+Vol. 8: Games, Game Theory
+and Game Semantics
+49 Shahid Rahman & Nicolas Clerbout
+The third question to tackle when moving to the level of strategies is: what are the generation rules for strategies? In other words:
+what are the operations that can be used to obtain new strategies from
+already available strategies. In relation to this last question, Ranta
+(1988) proposed using the same operations that are used in CTT for
+proof-objects. For example, a winning strategy for A∧B is a pair made
+of a winning strategy for A and of a winning strategy for B. This certainly makes the connection between winning strategies and proofobjects straightforward. However at first sight it seems a little too simplistic. While it is obvious that (winning) strategies for A∧B must be
+obtained from (wining) strategies for A and for B, it seems unsatisfactory to conclude that a strategy for A∧B is a set of pairs of strategies.
+We would rather keep the idea of the strategy as a set of play-objects.
+The point would then be that, in the case of A∧B, the play-objects that
+are members of the set are obtained from play-objects for A and for B.
+Let us finish with a partial answer to the first two questions. We
+present a procedure by which one can search for (the description of) a
+winning P-strategy in a game.62 However, as will be clear below, the
+object(s) that can be obtained by this procedure do not exactly meet
+the requirements we have listed above. The procedure goes through
+the construction of expressions similar to the full explicit description of
+play-objects, but with an important difference: the sequences of moves
+they represent are not rigorously observing the rules. The reason for
+this is that on the one hand—for reasons we explain below—we start
+with the assumption that the Opponent’s rank is set to be 1 while on
+the other hand we allow expansions of the starting expression that O
+should actually not be able to trigger with rank 1. Let us now give
+some explanations.
+First of all, one might wonder why we consider the Opponent’s rank
+to be set beforehand since, strictly speaking, every possible choice of
+rank for O should be considered in a P-strategy. Here we rely on the
+fact that in order to know whether there is a winning P-strategy in a
+given game it is enough to check the case where O chooses rank 1.
+See Clerbout (2013a). Actually, other aspects of the procedure, such
+as the particular choices of individual constants taken for expansions
+in Steps 2.4 and 2.5, are motivated by considerations taken from the
+demonstration63 in Clerbout (2013a), Chapter 2.
+www.thebalticyearbook.org
+Constructive Type Theory 50
+Now, in relation to the second point, it would have been more faithful to the considerations above to explain how alternative ways for the
+Opponent to play can be built and taken into account, instead of allowing illegal expansions of the starting play. But this is precisely what
+remains to be done to answer accurately to the three questions we have
+raised above. The point is that it is a very delicate task to give a procedure that would produce alternatives to the starting play: for this first
+version we give a flavour of the result we aim at. One of the difficulties
+we will have to overcome is to keep track of which play-objects have
+already been counted as belonging to a given set. The procedure below
+avoids the difficulty by ‘merging’, so to speak, the various play-objects
+that would be selected as members of the strategy.
+Let us now move to the procedure. As we have explained, the
+Opponent’s rank is 1. As for the Proponent’s rank, we assume for now
+that it is big enough to let P keep on playing after an expansion is made:
+the actual value of his rank can be determined once the procedure
+ends, when it is possible to count the total number of challenges and
+defences he made.
+Suppose then that we have a play won by P in a given game, and
+that its fully explicit description is given by the play-object ρ.
+Preliminaries. We say that O makes a decision in ρ in the following
+cases:
+(i) She challenges a conjunction: she chooses which conjunct to ask
+for.
+(ii) She defends a disjunction: she chooses which disjunct to give.
+(iii) She counter-attacks (or: defends) after a P-challenge on a material implication without defending (or: counter-attacking) afterwards.
+(iv) She challenges a universal quantifier: she chooses an individual
+in the set.
+(v) She defends an existential quantifier: she chooses an individual
+in the set.
+N.B.: because it is an expression such as the one labelled (B’) in the
+previous Section, ρ actually carries all the information needed to know
+whether there are such O-decisions and where they occur.
+Vol. 8: Games, Game Theory
+and Game Semantics
+51 Shahid Rahman & Nicolas Clerbout
+Moreover, we say that a move M depends on move M’ if there is a
+chain of applications of game (particle) rules from M’ to M.
+Procedure
+1. If there is no (remaining) non-used decision made by O in ρ then
+go to Step 6. Otherwise go to the next step.
+2. Take the latest non-used decision d made by O in ρ and, depending
+on the case, apply one of the following and afterwards go to Step 3:
+2.1. If d is a challenge against a conjunction, then expand ρ with
+the other challenge. That is, take64 ρ’=ρ⌢O?L (resp. ?R) given
+that O?R (resp. ?L ) occurs in ρ. The game then proceeds as if
+the first challenge had not taken place: moves depending on
+the first challenge are forbidden to both players.
+2.2. If f is a defence for a disjunction, then expand ρ with the other
+disjunct. That is, take ρ’=ρ⌢O!L∨(p) : ϕ (resp. R∨(p) : ψ)
+given that O!∨(p) : ψ (resp. L∨(p) : ϕ) already occurs in ρ.
+The game then proceeds as if the first defence had not taken
+place: moves depending on the first defence are forbidden to
+both players.
+2.3. If d is a counter-attack (resp. a defence) in reaction to
+a P-challenge on a material implication, then expand ρ
+with the defence (resp. the counter-attack). That is, take
+ρ’=ρ⌢O!R→(p) : ψ (resp. O?...). The game then proceeds as
+if the counter-attack (resp. the defence) had not taken place:
+moves depending on it are forbidden to both players.
+2.4. If d is a challenge against a universal quantifier, then we distinguish cases:
+2.4.1. The individual from the set, say a : A, chosen at d is
+new. Then for each other individual ai in A—if any—
+occurring previously in ρ, expand ρ with the choice of
+this individual. That is, take ρi’=ρ⌢O!ai : A for each
+ai.
+For each such expansion, the game then proceeds as if
+the first challenge had not taken place: moves depending on it are forbidden to both players.
+www.thebalticyearbook.org
+Constructive Type Theory 52
+2.4.2. The individual chosen at d is not new. Then:
+a. Expand ρ with a challenge where O chooses a new
+individual. That is, take ρa’=ρ⌢O!a : A where a is new.
+b. Also, for each other individual ai of A—if any—
+occurring previously in ρ, take ρi’=ρ⌢O!ai : A.
+For each such expansion, the game then proceeds as if
+the first challenge had not taken place: moves depending on it are forbidden to both players.
+2.5. If d is a defence of an existential quantifier, then we distinguish
+cases:
+2.5.1. The individual of the set, say a : A, chosen at d is
+new. Then for each other individual ai in A—if any—
+occurring previously in ρ, expand ρ with the choice of
+this individual. That is, take ρi’=ρ⌢O!R∃(p) : ϕ(ai) for
+each ai.
+For each such expansion, the game then proceeds as if
+the first defence had not taken place: moves depending
+on it are forbidden to both players.
+2.5.2. The individual chosen at d is not new. Then:
+a. Expand ρ with a challenge where O chooses a new
+individual. That is, take ρa’=ρ⌢O!R∃(p) : ϕ(a) where
+a is new.
+b. Also, for each other individual ai of A—if any—
+occurring previously in ρ, take ρi’=ρ⌢O!R∃(p) : ϕ(ai).
+For each such expansion, the game then proceeds as if
+the first defence had not taken place: moves depending
+on it are forbidden to both players.
+3. Name the resulting sequence(s) ρ∗ (or ρ∗i if relevant). Mark d as
+used and go to the next step.
+4. If ρ∗ (or one of the ρ∗i) is O-terminal then stop. Take another play
+won by P and go back to Step 1. Otherwise go to the next step.
+5. Take the next non-used O-decision in ρ and repeat Step 2 but by
+Vol. 8: Games, Game Theory
+and Game Semantics
+53 Shahid Rahman & Nicolas Clerbout
+expanding ρ∗ (or each of the ρ∗i) instead of ρ.
+When there are no non-used O-decision left, go to Step 6.
+6. Call the sequences obtained ρσi. For each of these take its O- permutations, namely the sequences which are the same up to the
+order of O-moves and still observe the game rules.
+The set of all the ρσi and their O-permutations provides a description
+of a P-strategy. If all of these are P-terminal then the strategic-object is
+P-winning and there is a winning P-strategy in the game at stake.
+Important remark. Step 4 makes the procedure a method to search
+for descriptions of winning P-strategies. If one of the expanded playobjects is not won by him, the procedure stops and must be started
+again with another starting play(-object). Notice that the procedure
+will keep on searching until a winning P-strategy is described. A consequence is that if there is no such strategy in the game the procedure
+will not accurately determine it and will keep on searching indefinitely.
+This is consistent with the semi-decidability of first-order dialogical
+games—and of predicate logic. See Clerbout (2013a), Chapter 3.
+We reach here the limits of this paper. For sure, there is a large
+project still ahead, but it is a fascinating one. Lorenz’s work on dialogical logic is a landmark in the field and has shown to be fruitful in
+many fields. The time is ripe to explore the possibilities of linking the
+approach of dialogical logic to a general theory of meaning. We are
+sure that in exploring this path we have still very much to learn from
+Kuno Lorenz’s inspiring work.
+www.thebalticyearbook.org
+Constructive Type Theory 54
+A. APPENDIX 1: STANDARD DIALOGICAL LOGIC
+Let L be a first-order language built as usual upon the propositional
+connectives, the quantifiers, a denumerable set of individual variables,
+a denumerable set of individual constants and a denumerable set of
+predicate symbols (each with a fixed arity).
+We extend the language L with two labels O and P, standing for
+the players of the game, and the question mark ‘?’. When the identity
+of the player does not matter, we use variables X or Y (with X6=Y). A
+move is an expression of the form ‘X-e’, where e is either a formula ϕ
+of L or the form ‘?[ϕ1,...,ϕn]’.
+We now present the rules of dialogical games. There are two distinct kinds of rules named particle (or local) rules and structural rules.
+We start with the particle rules.
+In this table, the ai s are individual constants and ϕ(ai/x) denotes the
+formula obtained by replacing every occurrence of x in ϕ by ai. When a
+move consists in a question of the form ‘?[ϕ1,...,ϕn]’, the other player
+chooses one formula among ϕ1,...,ϕn and plays it. We can thus distinguish between conjunction and disjunction on the one hand, and
+universal and existential quantification on the other hand, in terms of
+which player has a choice. In the cases of conjunction and universal
+quantification, the challenger chooses which formula he asks for. Conversely, in the cases of disjunction and existential quantification, the
+defender is the one who can choose between various formulas. Notice
+that there is no defence in the particle rule for negation.
+Vol. 8: Games, Game Theory
+and Game Semantics
+55 Shahid Rahman & Nicolas Clerbout
+Particle rules provide an abstract description of how the game can
+proceed locally: they specify the way a formula can be challenged and
+defended according to its main logical constant. In this way we say that
+these rules govern the local level of meaning. Strictly speaking, the expressions occurring in the table above are not actual moves because
+they feature formula schemata and the players are not specified. Moreover, these rules are indifferent to any particular situations that might
+occur during the game. For these reasons we say that the description
+provided by the particle rules is abstract.
+Since the players’ identities are not specified in these rules, we say
+that particle rules are symmetric: that is, the rules are the same for
+the two players. The fact that the local meaning is symmetric (in
+this sense) is one of the biggest strengths of the dialogical approach
+to meaning. In particular it is the reason why the dialogical approach
+is immune to a wide range of trivializing connectives such as Prior’s
+tonk.65
+The expressions occurring in particle rules are all move schematas.
+The words “challenge” and “defence” are convenient to name certain
+moves according to their relationship with other moves. Such relationships can be precisely defined in the following way. Let
+Σ be a sequence
+of moves. The function
+pΣ assigns a position to each move in
+Σ, starting with 0. The function
+FΣ assigns a pair [m, Z] to certain moves
+N
+in
+Σ, where
+m denotes a position smaller than
+pΣ(N) and
+Z is either
+C or
+D, standing respectively for “challenge” and “defence”. That is,
+the function
+FΣ keeps track of the relations of challenge and defence as
+they are given by the particle rules. Consider for example the following
+sequence
+Σ:
+P-ϕ
+∧
+ψ, P-χ
+∨
+ψ, O-?[ϕ], P-ϕ
+In this sequence we have for example
+pΣ(P-χ
+∨
+ψ)=1.
+A play (or dialogue) is a legal sequence of moves, i.e., a sequence of
+moves that observes the game rules. The rules of the second kind that
+we mentioned, the structural rules, give the precise conditions under
+which a given sentence is a play. The dialogical game for
+ϕ, written
+D(
+ϕ), is the set of all plays with
+ϕ as the thesis (see the Starting rule
+below). The structural rules are the following:
+SR0 (Starting rule) Let
+ϕ be a complex formula of L. For every
+π
+∈D(
+ϕ)
+www.thebalticyearbook.org
+Constructive Type Theory 56
+we have:
+• pπ(P-ϕ)=0,
+• pπ(O-n:
+=i)=1,
+• pπ(P-m:
+=j)=2
+In other words, any play
+π in D(
+ϕ) starts with
+P-ϕ. We call
+ϕ the
+thesis of the play and of the dialogical game. After that, the Opponent
+and the Proponent successively choose a positive integer called repetition rank. The role of these integers is to ensure that every play ends
+after finitely many moves, in a way specified by the next structural rule.
+SR1 (Classical game-playing rule)
+• Let
+π
+∈D(
+ϕ). For every
+M in
+π with
+pπ(M) > 2 we have
+Fπ(M) =
+[m′
+, Z] with
+m′ <
+pπ(M) and
+Z ∈ {
+C, D}
+• Let r be the repetition rank of player
+X and
+π
+∈D(
+ϕ) such that
+– the last member of
+π is a
+Y move,
+–
+M0 is a
+Y move of position
+m0 in
+π,
+–
+M1,...,
+Mn are
+X moves in
+π such that
+Fπ(M1
+)= ...
+=
+F π(Mn
+)=
+[m0
+,Z].
+Consider the sequence66
+π
+′ =
+π ∗ N where
+N is an
+X move such
+that
+Fπ
+′ (N)= [
+m0
+, Z]. We have
+π
+′ ∈D(
+ϕ) only if n
+<r.
+The first part of the rule states that every move after the choice of repetition ranks is either a challenge or a defence. The second part ensures
+finiteness of plays by setting the player’s repetition rank as the maximum number of times he can challenge or defend against a given move
+of the other player.
+SR2 (Formal rule) Let
+ψ be an elementary sentence,
+N be the move
+P- ψ and
+M be the move
+O-ψ. A sequence
+π of moves is a play only if
+we have: if
+N
+∈
+π then
+M
+∈
+π and
+pπ(M) <
+pπ(N).
+That is, the Proponent can play an elementary sentence only if the Opponent played it previously. The formal rule is one of the characteristic
+Vol. 8: Games, Game Theory
+and Game Semantics
+57 Shahid Rahman & Nicolas Clerbout
+features of the dialogical approach: other game-based approaches do
+not have it (see comments below).
+One way to understand the formal rule is that it establishes a kind
+of game where one of the players must play without knowing meaning
+of the elementary sentences involved. Now, if the ultimate grounds of a
+dialogical thesis are elementary sentences and if this is implemented by
+the use of a formal rule, then the dialogues are in this sense necessarily
+asymmetric. Indeed, if both contenders were restricted by the formal
+rule no elementary sentence can ever be posited. Thus, we implement
+the formal rule by designing one player, called the proponent, whose
+declarative utterances of elementary sentences are at least, at the start
+of the dialogue, restricted by this rule. Moreover the formal rule triggers a novel notion of validity. Validity is not being understood as being
+true in every model, but as having a winning strategy independently of
+any model or more generally independently of any material grounding
+claim (such as truth or justification). The copy-cat strategy implicit in
+the formal rule is not copy-cat of groundings but copy-cat of declarative
+utterances involving elementary sentences.67 The copy-cat of groundings or contents corresponds rather to the modified formal rule for material analytic dialogues discussed in Section 3.2 of the present paper.68
+A play is called terminal when it cannot be extended by further moves
+in compliance with the rules. We say it is X terminal when the last
+move in the play is an X move.
+SR3 (Winning rule) Player X wins the play π only if it is X terminal.
+Consider for example the following sequences of moves:
+P-Qa∧Qb, O-n:=1, P-m:=6, O-?[Qa], P-Qa
+P-Qa→Qa, O-n:=1, P-m:=12, O-Qa, P-Qa
+The first one is not a play because it contravenes the Formal rule: with
+his last move, the Proponent plays an atomic sentence although the
+Opponent did not play it beforehand. By contrast, the second sequence
+is a play in D(P-Qa→Qa). We often use a convenient table notation for
+plays. For example, we can write this play as follows:
+www.thebalticyearbook.org
+Constructive Type Theory 58
+The numbers in the external columns are the positions of
+the moves in the play. When a move is a challenge, the
+position of the challenged move is indicated in the internal
+columns, as with move 3 in this example. Notice that such
+tables carry the information given by the functions p and F
+in addition to representing the play itself.
+However, when we want to consider several plays together—for example when building a strategy—such tables are not that perspicuous. So
+we do not use them to deal with dialogical games for which we prefer
+another perspective. The extensive form of the dialogical game D(ϕ)
+is simply the tree representation of it, also often called the game-tree.
+More precisely, the extensive form Eϕ of D(ϕ) is the tree (T,l,S) such
+that:
+i) Every node t in T is labelled with a move occurring in D(ϕ)
+ii) l: T→N
+iii) S⊆T2 with:
+- There is a unique t0 (the root) in T such that l (t0)=0, and t0 is
+labelled with the thesis of the game.
+- For every t6=t0 there is a unique t′ such that t′S t.
+- For every t and t′ in T, if tS t′ then l (t′)=l (t)+1
+- Given a play π in D(ϕ) such that pπ(M′)=pπ(M)+1 and t, t′
+respectively labelled with M and M′, then tS t′.
+Many metalogical results concerning dialogical games are obtained by
+considering them by leaving the level of rules and plays and moving to
+the level of strategies. Among these results, significant ones are given
+in terms of the existence of winning strategies for a player. We now
+define these notions and give examples of results.
+Vol. 8: Games, Game Theory
+and Game Semantics
+59 Shahid Rahman & Nicolas Clerbout
+A strategy for Player X in D(ϕ) is a function which assigns an X move
+M to every non terminal play π with a Y move as last member such
+that extending π with M results in a play. An X strategy is winning if
+playing according to it leads to X’s victory no matter how Y plays.
+A strategy can be considered from the viewpoint of extensive forms:
+the extensive form of an X strategy σ in D(ϕ) is the tree-fragment
+Eϕ,σ,=(Tσ, l σ, Sσ) of Eϕ such that:
+i) The root of Eϕ,σ is the root of Eϕ.
+ii) Given a node t in Eϕ labelled with an X move, we have that tSσ t′
+whenever tS t′.
+iii) Given a node t in Eϕ labelled with a Y move and with at least one
+t′ such that tS t′, then there is a unique σ(t) in Tσ where tSσσ(t)
+and σ(t) is labelled with the X move prescribed by σ.
+Here are some examples of results which pertain to the level of strategies.69
+• Winning P strategies and leaves. Let w be a winning P strategy in
+D(ϕ). Then every leaf in Eϕ,w is labelled with a P signed atomic
+sentence.
+• Determinacy. There is a winning X strategy in D(ϕ) if and only if
+there is no winning Y strategy in D(ϕ).
+• Soundness and Completeness of Tableaux. Consider first-order
+tableau and first-order dialogical games. There is a tableau proof
+for ϕ if and only if there is a winning P strategy in D(ϕ).
+By soundness and completeness of the tableau method with respect to model-theoretical semantics, it follows that existence of
+a winning P strategy coincides with validity: There is a winning P
+strategy in D(ϕ) if and only if ϕ is valid.
+Examples of extensive forms.
+Extensive forms of dialogical games and of strategies are infinitely generated trees (trees with infinitely many branches). Thus it is not possible to actually write them down. But an illustration remains helpful,
+www.thebalticyearbook.org
+Constructive Type Theory 60
+so we add Figures 1 and 2 below.
+Figure 1 partially represents the extensive form of the dialogical game
+for the formula ∀x(Qx→Qx). Every play in this game is represented
+as a branch in the extensive form: we have given an example with
+the leftmost branch which represents one of the simplest and shortest
+plays in the game. The root of the extensive form is labelled with the
+thesis. After that, the Opponent has infinitely many possible choices
+for her repetition rank: this is represented by the root having infinitely
+many immediate successors in the extensive form. The same goes for
+the Proponent’s repetition rank, and every time a player is to choose
+an individual constant.
+Figure 2 partially represents the extensive form of a strategy for the
+Proponent in this game. It is a fragment of the tree of Figure 1 where
+each node labelled with an O move has at most one successor. We do
+not keep track of all the possible choices for P any more: every time the
+Proponent has a choice in the game, the strategy selects exactly one of
+the possible moves. But since all the possible ways for the Opponent to
+play must be taken into account by a strategy, the other ramifications
+are kept. In our example, the strategy prescribes to choose the same
+repetition rank as the Opponent. Of course there are infinitely many
+other strategies available for P.
+Vol. 8: Games, Game Theory
+and Game Semantics
+61 Shahid Rahman & Nicolas Clerbout
+www.thebalticyearbook.org
+Constructive Type Theory 62
+B. APPENDIX 2: DEFINITIONAL EQUALITY AND THE
+EQUALITY-PREDICATE
+B.1. Definitional Equality
+Vol. 8: Games, Game Theory
+and Game Semantics
+63 Shahid Rahman & Nicolas Clerbout
+www.thebalticyearbook.org
+Constructive Type Theory 64
+B.2. The Equality-Predicate
+Vol. 8: Games, Game Theory
+and Game Semantics
+65 Shahid Rahman & Nicolas Clerbout
+Notes
+1The present paper is part of an ongoing project in the context of the research-program “Argumentation, Decision, Action” (ADA) and the ANR11 FRAL 003 01 : JURILOG
+supported by the Maison Européenne des Sciences de l’ Homme et de la Société - USR
+3185. It is based on the paper the “Dialogical Turn”, to appear in Dialogische Logik in
+Mittelstrass, J. (ed.), Dialogische Logik, Münster: Mentis, 2014. We thank herewith J.
+Mittelstrass for allowing us to make use of content of that paper for the present one.
+2Reprinted in Lorenz (2010a).
+3According to the paper, such rules of the Topics established how to challenge a universal quantifier by “building a counterexample” and how to defend it. Moreover, these
+rules for the quantified expressions were formulated into a frame that delivered what we
+call nowadays the play level, while the syllogistic should link the play level with the level
+of strategies, by means of which validity is defined. Moreover, it seems that the frame included two main rules that have a crucial role in contemporary dialogical logic, namely:
+the so-called formal rule, that makes the winning of a play independent of the meaning of its constitutive elementary sentences, and the non-delaying rule, that takes into
+consideration the real-life constraints, by imposing a fixed length on dialectical games.
+4In gnoseology the main notion was the one of judgement rather than that of proposition. This represented the basis of the Kantian approach to logic, which seemed to be in
+conflict with the post-Fregean approach where only relations between propositions are
+at stake and where the epistemic aspect is seen as outside of or independent from logic.
+Cf. Sundholm (1998, 2009).
+5Cf. Rahman et. al (2012, pp. vii-ix).
+6Lorenzen (1955).
+7Prawitz (1979). For recent discussions related to the topic of harmony, see Read
+(2008, 2010).
+8Cf. Schröder-Heister (2008).
+9The main original papers are collected in Lorenzen & Lorenz (1978). For an historical overview of the transition from operative logic to dialogical logic see Lorenz (2001).
+For a presentation about the initial role of the framework as a foundation for intuitionistic logic, see Felscher (1986). Other papers have been collected more recently in Lorenz
+(2010a,b).
+10Hintikka (1962, 1973, 1996a); Hintikka & Sandu (1997). See also Hintikka (1999)
+and in particular Hintikka et al. (1999). Shahid Rahman and Tero Tulenheimo (2009)
+studied the relation between dialogical logic and GTS.
+11van Benthem (1996, 2001b, 2011).
+12van Benthem (2001a).
+13See also: Blass (1992); Abramsky & Mellies (1999); Girard (1999); Lecomte & Quatrini (2010, 2011); Lecomte (2011); Lecomte & Tronçon (2011).
+14A detailed account of recent developments since, say, Rahman (1993), can be found
+in Rahman & Keiff (2004) and Keiff (2009). For the underlying metalogic see Clerbout (2013a). For a textbook presentation: Redmond & Fontaine (2011) and Rückert
+(2011a). For the key role of dialogic in regaining the link between dialectics and logic,
+see Rahman et al. (2010). Keiff (2004a,b) and Rahman (2009) study Modal Dialogical
+Logic. Fiutek et al. (2010) study the dialogical approach to belief revision. Clerbout et al.
+(2011) studied Jain Logic in the dialogical framework. Popek (2011) develops a dialogwww.thebalticyearbook.org
+Constructive Type Theory 66
+ical reconstruction of medieval obligationes. For other books see Redmond (2010)—on
+fiction and dialogic; Fontaine (2013)—on intentionality, fiction and dialogues; and Magnier (2013)—on dynamic epistemic logic (van Ditmarsch et al. 2007) and legal reasoning
+in a dialogical framework.
+15Cf. Kamlah & Lorenzen (1972, 1984) and Lorenzen & Schwemmer (1973).
+16Cf. Robinson’s preface to his translation of Logische Propädeutik (1984).
+17Lorenzen (1973) Lorenzen & Schwemmer (1973, p.24).
+18Lorenz (1970).
+19Lorenz (2008).
+20See for example Sundholm (2009).
+21
+Doch auch sie [die Wissenschaft] kann nicht vermeiden, dass ihr die Dinge nicht
+überall von sich her als verschieden anbieten, dass sie vielmehr auf wichtigen Gebieten
+(z.B. in der Sozial- oder in der Geschichtswissenschaft) ihrerseits entscheiden muss, was
+sie als gleichartig und sie als verschiedenartig ansehen und demgemäß ansprechen will.
+[...]
+Die Welt besteht, wie schon gesagt, nicht aus Gegenständen (aus “Dingen an sich”) die
+erst nachträglich durch den Menschen benannt würden...
+[...]
+In unserer sprachlich schon immer erschlossenen Welt erfassen wir das Einzelding auch
+als ein solches in der Regel zugleich schon als Exemplar von .... Ferner, wenn wir sagen
+“dies ist ein Fagott”, so meinen wir “dieses Instrument ist ein Fagott” ... oder wenn wir
+sagen “dies ist eine Amsel”, so setzen wir voraus, dass der Gesprächspartner schon weiß,
+“was für ein Gegenstand” gemeint ist, dass von “Vögeln” die Rede ist.
+22The use of the terminology predicator, introduced by Carnap (1947, p.6), instead of
+predicate should avoid the confusion with the grammatical notion.
+23Cf. Poincaré (1902, 1906a,b) and Detlefsen (1992).
+24It is interesting that the Erlangen School already mentioned cases of vagueness as
+arising because of the difficulty of setting fixed boundaries (Kamlah & Lorenzen 1972,
+pp. 46-49).
+25The point of the material-analytic truths is that they establish the link between a
+conceptual structure and the logical reasoning based on it.
+26The quote is a translation by S. Rahman of the following original difficult text:
+Auch Metaaussagen, so können wir zusammenfassen sind auf das Verständnis von Aussagen,
+[...] angewiesen, und können dieses Verständnis nicht sinnvoll zu ihrem Gegenstand machen.
+Die These, dass eine Eigenschaft eines Aussagesatzes stets intern sein muss, besagts daher
+nichts anderes, als die Artikulation der Einsicht, dass in Aussagen über einen Aussagesatz
+selbst nicht mehr der Ausdruck einer sinnvollen Aussage ist, nicht er wird behauptet, sondern
+etwas über ihn.
+Wenn also die originale Behauptung, die Aussage der Grundstufe nicht ausser Kraft gesetzt
+werden soll, darf sie nicht zum Gegenstand einer Metaaussage gemacht werden, [...].
+27The quote is a translation by S. Rahman of the following original difficult text:
+Diente ursprünglich die mit der Abbildtheorie entworfene Semantik dazu, die Regeln der
+‘logischen Syntax’, also die logische Form sprachlicher Ausdrücke, eindeutug zu bestimmen
+und damit zu rechtfertigen [...]–, so soll jetzt der Sprachgebrauch selbst, ohne Vermittlung
+theoretischer Konstruktionen, allein auf dem Wege über die ‘Sprachspiele’, zur Einführung
+der Rede von ‘Bedeutungen’ hinreichen und die syntaktischen Regeln zur Verwendung gebrauchsprachlicher Ausdrücke (Oberflächengrammatik) mit semantischen, das Verständnis
+Vol. 8: Games, Game Theory
+and Game Semantics
+67 Shahid Rahman & Nicolas Clerbout
+dieser Ausdrücke darstellenden Regeln (Tiefengrammatik), ergänzen.
+28The latter is notably exemplified by the difference between classical and intuitionistic
+dialogue rules—in this case the particle rules remain the same and certain structural
+rules are varied (see appendix).
+29For a discussion on analyticity in the context of constructive type theory see Primiero
+(2008).
+30This is also linked with the middle position between universalists and anti-universalists mentioned above. A position that might contest the opposition between indoor- and
+outdoor-games defended by Hintikka (1973) (see Section 3.1 below).
+31Cf. Nordström et al. (1990); Granström (2011).
+32For a thorough discussion see Granström (2011, pp. 54-76).
+33Cf. Kamlah & Lorenzen (1984, p. 37).
+34Martin-Löf used the sign “∈/” in order to indicate that something, say a, is of type, say,
+B. He even suggests understanding it as the copula ‘is’, also Nordström et al. (1990) make
+use of this notation while other authors such as Ranta (1994) use the colon. Granström
+(2011) distinguishes the colon from the epsilon, where the first applies to non-canonical
+elements and the latter to canonical ones. We will use the colon.
+35This in fact has been suggested to the authors in a personal email by Granström.
+36One other strategy would be to differentiate between what Martin-Löf (19841984,
+p. 11-13) calls categories and sets, the former do not require exhaustive definitions of
+their objects and can be thought of as capturing the idea behind properties of individuals.
+Accordingly, we could either reconstruct a kind as an exhaustive formulation of a type
+(involving the distinction between paradigmatic and non paradigmatic examples)—that
+corresponds to the constructive definition of a set—or we could reconstruct a kind as
+a non-exhaustive formulation of a type – corresponding to a category. However, understanding properties of individuals as categories seems to give up the constructivist project
+of an Orthosprache. Note that, as pointed out by Martin-Löf (1984, p.12), one can quantify over sets but not over categories. Martin-Löf also remarks that one of the problems
+of Russell’s type-theory is confusing both. In fact Russell’s ramified types correspond to
+sets while simple types correspond to categories.
+37Cf. Granström (2011, pp. 111-112).
+38Cf. Ranta (1994, p. 21), Nordström et. al (1990, chapter 3.3), Primiero (2008, pp.
+47-55) and Granström (2011, pp. 77-102).
+39Cf. Siegwart (1993).
+40Cf. Ranta (1994, pp. 145-47).
+41Cf. Primiero (2008, pp. 155-163).
+42Ranta (1994, p. 146) points out that in a series of lectures Per Martin-Löf showed
+how the growth of knowledge in experiments can be understood in this way: an unknown quantity is assigned a value, which may depend on other unknown quantities.
+43For a through discussion of the analytic-synthetic distinction in the frame of CTT see
+Primiero (2008).
+44Cf. Rahman (2012).
+45That player can be called Player 1, Myself or Proponent.
+46Such a move could be written as ?F∨1 : formation-request.
+47See a presentation of equality rules in Appendix 2.
+48It is an application of the original rule from CTT given in Ranta (1994, p. 30).
+49Tulenheimo (2011, p. 111) calls this position the anti-realist anti-universalist posiwww.thebalticyearbook.org
+Constructive Type Theory 68
+tion.
+50The example comes from Ranta (1994, p. 31).
+51This can be done because O has chosen 2 for her repetition rank.
+52See Appendix 1.
+53See for example Blass (1992).
+54More precisely, conjunction and the existential quantifier are two particular cases
+of the Σ operator (disjoint union of sets), whereas material implication and universal
+quantifier are two particular cases of the Π operator (indexed product on sets). See for
+example Ranta (1994), Chapter 2.
+55Still, if we are playing with classical structural rules, there is a slight difference between material implication and universal quantification that we take from Ranta (1994,
+Table 2.3), namely that in the second case p2 always depends on p1.
+56As pointed out in Martin-Löf (1984), subset separation is another case of the Σ
+operator. See in particular p. 53:
+“Let A be a set and B(x) a proposition for x ε A. We want to define the set of all a ε A
+such that B(a) holds (which is usually written { x ε A : B(x)}). To have an element a ε
+A such that B(a) holds means to have an element a ε A together with a proof of B(a),
+namely an element b ε B(a). So the elements of the set of all elements of A satisfying
+B(x) are pairs (a; b) with b ε B(a), i.e. elements of (Σx ε A)B(x). Then the Σ-rules play
+the role of the comprehension axiom (or the separation principle in ZF).”
+57The link between subset-separation and existentials provides an insight in the much
+discussed understanding of the comprehension principle of the Erlanger Constructivists,
+who proposed to develop a constructivist abstraction process from predicator rules to
+universal quantification — see Lorenzen (1962), Lorenzen & Schwemmer (1973, pp.
+194-202) and Siegwart (1993). Martin-Löf’s approach delivers the right keys: a) Instead
+of predicator transitions, the conjugation between a propositional function and the corresponding set is necessary b) the resulting principle has an existential not a universal
+form.
+58See Keiff (2007).
+59The reader may check that P has a way to win no matter how the Opponent chooses
+to react to move 4. The hardest one is probably when O chooses to answer directly the
+challenge. In this case the trick for P is to choose the correct order in his moves and to
+use carefully the substitution rules given in rule SR4.2.
+60See Thompson (1991), Chapter 4.
+61See Thompson (1991), Section 4.5.4 for an example and Section 11 for a discussion.
+62The procedure is inspired by the presentation of strategic games in Rahman & Keiff
+(2004), Section 2.4.
+63Of soundness and completeness of the tableau method with respect to dialogical
+games.
+64As should be obvious form the context, ‘⌢’ is a concatenation operator.
+65See Rahman et al. (2009); Rahman (2012).
+66We use π∗N to denote the sequence obtained by adding move N to the play π.
+67This has been pointed out by Helge Rückert (2011b) at the workshop Proofs and
+Dialogues, Tübingen, Wilehm-Schickard Institut für Informatik. See also Rückert (2001)
+for more discussion on the formal rule.
+68Although Marion & Rückert (forth) suggest that the use of the dialogical formal rule
+Vol. 8: Games, Game Theory
+and Game Semantics
+69 Shahid Rahman & Nicolas Clerbout
+is already present in Aristotle—and perhaps even in Plato—, it seems to us that it is in
+fact the modified one we formulated in Section 3.2 for the material-analytic dialogues.
+69These results are proven, together with others, in Clerbout (2013).
+References
+Abramsky, Samson & Mellies, P-A. 1999. ‘Concurrent games and full completeness’. In
+‘Logic in Computer Science, 1999. Proceedings. 14th Symposium on’, 431–442. IEEE:
+Computer Society Press.
+Blass, Andreas. 1992. ‘A game semantics for linear logic’. Annals of Pure and Applied logic
+56, no. 1: 183–220.
+Carnap, Rudolf. 1947. Meaning and necessity: a study in semantics and modal logic.
+University of Chicago Press.
+Clerbout, N. 2013a. ‘First-Order Dialogical games and Tableaux’. Journal of Philosophical
+Logic. Online first Publication – DOI: 10.1007/s10992-013-9289-z.
+——. 2013b. ‘Etude sur quelques sémantiques dialogiques. Concepts fondamentaux et
+éléments de metathéorie’. PHD thesis, Lille/Leiden: Universities of Lille 3 and Leiden.
+Clerbout, N., Gorisse, M-H. & Rahman, S. 2011. ‘Context-sensitivity in Jain Philosophy.
+A dialogical study of Siddharsigani’s Commentary on the Handbook of Logic’. Journal
+of Philosophical Logic 40:5: 633–662.
+Detlefsen, Michael. 1992. ‘Poincaré against the logicians’. Synthese 90, no. 3: 349–378.
+Felscher, Walter. 1986. ‘Dialogues as a foundation for intuitionistic logic’. In D. Gabbay
+& F. Guenthner (eds.) ‘Handbook of philosophical logic’, 115–145. Springer.
+Fiutek, Virginie, Rückert, Helge & Rahman, Shahid. 2010. ‘A Dialogical Semantics for
+Bonanno’s System of Belief Revision’. In ‘Construction Festschrift pour Gerhard Heinzmann’, 315–334. College Publication, London.
+Fontaine, M. 2013. ‘Argumentation et engagement ontologique de l’acte intentionnel.
+Pour une réflexion critique sur l’identité dans les logiques intentionnelles explicites’.
+PHD thesis, Lille: University of Lille 3.
+Ginzburg, Jonathan. 2012. The interactive stance. Oxford University Press.
+Girard, Jean-Yves. 1999. ‘On the meaning of logical rules I: syntax versus semantics’. In
+‘Computational logic’, 215–272. Springer.
+Granström, Johan Georg. 2011. Treatise on Intuitionistic Type Theory. Springer.
+Hintikka, J. & Sandu, G. 1997. ‘Game-theoretical semantics’. In J. van Benthem & A. ter
+Meulen (eds.) ‘Handbook of Logic and Language’, 47–90. Springer.
+Hintikka, J., Halonen, I. & Mutanen, A. 1999. ‘Interrogative Logic as a General Theory
+of Reasoning’. In ‘Inquiry as Inquiry: A Logic of Scientific Discovery’, 47–90. Springer.
+Hintikka, Jaakko. 1962. Knowledge and belief: an introduction to the logic of the two
+notions. Cornell University Press Ithaca.
+——. 1973. Logic, Language-Games and Information: Kantian Themes in the Philosophy
+of Logic. Oxford: Clarendon Press.
+——. 1996a. The principles of mathematics revisited. Cambridge University Press.
+——. 1996b. Lingua Universalis vs. Calculus Ratiocinator: An Ultimate Presupposition of
+Twentieth-Century Philosophy. Dordrecht: Kluwer.
+——. 1999. Inquiry as inquiry: A logic of scientific discovery. Kluwer Academic Publishers
+Dordrecht.
+www.thebalticyearbook.org
+Constructive Type Theory 70
+Kamlah, Wilhelm & Lorenzen, Paul. 1972. Logische Propädeutik. Stuttgart/Weimar:
+Metzler, Second edition.
+——. 1984. ‘Logical propaedeutic: Pre-school of reasonable discourse’. English translation of Kamlah/Lorenzen (1972) by H. Robinson, University Press of America.
+Keiff, Laurent. 2004a. ‘Heuristique formelle et logiques modales non normales’.
+Philosophia scientiae 8, no. 2: 39–59.
+——. 2004b. ‘Introduction à la dialogique modale et hybride.’ Philosophia scientiae 8,
+no. 2.
+——. 2007. Le pluralisme dialogique. Approches dynamiques à l’argumentation formelle.
+Ph.D. thesis, Ph. D-Thesis, Lille (December 2007).
+——. 2009. ‘"Dialogical Logic"’. Stanford Encyclopedia of Philosophy, online (accessed
+2013).
+Lecomte, Alain. 2011. Meaning, logic and ludics. World Scientific.
+Lecomte, Alain & Quatrini, Myriam. 2010. ‘Pour une étude du langage via l’interaction:
+dialogues et sémantique en Ludique’. Mathématiques et sciences humaines. Mathematics and social sciences 189: 37–67.
+——. 2011. ‘Figures of dialogue: a view from Ludics’. Synthese 183, no. 1: 59–85.
+Lecomte, Alain & Tronçon, Samuel. 2011. Ludics, Dialogue and Interaction: PRELUDE
+Project—2006-2009. Revised Selected Papers, vol. 6505. Springer.
+Lorenz, Kuno. 1970. Elemente der Sprachkritik: eine Alternative zum Dogmatismus und
+Skeptizismus in der analytischen Philosophie. Suhrkamp Verlag.
+——. 2001. ‘Basic objectives of dialogue logic in historical perspective’. Synthese 127,
+no. 1-2: 255–263.
+——. 2008. Dialogischer Konstruktivismus. Walter de Gruyter.
+——. 2010a. Philosophische Variationen: gesammelte Aufsätze unter Einschluss gemeinsam
+mit Jürgen Mittelstrass geschriebener Arbeiten zu Platon und Leibniz. Walter de Gruyter.
+——. 2010b. Logic, Language, and Method: On Polarities in Human Experience. Walter de
+Gruyter.
+Lorenz, Kuno & Mittelstraß, Jürgen. 1966. ‘Theaitetos fliegt. Zur Theorie wahrer und
+falscher Sätze bei Platon’. Archiv für Geschichte der Philosophie 48, no. 1-3: 113–152.
+Lorenz, Kuno & Mittelstrass, Jürgen. 1967. ‘On Rational Philosophy of Language: The
+Programme in Plato’s Cratylus Reconsidered’. Mind 76, no. 301: 1–20.
+Lorenzen, Paul. 1955. Einführung in die Operative Logik und Mathematik.
+Berlin/Göttingen/Heidelberg: Springer.
+——. 1962. ‘Gleichheit und Abstraktion’. Ratio 4, no. 2: S–77.
+——. 1973. ‘Semantisch normierte Orthosprachen’. In F. Kambartel & J. Mittelstrass
+(eds.) ‘Zum normativen Fundament der Wissenschaften’, 231–249. Athenäum–Verlag,
+Frankfurt/M.
+Lorenzen, Paul & Lorenz, Kuno. 1978. Dialogische logik. Wissenschaftliche Buchgesellschaft Darmstadt.
+Lorenzen, Paul & Schwemmer, Oswald. 1973. Konstruktive Logik, Ethik und Wissenschaftstheorie. Mannheim: Bibliographisches Institut, Second edition.
+Magnier, Sébastien. 2013. Approche dialogique de la dynamique épistémique et de la con- dition juridique. London: College Publications.
+Marion, Mathieu & Rückert, Helge. forth. “‘Aristotle on Universal Quantification”’. Unpublished, forthcoming.
+Martin-Löf. 1984. Intuitionistic type theory – Notes by Giovanni Sambin of a series of
+Vol. 8: Games, Game Theory
+and Game Semantics
+71 Shahid Rahman & Nicolas Clerbout
+lectures given in Padua, June 198, vol. 17. Naples: Bibliopolis.
+Nordström, Bengt, Petersson, Kent & Smith, Jan M. 1990. ‘Programming in Martin-Löf’s
+type theory: An introduction’.
+Poincaré, Henri. 1902. La science et l’hypothèse. Paris: Flammarion.
+——. 1906a. ‘Les mathématiques et la logique’. Revue de Métaphysique et de Morale 13,
+no. 6: 17–34.
+——. 1906b. ‘Les mathématiques et la logique’. Revue de métaphysique et de morale 14,
+no. 3: 294–317.
+Popek, A. 2011. ‘Logical dialogues from Middle Ages’. In Barés et alii (ed.) ‘Logic of
+Knowledge. Theory and Applications’, 223–244. London: College Publications.
+Prawitz, Dag. 1979. ‘Proofs and the meaning and completeness of the logical constants’.
+In J. Hintikka & alii (eds.) ‘Essays on mathematical and philosophical logic’, 25–40.
+Springer.
+Primiero, Giuseppe. 2008. Information and knowledge: A constructive type-theoretical
+approach, vol. 10. Springer.
+Rahman, S & Rückert, H. 2011. ‘Eine neue dialogische Semantik für lineare Logik’.
+In H. Rückert (ed.) ‘Dialogues as a dynamic framework for logic’, London: College
+Publications.
+Rahman, Shahid. 1993. Über Dialoge, Protologische Kategorien und andere Seltenheiten.
+Frankfurt/Paris/New York: P. Lang.
+——. 2009. ‘Non-normal dialogics for a wonderful world and more’. In van Benthem et
+alii (ed.) ‘The age of alternative logics’, 311–334. Kluwer-Springer.
+——. 2012. ‘Negation in the Logic of First Degree Entailment and Tonk’. In ‘The RealismAntirealism Debate in the Age of Alternative Logics’, 213–250. Springer.
+Rahman, Shahid & Keiff, Laurent. 2004. ‘On how to be a dialogician’. In D. Vanderverken
+(ed.) ‘Logic, thought and action’, 359–408. Dordrecht: Kluwer.
+Rahman, Shahid & Rückert, Helge. 2001. ‘New Perspectives in Dialogical Logic’. Synthese
+127:1-2, special volume.
+Rahman, Shahid & Tulenheimo, Tero. 2009. ‘From games to dialogues and back. Towards
+a general frame for valitity’. In O. Majer & alii (eds.) ‘Games: Unifying Logic, Language
+and Philosophy’, 153–208. Dordrecht: Springer.
+Rahman, Shahid, Clerbout, Nicolas & Keiff, Laurent. 2009. ‘On dialogues and natural
+deduction’. In S. Rahman & G. Primiero (eds.) ‘Acts of Knowledge, History, Philosophy,
+Logic’, 301–336. College Publications, London.
+Rahman, Shahid, Keiff, Laurent et al. 2010. ‘La Dialectique entre Logique et Rhétorique.’
+Revue de Métaphysique et de Morale 66, no. 2.
+Rahman, Shahid, Primiero, Giuseppe & Marion, Mathieu. 2012. The realism-antirealism
+debate in the age of alternative logics. Springer.
+Rahman, Shahid, Clerbout, Nicolas & Keiff, Laurent. 2013. ‘The Constructive Type Theory and The Dialogical Turn: A New Start for the Erlanger Konstruktivismus’. To
+appear in Mittelstrass, J. (ed.), Dialogische Logik, Münster: Mentis, 2014.
+Ranta, Aarne. 1988. ‘Propositions as games as types’. Synthese 76, no. 3: 377–395.
+——. 1994. Type-theoretical grammar. Clarendon Press.
+Read, Stephen. 2008. ‘Harmony and modality’. In C. Dégremont & alii (eds.) ‘Dialogues,
+logics and other strange things: Essays in honour of Shahid Rahman’, 285–303. London: College Publications.
+——. 2010. ‘General-elimination harmony and the meaning of the logical constants’.
+www.thebalticyearbook.org
+Constructive Type Theory 72
+Journal of philosophical logic 39, no. 5: 557–576.
+Redmond, Juan. 2010. Logique dynamique de la fiction: pour une approche dialogique.
+College publications.
+Redmond, Juan & Fontaine, Matthieu. 2011. How to play dialogues: An Introduction to
+Dialogical Logic. London: College Publications.
+Rückert, Helge. 2001. ‘Why Dialogical Logic?’ In H. Wansing (ed.) ‘Essays on NonClassical Logic’, 165–185. Singapore: World Scientific.
+——. 2011a. Dialogues as a Dynamic Framework for Logic. London: College Publications.
+——. 2011b. ‘The Conception of Validity in Dialogical Logic’. Talk at the workshop Proofs
+and Dialogues, Tübingen.
+Schröder-Heister, Peter. 2008. ‘Lorenzen’s operative justification of intuitionistic logic’.
+In ‘One Hundred Years of Intuitionism (1907-2007)’, 214–240. Basel: Birkhäuser.
+Siegwart, G. 1993. “Die fundamentale Methode der Abstraktion’. Replik auf Dirk Hartmann und Christian Thiel’. Zeitschrift für Philosophische Forschung 47, no. 4: 606–614.
+Sundholm, Göran. 1983a. ‘Constructions, proofs and the meaning of logical constants’.
+Journal of Philosophical Logic 12, no. 2: 151–172.
+——. 1983b. ‘Systems of deduction’. In D. Gabbay & F. Guenthner (eds.) ‘Handbook of
+philosophical logic Volume 1’, 133–188. Dordrecht: Reidel.
+——. 1986. ‘Proof theory and meaning’. In D. Gabbay & F. Guenthner (eds.) ‘Handbook
+of philosophical logic Volume 3’, 471–506. Dordrecht: Reidel.
+——. 1997. ‘Implicit epistemic aspects of constructive logic’. Journal of Logic, Language
+and Information 6, no. 2: 191–212.
+——. 1998. ‘Inference versus consequence’. In T. Childers (ed.) ‘The Logica Yearbook
+1997’, 26–36. Prague: Filosofia.
+——. 2001. ‘A plea for logical atavism’. In O. Majer (ed.) ‘The Logica Yearbook 2000’,
+151–162. Prague: Filosofia.
+——. 2009. ‘A Century of Inference: 1837–1936’. In L. Haaparanta (ed.) ‘The Development of Modern Logic’, 263–317. Oxford: Oxford University Press.
+——. 2013. ‘Containment and Variation; Two Strands in the Development of Analyticity
+from Aristotle to Martin-Löf’. In M. van der Schaar (ed.) ‘Judgement and the Epistemic
+Foundation of Logic’, 23–35. Springer.
+Thompson, Simon. 1991. Type theory and functional programming. Addison-Wesley Reading.
+Tulenheimo, Tero. 2011. ‘On some logic games in their philosophical context’. In
+A. Lecomte & S. Troncon (eds.) ‘Ludics, dialogue and interaction. PRELUDE Project
+2006-2009. Revised Selected Papers’, 88–113. Springer.
+van Benthem, Johan. 1996. Exploring logical dynamics. Stanford/Cambridge: CSLI Publications and Cambridge University Press.
+——. 2001a. ‘Correspondence Theory’. In Gabbay, G. and Guenthner, F. (eds.), Handbook
+of Philosophical Logic Volume 2, Dordrecht: Reidel, pp. 167–247, 1984. Reprint with
+addenda in Second edition, pp. 325-408, 2001.
+——. 2001b. “‘Logic in Games”’. Lecture notes, unpublished.
+——. 2011. Logical dynamics of information and interaction. Cambridge University Press.
+van Ditmarsch, Hans, van der Hoek, D. & Kooi, B. 2007. Dynamic epistemic logic.
+Springer.
+Vol. 8: Games, Game Theory
+and Game Semantics

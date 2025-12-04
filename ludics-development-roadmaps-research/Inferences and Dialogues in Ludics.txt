@@ -1,0 +1,718 @@
+Inferences and Dialogues in Ludics
+Christophe Fouqueré∗ Myriam Quatrini†
+April 11, 2013
+ABSTRACT – We propose to use Ludics as a unified framework for the analysis of dialogue and
+as a reasoning system. Not only Ludics gives a denotational semantics for Linear Logic, but it uses
+interaction as a primitive notion. We first sketch a model for pragmatical and rhetorical aspects
+of dialogue after a brief review of the way the interactive aspect of dialogue may be represented
+in Ludics. Then we show how taking into account inferences that occur during a dialogue, with
+respect to a ISU-like model of dialogue. Through various examples we give an analysis of deductive
+inferences as well as processes making facts explicit that take place during knowledge updating. 1
+1 Introduction
+1.1 Inference and Dialogue: Interactive Viewpoint
+Ludics [13] is a reconstruction of logic with interaction as a primitive notion, in the sense that the
+primary logical concepts are no more formulas and proofs but cut-elimination interpreted as an
+interaction between objects called designs. The sole purpose of a design is that it carries on the
+interaction: a design is nothing else but a set of potential paths where interaction may take place.
+At first, let us recall that both the proof-theoretical notions of cut and of cut-elimination are
+closely related to the (more philosophical) notion of inference:
+- A cut occurs between two proofs when one formula is the conclusion of the first proof, whereas
+the same formula is a hypothesis of the second one. Called modus ponens, it is the main ingredient
+of reasoning and it is the paradigm of deductive inference.
+- Cut-elimination is one of the main results of proof theory: it states that it is possible (in Linear
+Logic as in Classical Logic) to normalize a proof, i.e. to transform a proof with cuts to an equivalent
+proof without cuts. As emphasized by Girard in [12], the cut-elimination process has also an
+inferential reading: it makes proofs explicit.
+Secondly, let us observe that, in Ludics, we consider two modes of interaction: either we focus
+on the travel itself and we are interested in the possibility of the continuation, step after step, of a
+travel between two designs interacting each other, without paying attention to any context, or we
+focus on the transformation that this travel induces on some context or environment. In terms of
+Logic, the first case corresponds to a close situation: the interaction between proofs of dual formulas
+∗Université Paris 13, Sorbonne Paris Cité, LIPN, CNRS, (UMR 7030), F–93430, Villetaneuse, France,
+christophe.fouquere@lipn.univ-paris13.fr
+†
+IML–FRE 3529 Aix-Marseille Université, CNRS, Campus de Luminy, case 907, 13288 Marseille cedex 9,
+quatrini@iml.univ-mrs.fr
+1This work was completed with the support of the ANR project LOCI number 0212 02.
+1
+enables to decompose such formulas with respect to their structure 2
+, the second case corresponds
+to applying a modus ponens: from a proof of A and a proof of A ‘implies’ B, we get a proof of
+B. In terms of natural language and reasoning, the first case helps modelling interacting processes,
+e.g. dialogues, while the second one may be used for modelling explicitation processes, e.g. calculus
+or deduction.
+1.2 Modelling Dialogues and Inferences in Ludics
+Ludics has already been used in a series of papers for representing several aspects of Natural
+Language (e.g. [18, 19, 7]). They are all based on the idea that interaction is fundamental in
+Natural Language, dialogue being archetypical in that way. Remark that Ludics has also been
+used in the same spirit for formalizing web processes [6]. These modellings use the “primitive”
+objects of the interaction that Ludics set, upstream of a reconstruction of logic. In fact, Ludics is
+primarily a theory of interaction and its basic elements, actions and paths, are enough to grasp the
+rudimentary aspects of dialogical interactions. The formalisation of dialogue we obtain that way has
+to be related to the one obtained by means of Game Theory, see for example the study of dialogue
+done by Lascarides and Asher [16] or other works for the more specific case of argumentation
+dialogues [25, 21, 22, 20, 23]. However, note that several aspects of Ludics allow to go beyond
+what is done in Game Theory for modelling Natural Language: among them, an action has a more
+precise description than a move in Game Theory, and a specific action, the daimon, specifies the
+end of an interaction.
+We must remark that the fact that Ludics is also a logical theory has not fully been taken
+into account in these previous works that consider Ludics for formalizing Natural Language. Let
+us shortly recall how Logic is retrieved from Ludics. The concrete basic steps of interaction (the
+actions) correspond to the basic steps of cut elimination. Hence a path, that is a sequence of actions
+used in an interaction, may correspond to the exploration of a formula through its main connective
+to its successive subformulas inside a proof. Finally, a design, that is a set of pairwise coherent paths,
+may correspond to a proof of a formula. However, a design abstracts from the notion of formula:
+a design has only loci, i.e. addresses, where interaction goes through. When a set of designs is
+given, the space where interaction with these designs may take place is also given. This space is
+defined by all the counter-designs of each design of this set. This gives an external viewpoint on
+designs, from which one may observe regularities. Formulas may then be retrieved as sets of designs
+closed relatively to these counter-designs. Indeed, exploring a set of designs reduces to exploring
+each design of this set. When it is closed, a set of designs describes all the ways to explore the
+object it represents, until its undecomposable elements. This has to be related to the concept of
+a formula, defined inductively by its connectives and subformulas that compose it until obtaining
+propositional variables or constants. Moreover, and this is an essential property of Ludics, some
+designs associated with a formula may denote proofs (of this formula): those designs that satisfy
+suitable properties, among which, precisely, the fact that the exploration can always continue until
+a suitable term. So, truthness of a formula requires the existence of some proof belonging to the
+set of designs associated to this formula.
+We may then enrich the framework of our modelling, using still Ludics, to grasp the part of dialogue that is relative to inferences. This is particularly interesting when we consider argumentation
+dialogue as the authors did in [8]. As remarked previously, this latter dimension of dialogues takes
+2Obviously, since we cannot consider literally simultaneously a proof of A and a proof of ¬A, the notion of design
+relaxes the one of proof.
+2
+sense according to an environment or a context. We propose in this paper to integrate to our framework the Information State Update approach (ISU) developed by various authors [15, 1, 5, 16],
+according to which inferences are managed in a context of dialogue. Of course, the logical dimension
+of Ludics is fully relevant for considering correctness (or not) of deductive inferences.
+1.3 Our contribution
+As mentioned above, previous works, e.g. [18, 19, 7], were devoted to model the surface of dialogues,
+which concerns both the intra-locutor justification relation and the inter-locutors connection relation, i.e. relations that may exist between dialogical interventions. We assume that this interactive
+level is central in order to grasp and understand other dimensions of dialogues: semantics (as started
+in [17]), syntax and even lexical aspects. In this paper we are interested in the pragmatical and
+rhetorical dimensions. Our aim is to make more explicit the continuity between the interactive
+structure of dialogues and the eristic or dialectic role of interventions occurring in such dialogues.
+Our approach integrates two complementary aspects: one concerning pragmatical and rhetorical
+dimensions of dialogue, and another one concerning inferences that may take place inside an argumentation as well as the process of making facts explicit in informative dialogues. The content of
+this paper is organized as follows:
+– in section 2, we sketch a model for pragmatical and rhetorical aspects of dialogue after a brief
+review of the modelling in Ludics of the interactive aspect of dialogues;
+– in section 3, we show how taking into account inferences that occur during a dialogue, with respect to a ISU-like model of dialogue. Through various examples we give an analysis of deductive
+inferences as well as calculus/‘explicitation’ processes that take place during knowledge updating.
+Because of lack of space, we do not recall formal aspects of Ludics. However the reader may find
+complete presentations in [13, 3, 4].
+2 Modelling Dialogues
+The modelling of dialogues in Ludics may be considered as a refinement of what is done with Game
+Theory [16]. Roughly speaking, each locutor is a player in a game, the dialogical interventions
+are represented by moves and a dialogue itself is represented by means of an alternate sequence
+of moves, that is a play. Nevertheless, in Ludics, the duality, expressed by alternating positive
+and negative actions, does not correspond to a question/answer duality as in game semantics but
+to a production/reception duality in dialogue modelling. A positive action models the production
+of an utterance whereas a negative action is an expectation of utterances. A turn of speech is
+then twofold: producing an utterance to her interlocutor and expecting an utterance from her
+interlocutor. A dialogue defines then two sequences, called paths: each of them being the dialogue
+seen from the viewpoint of one locutor. Finally each path defines a design, hence the dialogue may
+be considered as the trace of the interaction between two designs, one for each locutor. We show
+in this section that the framework of Ludics, in particular the use of designs, is useful to give an
+account of various aspects of dialogues, namely presuppositions, divergence, argumentation, . . .
+The starting point of the formalisation is only based on the interactive feature of dialogues.
+This level is already enough to take into account some important elements of dialogues. We refine
+then this first approach in order to take care of other dimensions of dialogue. We focus on the
+pragmatical and rhetorical levels.
+3
+2.1 Interactive level
+At this level, we only consider the interactive surface of dialogues: a model for the intra-locutor
+justification relation and for the inter-locutor connection relation. With respect to this interactive
+level, dialogues are only alternate sequences of interventions among which we may distinguish the
+one which initiates the exchange and the one which eventually ends the exchange. Interventions
+are only considered according to:
+– their role in the flow of interventions: one intervention is anchored on a previous one and opens
+possible continuations of the dialogue (justification relation),
+– the fact that they are produced by one locutor while they are in the same time received by the
+other locutor (connection relation).
+An alternate sequence of interventions may then be represented by an alternate sequence of
+actions in Ludics, as illustrated in the following example:
+Example 1 (C. Dickens, David Copperfield) The following dialogue is extracted from the novel
+“David Copperfield” of C. Dickens. The dialogue takes place between a coachman (C) and David
+(D), the coachman brings David to London:
+C I1 : You are going through, sir?
+D I2 : Yes, William. I am going to London.
+I shall go down into Suffolk afterwards.
+C I3 : Shooting, sir?
+D I4 : I don’t know.
+C I5 : Birds is got wery shy, I’m told
+D I6 : So I understand
+C I7 : Is Suffolk your county, sir?
+D I8 : Yes, Suffolk’s my county.
+C I9 : The dumplings is uncommon fine down there . . .
+As a first approximation, an action κ1, . . . , κ9 is associated to each utterance I1, . . . , I9. The
+justification between actions is given Fig. 1, on right. The first action κ1 is initial, indeed, with this
+intervention C initiates the dialogue. Actions κ3, κ7 and κ9 are justified by the second intervention
+κ2: in the three cases, these interventions refer to ‘Suffolk’, entity present in the second intervention
+that may introduce topics concerning hunting, native soil, gastronomy . . . Each other intervention
+is justified by the action that precedes it immediately where the focus is given.
+Ludics allows for rebuilding the interaction that produces this alternate sequence of interventions
+as a trace. The alternate sequence of interactions κ1, . . . , κ9 may be represented choosing the
+positive polarity for the interventions of C: in that way, the dialogical interaction is represented
+with the point of view of C. Reversing the polarities, one gets the point of view of D. The trace
+of interaction between the two designs is the dialogue. In left part of Fig. 1, the design on the left
+is the point of view of C, and the design on the right is the point of view of D, circled actions are
+the positive ones, black edges account for the justification relation, the flow of red arrows is the
+interaction between the two designs.
+Viewing the dialogue as a trace makes explicit the fact that there are two points of view.
+Moreover it allows to observe the success or the failure of these two points of view, i.e. the fact that
+the dialogue may fail or end with a drop. Dialogues may badly end because of misunderstandings,
+disagreements, . . . and it is necessary to be able to represent such situations. Ludics distinguishes
+4
+κ9
+κ9
+κ8
+κ8
+κ7
+κ6 κ6
+κ5 κ5
+κ4 κ4
+κ3 κ3 κ7
+κ2 κ2
+κ1 κ1
+Viewpoint of C Viewpoint of D
+κ1
+κ2
+κ3
+κ4
+κ5
+κ6
+κ7
+κ8
+κ9
+Trace of the interaction with
+justification between actions.
+Figure 1: The interaction between two designs/viewpoints
+two cases. An interaction is convergent when it ends with a daimon3
+, it is divergent when a positive
+focus has no dual counterpart. These two cases allow for interpreting two standard final situations in
+dialogues: either the dialogue finishes well or there is a misunderstanding between the two locutors.
+The following example is given by M. Chemillier [2] to illustrate the difficulties that arise when one
+wants to isolate the logical part of a dialogue.
+Example 2 A person P conducting a survey gives to a native the following informations: All the
+Kpelle cultivate rice. Mister Smith does not cultivate rice, the person P asks the following question
+to the native N:
+- P: “Is Mister Smith a Kpelle ?” (κ1)
+- N: “I do not know Mister Smith, I have never seen him.” (κ2)
+Here we consider only the question and its answer that we represent each by a single action
+(resp. κ1 and κ2). The person P expects a logically correct answer, e.g. “no”, we note κ3. He
+plans also to receive an incorrect answer, e.g. “yes” or “it may be the case”, we note κ4. Hence the
+design for the person P may be either κ1 followed by κ3, or κ1 followed by κ4. The interaction
+in Ludics is given Fig. 2: it is divergent as there is no negative action dual to κ2 in what is expected
+in the design of P. The dialogue cannot continue.
+2.2 Pragmatical and Rhetorical Levels
+In order to take into account other dimensions of dialogues, the formalisation is refined. A first step
+is to replace the notion of action by the one of dialogue act. The notion of dialogue act is defined by
+Landragin [14] as “the minimal unit of communication in a dialogical context”. A dialogue act is a
+communicational fact whose role is to fuel the dynamic and determine the shape of the dialogue. It
+may be explicit or implicit, verbal or not (e.g. an acknowledgment given as a gesture). It may appear
+3A special positive action, which is not justified and which necessarily ends paths.
+5
+κ3 κ4 κ2
+κ1 κ1
+?
+Viewpoint of the person P
+conducting the survey
+Viewpoint of the native N
+Figure 2: A divergent dialogue about Kpelle.
+as one or more propositions, but also as part of a proposition (word, adverb, . . . ). It expresses an
+entitlement or a decision of the speaker, and also its acknowledgment by the addressee. In some
+sense, it is quite close to a speech act. However a speech act may correspond to several dialogue acts
+as shown in following examples. Dialogue acts are indeed more elementary than speech acts. They
+can be seen as the basic blocks from which one builds interpretation for dialogical interventions or
+even utterances. Formally, a dialogue act may be defined using the complete definition of action
+in Ludics: a polarity, an address and a finite set of new addresses which may be used as adresses
+of following actions. A dialogue act is such an action together with the expression that reveals the
+dialogue act in the intervention. Such an expression may be a proposition, a word (e.g. a single
+adverb, a noun), a prosodic feature, a non verbal sign (a nod, a shake, a slap, . . . ). In trivial cases,
+an intervention is a unique dialogue act. Otherwise a turn of speech has to be decomposed into a
+sequence of dialogue acts, hence may give rise to a complex design. Note that the representation of
+an utterance in terms of dialogue acts is dependent of the context of the dialogue, and in particular
+of past interventions that occurred.
+Definition 1 (Dialogue Act) A dialogue act κ is:
+• either a proper dialogue act, that is to say a tuple (, ξ, I, e) where
+– the finite sequence of integers ξ is the focus of κ: the location of the act with respect to
+the dialogical interaction one considers,
+– I is the ramification of κ: the openings created by the dialogue act on which new dialogue
+acts may be produced,
+– e is the expression of the dialogue act, that is to say the language or communicational
+fact by means of which the dialogue act manifests itself,
+– the polarity  of the act may be positive (+) or negative (−). The act is positive for
+the locutor that produces it except when this act is a constraint from its interlocutor
+(see below presupposition case). These acts have a dual polarity when received by the
+interlocutor.
+• or a particular positive dialogue act, still called daimon anot noted (†, e), that registers the
+end of an interaction that went well. In that case, the expression e of the dialogue act may
+often be empty.
+Our modelling of dialogues in Ludics, together with the notion of dialogue act, allows for
+analysing different pragmatical aspects as well as rhetorical features. These two dimensions appear as being closely linked: both concern primitively dialogues, both are central in argumentation
+6
+dialogues, both are at the frontier of linguistics and philosophy and both are closely related to
+Logic. For example, the pragmatical notion of speech acts is systematically used for describing
+argumentation dialogues by means of an almost exhaustive list of speech acts of argumentation.
+The notion of fallacies seems being at first relevant for rhetorical issue but the presuppositions are
+one of the current study objects of Pragmatics. Without trying to radically separate these two
+dimensions, the sole interactive level of dialogues, enriched by the notion of dialogue act enables to
+characterize different fallacies as well as speech acts of argumentation, according to their behaviour
+with respect to interaction (see also [18, 8]). We illustrate below the modelling of fallacies in Ludics
+on an example of presupposition.
+2.2.1 Presupposition in Dialogues
+A presupposition is an implicit assertion concerning the world, whose validity is accepted in the
+dialogue.
+Example 3 Let us consider this well known example due to Aristotle; a judge asks a young delinquent this question: “Have you stopped beating your father?” .
+Answering this question by yes or no supposes that the answer of the implicit question is yes:
+– Q1: “Did you beat your father?”
+– R: “Yes.”
+– Q2: “Have you stopped beating him?”
+This may be modelled by the following interaction between two designs:
+κ3
+κ2 κ2
+κ1 κ1
+Point of view of the judge Point of view of the young adult
+where the dialogue acts κ1, κ2 and κ3 refer respectively to interventions : “Did you beat your
+father?”; “Yes”; “Have you stopped beating him?”.
+The question asked by the judge, “Have you stopped beating your father?”, is a sequence of
+three dialogue acts: (κ1, Q1)(κ2, R)(κ3, Q2). If the young adult continues the dialogue, he implicitly
+assumes that the two (partial) designs do not diverge. He accepts to justify the intervention he will
+have on the negative dialogue act dual to (κ3, Q2), this dialogue act being anchored on the positive
+dialogue act dual to (κ2, R): he assumes he would have answered yes to the implicit question.
+2.2.2 Argumentation Dialogues
+Argumentative dialogues show some peculiarities. In particular speech acts that compose them are
+limited in number: assertions, arguments, denial, concessions, . . . In addition, a notion of winnings
+appears, which seems specific to argumentative dialogues. In a dialogue whose aim is to exchange
+information, to share knowledge or a feeling, the question of whether one of the speakers wins
+7
+is quite irrelevant. But to know who is right after a controversy is essential. An argumentative
+dialogue is distinguished from (common) dialogues in the sense that two arguments are opposed,
+each party having his thesis to defend or advance. The dialogue is then mainly an exchange of
+arguments and counter-arguments with the sole purpose that the dialogue ends when a thesis is
+considered winning.
+In order to take care of argumentative dialogues, we give below an account of speech acts of
+argumentation by means of dialogue acts. It is necessary to precise what is a “gain”. One of the
+locutors becomes a “loser” in the following situation: he abandons the dispute conceding the last
+arguments of his addressee (who becomes the winner): the winner has the last word. We can precise
+the situations when a daimon is used: either the set of addresses where a dialogue act may take
+place is empty, hence the daimon is the only possible dialogue act and the opponent had really “the
+last word”, or there exist still locations where actions may take place and the locutor prefers to quit
+the dialogue. Note that this notion of winner is linked to a specific dialogue: it may be the case
+that the current loser may be a winner with another opponent. We must mention that the notion
+of “winning” design exists in Ludics: a design is winning if, in particular, it does not contain the
+daimon. Hence every interaction with such a design is either divergent or ends with a daimon in
+the opposite design: such a design wins every time.
+The speech acts of argumentation:
+• To claim a thesis (to affirm, to assert). This corresponds to posing a proposition on which
+the interlocutor may continue the dialogue by negating it or by conceding it or by asking
+more explanations. Such a proposition may constitute the initial thesis of a dialogue, it may
+also be an additional element for an on-going discussion. In our Ludics framework, this is
+represented by a proper and positive dialogue act (+, ξ, I, e), that may be initial or justified
+by one of the previous dialogue acts that introduces one of the subjects of the dialogue.
+• To argue. This corresponds to posing propositions that serve as argumentative premises and
+in the same time the sound structuring between these premises and the conclusion,i.e. the
+fact on which the locutor argues, that should be a location open to discussion. For example,
+the locutor may affirm a thesis A and justify it with B and B ⇒ A, hence propositions that
+are posed are actions corresponding to the two elements B and B ⇒ A. This speech act is
+represented by a unique positive proper dialogue act (+, ξ, I, e). Contrarily to the previous
+item, the ramification I, hence the locations opened by this act, cannot be a singleton: it
+contains at least all the premises and the relation between the premises and the conclusion.
+• To negate (to refuse). We consider this speech act as a kind of thesis, a claim of the locutor.
+However such a claim cannot be an initial act of the dialogue: it is a refusal of a previous
+claim4
+. In a general setting, in such a turn of speech, the locutor may negate and pose a
+counter-argumentation by giving new facts. It is represented as a proper positive dialogue
+act (+, ξ, I, e), necessarily justified by a previous act that introduces the proposition that is
+negated.
+• To ask, to request some justification. With respect to the structure of a dialogue, there
+is no difference with the previous item except the linguistic form it has.
+4Note that an initial claim may also be a negation. There is a difference between beginning a dialogue with, e.g.,
+“Paul did not come yesterday” and saying “You are wrong. Paul did not come.” as a reply to “Paul came to the party
+yesterday.”
+8
+• To concede. This consists in accepting one assertion that the interlocutor claimed. Hence
+the dialogue will not continue on this element. As such, a concession is only a part of a turn
+of speech: either the dialogue ends with this (last) concession and the locutor abandons, or
+the locutor continues its intervention on another element still under discussion. A sequence
+of two dialogue acts is associated with the concession: (+, ξ, {0}, e0),(−, ξ.0, ∅, e1) where
+- the first one, positive, enables to express what is conceded, its focus is the one created by
+the affirmation that one concedes and its ramification is a singleton.
+- The second dialogue act is a negative one, it is focused on ξ.0: the locus that the immediate previous act created and it has an empty ramification. The effect is that the conceded
+affirmation disappears.
+• To abandon. This act ends an argumentation dialogue in a convergent way. The locutor
+does not mention any misunderstanding but recognizes he has nothing more to add. The
+positive dialogue act (†, e) fits exactly to this situation. Its use finishes the interaction.
+In order to illustrate the effect of an intervention during an argumentation dialogue, we give
+below an example due to Prakken [23] and that we analyzed more exhaustively in [9].
+Example 4 A juridical controversy between a plaintiff P and a defendant D starts as follows:
+I1 Plaintiff: I claim that defendant owes me 500 euro.
+I2 Defendant: I dispute plaintiff ’s claim.
+I3 Plaintiff: Defendant owes me 500 euro by r1 since we conclude a valid sales contract,
+I delivered but defendant did not pay.
+I4 Defendant: I concede that plaintiff delivered and I did not pay,
+but I dispute that we have valid contract.
+To start, we focus on the argumentative dialogue. According to our modelling, the two first interventions I1 and I2 create each only a new locus, respectively L1 and L2. On the contrary, the
+intervention L3 is represented by a dialogue act which creates four new loci. Indeed the utterance
+I3 ‘Defendant owes me 500 euro by r1 since we conclude a valid sales contract, I delivered but defendant did not pay’ makes explicit four argumentative elements to support his assertion ‘Defendant
+owes me 500 euro’. These argumentative elements are: a law article r1; the fact that both parties
+concluded a valid contract; the fact that plaintiff delivered his service and at last, the fact that
+defendant did not pay 500 euros. By means of this dialogue act, we indicate that the dialogue may
+continue using loci L31
+, . . . , L34
+respectively associated with these four elements.
+I1
+I2
+I3
+L31
+`
+.
+.
+.
+.
+L32
+`
+.
+.
+.
+.
+L33
+`
+.
+.
+.
+.
+L34
+`
+`L2
+L1`
+`L0
+.
+.
+.
+.
+`(L31
+,)L32
+,L33
+,L34
+L2`
+`L1
+L0`
+Plaintiff Defendant
+Figure 3: A juridical example: Interventions I1 to I3
+Intervention I4 is more complex, it is not given into account by a unique dialogue act but by
+a sequence of several ones. Indeed, in intervention I4, defendant concedes two plaintiff’s elements:
+9
+‘plaintiff delivered’ and ‘I did not pay’. These two concessions are successively represented, each of
+them being a positive dialogue act followed by a negative one with an empty ramification, at first
+above L34
+then above L33
+. At last, intervention I4 ends by negating the factual proposition ‘The
+parties concluded a valid sales contract’, this is represented by a positive dialogue act focused on
+L32
+and with a singleton as ramification. The argumentative dialogue until this fourth intervention
+is represented Fig. 4.
+I4
+L31 `
+.
+.
+.
+.
+`L43
+L32 `
+`L42
+∅
+L33 `
+`L41
+∅
+L34 `
+`L2
+L1`
+`L0
+.
+.
+.
+.
+L43 `
+`L32
+L42 `L32
+∅
+`L32
+,L33
+L41 `L32
+,L33
+∅
+`(L31
+,)L32
+,L33
+,L34
+L2`
+`L1
+L0`
+Plaintiff Defendant
+Figure 4: A juridical example: Intervention I4
+2.2.3 Other Speech Acts
+Providing an information or asking a wh-question may also be represented. In such cases, dialogue
+acts must be combined with operations on a knowledge base.
+• When a locutor gives an information i, she not only produces a dialogue act (+, Li
+, {0}, v),
+by means of which she expresses the value v of the information, but also she relocates this
+information from her knowledge base to the locus of the dialogue.
+• When a locutor asks a wh-question, she not only formulates her question but she is also
+ready to receive and register an answer. Even if the speech act starts with a first positive
+dialogue act (+, ξ, {0}, qwh), where qwh is the expression of the question, it is not reduced to
+the dialogical expression. The speech act continues with other internal calculi. The previous
+dialogue act is followed by all the possibilities to receive an answer and then to register it by
+means of a fax.
+We develop in the next section a way to compute inferences5 by means of internal calculi
+performed by locutors.
+3 Inferences in Dialogues
+In dialogues, interactions occur not only at the surface level, i.e. the distribution of turn of speech,
+but also between the contents of interventions or with knowledge. We focus in this section on
+5Making facts explicit as well as making deductive inferences.
+10
+inference modelling. We use such a term to refer to calculi that make explicit elements that are
+exchanged during a dialogue.
+For that purpose, we have to give an account for the state of knowledge (dialogue occurring
+for exchanging information) or the state of commitments (argumentation dialogue) for each locutor
+and which both constitute the context of the dialogue. We give an account for these contextual
+elements by means of two context (of dialogue) states: one for each locutor. These context states
+are increased during the dialogue by elements arising from the dialogue. Then a dialogue between
+two protagonists S and A is represented similarly to, say, [10, 11] or [20], that is by a sequence of
+dialogue states. The specificity here is the definition of the dialogue state: it is a triple of data, the
+context state of S, the context state of A, and the net of two designs associated with the current
+dialogue.
+3.1 Information Exchanges
+By means of the notion of context state, we may complete the account of speech acts performed
+during a dialogue with exchange of information. The dialogue acts that we pointed in section 2.2.3
+are only the publicly useful parts of more complex elements contained in (private) context states.
+• To ask a wh-question. In such a speech act, the locutor not only formulates her question
+but she is ready to receive and register an answer. The full speech act (see Fig. 5) may be
+taken into account by a design which contains not only the dialogue act corresponding to
+the formulation of the question but also the inference tools to compute the reception and the
+registration of possible answers. The base of such a design contains two positive loci: one for
+anchoring the dialogue act and one for registering the answer. It is built as follows:
+` Lk0
+∅
+Lk0=data ` Lk0
+∅
+` Lval=k0
+, Lk0
+Lval ` Lk0
+` Lk0
+, Li
+. . .
+` Lkn
+∅
+Lkn=data ` Lkn
+∅
+` Lval=kn
+, Lkn
+Lval ` Lkn
+` Lkn
+, Li
+Lwh ` Li
+` L0, Li
+κ1
+Figure 5: Speech act for a wh-question
+The speech act starts with a first positive dialogue act κ1 = (+, L0, {wh}, qwh), where
+qwh is the expression of the question, something like What is the value of i ?. It is followed by all the anticipation of possible answers, i.e. several negative actions, namely the
+(−, Lwh, {k})’s for each value k of the data6
+. Then the design contains several actions
+which enable to register on another locus Li the value v of the data expected. Indeed
+when a sequence of dialogue act (+, Lk, {0}, on − data − i)(Lval, {0}, )(+, Lval=v, ∅, val = v)
+is given by the other locutor, the questioner perfoms internally the interaction between
+this answer-design and his question-design and the result is exactly the design corresponding to the information the value of the data i is equal to v, that is the following design:
+(+, Li
+, {0}, thedatais)(−, Lwh, )(+, Lv, ∅, equal − to − v).
+6
+Infinite number of answers may be taken into account nicely using Terui’s c-designs [24]
+11
+3.2 Argumentative Disputes
+In case of controversies, we model the commitment states of each locutor; that is the part of
+context states consisting in the statements which are publicly assumed by each locutor (often as
+propositions). Indeed, one of the issue of an argumentation dialogue is to evaluate the correctness
+of such commitments and to eventually update them.
+The commitment state is composed by commitment elements (C.E.). Here, for simplicity reasons, we only consider them occurring as factual propositions and inferential propositions. Moreover
+we give a minimal account of a factual proposition ‘F’: a C.E. reduced to a unique design based
+on ` LF . The minimal account of an inferential proposition ‘F implies G’ is a C.E. also reduced to
+a unique design based on LF ` LG
+7
+.
+The management of commitment states, their updating and their use in the dialogue in progress
+make use of the logical aspect of Ludics. We give below an account of the negation of propositions.
+• Negation. We distinguish between a positive factual proposition: something is the case and a
+negative factual proposition: something is not the case. The C.E. associated with the negative
+factual proposition is the design which expresses the logical negation of the positive one. More
+precisely the following designs are respectively associated with the factual propositions ‘F is
+the case’ and ‘F is not the case’, when F is an atomic factual proposition (LF , resp. LnotF ,
+is the location of F, resp. not F):
+` LF
+∅
+`
+†
+LF `
+∅
+` LnotF
+Factual propositions that are logically decomposable may also be represented as C.E. In such
+cases designs start with actions corresponding to the adequate logical decomposition.
+As an example, the following designs are respectively associated with the factual propositions:
+‘the conjunction of F and G is the case’ (located at LF andG) and ‘the conjunction of F and
+G is not the case’ (located at Lnot(F andG)):
+` LF
+∅
+LnotF `
+` LG
+∅
+LnotG `
+` LF andG
+`
+†
+LF `
+∅
+` LnotF
+LG ` LnotF
+∅
+` LnotF , LnotG
+LF andG `
+` Lnot(F andG)
+`
+†
+LG `
+∅
+` LnotG
+LF ` LnotG
+∅
+` LnotF , LnotG
+LF andG `
+` Lnot(F andG)
+Remarks :
+7Notice that we do not suppose that a factual proposition is necessarily a logical formula. In Ludics the notion of
+logical formulas is replaced by the more general notion of behaviour, i.e. a closed set of designs with same base. Here
+we follow a still more general setting by putting in a commitment state some sets of designs not necessarily closed.
+Even if we do not completely exploit this in this paper, it should give the opportunity of a fine-grained account of
+knowledges. Indeed some knowledges are assumed as fully explicit propositions while others may be only partially
+assumed: one or several logical propositions may be associated with a given utterance without their full (until atomic
+ones) decompositions being known.
+12
+1. Loci are indexed by their intuitive interpretation. These addresses have not to be confused with the logical notation of propositions.
+2. For a strictly commutative interpretation of the conjunction, we need both the two
+designs (in the right in previous figure) in the C.E. associated with the conjunction of F
+and G is not the case.
+Let us illustrate how such an argumention dialogue modelling works on the example presented
+in section 2.2.2: In the juridic dialogue, intervention I3 results from a logical calculus. Let us detail
+how we interpret this intervention with respect to the commitment state of plaintiff P. Plaintiff
+gives several informations: there is a valid contract between P and D, P delivered, and P applies
+the law r1, the implicit content of r1 is ‘If there is a valid sales contract between a vendor and an
+emptor and if the vendor delivers then the emptor has to pay’. The following C.E. are added to the
+commitment state of P by this third intervention:
+• The design associated with the law r1 is based on LCont−and−Del ` Lto.pay. This is a rather
+elaborated design:
+Dr1 =
+` Lto.pay
+∅
+LDel ` Lto.pay
+∅
+` LnotDel, Lto.pay
+LCont ` LnotDel, Lto.pay
+∅
+` LnotCont, LnotDel, Lto.pay
+LCont−and−Del ` Lto.pay
+• The designs respectively associated with the assertions ‘there is a valid contract between P
+and D’ and ‘P delivered’ are the following:
+Dcont = ` LCont
+∅
+Ddel = ` LDel
+∅
+• There is also in the commitment state of P the following design associated with the fact that
+defendant did not pay (interpretation of intervention I1):
+Dnot.paid =
+`
+†
+Lto.pay `
+∅
+` LnotP ay
+Loci L31
+, . . . , L34
+respectively associated with the argumentative elements in intervention I3 are
+delocations of loci on which the four designs Dr1
+, Dcont, Ddel and Dnot.paid are anchored8
+. A
+computation using these designs yields a contradiction: indeed, the result of the interaction between
+designs Dcont, Ddel and Dr1
+(by using additional logical steps) is the following design:
+Dto.pay = ` Lto.pay
+∅
+Then the interaction between this latter design and Dnot.paid results in a logical contradiction.
+The following of the dialogue will consist in giving arguments until the contradiction may be
+solved.
+8We may notice by this way the continuity from internal computations to the interactive level of a dialogue.
+13
+4 Conclusion
+Ludics is a theory of Logic however its objects are more general than formulas and proofs. This
+possibility to move around the logical frontier is interesting for studying argumentation as done
+in [8]. In particular, we are not obliged neither to associate a logical formula to each dialogical
+intervention nor to grasp the streams of arguments by means of already logically correct inferences.
+Since we may separate the dialogical dimension, according to which the streams of arguments
+take place, and the inferential dimension, we may grasp one of the main issue of controversies:
+go towards the elucidation of a statement which was not a priori given and take into account
+correctness/incorrectness of asserted deductive inferences without requiring non monotonic logics.
+Finally, such a framework enables to model cross-effects between the various levels of dialogue
+analysis as one kind of objects, i.e. designs, may represent dialogues viewed as interacting processes
+as well as explicitation processes, or in other words as interaction is at the core of Ludics and gives
+an account for cut as well as cut-elimination. Our future research will focus on improving the
+relation between surface vs pragmatical and rhetorical levels, and on extending this model to other
+levels of dialogue analysis.
+References
+[1] Nicholas Asher and Alex Lascarides. Logics of Conversation. Cambridge University Press,
+2003.
+[2] Marc Chemillier. Eléments pour une ethnomathématique de l’awélé. Mathématiques et sciences
+humaines, 181(Varia):5–34, 2008.
+[3] Pierre-Louis Curien. Introduction to linear logic and ludics, part i. CoRR, abs/cs/0501035,
+2005.
+[4] Pierre-Louis Curien. Introduction to linear logic and ludics, part ii. CoRR, abs/cs/0501039,
+2005.
+[5] Raquel Fernández and Matthew Purver. Information state update: Semantics or pragmatics?
+In 10th Workshop on the Semantics and Pragmatics of Dialogue, pages 20–27, 2004.
+[6] Christophe Fouqueré. Ludics and web: Another reading of standard operations. In Alain
+Lecomte and Samuel Tronçon, editors, Ludics, Dialogue and Interaction, volume 6505 of Lecture Notes in Computer Science, pages 58–77. Springer, 2011.
+[7] Christophe Fouqueré and Myriam Quatrini. Ludics and Natural Language: First Approaches.
+In Logical Aspects of Computational Linguistics (LACL), 2–4 July 2012, volume 7351 of Lecture
+Notes in Computer Science, pages 21–44. Folli-LNAI, Springer, 2012.
+[8] Christophe Fouqueré and Myriam Quatrini. Un cadre formel issu de la théorie de la démonstration pour la théorie de l’argumentation. Mathématiques et Sciences humaines, 198:49–84,
+2012.
+14
+[9] Christophe Fouqueré and Myriam Quatrini. Argumentation modeling in Ludics. 8th International Symposium of Cognition, Logic and Communication, University of Latvia, to appear.
+[10] Gerald Gazdar. Speech act assignment. In A. Joshi B. Webber I. Sag, editor, Elements of
+Discourse Understanding, pages 64–83. Cambridge University Press, 1981.
+[11] Jonathan Ginzburg, Ivan A. Sag, and Matthew Purver. Integrating conversational move types
+in the grammar of conversation. In P. Kühnlein, H. Rieser, and H. Zeevat, editors, Perspectives
+on Dialogue in the New Millennium, volume 114 of Pragmatics and Beyond New Series, pages
+25–42. John Benjamins, 2003.
+[12] Jean-Yves Girard. Towards a Geometry of Interaction. In John W. Gray and Andre Scedrov,
+editors, Categories in Computer Science and Logic, volume 92 of Contemporary Mathematics,
+pages 69–108. American Mathematical Society, 1989.
+[13] Jean-Yves Girard. Locus solum: From the rules of logic to the logic of rules. Mathematical
+Structures in Computer Science, 11(3):301–506, 2001.
+[14] Frédéric Landragin. Vers l’identification et le traitement des actes de dialogue composites. In
+Traitement Automatique du Langage Naturel (TALN), pages 460–469, 2008.
+[15] Staffan Larsson and David R. Traum. Information state and dialogue management in the trindi
+dialogue move engine toolkit. Natural Language Engineering, 6(3&4):323–340, 2000.
+[16] Alex Lascarides and Nicholas Asher. Agreement, Disputes and Commitments in Dialogue.
+Journal of Semantics, 26(2):109–158, 2009.
+[17] Alain Lecomte and Myriam Quatrini. Ludics and its applications to natural language semantics.
+In Hiroakira Ono, Makoto Kanazawa, and Ruy J. G. B. de Queiroz, editors, WoLLIC, volume
+5514 of Lecture Notes in Computer Science, pages 242–255. Springer, 2009.
+[18] Alain Lecomte and Myriam Quatrini. Pour une étude du langage via l’interaction : dialogues
+et sémantique en Ludique. Mathématiques et sciences humaines, 189(1):37–67, 2010.
+[19] Alain Lecomte and Myriam Quatrini. Figures of Dialogue: a View from Ludics. Synthese,
+183:59–85, 2011.
+[20] Ronald Prescott Loui. Process and policy: Resource-bounded nondemonstrative reasoning.
+Computational Intelligence, 14(1):1–38, 1998.
+[21] Jim Mackenzie. Four dialogue systems. Studia Logica, 49:567–583, 1990.
+[22] Massimo Poesio and Andrei Mikheev. The predictive power of game structure in dialogue act
+recognition: experimental results using maximum entropy estimation. In ICSLP. ISCA, 1998.
+[23] Henry Prakken. A formal model of adjudication dialogues. Artificial Intelligence and Law,
+16(3):305–328, 2008.
+[24] Kazushige Terui. Computational ludics. Theor. Comput. Sci., 412(20):2048–2071, 2011.
+[25] Douglas N. Walton. New directions in the logic of dialogue. Synthese, 63:259–274, 1985.
+15

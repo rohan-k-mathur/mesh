@@ -1,0 +1,581 @@
+arXiv:0910.1484v1 [cs.CL] 8 Oct 2009
+Ludics and Its Applications to Natural Language Semantics
+Alain Lecomte1
+and Myriam Quatrini2
+1 UMR ”Structures Formelles de la Langue”, CNRS-Universit´e Paris 8 - Vincennes-Saint-Denis
+2 UMR ”Institut de Math´ematiques de Luminy”, CNRS-Aix-Marseille Universit´e
+Abstract. Proofs in Ludics, have an interpretation provided by their counter-proofs, that is the objects
+they interact with. We shall follow the same idea by proposing that sentence meanings are given by
+the counter-meanings they are opposed to in a dialectical interaction. In this aim, we shall develop many
+concepts of Ludics like designs (which generalize proofs), cut-nets, orthogonality and behaviours (that is
+sets of designs which are equal to their bi-orthogonal). Behaviours give statements their interactive meaning. Such a conception may be viewed at the intersection between proof-theoretic and game-theoretical
+accounts of semantics, but it enlarges them by allowing to deal with possibly infinite processes instead
+of getting stuck to an atomic level when decomposing a formula.
+1 Meanings, Proofs and Games
+The dominant trend in Natural Language Semantics is based on Frege’s conceptions on Logics and Language according to which the meaning of a sentence may be expressed in terms of its truth conditions. There
+is however an alternative conception according to which we don’t find meanings in truth conditions but in
+proofs, particularly expressed by the Brouwer-Heyting-Kolmogorov (BHK) - interpretation. This conception
+has been used in philosophy, linguistics and mathematics. In Natural Language Semantics, it has been for
+instance developed by Martin-L¨of, Sundholm and Ranta ([Martin-L¨of 84, Sundholm 86, Ranta 94]), but this
+framework is limited because proofs are finite objects. At a certain stage of the proof of a formula, atomic
+formulae are obtained, but what is the proof of an atomic formula? Actually, we expect a proof of a sentence
+to be an object of the same symbolic nature as the sentence. There is no way to escape from language or
+from mind to directly reach the external world.
+Other similar attempts to provide a foundation for meaning in natural language are based on works by
+Hintikka, Kulas and Sandu ([Hintikka-Kulas 83, Hintikka-Sandu 97]). In their interpretation, meanings are
+provided by strategies in a language game. Their views meet Wittgenstein’s according to which meaning is
+use and the use of language is showed in language games. But still those accounts meet difficulties when
+dealing with atomic sentences: in this case, the logician is obliged to refer to some model (in the traditional
+sense of Model Theory) in order to evaluate the truth value of an atomic sentence.
+Still more seriously, they only take in consideration games which are of a very particular kind: they are
+oriented towards the notions of winner, winning strategy, score and pay-off function, contrarily to what
+Wittgenstein suggested in his Philosophische Untersuchungen when he spoke of games for a very large family (even mere pastimes). Neither Wittgenstein’s games do refer to a priori rules which would be attached,
+like in GTS, with logical particles (cf. [Pietarinen 07]).
+Finally, none of these alternatives to the truth-conditions based framework ever envisaged to take proofs or
+games as infinite devices (or partial and underspecified ones) and of course none of these traditions took into
+account the fact that proofs and strategies can be the same objects, simply viewed from different angles.
+If this concerns formalized theories of meaning, what to say of theories of meaning which have not been
+formalized, like that of argumentative meaning, in O. Ducrot’s sense ([Ducrot 1984]). Ducrot pointed out
+the so-called polyphonic aspect of language, that is the fact that utterrances are not simple statements which
+are confronted with ”reality”, but dynamical processes which are oriented towards possible or impossible
+continuations (for instance I have a few books cannot be pursued by ∗and even none, while He read few
+books may be). In the same way, dialogues may be studied according to what utterrance may be an appropriate reply to another one, and what may not be.
+In this paper, we shall present some applications of Ludics to these topics. In a nutshell, proofs in Ludics,
+have an interpretation provided by their counter-proofs, that is the objects they interact with. We shall follow
+the same idea by proposing that sentence meanings are given by the counter-meanings they are opposed to
+in a dialectical interaction.
+2 Dialogues and Ludics
+2.1 Ludics : a Theory of Interaction
+Ludics can be sum up as an interaction theory, formulated by J.-Y. Girard ([Girard 01]) as the issue of
+several changes of paradigms in Proof Theory : from provability to computation, then from computation to
+interaction. The first change of paradigm arose with the intuitionnistic logic, while the second was due to
+the development of linear logic.
+Starting from a geometrical viewpoint on proofs, which provided an internal approach to the dynamics of
+proofs, Ludics takes the notion of interaction (that is the cut rule and its process of elimination) as primitive.
+Therefore, it simply starts from loci, or adresses (where interaction can take place) and formulae are given
+up, at least for a while, since the challenge is to regain them at the output of the construction. Proto-formulae
+are used as mere scaffoldings for building the main objects we shall deal with (the designs).
+The central object of Ludics: the design Using the metaphor of Games, a design can be understood as a
+strategy, i.e. as a set of plays (or chronicles) ending by answers of Proponent against the moves planned by
+Opponent. The plays are alternated sequences of moves (actions). A move is defined as a 3-uple consisting
+in
+– a polarity (positive for Proponent, negative for Opponent),
+– an adress or locus, coded by a finite sequence of integers (denoted by ξ, ρ, σ . . . ), where the move is
+said to be anchored,
+– a finite set of integers, or ramification which indicates the positions which can be reached in one step. A
+unusual positive move is also possible : the da¨ımon, which may end up a play.
+Positions are organized in forks, which are presented under the general form: Γ ⊢ ∆; where Γ and ∆ are
+finite sets of loci such that Γ is either the empty set or a singleton. The fork corresponding to the starting
+position is called the base of the design. When Γ is not empty, the following (opponent) move starts from
+the only element it contains, and the fork is said to be negative, in the other case, Proponent chooses the
+locus in ∆ from where it starts and the fork is said to be positive.
+Perhaps this may seem not new with regards to GTS, let us notice however that moves are defined
+abstractly, independently from any particular connective or quantifier, and that at each step, the whole history
+of the previous moves is available.
+Now, more importantly, a design may be also seen as a proof search in some linear formal system,
+according to the following methodological choices:
+– the object we are building not only provides a proof, but at the same time, contributes to the determination of the formula which is proved. Loci point out the position where such a formula could be located,
+and at the same time, the ”logical” decomposition this formula could have,
+– by means of the focalisation property discovered by Andr´eoli [Andr´eoli 92] according to which in linear
+logic, it is always possible to draw a proof by following a strict discipline (focusing) which amounts to
+grouping together successive blocks of rule applications of the same polarity, it is possible to have only
+two rules (one positive and one negative).
+– it may happen that the research be not successful. In this case, one may give up the proof search, thus
+using a specific non logical rule (or paralogism) : the da¨ımon rule.
+A design can therefore be represented by a tree of forks, built by means of three rules :
+Da¨ımon
+†
+⊢ Λ
+Negative rule
+... ⊢ ξ ⋆ J, ΛJ ...
+(−, ξ, N )
+ξ ⊢ Λ
+Positive rule
+... ξ ⋆ i ⊢ Λi
+...
+(+, ξ, I)
+⊢ ξ, Λ
+where I and J are finite subsets of N, i ∈ I, with the Λi pairwise disjoints, N is a set (possibly infinite) of
+finite subsets of N, each J of the negative rule being an element of this set, all the ΛJ are included in Λ, and
+moreover each base sequent is well formed in the sense that all addresses are pairwise disjoint.
+The Fax Since we have not yet introduced formulae, there is no opportunity to use axiom-links. Instead, we
+will have a particular design based on a fork ξ ⊢ ξ
+′
+. Roughly speaking, this design ensures that both loci
+ξ and ξ
+′
+could be locations of a same formula. That means that as soon as a logical decomposition may be
+handled on the right hand side, the same may also be handled on the left hand side. Such a design, called
+Fax, is recursively defined as follows:
+F axξ,ξ′ =
+...
+...
+F axξ
+′
+i
+,ξi
+ξ
+′
+⋆ i ⊢ ξ ⋆ i ...
+(+, ξ′
+, J)
+⊢ ξ ⋆ J, ξ′
+...
+(−, ξ,Pf (N))
+ξ ⊢ ξ
+′
+At the first (negative) step, the negative locus is distributed over all the finite subsets of N, then for each set
+of addresses (relative to some J), the positive locus ξ
+′
+is chosen and gives rise to a subaddress ξ
+′ ⋆ i for each
+i ∈ Jk, and the same machinery is relaunched for the new loci obtained.
+Defining interaction Interaction is concretely expressed by a coincidence of two loci in dual position in
+the bases of two designs. This creates a dynamics of rewriting of the cut-net of the two designs, called, as
+usual, normalisation. We sum up this process as follows: the cut link is duplicated and propagates over all
+immediate subloci of the initial cut locus as long as the action anchored on the positive fork containing the
+cut-locus corresponds to one of the actions anchored on the negative one. The process terminates either when
+the positive action anchored on the positive cut-fork is the da¨ımon, in which case we obtain a design with
+the same base as the starting cut-net, or when it happens that in fact, no negative action corresponds to the
+positive one. In the later case, the process fails (or diverges). The process may not terminate since designs
+are not necessarily finite objects.
+When the normalization between two designs D and E (respectively based on ⊢ ξ and ξ ⊢) succeeds, the
+designs are said to be orthogonal, and we note: D ⊥ E. In this case, normalization ends up on the particular
+design :
+[†]
+⊢
+Let D be a design, D⊥ denotes the set of all its orthogonal designs. It is then possible to compare two designs
+according to their counter-designs. We set D ≺ E when D⊥ ⊂ E⊥.
+The separation theorem [Girard 01] ensures that this relation of preorder is an order, so that a design is
+exactly defined by its orthogonal.
+Behaviours One of the main virtues of this ”deconstruction” is to help us rebuilding Logic.
+– Formulas are now some sets of designs. They are exactly those which are closed (or stable) by interaction, that is those which are equal to their bi-orthogonal. Technically, they are called behaviours.
+– The usual connectives of Linear Logic are then recoverable, with the very nice property of internal
+completeness. That is : the bi-closure is useless for all linear connectives. For example, every design in
+a behaviour C ⊕ D may be obtained by taking either a design in C or a design in D.
+– Finally, proofs will be now designs satisfiying some properties, in particular that of not using the da¨ımon
+rule.
+2.2 Ludics as a Formal Framework for Dialogues
+Concerning dialogues, let us focalize on the mere supports of the interaction. That is the locus where a
+speech turn is anchored (among the loci previously created) and the loci that it creates, which are also those
+which may be used later on.
+Because Ludics may display the history of the dialogue by means of chronicles, and it takes into account the
+strategies of any speaker by means of designs, it allows us to see a dialogue as the result of an interaction
+between the strategies of two speakers. In that case, the rules have the following interpretation:
+– when being active (that is using a positive rule), a speaker chooses a locus and therefore has an active
+role,
+– when being negative (that is using a negative rule), s/he has no choice and has a passive role
+If, therefore, positive steps are understood as moves where the intervener asks a question or makes an assertion, and negative steps as moves where s/he is apparently passive, recording an assertion and planning
+a further reply, positive actions of one speaker are not opposed to positive actions of the other one (as it
+is the case in most formal accounts of dialogue, even the logical ones) but to negative ones of the other.
+This point meets an important requirement formulated by Ducrot according to whom ”the semantic value of
+an utterrance is built by allusion to the possibility of another utterrance (the utterrance of the Other speaker)”.
+Examples
+– The following example is deliberately simple, and only given for a pedagogic purpose.
+Let us consider the following dialogue between Annie and Barbara:
+A : did you meet some friends yesterday evening to the party ? B : I only saw Bruno and Pierre. A :
+Was Pierre still as nice as during the last year ? B : Yes, he did. A : That is what I wanted to know.
+Such an exchange is represented by an interaction between two designs : one is seen from the point of
+view of A and the other from the point of view of B:
+From A’s point of view From B’s point of view
+†
+⊢ 0.1.1.1.1 0.1.1.1.1 ⊢
+0.1.1.1 ⊢ ⊢ 0.1.1.1
+⊢ 0.1.1, 0.1.2 0.1.1 ⊢ 0.1.2 ⊢
+0.1 ⊢ ⊢ 0.1
+⊢ 0 0 ⊢
+The trace of the interaction (the cut between the two loci 0) is the alternated sequence of actions:
+(+, 0, {1})(−, 0.1, {1, 2})(+, 0.1.1, {1})(−, 0.1.1.1, {1})†.
+In this case the normalisation ends up on the da¨ımon. The interaction converges.
+– The second example is taken from Schopenhauer’s ”Dialectica eristica” (or ”The Art of Always Being Right”) which provides a series of so-called stratagems in order to be always right in a debate. It
+formalizes the first given stratagem.
+“I asserted that the English were excellent in drama. My opponent attempted to give an instance of the
+contrary, and replied that it was a well-known fact that in opera, they were bad. I repelled the attack by
+reminding him that, for me, dramatic art only covered tragedy and comedy ....”
+We give an account of this dialogue by the following interaction:
+⊢ ξ.1.1 ⊢ ξ.1.2
+C
+ξ.1 ⊢
+A
+⊢ ξ
+ξ.1.3 ⊢
+B
+⊢ ξ.1
+ξ ⊢
+Where the action A corresponds with the claim: ”The English are excellent in drama” ; the action B with “I disagree,
+it is a well-known fact that in opera, they could do nothing at all.” and the action C with “But by dramatic art, I only
+mean tragedy and comedy.”
+Of course, the net built with these two designs does not converge. In fact, things don’t happen this way:
+initially, the set of loci the first speaker has in mind could also cover opera. What happens when willing
+to repel the attack is retracting one branch (or replay the game according to a different strategy). This
+leads us to enter more deeply into the decomposition of dialogues and in what we consider as units of
+action.
+While, at the most elementary level, which is relevant as long as the dialogues we consider are simple (for
+instance exchanges of information), the interaction is between elementary actions, those elementary actions
+are replaced by (sub)-designs as soon as we are concerned by dialogues of a more complex nature like
+controversies.
+– A third example comes from Aristotle’s Sophistical Refutations, where it is given the name multiple
+questions.
+Let us imagine a judge asking a man the question:
+“Do you still beat your father ?”.
+The judge asks a question that presupposes something that has not necessarily been accepted by the
+man. S/he imposes to him the following implicit exchange:
+- “Do you beat your father?” - “ Yes” - “ Do you stop beating him ?”.
+This exchange between the judge J and the man D must be represented by the following interaction :
+ξ.0.1.0 ⊢
+⊢ ξ.0.1 ⊢ ξ.0.2
+ξ.0 ⊢
+⊢ ξ
+⊢ ξ.0.1.0
+ξ.0.1 ⊢
+⊢ ξ.0
+ξ ⊢
+J D
+In fact, the judge utterance: - “Do you still beat your father ?” contains what we call nowadays a presupposition. It can’t therefore be represented by a single action, but by the whole chronicle: (+, ξ, {0})
+(−, ξ.0, {1}) (+, ξ.0.1, {0}). This enables us to give an account of the fact that one of the loci where
+the interaction might continue is in fact not available ; in some sense the action giving this possibility is
+skipped, some successive one is immediately proposed and, by this way, constrains the answers.
+The ludical approach thus allows us to get a formalized conception of stratagems and fallacies, something
+which appeared out of reach for many researchers (see for instance [Hamblin 70]). Moreover, we claim that
+it could improve some issues in formal semantics, like we try to show it in the following section.
+3 Logical Forms and Ludics
+In the sequel, we propose a conception of interactive meaning based on Ludics. In the same way a design
+is defined by its orthogonal (according to the separation theorem), we may postulate that the meaning of
+a sentence is given by the set of all its dual sentences: that is all the sentences with which the interaction
+converges. For this purpose, we associate a behaviour or a family of behaviours with a sentence. Such
+behaviours are built in a compositional way, like in standard formal semantics, but their ultimate components
+are neither atoms nor atomic formulae, like in the Intensional Logic Montague was using. Let us underline
+the points which are slightly different and new and which could favourably extend the standard models of
+semantics:
+– The fact that the mathematical object associated with the meaning of a sentence may be more and more
+refined seems to us very important. Such an objective is realized because of the order on designs involved
+by the separation theorem, which enables one to explore more and more precisely the argumentative
+potential of a sentence. Moreover, new designs may always be added to such an object, thus enlarging
+our conception of meaning.
+– The fact that Ludics strictly encompasses logic and that logical concepts like formulas, proofs or connectives are defined in a world which is larger than the strictly logical one (let us remember that we have
+paralogisms like the da¨ımon, and counter-proofs in that world!) makes us to expect more freedom in
+defining ”logical” forms. For instance it may be the case that behaviours are composed by means of a
+non-logical operator (but which could nevertheless be interpreted).
+The following example illustrates a classical problem of ambiguty (scope ambiguity).
+3.1 Meaning through Dual Sentences
+The meaning of a sentence is given by all the utterances which correctly interact (that means : converge)
+with it.
+Let us consider the statement (from now on denoted by S): “Every linguist speaks some african language”.
+Usually two logical forms can be associated with such a sentence S, depending on whether some has the
+narrow or the wide scope. Namely:
+S1 = ∀x(L(x) ⇒ ∃y(A(y) ∧ P(x, y)))
+S2 = ∃y(A(y) ∧ ∀x(L(x) ⇒ P(x, y)))
+where L(x) means ”x is a linguist” , A(y) means ”y is an african language” and P(x, y) means ”x speaks
+y”.
+When ”some” has the narrow scope, we assume that the logical form converges with the LF of sentences
+like:
+(1) There is a linguist who does not know any african language.
+(2) Does even John, who is a linguist, speak an african language ?
+(3) Which is the African language spoken by John ?
+On the opposite, if ”some” has the wide scope, the logical form converges with :
+(4) There is no african language which is spoken by all the linguists.
+(5) Which african language every linguist speaks ?
+3.2 Meaning as a Set of Justifications
+We materialize the claim according to which meaning is equated with a set of dual sentences by associating
+with the meaning of S a set of designs. Such designs may be seen as justifications of S. That is the supports
+of the dialogues during which a speaker P asserts and justifies the statement S against an adressee O who
+has several tests at his/her disposal.
+Let us make such a design, based on the arbritary fork ⊢ 0, more precise:
+– the first action corresponds to the assertion of S. Its ramification is a singleton ; only one locus is created
+for continuing the interaction. Nevertheless, the speaker who has to anticipate the reactions of his/her
+adressee is committed to one of the readings of S. S/he is ready to assume one of the two possibilities,
+the wide or the narrow scope for ”some”. This is taken into account by distinguishing between two
+possible first actions, that we symbolize for instance by (+, 0, {0}) and (+, 0, {1}). It is then possible
+to distinguish between two kinds of designs, considered as justifications of S according to the choice of
+the first action.
+– let us for instance focus on the first reading of S. We then simulate an interaction between P and O who
+tries to negate P’s claim:
+P O
+Dd′
+.
+.
+.
+0.0.2d.1e ⊢ 0.0.2d.2e ⊢
+3
+⊢ 0.0.1d, 0.0.2d
+Dd′′
+.
+.
+.
+2
+0.0 ⊢
+1
+⊢ 0
+0.0.1d ⊢
+Ee′
+.
+.
+.
+† 4
+⊢ 0.0.2d.1e, 0.0.2d.2e
+Ee′′
+.
+.
+.
+3′
+0.0.2d ⊢
+2′
+⊢ 0.0
+1′
+0 ⊢
+The normalisation stages may be commented as follows:
+1 P asserts S and is ready to continue the interaction with the first reading of S
+1’ O records the claim made by P and is ready to answer it. Notice that if O had been ready to answer according
+to the second reading, its action would have been (−, 0, {1}) and the interaction would have diverged
+2 P is ready to give justifications for any individual : d,d
+′
+,. . .
+2’ O proposes an individual d (arguing that d is a linguist (localized in 0.0.1d) and that d doesn’t know any
+african language (localized in 0.0.2d))
+3 P exhibits some language e (arguing that e is an african language and d speaks e)
+3’ at the same time, O is ready to receive such a claim by P for some language among e
+′
+,e, e
+′′
+. . .
+4 if P has given some language e such that d speaks it, O may be ready to give up.
+Thus, the interaction between ”Every linguist speaks some african language” and the attempt to negate it
+”There is some linguist which doesn’t speak any african language” normalizes.
+Let us denote by D the foregoing design of P. We could also find another design as justification of S with
+its first reading : P may ask to check if d is really a linguist, O may ask to check if d really speaks e and
+so on thus providing a deeper interaction. Further exchanges may enter into debates on what it means for a
+person to be a linguist, or on what it means for a language to be an african one, or on what it means for a
+person and a language to be such that the person speaks the language and so on...
+In any way, if S1 denotes the set of designs representing the first reading of S and if S2 denotes the set of
+designs representing the second one, the set of designs representing the meaning of S is the union of both
+sets : S = S1 ∪ S2.
+3.3 Meaning as Behaviour
+The previous attempt to associate a set of design with the meaning of S is still general and imprecise. D
+actually belongs to the following behaviour3
+:
+∀x(↓ L(x) −◦ ∃y(↓ A(y)⊗ ↓ P(x, y)))
+provided that L(x) , A(y) and P(x, y))) are behaviours. Indeed, following the correspondance between
+designs and proofs of the hypersequentialized polarised linear logic H which is given in the annex, the design
+D may be seen as an attempt to prove the formula S = S1 ⊕ S2 where S1 and S2 are the (proto) - formulas
+associated with the first and second reading of S in their linear and hypersequentialized formulations :
+Dd′
+.
+.
+.
+↓ A
+⊥(ed) ⊢ ↓ P
+⊥(d, ed) ⊢
+⊢↓ L
+⊥(d), ∃y(↑ A(y)⊗ ↑ P(d, y))
+Dd′′
+.
+.
+.
+(∀x(↑ L(x) −◦ ∃y(↑ A(y)⊗ ↑ P(x, y))))⊥ ⊢
+⊢ S
+We retrieve the semantical notion of “logical form” but resting on behaviours instead of, simply, logical
+formulae. There are finally two possible ways to associate a behaviour with a sentence:
+3
+∀ and ∃ are used here because of their intuitive appeal, but in fact they stand for the generalized additives connectives
+&x and ⊕y (cf. annex). There is nevertheless a slight difference between both pairs of concepts: strictly speaking,
+in Ludics the correct use of first order quantifiers with regards to mathematical formulas would involve a uniformity
+property ([Fleury-Quatrini 04]) which is neither relevant nor satised here.
+- either, we can consider that the design obtained (as in the previous section) as a minimal justification of
+S may generate a behaviour associated with S. Thus Sgen = D⊥⊥.
+- or we can consider that the behaviour associated with S corresponds to the linear formula (in an hypersequentialised formulation):
+S = (∀x(↓ L(x) −◦ ∃y(↓ A(y)⊗ ↓ P(x, y)))) ⊕ ∃y(↓ A(y) ⊗ ∀x ↑ (↓ L(x) −◦↓ P(x, y))).
+The later interpretation of S’s meaning is in fact a family of behaviours because S depends on the behaviours
+L(x) , A(y) and P(x, y))).
+Remark 1 As a logical formula, S is seen as the disjunction of S1 and S2 , namely as the formula S =
+S1⊕ ↓ S2, and as a behaviour, seen as the union4 of the two behaviours associated with the two terms of the
+disjunct. Hence we get a logical account of the fact that interaction may activate only one of both logical
+sub-formulas, depending on the scope of “some”.
+Remark 2 The behaviour Sgen contains all the behaviours logically built from the behaviours associated
+with the elemantary pieces L(x), A(y) and P(x, y). This way we get a first (and still rough) account of the
+logical particles of meaning.
+Finally, Ludics enables us to go further into the specification of the logical form.
+Decomposing “atomic formulas”
+1. It is of course possible to consider the leaves of a decomposition as atomic formulae, if decomposition
+ends up. In this case, they are seen as data items5
+.
+We can thus consider the following design D′
+as a justification of S :
+Dd′
+.
+.
+.
+∅
+⊢ A(ed)
+↓ A
+⊥(ed) ⊢
+∅
+⊢ P(d, ed)
+↓ P
+⊥(d, ed) ⊢
+⊢↓ L
+⊥(d), ∃y(↑ A(y)⊗ ↑ P(d, y))
+Dd′′
+.
+.
+.
+(∀x(↑ L(x) −◦ ∃y(↑ A(y)⊗ ↑ P(x, y))))⊥ ⊢
+Let us remark that D′
+is more defined than D. In Ludics this means that D⊥ ⊂ D′⊥ and this may be
+understood here that the justification is more informative, more precise.
+2. But we may also consider that L(x), A(y) and P(x, y) are still decomposable. That amounts to recognize that S1 contains other designs: all those which are more defined than D. Designs more defined than
+D are built on the same schema than D′ but instead of ending on the the empty set, they continue on
+non empty ramifications, thus allowing the exploration of A(ef ) or P(f, ef ) which were alleged atomic
+formulae in the previous designs.
+The vericonditional interpretation is here retrieved as an indirect (and secondary) consequence of our ”(para)-
+proofs as meanings”6
+interpretation because now, D′
+is really a proof provided that A(f) and P(f, ef ) are
+either data items, that is the true linear formula 1 or are provable when they are decomposable.
+4 This is one of the mains results of Ludics: the internal completeness ensures that the elementary operation of union is
+enough to obtain all the designs of the disjunction.
+5
+in Ludics this is possible by means of the use of the linear multiplicative constant 1
+6
+In the opposition of two processes of proof search, both cannot be ”real” proofs, it is the reason why we call them
+paraproofs
+3.4 How to go further ?
+Towards speech acts - and the use of Fax Instead of simple yes/no questions, where convergence occurs
+for ”yes” and divergence for “no”, we may take so called wh-questions into consideration, for example
+“which is the african language that John speaks ?”. In this case we expect that the interaction has the answer
+as its by-product (or its side effect).
+To reach this goal, let us associate with such a question (that we may see as a speech act) a design in which
+there is a locus for storing the answer. In our formulation of designs as HS-paraproofs, this question will
+be associated with a paraproof of the sequent S ⊢ A where A is a formula equal to ↑ A1 ⊕ · · · ⊕ ↑ An
+corresponding to the logical form of ” is some african language” (afar, peul, ewe, ewondo...). A complex
+design using Fax will be associated with the question ”which is the african language that John speaks ?”
+. The result of the interaction of this design with D′
+is :
+∅
+⊢ Ae
+↓ A
+⊥
+e ⊢
+⊢ A which can be read as “ Ae is this african
+language” (where Ae is the african language that John speaks (in D′
+)).
+In our opinion, this suggests a way to perform in Ludics a unified treatment of Logical Forms and Speech
+Acts. At the same time, this underlines the richness of the ludical framework to give an account of the
+interactions in language.
+4 Conclusion
+In this paper, we tried to give an account of Ludics and of the new way it allows to specify Meaning in
+Language: not by considerations on truth conditions but by using the important concept of interaction. To
+access the meaning of a sentence is mainly to know how to question, to answer to or to refute this sentence,
+and to know how to extend the discourse (or the dialogue) to which it belongs. In such a conception, the
+meaning of a sentence is a moment inside an entire process which coud be conceived as infinite (if for
+instance we admit that the interpretation or the argumentation process with regards to any statement is
+potentially infinite). Ludics gives a precise form to these views by means of the notions of normalization
+and behaviour.
+Otherwise, the emphasis put on loci has, as a valuable consequence, the fact that we may conceive several
+instances of the same sign (a sentence, a word etc.) as having various meanings, according to the location
+it has in a discourse or a dialogue, thus giving suggestions for dealing with many rhetorical figures (and
+fallacies). The infinite design Fax allows to delocate such meanings but its use is not mandatory. Moreover,
+the fact (not much developed in this extended abstract) that a design may be viewed either as a kind of proof
+(in a syntactic setting of the framework) or as a game (in a semantic setting of it) provides us with interesting
+insights on Pragmatics and Wittgensteinian language games. In a pragmatic theory of presupposition, for
+instance, presupposing implies making an assertion where the hearer has no access to a previous step made
+by the speaker, if (s)he rejects this step, (s)he makes the process to diverge. Other ”games” may be explored.
+Wittgenstein for instance quoted elicitation, that is the way in which somebody may obtain an answer to a
+question. Every time, Fax is used to transfer a meaning from a location to another one (for instance from the
+discourse or the brain of the other speaker to the one of the eliciter). Those games may be envisaged without
+any kind of ”winning strategy”. In a speech act seen as a game, there is no win, simply the appropriate use
+of some designs in order to reach an objective (which may be a common one). Future works will be done in
+those directions.
+5 Annexe A : A hypersequentialized version of the linear sequent calculus
+We give here a short presentation of a hypersequentialized version of linear calculus, which enables one to
+manipule the designs as (para)proofs of a logical calculus.
+5.1 Formulas and sequents
+By means of polarity, we may simplify the calculus by keeping only positive formulae. Of course, there are
+still negative formulae... but they are simply put on the left-hand side after they have been changed into their
+negation. Moreover, in order to make paraproofs to look like sequences of alternate steps (like it is the case
+in ordinary games), we will make blocks of positive and of negative formulae in such a way that each one is
+introduced in only one step, thus necessarily using synthetic connectives. Such connectives are still denoted
+⊕ and ⊗ but are of various arities. We will distinguish the case where both ⊕ and ⊗ are of arity 1 and denote
+it ↓.
+- The only linear formulae which are considered in such a sequent calculus are built from the set P of
+linear constants and propositionnal variables according to the following schema :
+F = P|(F
+⊥ ⊗ · · · ⊗ F
+⊥) ⊕ · · · ⊕ (F
+⊥ ⊗ · · · ⊗ F
+⊥)| ↓ F
+⊥
+– The sequents are denoted Γ ⊢ ∆ where ∆ is a multiset of formulas and Γ contains at most a formula.
+5.2 Rules
+– There are some axioms (logical and non logical axioms):
+P ⊢ P ⊢ 1 ⊢↓ T, ∆
+†
+⊢ ∆
+where P is a propositionnal variable ; 1 and T are the usual linear constants (respectively positive and
+negative).
+– The ”logical” rules are the following ones :
+Negative rule
+⊢ A11, . . . , A1n1
+, Γ . . . ⊢ Ap1, . . . , Apnp
+, Γ
+(A11 ⊗ · · · ⊗ A1n1
+) ⊕ · · · ⊕ (Ap1 ⊗ · · · ⊗ Apnp
+) ⊢ Γ
+Positive rule
+Ai1 ⊢ Γ1 . . .Aini ⊢ Γp
+⊢ (A11 ⊗ · · · ⊗ A1n1
+) ⊕ · · · ⊕ (Ap1 ⊗ · · · ⊗ Apnp
+), Γ
+where ∪Γk ⊂ Γ and for k, l ∈ {1, . . . p} the Γk ∩ Γl = ∅.
+5.3 Remarks on Shifts
+Using the shift is a way to break a block of a given polarity. Separate steps may be enforced by using the
+shift operators ↓ and ↑ which change the negative (resp. positive) polarity into the positive (resp. negative)
+one. The rules introducing such shifted formulas are particular cases of the positive and the negative one:
+A
+⊥ ⊢ Γ
+[+]
+⊢↓ A, Γ
+⊢ A
+⊥, Γ
+[−]
+↓ A ⊢ Γ
+where A is a negative formula.
+Example In a block like A ⊗ B ⊗ C in principle, A, B and C are negative, but if we don’t want to deal with
+A, B, C simultaneously, we may change the polarity of B ⊗ C (which is positive) and make it negative by
+means of ↑. We write then A⊗ ↑ (B ⊗ C).
+Compare the two following partial proofs, where (1) does not use any shifts and (2) uses one :
+instead of (1):
+A⊥ ⊢ B⊥ ⊢ C
+⊥ ⊢
+⊢ A ⊗ B ⊗ C we get (2) :
+A⊥ ⊢
+B⊥ ⊢ C
+⊥ ⊢
+⊢ B ⊗ C
+↓ (B ⊗ C)
+⊥ ⊢
+⊢ A⊗ ↑ (B ⊗ C)
+We may use the notation ⊕y (and dually &x) instead of Fy1 ⊕ · · · ⊕ Fyn or simply ∃y (dually ∀x) when it
+is clear in context that y belongs to a finite set.
+References
+[Andr´eoli 92] J.-M. Andr´eoli Logic Programming with Focusing Proofs in Linear Logic, The Journal of Logic and
+Computation, 2, 3, pp. 297-347, 1992,
+[Curien 2004] Pierre-Louis Curien Introduction to linear logic and ludics, part I and II, to appear, downloadable from
+http://www.pps.jussieu.fr/ curien/LL-ludintroI.pdf,
+[Ducrot 1984] O. Ducrot, Le dire et le dit, Editions de Minuit, Paris, 1984.
+[Fleury-Quatrini 04] M.-R. Fleury, M. Quatrini First order in Ludics Mathematical Structures in Computer Science
+14,no 2, 189–213,
+[Girard 99] J.-Y. Girard On the Meaning of Logical Rules-I in Computational Logic, U. Berger and H. Schwichtenberg
+eds. Springer-Verlag, 1999,
+[Girard 01] J.-Y. Girard Locus Solum Mathematical Structures in Computer Science 11, pp. 301-506, 2001,
+[Girard 03] J.-Y. Girard From Foundations to Ludics Bulletin of Symbolic Logic 09, pp. 131-168, 2003,
+[Girard 06] J.-Y. Girard Le Point Aveugle, vol. I , II, Hermann, Paris, 2006,
+[Hamblin 70] C.-L. Hamblin Fallacies, Vale Press, Newport News, republished in 2004
+[Hintikka-Kulas 83] J. Hintikka, J. Kulas The Game of Language: Studies in Game Theoretical Semantics and its Applications, D. Reidel, 1983,
+[Hintikka-Sandu 97] J. Hintikka, G. Sandu Game Theoretical Semantics, in J. Van Benthem and A. ter Meulen Handbook of Logic and Language, chap. 6, Elsevier, 1997,
+[Martin-L¨of 84] Per Martin-L¨of Intuitionistic Type Theory, Bibliopolis, Naples, 1984,
+[Pietarinen 07] A-V. Pietarinen Game Theory and Linguistic Meaning, Elsevier, 2007,
+[Ranta 94] A. Ranta Type-Theoretical Grammar Oxford University Press, 1994,
+[Schopenhauer] Arthur Schopenhauer, The Art of Always Being Right.
+[Sundholm 86] G. Sundholm Proof Theory and Meaning in D. Gabbay and F. Guenthner eds. Handbook of Philosophical Logic, Vol III, pp. 471-506, D. Reidel, 1986,
+[Tronc¸on 06] S. Tronc¸on Dynamique des d´emonstrations et th´eorie de l’interaction, PhD thesis, Universit´e d’AixMarseille, 2006,
+[Wittgenstein 53] Ludwig Wittgenstein, Philosophische Untersuchungen, Blackwell, 1953.
