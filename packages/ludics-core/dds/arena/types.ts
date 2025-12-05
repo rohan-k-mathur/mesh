@@ -57,6 +57,8 @@ export type ArenaMove = {
   justifierId?: string;
   /** Optional semantic label/expression */
   label?: string;
+  /** Optional metadata for extended information */
+  metadata?: Record<string, unknown>;
 };
 
 /**
@@ -284,6 +286,7 @@ export function createArenaMove(
     isInitial: isInitial || !options?.justifierId,
     justifierId: options?.justifierId,
     label: options?.label,
+    metadata: options?.metadata,
   };
 }
 

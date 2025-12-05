@@ -65,3 +65,67 @@ export {
   PositionCache,
   enumerateLegalPositions,
 } from "./positions";
+
+// Arena Construction from Deliberation (Phase 1)
+export {
+  buildArenaFromDeliberation,
+  buildArenaFromDeliberationSync,
+  getArenaPosition,
+  getPositionsAtDepth,
+  getChildPositions,
+  getParentPosition,
+  isTerminalPosition as isTerminalArenaPosition,
+  getTerminalPositions,
+  getPositionsByPolarity,
+  getPositionsByType,
+  serializeArena,
+  deserializeArena,
+  // Re-exports from sub-modules
+  buildAddressTree,
+  treeToPositions,
+  findRootClaims,
+  getAllAddresses,
+  getNodeAtAddress,
+  getChildNodes,
+  getParentNode,
+  isLeaf,
+  getDepth,
+  getMaxDepth,
+  validateLudicability,
+  checkPrefixClosureProperty,
+  checkDaimonClosureProperty,
+  checkSaturationProperty,
+  repairPrefixClosure,
+  repairRamifications,
+} from "./arena-construction";
+
+export type {
+  BuildArenaOptions,
+  BuildArenaResult,
+  AddressTree,
+  AddressTreeNode,
+  DeliberationInput,
+  LudicabilityResult,
+  LudicabilityError,
+  ValidationOptions,
+} from "./arena-construction";
+
+// Deliberation queries
+export {
+  fetchDeliberationWithRelations,
+  fetchDeliberationsWithRelations,
+  fetchDeliberationBasic,
+  fetchArgumentEdges,
+  fetchClaimEdges,
+  countDeliberationElements,
+  deliberationExists,
+  resolveDeliberationId,
+  toDeliberationInput,
+  deliberationWithRelationsInclude,
+} from "./deliberation-queries";
+
+export type {
+  DeliberationWithRelations,
+  ArgumentWithRelations,
+  ClaimWithRelations,
+} from "./deliberation-queries";

@@ -6,10 +6,17 @@
  * Phase 5: Advanced Features (Behaviours, Types, Analysis)
  * 
  * Based on "Designs, disputes and strategies" by Faggian & Hyland (2002)
+ * 
+ * Phase 0 Addition: Theory-aligned types and adapters for deliberation integration
+ * Based on Girard, Fouqueré & Quatrini theoretical foundations
  */
 
 // Core types
 export * from "./types";
+
+// Phase 0: Theory-aligned types and adapters
+export * as LudicsTheory from "./types/ludics-theory";
+export * as Adapters from "./adapters";
 
 // View extraction
 export {

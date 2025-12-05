@@ -9,10 +9,17 @@
  * - Type inference (structural, behavioural, and chronicle-based)
  * - Type checking (D : A judgment verification)
  * - Type equivalence
+ * 
+ * Phase 0 Addition: Theory-aligned types from:
+ * - Girard "Locus Solum"
+ * - Fouqueré & Quatrini "Study of Behaviours via Visitable Paths"
  */
 
 // Types
 export * from "./types";
+
+// Theory-aligned types (Phase 0)
+export * from "./ludics-theory";
 
 // Incarnation operations
 export {
