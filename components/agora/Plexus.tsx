@@ -549,7 +549,7 @@ export default function Plexus({
                     markerEnd={marker}
                     onMouseEnter={() => setHoverEdge(e)}
                     onMouseLeave={() => setHoverEdge(null)}
-                    style={{ transition: "stroke-opacity 0.2s, stroke-width 0.2s" }}
+                    style={{ transition: "stroke-opacity 0.2s, strokeWidth 0.2s" }}
                   />
                   {/* Edge label for imports with enhanced styling */}
                   {showLabel && (isHovered || transform.k > 0.8) && (

@@ -572,7 +572,7 @@ import { CriticalPathOverlay } from "./CriticalPathOverlay";
 }
 
 .critical-path-edge {
-  stroke-width: 3px !important;
+  strokeWidth: 3px !important;
   filter: drop-shadow(0 0 4px rgb(59 130 246 / 0.5));
 }
 ```

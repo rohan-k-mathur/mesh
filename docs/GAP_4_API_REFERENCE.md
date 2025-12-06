@@ -643,7 +643,7 @@ async function renderAssumptionGraph(
     .data(graph.edges)
     .enter().append("line")
     .attr("stroke", "#999")
-    .attr("stroke-width", d => d.weight ? d.weight * 3 : 1);
+    .attr("strokeWidth", d => d.weight ? d.weight * 3 : 1);
   
   // Render nodes
   const node = svg.selectAll("circle")

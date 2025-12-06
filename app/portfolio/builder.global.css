@@ -1582,7 +1582,7 @@ html {
 
 .react-flow__edge-path {
   stroke: #333;
-  stroke-width: 2;
+  strokeWidth: 2;
 }
 
 .temp .react-flow__edge-path {

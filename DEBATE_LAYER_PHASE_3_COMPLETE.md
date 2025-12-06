@@ -203,7 +203,7 @@ if (e.kind === "imports") {
   strokeOpacity={isHovered ? 0.7 : (e.kind === "imports" ? 0.35 : 0.22)}
   strokeWidth={isHovered ? wgt + 1 : wgt}
   markerEnd={marker}
-  style={{ transition: "stroke-opacity 0.2s, stroke-width 0.2s" }}
+  style={{ transition: "stroke-opacity 0.2s, strokeWidth 0.2s" }}
 />
 ```
 
