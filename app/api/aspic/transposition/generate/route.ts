@@ -277,8 +277,34 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 4: Apply transposition closure to get all rules (original + transposed)
-    const originalCount = theory.strictRules.length;
-    const augmentedRules = applyTranspositionClosure(theory.strictRules);
+    // IMPORTANT: Only apply to rules that are NOT already transpositions
+    // We identify transpositions by checking if the original argument's text contains "Transposed from"
+    const nonTransposedRules = theory.strictRules.filter(rule => {
+      // Extract original argument ID from rule ID (format: "RA:argumentId")
+      const argId = rule.id.replace(/^RA:/, "");
+      const arg = argumentsList.find(a => a.id === argId);
+      
+      // Skip rules from arguments that were created by transposition
+      if (arg?.text?.includes("Transposed from argument")) {
+        console.log(`[Transposition Generate] Skipping already-transposed rule: ${rule.id}`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`[Transposition Generate] Filtered to ${nonTransposedRules.length} non-transposed strict rules (from ${theory.strictRules.length} total)`);
+
+    if (nonTransposedRules.length === 0) {
+      return NextResponse.json({
+        success: true,
+        generated: 0,
+        strictRulesCount: theory.strictRules.length,
+        message: "No base (non-transposed) strict rules found - nothing to transpose",
+      });
+    }
+
+    const originalCount = nonTransposedRules.length;
+    const augmentedRules = applyTranspositionClosure(nonTransposedRules);
     const generatedCount = augmentedRules.length - originalCount;
 
     console.log(`[Transposition Generate] Generated ${generatedCount} transposed rules`);
@@ -325,6 +351,24 @@ export async function POST(req: NextRequest) {
 
     // Step 7: Create transposed arguments in database
     let persistedCount = 0;
+    let skippedDuplicates = 0;
+
+    // Build a set of existing transposed argument signatures to detect duplicates
+    const existingSignatures = new Set<string>();
+    for (const arg of argumentsList) {
+      if (arg.text?.includes("Transposed from argument")) {
+        // Build signature from premises + conclusion
+        const premiseTexts = arg.premises
+          .map(p => p.claim?.text)
+          .filter(Boolean)
+          .sort()
+          .join("|||");
+        const conclusionText = arg.conclusion?.text || "";
+        const signature = `${premiseTexts}==>${conclusionText}`;
+        existingSignatures.add(signature);
+      }
+    }
+    console.log(`[Transposition Generate] Found ${existingSignatures.size} existing transposed argument signatures`);
 
     for (const transposedRule of transposedRules) {
       // Extract original argument ID from transposed rule ID
@@ -347,6 +391,15 @@ export async function POST(req: NextRequest) {
         console.log(
           `[Transposition Generate] Skipping nested transposition for ${originalArgId}`
         );
+        continue;
+      }
+
+      // Check for duplicate by signature BEFORE creating
+      const sortedAntecedents = [...transposedRule.antecedents].sort().join("|||");
+      const newSignature = `${sortedAntecedents}==>${transposedRule.consequent}`;
+      if (existingSignatures.has(newSignature)) {
+        console.log(`[Transposition Generate] Skipping duplicate: ${newSignature.substring(0, 80)}...`);
+        skippedDuplicates++;
         continue;
       }
 
@@ -401,6 +454,9 @@ export async function POST(req: NextRequest) {
           });
         }
 
+        // Add to existing signatures to prevent within-batch duplicates
+        existingSignatures.add(newSignature);
+
         persistedCount++;
         console.log(`[Transposition Generate] Created transposed argument: ${transposedArg.id}`);
       } catch (error: any) {
@@ -409,13 +465,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log(`[Transposition Generate] Successfully persisted ${persistedCount}/${transposedRules.length} transposed arguments`);
+    console.log(`[Transposition Generate] Successfully persisted ${persistedCount}/${transposedRules.length} transposed arguments (skipped ${skippedDuplicates} duplicates)`);
 
     return NextResponse.json({
       success: true,
       generated: persistedCount,
+      skippedDuplicates,
       strictRulesCount: originalCount,
-      message: `Successfully generated ${persistedCount} transposed argument(s) from ${originalCount} strict rule(s)`,
+      totalExistingTransposed: existingSignatures.size - persistedCount, // existing before this run
+      message: `Successfully generated ${persistedCount} transposed argument(s) from ${originalCount} strict rule(s)${skippedDuplicates > 0 ? ` (skipped ${skippedDuplicates} duplicates)` : ""}`,
     });
   } catch (error: any) {
     console.error("[Transposition Generate] Error:", error);

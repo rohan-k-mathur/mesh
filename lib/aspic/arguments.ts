@@ -38,9 +38,10 @@ export function constructArguments(
   options: ArgumentConstructionOptions = {}
 ): Argument[] {
   const {
-    maxDepth = 10,
-    maxArguments = 10000,
+    maxDepth = 5,        // Reduced from 10 - prevents combinatorial explosion
+    maxArguments = 500,  // Reduced from 1000 - keeps response sizes manageable
     requireConsistency = false,
+    maxArgsPerConclusion = 3, // NEW: Limit arguments per conclusion to prevent cartesian explosion
   } = options;
 
   const builtArguments: Argument[] = [];
@@ -49,12 +50,19 @@ export function constructArguments(
 
   // Helper: Register an argument
   const registerArgument = (arg: Argument) => {
+    // NEW: Limit arguments per conclusion
+    const existingForConclusion = argumentsByConclusion.get(arg.conclusion) || [];
+    if (existingForConclusion.length >= maxArgsPerConclusion) {
+      return false; // Skip this argument
+    }
+    
     builtArguments.push(arg);
     
     if (!argumentsByConclusion.has(arg.conclusion)) {
       argumentsByConclusion.set(arg.conclusion, []);
     }
     argumentsByConclusion.get(arg.conclusion)!.push(arg);
+    return true;
   };
 
   // Step 1: Create base arguments from knowledge base
@@ -424,6 +432,9 @@ export interface ArgumentConstructionOptions {
 
   /** Require c-consistency (premises don't entail contradictions via strict rules) */
   requireConsistency?: boolean;
+
+  /** Maximum arguments per conclusion (prevents cartesian explosion, default: 3) */
+  maxArgsPerConclusion?: number;
 }
 
 /**

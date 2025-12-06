@@ -1357,8 +1357,19 @@ const {
                 className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white/50 hover:bg-white/70 rounded-md transition-colors menuv2--lite h-8"
                 title="Open Dialogue Timeline in new tab"
               >
-                <MessageSquare className="w-4 h-4" />
+                {/* <MessageSquare className="w-4 h-4" /> */}
                 <span>Dialogue Timeline</span>
+              </button>
+            </Link>
+
+            {/* Link to Agora*/}
+            <Link href={`/agora`} target="_blank" rel="noopener noreferrer">
+              <button
+                className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white/50 hover:bg-white/70 rounded-md transition-colors menuv2--lite h-8"
+                title="Open Agora in new tab"
+              >
+                {/* <MessageSquare className="w-4 h-4" /> */}
+                <span>Agora</span>
               </button>
             </Link>
             

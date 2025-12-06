@@ -329,6 +329,150 @@ export interface InteractionResult {
 }
 
 // ============================================
+// PLAY & GAME SESSION TYPES
+// ============================================
+
+/**
+ * Participant in a play
+ */
+export interface Participant {
+  /** Unique identifier */
+  id: string;
+
+  /** Display name */
+  name: string;
+
+  /** Current perspective in the interaction */
+  perspective: Polarity;
+
+  /** Is this an AI participant? */
+  isAI?: boolean;
+
+  /** AI difficulty if applicable */
+  aiDifficulty?: "easy" | "medium" | "hard";
+}
+
+/**
+ * Play = Complete game session
+ * 
+ * A Play is a complete record of an interaction on an arena,
+ * including all moves, participants, and timing information.
+ */
+export interface Play {
+  /** Unique identifier */
+  id: string;
+
+  /** Arena being played on */
+  arena: DeliberationArena;
+
+  /** Source deliberation ID */
+  deliberationId: string;
+
+  /** Participants in the play */
+  participants: Participant[];
+
+  /** All moves in order */
+  moves: PlayMove[];
+
+  /** Current interaction state */
+  state: InteractionState;
+
+  /** Result (if completed) */
+  result?: InteractionResult;
+
+  /** When the play started */
+  startedAt: Date;
+
+  /** When the play ended (if completed) */
+  endedAt?: Date;
+
+  /** Optional metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * PlayMove = Single move in a play
+ * 
+ * Records a single action in a play with timing and attribution.
+ */
+export interface PlayMove {
+  /** Unique identifier */
+  id: string;
+
+  /** Play this move belongs to */
+  playId: string;
+
+  /** Sequence number (0-indexed) */
+  sequence: number;
+
+  /** The dialogue act */
+  action: DialogueAct;
+
+  /** Participant who made this move (if attributed) */
+  participantId?: string;
+
+  /** When this move was made */
+  timestamp: Date;
+
+  /** Time taken to make this move (ms) */
+  thinkTime?: number;
+
+  /** Optional annotation/comment */
+  annotation?: string;
+}
+
+/**
+ * Strategy = Response pattern
+ * 
+ * A strategy specifies which move to make at each position.
+ * This is a practical representation of a design.
+ */
+export interface Strategy {
+  /** Unique identifier */
+  id: string;
+
+  /** Associated design (if any) */
+  designId?: string;
+
+  /** Polarity of the strategist */
+  polarity: Polarity;
+
+  /** Response map: address → chosen response index */
+  responses: Map<string, number>;
+
+  /** Should this strategy include daimon moves? */
+  allowDaimon: boolean;
+
+  /** Optional name */
+  name?: string;
+}
+
+/**
+ * Move validation result
+ */
+export interface MoveValidation {
+  /** Is the move valid? */
+  valid: boolean;
+
+  /** Validation errors (if any) */
+  errors: MoveValidationError[];
+}
+
+/**
+ * Move validation error
+ */
+export interface MoveValidationError {
+  /** Error code */
+  code: "WRONG_POLARITY" | "INVALID_ADDRESS" | "INVALID_RAMIFICATION" | "NOT_YOUR_TURN" | "GAME_OVER" | "UNKNOWN";
+
+  /** Human-readable message */
+  message: string;
+
+  /** Additional details */
+  details?: Record<string, unknown>;
+}
+
+// ============================================
 // VISITABLE PATH & INCARNATION TYPES
 // ============================================
 

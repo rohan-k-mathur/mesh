@@ -4,6 +4,13 @@ import { computeAspicSemantics, aifToASPIC } from "@/lib/aif/translation/aifToAs
 import type { ArgumentationTheory } from "@/lib/aif/translation/aifToAspic";
 import { prisma } from "@/lib/prismaclient";
 import type { AIFGraph, AnyNode, Edge } from "@/lib/aif/types";
+import { getOrSet } from "@/lib/redis";
+
+// Debug logging - set to true to see verbose CA-node creation logs
+const DEBUG_ASPIC = process.env.DEBUG_ASPIC === "true";
+
+// Cache TTL for ASPIC evaluations (in seconds)
+const ASPIC_CACHE_TTL = 60; // 1 minute
 
 /**
  * POST /api/aspic/evaluate
@@ -137,12 +144,32 @@ export async function POST(req: NextRequest) {
  * GET /api/aspic/evaluate?deliberationId=xxx
  * 
  * Get ASPIC+ theory and semantics for a deliberation by translating from AIF graph
+ * 
+ * Query Parameters:
+ * - deliberationId (required): ID of the deliberation to evaluate
+ * - ordering: 'last-link' | 'weakest-link' (default: 'last-link')
+ * - maxDepth: Maximum argument construction depth (default: 5, max: 10)
+ * - maxArguments: Maximum arguments to construct (default: 1000, max: 5000)
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const deliberationId = searchParams.get("deliberationId");
     const ordering = searchParams.get("ordering") || "last-link"; // ASPIC+ Phase 4.2
+    
+    // Parse construction limits from query params
+    const maxDepthParam = searchParams.get("maxDepth");
+    const maxArgumentsParam = searchParams.get("maxArguments");
+    
+    // Validate and clamp construction limits
+    const maxDepth = Math.min(
+      Math.max(1, parseInt(maxDepthParam || "5", 10) || 5),
+      10 // Hard cap at 10 to prevent runaway computation
+    );
+    const maxArguments = Math.min(
+      Math.max(10, parseInt(maxArgumentsParam || "1000", 10) || 1000),
+      5000 // Hard cap at 5000
+    );
 
     if (!deliberationId) {
       return NextResponse.json(
@@ -157,6 +184,35 @@ export async function GET(req: NextRequest) {
         { error: "Invalid ordering parameter. Must be 'last-link' or 'weakest-link'" },
         { status: 400 }
       );
+    }
+    
+    console.log(`[ASPIC API] Evaluating with maxDepth=${maxDepth}, maxArguments=${maxArguments}`);
+
+    // Check for bypass cache flag
+    const bypassCache = searchParams.get("bypassCache") === "true";
+    const cacheKey = `aspic:eval:${deliberationId}:${maxDepth}:${maxArguments}:${ordering}`;
+
+    // Try to return cached result if available (unless bypassing)
+    if (!bypassCache) {
+      try {
+        const cached = await getOrSet<null>(cacheKey, 0, async () => null);
+        // getOrSet doesn't have a "get only" mode, so we check if we have a real cached value
+        // by checking a separate cache key
+        const cachedResult = await getCachedAspicResult(cacheKey);
+        if (cachedResult) {
+          console.log(`[ASPIC API] Returning cached result for ${deliberationId}`);
+          return NextResponse.json(cachedResult, {
+            status: 200,
+            headers: {
+              "Cache-Control": "private, max-age=60",
+              "X-Cache": "HIT",
+            },
+          });
+        }
+      } catch (e) {
+        // Cache miss or error, continue with computation
+        if (DEBUG_ASPIC) console.log(`[ASPIC API] Cache miss for ${deliberationId}`);
+      }
     }
 
     // Step 1: Fetch all Arguments and their relations for this deliberation
@@ -182,7 +238,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log(`[ASPIC API] Fetched ${conflictsList.length} ConflictApplications for deliberation ${deliberationId}`);
+    if (DEBUG_ASPIC) console.log(`[ASPIC API] Fetched ${conflictsList.length} ConflictApplications for deliberation ${deliberationId}`);
 
     // Step 1c-2: Fetch ClaimEdges (from CriticalQuestionsV3) for ASPIC+ integration
     const claimEdgesList = await prisma.claimEdge.findMany({
@@ -196,7 +252,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log(`[ASPIC API] Fetched ${claimEdgesList.length} ClaimEdges (attack edges) for deliberation ${deliberationId}`);
+    if (DEBUG_ASPIC) console.log(`[ASPIC API] Fetched ${claimEdgesList.length} ClaimEdges (attack edges) for deliberation ${deliberationId}`);
 
     // Step 1c: Fetch AssumptionUse records (ACCEPTED assumptions for K_a)
     const assumptionsList = await prisma.assumptionUse.findMany({
@@ -206,7 +262,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log(`[ASPIC API] Fetched ${assumptionsList.length} ACCEPTED AssumptionUse records for deliberation ${deliberationId}`);
+    if (DEBUG_ASPIC) console.log(`[ASPIC API] Fetched ${assumptionsList.length} ACCEPTED AssumptionUse records for deliberation ${deliberationId}`);
 
     // Step 1d: Fetch explicit ClaimContrary records (Phase D-1)
     // @ts-ignore - ClaimContrary model exists but TypeScript server hasn't refreshed
@@ -221,7 +277,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log(`[ASPIC API] Fetched ${explicitContraries.length} explicit ClaimContrary records for deliberation ${deliberationId}`);
+    if (DEBUG_ASPIC) console.log(`[ASPIC API] Fetched ${explicitContraries.length} explicit ClaimContrary records for deliberation ${deliberationId}`);
 
     // Step 1e: Fetch ArgumentSchemeInstance records for ASPIC+ ruleType (Phase 1b.2)
     // @ts-ignore - ArgumentSchemeInstance model exists, TypeScript server needs refresh
@@ -244,7 +300,29 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log(`[ASPIC API] Fetched ${schemeInstances.length} ArgumentSchemeInstance records for deliberation ${deliberationId}`);
+    if (DEBUG_ASPIC) console.log(`[ASPIC API] Fetched ${schemeInstances.length} ArgumentSchemeInstance records for deliberation ${deliberationId}`);
+
+    // Step 1f: Pre-fetch all claims that might be needed for CA-nodes (batch optimization)
+    // Collect all claim IDs that we might need to look up
+    const neededClaimIds = new Set<string>();
+    for (const conflict of conflictsList) {
+      if (conflict.conflictingClaimId) neededClaimIds.add(conflict.conflictingClaimId);
+      if (conflict.conflictedClaimId) neededClaimIds.add(conflict.conflictedClaimId);
+    }
+    for (const assumption of assumptionsList) {
+      if (assumption.assumptionClaimId) neededClaimIds.add(assumption.assumptionClaimId);
+    }
+    
+    // Batch fetch all needed claims in one query
+    const claimsBatch = neededClaimIds.size > 0 
+      ? await prisma.claim.findMany({
+          where: { id: { in: Array.from(neededClaimIds) } },
+        })
+      : [];
+    
+    // Build a lookup map for O(1) access
+    const claimsMap = new Map(claimsBatch.map(c => [c.id, c]));
+    if (DEBUG_ASPIC) console.log(`[ASPIC API] Pre-fetched ${claimsBatch.length} claims for batch lookup`);
 
     // Step 2: Build AIFGraph from fetched data
     const nodes: AnyNode[] = [];
@@ -384,10 +462,8 @@ export async function GET(req: NextRequest) {
         // Attacker is a claim (create I-node if needed)
         const attackerClaimNodeId = `I:${conflict.conflictingClaimId}`;
         if (!nodeIds.has(attackerClaimNodeId)) {
-          // Fetch claim text (we may need to optimize this with a batch query)
-          const attackerClaim = await prisma.claim.findUnique({
-            where: { id: conflict.conflictingClaimId },
-          });
+          // Use batch-fetched claim from claimsMap (optimization)
+          const attackerClaim = claimsMap.get(conflict.conflictingClaimId);
           if (attackerClaim) {
             nodes.push({
               id: attackerClaimNodeId,
@@ -422,9 +498,8 @@ export async function GET(req: NextRequest) {
         // Target is a claim (create I-node if needed)
         const targetClaimNodeId = `I:${conflict.conflictedClaimId}`;
         if (!nodeIds.has(targetClaimNodeId)) {
-          const targetClaim = await prisma.claim.findUnique({
-            where: { id: conflict.conflictedClaimId },
-          });
+          // Use batch-fetched claim from claimsMap (optimization)
+          const targetClaim = claimsMap.get(conflict.conflictedClaimId);
           if (targetClaim) {
             nodes.push({
               id: targetClaimNodeId,
@@ -445,7 +520,7 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (${conflict.conflictingArgumentId || conflict.conflictingClaimId} → ${conflict.conflictedArgumentId || conflict.conflictedClaimId})`);
+      if (DEBUG_ASPIC) console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (${conflict.conflictingArgumentId || conflict.conflictingClaimId} → ${conflict.conflictedArgumentId || conflict.conflictedClaimId})`);
     }
 
     // Step 3b: Add CA-nodes for ClaimEdges (from CriticalQuestionsV3)
@@ -518,7 +593,7 @@ export async function GET(req: NextRequest) {
         debateId: deliberationId,
       });
 
-      console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (ClaimEdge ${edge.fromClaimId} → ${edge.toClaimId})`);
+      if (DEBUG_ASPIC) console.log(`[ASPIC API] Created CA-node ${caNodeId}: ${attackType} (ClaimEdge ${edge.fromClaimId} → ${edge.toClaimId})`);
     }
 
     // Step 4: Add I-nodes for assumptions (K_a)
@@ -533,9 +608,8 @@ export async function GET(req: NextRequest) {
         
         // Fetch claim if not already in nodes
         if (!nodeIds.has(assumptionNodeId)) {
-          const claim = await prisma.claim.findUnique({
-            where: { id: assumption.assumptionClaimId },
-          });
+          // Use batch-fetched claim from claimsMap (optimization)
+          const claim = claimsMap.get(assumption.assumptionClaimId);
           
           if (claim) {
             assumptionText = claim.text;
@@ -592,7 +666,7 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        console.log(`[ASPIC API] Created assumption I-node ${assumptionNodeId}: "${assumptionText}" (weight: ${assumption.weight}, confidence: ${assumption.confidence})`);
+        if (DEBUG_ASPIC) console.log(`[ASPIC API] Created assumption I-node ${assumptionNodeId}: "${assumptionText}" (weight: ${assumption.weight}, confidence: ${assumption.confidence})`);
       }
     }
 
@@ -637,8 +711,37 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Step 5: Compute ASPIC+ semantics
-    const semantics = computeAspicSemantics(theory);
+    // Step 5: Compute ASPIC+ semantics with configurable limits
+    const semantics = computeAspicSemantics(theory, {
+      maxDepth,
+      maxArguments,
+      dedupeStrictRules: true, // Always dedupe to prevent explosion
+    });
+
+    // Step 5.5: Limit response size to prevent serialization errors
+    const MAX_RESPONSE_ARGUMENTS = 500;
+    const MAX_RESPONSE_ATTACKS = 1000;
+    const MAX_RESPONSE_DEFEATS = 1000;
+    
+    const truncatedArguments = semantics.arguments.slice(0, MAX_RESPONSE_ARGUMENTS);
+    const truncatedAttacks = semantics.attacks.slice(0, MAX_RESPONSE_ATTACKS);
+    const truncatedDefeats = semantics.defeats.slice(0, MAX_RESPONSE_DEFEATS);
+    
+    const wasTruncated = 
+      semantics.arguments.length > MAX_RESPONSE_ARGUMENTS ||
+      semantics.attacks.length > MAX_RESPONSE_ATTACKS ||
+      semantics.defeats.length > MAX_RESPONSE_DEFEATS;
+    
+    if (wasTruncated) {
+      console.warn("[ASPIC API] Response truncated:", {
+        originalArguments: semantics.arguments.length,
+        returnedArguments: truncatedArguments.length,
+        originalAttacks: semantics.attacks.length,
+        returnedAttacks: truncatedAttacks.length,
+        originalDefeats: semantics.defeats.length,
+        returnedDefeats: truncatedDefeats.length,
+      });
+    }
 
     // Step 6: Format response for UI
     const response = {
@@ -664,7 +767,7 @@ export async function GET(req: NextRequest) {
         },
       },
       semantics: {
-        arguments: semantics.arguments.map((arg) => {
+        arguments: truncatedArguments.map((arg) => {
           const mapped = {
             id: arg.id,
             premises: Array.from(arg.premises),
@@ -674,30 +777,16 @@ export async function GET(req: NextRequest) {
             structure: arg.structure,
           };
           
-          // Debug: Log first argument in detail
-          if (semantics.arguments.indexOf(arg) === 0) {
-            console.log("[ASPIC API] First argument details:", {
-              id: arg.id,
-              idType: typeof arg.id,
-              premises: arg.premises,
-              premisesType: typeof arg.premises,
-              premisesArray: Array.from(arg.premises),
-              conclusion: arg.conclusion,
-              conclusionType: typeof arg.conclusion,
-              mapped,
-            });
-          }
-          
           return mapped;
         }),
-        attacks: semantics.attacks.map((atk) => ({
+        attacks: truncatedAttacks.map((atk) => ({
           attackerId: atk.attacker.id,
           attackedId: atk.attacked.id,
           type: atk.type,
           target: atk.target,
           metadata: atk.metadata,
         })),
-        defeats: semantics.defeats.map((def) => ({
+        defeats: truncatedDefeats.map((def) => ({
           defeaterId: def.defeater.id,
           defeatedId: def.defeated.id,
           attackType: def.attack.type,
@@ -719,12 +808,47 @@ export async function GET(req: NextRequest) {
           transpositionClosure: transpositionCheck.isClosed,
         },
       },
+      // Include truncation info so UI can show warnings
+      truncation: wasTruncated ? {
+        truncated: true,
+        original: {
+          arguments: semantics.arguments.length,
+          attacks: semantics.attacks.length,
+          defeats: semantics.defeats.length,
+        },
+        returned: {
+          arguments: truncatedArguments.length,
+          attacks: truncatedAttacks.length,
+          defeats: truncatedDefeats.length,
+        },
+        limits: {
+          maxResponseArguments: MAX_RESPONSE_ARGUMENTS,
+          maxResponseAttacks: MAX_RESPONSE_ATTACKS,
+          maxResponseDefeats: MAX_RESPONSE_DEFEATS,
+        },
+      } : undefined,
+      // Include construction params so UI knows what was used
+      constructionParams: {
+        maxDepth,
+        maxArguments,
+        dedupeStrictRules: true,
+      },
     };
+
+    // Cache the result for future requests
+    try {
+      await setCachedAspicResult(cacheKey, response, ASPIC_CACHE_TTL);
+      if (DEBUG_ASPIC) console.log(`[ASPIC API] Cached result for ${deliberationId}`);
+    } catch (e) {
+      // Cache write failure is not fatal
+      if (DEBUG_ASPIC) console.warn(`[ASPIC API] Failed to cache result:`, e);
+    }
 
     return NextResponse.json(response, {
       status: 200,
       headers: {
         "Cache-Control": "private, max-age=60", // Cache for 1 minute
+        "X-Cache": "MISS",
       },
     });
   } catch (error: any) {
@@ -740,4 +864,91 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ============================================================================
+// CACHING HELPERS
+// ============================================================================
 
+// In-memory cache for development/fallback when Redis is unavailable
+const memoryCache = new Map<string, { data: any; expiry: number }>();
+
+/**
+ * Get cached ASPIC evaluation result
+ */
+async function getCachedAspicResult(key: string): Promise<any | null> {
+  // Try memory cache first
+  const memCached = memoryCache.get(key);
+  if (memCached && memCached.expiry > Date.now()) {
+    return memCached.data;
+  }
+  
+  // Try Redis if available
+  try {
+    const { default: redis } = await import("@/lib/redis");
+    if (redis) {
+      const cached = await redis.get(key);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    }
+  } catch (e) {
+    // Redis not available, fall through
+  }
+  
+  return null;
+}
+
+/**
+ * Set cached ASPIC evaluation result
+ */
+async function setCachedAspicResult(key: string, data: any, ttlSeconds: number): Promise<void> {
+  // Always set in memory cache
+  memoryCache.set(key, {
+    data,
+    expiry: Date.now() + (ttlSeconds * 1000),
+  });
+  
+  // Clean up old entries periodically (keep last 50)
+  if (memoryCache.size > 50) {
+    const entries = Array.from(memoryCache.entries());
+    const sortedByExpiry = entries.sort((a, b) => a[1].expiry - b[1].expiry);
+    for (let i = 0; i < entries.length - 50; i++) {
+      memoryCache.delete(sortedByExpiry[i][0]);
+    }
+  }
+  
+  // Try Redis if available
+  try {
+    const { default: redis } = await import("@/lib/redis");
+    if (redis) {
+      await redis.setex(key, ttlSeconds, JSON.stringify(data));
+    }
+  } catch (e) {
+    // Redis not available, memory cache is sufficient
+  }
+}
+
+/**
+ * Invalidate cached ASPIC result for a deliberation
+ * Call this when arguments/conflicts change
+ */
+export async function invalidateAspicCache(deliberationId: string): Promise<void> {
+  // Clear from memory cache (all keys for this deliberation)
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith(`aspic:eval:${deliberationId}:`)) {
+      memoryCache.delete(key);
+    }
+  }
+  
+  // Clear from Redis if available
+  try {
+    const { default: redis } = await import("@/lib/redis");
+    if (redis) {
+      const keys = await redis.keys(`aspic:eval:${deliberationId}:*`);
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    }
+  } catch (e) {
+    // Redis not available
+  }
+}

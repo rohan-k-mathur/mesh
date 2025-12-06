@@ -91,6 +91,9 @@ import { computeAttacks } from '../../aspic/attacks';
 import { computeDefeats } from '../../aspic/defeats';
 import { computeGroundedExtension, computeArgumentLabeling } from '../../aspic/semantics';
 
+// Debug logging - set to true to see verbose translation logs
+const DEBUG_ASPIC = process.env.DEBUG_ASPIC === "true";
+
 export interface Rule {
   id: string;
   antecedents: string[];
@@ -142,7 +145,7 @@ export function aifToASPIC(
   // Phase D-1: Add explicit contraries FIRST (before CA-nodes)
   // This allows users to pre-define semantic relationships independent of attacks
   if (explicitContraries && explicitContraries.length > 0) {
-    console.log(`[aifToAspic] Processing ${explicitContraries.length} explicit contraries`);
+    if (DEBUG_ASPIC) console.log(`[aifToAspic] Processing ${explicitContraries.length} explicit contraries`);
     for (const contrary of explicitContraries) {
       const claimText = contrary.claim.text;
       const contraryText = contrary.contrary.text;
@@ -180,14 +183,14 @@ export function aifToASPIC(
     // Phase A: Check for assumption role FIRST (highest priority)
     if (role === 'assumption') {
       assumptions.add(content);
-      console.log(`[aifToAspic] Added assumption from I-node metadata: "${content}"`);
+      if (DEBUG_ASPIC) console.log(`[aifToAspic] Added assumption from I-node metadata: "${content}"`);
       continue; // Don't add to premises or axioms
     }
     
     // Phase B: Check for axiom role
     if (role === 'axiom' || metadata.isAxiom === true) {
       axioms.add(content);
-      console.log(`[aifToAspic] Added axiom from I-node metadata: "${content}"`);
+      if (DEBUG_ASPIC) console.log(`[aifToAspic] Added axiom from I-node metadata: "${content}"`);
       continue; // Don't add to premises
     }
     
@@ -195,7 +198,7 @@ export function aifToASPIC(
     const incoming = incomingByTarget.get(n.id) ?? 0;
     if (incoming === 0 && role !== 'assumption' && role !== 'axiom') {
       premises.add(content);
-      console.log(`[aifToAspic] Added ordinary premise: "${content}"`);
+      if (DEBUG_ASPIC) console.log(`[aifToAspic] Added ordinary premise: "${content}"`);
     }
   }
 
@@ -209,7 +212,7 @@ export function aifToASPIC(
         // Only add if not already in axioms or premises
         if (!axioms.has(content) && !premises.has(content)) {
           assumptions.add(content);
-          console.log(`[aifToAspic] Added assumption from presumption edge: "${content}"`);
+          if (DEBUG_ASPIC) console.log(`[aifToAspic] Added assumption from presumption edge: "${content}"`);
         }
       }
     }
@@ -258,15 +261,17 @@ export function aifToASPIC(
     // Classify rule by type
     if (ruleType === 'strict') {
       strictRules.push(rule);
-      console.log(`[aifToAspic] ✅ Added STRICT rule: ${rule.id}`);
-      console.log(`  Antecedents: [${rule.antecedents.join(', ')}]`);
-      console.log(`  Consequent: ${rule.consequent}`);
-      if (ruleName) {
-        console.log(`  Rule name: "${ruleName}"`);
+      if (DEBUG_ASPIC) {
+        console.log(`[aifToAspic] ✅ Added STRICT rule: ${rule.id}`);
+        console.log(`  Antecedents: [${rule.antecedents.join(', ')}]`);
+        console.log(`  Consequent: ${rule.consequent}`);
+        if (ruleName) {
+          console.log(`  Rule name: "${ruleName}"`);
+        }
       }
     } else {
       defeasibleRules.push(rule);
-      console.log(`[aifToAspic] Added defeasible rule: ${rule.id}`);
+      if (DEBUG_ASPIC) console.log(`[aifToAspic] Added defeasible rule: ${rule.id}`);
     }
   }
 
@@ -321,20 +326,25 @@ export function aifToASPIC(
     preferences.push({ preferred, dispreferred });
   }
 
-  // Summary logging for debugging
-  console.log(`\n${'='.repeat(70)}`);
-  console.log(`[aifToAspic] 📊 Translation Summary`);
-  console.log(`${'='.repeat(70)}`);
-  console.log(`Language:        ${language.size} formulas`);
-  console.log(`Contraries:      ${contraries.size} contrary pairs`);
-  console.log(`Strict Rules:    ${strictRules.length} (R_s)`);
-  console.log(`Defeasible Rules: ${defeasibleRules.length} (R_d)`);
-  console.log(`Total Rules:     ${strictRules.length + defeasibleRules.length}`);
-  console.log(`Axioms (K_n):    ${axioms.size}`);
-  console.log(`Premises (K_p):  ${premises.size}`);
-  console.log(`Assumptions (K_a): ${assumptions.size}`);
-  console.log(`Preferences:     ${preferences.length}`);
-  console.log(`${'='.repeat(70)}\n`);
+  // Summary logging for debugging (always show summary, but condensed in non-debug mode)
+  if (DEBUG_ASPIC) {
+    console.log(`\n${'='.repeat(70)}`);
+    console.log(`[aifToAspic] 📊 Translation Summary`);
+    console.log(`${'='.repeat(70)}`);
+    console.log(`Language:        ${language.size} formulas`);
+    console.log(`Contraries:      ${contraries.size} contrary pairs`);
+    console.log(`Strict Rules:    ${strictRules.length} (R_s)`);
+    console.log(`Defeasible Rules: ${defeasibleRules.length} (R_d)`);
+    console.log(`Total Rules:     ${strictRules.length + defeasibleRules.length}`);
+    console.log(`Axioms (K_n):    ${axioms.size}`);
+    console.log(`Premises (K_p):  ${premises.size}`);
+    console.log(`Assumptions (K_a): ${assumptions.size}`);
+    console.log(`Preferences:     ${preferences.length}`);
+    console.log(`${'='.repeat(70)}\n`);
+  } else {
+    // Condensed summary in production
+    console.log(`[aifToAspic] Translated: ${strictRules.length} strict + ${defeasibleRules.length} defeasible rules, ${axioms.size} axioms, ${premises.size} premises, ${assumptions.size} assumptions`);
+  }
 
   return { language, contraries, strictRules, defeasibleRules, axioms, premises, assumptions, preferences };
 }
@@ -342,6 +352,94 @@ export function aifToASPIC(
 // ============================================================================
 // SEMANTIC COMPUTATION
 // ============================================================================
+
+/**
+ * Options for ASPIC+ semantic computation
+ */
+export interface ComputeSemanticsOptions {
+  /** Maximum depth for argument construction (default: 5) */
+  maxDepth?: number;
+  /** Maximum number of arguments to construct (default: 1000) */
+  maxArguments?: number;
+  /** Whether to dedupe structurally equivalent strict rules (default: true) */
+  dedupeStrictRules?: boolean;
+}
+
+/**
+ * Normalize a formula by:
+ * 1. Stripping outer parentheses: "(p)" → "p"
+ * 2. Normalizing whitespace
+ * 3. Keeping inner structure intact
+ */
+function normalizeFormula(formula: string): string {
+  let result = formula.trim();
+  
+  // Recursively strip outer parentheses if balanced
+  while (result.startsWith('(') && result.endsWith(')')) {
+    // Check if the outer parens are actually matching
+    // by verifying removing them leaves a balanced formula
+    const inner = result.slice(1, -1);
+    let depth = 0;
+    let balanced = true;
+    for (const char of inner) {
+      if (char === '(') depth++;
+      if (char === ')') depth--;
+      if (depth < 0) { balanced = false; break; }
+    }
+    if (balanced && depth === 0) {
+      result = inner.trim();
+    } else {
+      break; // Not safe to strip
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Deduplicate strict rules that have equivalent antecedents and consequent
+ * This prevents combinatorial explosion from stored transposition rules
+ * 
+ * Now handles:
+ * - Rules with "(p)" vs "p" (parenthesis normalization)
+ * - Rules with different orderings of antecedents
+ * - Nested transpositions like "SRSJ (transposed) (transposed)"
+ */
+function dedupeStrictRules(rules: Rule[]): Rule[] {
+  const seen = new Map<string, Rule>();
+  
+  for (const rule of rules) {
+    // Normalize antecedents and consequent
+    const normalizedAntecedents = rule.antecedents.map(normalizeFormula).sort();
+    const normalizedConsequent = normalizeFormula(rule.consequent);
+    
+    // Create canonical key from normalized formulas
+    const key = `${normalizedAntecedents.join('|||')}==>${normalizedConsequent}`;
+    
+    // Keep first occurrence (prefer non-transposed rules)
+    if (!seen.has(key)) {
+      seen.set(key, rule);
+    } else {
+      // If current rule is not a transpose but existing is, replace
+      const existingRule = seen.get(key)!;
+      const currentIsTranspose = rule.id.includes('_transpose_') || 
+        (rule as any).ruleName?.includes('(transposed)');
+      const existingIsTranspose = existingRule.id.includes('_transpose_') || 
+        (existingRule as any).ruleName?.includes('(transposed)');
+      
+      if (!currentIsTranspose && existingIsTranspose) {
+        seen.set(key, rule);
+      }
+    }
+  }
+  
+  const dedupedRules = Array.from(seen.values());
+  if (dedupedRules.length < rules.length) {
+    console.log(`[computeAspicSemantics] Deduped strict rules: ${rules.length} → ${dedupedRules.length} (removed ${rules.length - dedupedRules.length} duplicates)`);
+  }
+  
+  return dedupedRules;
+}
 
 /**
  * Compute complete ASPIC+ semantics from an argumentation theory
@@ -354,15 +452,30 @@ export function aifToASPIC(
  * 5. Assign justification status to all arguments
  * 
  * @param theory The ASPIC+ argumentation theory (old format)
+ * @param options Optional configuration for construction limits
  * @returns Complete semantics including arguments, attacks, defeats, extension, and status
  */
-export function computeAspicSemantics(theory: ArgumentationTheory): AspicSemantics {
+export function computeAspicSemantics(
+  theory: ArgumentationTheory,
+  options: ComputeSemanticsOptions = {}
+): AspicSemantics {
+  const {
+    maxDepth = 5,        // Reduced from 10 to prevent explosion
+    maxArguments = 1000, // Reasonable limit
+    dedupeStrictRules: shouldDedupe = true,
+  } = options;
+
+  // Dedupe strict rules to prevent combinatorial explosion from transpositions
+  const strictRules = shouldDedupe 
+    ? dedupeStrictRules(theory.strictRules)
+    : theory.strictRules;
+
   // Build ASPIC+ ArgumentationTheory from old format
   const aspicTheory: import('../../aspic/types').ArgumentationTheory = {
     system: {
       language: theory.language,
       contraries: theory.contraries,
-      strictRules: theory.strictRules,
+      strictRules,
       defeasibleRules: theory.defeasibleRules,
       ruleNames: new Map(theory.defeasibleRules.map(r => [r.id, `rule_${r.id}`])),
     },
@@ -375,8 +488,8 @@ export function computeAspicSemantics(theory: ArgumentationTheory): AspicSemanti
     },
   };
 
-  // Step 1: Construct arguments
-  const args = constructArguments(aspicTheory);
+  // Step 1: Construct arguments with limits
+  const args = constructArguments(aspicTheory, { maxDepth, maxArguments });
 
   // Step 2: Compute attacks
   const attacks = computeAttacks(args, aspicTheory);

@@ -27,13 +27,16 @@ export async function GET(req: NextRequest) {
   /* --------------------- 1) Rooms --------------------- */
   let rooms: { id: string; title?: string | null }[] = [];
   try {
+    // Note: Deliberation doesn't have a visibility field, so we get all rooms
+    // and filter by related AgoraRoom visibility if needed in the future
     rooms = await prisma.deliberation.findMany({
-      where: scope === 'public' ? ({ visibility: { in: ['public', 'PUBLIC'] } } as any) : {}, // TODO: following scope
-      select: { id: true },
-      orderBy: { updatedAt: 'desc' as any },
+      where: {}, // All rooms - visibility filter removed as field doesn't exist
+      select: { id: true, title: true },
+      orderBy: { updatedAt: 'desc' },
       take: maxRooms,
     });
-  } catch {
+  } catch (err) {
+    console.error("[agora/network] Error fetching deliberations:", err);
     // fallback from arguments (should rarely trigger)
     const rows = await prisma.argument.findMany({
       select: { deliberationId: true },
