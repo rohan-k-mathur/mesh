@@ -10,8 +10,8 @@ import {
   delocateArena,
   encodeArena,
   getArenaStats,
-} from "@/packages/ludics-core/dds/arena";
-import type { UniversalArena } from "@/packages/ludics-core/dds/arena";
+} from "@/packages/ludics-core/dds/arena/client";
+import type { UniversalArena } from "@/packages/ludics-core/dds/arena/client";
 
 export async function POST(req: NextRequest) {
   try {

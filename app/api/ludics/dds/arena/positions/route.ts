@@ -14,8 +14,8 @@ import {
   getAvailableMoves,
   createArenaMove,
   getArenaStats,
-} from "@/packages/ludics-core/dds/arena";
-import type { ArenaMove, UniversalArena } from "@/packages/ludics-core/dds/arena";
+} from "@/packages/ludics-core/dds/arena/client";
+import type { ArenaMove, UniversalArena } from "@/packages/ludics-core/dds/arena/client";
 
 export async function POST(req: NextRequest) {
   try {

@@ -97,8 +97,15 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 // HELPERS
 // ============================================================================
 
-function addressToKey(address: LudicAddress): string {
-  return `[${address.join(",")}]`;
+function addressToKey(address: LudicAddress | string | undefined): string {
+  if (address === undefined || address === null) return "∅";
+  if (typeof address === "string") {
+    return address === "" ? "∅" : address;
+  }
+  if (Array.isArray(address)) {
+    return address.length === 0 ? "∅" : `[${address.join(",")}]`;
+  }
+  return String(address);
 }
 
 function getStrengthColor(strength: number, scheme: string): string {

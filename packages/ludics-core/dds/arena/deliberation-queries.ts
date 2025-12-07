@@ -7,7 +7,7 @@
  * @module
  */
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prismaclient";
 import type { Prisma } from "@prisma/client";
 
 // ============================================================================

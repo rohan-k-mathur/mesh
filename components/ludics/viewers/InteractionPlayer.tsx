@@ -30,16 +30,23 @@ interface DialogueAct {
   timestamp?: string;
 }
 
+interface ApiMove {
+  id: string;
+  address: string;
+  ramification: number[];
+  player: "P" | "O";
+}
+
 interface InteractionState {
   id: string;
   arenaId: string;
   currentPlayer: "P" | "O";
-  position: LudicAddress;
-  status: "active" | "complete" | "abandoned";
+  position?: LudicAddress;
+  status: "active" | "complete" | "completed" | "abandoned";
   winner?: "P" | "O" | "draw";
   moveHistory: DialogueAct[];
-  availableMoves: LudicAddress[];
-  startedAt: string;
+  availableMoves: ApiMove[];
+  startedAt?: string;
   lastMoveAt?: string;
 }
 
@@ -60,6 +67,10 @@ type PlayMode = "play" | "replay" | "simulate";
 export interface InteractionPlayerProps {
   /** Arena ID to play in */
   arenaId: string;
+  /** Proponent design ID */
+  posDesignId: string;
+  /** Opponent design ID */
+  negDesignId: string;
   /** Interaction mode */
   mode: PlayMode;
   /** Existing interaction ID (for replay) */
@@ -88,8 +99,15 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 // HELPERS
 // ============================================================================
 
-function addressToKey(address: LudicAddress): string {
-  return `[${address.join(",")}]`;
+function addressToKey(address: LudicAddress | string | undefined): string {
+  if (address === undefined || address === null) return "∅";
+  if (typeof address === "string") {
+    return address === "" ? "∅" : address;
+  }
+  if (Array.isArray(address)) {
+    return address.length === 0 ? "∅" : `[${address.join(",")}]`;
+  }
+  return String(address);
 }
 
 function formatTimestamp(iso: string): string {
@@ -101,8 +119,17 @@ function formatTimestamp(iso: string): string {
 // MOVE LIST COMPONENT
 // ============================================================================
 
+// API returns moves in this format
+interface ApiMoveHistoryItem {
+  moveNumber: number;
+  player: "P" | "O";
+  address: string;
+  ramification?: number[];
+  timestamp?: Date | string;
+}
+
 interface MoveListProps {
-  moves: DialogueAct[];
+  moves: (DialogueAct | ApiMoveHistoryItem)[];
   currentIndex?: number;
   onMoveClick?: (index: number) => void;
 }
@@ -118,42 +145,72 @@ function MoveList({ moves, currentIndex, onMoveClick }: MoveListProps) {
     }
   }, [currentIndex]);
 
+  // Normalize move to display format
+  const normalizeMove = (move: DialogueAct | ApiMoveHistoryItem, index: number) => {
+    // Check if it's an API move history item (has player/address) vs DialogueAct (has polarity/focus)
+    if ("player" in move && "address" in move) {
+      return {
+        index: index + 1,
+        player: move.player,
+        polarity: move.player === "P" ? "+" : "-",
+        address: move.address,
+        expression: undefined,
+        timestamp: move.timestamp ? (typeof move.timestamp === "string" ? move.timestamp : move.timestamp.toISOString()) : undefined,
+      };
+    } else {
+      // DialogueAct format
+      return {
+        index: index + 1,
+        player: move.polarity === "+" ? "P" : "O",
+        polarity: move.polarity,
+        address: move.focus,
+        expression: move.expression,
+        timestamp: move.timestamp,
+      };
+    }
+  };
+
   return (
     <div ref={listRef} className="space-y-1 max-h-[300px] overflow-y-auto p-2">
-      {moves.map((move, i) => (
-        <div
-          key={i}
-          onClick={() => onMoveClick?.(i)}
-          className={cn(
-            "flex items-center gap-2 p-2 rounded cursor-pointer",
-            "hover:bg-slate-50 transition-colors",
-            currentIndex === i && "bg-blue-50 border border-blue-200"
-          )}
-        >
-          <span className="text-sm text-slate-400 w-6">{i + 1}.</span>
-          <span
+      {moves.map((move, i) => {
+        const normalized = normalizeMove(move, i);
+        return (
+          <div
+            key={i}
+            onClick={() => onMoveClick?.(i)}
             className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-              move.polarity === "+"
-                ? "bg-blue-200 text-blue-800"
-                : "bg-orange-200 text-orange-800"
+              "flex items-center gap-2 p-2 rounded cursor-pointer",
+              "hover:bg-slate-50 transition-colors",
+              currentIndex === i && "bg-blue-50 border border-blue-200"
             )}
           >
-            {move.polarity}
-          </span>
-          <code className="text-sm flex-1">{addressToKey(move.focus)}</code>
-          {move.expression && (
-            <span className="text-xs text-slate-500 truncate max-w-[150px]">
-              {move.expression}
+            <span className="text-sm text-slate-400 w-6">{normalized.index}.</span>
+            <span
+              className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                normalized.player === "P"
+                  ? "bg-blue-200 text-blue-800"
+                  : "bg-orange-200 text-orange-800"
+              )}
+            >
+              {normalized.player}
             </span>
-          )}
-          {move.timestamp && (
-            <span className="text-xs text-slate-400">
-              {formatTimestamp(move.timestamp)}
-            </span>
-          )}
-        </div>
-      ))}
+            <code className="text-sm flex-1 font-mono">
+              {addressToKey(normalized.address)}
+            </code>
+            {normalized.expression && (
+              <span className="text-xs text-slate-500 truncate max-w-[150px]">
+                {normalized.expression}
+              </span>
+            )}
+            {normalized.timestamp && (
+              <span className="text-xs text-slate-400">
+                {formatTimestamp(normalized.timestamp)}
+              </span>
+            )}
+          </div>
+        );
+      })}
       {moves.length === 0 && (
         <div className="text-center text-slate-400 py-4">No moves yet</div>
       )}
@@ -166,18 +223,24 @@ function MoveList({ moves, currentIndex, onMoveClick }: MoveListProps) {
 // ============================================================================
 
 interface AvailableMovesProps {
-  moves: LudicAddress[];
+  moves?: ApiMove[];
   currentPlayer: "P" | "O";
-  onMoveSelect: (address: LudicAddress) => void;
+  onMoveSelect: (move: ApiMove) => void;
   disabled?: boolean;
 }
 
 function AvailableMoves({
-  moves,
+  moves = [],
   currentPlayer,
   onMoveSelect,
   disabled,
 }: AvailableMovesProps) {
+  const safeMoves = moves || [];
+  
+  const handleMoveClick = (move: ApiMove) => {
+    onMoveSelect(move);
+  };
+
   return (
     <div className="p-3 bg-slate-50 rounded-lg">
       <div className="text-sm font-medium mb-2">
@@ -190,12 +253,14 @@ function AvailableMoves({
         >
           Player {currentPlayer}
         </span>
+        {" "}
+        <span className="text-slate-500">({safeMoves.length} moves)</span>
       </div>
       <div className="flex flex-wrap gap-2">
-        {moves.map((addr) => (
+        {safeMoves.map((move) => (
           <button
-            key={addressToKey(addr)}
-            onClick={() => onMoveSelect(addr)}
+            key={move.id}
+            onClick={() => handleMoveClick(move)}
             disabled={disabled}
             className={cn(
               "px-3 py-1 rounded border text-sm font-mono",
@@ -207,10 +272,10 @@ function AvailableMoves({
                 : "bg-orange-100 border-orange-300 hover:bg-orange-200"
             )}
           >
-            {addressToKey(addr)}
+            {move.address || "∅"} [{move.ramification.join(",")}]
           </button>
         ))}
-        {moves.length === 0 && (
+        {safeMoves.length === 0 && (
           <span className="text-slate-400 text-sm">No moves available</span>
         )}
       </div>
@@ -366,6 +431,8 @@ function ResultDisplay({
 
 export function InteractionPlayer({
   arenaId,
+  posDesignId,
+  negDesignId,
   mode,
   interactionId: propInteractionId,
   userPlayer = "P",
@@ -398,7 +465,20 @@ export function InteractionPlayer({
   // Update state from fetch
   React.useEffect(() => {
     if (fetchedInteraction?.ok && fetchedInteraction.interaction) {
-      setInteractionState(fetchedInteraction.interaction);
+      // Merge interaction data with state and availableMoves from root
+      // Normalize status: "playing" from game state should map to "active" for UI
+      const gameStatus = fetchedInteraction.state?.status;
+      const interactionStatus = fetchedInteraction.interaction.status;
+      const normalizedStatus = gameStatus === "playing" ? "active" : (interactionStatus || "active");
+      
+      setInteractionState({
+        ...fetchedInteraction.interaction,
+        currentPlayer: fetchedInteraction.state?.currentPlayer || "P",
+        status: normalizedStatus,
+        winner: fetchedInteraction.state?.winner,
+        moveHistory: fetchedInteraction.moveHistory || [],
+        availableMoves: fetchedInteraction.availableMoves || [],
+      });
     }
   }, [fetchedInteraction]);
 
@@ -406,8 +486,9 @@ export function InteractionPlayer({
   React.useEffect(() => {
     if (!isPlaying || !interactionState) return;
 
+    const moveHistoryLength = interactionState.moveHistory?.length ?? 0;
     const timer = setTimeout(() => {
-      if (playbackIndex < interactionState.moveHistory.length - 1) {
+      if (playbackIndex < moveHistoryLength - 1) {
         setPlaybackIndex((i) => i + 1);
       } else {
         setIsPlaying(false);
@@ -427,13 +508,20 @@ export function InteractionPlayer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           arenaId,
+          posDesignId,
+          negDesignId,
           mode: mode === "simulate" ? "auto" : "manual",
         }),
       });
       const data = await res.json();
       if (data.ok) {
         setInteractionId(data.interaction.id);
-        setInteractionState(data.interaction);
+        // Merge availableMoves into the interaction state
+        setInteractionState({
+          ...data.interaction,
+          availableMoves: data.availableMoves || [],
+          moveHistory: data.interaction.moveHistory || [],
+        });
         setPlaybackIndex(0);
 
         // For simulate mode, start auto-play
@@ -451,7 +539,7 @@ export function InteractionPlayer({
   };
 
   // Make a move
-  const makeMove = async (address: LudicAddress) => {
+  const makeMove = async (move: ApiMove) => {
     if (!interactionId || !interactionState) return;
 
     setIsLoading(true);
@@ -461,26 +549,42 @@ export function InteractionPlayer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "move",
-          moveAddress: address,
+          move: {
+            id: move.id,
+            address: move.address,
+            ramification: move.ramification,
+          },
         }),
       });
       const data = await res.json();
+
       if (data.ok) {
-        setInteractionState(data.interaction);
-        onMove?.(data.lastMove, data.interaction);
+        // Update state from response - API returns state at root level, not inside interaction
+        const updatedState: InteractionState = {
+          ...interactionState,
+          currentPlayer: data.state?.currentPlayer || interactionState.currentPlayer,
+          status: data.state?.status === "playing" ? "active" : (data.state?.isGameOver ? "complete" : interactionState.status),
+          winner: data.state?.winner,
+          availableMoves: data.availableMoves || [],
+          moveHistory: data.moveHistory || interactionState.moveHistory || [],
+        };
+        setInteractionState(updatedState);
+        onMove?.(data.moveMade, updatedState);
 
         // Check if complete
-        if (data.interaction.status === "complete") {
+        if (data.state?.isGameOver || updatedState.status === "complete" || updatedState.status === "completed") {
           onComplete?.({
-            interaction: data.interaction,
-            lastMove: data.lastMove,
+            interaction: updatedState,
+            lastMove: data.moveMade,
             isTerminal: true,
-            winner: data.interaction.winner,
+            winner: data.state?.winner,
           });
-        } else if (mode === "play" && data.interaction.currentPlayer !== userPlayer) {
+        } else if (mode === "play" && data.state?.currentPlayer !== userPlayer) {
           // AI's turn
           await makeAIMove();
         }
+      } else {
+        setError(data.error || "Failed to make move");
       }
     } catch (err) {
       setError("Failed to make move");
@@ -504,16 +608,26 @@ export function InteractionPlayer({
         }),
       });
       const data = await res.json();
-      if (data.ok) {
-        setInteractionState(data.interaction);
-        onMove?.(data.lastMove, data.interaction);
 
-        if (data.interaction.status === "complete") {
+      if (data.ok && interactionState) {
+        // Update state from response
+        const updatedState: InteractionState = {
+          ...interactionState,
+          currentPlayer: data.state?.currentPlayer || interactionState.currentPlayer,
+          status: data.state?.status === "playing" ? "active" : (data.state?.isGameOver ? "complete" : interactionState.status),
+          winner: data.state?.winner,
+          availableMoves: data.availableMoves || [],
+          moveHistory: data.moveHistory || interactionState.moveHistory || [],
+        };
+        setInteractionState(updatedState);
+        onMove?.(data.moveMade, updatedState);
+
+        if (data.state?.isGameOver || updatedState.status === "complete") {
           onComplete?.({
-            interaction: data.interaction,
-            lastMove: data.lastMove,
+            interaction: updatedState,
+            lastMove: data.moveMade,
             isTerminal: true,
-            winner: data.interaction.winner,
+            winner: data.state?.winner,
           });
         }
       }
@@ -528,11 +642,11 @@ export function InteractionPlayer({
   const runSimulation = async (id: string) => {
     setIsLoading(true);
     try {
-      let currentState: InteractionState | null = null;
+      let currentState: InteractionState | null = interactionState;
       let iterations = 0;
       const maxIterations = 100;
 
-      while (iterations < maxIterations) {
+      while (iterations < maxIterations && currentState) {
         const res = await fetch(`/api/ludics/interactions/${id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -542,15 +656,23 @@ export function InteractionPlayer({
 
         if (!data.ok) break;
 
-        currentState = data.interaction;
+        // Update state from response
+        currentState = {
+          ...currentState,
+          currentPlayer: data.state?.currentPlayer || currentState.currentPlayer,
+          status: data.state?.status === "playing" ? "active" : (data.state?.isGameOver ? "complete" : currentState.status),
+          winner: data.state?.winner,
+          availableMoves: data.availableMoves || [],
+          moveHistory: data.moveHistory || currentState.moveHistory || [],
+        };
         setInteractionState(currentState);
 
-        if (currentState?.status === "complete") {
+        if (data.state?.isGameOver || currentState.status === "complete") {
           onComplete?.({
             interaction: currentState,
-            lastMove: data.lastMove,
+            lastMove: data.moveMade,
             isTerminal: true,
-            winner: currentState.winner,
+            winner: data.state?.winner,
           });
           break;
         }
@@ -620,18 +742,23 @@ export function InteractionPlayer({
         </div>
         <div className="flex items-center gap-2">
           {interactionState && (
-            <span
-              className={cn(
-                "px-2 py-1 rounded text-sm",
-                interactionState.status === "active"
-                  ? "bg-green-100 text-green-700"
-                  : interactionState.status === "complete"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-slate-100 text-slate-700"
-              )}
-            >
-              {interactionState.status}
-            </span>
+            <>
+              <span
+                className={cn(
+                  "px-2 py-1 rounded text-sm",
+                  interactionState.status === "active"
+                    ? "bg-green-100 text-green-700"
+                    : interactionState.status === "complete"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-100 text-slate-700"
+                )}
+              >
+                {interactionState.status}
+              </span>
+              <span className="text-xs text-slate-500">
+                Moves: {interactionState.moveHistory?.length ?? 0}
+              </span>
+            </>
           )}
           {isLoading && (
             <span className="text-sm text-slate-500 animate-pulse">
@@ -668,7 +795,7 @@ export function InteractionPlayer({
       {interactionState?.status === "complete" && (
         <ResultDisplay
           winner={interactionState.winner}
-          moveCount={interactionState.moveHistory.length}
+          moveCount={interactionState.moveHistory?.length ?? 0}
           onPlayAgain={handlePlayAgain}
         />
       )}
@@ -676,11 +803,11 @@ export function InteractionPlayer({
       {/* Playback controls for replay/simulate */}
       {(mode === "replay" || mode === "simulate") &&
         interactionState &&
-        interactionState.moveHistory.length > 0 && (
+        (interactionState.moveHistory?.length ?? 0) > 0 && (
           <PlaybackControls
             isPlaying={isPlaying}
             currentIndex={playbackIndex}
-            totalMoves={interactionState.moveHistory.length}
+            totalMoves={interactionState.moveHistory?.length ?? 0}
             speed={speed}
             onPlay={handlePlay}
             onPause={handlePause}

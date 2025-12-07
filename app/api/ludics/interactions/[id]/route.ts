@@ -17,8 +17,9 @@ import {
   getMoveHistory,
   computeAIMove,
 } from "@/packages/ludics-core/dds/game";
-import { createArenaMove } from "@/packages/ludics-core/dds/arena";
-import { interactionStore, type InteractionState } from "../route";
+// Use client-safe imports to avoid pulling in Prisma
+import { createArenaMove } from "@/packages/ludics-core/dds/arena/client";
+import { interactionStore, type InteractionState } from "../store";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const { gameState, game } = interaction;
     const availableMoves = getGameAvailableMoves(gameState, game);
     const gameOver = isGameOver(gameState);
+    const moveHistory = interaction.moveHistory || [];
 
     return NextResponse.json({
       ok: true,
@@ -66,15 +68,17 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       state: {
         currentPlayer: gameState.currentPosition.currentPlayer,
         status: gameState.status,
-        moveCount: interaction.moveHistory.length,
+        moveCount: moveHistory.length,
         isGameOver: gameOver,
         winner: gameOver ? getGameWinner(gameState) : null,
       },
       position: {
-        address: gameState.currentPosition.address,
-        depth: gameState.currentPosition.address.length,
+        address: gameState.currentPosition.sequence.length > 0 
+          ? gameState.currentPosition.sequence[gameState.currentPosition.sequence.length - 1].address 
+          : "",
+        depth: gameState.currentPosition.length,
       },
-      moveHistory: interaction.moveHistory,
+      moveHistory: moveHistory,
       availableMoves: availableMoves.map(m => ({
         id: m.id,
         address: m.address,
@@ -123,13 +127,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Ensure moveHistory is initialized (for backward compatibility)
+    if (!interaction.moveHistory) {
+      interaction.moveHistory = [];
+    }
+
     const { game } = interaction;
     let { gameState } = interaction;
 
     switch (action) {
       case "move": {
         // Make a manual move
-        if (!move || !move.address) {
+        // Note: empty string "" is a valid address (root position)
+        if (!move || move.address === undefined || move.address === null) {
           return NextResponse.json(
             { ok: false, error: "move.address is required for move action" },
             { status: 400 }
@@ -150,6 +160,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         );
 
         const newState = makeGameMove(gameState, arenaMove, game, "manual");
+
         if (!newState) {
           return NextResponse.json(
             { ok: false, error: `Invalid move: address "${move.address}" not available` },
@@ -170,10 +181,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         interaction.updatedAt = new Date();
 
         // Check if game ended
-        if (isGameOver(newState)) {
+        const gameOver = isGameOver(newState);
+
+        if (gameOver) {
+          const winner = getGameWinner(newState);
           interaction.status = "completed";
           interaction.result = {
-            winner: getGameWinner(newState),
+            winner: winner,
             totalMoves: interaction.moveHistory.length,
             endReason: "terminal",
           };
@@ -195,6 +209,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             isGameOver: isGameOver(newState),
             winner: isGameOver(newState) ? getGameWinner(newState) : null,
           },
+          moveHistory: interaction.moveHistory.map(m => ({
+            moveNumber: m.moveNumber,
+            player: m.player,
+            address: m.address,
+            ramification: m.ramification,
+          })),
           availableMoves: availableMoves.map(m => ({
             id: m.id,
             address: m.address,
@@ -216,10 +236,11 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         }
 
         const currentPlayer = gameState.currentPosition.currentPlayer;
+
         const aiResult = computeAIMove(gameState, game, "medium");
 
         if (!aiResult) {
-          // No moves available - player is stuck
+          // No moves available - player is stuck, other player wins
           interaction.status = "completed";
           interaction.result = {
             winner: currentPlayer === "P" ? "O" : "P",
@@ -238,6 +259,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
               isGameOver: true,
               winner: interaction.result.winner,
             },
+            moveHistory: interaction.moveHistory.map(m => ({
+              moveNumber: m.moveNumber,
+              player: m.player,
+              address: m.address,
+              ramification: m.ramification,
+            })),
             result: interaction.result,
           });
         }
@@ -280,7 +307,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           moveMade: {
             player: currentPlayer,
             address: aiResult.move.address,
-            reasoning: aiResult.reasoning,
+            reasoning: aiResult.reason,
           },
           state: {
             currentPlayer: newState.currentPosition.currentPlayer,
@@ -289,6 +316,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
             isGameOver: isGameOver(newState),
             winner: isGameOver(newState) ? getGameWinner(newState) : null,
           },
+          moveHistory: interaction.moveHistory.map(m => ({
+            moveNumber: m.moveNumber,
+            player: m.player,
+            address: m.address,
+            ramification: m.ramification,
+          })),
           availableMoves: availableMoves.map(m => ({
             id: m.id,
             address: m.address,

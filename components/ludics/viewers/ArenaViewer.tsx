@@ -64,8 +64,8 @@ export interface ArenaViewerProps {
   arena?: Arena | null;
   /** Arena ID to fetch */
   arenaId?: string;
-  /** Current path to highlight */
-  currentPath?: DialogueAct[];
+  /** Current path to highlight (accepts DialogueAct[] or move history array) */
+  currentPath?: Array<DialogueAct | { address: string; player?: string }>;
   /** Positions to highlight */
   highlightedPositions?: LudicAddress[];
   /** Available moves to indicate */
@@ -92,8 +92,15 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 // HELPERS
 // ============================================================================
 
-function addressToKey(address: LudicAddress): string {
-  return `[${address.join(",")}]`;
+function addressToKey(address: LudicAddress | string | undefined): string {
+  if (address === undefined || address === null) return "∅";
+  if (typeof address === "string") {
+    return address === "" ? "∅" : address;
+  }
+  if (Array.isArray(address)) {
+    return address.length === 0 ? "∅" : `[${address.join(",")}]`;
+  }
+  return String(address);
 }
 
 function keyToAddress(key: string): LudicAddress {
@@ -394,7 +401,13 @@ export function ArenaViewer({
 
   const pathSet = React.useMemo(() => {
     const set = new Set<string>();
-    currentPath?.forEach((act) => set.add(addressToKey(act.focus)));
+    currentPath?.forEach((act: any) => {
+      // Handle both DialogueAct (focus) and move history (address) formats
+      const addr = act.focus ?? act.address;
+      if (addr !== undefined) {
+        set.add(addressToKey(addr));
+      }
+    });
     return set;
   }, [currentPath]);
 

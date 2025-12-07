@@ -37,6 +37,14 @@ import { ChronicleViewer } from "@/components/ludics/ChronicleViewer";
 import { CorrespondenceViewer } from "@/components/ludics/CorrespondenceViewer";
 import { BehaviourHUD } from "@/components/ludics/BehaviourHUD";
 
+// Phase 6 Game Viewer Components (Deliberation Integration)
+import {
+  ArenaViewer,
+  InteractionPlayer,
+  LandscapeHeatMap,
+  ProofNarrative,
+} from "@/components/ludics/viewers";
+
 const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
@@ -169,6 +177,644 @@ function SkeletonCard({ lines = 3 }: { lines?: number }) {
   );
 }
 
+/* --------------------- Phase 6 Game View Panel -------------------------- */
+/**
+ * GameViewPanel - Phase 6 Deliberation Integration Game Interface
+ * 
+ * Integrates the Phase 6 viewer components:
+ * - InteractionPlayer: Play/replay/simulate game interactions
+ * - ArenaViewer: Visualize arena with polarity coloring
+ * - LandscapeHeatMap: Strategic landscape visualization
+ * - ProofNarrative: Justified narrative from interactions
+ */
+function GameViewPanel({
+  deliberationId,
+  designs,
+  isLoading,
+}: {
+  deliberationId: string;
+  designs: any[];
+  isLoading: boolean;
+}) {
+  // Game mode state
+  const [gameMode, setGameMode] = React.useState<"play" | "replay" | "simulate">("play");
+  const [activeTab, setActiveTab] = React.useState<"player" | "arena" | "landscape" | "narrative">("arena");
+  const [userPlayer, setUserPlayer] = React.useState<"P" | "O">("P");
+  const [aiStrategy, setAiStrategy] = React.useState<"random" | "minimax" | "greedy">("minimax");
+  const [playbackSpeed, setPlaybackSpeed] = React.useState(1000);
+  
+  // Extract proponent and opponent design IDs
+  const posDesign = designs.find((d: any) => d.participantId === "Proponent") || designs[0];
+  const negDesign = designs.find((d: any) => d.participantId === "Opponent") || designs[1] || designs[0];
+  const posDesignId = posDesign?.id || "";
+  const negDesignId = negDesign?.id || "";
+  
+  // Arena state - created on-demand from designs
+  const [arena, setArena] = React.useState<any>(null);
+  const [arenaLoading, setArenaLoading] = React.useState(false);
+  const [arenaError, setArenaError] = React.useState<string | null>(null);
+  const [arenaAttempted, setArenaAttempted] = React.useState(false);
+  
+  // Create arena from designs - using client-side construction to avoid DB issues
+  const createArena = React.useCallback(async () => {
+    if (!designs || designs.length === 0) return;
+    if (arenaAttempted) return; // Don't retry automatically
+    
+    setArenaLoading(true);
+    setArenaError(null);
+    setArenaAttempted(true);
+    
+    try {
+      // Build arena directly from designs client-side instead of calling API
+      // This avoids the prisma.findMany issue in the API route
+      const arenaId = `arena-${deliberationId}-${Date.now()}`;
+      
+      // Collect all moves from all designs
+      const moves: any[] = [];
+      let moveIndex = 0;
+      
+      designs.forEach((design: any) => {
+        if (design.acts) {
+          design.acts.forEach((act: any) => {
+            moves.push({
+              id: `${arenaId}-move-${moveIndex++}`,
+              address: act.locusPath || act.locus?.path || "0",
+              ramification: act.ramification || [],
+              player: act.polarity === "P" || act.polarity === "+" ? "P" : "O",
+              isInitial: moveIndex === 1,
+              content: act.expression || "",
+              designId: design.id,
+              participantId: design.participantId,
+            });
+          });
+        }
+      });
+      
+      // Calculate stats
+      const depths = moves.map(m => (m.address?.split(".").length || 1));
+      const maxDepth = Math.max(...depths, 1);
+      
+      // Create arena object
+      const newArena = {
+        id: arenaId,
+        base: "0",
+        moves,
+        deliberationId,
+        isUniversal: false,
+        stats: {
+          totalMoves: moves.length,
+          maxDepth,
+          playerCount: { P: moves.filter(m => m.player === "P").length, O: moves.filter(m => m.player === "O").length },
+        },
+        enablingRelation: {},
+      };
+      
+      setArena(newArena);
+    } catch (err: any) {
+      setArenaError(err.message || "Failed to create arena");
+    } finally {
+      setArenaLoading(false);
+    }
+  }, [deliberationId, designs, arenaAttempted]);
+  
+  // Auto-create arena when designs change (only once per mount)
+  React.useEffect(() => {
+    if (designs && designs.length > 0 && !arena && !arenaLoading && !arenaError && !arenaAttempted) {
+      createArena();
+    }
+  }, [designs, arena, arenaLoading, arenaError, arenaAttempted, createArena]);
+  
+  // Landscape state - generated from arena data when tab is active
+  const [landscapeData, setLandscapeData] = React.useState<any>(null);
+  const [landscapeLoading, setLandscapeLoading] = React.useState(false);
+  const [landscapeError, setLandscapeError] = React.useState<string | null>(null);
+  
+  // Interaction state for replay/current game (declared before effects that use it)
+  const [currentInteraction, setCurrentInteraction] = React.useState<any>(null);
+  const [narrativeData, setNarrativeData] = React.useState<any>(null);
+  const [narrativeLoading, setNarrativeLoading] = React.useState(false);
+  
+  // Generate landscape data from arena when switching to landscape tab
+  React.useEffect(() => {
+    if (activeTab === "landscape" && arena && !landscapeData && !landscapeLoading) {
+      setLandscapeLoading(true);
+      setLandscapeError(null);
+      
+      try {
+        // Generate landscape directly from arena moves
+        const positions: any[] = [];
+        const flowPaths: any[] = [];
+        const criticalPoints: any[] = [];
+        
+        // Build position tree from arena moves
+        const movesByAddress = new Map<string, any>();
+        arena.moves.forEach((move: any) => {
+          const addrStr = move.address || "";
+          movesByAddress.set(addrStr, move);
+        });
+        
+        // Calculate positions with coordinates based on depth
+        let minX = 0, maxX = 0, minY = 0, maxY = 0;
+        let posIndex = 0;
+        
+        // Root position
+        positions.push({
+          address: [],
+          x: 0,
+          y: 0,
+          strength: 0.5,
+          polarity: "+",
+          label: "∅",
+          size: 1,
+        });
+        
+        // Build positions from moves
+        arena.moves.forEach((move: any, idx: number) => {
+          const addrStr = move.address || "";
+          const depth = addrStr.length;
+          const x = (idx % 10) * 60 - 270;
+          const y = depth * 80;
+          
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+          
+          // Convert string address to array
+          const addressArray = addrStr ? addrStr.split("").map(Number) : [];
+          
+          positions.push({
+            address: addressArray,
+            x,
+            y,
+            strength: 0.3 + Math.random() * 0.4, // Simulated strength
+            polarity: depth % 2 === 0 ? "+" : "-",
+            label: addrStr || "∅",
+            size: move.ramification?.length || 1,
+          });
+          posIndex++;
+        });
+        
+        // Find branching points as critical points
+        const childCounts = new Map<string, number>();
+        arena.moves.forEach((move: any) => {
+          const addr = move.address || "";
+          if (addr.length > 0) {
+            const parent = addr.slice(0, -1);
+            childCounts.set(parent, (childCounts.get(parent) || 0) + 1);
+          }
+        });
+        
+        childCounts.forEach((count, addr) => {
+          if (count > 1) {
+            criticalPoints.push({
+              address: addr ? addr.split("").map(Number) : [],
+              type: count > 2 ? "decisive" : "bottleneck",
+              description: `${count} branches`,
+            });
+          }
+        });
+        
+        // Create a simple flow path from move history if available
+        if (currentInteraction?.moveHistory?.length > 0) {
+          flowPaths.push({
+            id: "current-game",
+            name: "Current Game Path",
+            positions: currentInteraction.moveHistory.map((m: any) => 
+              m.address ? m.address.split("").map(Number) : []
+            ),
+            frequency: 1,
+            outcome: currentInteraction.winner || undefined,
+          });
+        }
+        
+        const landscape = {
+          id: `landscape-${arena.id}`,
+          arenaId: arena.id,
+          positions,
+          flowPaths,
+          criticalPoints,
+          bounds: { minX: minX - 50, maxX: maxX + 50, minY: minY - 50, maxY: maxY + 50 },
+          stats: {
+            totalPositions: positions.length,
+            avgStrength: 0.5,
+            maxDepth: Math.max(...positions.map(p => (p.address as number[]).length), 0),
+          },
+        };
+        
+        setLandscapeData({ ok: true, landscape });
+      } catch (err: any) {
+        setLandscapeError(err.message || "Failed to generate landscape");
+      } finally {
+        setLandscapeLoading(false);
+      }
+    }
+  }, [activeTab, arena, landscapeData, landscapeLoading, currentInteraction]);
+  
+  // Helper to generate narrative from move history
+  const generateNarrativeFromMoves = React.useCallback((interaction: any) => {
+    const moves = interaction?.moveHistory || [];
+    const winner = interaction?.winner;
+    
+    return {
+      id: `narrative-${interaction?.id || "local"}`,
+      title: "Game Proof Narrative",
+      steps: moves.map((move: any, idx: number) => ({
+        stepNumber: idx + 1,
+        speaker: move.player === "P" ? "Proponent" : "Opponent",
+        moveType: idx === 0 ? "opening" : (idx === moves.length - 1 ? "closing" : "response"),
+        content: idx === 0 
+          ? "Opening move - establishing initial position"
+          : `Response to ${moves[idx - 1]?.player === "P" ? "Proponent" : "Opponent"}'s move`,
+        address: move.address ? (typeof move.address === "string" ? move.address.split("").map(Number) : move.address) : [],
+        justificationChain: Array.from({ length: idx }, (_, i) => i + 1),
+        polarity: move.player === "P" ? "+" as const : "-" as const,
+        isDaimon: false,
+        timestamp: move.timestamp || new Date().toISOString(),
+      })),
+      conclusion: {
+        winner: winner === "P" ? "P" : winner === "O" ? "O" : "draw",
+        summary: `Game completed in ${moves.length} moves. ${winner ? `Player ${winner} wins.` : "Game ended in draw."}`,
+        keyPoints: [
+          `Total moves: ${moves.length}`,
+          `Proponent (P) moves: ${moves.filter((m: any) => m.player === "P").length}`,
+          `Opponent (O) moves: ${moves.filter((m: any) => m.player === "O").length}`,
+        ],
+      },
+      metadata: {
+        interactionId: interaction?.id,
+        generatedAt: new Date().toISOString(),
+        style: "formal" as const,
+      },
+    };
+  }, []);
+  
+  // Fetch narrative when switching to narrative tab (if we have a completed interaction)
+  React.useEffect(() => {
+    if (activeTab === "narrative" && currentInteraction?.id && !narrativeData && !narrativeLoading) {
+      setNarrativeLoading(true);
+      fetch(`/api/ludics/interactions/${currentInteraction.id}/path?format=narrative`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.ok && data.narrative) {
+            setNarrativeData(data.narrative);
+          } else {
+            // Fallback: generate from move history
+            setNarrativeData(generateNarrativeFromMoves(currentInteraction));
+          }
+        })
+        .catch(() => {
+          // Fallback on error: generate from move history
+          setNarrativeData(generateNarrativeFromMoves(currentInteraction));
+        })
+        .finally(() => setNarrativeLoading(false));
+    }
+  }, [activeTab, currentInteraction?.id, narrativeData, narrativeLoading, generateNarrativeFromMoves, currentInteraction]);
+  
+  // Handlers
+  const handleInteractionComplete = React.useCallback((result: any) => {
+    setCurrentInteraction(result.interaction);
+    // Immediately fetch/generate narrative for completed interaction
+    if (result.interaction?.id) {
+      setNarrativeLoading(true);
+      fetch(`/api/ludics/interactions/${result.interaction.id}/path?format=narrative`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.ok && data.narrative) {
+            setNarrativeData(data.narrative);
+          } else {
+            // Fallback: generate from move history
+            setNarrativeData(generateNarrativeFromMoves(result.interaction));
+          }
+        })
+        .catch(() => {
+          // Fallback on error
+          setNarrativeData(generateNarrativeFromMoves(result.interaction));
+        })
+        .finally(() => setNarrativeLoading(false));
+    }
+  }, [generateNarrativeFromMoves]);
+  
+  const handleMoveCallback = React.useCallback((move: any, state: any) => {
+    setCurrentInteraction(state);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="border rounded-lg p-4 bg-white/60">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <span className="animate-pulse">⏳</span>
+          Loading designs...
+        </div>
+      </div>
+    );
+  }
+
+  // If no designs exist yet, show setup UI
+  if (!designs || designs.length === 0) {
+    return (
+      <div className="border rounded-lg p-6 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <div className="text-center space-y-4">
+          <div className="text-4xl">🎮</div>
+          <h3 className="text-lg font-bold text-slate-800">Game Mode</h3>
+          <p className="text-sm text-slate-600 max-w-md mx-auto">
+            No designs exist for this deliberation yet. Create designs using the Forest, Unified, or Split views first, 
+            then return here to play the ludic game.
+          </p>
+          <div className="text-xs text-slate-500 bg-white/60 rounded-lg p-3 max-w-sm mx-auto">
+            <p className="font-medium mb-1">Quick Start:</p>
+            <ol className="list-decimal list-inside text-left space-y-1">
+              <li>Add dialogue moves in the deliberation</li>
+              <li>Click &ldquo;Compile&rdquo; to build designs</li>
+              <li>Return to Game view to play</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show arena loading state
+  if (arenaLoading) {
+    return (
+      <div className="border rounded-lg p-4 bg-white/60">
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <span className="animate-pulse">🏟️</span>
+          Building arena from {designs.length} design(s)...
+        </div>
+      </div>
+    );
+  }
+  
+  // Show arena error with retry
+  if (arenaError) {
+    return (
+      <div className="border rounded-lg p-6 bg-gradient-to-br from-red-50 to-orange-50">
+        <div className="text-center space-y-4">
+          <div className="text-4xl">⚠️</div>
+          <h3 className="text-lg font-bold text-slate-800">Arena Creation Failed</h3>
+          <p className="text-sm text-red-600 max-w-md mx-auto">{arenaError}</p>
+          <button
+            onClick={() => {
+              setArena(null);
+              setArenaError(null);
+              setArenaAttempted(false);
+            }}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If arena not created yet (shouldn't happen normally due to auto-create)
+  if (!arena) {
+    return (
+      <div className="border rounded-lg p-6 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <div className="text-center space-y-4">
+          <div className="text-4xl">🎮</div>
+          <h3 className="text-lg font-bold text-slate-800">Ready to Play</h3>
+          <p className="text-sm text-slate-600 max-w-md mx-auto">
+            Found {designs.length} design(s). Create an arena to start playing.
+          </p>
+          <button
+            onClick={() => {
+              setArenaAttempted(false);
+            }}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition"
+          >
+            Create Arena
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg p-4 bg-gradient-to-br from-slate-50 to-indigo-50/30 space-y-4">
+      {/* Header with mode & player controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🎮</span>
+          <h3 className="font-bold text-slate-800">Game Mode</h3>
+          <span className="text-xs text-slate-500 bg-white/70 px-2 py-0.5 rounded">
+            Phase 6
+          </span>
+          {arena.stats && (
+            <span className="text-xs text-slate-500 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              {arena.stats.totalMoves ?? arena.moves?.length ?? 0} moves · depth {arena.stats.maxDepth ?? "?"}
+            </span>
+          )}
+        </div>
+        
+        {/* Mode selector */}
+        <Segmented
+          ariaLabel="Game mode"
+          value={gameMode}
+          onChange={setGameMode}
+          options={[
+            { value: "play", label: "▶ Play" },
+            { value: "replay", label: "⏪ Replay" },
+            { value: "simulate", label: "🤖 Simulate" },
+          ]}
+        />
+      </div>
+      
+      {/* Settings row */}
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        {gameMode === "play" && (
+          <>
+            <label className="flex items-center gap-1.5">
+              <span className="text-slate-600">You play as:</span>
+              <select
+                value={userPlayer}
+                onChange={(e) => setUserPlayer(e.target.value as "P" | "O")}
+                className="border rounded px-2 py-1 bg-white"
+              >
+                <option value="P">Proponent (+)</option>
+                <option value="O">Opponent (−)</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-slate-600">AI Strategy:</span>
+              <select
+                value={aiStrategy}
+                onChange={(e) => setAiStrategy(e.target.value as "random" | "minimax" | "greedy")}
+                className="border rounded px-2 py-1 bg-white"
+              >
+                <option value="random">Random</option>
+                <option value="minimax">Minimax</option>
+                <option value="greedy">Greedy</option>
+              </select>
+            </label>
+          </>
+        )}
+        {(gameMode === "replay" || gameMode === "simulate") && (
+          <label className="flex items-center gap-1.5">
+            <span className="text-slate-600">Speed:</span>
+            <select
+              value={playbackSpeed}
+              onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+              className="border rounded px-2 py-1 bg-white"
+            >
+              <option value={2000}>0.5x</option>
+              <option value={1000}>1x</option>
+              <option value={500}>2x</option>
+              <option value={250}>4x</option>
+            </select>
+          </label>
+        )}
+      </div>
+      
+      {/* Tab navigation for views */}
+      <div className="flex border-b border-slate-200">
+        {[
+          { key: "player", label: "🎯 Player", desc: "Interactive game" },
+          { key: "arena", label: "🏟️ Arena", desc: "Position tree" },
+          { key: "landscape", label: "🗺️ Landscape", desc: "Heat map" },
+          { key: "narrative", label: "📜 Narrative", desc: "Proof story" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as typeof activeTab)}
+            className={[
+              "px-4 py-2 text-xs font-medium border-b-2 transition-colors",
+              activeTab === tab.key
+                ? "border-indigo-500 text-indigo-700 bg-indigo-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-800 hover:bg-slate-50",
+            ].join(" ")}
+            title={tab.desc}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* Content area */}
+      <div className="min-h-[400px] bg-white/60 rounded-lg border border-slate-200 overflow-hidden">
+        {activeTab === "player" && (
+          <InteractionPlayer
+            arenaId={arena.id}
+            posDesignId={posDesignId}
+            negDesignId={negDesignId}
+            mode={gameMode}
+            userPlayer={gameMode === "play" ? userPlayer : undefined}
+            aiStrategy={aiStrategy}
+            playbackSpeed={playbackSpeed}
+            onComplete={handleInteractionComplete}
+            onMove={handleMoveCallback}
+            className="h-full"
+          />
+        )}
+        
+        {activeTab === "arena" && (
+          <ArenaViewer
+            arena={arena}
+            currentPath={currentInteraction?.moveHistory}
+            showStrength={true}
+            mode="tree"
+            className="h-full"
+          />
+        )}
+        
+        {activeTab === "landscape" && (
+          landscapeLoading ? (
+            <div className="flex items-center justify-center h-full text-sm text-slate-500">
+              <span className="animate-pulse">🗺️ Loading landscape analysis...</span>
+            </div>
+          ) : landscapeError ? (
+            <div className="flex flex-col items-center justify-center h-full text-sm text-red-500 p-6">
+              <span className="text-3xl mb-2">⚠️</span>
+              <p>Failed to load landscape</p>
+              <p className="text-xs mt-1">{landscapeError}</p>
+              <button
+                onClick={() => {
+                  setLandscapeData(null);
+                  setLandscapeError(null);
+                }}
+                className="mt-3 px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-xs"
+              >
+                Retry
+              </button>
+            </div>
+          ) : landscapeData?.landscape ? (
+            <LandscapeHeatMap
+              landscape={landscapeData.landscape}
+              showFlowPaths={true}
+              showCriticalPoints={true}
+              colorScheme="heat"
+              className="h-full"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-sm text-slate-500 p-6">
+              <span className="text-3xl mb-2">🗺️</span>
+              <p>No landscape data available.</p>
+              <p className="text-xs mt-1">
+                {arena ? "Loading landscape analysis..." : "Create an arena first by starting a game."}
+              </p>
+            </div>
+          )
+        )}
+        
+        {activeTab === "narrative" && (
+          narrativeLoading ? (
+            <div className="flex items-center justify-center h-full text-sm text-slate-500">
+              <span className="animate-pulse">📜 Loading narrative...</span>
+            </div>
+          ) : narrativeData ? (
+            <ProofNarrative
+              narrative={narrativeData}
+              showJustifications={true}
+              expandable={true}
+              defaultExpanded={false}
+              className="h-full"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-sm text-slate-500 p-6">
+              <span className="text-3xl mb-2">📜</span>
+              <p>No narrative available yet.</p>
+              <p className="text-xs mt-1">Complete an interaction to generate a proof narrative.</p>
+            </div>
+          )
+        )}
+      </div>
+      
+      {/* Status bar */}
+      {currentInteraction && (
+        <div className="flex items-center justify-between text-xs bg-white/70 rounded-lg px-3 py-2 border border-slate-200">
+          <div className="flex items-center gap-3">
+            <span className="text-slate-600">
+              Status: <span className="font-medium">{currentInteraction.status}</span>
+            </span>
+            <span className="text-slate-600">
+              Moves: <span className="font-medium">{currentInteraction.moveHistory?.length ?? 0}</span>
+            </span>
+            {currentInteraction.currentPlayer && (
+              <span className="text-slate-600">
+                Turn: <span className={currentInteraction.currentPlayer === "P" ? "text-blue-600 font-medium" : "text-red-600 font-medium"}>
+                  {currentInteraction.currentPlayer === "P" ? "Proponent" : "Opponent"}
+                </span>
+              </span>
+            )}
+          </div>
+          {currentInteraction.winner && (
+            <span className={[
+              "px-2 py-0.5 rounded-full font-medium",
+              currentInteraction.winner === "P" ? "bg-blue-100 text-blue-700" :
+              currentInteraction.winner === "O" ? "bg-red-100 text-red-700" :
+              "bg-slate-100 text-slate-700"
+            ].join(" ")}>
+              Winner: {currentInteraction.winner === "P" ? "Proponent" : currentInteraction.winner === "O" ? "Opponent" : "Draw"}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------- Types ---------------------------------- */
 // type StepResult = {
 //   steps: Array<{ posActId: string; negActId: string; ts?: number }>;
@@ -218,7 +864,7 @@ export default function LudicsPanel({
   const [phase, setPhase] = React.useState<"neutral" | "focus-P" | "focus-O">(
     "neutral"
   );
-  const [viewMode, setViewMode] = React.useState<"forest" | "unified" | "split">(
+  const [viewMode, setViewMode] = React.useState<"forest" | "unified" | "split" | "game">(
     "forest"
   );
   const [commitOpen, setCommitOpen] = React.useState(false);
@@ -1294,6 +1940,7 @@ const suggestClose = React.useCallback((path: string) => {
               { value: "forest", label: "Forest" },
               { value: "unified", label: "Unified" },
               { value: "split", label: "Split" },
+              { value: "game", label: "🎮 Game" },
             ]}
           />
 
@@ -2507,7 +3154,7 @@ const suggestClose = React.useCallback((path: string) => {
               />
             )}
           </div>
-        ) : (
+        ) : viewMode === "split" ? (
           // Split view: one per design (kept for debugging/teaching)
           <div className="grid md:grid-cols-2 gap-4">
             {isDesignsLoading && (
@@ -2558,6 +3205,13 @@ const suggestClose = React.useCallback((path: string) => {
               </div>
             ))}
           </div>
+        ) : (
+          // Game view: Phase 6 interactive game components
+          <GameViewPanel
+            deliberationId={deliberationId}
+            designs={designs}
+            isLoading={isDesignsLoading}
+          />
         )}
       </div>
 

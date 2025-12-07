@@ -10,11 +10,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+// Use client-safe imports to avoid pulling in Prisma
 import {
   createUniversalArena,
   createArenaFromDesigns,
-} from "@/packages/ludics-core/dds/arena";
-import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena";
+} from "@/packages/ludics-core/dds/arena/client";
+import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena/client";
 
 // In-memory arena storage for demo/development
 // Maps deliberationId -> arenas[]

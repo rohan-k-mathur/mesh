@@ -19,45 +19,18 @@ import {
   encodeGameState,
   decodeGameState,
 } from "@/packages/ludics-core/dds/game";
+// Use client-safe imports to avoid pulling in Prisma
 import {
   createUniversalArena,
-} from "@/packages/ludics-core/dds/arena";
+} from "@/packages/ludics-core/dds/arena/client";
 import type { LudicsGame, GamePlayState } from "@/packages/ludics-core/dds/game";
-import type { UniversalArena } from "@/packages/ludics-core/dds/arena";
+import type { UniversalArena } from "@/packages/ludics-core/dds/arena/client";
 import { arenaById } from "../arenas/route";
-
-// Types for interaction management
-export interface InteractionState {
-  id: string;
-  arenaId: string;
-  posDesignId: string;
-  negDesignId: string;
-  mode: "manual" | "auto" | "step";
-  status: "active" | "completed" | "paused" | "error";
-  gameState: GamePlayState;
-  game: LudicsGame;
-  moveHistory: Array<{
-    moveNumber: number;
-    player: "P" | "O";
-    address: string;
-    ramification: number[];
-    timestamp: Date;
-  }>;
-  createdAt: Date;
-  updatedAt: Date;
-  result?: {
-    winner: "P" | "O" | "draw" | null;
-    totalMoves: number;
-    endReason: "terminal" | "stuck" | "daimon" | "max-moves" | "manual-stop";
-  };
-}
-
-// In-memory interaction storage
-// Maps interactionId -> InteractionState
-const interactionStore: Map<string, InteractionState> = new Map();
-
-// Index by arena for listing
-const interactionsByArena: Map<string, string[]> = new Map();
+import { 
+  interactionStore, 
+  interactionsByArena, 
+  type InteractionState,
+} from "./store";
 
 /**
  * POST /api/ludics/interactions
@@ -239,7 +212,7 @@ export async function GET(req: NextRequest) {
         mode: i.mode,
         status: i.status,
         currentPlayer: i.gameState.currentPosition.currentPlayer,
-        moveCount: i.moveHistory.length,
+        moveCount: (i.moveHistory || []).length,
         isGameOver: isGameOver(i.gameState),
         winner: i.result?.winner,
         createdAt: i.createdAt,
@@ -257,5 +230,5 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Export stores for use by other routes
-export { interactionStore, interactionsByArena };
+// Re-export stores and types for use by other routes
+export { interactionStore, interactionsByArena, type InteractionState } from "./store";

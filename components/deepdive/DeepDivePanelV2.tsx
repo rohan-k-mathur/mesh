@@ -1334,7 +1334,7 @@ const {
                   `}
                   title="Toggle Deliberation Settings Panel"
                 >
-                  Delib Settings: {delibState.delibSettingsOpen ? 'ON' : 'OFF'}
+                  Settings: {delibState.delibSettingsOpen ? 'HIDE' : 'SHOW'}
                 </button>
              
             </div>

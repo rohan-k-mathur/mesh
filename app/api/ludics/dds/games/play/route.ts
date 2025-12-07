@@ -18,12 +18,13 @@ import {
   getMoveHistory,
   getGamePlayStats,
 } from "@/packages/ludics-core/dds/game";
+// Use client-safe imports to avoid pulling in Prisma
 import {
   createUniversalArena,
   createArenaMove,
-} from "@/packages/ludics-core/dds/arena";
+} from "@/packages/ludics-core/dds/arena/client";
 import type { LudicsGame, GamePlayState, AIDifficulty } from "@/packages/ludics-core/dds/game";
-import type { UniversalArena } from "@/packages/ludics-core/dds/arena";
+import type { UniversalArena } from "@/packages/ludics-core/dds/arena/client";
 
 // In-memory game state storage (for demo purposes)
 const gameStates = new Map<string, GamePlayState>();

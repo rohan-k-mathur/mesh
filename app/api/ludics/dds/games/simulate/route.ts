@@ -23,11 +23,12 @@ import {
   computeAIMoveWithLookahead,
   getRandomMove,
 } from "@/packages/ludics-core/dds/game";
+// Use client-safe imports to avoid pulling in Prisma
 import {
   createUniversalArena,
-} from "@/packages/ludics-core/dds/arena";
+} from "@/packages/ludics-core/dds/arena/client";
 import type { LudicsGame, SimulationConfig, AIDifficulty, GamePlayState } from "@/packages/ludics-core/dds/game";
-import type { UniversalArena } from "@/packages/ludics-core/dds/arena";
+import type { UniversalArena } from "@/packages/ludics-core/dds/arena/client";
 
 // AI vs AI simulation that actually works without pre-defined strategies
 function simulateAIvsAI(

@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { arenaById } from "../route";
-import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena";
+// Use client-safe imports to avoid pulling in Prisma
+import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena/client";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
