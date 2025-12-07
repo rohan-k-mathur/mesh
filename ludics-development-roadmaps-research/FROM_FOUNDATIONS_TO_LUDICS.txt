@@ -1,0 +1,1791 @@
+The Bulletin of Symbolic Logic
+Volume 9, Number 2, June 2003
+FROM FOUNDATIONS TO LUDICS
+JEAN-YVES GIRARD
+Ludics [1] is a novel approach to logic—especially proof-theory. The
+present introduction emphasises foundational issues.
+§1. All Quiet on the Western Front. For ages, not a single disturbing idea in
+the area of “foundations”: the discussion is sort of ossified—as if everything
+had been said, as if all notions had taken their definite place, in a big
+cemetery of ideas. One can still refresh the flowers or regild the stone, e.g.,
+prove technicalities, sometimes non-trivial                                                                                                                                                                                ; but the real debate is still: this
+paper begins with an autopsy, the autopsy of the foundational project.
+1.1. Realism. Up to say 1900, the realist/dualist approach to science was
+dominant                                                                                                                                                                                                                   ; during the last century some domains like physics evolved so as
+to become completely anti-realist                                                                                                                                                                                          ; but this evolution hardly concerned logic.
+1.1.1. Hilbert’s legacy. By the turn of the XXth century mathematics
+was jeopardised by paradoxes, the most famous of them being due to
+Russell. Hilbert’s reaction was to focus on consistency. But the reduction of
+paradoxes—and therefore of foundations—to solely the antinomies is highly
+questionable:1 indeed, the typical paradoxical artifacts are secret sharers,
+objects satisfying the formal definitions but far astray from the intended
+meaning, typically the Peano “curve” which contradicts our perception of
+dimension. Fortunately, topology has been able to show that dimension m
+is not the same as dimension n ... but just for a second, forget this and
+imagine consistent mathematics in which balls in any dimension are homeomorphic: what a disaster! This exclusive focus on consistency—not to
+speak of the strategic failure of the Programme—should explain why logic,
+especially foundations lost contact with other sciences during last century.
+Indeed Hilbert’s Programme is not quite realistic, it is procedural, see 1.3
+below: Hilbert tried to avoid as much as possible the external reality. This
+was wise                                                                                                                                                                                                                   ; but he made several mistakes, both technical and methodological:
+We shall see that Hilbert’s Programme relies on a duality between proofs
+of A and proofs of ¬A. But the dualising object, the pivot of this
+Received December 6, 2001                                                                                                                                                                                                  ; accepted September 6, 2002. 1
+oα ´ : dogma, opinion, intuition ... : a paradox need not be a formal contradiction.
+c 2003, Association for Symbolic Logic
+1079-8986/03/0902-0002/$4.80
+131
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+132 JEAN-YVES GIRARD
+duality—the proofs of the absurdity—is empty and this leads to a
+disaster, see 2.1.2, 2.1.3.
+The mere idea of foundations of mathematics inside mathematics is
+questionable, there is an obvious conflict of interest, which is not fixed
+with the controversial idea of metamathematics.
+2 Indeed these metamathematics are just a part of ordinary mathematics—possibly with a
+hand tied in the back: this remark underlies Godel’s incompleteness. ¨
+What remains of this is a sort of diabolus in logica: the foundational
+discourse, once embedded in mathematics yields artificial formulas,—
+which rather look like sophisms: “I am not provable”. Those are still
+secret sharers, but more difficult to cope with than their topological
+ancestors: after the curve with no derivative, the sentence with no
+meaning!
+The current formalist ideology says that mathematics is a pure play on
+symbols. This underlies notational quarrels: if operationM distributes
+over operation A, a formalist may insist on using M = ⊕, A = ⊗ or
+something of the like “you know, notations are arbitrary”, implicitly
+denying any special value to distribution. The mistake might lie in a
+subtle shift from pure play to “meaningless”: who told us that a play
+on symbols is meaningless, has not its own geometry? By the way,
+Gentzen—Hilbert’s most conspicuous follower—disclosed a structure
+(sequent calculus) underlying the “play on symbols” ... and sequent
+calculus has its own geometrical structure—this is precisely what ludics
+is about.
+The failure of Hilbert’s Programme—a reductionist procedural explanation—
+was felt like the total victory of realism. What remains of Hilbert’s spirit in
+the “official” approach to foundations is a lurking positivism which underlies
+the pregnancy of this strange animal—the meta—which accounts both for
+the failure of the programme and the cracks in the realistic building.
+1.1.2. Object vs. subject. The current explanation of logic distinguishes
+between the world (objective) and its representation (subjective), the object
+and the subject. Logical realism relies on an opposition between semantics
+(the world) and syntax (its representation): this opposition is expressed
+through soundness and (in)completeness. The approach is highly problematic:
+It is a bit delicate to say that natural numbers are “the world”. {0, 1, 2}
+does make a small world, but not {0, 1, 2,... }: “ ... ” is a pure fantasy, nobody knowing how to interpret it. The only uncontroversial
+fact is that we have efficient ways of manipulating “ ... ”—typically
+induction axioms: integers as satisfying “all” inductions, this is what
+2
+´α means various things, mainly “besides, after”, for instance in metaphysics. In
+logic the expression conveys—together with “intensional”—a magical connotation: this
+irrationalism is the hidden face of positivism.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 133
+both Dedekind and Peano tried to catch, with different technicalities.
+Natural numbers and their predicates, the object and the subject, they
+are in a egg-and-hen relationship, in particular it is difficult to think of
+one independently of the other.
+Nevertheless the “subjective” part receives no status at all: a plain formal bureaucracy, subject to rather arbitrary choices. For instance certain authors will insist on minimising the number of connectives or the
+number of rules, e.g., do everything with the connective “equivalent”.
+The fact that predicate calculus is complete becomes a pure miracle:
+why should this bureaucracy correspond to something natural?
+The same holds when one plugs in incompleteness: not everything is
+provable, but there are weaker or stronger systems. The image is that
+of a Big Book in which we can eavesdrop: we can see part of it, but
+only part of it. Then we can classify the keyholes, think of “reverse
+mathematics”, of the “ordinal strength” of theories. Again there is
+not the slightest explanation for the coexistence of various systems of
+arithmetic: simply because the “subjective part” gets no autonomous
+status.
+In fact there is a complete absence of explanation. This is obvious if we
+look at the Tarskian “definition” of truth “A is true iff A holds”. The
+question is not to know whether mathematics accepts such a definition
+but if there is any contents in it ... . What is disjunction? Disjunction is
+disjunction ... . What is the solution to x2 = 3? It is the set of numbers
+a such that a2 = 3 ... . The distinction between ∨ and a hypothetical
+meta-∨ is just a way to avoid the problem: you ask for real money but
+you are paid with meta-money.
+Classical logic is the logic of reality, the realistic logic. The realist
+paradigm, which is criticisable in the classical case, becomes impossible
+as soon as we step out of classical logic. An interesting exercise is the
+building of a Broccoli logic: it consists in introducing new connectives,
+new rules, the worst you can imagine, and then to define everything a la `
+Tarski. Miracle of miracles, completeness and soundness still hold: just
+because the reality has been defined from its representation: typically
+the semantics is the syntax in boldface                                                                                                                                                                                    ; but this nonsense gets a beautiful
+name, the free Broccolo.
+Moreover there is a basic mistake in the idea of semantics-as-reality.
+Everybody has seen a proof, maybe not a formal one, but at least
+something that can be transformed into a formal proof by a computer.
+But nobody has ever seen the tail of a model, models are ideal (usually
+infinite) objects. Moreover, what is the destiny of a proof ? It is to be
+combined with other proofs: theorem A can be used as a lemma to
+yield B. This suggests looking for an internal explanation.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+134 JEAN-YVES GIRARD
+1.1.3. The foundational Trinity. Usual “foundations” therefore involve
+three layers, just like the Christian Trinity:
+Semantics: A first, irreducible, layer is realistic: properties are true or
+false, they refer to some absolute external reality, the integers—you
+know 0, 1, 2,... . Think of the Father.
+Syntax: Due to incompleteness, a second partner appears: there are
+stronger and weaker theories, i.e., ways of accessing this absolute truth.
+This is the Son (a.k.a. Verb) in the Foundational Trinity.
+Meta: Truth is “defined” via a pleonasm, Tarskian semantics (a.k.a. v´erit´e
+de La Palice)                                                                                                                                                                                                              ; later on, this absolute truth turns into a sort of Animal
+Farm where some are truer than others                                                                                                                                                                                      ; even worse, among the truths
+some are “predicatively correct”, some are not, think of the consistency
+of “predicative arithmetic”: in the Library of Truth, these incorrect
+truths are relegated to the inferno together with the licentious books of
+Marquis de Sade. Some sort of glue—or smoke, is welcome: this is the
+Meta, which is the Holy Ghost (a.k.a. go-between) of the Trinity.
+The Trinity fixes the Tarskian pleonasm by allowing the Father to be no more
+than the “meta”—the genitor—of the Son, which in turn can be the meta of
+somebody else: “Turtles all the way down”, each turtle sitting on a bigger
+metaturtle. The various layers are related through (in)completeness and
+soundness. It is not impossible that this construction eventually collapses—
+like the epicycles of Ptolemaeus ... or simply like the stack of turtles in a
+famous Japanese riddle. By the way, we shall see in 1.3.1 and 3.4.4 that
+completeness is better described as an internal property.
+1.1.4. The Thief of Baghdad. The ludic programme abolishes the distinction syntax/semantics. At least at the deepest level: practically speaking
+the distinction may be seen as a polarisation: my viewpoint is rather syntax,
+whereas my opponent’s viewpoint is perceived (by me) as semantics. As the
+name suggests, ludics takes its inspiration in the game-theoretic paradigm:
+Formulas = Games
+Proofs = Winning strategies
+Truth = Existence of a winning strategy
+This tends to collapse the first two partners of the Trinity—thus denying any
+role to the meta. But this is an obstinate guy: close the door, most likely
+he will try the window, here the rule of the game. Who tells you that this
+move is legal or not, who determines the winner ... . For instance Godel’s ¨
+Dialectica interprets A by something like ∃x∀yϕ(x, y) = 0. x, y can be
+seen as sort of strategies in a game, whose rule is given by ϕ. This involves a
+splitting in two layers: the players vs. the “referee”, i.e., the meta. The same
+can be said of all modern “game semantics” who—although more clever
+than the antique Dialectica—respect this dichotomy of a rule of the game
+on top of an interaction: game semantics admits two layers of semantics,
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 135
+the opponent-as-semantics, and the rule-as-semantics, the latter being a sort
+of meta-semantics                                                                                                                                                                                                          ; this schizophrenia is symptomatic of an archaic stage of
+foundations.
+As we shall see in 3.3.3, ludics closes the window too, by allowing the rule
+to be part of the game, this is the idea of a game by consensus: the role of
+the referee is played by the opponent. This means that the opponent has
+a lot of losing strategies—called dog’s play—whose only effect is to control
+your moves: if I move in an “incorrect” way, then he is likely to use one
+of these dog’s strategies and produce a dissensus, i.e., argue forever                                                                                                                                                   ; but if I
+move “correctly”, the same strategy will be consensual and nicely lose. This
+is symmetrical: I have my own dog’s strategies to control his moves ... .
+The door is closed, the window too, but the cellar is open: the thief can still
+rely on the myth of the “ambient space”. This is simple, I give an explanation,
+but my explanation is done in a language (e.g., classical set-theory) which is
+my meta, one cannot escape one’s meta ... . This argument has been heavily
+used against any kind of non-realistic foundations, e.g., against intuitionistic
+logic. People will agree on the distinction between ∃n and ¬¬∃n, one
+is effective, the other not, but this is a matter of eavesdropping: in the
+“ambient” space, the distinction vanishes.
+1.1.5. The ambient space. So everything is embedded in a classical “ambient space”: this is the ultimate weapon of the meta. What to say about
+this sophism?
+A first remark is that alternative foundations cannot be done in alternative
+mathematics—think of the unfortunate ultra-intuitionism. On the other
+hand, set-theory is flexible enough to harbour various parts of mathematics,
+for instance operator algebras: but I would not dare to say that set theory
+is more basic than operator algebra! In fact, the use of set-theory is the
+recognition of a convenience, by no means of a foundational status.
+Let us take a geometrical analogy: in the XIXth century, non-Euclidian
+geometries were introduced, the most basic example being that of a sphere
+embedded in Euclidian space. Non-classical logic—intuitionistic or linear—
+can be likewise eventually reduced, embedded, in classical logic, set-theory
+... . But “embeddable” is not the same as “embedded”, i.e., varieties make
+sense by themselves—even if science-fiction finds it convenient to bypass
+speed limitations by shortcutting through a surrounding Euclidian hyperspace. When we embed everything in a classical universe, are we doing
+something necessary, canonical, meaningful, or are we just using a hygienic
+convenience?
+Logic is about thought, not about concrete objects. Foundations are
+impossible ex nihilo since they would involve a thought located outside the
+thought. For similar reasons it is a priori impossible to take a photo of the
+universe since one would need a point of view outside space                                                                                                                                                                ; but cosmology
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+136 JEAN-YVES GIRARD
+made a lot of progress last century, without allowing any room for a “metaspace-time”. This analogy makes us understand that the so-called “meta”
+could be nothing more than the necessary expression of the foundationalist
+attitude: the very study of logic generates a strange posture, which perhaps
+does not make sense at all.
+To sum up, certain paradoxical formulas might have just as much meaning
+as the distance to α Centauri via the hyperspace. What we try to express
+positively through the main thesis of ludics, locativity: the existence of a
+“logical space” with which one cannot tamper.
+1.1.6. Logic vs. physics. We just alluded to general relativity                                                                                                                                                            ; the comparison with Physics is always of interest. For instance, up to 1900, the dominant
+physical paradigm was determinism in the style of Laplace, “everything can
+be computed from the initial position”, which contains in fact two layers,
+one being about abstract determinism, the other being about our faculty of
+prediction, semantics and syntax so to speak. The work of Poincare—later, ´
+the theory of chaos—definitely ruined the mere idea of prediction, this must
+be compared to incompleteness. But the comparison turns short here, for we
+should imagine a physics surely chaotic, but still deterministic, to match the
+present state of logic: in this physics, future is written in a Big Book—but
+this book is out of reach. Fortunately quantum physics left nothing of this
+frightening fantasy!
+1.1.7. Subjective aspects of realism. Of course one cannot destroy realism
+by an act of will, there is a natural tendency to reify ... . An example:
+some people introduced long ago the idea of potential (vs. actual), and soon
+afterwards the set of all potentialities ... with the result that 99% of the
+original idea vanished: the potentialities were reified, i.e., actualised. The
+task in that case would be to define “potential” in such a way that the set of
+all potentialities would not make sense ... moreover the definition should
+be quite natural, otherwise why shouldn’t nature shun such a thing?
+This tendency to reify explains why the current interpretation of quantum
+mechanics is not that convincing. Imagine a sort of quantum philosopher
+arguing with—say—Descartes: the poor guy would not get a chance ...
+but he would be right whereas Descartes and his realism are wrong. The
+problem is that the global structure of realism is much elaborated and deeply
+rooted in our minds—especially Western minds.
+Coming back to logic, the stronghold of realism is of course natural numbers. It is clear that any foundational reflection should—sooner or later—
+cope with integers, which are so deeply rooted in our (wrong) intuitions and
+our (wrong, but efficient) formalisms, that one may question the possibility
+of achieving anything in that direction. No doubt that this is a problem,
+but one can imagine indirect approaches, typically through the theory of
+exponentials, see section 5 below.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 137
+1.1.8. Hands tied in the back. “100g pasta, 1 litre water, 10g salt. Add
+salt to boiling water. Add pasta, stirring occasionally. Cook for 10 minutes.
+Drain pasta keeping part of water.” This recipe for Penne Rigate is taken
+from a current brand, Pasta Barilla. The obvious question is the meaning of
+the recommendations (interdictions). First observe that if we follow them,
+everything works                                                                                                                                                                                                           ; but is there a reason to follow them, what is the reference
+of these rules? For instance it is legitimate to question the idea of salting the
+boiling water: could we salt before boiling? “NO: the salt must be put after”
+... at least it is what some people will say—in relation to the authority of
+Zia Ermenegilda, a sort of meta-pasta that you cannot taste but to which
+you must conform, Tarskian cuisine so to speak.
+This attitude is common in foundations, there are too many artificial
+restrictions. By the way, this was one of the major objections of Hilbert
+to Brouwer: intuitionism is a sort of mathematics with “a hand tied in the
+back”.3 Nowadays, most attempts at foundations keep a hand in the back.
+Certain principles—induction, comprehension ... —are forbidden under a
+principle ending with “ism”. There is no doubt that this sort of bondage
+achieves something, but another “ism” may do as well, perhaps better. How
+can we decide?
+If we exclude divine revelations, the only possibility consists in making
+things interact with alter egos. In the case of pasta, one alters the recipe and
+see whether it tastes the same. Typically, put the salt before boiling, you will
+notice no difference                                                                                                                                                                                                       ; push the cooking time to 15mn and you get glue.
+To sum up, restrictions are not out of a Holy Book, but out of use. And
+use is internal, i.e., homogeneous to the object.
+1.2. The present state of foundations.
+1.2.1. The copyright. Realism says that truth makes sense independently
+of the way we access it. Accept this and you are bound to compare the
+“strengths” of various formalisms, i.e., the sizes of the metaturtles. However,
+commonsense should tell us that nobody has ever seen the class of all integers,
+not to speak of this “Book of Truth and Falsehood” supposedly kept by
+Tarski. All these abstractions, truth, standard integers, are handled through
+proofs—hence the “reality” may involve a re-negotiation of the intertwining
+between proofs and “truth”—whatever the latter expression means, perhaps
+nothing at all.
+But nothing of the like has been so far done. The compulsory access
+to “foundations” is through a bleak Trinity Semantics/Syntax/Meta: this
+approach owns the copyright, if you don’t accept this, you are not interested
+in foundations, period.4 The problem with the copyright is that it dispenses
+3
+Hilbert himself was even more drastic as far as his fantasmatic “metamathematics” was
+concerned! 4
+This sort of situation is not exceptional, remember Communism with its copyright on
+“Progress”.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+138 JEAN-YVES GIRARD
+one from addressing the original question: “no new disturbing phenomenon will be disclosed, we concentrate on internal problems”. In an area
+such as foundations, this attitude should be called scholastics, from the medieval philosophers—or rather their followers—who kept on transmitting
+an ossified approach to logic.
+Clearly, if this is the only approach to foundations, one should do something else ... by the way this is what the main stream of mathematics realised
+long ago.
+1.2.2. The input of computer science. Traditional foundations were built as
+a “logic from mathematics”. By the end of last century emerged a “logic from
+computer science” with its peculiarities: the concept of external—ethereal—
+Truth (the Father) was no longer pregnant                                                                                                                                                                                  ; on the other hand—since the
+computer is a badly syntactic, bureaucratic, artifact—the Son (Syntax) became omnipresent. Of course foundations of computer science difficultly
+departs from the Trinity—as in the sportive saying: don’t tamper with a
+losing team!—, but something goes wrong. The mismatch is conspicuous
+everywhere, think for instance of “operational semantics”: the semantics of
+the language becomes the way you use it, i.e., is syntactical. For instance
+lambda-terms are sometimes described as syntax and the normalisation
+(rewriting) process as semantics: the idea is far from being stupid                                                                                                                                                        ; but try to
+present it in Tarskian dressing!
+The same can be said of the notorious Closed World Assumption “something is false when not provable”, which corresponds to a procedural view
+of logic: negation is applied to the cognitive process itself and not to some
+“abstract contents”.5
+1.2.3. The input of proof-theory. Traditional proof-theory was versatile
+enough to be transferred mutatis mutandis from the desertic steppes of
+consistency proofs to theoretical computer science. Lambda-calculi, denotational semantics, game-theoretic interpretations ... prompted a new
+universe, reasonably free from foundational anguish, and mainly dedicated
+to (abstract) programming languages. It now seems that enough has been
+gathered to venture a first synthesis—this is ludics—and to transfuse fresh
+blood into the anaemic foundational body.
+1.2.4. The locative thesis. When I say “fresh blood”, this is not rhetoric,
+I mean completely new ideas                                                                                                                                                                                                ; really shocking ones, the kind that receives at
+best only polite reactions. This is the case for the locative thesis, which says
+that usual logic is wrong, because it is “spiritual”, i.e., abstracts from the
+location. What is location? Location in logic consists in these apparently
+irrelevant details known as names of variables, occurrences                                                                                                                                                                ; these details are
+5
+This correct procedural intuition was translated into a commutation of negation with
+provability and stumbled on incompleteness, halting problems: “non-monotonicity”, “circumscription”, ... tried to accommodate some procedurality inside classical logic: to figure
+out the disaster, imagine a horse-cart powered by a rocket.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 139
+evacuated in the first page of textbooks—they are also the favourite topic
+for the hangover lecture of Sunday morning. Location is also present in
+realisability, e.g., through the first bit left/right of a disjunctive realiser, see
+equation (26), p. 163. However, realisability leaks so badly—for instance ¬A
+is realisable when A is not realisable—a problem of empty pivot, see 2.1.3—
+that one would hesitate to draw any positive consequence from it.6
+Locativity induces, among others:
+A clear approach to subtyping, inheritance, intersection types.
+The discovery of locative operations. Usual (spiritual) operations are
+obtained from the locative ones by use of delocations, i.e., isomorphic
+copies which prevent interferences. The typical example is that of a
+conjunction whose locative form is A ∩ B and whose spiritual form is
+ϕ(A)∩	(B)                                                                                                                                                                                                               ; compare A∩A = A with ϕ(A)∩	(A)  A×A, see 4.1.4
+for a precise statement.
+The individuation of second-order quantification as an autonomous
+operation, not a poor relative of the first order case. In particular
+second-order logic validates classically wrong formulas.
+All this is the evidence that locativity is a positive feature of logic, and not
+an impossible mess.
+But we must now unwind the process leading to locativity                                                                                                                                                                   ; in the beginning
+stands the uncommon idea of a procedural logic.
+1.3. Procedural logic.
+1.3.1. The subformula property. The domain of validity of usual completeness corresponds to closed Π1 formulas (roughly: first order formulas universally quantified over their predicate symbols                         ; this terminology is slightly
+misleading, since the Σ0
+1 formulas of arithmetic are Π1
+). Completeness is
+the identity between truth and provability for Π1 formulas, whereas incompleteness is the failure of this property for the dual class Σ1, which contains
+the Π0
+1 formulas. Now if we formulate logic in sequent calculus, we discover
+that the subformula property holds for the same class Π1
+, and fails outside.
+What does this mean? If we consider cut-free proofs, then all possible proofs
+are already there, there is no way to produce new ones. In other terms, the
+calculus is complete—nothing is missing. Observe that this completeness
+does not refer to any sort of model, it is an internal property of syntax.
+Such a property cannot be an accident, it should be given its real place, the
+first:
+The subformula property is the actual completeness.
+In order to make sense of this, syntax has to get its autonomy, to become
+the main object of study, with no relation to anything like a preexisting
+semantics ... and, in the absence of any umbilical link to a semantics, it will
+6
+It is fair to say that ludics is mostly about finding the right space of realisers.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+140 JEAN-YVES GIRARD
+eventually lose its character of syntax, it will become a plain mathematical
+object.
+1.3.2. The disjunction property. The idea of a procedural logic must be
+ascribed to early intuitionism: an existence theorem should construct a
+witness. The most spectacular consequence is the disjunction property “A
+proof of A∨B induces7 a proof of A or a proof of B”. Disjunction therefore
+commutes with provability, i.e., applies to the cognitive process: to prove
+A ∨ B is to prove A or to prove B. Intuitionistic logic is procedural in the
+sense that it refers to its own rules, in contrast to classical logic which is
+realistic, i.e., refers to its own meta.
+Procedurality is considered suspicious, since it opens the door to subjectivism, but this is a superficial impression.8 For instance realism interprets ∨
+by meta-∨                                                                                                                                                                                                                ; depending on the weather, meta-∨ can be classical, intuitionistic,
+or enjoy intermediate properties like ¬A ∨ ¬¬A: there are full handbooks9
+dedicated to such logics, all of them sound and complete with respect to
+their own meta (the same in boldface). On the other hand, if we try to
+enrich classical logic with a connective enjoying the disjunction property,
+we badly fail: this connective turns out to be the same as classical disjunction.
+There are two positive features of procedurality, first it is absolute (it refers
+to concrete operations on proofs), whereas realism is relative (it refers to our
+intuition of the universe, i.e., to what we already have in mind). Second, most
+procedural interpretations will be inconsistent: it was a true miracle that a
+connective enjoying the disjunction property could be found, and the price
+was a drastic modification of logic. Even more difficult was the discovery of
+an involutive procedural negation—this was the main achievement of linear
+logic. We eventually discover that procedurality is more demanding than
+realism.
+1.3.3. A logic of rules. Procedurality is not intensional rubbish, it is a
+change of viewpoint, corresponding to the lineaments of a logic of rules.
+The idea is that disjunction can be applied to the proofs (prove A or prove
+B): it is an operation on the representation, not on the “world”—if there is
+anything like the world.
+In ludics, the disjunction property appears as the completeness of
+disjunction—an internal version of completeness, closely related to the subformula property, see 4.1.6.
+1.4. An example: Barbara.
+1.4.1. Old scholastics. Barbara is the familiar syllogism:
+7
+Only a moron would state A ∨ B if he has obtained A, hence the statement only applies
+to cut-free proofs. The word “proof” will therefore be short for “cut-free proof”. 8
+Some style procedurality as “intensional”, others as rubbish: they basically agree!
+9
+Not quite about alternative disjunctions: it is too difficult to tamper with this connective                                                                                                                               ;
+but this is not the case with modalities if you see what I mean.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 141
+∀x(Ax ⇒ Bx) ∀x(Bx ⇒ Cx)
+Barbara
+∀x(Ax ⇒ Cx)
+Scholastic philosophers were basically concerned with the explanation of
+syllogisms by mutual reduction                                                                                                                                                                                             ; in particular the acronyms Disamis, Celarent, ... contain information as to these reductions. After centuries of
+repetitive work, this sort of activity became suspicious—and the expression
+“scholastics” derogatory.
+1.4.2. New scholastics. By the beginning of last century, Łukasiewicz explained Barbara—and all the other figures—by the transivity of inclusion.
+The usual reaction to such an explanation is that of the layman in front
+of one of the compressed automobiles of the late Cesar: rubbish. ´ 10 With
+some education, you learn politeness and eventually find some (well-hidden)
+virtues in the product. But, education or not, this regressive explanation fails
+at explaining the major point: why is there a rule, why this one precisely,
+how do we explain the distinctions between the various syllogisms—not to
+speak of their mutual reductions?
+1.4.3. Category theory. A major anti-realistic breakthrough was the introduction of categories in logic. The climateric work was the Curry-Howard
+isomorphism of 1969, but there was something in the air, think of Prawitz’s
+work on natural deduction (1965), Scott domains (1969), my own system F
+(1970), Martin-Lof’s type theory (1974). With the decisive input of com- ¨
+puter science, the Boulder meeting (1987) was the apex of this “time of
+categories”.
+Category-theory is often styled as nonsense because of the abuse of diagrams: indeed it is like Japanese cuisine, it does not stand mediocrity                                                                             ; so let
+us forget the fat and proceed to the meat. Category-theory is a remarkable
+attempt at revoking this bleak distinction subject/object. In category, we
+have objects (objective) and morphisms (subjective)... and they live happily
+together.
+Now look at the categorical version of the same: A, B, C become objects,
+proofs become morphisms, i.e., object and subject start to communicate.
+Eventually Barbara is composition of morphisms, something which is definitely not regressive with respect to Aristotle.
+1.4.4. Barbara as a proof-net. Categories induced the first mature renegotiation of the relation object/subject                                                                                                            ; this eventually gave birth to linear
+logic. Linear logic yielded in turn a procedural explanation of Barbara
+rewritten as:11
+10Myself I remember being taught about inclusion                                                                                                                                                                           ; three increasing potatoes were drawn
+on the board, but a comment from the teacher, a sort of Barbara-without-the-name, was still
+needed. 11Implication is translated as linear implication, not as usual implication ... This is not
+an abuse, one had to wait for Boole to get the idea of idempotency, i.e., the contraction rule.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+142 JEAN-YVES GIRARD
+∃x(Cx⊥⊗Bx) ∃x(Bx⊥⊗Ax) ∀x(Ax⊥ &
+Cx)
+Cx⊥⊗Bx Bx⊥⊗Ax Ax⊥ &
+Cx
+❆
+❆ ✁
+✁ ❆
+❆ ✁
+✁ ❆
+❆ ✁
+✁
+Cx⊥ Bx Bx⊥ Ax Ax⊥ Cx
+✞ ☎ ✞ ☎
+✞ ☎
+The syllogism is eventually explained by the topology of this graph-like
+proof, called a proof-net.
+This interpretation is really subtler than the Tarskian one, for which all
+syllogisms are about transitivity of inclusion, period. In particular Tarskism
+cannot make sense of Aristotle’s original taxonomy of syllogisms (first figure,
+second figure ... ). In contrast, proof-nets do: a recent analysis of syllogisms
+due to Abrusci shows that the figures of Aristotle correspond to crossing
+numbers: e.g., Aristotle “first figure syllogisms” induce planar proof-nets.
+§2. Hilbert revisited. The basic choice is between Hilbert’s Programme
+(updated or not)—a sort of millennium bug—and anti-realism: something
+more experimental, more in the style of ... 1900, when people were still
+trying, had not yet learned to pretend ... Hilbert was precisely one of these
+guys, so let us revisit Hilbert.
+2.1. On absurdity.
+2.1.1. Hilbert’s program. Hilbert had to face certain paradoxes like Russell’s. Since paradoxes come from our intuition of the real world, the idea
+was to put reality aside and to emphasise the formal treatment: this leads to
+another procedural approach to logic: consistency. We know since 1931 and
+the incompleteness theorem that this approach is wrong, but the refutation
+is rather technical. In what follows, we try to re-explain Hilbert’s proposal
+as a duality between proofs of A and proofs of ¬A... with an essential flaw,
+namely that the pivot, the dualising object, (here: the proofs of absurdity) is
+empty, and it’s quite impossible to build an interesting duality on an empty
+pivot, see below.
+2.1.2. Duality in logic. Since meaning by truth is forbidden, let us try
+meaning as use. The use of a theorem is through its consequences: A is
+bound to have corollaries B, hence one should accept as true (i.e., as a
+theorem) anything having true consequences, whatever this means: A is true
+iff for any B, whenever A ⇒ B is true, then B is true:
+A A ⇒ B
+Modus Ponens
+B
+This correct characterisation is not yet an explanation, think of B = A: one
+should eventually get rid of this unknown B, i.e., “close the system”. This
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 143
+prompts one to simplify the previous Modus Ponens into the cut:
+
+A A
+
+Cut
+
+A proof of A is anything which, combined with a proof of ¬A yields a proof
+of the absurdity. But what are the proofs of absurdity?
+2.1.3. Consistency. If we stick to the literal sense of “proof”, there can be
+no proof of the absurdity. Then A is true (provable) if ¬A is not true, i.e.,
+not provable. In this monist reading, truth becomes the same as consistency.
+This is the basis of Hilbert’s Programme, and the idea—the mistake—was
+rediscovered in computer science, through non-monotonic logics, closed
+world assumption ... without even the excuse of novelty. Indeed, something
+in the structure of the duality should warn us in advance: the cut (Modus
+Ponens) establishes a duality between proofs of a formula and proofs of its
+negation, the output of the duality being in ... the empty set. Transpose this
+in the Euclidian Space and think of the duality defined by x⊥y :=x |y∈∅,
+i.e., x never orthogonal to y. Then X ⊥ is empty when X is non-empty, and
+∅⊥ = R3, bleak indeed!
+The empty pivot is responsible for this familiar drawback of realisability,
+namely that if A is not realisable, then ¬A is realisable, thus destroying any
+reasonable hope of a faithful realisability interpretation ... . Not to speak
+of nonsenses like “¬A ∨ ¬¬A is realisable, but I cannot name the realiser”,
+which are backstrokes of the Thief of Baghdad.
+2.1.4. Wrong proofs. So far so bad ... . But isn’t it because we used a
+simple-minded notion of proof too much linked with a literal interpretation
+of reasoning, in particular with the idea that formal reasoning should be
+correct? Why not allow more “proofs”—maybe dubious—so as to replace
+the traditional duality:
+Proofs of
+A / Models of A
+
+with something of the form:
+Proofs of
+A / Proofs of A
+
+In this respect the proofs of the negation could be seen as sorts of “countermodels”—but now part of syntax, no longer of “reality”. The only a priori
+objection to such a thing is consistency                                                                                                                           ; but among proofs some might be
+more correct than others, so that consistency would be maintained by the
+exclusion of “wrong” proofs. By the way, if this idea of a wrong proof seems
+artificial to you, what would you say about transfinite stacks of metaturtles?
+But where to find these additional wrong proofs? Our only clue is the
+cut-elimination procedure: a proof of
+A and a proof of A
+put together
+should produce, through cut-elimination, a proof of
+.
+12
+12It is by the way funny to remark that traditional proof-theory is precisely about this
+situation—with the frustrating feature that the situation never occurs—: such a work about
+the empty set!
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+144 JEAN-YVES GIRARD
+2.1.5. Faith. Write naive set theory in natural deduction style, which
+Prawitz did in 1965. Russell’s paradox yields a cut between a proof
+of
+
+a ∈ a and  of a ∈ a
+whose normalisation diverges, what we can note
+
+|   = Ω                                                                                                                                                         ; the symbol Ω—standing for divergence—is reminiscent of
+the u of recursion theory, or the ΔΔ of lambda-calculus. Ω can be seen as
+a notational convenience, it can also be handled as an object, called Faith
+(i.e., the faith in convergence). But whatever choice we make, it is not in
+this way that we shall get a proof of the absurdity: our way out of Russell’s
+paradox is not to forbid the cut between
+and  (which can be performed,
+this is precisely what Prawitz did), it is just to deny their orthogonality: if
+we consider syntax as a way to avoid divergence,
+and  cannot receive
+simultaneous specifications
+A and A
+(with the same A).
+2.1.6. Daimon. We just saw that the basic duality can fail                                                                                                         ; this means
+that it should sometimes succeed, but nothing in the extant proof-theoretic
+tradition can help us. Coming back to Euclidian space, x⊥y := x | y = 0
+is a beautiful orthogonality relation (the orthogonal of a line is a plane ... )                                                                                   ;
+absurdity should be given a proof—something like 0—, but can we seriously
+allow that?
+What seemed absurd at the time of Hilbert is more reasonable at the time
+of proof-search: Logic Programming is organised as the search for cut-free
+proofs. Starting with the conclusion, the idea is to guess a last rule, then a
+rule above ... , up to completion. Most likely the process eventually aborts,
+for want of a possible rule to apply, but we anyway did construct a truncated
+proof. It turns out that these truncated proofs are formal objects just as
+good as usual ones                                                                                                                                                 ; in particular one can develop a (straightforward) prooftheory and normalise cuts involving such proofs ... , provided abortion is
+clearly acknowledged as a new rule, the Daimon .
+The addition of the daimon to syntax by no way produces an inconsistent
+system—provided we don’t play on words. Of course every formula becomes
+provable with the help of the daimon, but what about daimon-free provable
+formulas? They are closed under consequence, i.e., cut-elimination: this is
+not surprising, before ludics, nobody ever heard about a logical daimon, but
+people knew how to normalise                                                                                                                                       ; in other terms, the daimon cannot be created
+through normalisation.
+Usual proofs therefore appear as daimon-free ones. The new “proofs”
+using the daimon occupy a space which is usually devoted to models: instead
+of having models of ¬A, we shall have proofs of A⊥.
+13 The difference is as
+follows:
+In the classical paradigm, the notions of proof and models are absolute.
+A proof of A proves A beyond discussion, a model of ¬A refutes A
+13Notice the use of linear negation                                                                                                                                ; this conceptual shift is technically impossible with
+usual negation.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 145
+beyond discussion. To the point that putting together a proof of A and
+a model of ¬A is absurd. We are back to the empty pivot.
+In ludics, proofs—or models—are relative. They try their best to follow
+the rules, the truth tables, but nobody is perfect. An imperfect proof
+of A can be opposed to an imperfect proof of A⊥                                                                                                                  ; the interaction
+eventually yields a daimon—which has been produced by one of the two
+proofs, which is therefore incorrect. This does not necessarily make the
+other proof correct, since it may be opposed to another “counterproof”
+against which it now “fails”.
+2.2. From proofs to designs.
+2.2.1. Geometry of proofs. What remains to be found is an object having the structure of a proof, but free from syntactical commitments. This
+object—a design—roughly corresponds to the geometrical structure underlying a sequent calculus proof. We should separate two layers, one being
+“what is actually performed”, the other being useful comments                                                                                                  ; useful to
+us—typically the name of the formula proven—but of no mathematical
+significance. A toy model of this is typed lambda-calculus: in a typed
+lambda-term the real guy is the pure lambda-term obtained by erasing the
+type decorations which can be seen as superfluous comments (they are useful
+specifications, but they don’t participate to normalisation).
+The process of finding the object has been very complex                                                                                                            ; we already
+mentioned the invention of the Daimon. But the crucial breakthrough was
+the discovery of polarities.
+2.2.2. Polarities. Curiously, the notion of polarity existed in logic long
+before its invention, but with no status. For instance, the “negative fragment” of intuitionistic logic regroups ∀, ⇒, ∧, namely the connectives which
+are well-behaved with respect to natural deduction. The notational gimmick of linear logic individualises two classes of connectives, one in “logical
+style”, the negative &
+, &, , ⊥,... one in “algebraic style”, the positive
+⊗, ⊕, 0, 1,...                                                                                                                                                 ; in this way it is easy to memorise remarkable isomorphisms,
+typically distributivity. It is only around 1990 that this convenient distinction
+turned into a fundamental of logic.
+The first remark is that, for any connective, there is always a side of the
+sequent on which contraction is free. Typically, the contraction rule on ∀xA
+is redundant on the right of sequents: we can get it from a contraction
+on A                                                                                                                                                               ; the same holds for existence, but on the left. This is a first account
+of the distinction. The second remark comes from logic programming:
+negative connectives are invertible, i.e., they have a deterministic right rule:
+typically, proving
+A ⇒ B is quite the same as proving A
+B. The
+fundamental remark of Andreoli—known asfocalisation—is that the positive
+connectives—the non-invertible ones—enjoy a dual property. This property
+can be stated as follows: a cluster of operations of the same polarity can be
+seen as a single connective. Typically we can write complete rules for the
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+146 JEAN-YVES GIRARD
+double quantifiers ∀x∀y or ∃x∃y seen as a single operation, but not for the
+combinations ∀x∃y and ∃x∀y. In the first case the two quantifications can
+be performed as a single step, in the second case, they must be performed
+sequentially. Polarity is therefore about time in logic, about the intrinsic
+causality between logical rules.
+2.2.3. Polarised proofs. To understand how things work, let us take a
+concrete example, namely the positive formula A = ((P⊥ ⊕ Q⊥) ⊗ R⊥),
+where P, Q, R are positive. A is treated as a single ternary connective
+Φ(P⊥, Q⊥, R⊥) applying to negative subformulas P⊥, Q⊥, R⊥, i.e, A =
+Φ(P⊥, Q⊥, R⊥). We take advantage of the new notion of polarity and only
+use positive formulas                                                                                                                                              ; this means that a negative formula is handled by means
+of its negation on the other side of the sequent. Our sequent calculus will
+therefore consists of sequents Γ
+Δ made of positive formulas. Inspection
+of the rules shows that it is enough to restrict to the case were Γ has at most
+one formula.14 The rules for A are
+
+Λ, P, R
+Λ, Q, R
+(A,{{P,R},{Q,R}})
+A
+Λ
+P
+Γ R
+Δ
+(A,{P,R})
+
+Γ, Δ, A
+Q
+Γ R
+Δ
+(A,{Q,R})
+
+Γ, Δ, A
+The right rules are obtained by combining a right Tensor-rule with one
+of the two possible right Plus-rules and negation, yielding two possibilities
+distinguished as (
+A, {P, R}) and (
+A, {Q, R})                                                                     ; the left rule is obtained by
+combining the Par-rule with the With-rule and negation. The rule is written
+(A
+, {{P, R}, {Q, R}}) in order to stress the existence of two premises, one
+involving P, R, the other involving Q, R.
+As already explained, besides these “standard” rules, we need another one,
+the Daimon:
+
+Δ
+The daimon is restricted to the case “Γ empty”                                                                                                                ; the case A
+Δ is indeed
+derivable, see the Negative Daimon in 3.2.2.
+2.2.4. Normalisation. Proof-theory is organised along cut-elimination. In
+the previous case, let us assume that we are given a cut between
+Γ, Δ, A
+and A
+Λ:
+14This is quite the usual intuitionistic restriction, but left and right have been exchanged
+... . This is because we are using positive formulas, whereas intuitionistic logic is merely
+concerned with negative formulas.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 147
+1. If
+Γ, Δ, A has been obtained through a rule (
+A, {P, R}), replace
+with two cuts between
+Λ, P, R, P
+Γ and R
+Δ.
+2. If
+Γ, Δ, A has been obtained through a rule (
+A, {Q, R}), replace
+with two cuts between
+Λ, Q, R, Q
+Γ and R
+Δ.
+3. If
+Γ, Δ, A has been obtained by a daimon, replace with the proof of
+
+Γ, Δ, Λ consisting of a daimon.
+4. Otherwise, apply a commutation of rules.
+In the first two cases, the point is that the left rule for A is invertible, hence we
+do know that A
+Λ follows from the two premises
+Λ, P, R and
+Λ, Q, R.
+§3. Designs and behaviours. What follows is a slightly simplified version
+of ludics.
+3.1. Designs.
+3.1.1. Locations. It remains to remove logical decorations. However,
+since a proof is basically a sequence of formulas, one should be careful not
+to remove everything. Indeed we shall keep the location, the locus of the
+formula. This locus is a very concrete notion, it is the place where the
+name of the formula is written: we shall assume that this space is the usual
+infinitely branching tree. To come back to our previous example, if A has
+been assigned the locus , then its immediate subformulas P, Q, R will be
+distinguished by biases 3, 4, 7—e.g., Q is the subformula of relative location
+4 of A—and be respectively located in  ∗ 3,  ∗ 4,  ∗ 7. The logical rules just
+written will be interpreted by the disintegration of  into itssubloci  ∗3,  ∗7
+and/or  ∗ 4,  ∗ 7.
+3.1.2. Occurrences. It is time to revisit an old nonsense of logic, so-called
+“occurrences”: a given formula A may “occur” at different places. In theology this familiar property of Saints is known as bilocation but we are
+in mathematics: two objects with distinct locations cannot be quite the
+same. But they can be isomorphic                                                                                                                                   ; concretely an isomorphism—called a
+“delocation”—relating the two “occurrences” is provided. This means that:
+1. Our formula A can be located everywhere in our tree of loci. But when
+we change the location we are not quite with the same A, we are with
+an isomorphic copy.
+2. The three subformulas of A have been given the relative locations 3, 4, 7                                                                                       ;
+we could have chosen as well 9, 6, 22. The result would have been
+definitely different since for instance 7 = 22, but of course isomorphic.
+This distinction between equality and isomorphism is not a gilding of the
+lily. It corresponds to the replacement of the dominant spiritual treatment
+of logic with a more refined locative approach. It has spectacular positive
+consequences, such as the expression of the cartesian product as a delocated
+intersection, see 4.1.4.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+148 JEAN-YVES GIRARD
+3.1.3. Pitchforks. A sequent made of loci is called a pitchfork.
+15 In a
+negative pitchfork
+Υ, is called the handle, in a positive pitchfork
+Υ,
+there is no handle, only tines. What has been so far sketched translates into
+a sort of “pitchfork” calculus, with the following rules:
+Positive rule: I is a ramification, i.e., a non-empty finite set of biases, for
+i ∈ I the Λi are pairwise disjoint, with Λ = Λi : one can apply the
+rule (finite, one premise for each i ∈ I )
+... ∗ i
+Λi ... (,I )
+
+Λ,
+Negative rule: N is a set of ramifications, the directory of the rule: one can
+apply the rule (perhaps infinite, one premise for each I ∈ N                 ; as usual,
+∗ I is short for { ∗ i                                                     ; i ∈ I })
+...
+Λ, ∗ I ...
+(,N )
+
+Λ
+Daimon:
+
+Λ
+is called the focus of the rules (
+, I ) and (
+, N ). The three rules
+discovered in 2.2.3, are therefore written (
+, {{3, 7}, {4, 7}}), (
+, {3, 7})
+and (
+, {4, 7}).
+3.1.4. Designs. A design is anything built in the pitchfork calculus by
+means of these three rules. No assumption of finiteness, well-foundedness,
+recursivity, is made                                                                                                                                               ; designs can therefore be badly infinite. However infinite
+designs can naturally be written as “unions” of finite designs: any design D is
+the directed “union” of the finite designs obtained by restricting all negative
+rules of D to finite directories, all but a finite number of them being empty,
+see 3.2.4.
+Usual sequent calculus contains a distinguished rule, called “identity axiom”. In usual syntax, identity axioms can be replaced with -expansions,
+but they are still needed for propositional atoms (variables). In ludics, the
+-expansion can proceed “beyond the atoms”, yielding the Fax, see 4.2.7                                                                                        ;
+this is why ludics has nothing like an identity axiom.
+3.2. The analytical theorems.
+3.2.1. Normalisation revisited. In 2.2.4 we defined—or rather sketched—
+normalisation. This translates mutatis mutandis to the “pitchfork calculus”,
+provided we avoid some pitfalls:
+15These loci must be pairwise incomparable with respect to the sublocus relation.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 149
+1. Cut is no longer a rule, it is a coincidence handle/tine between two
+designs. Typically a design of base (conclusion) 
+ and a design of
+base
+ that share  form a net of base (conclusion)
+.
+16
+2. Cases 1,2 of the syntactical process replace a cut on  by two cuts on
+ ∗ 3,  ∗ 7 (or  ∗ 4,  ∗ 7). But this is a mere accident due to logic: we
+have respected the rules of the formula A and the left rule happens to
+exactly match the possible right rules. But there is no longer anything
+like A—for instance,  does not encode the formula A—, which means
+that in case of a cut between a positive rule (
+, I ) and a negative rule
+(
+, N ) it may happen that I ∈ N . In that case the normalisation
+process diverges, there is no normal form. We can use the symbol Ω to
+denote a diverging output, but this is a convenience, Faith not being a
+design.
+3. We had in mind a finite normalisation, but designs need not be finite. In
+particular what may happen is an infinite sequence of normalisations, a
+cut is replaced with several cuts, one of these cuts in turn is replaced with
+other cuts ... . Such process also diverges, i.e., yields the non-design Ω
+as an output.
+The value of the concept of design lies in a certain number of remarkable
+properties, which are the respective analogues of Bohm’s theorem, Church- ¨
+Rosser property, and stability.
+3.2.2. Separation. Meaning is use                                                                                                                                  ; if a design is a really meaningful structure, all of it must be usable, observable. But how do we use a design D of
+base
+?17 Simply by cutting it with a counterdesign E of base 
+and
+normalise. The base of the resulting net is the empty pitchfork
+and there
+are very few possibilities:
+Consensus: the normalisation converges, and the normal form is the only
+design of base
+, namely . In that case, we say that D, Eare orthogonal,
+notation D⊥E.
+Dissensus: the normalisation diverges, i.e., yields the non-design Ω.
+Given D one can consider the set D⊥ of those counterdesigns E which
+are consensual with D. The separation theorem states that designs are
+determined by their orthogonal, i.e., their use:
+Theorem 1 (Separation). If D = D then there exists a counterdesign E
+which is orthogonal to one of D, D but not to the other.
+This analogue of Bohm’s theorem has a topological meaning. In the coars- ¨
+est topology making normalisation continuous, the closure of the singleton
+D is the biorthogonal D⊥⊥. The separation theorem states that this topology is T0, i.e., that the preorder D  D ⇔ D⊥⊥ ⊂ D⊥⊥ is indeed an order.
+16The notion is easily extended to several cuts: the coincidence graph must be
+connected/acyclic. 17The discussion applies to any base.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+150 JEAN-YVES GIRARD
+In other terms, we can form a Scott domain with designs: this is our bridge
+with first generation denotational semantics.
+The separation theorem has an effective version, which amounts at giving
+an explicit description of the relation : D  D
+, i.e., “D is more converging
+than D” if D has been obtained from D by means of two operations:
+Widen: add more premises to negative rules, i.e., replace N with N  ⊃ N .
+Shorten: replace positive rules (, I ) with daimons—which has the effect
+of reducing the depth of branches.
+On a positive base, the greatest—most converging element—is the Daimon                                                                                         ;
+Faith would be the smallest design—but has been excluded from the “official”
+definition. On a negative base, there is still a greatest design, called the
+negative Daimon:
+...
+
+∗ I, Λ ... (,℘f (N)\{∅})
+
+Λ
+The smallest design is called the Skunk:
+(,∅)
+
+The name will be explained in 3.3.5.
+3.2.3. Associativity. Strictly speaking, since normalisation is deterministic, there is no need for a Church-Rosser property. But besides the narrow technical meaning of Church-Rosser, there is a deeper one, namely
+that in the presence of two cuts, the output of normalisation is the same,
+whether we normalise them altogether, or one after the other, something like
+ABC = (AB)C:
+Theorem 2 (Associativity). Normalisation is associative: let {R0,..., Rn}
+be a net of nets, then
+R0 ∪···∪ Rn = R0,..., Rn (1)
+Of course R is short for the normal form of the net R and as in recursion
+theory, the equation also applies in case of divergence.
+Associativity is often combined with separation to define adjoints, this is
+the closure principle “everything reduces to closed nets”, where a closed net
+is a net whose base is the empty pitchfork. Typically, if D, E are designs of
+respective bases
+ and
+, the normal form D, E is the unique design
+D of base
+ such that for every F of base 
+:
+D
+, F = D, E, F (2)
+The normal form of a net S is determined by the normal forms of all
+completions of S into a closed net. The principle is very useful, since closed
+nets do not need commutative conversions.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 151
+3.2.4. Stability. Stability was introduced by Berry in the late seventies
+and is the distinctive feature of second generation denotational semantics—
+typically coherent spaces—which eventually led to linear negation.
+Let us go back to separation and the relation D  D
+. The relation means
+that, if we replace D with D in a converging net, then the resulting net still
+converges. As we saw it, there are two ways to be “more convergent”, one is
+to be shorter, which can be summarised by (
+, I )                                                                                                                                                                                                                                ; the intuition is that
+if the normalisation process makes use of the positive action (
+, I ), then
+the process will converge quicker if we replace it with : it immediately stops.
+The other way is to be wider, i.e., to replace a non-premise of a negative rule,
+which can be figured as a premise with nothing—i.e., the non-design Ω—
+above it, by the same premise with something—typically (
+, I )—above it.
+The two ways are summarised by the equation:
+Ω  (
+, I )  (3)
+Widening is of different nature since it does not alter converging normalisation processes (in contrast to shortening, which makes them ... shorter):
+Stability is about widening, which corresponds to a plain set-theoretic inclusion between designs.18 Stability says that when D⊥E, then there are welldefined—i.e., minimum with respect to inclusion—finite D ⊂ D, E ⊂ E
+which are responsible for this, i.e., such that D
+⊥E
+. This property is responsible for the major concept of ludics—incarnation, see 3.3.2.
+3.3. Behaviours.
+3.3.1. Formulas as specifications. A formula A can be—up to
+isomorphism—located everywhere, more precisely, when A is positive (resp.
+negative) it can receive any location
+ (resp. 
+). Say for instance that A
+is negative and located in 
+; then A will be identified with a certain set G
+of designs (representing the “proofs” of A) of base 
+. This set is not arbitrary, it corresponds to a specification, a “how-to”, i.e., a certain use of the
+designs. Remember that we reduced “use” to normalisation with counterdesigns: the use can therefore be represented by a set Gu of counterdesigns and
+we therefore obtain that G = Gu⊥. One can get rid of the arbitrary Gu by
+rewriting this as G = G⊥⊥. The idea of formula as specification translates
+into:
+Definition 1. A behaviour is a set G of designs of a given base equal to its
+biorthogonal.
+Observe that G⊥, which is one of the possible choices for Gu, is a behaviour
+too.
+A behaviour is never empty: it contains the daimon of the right polarity—
+this is because ⊥E for all E. Behaviours are closed under : D  D and
+D ∈ G, then D ∈ G.
+18Defined as desseins, i.e., sets of chronicles: this is indeed the official definition, the
+presentation as a pitchfork calculus being only a (slightly incorrect) convenience.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+152 JEAN-YVES GIRARD
+3.3.2. Incarnation. As a consequence, if D ⊂ D and D ∈ G, then D ∈ G,
+but for “bad reasons”: nothing in D\D actually matters with respect to G.
+Given D ∈ G there might be several D ⊂ D which are still in G                                                                                                                                                                    ; but among
+those D
+, there is a smallest one, the incarnation |DG| of D with respect to
+G. The existence of the incarnation is just an alternative formulation of
+stability.
+Incarnation is contravariant, i.e.,
+G ⊂ H ⇒ |D|H ⊂ |D|G (4)
+Hence the incarnation of D is maximum when G is the smallest (principal)
+behaviour D⊥⊥ containing D                                                                                                                                                                                                        ; in this case |E| = E (easy consequence of the
+separation theorem).
+3.3.3. Formulas as games. Can we describe ludics as a “game semantics”?
+Surely a design is a sort of strategy, which, when put against a counterdesign, yields a dispute—the normalisation process, see 3.4.1—which is a
+play. Moreover, the use of the daimon in the dispute corresponds to giving
+up, hence we have a notion of winning. But these notions are defined once
+for all, there is no way to tamper with them. If we follow the usual game
+paradigm, little can be added: the first player can act in such a way that the
+opponent cannot win—what we called somewhere the atomic weapon. But
+wait a minute—the dispute generated by a design and a counterdesign need
+not converge, i.e., yield a winner. We shall therefore impose the following:
+the two players do whatever they want, provided they stay consensual, i.e.,
+that all disputes converge. This is the idea of a game by consensus.
+The rule of the game G can then be specified by a set of counterdesigns
+Gr , the only requirement being consensus, i.e., D is an admissible strategy
+for G iff it is consensual with any E ∈ Gr . If D⊥E is short for consensus,
+this rewrites as G = Gr⊥, which implies G = G⊥⊥                                                                                                                                                                                 ; moreover there is a
+complete symmetry here, since G⊥ is the most natural Gr . Eventually the
+game is explained by a consensus between players, as in real life—if real life
+is a game.
+Of course a game by consensus can be seen as a usual game, with a rule, a
+referee, etc. In that respect, a design becomes a real strategy, but we have to
+work up to incarnation.
+3.3.4. Typed vs. untyped. Designs can be handled in two ways:
+Untyped: Designs can be considered as pure, i.e., as themselves.
+Typed: Designs can be considered as part of a behaviour, i.e., with a
+restriction on their use                                                                                                                                                                                                              ; they are no longer considered as themselves,
+but as they should be. In particular, they are only up to incarnation.
+Typically, in the case of subtyping, i.e., of an inclusion G ⊂ H, the untyped
+viewpoint says that a design in G is a design in H                                                                                                                                                                                    ; the typed viewpoint
+induces a coercion map which replaces a design D incarnated in G, by its
+incarnation |D|H, see equation (4) above. This ambiguity is fundamental and
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 153
+has spectacular consequences—typically the mystery of incarnation which
+expresses the cartesian product as a delocated intersection, see 4.1.4.
+3.3.5. The Skunk. Incarnation is delicate to grasp, so let us give a simple
+example. The set of all designs of a given base is a behaviour (the orthogonal
+of the empty set). When the base is negative, this behaviour is noted and
+it corresponds to the additive neutral “true”. Now what is the incarnation of
+a design with respect to ? This incarnation is the smallest design included
+in D—and still in , but this additional requirement is always satisfied. This
+design is therefore the empty design Sk = ∅, corresponding to a first rule
+with an empty ramification:
+(,∅)
+
+This design is called the Skunk, and the name is a comment on his social
+life:
+is the only behaviour containing Sk. From this viewpoint, the skunk
+is highly social, everybody lives in his company ...
+... But they only pretend                                                                                                                                                                                                        ; there is no incarnated design in  other
+than Sk.
+Here we discover something essential, the biggest behaviour is also the smallest one, depending on the viewpoint—typed or untyped—we adopt. Incidentally, observe that is the empty intersection and that {∅} is the empty
+product: this is indeed the 0-ary case of the mystery of incarnation.
+By the way, the orthogonal of is the smallest behaviour on a positive
+base. This behaviour is noted 0. As an easy consequence of separation,
+0 = {}.
+3.4. Truth and completeness.
+3.4.1. Winning. If D⊥E, then the normalisation process—called a
+dispute—is a finite sequence [D  E] consisting of the positive rules
+performed—up to a final daimon, which corresponds to termination. This
+is a sort of play, and the daimon corresponds to giving up                                                                                                                                                                       ; but this daimon
+comes from one and exactly one of D, E—this is stability—and this design
+loses the dispute. Let us say D is winning when it never loses against any E                                                                                                                                                     ;
+by separation, this is the same as saying that it does not use the daimon.19
+3.4.2. Truth. Winning induces a notion of truth: “a behaviour G is true
+when it contains a winning design, false when G⊥ is true”. Now, observe
+that, if D, E are both winning, then they cannot be orthogonal—typically
+nobody gives up and the dispute becomes infinite. Hence it is impossible
+for a behaviour G to be both true and false. But it is not the case that a
+behaviour is either true or false.
+19The actual theory of winning involves two other conditions which are beyond the scope
+of this introduction                                                                                                                                                                                                             ; but this one—called obstination—is by far the most important.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+154 JEAN-YVES GIRARD
+3.4.3. Completeness. Behaviour correspond to formulas, designs correspond to proofs. We have a rough idea of the translation of a proof into a
+design, and the next section on connectives will tell us about the translation
+of formulas into behaviours. Quite naturally, to each proof
+of A we shall
+associate a design in the behaviour associated with A, ∈ A. This is indeed
+a theorem, called soundness. The converse—i.e., whether or not this translation leaks—has been called full completeness by Abramsky: is every D ∈ A,
+of the form D = for some proof
+of A? The idea must be refined so as to
+avoid pitfalls:
+1. Since full completeness admits the forgetful version “true implies provable”, A must be restricted to those formulas for which usual completeness works. This class is familiar, it consists of first-order formulas—
+universally quantified over their predicate symbols to make them
+closed—the Π1 formulas.
+2. Due to the daimon, D must be winning.
+3. Finally, D must be incarnated ... . This last constraint is easy to
+understand: every design lives in the behaviour which interprets the
+logical constant . But there is only one proof of , corresponding to
+the unique incarnated design of .
+Full completeness is the statement:
+Theorem 3. If A is closed and Π1, if D ∈ A is a winning incarnated design,
+then D = for some proof
+of A.
+The theorem has been established in [1] for second-order propositional
+logic without exponentials, i.e., the contraction-free part of logic.
+3.4.4. Internal completeness. Full completeness is an important milestone,
+since it establishes the relevance of our approach—even if some connectives,
+basically exponentials, are still missing. But it is a step backwards too, since
+it reintroduces this duality syntax/semantics—this is the story of the Thief
+of Baghdad, see 1.1.4.
+The tradition is to consider completeness as an external thing, syntax
+is (in)complete with respect to a given semantics. We saw in 1.3.1 that the
+subformula property should be considered as the real completeness “nothing
+is missing”, and by the way what can be the value of a completeness which
+needs some external reference? The task is to justify this mathematically, i.e.,
+to formulate a sort of subformula property independently of any syntactical
+commitment.
+Let us try at giving an internal meaning to full completeness. We start
+with a formula A. Logic yields rules which govern the syntactical proofs
+of A                                                                                                                                                                                                                             ; these proofs can be translated as a set E of designs; what can we
+say about E? Very little indeed, it is a set of designs of the same base                                                                                                                                                         ; to
+remember that it may come from the obedience to some rules, let us call such
+an arbitrary E an ethics. Now, we can see E⊥ as the (counter-) “semantics”
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 155
+of E                                                                                                                                                                                                                             ; now E⊥⊥ corresponds to what is validated by the “semantics” of E.
+Completeness is therefore that E = E⊥⊥, i.e., the fact that we have a direct
+description of a behaviour, without using the biorthogonal. For technical
+reasons—especially in the negative case—, the equality is required only up
+to incarnation: for instance the set {Sk} is a complete ethics for .
+The typical example of an internal completeness theorem is given by the
+connective ⊕, defined—modulo delocation—as (G ∪ H)⊥⊥                                                                                                                                                                 ; one proves that
+the biorthogonal can be removed, i.e., that G ∪ H is a complete ethics for
+G⊕H. By the way this internal completeness of ⊕ is the familiar disjunction
+property “a proof of G ⊕ H is a proof of G or a proof of H”.
+Internal completeness is the essential ingredient of the proof of external
+(full) completeness. The task is, given an object of the appropriate type, to
+build a proof, indeed a cut-free proof. The main difficulty is of course to find
+the last rule, for we can then iterate the construction for the premises ... .
+Typically, in the case of a disjunction, the disjunction property provides one
+with the last rule, a left or right introduction of the disjunction.
+§4. The social life of behaviours.
+4.1. Additives.
+4.1.1. Locative vs. spiritual. All extant explanations of logic are spiritual.
+This means that the objects are taken up to isomorphism. This is plain in
+the Tarskian case—a formula refers to an interpretation somewhere on the
+Moon—this is also the case for more refined paradigms—typically categorytheoretic ones. The spiritual treatment of logic can be smart enough to
+interpret conjunction as a cartesian product in the “constructive” case, and
+as a lunar intersection in general. But why this duality of interpretations?
+... Circulez, il n’y a rien `a voir! In fact the spiritual straightjacket makes
+it impossible to imagine a relation between an intersection and a cartesian
+product—by cartesian product, I mean a plain set-theoretic product, not a
+categorical nonsense. What is needed is the possibility of taking intersections
+of formulas—intersection types so to speak—, but how can we intersect sets
+defined up to isomorphism?
+Ludics is locative: a proof
+of
+A, located in
+ interacts with a proof
+ of A
+located in 
+, not on the Moon. A behaviour is made of precise
+objects, which are themselves, not an isomorphism class: in ludics we can
+take an “intersection of formulas”, so let us see what happens. A detour
+through set theory is illuminating.
+4.1.2. Locativity and set theory. The familiar operation of union admits
+two versions:
+Locative: X ∪ Y                                                                                                                                                                                                                ; this operation is commutative, associative, with neutral element ∅. But it is not spiritual, i.e., compatible with isomorphisms (here: bijections); in other terms (X ∪ Y) is not determined
+by (X), (Y), the best we can say is (X ∪ Y) ≤ (X) + (Y).
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+156 JEAN-YVES GIRARD
+Spiritual: a.k.a. disjoint sum, X + Y := f(X) ∪ g(Y), where f, g are
+ad hoc injections. This is the total operation satisfying (X + Y) =
+(X) + (Y). But commutativity, associativity, neutrality fail                                                                                                                                                                   ; or rather
+you need a serious training in category-theory to understand in which
+way something of the like remains.
+The same holds for the product, again with two possibilities:
+Locative: X ∪
+× Y = {x ∪ y                                                                                                                                                                                                                  ; x ∈ X, y ∈ Y}; this operation is really commutative, associative, with neutral element {∅}; it distributes over ∪.
+Unfortunately, we can only state that (X ∪
+× Y) ≤ (X).(Y).
+Spiritual: a.k.a. product,20 X ×Y := f(X) ∪
+× g(Y), where f, g are ad hoc
+injections. This is the total operation satisfying (X ×Y) = (X).(Y).
+Again, commutativity, associativity, neutrality ... only survive through
+(canonical) isomorphisms.
+The locative product is—as far as I know—a novel operation                                                                                                                                                                   ; it is quite
+good, think of ℘f(X ∪ Y) = ℘f(X) ∪
+× ℘f(Y), an equality.
+4.1.3. Delocation. In the case of set theory, f, g were chosen so as to make
+f(X), g(Y), “disjoint” in an appropriate sense. Something similar can be
+done with ludics. The locus  being fixed, delocations ϕ, 	 are defined by
+ϕ( ∗ i ∗ ) =  ∗ 2i ∗  	( ∗ i ∗ ) =  ∗ 2i + 1 ∗  (5)
+Since ϕ respects the tree structure, the image under ϕ of a design D is easily
+defined and shown to be a design of the same base. We can also define
+the image under ϕ of a behaviour G as ϕ(G) = ϕ[G]⊥⊥, with ϕ[G] =
+{ϕ(D)                                                                                                                                                                                                                           ; D ∈ G}. In case the base is positive, this simplifies into ϕ(G) =
+ϕ[G], but what about a negative base? The answer is negative: if the first
+(downmost) rule of D is (
+, N ), then the first rule of ϕ(D) is (
+, ϕ(N )).
+But nobody forbids me to “widen” the ramification ϕ(D) into—say—ϕ(D)∪
+{{1}}, so as to get E ⊃ ϕ(D), still in ϕ(G), but clearly not in ϕ[G]. But
+wait a minute, E\ϕ(D) is useless, i.e., does not contribute to the incarnation.
+In fact the incarnated designs of ϕ(G) are all in ϕ[G], i.e., the equality
+ϕ(G) = ϕ[G] holds up to incarnation: this is precisely what we called
+internal completeness.
+In order to understand what ϕ, 	 actually achieve, observe that ϕ(I ) =
+	(J) iff I = J = ∅, which is impossible, since ramifications are non-empty.
+This makes the behaviours G = ϕ(G), H = 	(H) disjoint, which means:
+Positive case: the only design in G ∩ H is the daimon, i.e., G ∩ H = 0.
+Negative case: if D ∈ G ∩ H
+, then |D|G ∩ |D|H = ∅.
+This is obvious, for instance, in the negative case, let (
+, N ) be the last
+rule of D, then |D|G is obtained by restricting N to {ϕ(I )                                                                                                                                                                     ; ϕ(I ) ∈N}, etc.
+20An alternative definition of the set-theoretic product.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 157
+4.1.4. The mystery of incarnation. For any negative G
+, H of the same
+base 
+:
+|D|G∩H = |D|G ∪ |D|H (6)
+which means that any incarnated design in G ∩ H is the union of an incarnated design in G and an incarnated design in H
+. If we introduce the
+notation |G| for the set of incarnated designs of G, this rewrites as:
+|G ∩ H
+| = |G
+| ∪× |H
+| (7)
+If G
+, H are disjoint, then the union (6) is disjoint                                                                                                                                                                                ; then (7) rewrites as:
+|G ∩ H
+||G
+|×|H
+| (8)
+This might be the most spectacular result of ludics: the cartesian product is
+a particular case of the intersection, provided we focus on incarnation.
+4.1.5. An example. Let us explain this in terms of the syntactical example of 2.2.3, i.e., consider the negative behaviour K corresponding to the sequent A
+. It will of course contain designs corresponding to
+(A
+, {{P, R}, {Q, R}}), but also designs corresponding to—say—
+(A
+, {{P, R}, {Q, R}, {P, Q, T}}), where T is another formula not related
+to A. But the incarnation of such a design will only retain the two premises
+{P, R}, {Q, R}. This shows something, namely that a negative rule can—
+in ludics—have useless premises. This is by the way the reason why full
+completeness is restricted to incarnated designs: the additional premises
+correspond to nothing syntactically visible.
+Now K is the orthogonal of the set of proofs starting either with
+(
+A, {P, R}) or with (
+A, {Q, R}), i.e., it is the orthogonal of a union—
+which is the same as an intersection of orthogonals. We can therefore write
+K=G ∩ H. To take the incarnation in G (resp. H) consists in retaining
+only the premise corresponding to {P, R} (resp. {Q, R}). In that case the
+behaviours G, H are disjoint, hence, up to incarnation, K appears as the
+cartesian product of G and H.
+4.1.6. The disjunction property. If G
+, H are positive behaviours of the
+same base
+, then the set (ethics) G ∪ H is not a behaviour. However,
+when G
+, H are disjoint
+(G ∪ H
+)
+⊥⊥ = G ∪ H (9)
+4.1.7. Additive connectives. Coming to the point of connectives—i.e., the
+social life of behaviours—, we discover that each connective can be
+presented—like the union and the product—in two different ways, a basic locative connective, and a spiritual one obtained by delocation from the
+basic case. Let us treat an example                                                                                                                                                                                              ; if G, H are behaviours of base 
+, then
+we can define the (negative) conjunction—i.e., a behaviour K of the same
+base—, in two different ways:
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+158 JEAN-YVES GIRARD
+Locative: K=G ∩ H. This operation enjoys very good properties, typically (real) commutativity, associativity                                                                                                                   ; it has a real neutral element,
+namely . But completeness—internal, hence external—fails                                                                                                                                                                     ; this is
+the well-known problem of the syntax of “intersection types”.
+Spiritual: G&H= ϕ(G) ∩ 	(H). The delocations ϕ, 	 are used to force
+the behaviours to be disjoint. As a result, we get a total and complete
+connective. But equalities are weakened into canonical isomorphisms.
+The completeness of & is the fact that there is a simple description of G & H,
+in terms of incarnation, obtained from (8):
+|G&H||G|×|H| (10)
+Usual (negative) conjunction appears as a particular case of intersection                                                                                                                                                        ;
+the “intersection type” is more primitive.
+If we turn our attention towards disjunction, then there are again two ways
+to form the disjunction of positive behaviours G, H, one being the locative
+sum (G∪H)⊥⊥, the other being the spiritual sum G⊕H=(ϕ(G)∪	(H))⊥⊥.
+In the spiritual case, the disjunction property enables us to remove the
+biorthogonal: this is the completeness of the sum, which can be written as:
+G ⊕ H\0  (G\0) + (H\0) (11)
+4.1.8. Incarnation and records. This explanation of conjunction as a delocated intersection is indeed the final answer to a small mystery. In the
+eighties, computer scientists developed various theories of objects                                                                                                                                                              ; but they
+insisted on the point that records were not quite products. In a record, we
+have fields with labels                                                                                                                                                                                                          ; in a cartesian product, we have two projections. In a
+record, we can decide to ignore part of the data, we still get a record of the
+same type: “a coloured point is still a point”                                                                                                                                                                               ; the same is logically impossible,
+a pair (point,colour) is not a point.
+Ludics is very close to the “record spirit”. For instance, its locative features
+are the exact analogues of the field labels                                                                                                                                                                                      ; similarly, inheritance is a natural
+property of designs. It is projection, coercion (the fact for a point to lose
+its colour) that become more complex: coercion corresponds to incarnation
+“we have no use for the colour, let’s erase it”, and projection involves a
+delocation.
+4.2. Multiplicatives.
+4.2.1. Shifts. As we said, one of the novelties of ludics is the use of polarity.
+This means that behaviours are divided into two classes, the positive and the
+negative ones. We just defined & as a connective sending negative behaviours
+to negative behaviours                                                                                                                                                                                                           ; similarly ⊕ sends positive behaviours to positive
+behaviours. But the tradition is that connectives apply, independently of
+polarity. In order to allow this, it is enough to define connectives allowing a
+change of polarity: if G is of base  ∗ 0 (positive or negative), then G is of
+base  and of opposite polarity. More precisely, if G is of base  ∗ 0
+, then
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 159
+↓G is of base
+ (resp. if G is of base
+ ∗ 0, then ↑G is of base 
+). The
+construction amounts at adding to the bottom of each design in G a rule
+(
+, {0}) (resp. a rule (
+, {{0}})).
+In terms of a naive game-theoretic intuition, the shift corresponds to a
+sort of dummy move. But this move is not quite dummy, because ↓↑G is not
+isomorphic to G: “operationally” speaking, two dummy moves have been
+added, with the possibility for each “player” to “give up” (i.e., use Daimon)
+at these early stages.
+4.2.2. The locative tensors. The tensor is the positive product, the adjoint
+of (linear) implication. The general form of the definition is:
+G  H = {D  D
+; D ∈ G, D ∈ H}⊥⊥ (12)
+i.e., the tensor of behaviours is defined from a tensor of designs. The basic
+question is therefore: given any two designs D, D of base
+, how do we
+form their tensor product? The answer depends on the respective first rules
+of D, D
+:
+1. If one of D, D is a daimon, then D  D = .
+2. If the first rules of D, D are (
+, I ),(
+, I 
+) and I ∩ I  = ∅, then one
+can define DD as follows: the first rule is (
+, I ∪I 
+), with premises
+ ∗ i, for i ∈ I , on which we proceed like in D and with premises  ∗ i
+,
+for i ∈ I 
+, on which we proceed like in D
+.
+3. But in case I ∩ I  = ∅, there is no obvious answer. There is of course a
+spiritual answer: D ⊗ D = ϕ(D)  	(D
+). Since ϕ(I ) ∩ 	(I ) = ∅, we
+are back, up to a delocation, to the previous case.
+But imagine that we want a locative tensor, something which should be to
+⊗ what ∩ is to &. We have to solve a locative conflict—to take an exact
+image, imagine a flight, D has booked rows {1, 12, 13}, D has booked rows
+{7, 13, 21}, with a conflict on the coveted row 13. The spiritual solution
+just mentioned amounts at delocating D on rows {2, 24, 26} and D on
+rows {15, 27, 43}, but this supposes an airplane big enough. If we turn our
+attention towards locative solutions, there are four possibilities—indeed four
+solutions admitting adjoints.
+D  D
+: D gets seats 1, 12, D gets 7, 13, 21.
+D  D
+: D gets seats 1, 12, 13, D gets 7, 21.
+D  D
+: the flight is cancelled: D  D = .
+D  D
+: D gets seats 1, 12, D gets 7, 21                                                                                                                                                                                              ; 13 given to Sk. Better to travel
+with a skunk than not travelling at all!
+The first two solutions are the symmetric expressions of the same noncommutative idea: one of the the two designs has priority, e.g., when
+i ∈ I ∩ I 
+, proceed as in D (protocol ). The last protocol () gives
+the disputed row to anybody: when i ∈ I ∩ I 
+, proceed as you want. For
+reasons of incarnation, “as you want” may be replaced with the “worst”
+case, the empty design Sk. But the most natural protocol remains  which
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+160 JEAN-YVES GIRARD
+solves the conflict in a drastic way. These four protocols are associative,
+but this does not imply that the resulting tensor of behaviours is associative: if G c H is short for {D  D
+; D ∈ G, D ∈ H}, there is no reason
+why ((G c H)⊥⊥ c K)⊥⊥ should equal ((G c (H c K)⊥⊥)⊥⊥. Associativity
+comes from the existence of adjoints.
+4.2.3. The adjoint implications. Each of the locative tensors has adjoints,
+for instance
+ F | D  D  =  F[D] | D =  [D
+]F | D   (13)
+F, F[D], [D
+]F are of base 
+and D, D are of base
+. By the separation
+theorem, equation (13) defines—say—F[D] in terms of F, D.
+The adjoints enable one to give a characterisation of the orthogonals of
+the various tensors. Typically:
+F ∈ (G  H)⊥ ⇔ ∀D(D ∈ G ⇒ F[D] ∈ H⊥) (14)
+This equation is used, together with the dual form:
+F ∈ (G  H)⊥ ⇔ ∀D
+(D ∈ H ⇒ [D
+]F ∈ G⊥) (15)
+to prove the associativity of  as well as its distributivity over the locative
+sum (G ∪ H)⊥⊥. The connectives ,  enjoy similar properties, and, of
+course, commutativity.
+4.2.4. The spiritual tensor. G ⊗ H is defined as ϕ(G)  	(H), where 
+is any of the locative tensors , , ,  (the choice is irrelevant). The
+spiritual tensor inherits all associativity, commutativity, distributivity from
+the locative case—but only up to isomorphism.
+4.2.5. The meaning of commutativity. The fact that the spiritual tensor
+is not commutative is nothing but the fact that f(x, y) = f(y, x). A
+contrario, the commutativity of the locative tensors ,  mean something
+like f(x, y) = f(y, x). Can we clarify this nonsense? First, let us introduce
+the notation for the adjoint of :
+ F | D  D  =  (F)D | D  =  (F)D | D  (16)
+from which we actually get ((F)D)D = ((F)D
+)D: the locative application
+is quite commutative! In the case of usual (spiritual) application, we get
+((F)ϕ(D))	(D
+) = ((F)ϕ(D
+))	(D), which explains the mystery. To sum
+up, locative application is commutative because the arguments are given together with their locations: there is no need for an order of application. You
+may think of the function as a module with several plugs: if application is
+plugging, then application is commutative. Delocation is indeed the possibility of shuffling plugs, no wonder that this induces a non-commutativity—but
+to some extent this non-commutativity is external to application.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 161
+4.2.6. Completeness properties. The completeness of the tensor consists
+in finding a complete ethics for G  H                                                                                                                                                                                           ; the obvious candidate is G c H. To
+make the long story short, completeness holds in the case of ϕ(G) c 	(H),
+which means that the spiritual conjunction G ⊗ H is complete. Contrarily
+to the additive case, this completeness result is highly non-trivial.
+4.2.7. Sequents of behaviours. The behaviours so far considered have
+atomic bases
+ or 
+. One can define behaviours on any base                                                                                                                                                                                          ; furthermore, one can form, on the model of sequents of formulas, sequents of
+behaviours. For instance, if G, H are behaviours of respective bases
+ and
+
+, one can define the behaviour G
+H of base 
+ by:
+F ∈ G
+H ⇔ ∀D ∈ G F, D ∈ H (17)
+equivalently:
+F ∈ G
+H ⇔ ∀E ∈ H⊥ F, E ∈ G⊥ (18)
+The obvious question is “what about G
+G and the identity axiom?” First
+notice that the answer is—strictly speaking—negative: G
+G has the base
+
+, which is not a pitchfork, remember that the loci must be pairwise
+incomparable. But we can reformulate the question with G
+(G), where
+ is the delocation ( ∗ ) =  ∗ , and ,  are incomparable.
+Game-theoretically, the answer is well-known, it is the “copycat” strategy,
+which consists in recopying the last move of the opponent. Here we shall
+call it Fax, to stress the fact that it implements a delocation, here          ; by
+the way, real copycats are at work everyday on the Web, and it is essential
+that they do their cheating at distance. But there is an even older intuition,
+namely the -expansion of the identity axiom, which reduces an identity on
+A to identities on P, Q, R, which in turn are reduced to identities ... . The
+process need not stop: just understand that a propositional atom is indeed
+a variable, quantified universally or existentially                             ; once it has been replaced
+with a witness (an actual behaviour) the -expansion can be resumed. The
+fax Fax, is the following design:
+...
+·
+·
+· Fax∗i,∗i
+. . . ∗ i
+ ∗ i...
+(
+,I )
+
+
+,  ∗ I
+(,℘f (N)\{∅})
+
+
+The operationality of the fax is expressed by the following:
+Fax, D = (D) (19)
+Fax, E = −1
+(E) (20)
+Fax, D, E = D, −1
+(E) = (D), E (21)
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+162 JEAN-YVES GIRARD
+The three equations (19) (20) (21) are equivalent definitions of the fax: this
+is plain from separation and associativity.
+4.3. Quantifiers.
+4.3.1. Locative quantifiers. Locative quantifiers are quantifiers which do
+not follow the truth tables, which shun category theory. They are defined
+from the idea of intersection, not the idea of infinite product, and since no
+delocation can work, they are definitely different. Now the question is: does
+this become a mess, or do we get something nice out of it? In fact something
+wonderful arises from the unexpected shock between locative quantification
+and spiritual connectives: these operations commute—sometimes beyond
+what seems reasonable, i.e., up to the violation of certain classical principles.
+Let Gd , d ∈ D be a family of behaviours of the same base                                                                                                                                                                        ; then one defines
+the behaviours
+∀d ∈ D Gd :=
+d∈D
+Gd (22)
+and
+∃d ∈ D Gd := ( 
+d∈D
+Gd )
+⊥⊥ (23)
+The typical example is second-order quantification: D consists in all the
+behaviours of a given positive base (typically
+)                                                                                                                                                                                                                                 ; if a formula A[X] contains several “occurrences” of X, X ⊥, we interpret these occurrences as the
+images under delocations 1, . . ., n of an unknown behaviour G (or its negation G⊥) based on
+. The typical example ∀X(X ⊥ &
+↑X), makes uses of
+the “occurrences”: X ⊥ = (G⊥), with () = , (n ∗ )=2n ∗ , and
+X = (G), with ()=1 ∗ .
+Another example is the plain intersection type, G0 ∩ G1                                                                                                                                                                          ; in that case,
+D = {0, 1}. But first-order quantification is not locative, see below.
+4.3.2. Prenex forms. The basic—and completely unexpected result—is
+that quantifiers commute with all spiritual connectives—but exponentials,
+not yet treated in ludics                                                                                                                                                                                                          ; these commutations enable one to write prenex
+forms, a facility usually restricted to classical logic. Some of these commutations are obvious, they are just the result of polarity: ∀ commutes to negative,
+∃ commute to positive, typically (∀XAX) &
+B is the same as ∀X(AX &
+B).
+Other commutations are a real surprise                                                                                                                                                                                             ; let us give two examples:
+∀d(Gd ⊗ Hd )=(∀dGd ) ⊗ (∀dHd ) (24)
+This equation implies the second order formula ∃X∀Y(AX ⇒ AY).
+∀d(Gd ⊕ Hd )=(∀dGd ) ⊕ (∀dHd ) (25)
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 163
+This equation is even more violent, since it contradicts classical logic: typically it implies ¬∀X(X ∨¬X). By the way this shows that a “constructive”—
+i.e., procedural—interpretation need not be weaker than a classical one: no
+hand tied in the back!
+4.3.3. Locative phenomena. It is with second order quantification that
+locative phenomenons become the most prominent—shocking or promising,
+depending on one’s attitude towards “foundations”.
+Equation (25) can be understood from second-order realisability:
+c  A ∨ B ⇔ ∃d ((c = 1 ∗ d ∧ d  A) ∨ (c = 2 ∗ d ∧ d  B)) (26)
+c  ∀XA ⇔ ∀C c  A[C/X] (27)
+From this:
+c  ∀X(A ∨ B) ⇔ (c  ∀XA) ∨ (c  ∀XB) (28)
+The reason is simple, if c  ∀X(A∨B), then c  A[C0/X]∨B[C0/X], hence
+is of the form 1 ∗ d, in which case d  A[C/X] for all C, or 2 ∗ d, in which
+case d  B[C/X] for all C. Observe that (27) refers to a quantification on
+something whose generic member has been called C, but we didn’t need
+any information about those C but perhaps the fact that we can name one
+of them, C0. In fact we are using the locative aspects of realisability: c is
+“located” among the 1∗d or among the 2∗d, and this location is a feature of
+c not of the parameter C. The crucial point is therefore that the realisers cC
+are equal (to c)                                                                                                                                                                                                                   ; should they be isomorphic, the property would fail. What
+we just explained is an exact rephrasing of the real argument in the archaic
+language of realisability: if we replace the maps d ❀ 1 ∗ d, d ❀ 2 ∗ d with
+ϕ, 	, c with a design, C with a positive behaviour, we get the correct proof
+of (25).
+Of course, if somebody had stumbled 30 years ago21 on something like (28)
+no conclusion would have been drawn—for realisability was leaking a lot,
+especially as soon as implication—or simply negation—was concerned: realisability was often percieved as “non-standard”! But in ludics, the situation is quite different, there is no leakage up to Π1
+; a sequent like
+∀X(A ⊕ B)
+(∀XA) ⊕ (∀XB) is not Π1
+: it belongs to the incomplete realm
+where everything is possible, including a departure from classical logic. The
+usual rules for second order logic are correct, but incomplete                                                                                                                                                                     ; the usual
+prejudice is to say “they are incomplete for want of enough comprehension
+21Added in print: in fact it did happen, this is Troelstra’s uniformity principle
+∀X ∃nA ⇒ ∃n∀XA,
+which relies—like (28)—on the fact that the realiser does not depend on the parameter C .
+This uniformity principle is genuinely locative and has been later studied by topos theoreticians, Lambek, P. Scott, Hyland, Rosolini ... but rather as a warped by-product of
+“impredicativity” and not as a genuine principle of quantification omitted from predicate
+calculus.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+164 JEAN-YVES GIRARD
+axioms”, and by the way it is true that, if we enlarge the syntax so as to get
+more comprehension, we get more Σ1 theorems. But here we got something
+which cannot be fixed in this way—remember that (25) implies the classically
+false ¬∀X(X ∨ ¬X), that no comprehension axiom will entail.
+The classical explanation of quantification is that of a big conjunction—
+maybe uniform in some sense. Classically speaking, ∀X(A ⊕ B) refers to
+each X separately. In ludics, this is not the case                                                                                                                                                                                 ; not because we absolutely
+want to produce warped effects, but because “there is not enough space”.
+If we want to interpret ∀X(A ⊕ B) as a sort of big conjunction, then we
+need disjoint delocations, one for each behaviour G for which the variable X
+stands. But there can be at most ℵ0 such delocations,22 whereas the number
+of behaviours is 22ℵ0
+.
+The formula ∃X∀Y(AX ⇒ AY) is obtained from ∃X∀Y(AX −◦ AY)
+which in turn comes from ∀XAX −◦ ∀YAY by prenex operations, justified by (24). The typical element in this behaviour is a design obtained
+from the fax—that lambda-calculus would simply note x.x. Hence x.x ∈
+∃X∀Y(AX ⇒ AY), but we cannot find any witness for X, i.e., the existence
+property fails. Concretely this means that we cannot remove the biorthogonal in the definition of the behaviour ∃X∀Y(AX −◦AY), in other terms that
+this behaviour is incomplete. This is not a surprise, Godel’s theorem—or ¨
+its version ante litteram, Cantor’s theorem—forbids such a thing, but with
+a heavy argument based on diagonalisation: the paragon of incompleteness
+is Godel’s formula, which is ¨ Π0
+1, i.e., Σ1. Nothing of the like here: there
+is no witness, period                                                                                                                                                                                                              ; this is quite different from “I cannot name the witness”. So ludics does not enjoy the existence property ... . But is it a deadly
+sin? Indeed the existence property is required for numerical quantifiers, i.e.,
+quantifiers restricted to natural numbers—and of course it holds in that
+case.
+4.3.4. First order quantification. First order quantification is a sort of big
+conjunction, maybe uniform in some sense: this is the viewpoint of modeltheory, of German style proof-theory, etc. This is also the viewpoint we
+must adopt if we want to extend completeness to predicate calculus. It
+seems that the extant tools in ludics—esp. uniformity, a topic we avoided in
+this survey—are sharp enough to make it. But do we really need this, i.e., is
+there a need for a “constructive”—procedural—interpretation of predicate
+calculus? To tell the truth, I never saw any such interpretation. In fact first
+order quantification has always been used in the particular case of numerical
+quantification, i.e., in contexts ∀x(x ∈ N ⇒ ·) and ∃x(x ∈ N ∧ ·). For
+instance coming back to realisability, one defines
+22The same argument applies to old style realisability, there are more “types” than realisers:
+this is where “impredicativity” comes in, by forcing ∀X to be an intersection                                                                                                                                                ; this in turn
+implies uniformity, which holds for any intersection.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 165
+c  ∀nA ⇔ (∀n{c}n  A[n/x]) ∧ ... 23 (29)
+But I never saw any real definition of c  ∀xA.
+It is therefore legitimate to question the interest of the predicate part
+of Heyting’s logic, which has been unimaginatively modelled on classical
+predicate calculus. What would for instance be the result of treating first
+order quantification in the locative spirit, i.e., by means of equations (22)
+and (23)? Obviously more formulas would be validated, with an incompleteness of the existential quantifier, typically ∃x∀y(Ax ⇒ Ay). But with
+no consequence of the form ∃m∀n(Am ⇒ An): this would not alter our
+beloved existence property for numerical quantification. x ∈ N translates
+into the usual Dedekind formulation
+∀X(∀z(z ∈ X ⇒ z + 1 ∈ X) ⇒ (0 ∈ X ⇒ x ∈ X)) (30)
+The completeness of this Π1 formula provides the required witness.
+§5. The challenge of exponentials.
+5.1. On integers.
+5.1.1. Kronecker. God created the integers, all else is the work of man                                                                                                                                                            ;
+the sentence is the best illustration of the intrinsic difficulty of foundations:
+how can we proceed beyond integers? There is no way of making the natural
+number series lose its absoluteness: for instance model theory has considered
+non-standard integers, but the very choice of the expression betrays the
+existence of standard ones. Our approach to natural numbers must therefore
+be oblique, not because we want a warped notion, but because we meet
+a blind spot of our intuition. The possibility of an oblique approach is
+backed by quantum physics—by the way the major scientific achievement
+of last century—: one has been able to speak of non-realistic artifacts, in
+complete opposition to our “fundamental intuitions” concerning position,
+momentum, ... . The short story of quantum mechanics begins with the
+discovery by Planck of small cracks, asperities, in this impressive realistic
+building, thermodynamics. Our only hope will be in the discovery of a
+“crack” in the definition of integers: even a small crack may do it.
+5.1.2. Rates of growth. But it is quite desperate to seek an asperity in this
+desperately smooth {0, 1, 2,... }, as long as we see it as a set. It becomes different if we see it as a “process”, since we can play on the rate of growth. This
+is backed by the development of computational complexity, and paradoxically by the impossibility of proving any non-immediate separation theorem
+between the various classes: something about integers could be hidden there.
+The “rate of growth” could concern the possible functions involving integers                                                                                                                                                   ;
+more likely, there could be several rates of growth (polytime, logspace, ... )
+corresponding to different notions of integers.
+23Some nonsense to fix the leakage.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+166 JEAN-YVES GIRARD
+5.1.3. Norms. Can we imagine different notions of integers? Again, let
+us try an analogy: there is no problem with the finite dimensional space Cn,
+corresponding to the basis {e1,..., en}                                                                                                                                                                                            ; but C, which corresponds to the
+basis {e1,..., en,... } has no meaning at all—some quantitative information
+should be added, typically a norm, usually the 1-norm or the 2-norm.
+Could we find something like a “norm” (or norms) in the case of integers?
+5.1.4. Dedekind. There is no reason to criticise Dedekind’s definition of
+integers (30), and little reasons to refuse its simplified version
+∀X((X ⇒ X) ⇒ (X ⇒ X)) (31)
+which is indeed the familiar polymorphic definition of the integers in system
+F. We shall try to plug in real numbers in (31). Fortunately, ∀X((X ⇒ X) ⇒
+(X ⇒ X)) is not flat like {0, 1, 2,... }, it offers two asperities, one is ∀X: we
+could play on the possible X—i.e., restrict comprehension. This has been the
+main activity of an ism—predicative mathematics—: nothing ever came or
+can be expected from this approach, which is pure bondage. There remains
+the other entrance, the connective ⇒.
+5.2. On implication.
+5.2.1. The input of Scott domains. If we consider implication, there is a
+real crack in the building, not a very recent one, since it dates back to 1969, to
+Scott domains. This work was the final point to a problem illustrated by the
+names of Kleene, Kreisel, Gandy, ... on higher order computation.24 The
+question was to find a natural topology on function spaces, in modern terms,
+to build a CCC of topological spaces. D. Scott (and independently Ershov)
+solved the question beyond doubt, but there is something puzzling: this is
+achieved by a restriction to queer spaces whose topology is not Hausdorff—
+only T0, the only separation property which costs nothing. In other terms, the
+Scott topology succeeds in keeping the cardinality of functionals quite low                                                                                                                                                        ;
+but it is cheap topology, in which separately continuous functions happen to
+be continuous. This is our crack: the logical rules for implication contradict
+usual topology: we cannot interpret them with spaces like R.
+There are two possible interpretations of the absence of a convincing “continuous” explanation: the usual way is to fix it, and this is what everybody
+has so far tried. But there is another way out, maybe our logical rules, typically composition f, g ❀ f ◦ g are wrong. Removing—more likely simply
+tampering with—composition may change a lot of things, and the kind of
+modification I am seeking is likely to have a different fate from intuitionism whose novelty was tamed by Godel’s translation: the “enemy” was still ¨
+present—it only took the ¬¬-disguise. We must accept the idea that perhaps
+the exponential n ❀ 2n—which is a typical product of composition—may
+24I have written somewhere that beyond second-order, higher order has been useful only
+for producing Ph.D. theses                                                                                                                                                                                                         ; this was not quite true at that time.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+FROM FOUNDATIONS TO LUDICS 167
+disappear once for all ... . This is shocking, but do we want something new,
+or are we happy with metaturtles?
+5.2.2. The input of linear logic. Linear logic started with a decomposition
+of implication:
+A ⇒ B = !A −◦ B (32)
+into a more basic linear implication and a repetition operation, the exponential !A which mainly takes care of contraction. The exponential-free part
+is something peculiar, extremely basic—so to speak foundationally neutral                                                                                                                                                        ; this is the fragment so far interpreted by ludics. Exponentials were
+excluded from the present version of ludics—not because of any essential
+impossibility—but because of a slight malaise, in particular as to their precise
+locativity: by the way, this malaise is part of the crack we are seeking.
+Using linear logic, it was possible to revisit continuous interpretations:
+Formulas become Banach spaces,25 proofs linear maps of norm  1.
+Positive connectives are interpreted by means of 1-norms                                                                                                                                                                          ; typically the
+connective ⊕ corresponds to a direct sum equipped with
+"x ⊕ y" = "x" + "y".
+Negative connectives are interpreted by means of ∞-norms                                                                                                                                                                        ; typically
+the connective & corresponds to a direct sum equipped with
+"x ⊕ y" = sup("x", "y").
+Usual implication E ⇒ F corresponds to analytical functions from the
+open unit ball of E to the closed unit ball of F.
+The crack already noticed in Scott domains becomes more conspicuous:
+what prevents us from composing functions is the difference between an
+open ball and a closed ball—more precisely the impossibility of extending
+an analytic function to the closed ball in any reasonable way. For instance,
+for "x" ≤ 1, the Dirac measures !x do not depend continuously on x,
+"!x−!y" = 2 as soon as x = y.
+5.3. Objective: exponentials.
+5.3.1. On infinity. Methodologically speaking, the introduction of exponentials induces a schizophrenia26 between labile operations—the basic linear connectives—and “stable” ones, the exponentials !,?. One of the basic
+theses of linear logic was about infinity: infinity is not in some external
+reality, but in the possibility of reuse, i.e., contraction, i.e., exponentials:
+Infinity as Eternity
+25Indeed coherent Banach spaces, in which the “dual space” is specified                                                                                                                                                        ; this accounts for
+the want of reflexivity of Banach spaces like 1
+, ∞. 26This is analogous to the linguistic opposition between perfective and imperfective, e.g.,
+in Russian.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at
+168 JEAN-YVES GIRARD
+For instance, no diagonalisation argument is possible in the absence of
+exponentials                                                                                                                                                                                                                       ; typically, Prawitz’s naive set-theory, rewritten in a (basic) linear
+framework is consistent: this naive set theory normalises in logspace.
+5.3.2. Light logics. In 1986 when linear logic was created, there was no
+question of departing from usual logic, to create yet another Broccoli logic.
+This is why the standard rules of exponentials have been chosen so as to
+respect intuitionistic logic through the translation (32). Infinity is concentrated in the exponentials, hence any tampering with exponentials will alter
+the properties of infinity. This is the oblique approach I mentioned: in
+this way, we can expect access to something beyond our realistic intuitions.
+Several systems with “light exponentials” have been produced                                                                                                                                                                   ; my favourite
+being LLL, light linear logic, which has a polytime normalisation algorithm
+and can harbour all polytime functions.
+Unfortunately these systems are good for nothing, they all come from
+bondage: artificial restrictions on the rules which achieve certain effects, but
+are not justified by use, not even by some natural “semantic” considerations.
+5.3.3. Some science-fiction. Let us put things together. In the mismatch
+logic/topology, my thesis is that logic is wrong, not topology: so let us
+modify logic. Using linear logic, the modification must take into account
+the mismatch open ball/closed ball, and one can imagine several ways out—
+e.g., changing the diameters of balls—which all would have the effect of
+plugging real parameters in logical definitions such as Dedekind’s.
+However we are not yet in position to do so: the Banach space thing is
+only a semantics, i.e., a badly leaking interpretation. We have to import
+parameters—say complex—into ludics and accommodate exponentials in a
+continuous setting. We should eventually get a norm (rather several norms,
+none of them distinguished), not quite on the integers, but on a wider space
+... . But the best programs are those written after their fulfilment.
+REFERENCES
+[1] J.-Y. Girard, Locus solum, Mathematical Structures in Computer Science, vol. 11
+(2001), pp. 301–506.27
+INSTITUT DE MATHEMATIQUES DE LUMINY, UPR 9016 – CNRS ´
+163, AVENUE DE LUMINY, CASE 930
+F-13288 MARSEILLE CEDEX 09, FRANCE
+E-mail: girard@iml.univ-mrs.fr
+27This paper contains a very comprehensive bibliography, this is why we give no other
+reference here.
+https://www.cambridge.org/core/terms. https://doi.org/10.2178/bsl/1052669286
+Downloaded from https://www.cambridge.org/core. Stockholm University Library, on 20 Feb 2018 at 21:17:27, subject to the Cambridge Core terms of use, available at

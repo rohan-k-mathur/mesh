@@ -7,40 +7,6 @@ import DiscussionView from "@/components/discussion/DiscussionView";
 import { GridBG } from "@/components/discussion/FX";
 // import { GridBG } from "@/components/ui/GridBG";
 
-
-
-// model Discussion {
-//   id          String  @id @default(cuid())
-//   slug        String? @unique
-//   title       String
-//   description String?
-//   createdById String
-//   visibility  String  @default("public") // "public" | "private" | "unlisted"
-
-//   // Link to existing chat conversation (optional at creation; we can create on demand)
-//   conversationId BigInt? @unique
-
-//   conversation Conversation? @relation(fields: [conversationId], references: [id])
-
-//   // Polymorphic attachment to any object (optional)
-//   attachedToType String? // e.g. "article" | "comment" | "stack" | "claim" | "post"
-//   attachedToId   String? // store as string; can hold cuid, uuid, bigint, etc.
-
-//   upgradedToDeliberation Deliberation?           @relation("DiscussionToDeliberation")
-//   messages               DiscussionMessage[] // 👈 back-rel for DiscussionMessage.discussion
-//   participants           DiscussionParticipant[] // 👈 back-rel for DiscussionParticipant.discussion
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   forumComments ForumComment[]
-//   deliberations DiscussionDeliberation[]
-
-//   ConversationParticipant ConversationParticipant[]
-
-//   @@index([attachedToType, attachedToId])
-// }
-
 export default async function DiscussionPage({ params }: { params: { id: string } }) {
     const discussion = await prisma.discussion.findUnique({
      where: { id: params.id },

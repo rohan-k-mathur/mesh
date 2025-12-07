@@ -8,12 +8,12 @@ Keep (already good):
 * Viewpoint selection & conflicts; monological lenses (MethodChip, MiniStructureBox).
 * Early “dialogical” surface (DialogueMoves, AF overlays).
 Harden / extend:
-1. Proof‑guarded CQ satisfaction Gate “satisfied: true” on attached counter‑move and a TE/NLI relation consistent with the expected attack (rebut/undercut). Surface why a box unlocks/locks.
-2. TE/NLI adjudicator as a first‑class service Centralize entailment/contradiction checks for: edge validation, view Γ ⊢ Δ status, “best counter” ranking, evidence scoring.
-3. Dialogical validity signals (ludics‑lite) Track polarity blocks (P/O), loci (addresses), and a normalization check that tells us whether all legal attacks are currently answered. Show “open legal attacks”.
-4. Eristic route overlay + DE‑meter Detect common stratagems (loaded question, scope shift/equivocation, quibble) and nudge toward “honest routes”. Compute a rolling discourse‑ethics score (reasons, answered CQs, reciprocity, clarity).
-5. Sequent lens for views Treat each representative view as Γ ⊢ Δ; estimate entailment strength with NLI and show missing premise prompts.
-6. Operationalized inferential semantics Add a legal‑move recommender (→, ∧, ∨, ∀, ∃, presuppositions) to the reply composer and WHY dialogs. This makes the dialogical lens feel like a game with rules, not just a log.
+1. Proof‑guarded CQ satisfactionGate “satisfied: true” on attached counter‑move and a TE/NLI relation consistent with the expected attack (rebut/undercut). Surface why a box unlocks/locks.
+2. TE/NLI adjudicator as a first‑class serviceCentralize entailment/contradiction checks for: edge validation, view Γ ⊢ Δ status, “best counter” ranking, evidence scoring.
+3. Dialogical validity signals (ludics‑lite)Track polarity blocks (P/O), loci (addresses), and a normalization check that tells us whether all legal attacks are currently answered. Show “open legal attacks”.
+4. Eristic route overlay + DE‑meterDetect common stratagems (loaded question, scope shift/equivocation, quibble) and nudge toward “honest routes”. Compute a rolling discourse‑ethics score (reasons, answered CQs, reciprocity, clarity).
+5. Sequent lens for viewsTreat each representative view as Γ ⊢ Δ; estimate entailment strength with NLI and show missing premise prompts.
+6. Operationalized inferential semanticsAdd a legal‑move recommender (→, ∧, ∨, ∀, ∃, presuppositions) to the reply composer and WHY dialogs. This makes the dialogical lens feel like a game with rules, not just a log.
 
 1) Principles (updated) & System Map
 New principles
@@ -26,13 +26,13 @@ System map deltas
 * Add Eristic detector alongside rhetoric detectors.
 
 2) Core transforms (bridges) — finalized
-* T0. TE/NLI adjudicator (new) Input: pairs (premise, hypothesis) or (attacker, target, relationHint). Output: { relation: 'entails'|'contradicts'|'neutral', score }. Uses: edge validation, CQ gating, Γ ⊢ Δ badge, “best counter” rank.
-* T1. NL → Atoms (extend) Emit: claims, roles, edges, scheme instances, CQ triggers, logical shape cues (→ ∧ ∨ ∀ ∃), presupposition flags, eristic hints.
-* T1b. Edge typing + TE confidence (new micro‑transform) On propose support/rebut: call T0; store NLILink with confidence.
-* T2. Atoms → NL (extend) For views/claims, explain dialogical trace (open vs answered legal attacks), Γ ⊢ Δ strength, missing steps.
-* T3. Atoms → Analytics (extend) Dialogical scoreboard, DE‑meter (reasons, answered CQs, reciprocity, clarity), EristicMark counts.
-* T4. NL → Graph Ops (extend) Compile intents + legal‑move suggestions into precise operations (challenge antecedent, pick disjunct, instantiate ∀, define presupposition).
-* T5. Retrieval/Evidence (unchanged; tighter loop) When a CQ needs evidence, propose citations; on attach, update CQ + TE status and dialogical scoreboard.
+* T0. TE/NLI adjudicator (new)Input: pairs (premise, hypothesis) or (attacker, target, relationHint).Output: { relation: 'entails'|'contradicts'|'neutral', score }.Uses: edge validation, CQ gating, Γ ⊢ Δ badge, “best counter” rank.
+* T1. NL → Atoms (extend)Emit: claims, roles, edges, scheme instances, CQ triggers, logical shape cues (→ ∧ ∨ ∀ ∃), presupposition flags, eristic hints.
+* T1b. Edge typing + TE confidence (new micro‑transform)On propose support/rebut: call T0; store NLILink with confidence.
+* T2. Atoms → NL (extend)For views/claims, explain dialogical trace (open vs answered legal attacks), Γ ⊢ Δ strength, missing steps.
+* T3. Atoms → Analytics (extend)Dialogical scoreboard, DE‑meter (reasons, answered CQs, reciprocity, clarity), EristicMark counts.
+* T4. NL → Graph Ops (extend)Compile intents + legal‑move suggestions into precise operations (challenge antecedent, pick disjunct, instantiate ∀, define presupposition).
+* T5. Retrieval/Evidence (unchanged; tighter loop)When a CQ needs evidence, propose citations; on attach, update CQ + TE status and dialogical scoreboard.
 
 3) Minimal data model additions (Prisma)
 model NLILink {
@@ -90,21 +90,21 @@ model DialogueMove {
 Compatibility: all new fields are optional; no breaking changes to Arguments/Claims/Edges.
 
 4) API contracts (thin, typed)
-/api/nli/batch (POST) Body:
+/api/nli/batch (POST)Body:
 type NLIPair = { premise: string; hypothesis: string; hint?: 'supports'|'rebuts'|'undercuts' };
 type NLIRequest = { pairs: NLIPair[] };
 type NLIResult = { relation: 'entails'|'contradicts'|'neutral'; score: number };
 type NLIResponse = { results: NLIResult[] };
-/api/cqs/toggle (POST) – server guard Add checks for satisfied:true:
+/api/cqs/toggle (POST) – server guardAdd checks for satisfied:true:
 * If CQ expects rebut: require a ClaimEdge(type='rebuts') or NLILink.relation='contradicts' with score≥τ_rebut.
-* If undercut: require an attached undercut edge or (conclusion neutral/weak) && (warrant contradicted) above thresholds. Return structured reason if blocked.
-/api/dialogue/chronicle (GET) ?deliberationId=...&k=... → last K moves with polarity, locus.address, block groupings.
-/api/dialogue/normalize (POST) { deliberationId, window?: number } → { converged: boolean, openAttacks: AttackSpec[], forkPath?: string[] }.
-/api/eristic/scan (POST) { deliberationId, window?: number } → writes EristicMark[], returns counts.
+* If undercut: require an attached undercut edge or (conclusion neutral/weak) && (warrant contradicted) above thresholds.Return structured reason if blocked.
+/api/dialogue/chronicle (GET)?deliberationId=...&k=... → last K moves with polarity, locus.address, block groupings.
+/api/dialogue/normalize (POST){ deliberationId, window?: number } → { converged: boolean, openAttacks: AttackSpec[], forkPath?: string[] }.
+/api/eristic/scan (POST){ deliberationId, window?: number } → writes EristicMark[], returns counts.
 
 5) Algorithms, thresholds, and explainability
-* NLI thresholds (configurable): τ_rebut = 0.75 (contradicts), τ_support = 0.75 (entails), τ_neutral = 0.55 boundary. Always return score + textual rationale (short span matches where available); store NLILink.
-* Γ ⊢ Δ aggregation: For each δ∈Δ, compute max_{g∈Γ} score(entails(g, δ)). View status: strong (all δ ≥ τ_support), weak (some δ below), incoherent (any δ contradicted by Γ).
+* NLI thresholds (configurable):τ_rebut = 0.75 (contradicts), τ_support = 0.75 (entails), τ_neutral = 0.55 boundary.Always return score + textual rationale (short span matches where available); store NLILink.
+* Γ ⊢ Δ aggregation:For each δ∈Δ, compute max_{g∈Γ} score(entails(g, δ)).View status: strong (all δ ≥ τ_support), weak (some δ below), incoherent (any δ contradicted by Γ).
 * Legal‑move recommender:
     * if ... then ... → offer challenge antecedent or ask for consequent.
     * and → challenge either conjunct.
@@ -112,31 +112,31 @@ type NLIResponse = { results: NLIResult[] };
     * every/each (∀) → instantiate counterexample.
     * some (∃) → request witness or challenge existence.
     * Presupposition (loaded question) → suggest define term / split claim.
-* Ludics‑lite normalization: Group DialogueMoves into P/O blocks. “Converged” if the last non‑empty opponent block has no legal attack left unanswered. Otherwise list openAttacks.
-* DE‑meter (0–100): reasonsGivenRate (grounds/support edges present), answeredCQsRate, reciprocityIndex (reply balance across parties), clarityScore (inverse of Eristic marks). Weighted sum with room‑level config. Expose sub‑bars in UI.
+* Ludics‑lite normalization:Group DialogueMoves into P/O blocks. “Converged” if the last non‑empty opponent block has no legal attack left unanswered. Otherwise list openAttacks.
+* DE‑meter (0–100):reasonsGivenRate (grounds/support edges present), answeredCQsRate, reciprocityIndex (reply balance across parties), clarityScore (inverse of Eristic marks). Weighted sum with room‑level config. Expose sub‑bars in UI.
 
 6) Staged Roadmap (8 sprints; each is PR‑sized work)
 A1 — TE/NLI foundation
 * /api/nli/batch + NLILink.
-* On ClaimEdge create/update → call NLI; store link. Acceptance: NLI tooltips on edges (relation+score).
+* On ClaimEdge create/update → call NLI; store link.Acceptance: NLI tooltips on edges (relation+score).
 A2 — CQ proof‑guard
 * Server guard in /api/cqs/toggle.
-* UI explains disabled checkbox (needs: attack edge + NLI score). Acceptance: After attaching a counter‑claim that passes NLI, the box enables without reload.
+* UI explains disabled checkbox (needs: attack edge + NLI score).Acceptance: After attaching a counter‑claim that passes NLI, the box enables without reload.
 A3 — Legal‑move recommender
-* legalAttacksFor(text) util + buttons in reply/WHY composer. Acceptance: Buttons insert structured replies tied to attack type.
+* legalAttacksFor(text) util + buttons in reply/WHY composer.Acceptance: Buttons insert structured replies tied to attack type.
 A4 — Loci & normalization
 * Migrations: DialogueLocus, DialogueChronicle; extend DialogueMove.
-* normalizeLastK engine + “Interaction Trace” UI rail (P/O blocks, fork). Acceptance: Dialogical panel shows open legal attacks or “resolved”.
+* normalizeLastK engine + “Interaction Trace” UI rail (P/O blocks, fork).Acceptance: Dialogical panel shows open legal attacks or “resolved”.
 A5 — Eristic overlay
 * Rules: loaded_question, equivocation/scope‑shift, quibble.
-* EristicMark + overlay toggle + “honest route” prompt (CQ/define). Acceptance: Overlay highlights tactics with one‑click fixes.
+* EristicMark + overlay toggle + “honest route” prompt (CQ/define).Acceptance: Overlay highlights tactics with one‑click fixes.
 A6 — Sequent lens in RepresentativeViewpoints
-* Compute Γ, Δ per view; NLI aggregate; badge + “missing premise” suggestions. Acceptance: Badge correlates with facilitator judgments on a test set.
+* Compute Γ, Δ per view; NLI aggregate; badge + “missing premise” suggestions.Acceptance: Badge correlates with facilitator judgments on a test set.
 A7 — DE‑meter
-* Rolling compute + header widget (sub‑bars; click → actionable to‑dos). Acceptance: Meter responds to answering CQs and providing reasons.
+* Rolling compute + header widget (sub‑bars; click → actionable to‑dos).Acceptance: Meter responds to answering CQs and providing reasons.
 A8 — Optional LF assist & AIF export (feature‑flag)
 * Narrow LF parsing for conditionals/quantifiers to sharpen TE on hard edges.
-* AIF JSON export of Claims/Edges/Schemes. Acceptance: Export opens in external AIF tools; LF improves a small curated suite.
+* AIF JSON export of Claims/Edges/Schemes.Acceptance: Export opens in external AIF tools; LF improves a small curated suite.
 
 7) Evaluation & test plan
 * Unit fixtures (repo): 40–60 micro‑examples hitting →, ∧, ∨, ∀, ∃, presupposition; gold labels for legal‑move suggestions and NLI relations.
@@ -167,10 +167,10 @@ PR‑3 — Legal‑move suggester
 (You already have AiTransformEvent and AiNarrativeCache; keep using those for provenance and caching.)
 
 10) Implementation notes (in your stack)
-* RepresentativeViewpoints: Add EntailmentBadge fed by /api/nli/batch over Γ×Δ with caching; show “missing premise” chips → quick CQ prompts.
-* ArgumentsList (monological): Keep MethodChip, MiniStructureBox, EvidenceChecklist; add “presupposition” hint + one‑click “Define terms” template reply.
-* Dialogical panel: Add Interaction Trace (P/O blocks), open‑attacks list, Normalize button; Eristic overlay toggle aligned with your rhetoric controls.
-* CQ modal: Already shows attach flow; now add why disabled tooltip + live enable once attach + NLI pass.
+* RepresentativeViewpoints:Add EntailmentBadge fed by /api/nli/batch over Γ×Δ with caching; show “missing premise” chips → quick CQ prompts.
+* ArgumentsList (monological):Keep MethodChip, MiniStructureBox, EvidenceChecklist; add “presupposition” hint + one‑click “Define terms” template reply.
+* Dialogical panel:Add Interaction Trace (P/O blocks), open‑attacks list, Normalize button; Eristic overlay toggle aligned with your rhetoric controls.
+* CQ modal:Already shows attach flow; now add why disabled tooltip + live enable once attach + NLI pass.
 
 11) Final checklist before coding
 * ✅ Agree on NLI thresholds & override UX copy.
@@ -219,7 +219,7 @@ System map (conceptual)
 2) Core transforms (the “bridges”)
 Each transform is a stateless function with structured I/O, run as a queue job, persisted as events.
 T1. NL → Atoms (formalize)
-Input: free text (argument, work paragraph, comment), optional context (deliberationId, host article, selected text offsets). Output: JSON atoms:
+Input: free text (argument, work paragraph, comment), optional context (deliberationId, host article, selected text offsets).Output: JSON atoms:
 * Claims (text, quantifier/modality hints, optional promote to claim),
 * Argument roles (grounds, warrant, backing, qualifier, rebuttal),
 * Edges (support/rebut/undercut + target scope),
@@ -229,7 +229,7 @@ Input: free text (argument, work paragraph, comment), optional context (delibera
 * Values (candidate Value weights).
 Implementation: LLM function‑calling with strict JSON schema (Zod) + light post‑rules. Show a “proposed changes” diff for acceptance.
 T2. Atoms → NL (explain)
-Input: nodes/edges/analytics slice (e.g., a view, or a claim with its incoming edges). Output: one or more:
+Input: nodes/edges/analytics slice (e.g., a view, or a claim with its incoming edges).Output: one or more:
 * Explainability text: “Why is View 2 representative?” “Why is Claim C labeled IN?”
 * Conflict explainer: short paragraphs referencing specific claims/arguments and counts.
 * Bridge prompt: targeted ask (“what evidence would connect Cluster A→B?”).
@@ -278,12 +278,12 @@ model AiNarrativeCache {
 Jobs & orchestration
 * Use your existing BullMQ + Redis for ai.extractAtoms, ai.renderNarrative, analytics.recompute, retrieval.findEvidence.
 * SSE endpoints you already use → stream job progress to the UI.
-Function calling contracts (Zod types) Define once, reuse across job workers and UI guards:
+Function calling contracts (Zod types)Define once, reuse across job workers and UI guards:
 * ExtractAtomsRequest/Response
 * ExplainSelectionRequest/Response
 * ResolveIntentRequest/Response (for NL→ops)
 * FindEvidenceRequest/Response
-Observability Emit structured logs from each job; write AiTransformEvent rows with hashes so we can dedupe/regenerate when inputs change.
+ObservabilityEmit structured logs from each job; write AiTransformEvent rows with hashes so we can dedupe/regenerate when inputs change.
 
 4) Staged roadmap (PR‑sized, 6–8 sprints)
 Sprint 1 — Semantic I/O foundation (NL → atoms)
@@ -378,7 +378,7 @@ Below is (1) a tight summary of the bits that matter for Discus, then (2) how to
 * Two‑sided sequent view. They show strategies correspond to two‑sided sequent derivations (multiple hypotheses / multiple conclusions), which is the right formal backdrop for our “viewpoint = sequent” idea (Γ ⊢ Δ per view). (ar5iv)
 * Attack/defense rules at formula shape. The dialogical rules cover how to attack/defend →, ∧, ∨, ∀, ∃ (e.g., opponent picks the antecedent on →; universal can be attacked by instantiation; etc.). This gives us a precise catalog of challenge prompts and response expectations for our “WHY/GROUNDS/RETRACT” move types. (ar5iv)
 * Bridge to textual entailment (TE). They connect natural language to logic via type‑logical grammars and the Grail parser (delivering DRS‑like logical forms), then decide TE using the dialogical engine on FraCaS‑style examples. For Discus, this justifies plugging an NLI/TE layer to score whether a move actually supports or attacks as claimed. (ar5iv)
-Why this matters for Discus: We already have a dialogical surface (moves), a Dung/Bipolar slice, and a CQ scheme layer. Catta et al. justify (i) using dialogical status (who can force a reply) as a first‑class semantic, (ii) representing each “view” as a two‑sided sequent (great for the Representative Viewpoints panel), and (iii) validating support/attack with an entailment test rather than heuristics. That’s the theoretical foundation we want.
+Why this matters for Discus:We already have a dialogical surface (moves), a Dung/Bipolar slice, and a CQ scheme layer. Catta et al. justify (i) using dialogical status (who can force a reply) as a first‑class semantic, (ii) representing each “view” as a two‑sided sequent (great for the Representative Viewpoints panel), and (iii) validating support/attack with an entailment test rather than heuristics. That’s the theoretical foundation we want.
 
 2) Where it strengthens Discus now (feature by feature)
 A) CQ gating + “Attach rebuttal/undercut”

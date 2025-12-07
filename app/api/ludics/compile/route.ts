@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { compileFromMoves } from "@/packages/ludics-engine/compileFromMoves";
+import { compileFromMoves, ScopingStrategy } from "@/packages/ludics-engine/compileFromMoves";
 import { z } from "zod";
 
 const zBody = z.object({ 
   deliberationId: z.string(),
-  scopingStrategy: z.enum(["legacy", "issue", "actor-pair", "argument", "topic"]).optional(),
+  scopingStrategy: z.custom<ScopingStrategy>().optional(),
   forceRecompile: z.boolean().optional(),
 });
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Compile with specified strategy (defaults to 'legacy' for backward compatibility)
-    const result = await compileFromMoves(deliberationId, {
+    const result = await compileFromMoves(deliberationId as string, {
       scopingStrategy: scopingStrategy ?? "legacy",
       forceRecompile: forceRecompile ?? true,
     });

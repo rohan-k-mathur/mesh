@@ -1,0 +1,1137 @@
+POST /deliberation/ludics-views-test-mimi1l4n 200 in 472ms
+ GET /api/content-status?targetType=deliberation&targetId=ludics-views-test-mimi1l4n 200 in 474ms
+ⓘ next-firebase-auth-edge: getTokens: Tokens successfully extracted from cookies
+ⓘ next-firebase-auth-edge: getTokens: Cookies are marked as verified.
+ⓘ next-firebase-auth-edge: getTokens: took 0ms
+ POST /deliberation/ludics-views-test-mimi1l4n 200 in 415ms
+ GET /api/deliberations/ludics-views-test-mimi1l4n/discussion-items?limit=200&includeMetadata=true&includeAuthors=true 200 in 2888ms
+ GET /api/ludics/designs?deliberationId=ludics-views-test-mimi1l4n 200 in 736ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Proponent 200 in 523ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Opponent 200 in 389ms
+ GET /api/ludics/loci?dialogueId=ludics-views-test-mimi1l4n 200 in 382ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Opponent 200 in 376ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Proponent 200 in 525ms
+ GET /api/ludics/insights?deliberationId=ludics-views-test-mimi1l4n 200 in 1973ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Opponent 200 in 383ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Proponent 200 in 521ms
+ GET /api/ludics/step?deliberationId=ludics-views-test-mimi1l4n&phase=neutral&maxPairs=1024 200 in 3224ms
+ GET /api/ludics/loci?dialogueId=ludics-views-test-mimi1l4n 200 in 383ms
+ GET /api/ludics/designs/cminz6zlh023f8cyr1tjse4xb/semantic 200 in 1797ms
+ GET /api/ludics/orthogonal?dialogueId=ludics-views-test-mimi1l4n&phase=neutral 200 in 3686ms
+ GET /api/ludics/designs/cminz6zhb023d8cyrxia4qv2h/semantic 200 in 1753ms
+ POST /api/ludics/designs/semantic/batch 200 in 1792ms
+ GET /api/ludics/loci?dialogueId=ludics-views-test-mimi1l4n 200 in 382ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Opponent 200 in 397ms
+ GET /api/commitments/state?dialogueId=ludics-views-test-mimi1l4n&ownerId=Proponent 200 in 541ms
+ GET /api/ludics/loci?dialogueId=ludics-views-test-mimi1l4n 200 in 384ms
+ ✓ Compiled /api/ludics/dds/strategies/propagation in 245ms (4762 modules)
+ ✓ Compiled (4768 modules)
+ GET /api/ludics/dds/strategy/innocence?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1178ms
+ GET /api/ludics/dds/strategies/propagation?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1180ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 1183ms
+ GET /api/ludics/dds/strategies/innocence?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1252ms
+ GET /api/ludics/dds/stats?deliberationId=ludics-views-test-mimi1l4n 200 in 2778ms
+ ✓ Compiled /api/ludics/dds/chronicles in 378ms (4780 modules)
+ ✓ Compiled (4784 modules)
+[Views] Found 1 P designs with 7 total P acts
+[Views] Found 1 O designs with 20 total O acts
+ POST /api/ludics/dds/chronicles 200 in 1637ms
+[Views] Found 14 loci for deliberation ludics-views-test-mimi1l4n
+[Views] P acts at loci: 0.1, 0.1.1.1, 0.2, 0.2.1.1, 0.3, 0.3.1.1, 0.3.1.2.1
+[Views] O acts at loci: 0.1.1, 0.1.1.2, 0.2.1, 0.2.1.2, 0.3.1, 0.3.1.2, 0.1, 0, 0.1.1.1, 0.2, 0.2.1.1, 0.3, 0.3.1.1, 0.3.1.2.1
+[Views] Generated 71 P positions, 71 O positions
+[Views] Extracted 27 P views, 7 O views
+ POST /api/ludics/dds/strategy/innocence 200 in 2651ms
+ POST /api/ludics/dds/strategy/propagation 200 in 2719ms
+ POST /api/ludics/dds/views 200 in 15365ms
+ GET /api/ludics/dds/strategy/innocence?designId=cminz6zhb023d8cyrxia4qv2h 200 in 537ms
+ GET /api/ludics/dds/stats?deliberationId=ludics-views-test-mimi1l4n 200 in 2063ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 890ms
+ POST /api/ludics/dds/strategies/innocence 200 in 1928ms
+ POST /api/ludics/dds/strategies/propagation 200 in 2008ms
+ GET /api/ludics/dds/strategies/propagation?designId=cminz6zhb023d8cyrxia4qv2h 200 in 578ms
+ GET /api/ludics/dds/strategies/innocence?designId=cminz6zhb023d8cyrxia4qv2h 200 in 579ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 821ms
+[Strategies Generate] Auto-creating disputes from 1 P × 1 O design pairs
+[Strategies Generate] P design xia4qv2h acts: [
+  { id: '67j9eka1', path: '0.1' },
+  { id: 'kuhzuv2o', path: '0.1.1.1' },
+  { id: 'ldjrjfaw', path: '0.2' },
+  { id: 'ae33aens', path: '0.2.1.1' },
+  { id: '02y5ydgs', path: '0.3' },
+  { id: '5yamfbzj', path: '0.3.1.1' },
+  { id: 'q79bma6d', path: '0.3.1.2.1' }
+]
+[Strategies Generate] O design 1tjse4xb acts: [
+  { id: 'bh6i10qt', path: '0.1.1' },
+  { id: 'ixz46b8j', path: '0.1.1.2' },
+  { id: 'i4n4qq04', path: '0.2.1' },
+  { id: 'w30lk6p3', path: '0.2.1.2' },
+  { id: '4s5jzlmf', path: '0.3.1' },
+  { id: 'zx5fipbg', path: '0.3.1.2' },
+  { id: 'qkb78q87', path: '0.1' },
+  { id: 'enks1lpr', path: undefined },
+  { id: 'asami0w9', path: '0.1.1.1' },
+  { id: 'jq3m1s5i', path: undefined },
+  { id: 'xyc0f2af', path: '0.2' },
+  { id: 'l988446t', path: undefined },
+  { id: 'bqpqvbla', path: '0.2.1.1' },
+  { id: '7p7wxukf', path: undefined },
+  { id: 'ryqbmmxv', path: '0.3' },
+  { id: 'in8iafmg', path: undefined },
+  { id: '6a6tcvsm', path: '0.3.1.1' },
+  { id: '4mj0gzqk', path: undefined },
+  { id: '9pmlr0kb', path: '0.3.1.2.1' },
+  { id: 'cmaoy54i', path: undefined }
+]
+[Strategies Generate] Sorted locus paths: [
+  '0',       '0.1',
+  '0.2',     '0.3',
+  '0.1.1',   '0.2.1',
+  '0.3.1',   '0.1.1.1',
+  '0.1.1.2', '0.2.1.1',
+  '0.2.1.2', '0.3.1.1',
+  '0.3.1.2', '0.3.1.2.1'
+]
+[Strategies Generate] Action pairs created: [
+  '0: P=∅, O=cmaoy54i',
+  '0.1: P=67j9eka1, O=qkb78q87',
+  '0.2: P=ldjrjfaw, O=xyc0f2af',
+  '0.3: P=02y5ydgs, O=ryqbmmxv',
+  '0.1.1: P=∅, O=bh6i10qt',
+  '0.2.1: P=∅, O=i4n4qq04',
+  '0.3.1: P=∅, O=4s5jzlmf',
+  '0.1.1.1: P=kuhzuv2o, O=asami0w9',
+  '0.1.1.2: P=∅, O=ixz46b8j',
+  '0.2.1.1: P=ae33aens, O=bqpqvbla',
+  '0.2.1.2: P=∅, O=w30lk6p3',
+  '0.3.1.1: P=5yamfbzj, O=6a6tcvsm',
+  '0.3.1.2: P=∅, O=zx5fipbg',
+  '0.3.1.2.1: P=q79bma6d, O=9pmlr0kb'
+]
+ POST /api/ludics/dds/strategies/generate 200 in 4658ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 823ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 992ms
+ ✓ Compiled /api/ludics/dds/correspondence in 349ms (4453 modules)
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] CHECKING ALL ISOMORPHISMS
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] Design: {
+  id: 'cminz6zlh023f8cyr1tjse4xb',
+  participantId: 'Opponent',
+  actCount: 20
+}
+[ISOMORPHISM] Strategy: { id: 'cmio4468i03ij8c8bn1plt61e', player: 'O', playCount: 5 }
+[ISOMORPHISM] Counter designs: [
+  {
+    id: 'cminz6zhb023d8cyrxia4qv2h',
+    participantId: 'Proponent',
+    actCount: 7
+  }
+]
+[ISOMORPHISM] ========================================
+[OPS] computeViews called: { playCount: 5, player: 'O' }
+[OPS] computeViews result: { uniqueViews: 5 }
+[ISOMORPHISM] Pre-computed views for Views(Plays(V))=V check: 5
+[ISOMORPHISM] === Plays(Views(S)) = S CHECK ===
+[ISOMORPHISM] Input strategy: { id: 'cmio4468i03ij8c8bn1plt61e', player: 'O', playCount: 5 }
+[ISOMORPHISM] Original plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P (length: 1)
+[ISOMORPHISM]   Play 1: 0:P|0.3:O (length: 2)
+[ISOMORPHISM]   Play 2: 0:P|0.3:O|0.3.1:P (length: 3)
+[ISOMORPHISM]   Play 3: 0:P|0.3:O|0.3.1:P|0.3.1.2:O (length: 4)
+[ISOMORPHISM]   Play 4: 0:P|0.3:O|0.3.1:P|0.3.1.2:O|0.3.1.2.1:P (length: 5)
+[OPS] computeViews called: { playCount: 5, player: 'O' }
+[OPS] computeViews result: { uniqueViews: 5 }
+[ISOMORPHISM] Views(S) computed: { viewCount: 5 }
+[ISOMORPHISM] Computed views (first 5):
+[ISOMORPHISM]   View 0: 0:P (length: 1)
+[ISOMORPHISM]   View 1: 0:P|0.3:O (length: 2)
+[ISOMORPHISM]   View 2: 0:P|0.3:O|0.3.1:P (length: 3)
+[ISOMORPHISM]   View 3: 0:P|0.3:O|0.3.1:P|0.3.1.2:O (length: 4)
+[ISOMORPHISM]   View 4: 0:P|0.3:O|0.3.1:P|0.3.1.2:O|0.3.1.2.1:P (length: 5)
+[OPS] computePlays called: { viewCount: 5 }
+[OPS] findMinimalViews: { totalViews: 5, minimalCount: 1, minimalLengths: [ 1 ] }
+[OPS] computePlays: minimal views (P₀): 1
+[OPS] computePlays: initial plays from minimal views: 1
+[OPS] computePlays: iteration 1, added 1 plays, total: 2
+[OPS] computePlays: iteration 2, added 1 plays, total: 3
+[OPS] computePlays: iteration 3, added 1 plays, total: 4
+[OPS] computePlays: iteration 4, added 1 plays, total: 5
+[OPS] computePlays: iteration 5, added 0 plays, total: 5
+[OPS] computePlays result: { totalPlays: 5, iterations: 5 }
+[ISOMORPHISM] Plays(Views(S)) computed: { reconstructedCount: 5 }
+[ISOMORPHISM] Reconstructed plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P (length: 1)
+[ISOMORPHISM]   Play 1: 0:P|0.3:O (length: 2)
+[ISOMORPHISM]   Play 2: 0:P|0.3:O|0.3.1:P (length: 3)
+[ISOMORPHISM]   Play 3: 0:P|0.3:O|0.3.1:P|0.3.1.2:O (length: 4)
+[ISOMORPHISM]   Play 4: 0:P|0.3:O|0.3.1:P|0.3.1.2:O|0.3.1.2.1:P (length: 5)
+[ISOMORPHISM] Comparison result: {
+  equal: true,
+  originalCount: 5,
+  reconstructedCount: 5,
+  missing: 0,
+  extra: 0
+}
+[ISOMORPHISM] === Views(Plays(V)) = V CHECK ===
+[ISOMORPHISM] Input views: { viewCount: 5 }
+[ISOMORPHISM] Original views (first 5):
+[ISOMORPHISM]   View 0: 0:P
+[ISOMORPHISM]   View 1: 0:P|0.3:O
+[ISOMORPHISM]   View 2: 0:P|0.3:O|0.3.1:P
+[ISOMORPHISM]   View 3: 0:P|0.3:O|0.3.1:P|0.3.1.2:O
+[ISOMORPHISM]   View 4: 0:P|0.3:O|0.3.1:P|0.3.1.2:O|0.3.1.2.1:P
+[OPS] computePlays called: { viewCount: 5 }
+[OPS] findMinimalViews: { totalViews: 5, minimalCount: 1, minimalLengths: [ 1 ] }
+[OPS] computePlays: minimal views (P₀): 1
+[OPS] computePlays: initial plays from minimal views: 1
+[OPS] computePlays: iteration 1, added 1 plays, total: 2
+[OPS] computePlays: iteration 2, added 1 plays, total: 3
+[OPS] computePlays: iteration 3, added 1 plays, total: 4
+[OPS] computePlays: iteration 4, added 1 plays, total: 5
+[OPS] computePlays: iteration 5, added 0 plays, total: 5
+[OPS] computePlays result: { totalPlays: 5, iterations: 5 }
+[ISOMORPHISM] Plays(V) computed: { playCount: 5 }
+[OPS] computeViews called: { playCount: 5, player: 'O' }
+[OPS] computeViews result: { uniqueViews: 5 }
+[ISOMORPHISM] Views(Plays(V)) computed: { reconstructedCount: 5 }
+[ISOMORPHISM] Reconstructed views (first 5):
+[ISOMORPHISM]   View 0: 0:P
+[ISOMORPHISM]   View 1: 0:P|0.3:O
+[ISOMORPHISM]   View 2: 0:P|0.3:O|0.3.1:P
+[ISOMORPHISM]   View 3: 0:P|0.3:O|0.3.1:P|0.3.1.2:O
+[ISOMORPHISM]   View 4: 0:P|0.3:O|0.3.1:P|0.3.1.2:O|0.3.1.2.1:P
+[ISOMORPHISM] Comparison result: {
+  equal: true,
+  originalCount: 5,
+  reconstructedCount: 5,
+  missing: 0,
+  extra: 0
+}
+[ISOMORPHISM] === Disp(Ch(S)) = S CHECK ===
+[ISOMORPHISM] Input strategy: { id: 'cmio4468i03ij8c8bn1plt61e', player: 'O', playCount: 5 }
+[ISOMORPHISM] Counter designs: 1
+[ISOMORPHISM] Ch(S) computed: { chronicleCount: 5 }
+[ISOMORPHISM] Chronicles (first 5):
+[ISOMORPHISM]   Chronicle 0: actions=1, polarity=O, isPositive=false
+[ISOMORPHISM]   Chronicle 1: actions=2, polarity=O, isPositive=true
+[ISOMORPHISM]   Chronicle 2: actions=3, polarity=O, isPositive=false
+[ISOMORPHISM]   Chronicle 3: actions=4, polarity=O, isPositive=true
+[ISOMORPHISM]   Chronicle 4: actions=5, polarity=O, isPositive=false
+[ISOMORPHISM] Reconstructed acts from chronicles: 5
+[ISOMORPHISM]   Act 0: locus="0", polarity=P
+[ISOMORPHISM]   Act 1: locus="0.3", polarity=O
+[ISOMORPHISM]   Act 2: locus="0.3.1", polarity=P
+[ISOMORPHISM]   Act 3: locus="0.3.1.2", polarity=O
+[ISOMORPHISM]   Act 4: locus="0.3.1.2.1", polarity=P
+[DISP] computeDisp called: {
+  designId: 'cminz6zlh023f8cyr1tjse4xb',
+  designActCount: 5,
+  counterDesignCount: 1
+}
+[DISP] computeDispute: {
+  posDesign: '1tjse4xb',
+  negDesign: 'xia4qv2h',
+  posPaths: [ '0', '0.3', '0.3.1', '0.3.1.2', '0.3.1.2.1' ],
+  negPaths: [ '0.1', '0.1.1.1', '0.2', '0.2.1.1', '0.3', '0.3.1.1', '0.3.1.2.1' ]
+}
+[DISP] All locus paths (sorted): [
+  '0',       '0.1',
+  '0.2',     '0.3',
+  '0.3.1',   '0.1.1.1',
+  '0.2.1.1', '0.3.1.1',
+  '0.3.1.2', '0.3.1.2.1'
+]
+[DISP] Pair at 0: depth=1, expected=P, posAct=ed-act-0, negAct=∅
+[DISP] Pair at 0.1: depth=2, expected=O, posAct=∅, negAct=67j9eka1
+[DISP] Pair at 0.2: depth=2, expected=O, posAct=∅, negAct=ldjrjfaw
+[DISP] Pair at 0.3: depth=2, expected=O, posAct=ed-act-1, negAct=02y5ydgs
+[DISP] Pair at 0.3.1: depth=3, expected=P, posAct=ed-act-2, negAct=∅
+[DISP] Pair at 0.1.1.1: depth=4, expected=O, posAct=∅, negAct=kuhzuv2o
+[DISP] Pair at 0.2.1.1: depth=4, expected=O, posAct=∅, negAct=ae33aens
+[DISP] Pair at 0.3.1.1: depth=4, expected=O, posAct=∅, negAct=5yamfbzj
+[DISP] Pair at 0.3.1.2: depth=4, expected=O, posAct=ed-act-3, negAct=∅
+[DISP] Pair at 0.3.1.2.1: depth=5, expected=P, posAct=ed-act-4, negAct=q79bma6d
+[DISP] Dispute computed: { pairCount: 10, status: 'CONVERGENT' }
+[DISP] Computed dispute: {
+  posDesign: '1tjse4xb',
+  negDesign: 'xia4qv2h',
+  pairCount: 10,
+  status: 'CONVERGENT'
+}
+[DISP] computeDisp result: { totalDisputes: 1 }
+[ISOMORPHISM] Disp(reconstructed) computed: { disputeCount: 1 }
+[ISOMORPHISM] Disputes (first 3):
+[ISOMORPHISM]   Dispute 0: pairs=10, status=CONVERGENT
+[DISP] disputesToPlays called: { disputeCount: 1, player: 'O' }
+[DISP] Maximal (leaf) paths: [ '0.1.1.1', '0.2.1.1', '0.3.1.1', '0.3.1.2.1' ]
+[DISP] disputesToPlays result: {
+  playCount: 10,
+  samplePlays: [
+    '0:P',
+    '0:P|0.1:O',
+    '0:P|0.1:O|0.1.1.1:O',
+    '0:P|0.2:O',
+    '0:P|0.2:O|0.2.1.1:O',
+    '0:P|0.3:O',
+    '0:P|0.3:O|0.3.1:P',
+    '0:P|0.3:O|0.3.1:P|0.3.1.1:O'
+  ]
+}
+[ISOMORPHISM] Reconstructed plays from disputes: 10
+[ISOMORPHISM] Reconstructed plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P
+[ISOMORPHISM]   Play 1: 0:P|0.1:O
+[ISOMORPHISM]   Play 2: 0:P|0.1:O|0.1.1.1:O
+[ISOMORPHISM]   Play 3: 0:P|0.2:O
+[ISOMORPHISM]   Play 4: 0:P|0.2:O|0.2.1.1:O
+[ISOMORPHISM] Comparison result: {
+  equal: false,
+  originalCount: 5,
+  reconstructedCount: 10,
+  missing: 0,
+  extra: 5
+}
+[ISOMORPHISM] Missing plays:
+[ISOMORPHISM] Extra plays:
+[ISOMORPHISM]   0: 0:P|0.1:O
+[ISOMORPHISM]   1: 0:P|0.1:O|0.1.1.1:O
+[ISOMORPHISM]   2: 0:P|0.2:O
+[ISOMORPHISM]   3: 0:P|0.2:O|0.2.1.1:O
+[ISOMORPHISM]   4: 0:P|0.3:O|0.3.1:P|0.3.1.1:O
+[ISOMORPHISM] === Ch(Disp(D)) = D CHECK ===
+[ISOMORPHISM] Input design: {
+  id: 'cminz6zlh023f8cyr1tjse4xb',
+  participantId: 'Opponent',
+  actCount: 20
+}
+[ISOMORPHISM] Design acts:
+[ISOMORPHISM]   Act 0: locus="0.1", polarity=O, kind=PROPER
+[ISOMORPHISM]   Act 1: locus="0.1.1", polarity=O, kind=PROPER
+[ISOMORPHISM]   Act 2: locus="0.1.1.1", polarity=O, kind=PROPER
+[ISOMORPHISM]   Act 3: locus="0.1.1.2", polarity=O, kind=PROPER
+[ISOMORPHISM]   Act 4: locus="0.2", polarity=O, kind=PROPER
+[ISOMORPHISM] Counter designs: 1
+[DISP] computeDisp called: {
+  designId: 'cminz6zlh023f8cyr1tjse4xb',
+  designActCount: 20,
+  counterDesignCount: 1
+}
+[DISP] computeDispute: {
+  posDesign: '1tjse4xb',
+  negDesign: 'xia4qv2h',
+  posPaths: [
+    '0.1',       '0.1.1',
+    '0.1.1.1',   '0.1.1.2',
+    '0.2',       '0.2.1',
+    '0.2.1.1',   '0.2.1.2',
+    '0.3',       '0.3.1',
+    '0.3.1.1',   '0.3.1.2',
+    '0.3.1.2.1', '0'
+  ],
+  negPaths: [ '0.1', '0.1.1.1', '0.2', '0.2.1.1', '0.3', '0.3.1.1', '0.3.1.2.1' ]
+}
+[DISP] All locus paths (sorted): [
+  '0',       '0.1',
+  '0.2',     '0.3',
+  '0.1.1',   '0.2.1',
+  '0.3.1',   '0.1.1.1',
+  '0.1.1.2', '0.2.1.1',
+  '0.2.1.2', '0.3.1.1',
+  '0.3.1.2', '0.3.1.2.1'
+]
+[DISP] Pair at 0: depth=1, expected=P, posAct=cmaoy54i, negAct=∅
+[DISP] Pair at 0.1: depth=2, expected=O, posAct=qkb78q87, negAct=67j9eka1
+[DISP] Pair at 0.2: depth=2, expected=O, posAct=xyc0f2af, negAct=ldjrjfaw
+[DISP] Pair at 0.3: depth=2, expected=O, posAct=ryqbmmxv, negAct=02y5ydgs
+[DISP] Pair at 0.1.1: depth=3, expected=P, posAct=bh6i10qt, negAct=∅
+[DISP] Pair at 0.2.1: depth=3, expected=P, posAct=i4n4qq04, negAct=∅
+[DISP] Pair at 0.3.1: depth=3, expected=P, posAct=4s5jzlmf, negAct=∅
+[DISP] Pair at 0.1.1.1: depth=4, expected=O, posAct=asami0w9, negAct=kuhzuv2o
+[DISP] Pair at 0.1.1.2: depth=4, expected=O, posAct=ixz46b8j, negAct=∅
+[DISP] Pair at 0.2.1.1: depth=4, expected=O, posAct=bqpqvbla, negAct=ae33aens
+[DISP] Pair at 0.2.1.2: depth=4, expected=O, posAct=w30lk6p3, negAct=∅
+[DISP] Pair at 0.3.1.1: depth=4, expected=O, posAct=6a6tcvsm, negAct=5yamfbzj
+[DISP] Pair at 0.3.1.2: depth=4, expected=O, posAct=zx5fipbg, negAct=∅
+[DISP] Pair at 0.3.1.2.1: depth=5, expected=P, posAct=9pmlr0kb, negAct=q79bma6d
+[DISP] Dispute computed: { pairCount: 14, status: 'CONVERGENT' }
+[DISP] Computed dispute: {
+  posDesign: '1tjse4xb',
+  negDesign: 'xia4qv2h',
+  pairCount: 14,
+  status: 'CONVERGENT'
+}
+[DISP] computeDisp result: { totalDisputes: 1 }
+[ISOMORPHISM] Disp(D) computed: { disputeCount: 1 }
+[ISOMORPHISM] Disputes (first 3):
+[ISOMORPHISM]   Dispute 0: pairs=14, status=CONVERGENT
+[ISOMORPHISM] Player determined: O
+[DISP] disputesToPlays called: { disputeCount: 1, player: 'O' }
+[DISP] Maximal (leaf) paths: [ '0.1.1.1', '0.1.1.2', '0.2.1.1', '0.2.1.2', '0.3.1.1', '0.3.1.2.1' ]
+[DISP] disputesToPlays result: {
+  playCount: 14,
+  samplePlays: [
+    '0:P',
+    '0:P|0.1:O',
+    '0:P|0.1:O|0.1.1:P',
+    '0:P|0.1:O|0.1.1:P|0.1.1.1:O',
+    '0:P|0.1:O|0.1.1:P|0.1.1.2:O',
+    '0:P|0.2:O',
+    '0:P|0.2:O|0.2.1:P',
+    '0:P|0.2:O|0.2.1:P|0.2.1.1:O'
+  ]
+}
+[ISOMORPHISM] Plays from disputes: 14
+[ISOMORPHISM] Strategy plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P
+[ISOMORPHISM]   Play 1: 0:P|0.1:O
+[ISOMORPHISM]   Play 2: 0:P|0.1:O|0.1.1:P
+[ISOMORPHISM]   Play 3: 0:P|0.1:O|0.1.1:P|0.1.1.1:O
+[ISOMORPHISM]   Play 4: 0:P|0.1:O|0.1.1:P|0.1.1.2:O
+[ISOMORPHISM] Ch(S) computed: { chronicleCount: 14 }
+[ISOMORPHISM] Reconstructed acts: 14
+[ISOMORPHISM]   Act 0: locus="0", polarity=P
+[ISOMORPHISM]   Act 1: locus="0.1", polarity=O
+[ISOMORPHISM]   Act 2: locus="0.1.1", polarity=P
+[ISOMORPHISM]   Act 3: locus="0.1.1.1", polarity=O
+[ISOMORPHISM]   Act 4: locus="0.1.1.2", polarity=O
+[ISOMORPHISM] Comparison result: { equal: false, originalActCount: 20, reconstructedActCount: 14 }
+[ISOMORPHISM] Original acts: [
+  { locusPath: '0.1', polarity: 'O' },
+  { locusPath: '0.1.1', polarity: 'O' },
+  { locusPath: '0.1.1.1', polarity: 'O' },
+  { locusPath: '0.1.1.2', polarity: 'O' },
+  { locusPath: '0.2', polarity: 'O' },
+  { locusPath: '0.2.1', polarity: 'O' },
+  { locusPath: '0.2.1.1', polarity: 'O' },
+  { locusPath: '0.2.1.2', polarity: 'O' },
+  { locusPath: '0.3', polarity: 'O' },
+  { locusPath: '0.3.1', polarity: 'O' },
+  { locusPath: '0.3.1.1', polarity: 'O' },
+  { locusPath: '0.3.1.2', polarity: 'O' },
+  { locusPath: '0.3.1.2.1', polarity: 'O' },
+  { locusPath: '0', polarity: null },
+  { locusPath: '0', polarity: null },
+  { locusPath: '0', polarity: null },
+  { locusPath: '0', polarity: null },
+  { locusPath: '0', polarity: null },
+  { locusPath: '0', polarity: null },
+  { locusPath: '0', polarity: null }
+]
+[ISOMORPHISM] Reconstructed acts: [
+  { locusPath: '0', polarity: 'P', ramification: [ 1, 2, 3 ] },
+  { locusPath: '0.1', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.1.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.1.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.1.1.2', polarity: 'O', ramification: [] },
+  { locusPath: '0.2', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.2.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.2.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.2.1.2', polarity: 'O', ramification: [] },
+  { locusPath: '0.3', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.3.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.3.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.3.1.2', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.3.1.2.1', polarity: 'P', ramification: [] }
+]
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] FINAL RESULTS:
+[ISOMORPHISM]   Plays(Views(S))=S: true
+[ISOMORPHISM]   Views(Plays(V))=V: true
+[ISOMORPHISM]   Disp(Ch(S))=S: false
+[ISOMORPHISM]   Ch(Disp(D))=D: false
+[ISOMORPHISM] ========================================
+ GET /api/ludics/dds/correspondence?strategyId=cmio4468i03ij8c8bn1plt61e 200 in 3125ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 834ms
+
+
+
+
+ GET /api/ludics/dds/correspondence?strategyId=cmio4468i03ij8c8bn1plt61e 200 in 3125ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 834ms
+ POST /api/ludics/dds/views 200 in 282824ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 828ms
+ ✓ Compiled /api/ludics/dds/views in 316ms (4466 modules)
+ GET /api/ludics/dds/views?deliberationId=ludics-views-test-mimi1l4n 200 in 1175ms
+[Views] Found 1 P designs with 7 total P acts
+[Views] Found 1 O designs with 20 total O acts
+[Views] Found 14 loci for deliberation ludics-views-test-mimi1l4n
+[Views] P acts at loci: 0.1, 0.1.1.1, 0.2, 0.2.1.1, 0.3, 0.3.1.1, 0.3.1.2.1
+[Views] O acts at loci: 0.1.1, 0.1.1.2, 0.2.1, 0.2.1.2, 0.3.1, 0.3.1.2, 0.1, 0, 0.1.1.1, 0.2, 0.2.1.1, 0.3, 0.3.1.1, 0.3.1.2.1
+[Views] Generated 71 P positions, 71 O positions
+[Views] Extracted 27 P views, 7 O views
+
+✓ Compiled /api/ludics/dds/chronicles in 235ms (4466 modules)
+ POST /api/ludics/dds/views 200 in 14108ms
+ GET /api/ludics/dds/chronicles?deliberationId=ludics-views-test-mimi1l4n 200 in 1483ms
+ POST /api/ludics/dds/chronicles 200 in 1050ms
+ GET /api/ludics/dds/chronicles?deliberationId=ludics-views-test-mimi1l4n 200 in 1070ms
+
+
+ Chronicles Explorer
+Recompute Chronicles
+Chronicles represent maximal branches in disputes. Proposition 3.6: Chronicles partition disputes into coherent paths.
+
+Chronicle 1
+MAXIMAL
+20 actions
+Chronicle Details
+Length: 20 actions
+Maximal: Yes
+Sequence:
+[
+  {
+    "focus": "0.1",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz70ak023h8cyr67j9eka1",
+    "order": 1
+  },
+  {
+    "focus": "0.1.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz70n3023l8cyrbh6i10qt",
+    "order": 1
+  },
+  {
+    "focus": "0.1.1.2",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz71bi023t8cyrixz46b8j",
+    "order": 2
+  },
+  {
+    "focus": "0.1.1.1",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz70z5023p8cyrkuhzuv2o",
+    "order": 2
+  },
+  {
+    "focus": "0.2.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz71zv02418cyri4n4qq04",
+    "order": 3
+  },
+  {
+    "focus": "0.2",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz71nq023x8cyrldjrjfaw",
+    "order": 3
+  },
+  {
+    "focus": "0.2.1.1",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz72c502458cyrae33aens",
+    "order": 4
+  },
+  {
+    "focus": "0.2.1.2",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz72op02498cyrw30lk6p3",
+    "order": 4
+  },
+  {
+    "focus": "0.3",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz730u024d8cyr02y5ydgs",
+    "order": 5
+  },
+  {
+    "focus": "0.3.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz73cy024h8cyr4s5jzlmf",
+    "order": 5
+  },
+  {
+    "focus": "0.3.1.1",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz73p2024l8cyr5yamfbzj",
+    "order": 6
+  },
+  {
+    "focus": "0.3.1.2",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz7417024p8cyrzx5fipbg",
+    "order": 6
+  },
+  {
+    "focus": "0.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz8vbl02n58cyrqkb78q87",
+    "order": 7
+  },
+  {
+    "focus": "0.3.1.2.1",
+    "polarity": "P",
+    "ramification": [],
+    "actId": "cminz74dm024t8cyrq79bma6d",
+    "order": 7
+  },
+  {
+    "focus": "0.1.1.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz8xmr02o38cyrasami0w9",
+    "order": 9
+  },
+  {
+    "focus": "0.2",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz8zx602p18cyrxyc0f2af",
+    "order": 11
+  },
+  {
+    "focus": "0.2.1.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz92au02pz8cyrbqpqvbla",
+    "order": 13
+  },
+  {
+    "focus": "0.3",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz94mc02qt8cyrryqbmmxv",
+    "order": 15
+  },
+  {
+    "focus": "0.3.1.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz97kz02qz8cyr6a6tcvsm",
+    "order": 17
+  },
+  {
+    "focus": "0.3.1.2.1",
+    "polarity": "O",
+    "ramification": [],
+    "actId": "cminz99y302r58cyr9pmlr0kb",
+    "order": 19
+  }
+]
+
+ ✓ Compiled /api/ludics/dds/strategies/propagation in 244ms (4468 modules)
+ ✓ Compiled (4470 modules)
+ GET /api/ludics/dds/strategies/innocence?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1049ms
+ GET /api/ludics/dds/strategies/propagation?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1051ms
+ POST /api/ludics/dds/strategies/propagation 200 in 1663ms
+ POST /api/ludics/dds/strategies/innocence 200 in 1736ms
+ GET /api/ludics/dds/strategies/propagation?designId=cminz6zhb023d8cyrxia4qv2h 200 in 544ms
+ GET /api/ludics/dds/strategies/innocence?designId=cminz6zhb023d8cyrxia4qv2h 200 in 546ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 839ms
+ ✓ Compiled /api/ludics/dds/correspondence in 150ms (4472 modules)
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] CHECKING ALL ISOMORPHISMS
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] Design: {
+  id: 'cminz6zhb023d8cyrxia4qv2h',
+  participantId: 'Proponent',
+  actCount: 7
+}
+[ISOMORPHISM] Strategy: { id: 'cmio43hpb03bh8c8bqg3xf05q', player: 'P', playCount: 0 }
+[ISOMORPHISM] Counter designs: [
+  {
+    id: 'cminz6zlh023f8cyr1tjse4xb',
+    participantId: 'Opponent',
+    actCount: 20
+  }
+]
+[ISOMORPHISM] ========================================
+[OPS] computeViews called: { playCount: 0, player: 'P' }
+[OPS] computeViews result: { uniqueViews: 0 }
+[ISOMORPHISM] Pre-computed views for Views(Plays(V))=V check: 0
+[ISOMORPHISM] === Plays(Views(S)) = S CHECK ===
+[ISOMORPHISM] Input strategy: { id: 'cmio43hpb03bh8c8bqg3xf05q', player: 'P', playCount: 0 }
+[ISOMORPHISM] Original plays (first 5):
+[OPS] computeViews called: { playCount: 0, player: 'P' }
+[OPS] computeViews result: { uniqueViews: 0 }
+[ISOMORPHISM] Views(S) computed: { viewCount: 0 }
+[ISOMORPHISM] Computed views (first 5):
+[OPS] computePlays called: { viewCount: 0 }
+[OPS] computePlays: empty views, returning empty
+[ISOMORPHISM] Plays(Views(S)) computed: { reconstructedCount: 0 }
+[ISOMORPHISM] Reconstructed plays (first 5):
+[ISOMORPHISM] Comparison result: {
+  equal: true,
+  originalCount: 0,
+  reconstructedCount: 0,
+  missing: 0,
+  extra: 0
+}
+[ISOMORPHISM] === Views(Plays(V)) = V CHECK ===
+[ISOMORPHISM] Input views: { viewCount: 0 }
+[ISOMORPHISM] Empty views, trivially holds
+[ISOMORPHISM] === Disp(Ch(S)) = S CHECK ===
+[ISOMORPHISM] Input strategy: { id: 'cmio43hpb03bh8c8bqg3xf05q', player: 'P', playCount: 0 }
+[ISOMORPHISM] Counter designs: 1
+[ISOMORPHISM] Ch(S) computed: { chronicleCount: 0 }
+[ISOMORPHISM] Chronicles (first 5):
+[ISOMORPHISM] Reconstructed acts from chronicles: 0
+[DISP] computeDisp called: {
+  designId: 'cminz6zhb023d8cyrxia4qv2h',
+  designActCount: 0,
+  counterDesignCount: 1
+}
+[DISP] computeDispute: {
+  posDesign: 'xia4qv2h',
+  negDesign: '1tjse4xb',
+  posPaths: [],
+  negPaths: [
+    '0.1',       '0.1.1',
+    '0.1.1.1',   '0.1.1.2',
+    '0.2',       '0.2.1',
+    '0.2.1.1',   '0.2.1.2',
+    '0.3',       '0.3.1',
+    '0.3.1.1',   '0.3.1.2',
+    '0.3.1.2.1', '0'
+  ]
+}
+[DISP] All locus paths (sorted): [
+  '0',       '0.1',
+  '0.2',     '0.3',
+  '0.1.1',   '0.2.1',
+  '0.3.1',   '0.1.1.1',
+  '0.1.1.2', '0.2.1.1',
+  '0.2.1.2', '0.3.1.1',
+  '0.3.1.2', '0.3.1.2.1'
+]
+[DISP] Pair at 0: depth=1, expected=P, posAct=∅, negAct=cmaoy54i
+[DISP] Pair at 0.1: depth=2, expected=O, posAct=∅, negAct=qkb78q87
+[DISP] Pair at 0.2: depth=2, expected=O, posAct=∅, negAct=xyc0f2af
+[DISP] Pair at 0.3: depth=2, expected=O, posAct=∅, negAct=ryqbmmxv
+[DISP] Pair at 0.1.1: depth=3, expected=P, posAct=∅, negAct=bh6i10qt
+[DISP] Pair at 0.2.1: depth=3, expected=P, posAct=∅, negAct=i4n4qq04
+[DISP] Pair at 0.3.1: depth=3, expected=P, posAct=∅, negAct=4s5jzlmf
+[DISP] Pair at 0.1.1.1: depth=4, expected=O, posAct=∅, negAct=asami0w9
+[DISP] Pair at 0.1.1.2: depth=4, expected=O, posAct=∅, negAct=ixz46b8j
+[DISP] Pair at 0.2.1.1: depth=4, expected=O, posAct=∅, negAct=bqpqvbla
+[DISP] Pair at 0.2.1.2: depth=4, expected=O, posAct=∅, negAct=w30lk6p3
+[DISP] Pair at 0.3.1.1: depth=4, expected=O, posAct=∅, negAct=6a6tcvsm
+[DISP] Pair at 0.3.1.2: depth=4, expected=O, posAct=∅, negAct=zx5fipbg
+[DISP] Pair at 0.3.1.2.1: depth=5, expected=P, posAct=∅, negAct=9pmlr0kb
+[DISP] Dispute computed: { pairCount: 14, status: 'DIVERGENT' }
+[DISP] Computed dispute: {
+  posDesign: 'xia4qv2h',
+  negDesign: '1tjse4xb',
+  pairCount: 14,
+  status: 'DIVERGENT'
+}
+[DISP] computeDisp result: { totalDisputes: 1 }
+[ISOMORPHISM] Disp(reconstructed) computed: { disputeCount: 1 }
+[ISOMORPHISM] Disputes (first 3):
+[ISOMORPHISM]   Dispute 0: pairs=14, status=DIVERGENT
+[DISP] disputesToPlays called: { disputeCount: 1, player: 'P' }
+[DISP] Maximal (leaf) paths: [ '0.1.1.1', '0.1.1.2', '0.2.1.1', '0.2.1.2', '0.3.1.1', '0.3.1.2.1' ]
+[DISP] disputesToPlays result: {
+  playCount: 14,
+  samplePlays: [
+    '0:P',
+    '0:P|0.1:O',
+    '0:P|0.1:O|0.1.1:P',
+    '0:P|0.1:O|0.1.1:P|0.1.1.1:O',
+    '0:P|0.1:O|0.1.1:P|0.1.1.2:O',
+    '0:P|0.2:O',
+    '0:P|0.2:O|0.2.1:P',
+    '0:P|0.2:O|0.2.1:P|0.2.1.1:O'
+  ]
+}
+[ISOMORPHISM] Reconstructed plays from disputes: 14
+[ISOMORPHISM] Reconstructed plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P
+[ISOMORPHISM]   Play 1: 0:P|0.1:O
+[ISOMORPHISM]   Play 2: 0:P|0.1:O|0.1.1:P
+[ISOMORPHISM]   Play 3: 0:P|0.1:O|0.1.1:P|0.1.1.1:O
+[ISOMORPHISM]   Play 4: 0:P|0.1:O|0.1.1:P|0.1.1.2:O
+[ISOMORPHISM] Comparison result: {
+  equal: false,
+  originalCount: 0,
+  reconstructedCount: 14,
+  missing: 0,
+  extra: 14
+}
+[ISOMORPHISM] Missing plays:
+[ISOMORPHISM] Extra plays:
+[ISOMORPHISM]   0: 0:P
+[ISOMORPHISM]   1: 0:P|0.1:O
+[ISOMORPHISM]   2: 0:P|0.1:O|0.1.1:P
+[ISOMORPHISM]   3: 0:P|0.1:O|0.1.1:P|0.1.1.1:O
+[ISOMORPHISM]   4: 0:P|0.1:O|0.1.1:P|0.1.1.2:O
+[ISOMORPHISM]   5: 0:P|0.2:O
+[ISOMORPHISM]   6: 0:P|0.2:O|0.2.1:P
+[ISOMORPHISM]   7: 0:P|0.2:O|0.2.1:P|0.2.1.1:O
+[ISOMORPHISM]   8: 0:P|0.2:O|0.2.1:P|0.2.1.2:O
+[ISOMORPHISM]   9: 0:P|0.3:O
+[ISOMORPHISM] === Ch(Disp(D)) = D CHECK ===
+[ISOMORPHISM] Input design: {
+  id: 'cminz6zhb023d8cyrxia4qv2h',
+  participantId: 'Proponent',
+  actCount: 7
+}
+[ISOMORPHISM] Design acts:
+[ISOMORPHISM]   Act 0: locus="0.1", polarity=P, kind=PROPER
+[ISOMORPHISM]   Act 1: locus="0.1.1.1", polarity=P, kind=PROPER
+[ISOMORPHISM]   Act 2: locus="0.2", polarity=P, kind=PROPER
+[ISOMORPHISM]   Act 3: locus="0.2.1.1", polarity=P, kind=PROPER
+[ISOMORPHISM]   Act 4: locus="0.3", polarity=P, kind=PROPER
+[ISOMORPHISM] Counter designs: 1
+[DISP] computeDisp called: {
+  designId: 'cminz6zhb023d8cyrxia4qv2h',
+  designActCount: 7,
+  counterDesignCount: 1
+}
+[DISP] computeDispute: {
+  posDesign: 'xia4qv2h',
+  negDesign: '1tjse4xb',
+  posPaths: [ '0.1', '0.1.1.1', '0.2', '0.2.1.1', '0.3', '0.3.1.1', '0.3.1.2.1' ],
+  negPaths: [
+    '0.1',       '0.1.1',
+    '0.1.1.1',   '0.1.1.2',
+    '0.2',       '0.2.1',
+    '0.2.1.1',   '0.2.1.2',
+    '0.3',       '0.3.1',
+    '0.3.1.1',   '0.3.1.2',
+    '0.3.1.2.1', '0'
+  ]
+}
+[DISP] All locus paths (sorted): [
+  '0',       '0.1',
+  '0.2',     '0.3',
+  '0.1.1',   '0.2.1',
+  '0.3.1',   '0.1.1.1',
+  '0.1.1.2', '0.2.1.1',
+  '0.2.1.2', '0.3.1.1',
+  '0.3.1.2', '0.3.1.2.1'
+]
+[DISP] Pair at 0: depth=1, expected=P, posAct=∅, negAct=cmaoy54i
+[DISP] Pair at 0.1: depth=2, expected=O, posAct=67j9eka1, negAct=qkb78q87
+[DISP] Pair at 0.2: depth=2, expected=O, posAct=ldjrjfaw, negAct=xyc0f2af
+[DISP] Pair at 0.3: depth=2, expected=O, posAct=02y5ydgs, negAct=ryqbmmxv
+[DISP] Pair at 0.1.1: depth=3, expected=P, posAct=∅, negAct=bh6i10qt
+[DISP] Pair at 0.2.1: depth=3, expected=P, posAct=∅, negAct=i4n4qq04
+[DISP] Pair at 0.3.1: depth=3, expected=P, posAct=∅, negAct=4s5jzlmf
+[DISP] Pair at 0.1.1.1: depth=4, expected=O, posAct=kuhzuv2o, negAct=asami0w9
+[DISP] Pair at 0.1.1.2: depth=4, expected=O, posAct=∅, negAct=ixz46b8j
+[DISP] Pair at 0.2.1.1: depth=4, expected=O, posAct=ae33aens, negAct=bqpqvbla
+[DISP] Pair at 0.2.1.2: depth=4, expected=O, posAct=∅, negAct=w30lk6p3
+[DISP] Pair at 0.3.1.1: depth=4, expected=O, posAct=5yamfbzj, negAct=6a6tcvsm
+[DISP] Pair at 0.3.1.2: depth=4, expected=O, posAct=∅, negAct=zx5fipbg
+[DISP] Pair at 0.3.1.2.1: depth=5, expected=P, posAct=q79bma6d, negAct=9pmlr0kb
+[DISP] Dispute computed: { pairCount: 14, status: 'CONVERGENT' }
+[DISP] Computed dispute: {
+  posDesign: 'xia4qv2h',
+  negDesign: '1tjse4xb',
+  pairCount: 14,
+  status: 'CONVERGENT'
+}
+[DISP] computeDisp result: { totalDisputes: 1 }
+[ISOMORPHISM] Disp(D) computed: { disputeCount: 1 }
+[ISOMORPHISM] Disputes (first 3):
+[ISOMORPHISM]   Dispute 0: pairs=14, status=CONVERGENT
+[ISOMORPHISM] Player determined: P
+[DISP] disputesToPlays called: { disputeCount: 1, player: 'P' }
+[DISP] Maximal (leaf) paths: [ '0.1.1.1', '0.1.1.2', '0.2.1.1', '0.2.1.2', '0.3.1.1', '0.3.1.2.1' ]
+[DISP] disputesToPlays result: {
+  playCount: 14,
+  samplePlays: [
+    '0:P',
+    '0:P|0.1:O',
+    '0:P|0.1:O|0.1.1:P',
+    '0:P|0.1:O|0.1.1:P|0.1.1.1:O',
+    '0:P|0.1:O|0.1.1:P|0.1.1.2:O',
+    '0:P|0.2:O',
+    '0:P|0.2:O|0.2.1:P',
+    '0:P|0.2:O|0.2.1:P|0.2.1.1:O'
+  ]
+}
+[ISOMORPHISM] Plays from disputes: 14
+[ISOMORPHISM] Strategy plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P
+[ISOMORPHISM]   Play 1: 0:P|0.1:O
+[ISOMORPHISM]   Play 2: 0:P|0.1:O|0.1.1:P
+[ISOMORPHISM]   Play 3: 0:P|0.1:O|0.1.1:P|0.1.1.1:O
+[ISOMORPHISM]   Play 4: 0:P|0.1:O|0.1.1:P|0.1.1.2:O
+[ISOMORPHISM] Ch(S) computed: { chronicleCount: 14 }
+[ISOMORPHISM] Reconstructed acts: 14
+[ISOMORPHISM]   Act 0: locus="0", polarity=P
+[ISOMORPHISM]   Act 1: locus="0.1", polarity=O
+[ISOMORPHISM]   Act 2: locus="0.1.1", polarity=P
+[ISOMORPHISM]   Act 3: locus="0.1.1.1", polarity=O
+[ISOMORPHISM]   Act 4: locus="0.1.1.2", polarity=O
+[ISOMORPHISM] Comparison result: { equal: false, originalActCount: 7, reconstructedActCount: 14 }
+[ISOMORPHISM] Original acts: [
+  { locusPath: '0.1', polarity: 'P' },
+  { locusPath: '0.1.1.1', polarity: 'P' },
+  { locusPath: '0.2', polarity: 'P' },
+  { locusPath: '0.2.1.1', polarity: 'P' },
+  { locusPath: '0.3', polarity: 'P' },
+  { locusPath: '0.3.1.1', polarity: 'P' },
+  { locusPath: '0.3.1.2.1', polarity: 'P' }
+]
+[ISOMORPHISM] Reconstructed acts: [
+  { locusPath: '0', polarity: 'P', ramification: [ 1, 2, 3 ] },
+  { locusPath: '0.1', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.1.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.1.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.1.1.2', polarity: 'O', ramification: [] },
+  { locusPath: '0.2', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.2.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.2.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.2.1.2', polarity: 'O', ramification: [] },
+  { locusPath: '0.3', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.3.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.3.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.3.1.2', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.3.1.2.1', polarity: 'P', ramification: [] }
+]
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] FINAL RESULTS:
+[ISOMORPHISM]   Plays(Views(S))=S: true
+[ISOMORPHISM]   Views(Plays(V))=V: true
+[ISOMORPHISM]   Disp(Ch(S))=S: false
+[ISOMORPHISM]   Ch(Disp(D))=D: false
+[ISOMORPHISM] ========================================
+ GET /api/ludics/dds/correspondence?strategyId=cmio43hpb03bh8c8bqg3xf05q 200 in 2640ms
+
+Design ↔ Strategy Correspondence
+Verify Isomorphisms
+P: 1
+O: 1
+✓ 2 innocent
+↗ 2 propagating
+Select Strategy
+↻ Regenerate
+
+P • Proponent • 5 plays ✓ (primary)
+Correspondence not yet verified. Click 'Verify Isomorphisms' to check.
+Isomorphism Checks
+✓
+Plays(Views(S)) = S
+Prop 4.18
+✓
+Views(Plays(V)) = V
+Prop 4.18
+✗
+Disp(Ch(S)) = S
+Prop 4.27
+0 missing, 14 extra
+✗
+Ch(Disp(D)) = D
+Prop 4.27
+0 missing, 0 extra
+Design: cminz6zhb023d8cyrxia4qv2h
+Strategy: cmio43hpb03bh8c8bqg3xf05q
+
+
+🔍 Type Inference
+⊂ Incarnation
+✓ Type Check
+Inferred Type
+Refresh
+No type inference available
+Saturation Analysis
+Proposition 4.17: Views(S) = S
+Check Saturation
+What is saturation?
+A strategy S is saturated if extracting views and reconstructing gives back the same strategy:
+
+Views(S) = S
+This is a fixpoint property that ensures the strategy is "complete" with respect to its view structure.
+
+Compute saturation closure (expand to fixpoint)
+✓
+Saturated Strategy
+Views(S) = S holds
+Saturation Process
+Strategy S
+→
+Views(S)
+→
+Plays(Views(S))
+=?
+S
+
+
+[DISP] computeDisp result: { totalDisputes: 1 }
+[ISOMORPHISM] Disp(D) computed: { disputeCount: 1 }
+[ISOMORPHISM] Disputes (first 3):
+[ISOMORPHISM]   Dispute 0: pairs=14, status=CONVERGENT
+[ISOMORPHISM] Player determined: P
+[DISP] disputesToPlays called: { disputeCount: 1, player: 'P' }
+[DISP] Maximal (leaf) paths: [ '0.1.1.1', '0.1.1.2', '0.2.1.1', '0.2.1.2', '0.3.1.1', '0.3.1.2.1' ]
+[DISP] disputesToPlays result: {
+  playCount: 14,
+  samplePlays: [
+    '0:P',
+    '0:P|0.1:O',
+    '0:P|0.1:O|0.1.1:P',
+    '0:P|0.1:O|0.1.1:P|0.1.1.1:O',
+    '0:P|0.1:O|0.1.1:P|0.1.1.2:O',
+    '0:P|0.2:O',
+    '0:P|0.2:O|0.2.1:P',
+    '0:P|0.2:O|0.2.1:P|0.2.1.1:O'
+  ]
+}
+[ISOMORPHISM] Plays from disputes: 14
+[ISOMORPHISM] Strategy plays (first 5):
+[ISOMORPHISM]   Play 0: 0:P
+[ISOMORPHISM]   Play 1: 0:P|0.1:O
+[ISOMORPHISM]   Play 2: 0:P|0.1:O|0.1.1:P
+[ISOMORPHISM]   Play 3: 0:P|0.1:O|0.1.1:P|0.1.1.1:O
+[ISOMORPHISM]   Play 4: 0:P|0.1:O|0.1.1:P|0.1.1.2:O
+[ISOMORPHISM] Ch(S) computed: { chronicleCount: 14 }
+[ISOMORPHISM] Reconstructed acts: 14
+[ISOMORPHISM]   Act 0: locus="0", polarity=P
+[ISOMORPHISM]   Act 1: locus="0.1", polarity=O
+[ISOMORPHISM]   Act 2: locus="0.1.1", polarity=P
+[ISOMORPHISM]   Act 3: locus="0.1.1.1", polarity=O
+[ISOMORPHISM]   Act 4: locus="0.1.1.2", polarity=O
+[ISOMORPHISM] Comparison result: { equal: false, originalActCount: 7, reconstructedActCount: 14 }
+[ISOMORPHISM] Original acts: [
+  { locusPath: '0.1', polarity: 'P' },
+  { locusPath: '0.1.1.1', polarity: 'P' },
+  { locusPath: '0.2', polarity: 'P' },
+  { locusPath: '0.2.1.1', polarity: 'P' },
+  { locusPath: '0.3', polarity: 'P' },
+  { locusPath: '0.3.1.1', polarity: 'P' },
+  { locusPath: '0.3.1.2.1', polarity: 'P' }
+]
+[ISOMORPHISM] Reconstructed acts: [
+  { locusPath: '0', polarity: 'P', ramification: [ 1, 2, 3 ] },
+  { locusPath: '0.1', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.1.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.1.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.1.1.2', polarity: 'O', ramification: [] },
+  { locusPath: '0.2', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.2.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.2.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.2.1.2', polarity: 'O', ramification: [] },
+  { locusPath: '0.3', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.3.1', polarity: 'P', ramification: [ 1, 2 ] },
+  { locusPath: '0.3.1.1', polarity: 'O', ramification: [] },
+  { locusPath: '0.3.1.2', polarity: 'O', ramification: [ 1 ] },
+  { locusPath: '0.3.1.2.1', polarity: 'P', ramification: [] }
+]
+[ISOMORPHISM] ========================================
+[ISOMORPHISM] FINAL RESULTS:
+[ISOMORPHISM]   Plays(Views(S))=S: true
+[ISOMORPHISM]   Views(Plays(V))=V: true
+[ISOMORPHISM]   Disp(Ch(S))=S: false
+[ISOMORPHISM]   Ch(Disp(D))=D: false
+[ISOMORPHISM] ========================================
+ GET /api/ludics/dds/correspondence?strategyId=cmio43hpb03bh8c8bqg3xf05q 200 in 2640ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 971ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 856ms
+ ○ Compiling /api/ludics/designs ...
+ ✓ Compiled /api/ludics/designs in 526ms (4472 modules)
+ ✓ Compiled (4476 modules)
+ GET /api/ludics/designs?deliberationId=ludics-views-test-mimi1l4n 200 in 1584ms
+ GET /api/ludics/dds/analysis/saturation?strategyId=cmio43hpb03bh8c8bqg3xf05q 200 in 1843ms
+ GET /api/ludics/dds/types/infer?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1989ms
+ GET /api/ludics/dds/types/infer?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1058ms
+
+ 🔍 Type Inference
+⊂ Incarnation
+✓ Type Check
+Incarnation Check
+Definition 6.3
+Check if this design incarnates in (is a refinement of) another design.
+Lax: D ⊂ E (actions subset) | Sharp: D ⊂⊂ E (branch containment)
+Target Design:
+
+Opponent (cminz6zl...)
+Lax (⊂)
+Sharp (⊂⊂)
+✗
+No Lax Incarnation
+
+ GET /api/ludics/dds/correspondence?strategyId=cmio43hpb03bh8c8bqg3xf05q 200 in 2640ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 971ms
+ GET /api/ludics/dds/strategies/generate?deliberationId=ludics-views-test-mimi1l4n 200 in 856ms
+ ○ Compiling /api/ludics/designs ...
+ ✓ Compiled /api/ludics/designs in 526ms (4472 modules)
+ ✓ Compiled (4476 modules)
+ GET /api/ludics/designs?deliberationId=ludics-views-test-mimi1l4n 200 in 1584ms
+ GET /api/ludics/dds/analysis/saturation?strategyId=cmio43hpb03bh8c8bqg3xf05q 200 in 1843ms
+ GET /api/ludics/dds/types/infer?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1989ms
+ GET /api/ludics/dds/types/infer?designId=cminz6zhb023d8cyrxia4qv2h 200 in 1058ms
+ ✓ Compiled /api/ludics/dds/types/incarnation in 339ms (4454 modules)
+ POST /api/ludics/dds/types/incarnation 200 in 1655ms
+
+Incarnation Check
+Definition 6.3
+Check if this design incarnates in (is a refinement of) another design.
+Lax: D ⊂ E (actions subset) | Sharp: D ⊂⊂ E (branch containment)
+Target Design:
+
+Opponent (cminz6zl...)
+Lax (⊂)
+Sharp (⊂⊂)
+✗
+No Sharp Incarnation
+
+Behaviour Analysis
+Orthogonality & Biorthogonal Closure
+Select Strategy
+
+O-Strategy • Opponent ✓ innocent
+Orthogonality
+Closure
+Game
+Orthogonality (⊥)
+Two designs D and E are orthogonal (D ⊥ E) if their interaction normalizes to a successful termination. This extends to strategies: S ⊥ T if every pair (D, E) with D ∈ S and E ∈ T is orthogonal.
+
+Compare with strategy:
+
+P-Strategy • Proponent
+Check ⊥
+⊥̸
+Not Orthogonal
+Locus mismatch: 0.1.1 vs 0.1
+Design A (Opponent)
+Polarity: O
+Locus: 0.1.1
+Acts: 20
+Design B (Proponent)
+Polarity: P
+Locus: 0.1
+Acts: 7
+Diagnosis:
+✅
+Polarity compatibility (requires P ⊥ O)
+❌
+Locus compatibility (requires same initial locus)
+💡 Hint: Designs have different initial loci (0.1.1 vs 0.1). Orthogonality requires matching loci for interaction.
+
+Behaviour Analysis
+Orthogonality & Biorthogonal Closure
+Select Strategy
+
+O-Strategy • Opponent ✓ innocent
+Orthogonality
+Closure
+Game
+Biorthogonal Closure (S⊥⊥)
+The biorthogonal closure S⊥⊥ of a strategy S contains all designs orthogonal to everything orthogonal to S. This is the smallest behaviour containing S.
+
+S⊥⊥ = { D | ∀E ∈ S⊥. D ⊥ E }
+Compute the behaviour generated by current strategy
+Compute S⊥⊥
+∞
+Fixpoint Reached
+2 iteration(s)
+Closure contains 2 design(s):
+1. cminz6zlh023f8cy...
+2. cminz6zhb023d8cy...

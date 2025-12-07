@@ -35,11 +35,11 @@ These objects implement the two‑level requirement and support expand/collapse 
 	•	Events & telemetry. Bus events for move/graph changes; activity & quality analytics.
 
 4) Product surfaces & view contracts
-	•	DebateSheet / Reader Input: { id, title, roles, ruleset, timeline[], nodes[], edges[], unresolvedCQs[], outcomes[], evidence[] } Must render: debate flow (phases/threads), open/closed loci, hybrid status badges, evidence gallery, expand/collapse to internals. (Satisfies two‑level + scale requirement.) 
-	•	DebateSheet / Editor Must support: add/retitle nodes, attach evidence, add cross‑links, issue editions, publish outcome cards; show “structure negotiation” back‑channels. 
-	•	TopicCanvas / Reader Input: { id, sheets[], crossLinks[], clusters[] } Must render: cluster map of “camps” + synthesis + navigable cross‑sheet edges; link into DebateSheets. 
-	•	Evidence Sidebar Must support: annotate web sources → attach to Atoms/Inferences; provenance retained; sheet/canvas evidence filters. 
-	•	Insights Must render: representative viewpoints & consensus points (clusters + high‑agreement atoms across sheets). 
+	•	DebateSheet / ReaderInput: { id, title, roles, ruleset, timeline[], nodes[], edges[], unresolvedCQs[], outcomes[], evidence[] }Must render: debate flow (phases/threads), open/closed loci, hybrid status badges, evidence gallery, expand/collapse to internals. (Satisfies two‑level + scale requirement.) 
+	•	DebateSheet / EditorMust support: add/retitle nodes, attach evidence, add cross‑links, issue editions, publish outcome cards; show “structure negotiation” back‑channels. 
+	•	TopicCanvas / ReaderInput: { id, sheets[], crossLinks[], clusters[] }Must render: cluster map of “camps” + synthesis + navigable cross‑sheet edges; link into DebateSheets. 
+	•	Evidence SidebarMust support: annotate web sources → attach to Atoms/Inferences; provenance retained; sheet/canvas evidence filters. 
+	•	InsightsMust render: representative viewpoints & consensus points (clusters + high‑agreement atoms across sheets). 
 
 5) APIs (specimen shapes)
 // DebateSheet (GET)
@@ -763,7 +763,7 @@ Create MVP routes: POST /api/suggestions (open), POST /api/suggestions/:id/reply
 	•	emitBus('agora:sheet:changed', { sheetId })
 	•	emitBus('agora:argument:changed', { diagramId })
 	•	emitBus('agora:evidence:changed', { targetId })
-	•	Fixtures (CI) Add packages/debate-tests/fixtures/rc-mini.json (Russell–Copleston “contingency” slice). The test runner should:
+	•	Fixtures (CI)Add packages/debate-tests/fixtures/rc-mini.json (Russell–Copleston “contingency” slice). The test runner should:
 	0.	POST /api/sheets → sheetId
 	0.	POST /api/sheets/:id/nodes with Copleston A1 diagram
 	0.	POST /api/sheets/:id/nodes with Russell A2 diagram

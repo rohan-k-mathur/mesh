@@ -849,9 +849,7 @@ interface SimulateResponse {
   };
 }
 ```
-
 ### 5.3 Extraction API
-
 ```typescript
 // GET /api/ludics/interactions/:id/path
 interface GetPathResponse {
@@ -1088,18 +1086,14 @@ describe('Theoretical properties', () => {
   });
 });
 ```
-
 **Deliverables:**
 - `packages/ludics-core/__tests__/arena.test.ts`
 - `packages/ludics-core/__tests__/interaction.test.ts`
 - `packages/ludics-core/__tests__/extraction.test.ts`
 - `packages/ludics-core/__tests__/landscape.test.ts`
 - `packages/ludics-core/__tests__/properties.test.ts`
-
 ---
-
 ## Timeline Summary
-
 | Phase | Duration | Key Deliverable |
 |-------|----------|-----------------|
 | 0: Foundation Alignment | 1 week | Type system, adapters |
@@ -1110,13 +1104,9 @@ describe('Theoretical properties', () => {
 | 5: API Integration | 1 week | REST endpoints |
 | 6: UI Integration | 2 weeks | React components |
 | 7: Testing | 1 week | Validation suite |
-
 **Total: ~13 weeks**
-
 ---
-
 ## Success Criteria
-
 ### Technical
 - [ ] Any deliberation can be transformed to a valid ludic arena
 - [ ] Interactions produce correct outcomes per Faggian-Hyland semantics
@@ -1134,9 +1124,7 @@ describe('Theoretical properties', () => {
 - [ ] Clear visualization of argument landscape
 - [ ] Understandable proof narratives
 - [ ] Responsive simulation (<1s for typical deliberations)
-
 ---
-
 ## Open Questions for Future Phases
 
 1. **Multi-party semantics**: How do we handle N>2 participants beyond perspective shifting?
@@ -1144,13 +1132,15 @@ describe('Theoretical properties', () => {
 3. **Behaviour equivalence**: When are two deliberations "strategically equivalent"?
 4. **Proof search**: Can we automatically find winning strategies?
 5. **Learning**: Can AI learn deliberation patterns from ludic traces?
-
 ---
-
 ## Appendix: Key Theoretical References
-
 - Girard, J.-Y. "Locus Solum: From the rules of logic to the logic of rules"
 - Faggian, C. & Hyland, M. "Designs, disputes and strategies"
 - Fouqueré, C. & Quatrini, M. "Ludics and Natural Language: First Approaches"
 - Fouqueré, C. & Quatrini, M. "Study of Behaviours via Visitable Paths"
 - Lecomte, A. & Quatrini, M. "Ludics and Its Applications to Natural Language Semantics"
+
+
+
+
+
