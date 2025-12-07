@@ -1,7 +1,7 @@
 /**
  * Ludics UI Components
  * Phase 1-5: Badge, Tooltip, Analysis, Type System, Behaviours Components
- * Phase 6: DDS Arena & Game Components
+ * Phase 6: DDS Arena & Game Components + New Viewers
  */
 
 // Phase 1: Badge and Tooltip Components
@@ -25,3 +25,6 @@ export { default as TensorProbeCard } from "./TensorProbeCard";
 // Phase 6: DDS Arena & Game Components (Faggian-Hyland)
 export * from "./arena";
 export * from "./game";
+
+// Phase 6: New Viewers (Roadmap Integration)
+export * from "./viewers";

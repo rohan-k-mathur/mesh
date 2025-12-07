@@ -2,7 +2,58 @@
 
 **Duration:** 2 weeks  
 **Goal:** Extract proof traces and compute essential logical cores  
-**Status:** 🚧 IN PROGRESS
+**Status:** ✅ COMPLETE
+
+---
+
+## Implementation Summary
+
+All Phase 3 components have been implemented and tested:
+
+### Files Created
+
+| File | Description | Lines |
+|------|-------------|-------|
+| `dds/extraction/path-extractor.ts` | Path extraction from interactions/behaviours | ~480 |
+| `dds/extraction/incarnation.ts` | Incarnation/view computation | ~350 |
+| `dds/extraction/completion.ts` | Design completion with daimons | ~320 |
+| `dds/extraction/narrative-formatter.ts` | Proof trace to narrative | ~420 |
+| `dds/extraction/index.ts` | Module exports | ~115 |
+| `dds/__tests__/extraction.test.ts` | Comprehensive tests | ~830 |
+
+### Test Results
+
+```
+✓ packages/ludics-core/dds/__tests__/extraction.test.ts (59 tests) 6ms
+Test Files  1 passed (1)
+Tests  59 passed (59)
+```
+
+### Key Features Implemented
+
+1. **Path Extraction**
+   - Extract paths from interactions and behaviours
+   - Path validation (polarity alternation, address sequences)
+   - Path comparison and merging
+   - Statistics (move counts, depths, compression ratio)
+
+2. **Incarnation Computation**
+   - View operation (filter by justification)
+   - Incarnation extraction (essential core)
+   - Justification chain analysis
+   - Compression ratio calculation
+
+3. **Design Completion**
+   - Chronicle completeness checking
+   - Add daimon endings to incomplete branches
+   - Completion statistics and validation
+   - Strip/count daimon utilities
+
+4. **Narrative Formatting**
+   - Multiple styles (formal, conversational, academic)
+   - Multiple output formats (Markdown, JSON, plain text, HTML)
+   - Narrative analysis and comparison
+   - Conclusion derivation
 
 ---
 
@@ -60,21 +111,21 @@ interface PathExtractor {
 
 #### Functions to Implement
 
-- [ ] `extractPath(interaction: InteractionResult): VisitablePath`
-- [ ] `extractAllPaths(behaviour: LudicBehaviourTheory): VisitablePath[]`
-- [ ] `extractPaths(interactions: InteractionResult[]): VisitablePath[]`
-- [ ] `validatePath(path: VisitablePath): PathValidation`
-- [ ] `comparePaths(path1: VisitablePath, path2: VisitablePath): PathComparison`
-- [ ] `mergePaths(paths: VisitablePath[]): MergedPath`
+- [x] `extractPath(interaction: InteractionResult): VisitablePath`
+- [x] `extractAllPaths(behaviour: LudicBehaviourTheory): VisitablePath[]`
+- [x] `extractPaths(interactions: InteractionResult[]): VisitablePath[]`
+- [x] `validatePath(path: VisitablePath): PathValidation`
+- [x] `comparePaths(path1: VisitablePath, path2: VisitablePath): PathComparison`
+- [x] `mergePaths(paths: VisitablePath[]): MergedPath`
 
 #### Checklist
 
-- [ ] Create `path-extractor.ts` file
-- [ ] Implement PathExtractor interface
-- [ ] Add path validation logic
-- [ ] Add path comparison/merge utilities
-- [ ] Export from index
-- [ ] Write unit tests
+- [x] Create `path-extractor.ts` file
+- [x] Implement PathExtractor interface
+- [x] Add path validation logic
+- [x] Add path comparison/merge utilities
+- [x] Export from index
+- [x] Write unit tests
 
 ---
 
@@ -95,12 +146,12 @@ interface PathExtractor {
 
 #### Functions to Implement
 
-- [ ] `computeIncarnation(trace: DialogueAct[]): DialogueAct[]`
-- [ ] `computeView(trace: DialogueAct[]): DialogueAct[]`
-- [ ] `hasJustifyingPositive(act: DialogueAct, previous: DialogueAct[]): boolean`
-- [ ] `findJustifyingPositive(act: DialogueAct, trace: DialogueAct[]): DialogueAct | null`
-- [ ] `isEssentialAction(act: DialogueAct, view: DialogueAct[]): boolean`
-- [ ] `stripNonEssential(view: DialogueAct[]): DialogueAct[]`
+- [x] `computeIncarnation(trace: DialogueAct[]): DialogueAct[]`
+- [x] `computeView(trace: DialogueAct[]): DialogueAct[]`
+- [x] `hasJustifyingPositive(act: DialogueAct, previous: DialogueAct[]): boolean`
+- [x] `findJustifyingPositive(act: DialogueAct, trace: DialogueAct[]): DialogueAct | null`
+- [x] `isEssentialAction(act: DialogueAct, view: DialogueAct[]): boolean`
+- [x] `stripNonEssential(view: DialogueAct[]): DialogueAct[]`
 
 #### View Operation Rules
 
@@ -111,12 +162,12 @@ From the paper:
 
 #### Checklist
 
-- [ ] Create `incarnation.ts` file
-- [ ] Implement view computation with proper justification logic
-- [ ] Implement incarnation extraction
-- [ ] Handle edge cases (empty trace, all daimons, etc.)
-- [ ] Export from index
-- [ ] Write unit tests
+- [x] Create `incarnation.ts` file
+- [x] Implement view computation with proper justification logic
+- [x] Implement incarnation extraction
+- [x] Handle edge cases (empty trace, all daimons, etc.)
+- [x] Export from index
+- [x] Write unit tests
 
 ---
 
@@ -131,11 +182,11 @@ This ensures interaction can always terminate.
 
 #### Functions to Implement
 
-- [ ] `completeDesign(design: LudicDesignTheory): LudicDesignTheory`
-- [ ] `findIncompleteChronicles(design: LudicDesignTheory): Chronicle[]`
-- [ ] `addDaimonEnding(chronicle: Chronicle): Chronicle`
-- [ ] `isChronicleComplete(chronicle: Chronicle): boolean`
-- [ ] `getIncompletePositions(design: LudicDesignTheory): LudicAddress[]`
+- [x] `completeDesign(design: LudicDesignTheory): LudicDesignTheory`
+- [x] `findIncompleteChronicles(design: LudicDesignTheory): Chronicle[]`
+- [x] `addDaimonEnding(chronicle: Chronicle): Chronicle`
+- [x] `isChronicleComplete(chronicle: Chronicle): boolean`
+- [x] `getIncompletePositions(design: LudicDesignTheory): LudicAddress[]`
 
 #### Completion Rules
 
@@ -147,12 +198,12 @@ From the paper:
 
 #### Checklist
 
-- [ ] Create `completion.ts` file
-- [ ] Implement design completion algorithm
-- [ ] Handle already-complete designs (no-op)
-- [ ] Track completion statistics
-- [ ] Export from index
-- [ ] Write unit tests
+- [x] Create `completion.ts` file
+- [x] Implement design completion algorithm
+- [x] Handle already-complete designs (no-op)
+- [x] Track completion statistics
+- [x] Export from index
+- [x] Write unit tests
 
 ---
 
@@ -185,12 +236,12 @@ interface NarrativeStep {
 
 #### Functions to Implement
 
-- [ ] `formatAsNarrative(path: VisitablePath, arena: DeliberationArena): JustifiedNarrative`
-- [ ] `deriveJustification(act: DialogueAct, previousActs: DialogueAct[]): string`
-- [ ] `deriveConclusion(steps: NarrativeStep[]): string`
-- [ ] `narrativeToMarkdown(narrative: JustifiedNarrative): string`
-- [ ] `narrativeToJSON(narrative: JustifiedNarrative): object`
-- [ ] `narrativeToPlainText(narrative: JustifiedNarrative): string`
+- [x] `formatAsNarrative(path: VisitablePath, arena: DeliberationArena): JustifiedNarrative`
+- [x] `deriveJustification(act: DialogueAct, previousActs: DialogueAct[]): string`
+- [x] `deriveConclusion(steps: NarrativeStep[]): string`
+- [x] `narrativeToMarkdown(narrative: JustifiedNarrative): string`
+- [x] `narrativeToJSON(narrative: JustifiedNarrative): object`
+- [x] `narrativeToPlainText(narrative: JustifiedNarrative): string`
 
 #### Justification Templates
 
@@ -206,12 +257,12 @@ const JUSTIFICATION_TEMPLATES = {
 
 #### Checklist
 
-- [ ] Create `narrative-formatter.ts` file
-- [ ] Implement narrative formatting
-- [ ] Add multiple output formats (markdown, JSON, plain text)
-- [ ] Handle different narrative styles (formal, conversational)
-- [ ] Export from index
-- [ ] Write unit tests
+- [x] Create `narrative-formatter.ts` file
+- [x] Implement narrative formatting
+- [x] Add multiple output formats (markdown, JSON, plain text)
+- [x] Handle different narrative styles (formal, conversational)
+- [x] Export from index
+- [x] Write unit tests
 
 ---
 
@@ -271,10 +322,10 @@ export type {
 
 #### Checklist
 
-- [ ] Create `extraction/index.ts`
-- [ ] Export all functions
-- [ ] Export all types
-- [ ] Update `dds/index.ts` to include extraction module
+- [x] Create `extraction/index.ts`
+- [x] Export all functions
+- [x] Export all types
+- [x] Update `dds/index.ts` to include extraction module
 
 ---
 
@@ -285,54 +336,54 @@ export type {
 #### Test Categories
 
 1. **Path Extraction Tests**
-   - [ ] Extract path from convergent interaction
-   - [ ] Extract path from divergent interaction
-   - [ ] Extract all paths from behaviour
-   - [ ] Path validation
+   - [x] Extract path from convergent interaction
+   - [x] Extract path from divergent interaction
+   - [x] Extract all paths from behaviour
+   - [x] Path validation
 
 2. **Incarnation Tests**
-   - [ ] Compute view with positive actions only
-   - [ ] Compute view with justified negatives
-   - [ ] Compute view with non-justified negatives (should truncate)
-   - [ ] Compute incarnation (essential core)
-   - [ ] Empty trace handling
-   - [ ] Daimon-only trace
+   - [x] Compute view with positive actions only
+   - [x] Compute view with justified negatives
+   - [x] Compute view with non-justified negatives (should truncate)
+   - [x] Compute incarnation (essential core)
+   - [x] Empty trace handling
+   - [x] Daimon-only trace
 
 3. **Design Completion Tests**
-   - [ ] Complete design with incomplete chronicles
-   - [ ] No-op for already complete design
-   - [ ] Find incomplete positions
+   - [x] Complete design with incomplete chronicles
+   - [x] No-op for already complete design
+   - [x] Find incomplete positions
 
 4. **Narrative Formatting Tests**
-   - [ ] Format basic path as narrative
-   - [ ] Format attack sequence
-   - [ ] Format concession
-   - [ ] Markdown output
-   - [ ] JSON output
+   - [x] Format basic path as narrative
+   - [x] Format attack sequence
+   - [x] Format concession
+   - [x] Markdown output
+   - [x] JSON output
 
 #### Checklist
 
-- [ ] Create test file
-- [ ] Implement path extraction tests
-- [ ] Implement incarnation tests
-- [ ] Implement completion tests
-- [ ] Implement narrative tests
-- [ ] All tests passing
+- [x] Create test file
+- [x] Implement path extraction tests
+- [x] Implement incarnation tests
+- [x] Implement completion tests
+- [x] Implement narrative tests
+- [x] All tests passing (59 tests)
 
 ---
 
-## Files to Create
+## Files Created
 
 ```
 packages/ludics-core/dds/
 ├── extraction/
-│   ├── index.ts                 # Module exports
-│   ├── path-extractor.ts        # Task 3.1
-│   ├── incarnation.ts           # Task 3.2
-│   ├── completion.ts            # Task 3.3
-│   └── narrative-formatter.ts   # Task 3.4
+│   ├── index.ts                 # ✅ Module exports
+│   ├── path-extractor.ts        # ✅ Task 3.1
+│   ├── incarnation.ts           # ✅ Task 3.2
+│   ├── completion.ts            # ✅ Task 3.3
+│   └── narrative-formatter.ts   # ✅ Task 3.4
 └── __tests__/
-    └── extraction.test.ts       # Task 3.6
+    └── extraction.test.ts       # ✅ Task 3.6
 ```
 
 ---
@@ -343,7 +394,7 @@ packages/ludics-core/dds/
 2. ✅ Can compute incarnation (essential core) of path
 3. ✅ Can complete designs with daimon branches
 4. ✅ Can format path as human-readable narrative
-5. ✅ All tests pass
+5. ✅ All tests pass (59/59)
 6. ✅ Module properly exported
 
 ---

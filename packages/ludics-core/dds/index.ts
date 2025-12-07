@@ -79,3 +79,12 @@ export * as Arena from "./arena";
 
 // Game - Game Construction, Play, AI, Simulation
 export * as Game from "./game";
+
+// Interaction - Stepper, Outcome, Play, Strategy (Phase 2)
+export * as Interaction from "./interaction";
+
+// Extraction - Path Extraction, Incarnation, Completion, Narrative (Phase 3)
+export * as Extraction from "./extraction";
+
+// Landscape - Behaviour Computation, Position Analysis, Visualization (Phase 4)
+export * as Landscape from "./landscape";
