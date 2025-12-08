@@ -8,7 +8,7 @@ const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 const addNodeSchema = z.object({
   argumentId: z.string(),
   role: z
-    .enum(["PREMISE", "EVIDENCE", "CONCLUSION", "OBJECTION", "REBUTTAL", "QUALIFIER"])
+    .enum(["PREMISE", "EVIDENCE", "CONCLUSION", "OBJECTION", "REBUTTAL", "QUALIFIER", "COMMENT"])
     .optional(),
   positionX: z.number().optional(),
   positionY: z.number().optional(),
@@ -37,6 +37,12 @@ export async function GET(
           include: {
             argument: {
               include: {
+                conclusionClaim: {
+                  select: {
+                    id: true,
+                    text: true,
+                  },
+                },
                 argumentSchemes: {
                   include: {
                     scheme: true,
@@ -263,6 +269,10 @@ export async function POST(
       contributor: {
         ...node.contributor,
         id: node.contributor.id.toString(),
+      },
+      argument: {
+        ...node.argument,
+        authorId: node.argument.authorId.toString(),
       },
     };
 

@@ -53,12 +53,14 @@ interface ArgumentChainThreadProps {
   /** Maximum height before scrolling */
   maxHeight?: string;
   
-  // Callbacks
+  // Callbacks - matches ThreadCard from ThreadedDiscussionTab
   onViewGraph?: (chainId: string) => void;
   onExport?: (chainId: string, format: "json" | "markdown" | "aif") => void;
   onSettings?: (chainId: string) => void;
   onViewArgument?: (argumentId: string) => void;
-  onDiscuss?: (argumentId: string) => void;
+  onPreview?: (argumentId: string) => void;
+  onReply?: (argumentId: string) => void;
+  onSupport?: (argumentId: string) => void;
   onAttack?: (argumentId: string) => void;
 }
 
@@ -87,7 +89,9 @@ export function ArgumentChainThread({
   onExport,
   onSettings,
   onViewArgument,
-  onDiscuss,
+  onPreview,
+  onReply,
+  onSupport,
   onAttack,
 }: ArgumentChainThreadProps) {
   const [thread, setThread] = useState<ChainThread | null>(null);
@@ -242,7 +246,9 @@ export function ArgumentChainThread({
               nextEdges={nextEdges}
               showEdgeConnector={!isLast}
               onViewArgument={onViewArgument}
-              onDiscuss={onDiscuss}
+              onPreview={onPreview}
+              onReply={onReply}
+              onSupport={onSupport}
               onAttack={onAttack}
             />
           );

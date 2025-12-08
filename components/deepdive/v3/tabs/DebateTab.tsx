@@ -139,7 +139,7 @@ export function DebateTab({
           },
           {
             value: "sheet",
-            label: "Sheet View",
+            label: "Sheets",
             icon: <Network className="size-3.5" />,
             content: (
               <div className="space-y-5 mt-2  ">

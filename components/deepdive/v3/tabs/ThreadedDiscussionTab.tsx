@@ -965,7 +965,7 @@ export function ThreadedDiscussionTab({
           <div className="flex items-center gap-2">
             {/* Quick action launchers to other tabs */}
             <Button 
-               className="bg-white/50 h-full  text-md"
+               className="surfacev2 border-none h-full  text-md"
               title="View Argument Map"
               onClick={() => onTabChange?.("arguments")}
             >
@@ -973,7 +973,7 @@ export function ThreadedDiscussionTab({
               Map
             </Button>
             <Button 
-                           className="bg-white/50 h-full  text-md"
+                           className="surfacev2 border-none h-full  text-md"
 
               title="View Ludics"
               onClick={() => onTabChange?.("ludics")}
@@ -982,7 +982,7 @@ export function ThreadedDiscussionTab({
               Ludics
             </Button>
             <Button 
-                           className="bg-white/50 h-full  text-md"
+                           className="surfacev2 border-none h-full  text-md"
 
               title="View Analytics"
               onClick={() => onTabChange?.("analytics")}
@@ -991,14 +991,14 @@ export function ThreadedDiscussionTab({
               Analytics
             </Button>
             <Button 
-                           className="bg-white/50 h-full  text-md"
+                           className="surfacev2 border-none h-full  text-md"
 
               onClick={() => mutate()}
               title="Refresh discussion items"
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button               className="bg-white/50 h-full  text-md "
+            <Button               className="surfacev2 border-none h-full  text-md "
   title="Export discussion">
                 
               <Download className="w-4 h-4" />

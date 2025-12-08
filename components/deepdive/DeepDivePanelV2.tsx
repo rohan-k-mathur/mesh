@@ -1435,18 +1435,6 @@ const {
             <ChainsTab
               deliberationId={deliberationId}
               currentUserId={currentUserId}
-              onArgumentClick={(argumentId) => {
-                // Could navigate to argument or open actions sheet
-                console.log("[ChainsTab] Argument clicked:", argumentId);
-              }}
-              onAttackArgument={(argumentId) => {
-                // Open attack modal
-                console.log("[ChainsTab] Attack argument:", argumentId);
-              }}
-              onDiscussArgument={(argumentId) => {
-                // Navigate to debate tab with argument context
-                console.log("[ChainsTab] Discuss argument:", argumentId);
-              }}
               onTabChange={delibActions.setTab}
             />
           </TabsContent>

@@ -93,11 +93,20 @@ interface ChainListPanelProps {
   /** Callback when user wants to view chain in graph mode */
   onViewChainGraph?: (chainId: string) => void;
   
+  /** Callback for viewing an argument (View Details) */
+  onViewArgument?: (argumentId: string) => void;
+  
+  /** Callback for preview network action on an argument */
+  onPreviewArgument?: (argumentId: string) => void;
+  
+  /** Callback for reply action on an argument */
+  onReplyArgument?: (argumentId: string) => void;
+  
+  /** Callback for support action on an argument */
+  onSupportArgument?: (argumentId: string) => void;
+  
   /** Callback for attack action on an argument */
   onAttackArgument?: (argumentId: string) => void;
-  
-  /** Callback for discuss action on an argument */
-  onDiscussArgument?: (argumentId: string) => void;
   
   /** Currently highlighted argument ID */
   currentArgumentId?: string;
@@ -155,8 +164,11 @@ export function ChainListPanel({
   onCreateChain,
   onChainClick,
   onViewChainGraph,
+  onViewArgument,
+  onPreviewArgument,
+  onReplyArgument,
+  onSupportArgument,
   onAttackArgument,
-  onDiscussArgument,
   currentArgumentId,
   compact = false,
 }: ChainListPanelProps) {
@@ -272,8 +284,11 @@ export function ChainListPanel({
             expanded={expandedChains.has(chain.id)}
             onToggle={() => toggleChain(chain.id)}
             onViewGraph={() => onViewChainGraph?.(chain.id)}
+            onViewArgument={onViewArgument}
+            onPreviewArgument={onPreviewArgument}
+            onReplyArgument={onReplyArgument}
+            onSupportArgument={onSupportArgument}
             onAttackArgument={onAttackArgument}
-            onDiscussArgument={onDiscussArgument}
             currentArgumentId={currentArgumentId}
             compact={compact}
           />
@@ -290,8 +305,11 @@ interface ChainListItemProps {
   expanded: boolean;
   onToggle: () => void;
   onViewGraph?: () => void;
+  onViewArgument?: (argumentId: string) => void;
+  onPreviewArgument?: (argumentId: string) => void;
+  onReplyArgument?: (argumentId: string) => void;
+  onSupportArgument?: (argumentId: string) => void;
   onAttackArgument?: (argumentId: string) => void;
-  onDiscussArgument?: (argumentId: string) => void;
   currentArgumentId?: string;
   compact?: boolean;
 }
@@ -301,8 +319,11 @@ function ChainListItem({
   expanded,
   onToggle,
   onViewGraph,
+  onViewArgument,
+  onPreviewArgument,
+  onReplyArgument,
+  onSupportArgument,
   onAttackArgument,
-  onDiscussArgument,
   currentArgumentId,
   compact,
 }: ChainListItemProps) {
@@ -401,8 +422,11 @@ function ChainListItem({
                 initialData={chain as any}
                 currentArgumentId={currentArgumentId}
                 onViewGraph={onViewGraph}
+                onViewArgument={onViewArgument}
+                onPreview={onPreviewArgument}
+                onReply={onReplyArgument}
+                onSupport={onSupportArgument}
                 onAttack={onAttackArgument}
-                onDiscuss={onDiscussArgument}
                 compact={true}
               />
             </div>

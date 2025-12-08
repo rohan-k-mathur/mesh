@@ -152,6 +152,24 @@ function formatConclusion(argument: any): string {
 }
 
 /**
+ * Get the best text representation for an argument
+ * Falls back through: argument.text → conclusionClaim.text → "Untitled argument"
+ */
+function getArgumentDisplayText(argument: any): string {
+  // First try argument text
+  if (argument?.text && argument.text.trim() !== "") {
+    return argument.text;
+  }
+  
+  // Fall back to conclusion claim text
+  if (argument?.conclusionClaim?.text && argument.conclusionClaim.text.trim() !== "") {
+    return argument.conclusionClaim.text;
+  }
+  
+  return "Untitled argument";
+}
+
+/**
  * Get scheme metadata
  */
 function getSchemeMetadata(argument: any): {
@@ -183,7 +201,7 @@ export function formatNodeAsMarkdown(
   }
 
   const { name: schemeName, type: schemeType, confidence } = getSchemeMetadata(argument);
-  const argumentText = argument.text || "Untitled argument";
+  const argumentText = getArgumentDisplayText(argument);
   const anchor = `argument-${position + 1}`;
   
   let markdown = "";
@@ -305,7 +323,7 @@ function generateOrphansSection(orphans: SortedNode[]): string {
   section += "*The following claims are not connected to the main argument chain:*\n\n";
 
   orphans.forEach((sortedNode, idx) => {
-    const text = sortedNode.node.data.argument?.text || "Untitled claim";
+    const text = getArgumentDisplayText(sortedNode.node.data.argument);
     const schemeName = sortedNode.node.data.argument?.argumentSchemes?.[0]?.scheme?.name;
     
     section += `${idx + 1}. ${text}`;
@@ -318,6 +336,78 @@ function generateOrphansSection(orphans: SortedNode[]): string {
   });
 
   return "\n" + section;
+}
+
+/**
+ * Edge type descriptions for narrative
+ */
+const EDGE_TYPE_LABELS: Record<string, string> = {
+  SUPPORTS: "supports",
+  ENABLES: "enables",
+  PRESUPPOSES: "presupposes",
+  REFUTES: "refutes",
+  QUALIFIES: "qualifies",
+  EXEMPLIFIES: "exemplifies",
+  GENERALIZES: "generalizes",
+};
+
+/**
+ * Generate edge relationships section
+ */
+function generateEdgeRelationships(
+  edges: Edge<ChainEdgeData>[],
+  sortedNodes: SortedNode[]
+): string {
+  if (edges.length === 0) {
+    return "";
+  }
+
+  // Create a position map for node IDs
+  const nodePositionMap = new Map<string, number>();
+  sortedNodes.forEach((sn, idx) => {
+    nodePositionMap.set(sn.node.id, idx + 1);
+  });
+
+  // Create a role map for node IDs
+  const nodeRoleMap = new Map<string, string>();
+  sortedNodes.forEach((sn) => {
+    const role = sn.node.data.role || "CLAIM";
+    nodeRoleMap.set(sn.node.id, role);
+  });
+
+  let section = "## Argument Relationships\n\n";
+  section += "*How the arguments connect to form the reasoning chain:*\n\n";
+
+  edges.forEach((edge, idx) => {
+    const sourcePos = nodePositionMap.get(edge.source);
+    const targetPos = nodePositionMap.get(edge.target);
+    const sourceRole = nodeRoleMap.get(edge.source) || "CLAIM";
+    const targetRole = nodeRoleMap.get(edge.target) || "CLAIM";
+    
+    const edgeType = edge.data?.edgeType || "SUPPORTS";
+    const edgeLabel = EDGE_TYPE_LABELS[edgeType] || edgeType.toLowerCase();
+    const strength = edge.data?.strength;
+    
+    if (sourcePos && targetPos) {
+      section += `${idx + 1}. **Argument ${sourcePos}** (${sourceRole}) `;
+      section += `**${edgeLabel}** `;
+      section += `**Argument ${targetPos}** (${targetRole})`;
+      
+      if (strength && strength < 1) {
+        section += ` — *strength: ${Math.round(strength * 100)}%*`;
+      }
+      
+      if (edge.data?.description) {
+        section += `\n   > ${edge.data.description}`;
+      }
+      
+      section += "\n";
+    }
+  });
+
+  section += "\n---\n\n";
+
+  return section;
 }
 
 /**
@@ -372,6 +462,11 @@ export function generateEnhancedMarkdown(
   mainChain.forEach(sortedNode => {
     markdown += formatNodeAsMarkdown(sortedNode, opts);
   });
+
+  // Edge relationships section (after arguments, before orphans)
+  if (edges.length > 0) {
+    markdown += generateEdgeRelationships(edges, sortedNodes);
+  }
 
   // Orphans section
   markdown += generateOrphansSection(orphans);

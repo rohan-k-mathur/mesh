@@ -11,15 +11,12 @@ import React, { useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
-  MessageSquare,
-  Swords,
-  Eye,
   Network,
   User,
   ArrowDown,
   AlertTriangle,
+  Waypoints,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ThreadItem, ThreadEdge, getEdgeTypeLabel, getEdgeTypeColor } from "@/lib/chains/chainToThread";
@@ -118,11 +115,12 @@ interface ThreadNodeProps {
   isFirst?: boolean;
   isLast?: boolean;
   
-  // Callbacks
+  // Callbacks - matches ThreadCard from ThreadedDiscussionTab
   onViewArgument?: (argumentId: string) => void;
-  onDiscuss?: (argumentId: string) => void;
+  onPreview?: (argumentId: string) => void;
+  onReply?: (argumentId: string) => void;
+  onSupport?: (argumentId: string) => void;
   onAttack?: (argumentId: string) => void;
-  onExpand?: (nodeId: string) => void;
 }
 
 export function ThreadNode({
@@ -132,9 +130,10 @@ export function ThreadNode({
   isFirst = false,
   isLast = false,
   onViewArgument,
-  onDiscuss,
+  onPreview,
+  onReply,
+  onSupport,
   onAttack,
-  onExpand,
 }: ThreadNodeProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -266,40 +265,43 @@ export function ThreadNode({
             </span>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1">
-            {onViewArgument && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => onViewArgument(item.argumentId)}
+          {/* Action Buttons - exact copy from ThreadCard in ThreadedDiscussionTab */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onViewArgument?.(item.argumentId)}
+              className="text-xs text-indigo-600 hover:underline font-medium"
+            >
+              View Details
+            </button>
+            {item.argumentId && onPreview && (
+              <button
+                onClick={() => onPreview(item.argumentId)}
+                className="text-xs text-gray-600 hover:underline flex items-center gap-1"
               >
-                <Eye className="w-3 h-3 mr-1" />
-                View
-              </Button>
+                <Waypoints className="w-3 h-3" />
+                Preview Network
+              </button>
             )}
-            {onDiscuss && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => onDiscuss(item.argumentId)}
+            <button
+              onClick={() => onReply?.(item.argumentId)}
+              className="text-xs text-gray-600 hover:underline"
+            >
+              Reply
+            </button>
+            <button
+              onClick={() => onSupport?.(item.argumentId)}
+              className="text-xs text-gray-600 hover:underline"
+            >
+              Support
+            </button>
+            {/* Only show Attack for arguments - they all have argumentId in chains */}
+            {item.argumentId && (
+              <button
+                onClick={() => onAttack?.(item.argumentId)}
+                className="text-xs text-gray-600 hover:underline"
               >
-                <MessageSquare className="w-3 h-3 mr-1" />
-                Discuss
-              </Button>
-            )}
-            {onAttack && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={() => onAttack(item.argumentId)}
-              >
-                <Swords className="w-3 h-3 mr-1" />
                 Attack
-              </Button>
+              </button>
             )}
           </div>
         </div>
@@ -351,14 +353,12 @@ export function OrphanNode({ item, onViewArgument }: OrphanNodeProps) {
           </p>
         </div>
         {onViewArgument && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs shrink-0"
+          <button
+            className="text-xs text-indigo-600 hover:underline font-medium shrink-0"
             onClick={() => onViewArgument(item.argumentId)}
           >
-            <Eye className="w-3 h-3" />
-          </Button>
+            View
+          </button>
         )}
       </div>
     </div>

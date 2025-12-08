@@ -253,6 +253,24 @@ function getSchemeDescription(schemeName: string | null | undefined): string {
 }
 
 /**
+ * Get the best text representation for an argument
+ * Falls back through: argument.text → conclusionClaim.text → "Untitled argument"
+ */
+function getArgumentDisplayText(argument: any): string {
+  // First try argument text
+  if (argument?.text && argument.text.trim() !== "") {
+    return argument.text;
+  }
+  
+  // Fall back to conclusion claim text
+  if (argument?.conclusionClaim?.text && argument.conclusionClaim.text.trim() !== "") {
+    return argument.conclusionClaim.text;
+  }
+  
+  return "Untitled argument";
+}
+
+/**
  * Format a single argument node as text
  */
 function formatNode(
@@ -262,7 +280,7 @@ function formatNode(
   const { node, position } = sortedNode;
   const { argument, nodeOrder } = node.data;
   
-  const argumentText = argument?.text || "Untitled argument";
+  const argumentText = getArgumentDisplayText(argument);
   const schemeName = argument?.argumentSchemes?.[0]?.scheme?.name || null;
   
   // Get transition phrase

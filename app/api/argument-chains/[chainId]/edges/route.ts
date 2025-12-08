@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { z } from "zod";
-import { jsonSafe } from "@/lib/bigintjson";
+
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
 const createEdgeSchema = z.object({
@@ -52,7 +52,7 @@ export async function POST(
     }
 
     // Check permissions
-    const isCreator = chain.createdBy === jsonSafe(BigInt(user.userId));
+    const isCreator = chain.createdBy === BigInt(user.userId);
     const canEdit = isCreator || chain.isEditable;
 
     if (!canEdit) {
@@ -147,7 +147,20 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ ok: true, edge }, { status: 201, ...NO_STORE });
+    // Serialize BigInt fields
+    const serializedEdge = {
+      ...edge,
+      sourceNode: {
+        ...edge.sourceNode,
+        addedBy: edge.sourceNode.addedBy.toString(),
+      },
+      targetNode: {
+        ...edge.targetNode,
+        addedBy: edge.targetNode.addedBy.toString(),
+      },
+    };
+
+    return NextResponse.json({ ok: true, edge: serializedEdge }, { status: 201, ...NO_STORE });
   } catch (error) {
     console.error("[POST /api/argument-chains/[chainId]/edges] Error:", error);
     if (error instanceof z.ZodError) {

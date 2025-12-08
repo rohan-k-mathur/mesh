@@ -281,7 +281,7 @@ function SectionHeader({
   );
 }
 
-function AttackItem({ attack, deliberationId, authorId, onAnyChange }: { attack: any; deliberationId: string; authorId: string; onAnyChange?: () => void }) {
+function AttackItem({ attack, deliberationId, authorId, currentUserId, onAnyChange }: { attack: any; deliberationId: string; authorId: string; currentUserId?: string; onAnyChange?: () => void }) {
   const attackType = ATTACK_TYPES[attack.attackType as keyof typeof ATTACK_TYPES];
   const Icon = attackType?.icon || Shield;
   
@@ -1500,6 +1500,7 @@ export function ArgumentCardV2({
                       attack={attack} 
                       deliberationId={deliberationId}
                       authorId={authorId}
+                      currentUserId={currentUserId}
                       onAnyChange={onAnyChange}
                     />
                   ))}
@@ -1509,6 +1510,7 @@ export function ArgumentCardV2({
                       attack={attack} 
                       deliberationId={deliberationId}
                       authorId={authorId}
+                      currentUserId={currentUserId}
                       onAnyChange={onAnyChange}
                     />
                   ))}
@@ -1518,6 +1520,7 @@ export function ArgumentCardV2({
                       attack={attack} 
                       deliberationId={deliberationId}
                       authorId={authorId}
+                      currentUserId={currentUserId}
                       onAnyChange={onAnyChange}
                     />
                   ))}

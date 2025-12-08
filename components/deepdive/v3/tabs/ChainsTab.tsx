@@ -3,32 +3,47 @@
  * Tab content for viewing and managing argument chains in a deliberation
  * 
  * Task 1.7: Add "Chains" tab to deliberation view
+ * 
+ * Updated to include full modal functionality matching ThreadedDiscussionTab:
+ * - View Details modal (ArgumentCardV2)
+ * - Preview Network modal (MiniNeighborhoodPreview)
+ * - Reply modal (PropositionComposerPro)
+ * - Support modal (AIFArgumentWithSchemeComposer)
+ * - Attack modal flow (AttackSuggestions + AttackArgumentWizard)
  */
 
 "use client";
 
 import React, { useState } from "react";
+import useSWR from "swr";
+import { toast } from "sonner";
 import { Link2, Plus, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChainListPanel } from "@/components/chains/ChainListPanel";
 import { ArgumentChainThread } from "@/components/chains/ArgumentChainThread";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
+import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
+import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
+import { AIFArgumentWithSchemeComposer } from "@/components/arguments/AIFArgumentWithSchemeComposer";
+import { AttackSuggestions } from "@/components/argumentation/AttackSuggestions";
+import { AttackArgumentWizard } from "@/components/argumentation/AttackArgumentWizard";
+import type { AttackSuggestion } from "@/app/server/services/ArgumentGenerationService";
+
+const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json());
 
 // ===== Types =====
+
+/** Action target representing an argument from the chain */
+interface ActionTarget {
+  argumentId: string;
+  claimId?: string;
+  text?: string;
+}
 
 interface ChainsTabProps {
   deliberationId: string;
   currentUserId?: string | null;
-  
-  /** Callback when user clicks on an argument */
-  onArgumentClick?: (argumentId: string) => void;
-  
-  /** Callback when user wants to attack an argument */
-  onAttackArgument?: (argumentId: string) => void;
-  
-  /** Callback when user wants to discuss an argument */
-  onDiscussArgument?: (argumentId: string) => void;
   
   /** Callback to switch to another tab */
   onTabChange?: (tab: any) => void;
@@ -42,9 +57,6 @@ interface ChainsTabProps {
 export function ChainsTab({
   deliberationId,
   currentUserId,
-  onArgumentClick,
-  onAttackArgument,
-  onDiscussArgument,
   onTabChange,
   selectedArgumentId,
 }: ChainsTabProps) {
@@ -52,17 +64,139 @@ export function ChainsTab({
   const [viewMode, setViewMode] = useState<"list" | "thread">("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
+  // Modal state - matches ThreadedDiscussionTab pattern
+  const [previewArgumentId, setPreviewArgumentId] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [expandModalOpen, setExpandModalOpen] = useState(false);
+  const [expandArgumentId, setExpandArgumentId] = useState<string | null>(null);
+  
+  // Action modal state
+  const [replyMode, setReplyMode] = useState(false);
+  const [supportMode, setSupportMode] = useState(false);
+  const [attackMode, setAttackMode] = useState(false);
+  const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
+  
+  // Attack flow state
+  const [selectedAttack, setSelectedAttack] = useState<AttackSuggestion | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Fetch argument details when needed for modals
+  const { data: argumentData, mutate: mutateArgument } = useSWR(
+    expandArgumentId ? `/api/arguments/${expandArgumentId}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  // Fetch neighborhood for preview
+  const { data: neighborhoodData, error: neighborhoodError, isLoading: neighborhoodLoading } = useSWR(
+    previewArgumentId ? `/api/arguments/${previewArgumentId}/aif-neighborhood?depth=1` : null,
+    fetcher
+  );
+
   // Handle chain click - expand inline or open thread view
   const handleChainClick = (chainId: string) => {
     setSelectedChainId(chainId);
-    // For now, keep in list mode with expansion
-    // Future: could switch to full thread view
   };
 
   // Handle view chain as graph
   const handleViewChainGraph = (chainId: string) => {
-    // Navigate to chain canvas view
     window.open(`/chain/${chainId}`, "_blank");
+  };
+
+  // ===== Action Handlers (matching ThreadedDiscussionTab) =====
+
+  // Handle View Details - open ArgumentCardV2 modal
+  const handleViewArgument = (argumentId: string) => {
+    setExpandArgumentId(argumentId);
+    setExpandModalOpen(true);
+  };
+
+  // Handle Preview Network - open MiniNeighborhoodPreview modal
+  const handlePreviewArgument = (argumentId: string) => {
+    setPreviewArgumentId(argumentId);
+    setPreviewModalOpen(true);
+  };
+
+  // Handle Reply - open PropositionComposerPro modal
+  const handleReplyArgument = async (argumentId: string) => {
+    // Fetch argument data to get text preview
+    try {
+      const res = await fetch(`/api/arguments/${argumentId}`);
+      const data = await res.json();
+      setActionTarget({
+        argumentId,
+        claimId: data?.conclusionClaimId || data?.claim?.id,
+        text: data?.claim?.text || data?.text || "Argument",
+      });
+      setReplyMode(true);
+    } catch (e) {
+      // Fallback without text
+      setActionTarget({ argumentId, text: "Argument" });
+      setReplyMode(true);
+    }
+  };
+
+  // Handle Support - open AIFArgumentWithSchemeComposer modal
+  const handleSupportArgument = async (argumentId: string) => {
+    try {
+      const res = await fetch(`/api/arguments/${argumentId}`);
+      const data = await res.json();
+      const claimId = data?.conclusionClaimId || data?.claim?.id;
+      
+      if (!claimId) {
+        toast.error("Cannot support this argument - no claim ID found");
+        return;
+      }
+      
+      setActionTarget({
+        argumentId,
+        claimId,
+        text: data?.claim?.text || data?.text || "Argument",
+      });
+      setSupportMode(true);
+    } catch (e) {
+      toast.error("Failed to load argument data");
+    }
+  };
+
+  // Handle Attack - open AttackSuggestions modal
+  const handleAttackArgument = async (argumentId: string) => {
+    if (!currentUserId) {
+      toast.error("Please sign in to create attacks");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/arguments/${argumentId}`);
+      const data = await res.json();
+      const claimId = data?.conclusionClaimId || data?.claim?.id;
+      
+      if (!claimId) {
+        toast.error("Cannot attack this argument - missing conclusion claim");
+        return;
+      }
+      
+      setActionTarget({
+        argumentId,
+        claimId,
+        text: data?.claim?.text || data?.text || "Argument",
+      });
+      setAttackMode(true);
+    } catch (e) {
+      toast.error("Failed to load argument data");
+    }
+  };
+
+  // Close composer modals and refresh data
+  const handleComposerSuccess = () => {
+    setReplyMode(false);
+    setSupportMode(false);
+    setAttackMode(false);
+    setWizardOpen(false);
+    setActionTarget(null);
+    setSelectedAttack(null);
+    mutateArgument(); // Refresh argument data
+    toast.success("Successfully posted!");
   };
 
   return (
@@ -124,8 +258,11 @@ export function ChainsTab({
           onCreateChain={() => setShowCreateDialog(true)}
           onChainClick={handleChainClick}
           onViewChainGraph={handleViewChainGraph}
-          onAttackArgument={onAttackArgument}
-          onDiscussArgument={onDiscussArgument}
+          onViewArgument={handleViewArgument}
+          onPreviewArgument={handlePreviewArgument}
+          onReplyArgument={handleReplyArgument}
+          onSupportArgument={handleSupportArgument}
+          onAttackArgument={handleAttackArgument}
           currentArgumentId={selectedArgumentId}
         />
       ) : selectedChainId ? (
@@ -134,8 +271,11 @@ export function ChainsTab({
             chainId={selectedChainId}
             currentArgumentId={selectedArgumentId}
             onViewGraph={() => handleViewChainGraph(selectedChainId)}
-            onAttack={onAttackArgument}
-            onDiscuss={onDiscussArgument}
+            onViewArgument={handleViewArgument}
+            onPreview={handlePreviewArgument}
+            onReply={handleReplyArgument}
+            onSupport={handleSupportArgument}
+            onAttack={handleAttackArgument}
           />
         </div>
       ) : (
@@ -169,6 +309,164 @@ export function ChainsTab({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Preview Network Modal */}
+      <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
+        <DialogContent className="max-w-[750px] bg-white/15 backdrop-blur-md border-2 border-white rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="tracking-wide font-medium">AIF Neighborhood Preview</DialogTitle>
+          </DialogHeader>
+          <div className="py-0">
+            <MiniNeighborhoodPreview
+              data={neighborhoodData}
+              loading={neighborhoodLoading}
+              error={neighborhoodError}
+              maxWidth={700}
+              maxHeight={400}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Argument Details Modal (ArgumentCardV2) */}
+      {expandModalOpen && expandArgumentId && argumentData && (
+        <Dialog open={expandModalOpen} onOpenChange={(open) => !open && setExpandModalOpen(false)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">Argument Details</DialogTitle>
+            </DialogHeader>
+            <ArgumentCardV2
+              deliberationId={deliberationId}
+              authorId={currentUserId || ""}
+              id={argumentData.id || expandArgumentId}
+              conclusion={{
+                id: argumentData.conclusionClaimId || argumentData.claim?.id || expandArgumentId,
+                text: argumentData.claim?.text || argumentData.text || "Untitled claim"
+              }}
+              premises={argumentData.premises || []}
+              schemeKey={argumentData.schemeKey}
+              schemeName={argumentData.schemeName}
+              onAnyChange={() => mutateArgument()}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Reply Composer Modal */}
+      {replyMode && actionTarget && (
+        <Dialog open={replyMode} onOpenChange={(open) => !open && setReplyMode(false)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] bg-white overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">
+                Reply to Argument
+              </DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Replying to: {actionTarget.text?.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            <PropositionComposerPro
+              deliberationId={deliberationId}
+              replyTarget={
+                actionTarget.claimId
+                  ? { kind: "claim", id: actionTarget.claimId }
+                  : { kind: "argument", id: actionTarget.argumentId }
+              }
+              onPosted={handleComposerSuccess}
+              placeholder="Write your reply..."
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Support Composer Modal */}
+      {supportMode && actionTarget && actionTarget.claimId && (
+        <Dialog open={supportMode} onOpenChange={(open) => !open && setSupportMode(false)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">
+                Create Supporting Argument
+              </DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Supporting: {actionTarget.text?.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            <AIFArgumentWithSchemeComposer
+              deliberationId={deliberationId}
+              authorId={currentUserId || ""}
+              conclusionClaim={{
+                id: actionTarget.claimId,
+                text: actionTarget.text || ""
+              }}
+              onCreated={handleComposerSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Attack Suggestions Dialog */}
+      {attackMode && actionTarget && actionTarget.argumentId && actionTarget.claimId && !wizardOpen && (
+        <Dialog 
+          open={attackMode && !wizardOpen} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setAttackMode(false);
+              setActionTarget(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-4xl bg-white max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Generate Strategic Attack</DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Attacking: {actionTarget.text?.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            {currentUserId && (
+              <AttackSuggestions
+                targetClaimId={actionTarget.claimId}
+                targetArgumentId={actionTarget.argumentId}
+                userId={currentUserId}
+                onAttackSelect={(suggestion) => {
+                  console.log("[ChainsTab] Attack selected:", suggestion);
+                  setSelectedAttack(suggestion);
+                  setWizardOpen(true);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Attack Construction Wizard Dialog */}
+      {wizardOpen && actionTarget && actionTarget.argumentId && actionTarget.claimId && selectedAttack && (
+        <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+          <DialogContent className="max-w-6xl bg-white max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Construct Attack</DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Attacking: {actionTarget.text?.slice(0, 100)}...
+              </p>
+            </DialogHeader>
+            {currentUserId && (
+              <AttackArgumentWizard
+                suggestion={selectedAttack}
+                targetArgumentId={actionTarget.argumentId}
+                targetClaimId={actionTarget.claimId}
+                deliberationId={deliberationId}
+                currentUserId={currentUserId}
+                onComplete={(attackClaimId) => {
+                  console.log("[ChainsTab] Attack completed, claim ID:", attackClaimId);
+                  handleComposerSuccess();
+                }}
+                onCancel={() => {
+                  setWizardOpen(false);
+                  setSelectedAttack(null);
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

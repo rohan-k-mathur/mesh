@@ -77,6 +77,56 @@ export interface AifSchemeSet {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Get the best text representation for an argument
+ * Falls back through: argument.text → conclusionClaim.text → role placeholder
+ */
+function getArgumentText(argument: any, role?: string | null): string {
+  // First try argument text
+  if (argument.text && argument.text.trim() !== "") {
+    return argument.text;
+  }
+  
+  // Fall back to conclusion claim text
+  if (argument.conclusionClaim?.text && argument.conclusionClaim.text.trim() !== "") {
+    return argument.conclusionClaim.text;
+  }
+  
+  // Last resort: use role or placeholder
+  if (role) {
+    return `[${role}] Untitled argument`;
+  }
+  
+  return "Untitled argument";
+}
+
+/**
+ * Extract critical questions from a scheme, handling both formats:
+ * - Array of strings: ["Question 1", "Question 2"]
+ * - Array of objects: [{ text: "Question 1" }, { cqKey: "Q1", text: "Question 2" }]
+ */
+function extractCriticalQuestions(cq: any): string[] | undefined {
+  if (!cq || !Array.isArray(cq) || cq.length === 0) {
+    return undefined;
+  }
+  
+  const questions = cq.map((item: any) => {
+    if (typeof item === "string") {
+      return item;
+    }
+    if (item && typeof item === "object" && item.text) {
+      return item.text;
+    }
+    return null;
+  }).filter((q: string | null): q is string => q !== null && q.trim() !== "");
+  
+  return questions.length > 0 ? questions : undefined;
+}
+
+// ============================================================================
 // Main Conversion Function
 // ============================================================================
 
@@ -121,9 +171,12 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
           : new Date(chainNode.createdAt).toISOString())
       : new Date().toISOString();
     
+    // Get the best text representation for this argument
+    const argumentText = getArgumentText(argument, chainNode.role);
+    
     nodes.push({
       nodeID: iNodeId,
-      text: argument.text || `[${chainNode.role}] ${argument.conclusionClaimId || 'No text'}`,
+      text: argumentText,
       type: "I",
       timestamp: nodeTimestamp,
     });
@@ -162,11 +215,14 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
         
         // Add scheme to schemeSets (unique)
         if (!schemeSets.has(scheme.id)) {
+          // Extract critical questions, handling both formats
+          const criticalQuestions = extractCriticalQuestions(scheme.cq);
+          
           schemeSets.set(scheme.id, {
             schemeID: sNodeId,
             schemeName: scheme.name || scheme.key,
             schemeDescription: scheme.description || scheme.summary || undefined,
-            criticalQuestions: scheme.cq?.map((cq: any) => cq.text) || undefined,
+            criticalQuestions,
           });
 
           nodes.push({
