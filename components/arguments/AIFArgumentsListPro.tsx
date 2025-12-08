@@ -45,6 +45,7 @@ import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { PreferenceAttackModal } from '@/components/agora/PreferenceAttackModal';
 import { DialogueMoveKind } from "@/components/aif/DialogueMoveNode";
 import { getUserFromCookies } from "@/lib/server/getUser";
+import { ChainParticipationBadge } from '@/components/chains/ChainParticipationBadge';
 
 
 const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
@@ -547,6 +548,8 @@ function RowImpl({
   onViewDialogueMove,
   onAnalyzeArgument, // Week 5 Task 5.1: ArgumentNetAnalyzer callback
   onGenerateAttack, // Week 6 Task 6.1: Attack generation callback
+  onViewChain, // Task 1.6: Chain participation - view chain thread
+  onViewChainGraph, // Task 1.6: Chain participation - view chain graph
 }: {
   a: AifRow;
   meta?: AifMeta;
@@ -572,6 +575,8 @@ function RowImpl({
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
   onAnalyzeArgument?: (argumentId: string) => void; // Week 5 Task 5.1: ArgumentNetAnalyzer callback
   onGenerateAttack?: (argumentId: string, claimId: string) => void; // Week 6 Task 6.1: Attack generation callback - receives both IDs
+  onViewChain?: (chainId: string) => void; // Task 1.6: Chain participation callback
+  onViewChainGraph?: (chainId: string) => void; // Task 1.6: Chain participation graph callback
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -676,6 +681,13 @@ function RowImpl({
             <div className="flex items-center flex-wrap gap-1.5 justify-end">
               <time className="text-xs text-slate-500 font-medium">{created}</time>
               <MemoizedSchemeBadge scheme={meta?.scheme} />
+              
+              {/* Task 1.6: Chain Participation Badge */}
+              <ChainParticipationBadge
+                argumentId={a.id}
+                onViewChain={onViewChain}
+                onViewChainGraph={onViewChainGraph}
+              />
              
               {typeof support === 'number' && (
                 <div className="inline-flex items-center gap-2 ml-1">
@@ -944,6 +956,8 @@ export default function AIFArgumentsListPro({
   onViewDialogueMove,
   onAnalyzeArgument, // Week 5 Task 5.1: ArgumentNetAnalyzer callback
   onGenerateAttack, // Week 6 Task 6.1: Attack generation callback
+  onViewChain, // Task 1.6: Chain participation - view chain thread
+  onViewChainGraph, // Task 1.6: Chain participation - view chain graph
 }: {
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
@@ -961,6 +975,8 @@ export default function AIFArgumentsListPro({
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
   onAnalyzeArgument?: (argumentId: string) => void; // Week 5 Task 5.1: ArgumentNetAnalyzer callback
   onGenerateAttack?: (argumentId: string, claimId: string) => void; // Week 6 Task 6.1: Attack generation callback - receives both argument ID and claim ID
+  onViewChain?: (chainId: string) => void; // Task 1.6: Chain participation callback
+  onViewChainGraph?: (chainId: string) => void; // Task 1.6: Chain participation graph callback
 }) {
   // Fetch current user ID for permission checks (using same approach as DeepDivePanelV2)
   const [currentUserId, setCurrentUserId] = React.useState<string | null>(null);
@@ -1358,6 +1374,8 @@ export default function AIFArgumentsListPro({
                 onViewDialogueMove={onViewDialogueMove}
                 onAnalyzeArgument={onAnalyzeArgument}
                 onGenerateAttack={onGenerateAttack}
+                onViewChain={onViewChain}
+                onViewChainGraph={onViewChainGraph}
               />
               </div>
             );
