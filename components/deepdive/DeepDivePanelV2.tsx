@@ -41,6 +41,7 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { ArgumentsTab, AnalyticsTab, DebateTab } from "./v3/tabs";
+import { ChainsTab } from "./v3/tabs/ChainsTab"; // Task 1.7: Chains tab
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import { useAuth } from "@/lib/AuthContext";
 import { useSheetPersistence, useDeliberationState } from "./v3/hooks";
@@ -1385,6 +1386,7 @@ const {
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="arguments">Arguments</TabsTrigger>
             {/* Dialogue tab removed - Week 4 Task 4.3: Access via "Dialogue Timeline" button in header */}
+            <TabsTrigger value="chains">Chains</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
             <TabsTrigger value="admin">Admin</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
@@ -1425,6 +1427,27 @@ const {
               }}
               onTabChange={delibActions.setTab}
               setHighlightedDialogueMoveId={delibActions.setHighlightedDialogueMoveId}
+            />
+          </TabsContent>
+
+          {/* CHAINS TAB - Task 1.7: Argument chains */}
+          <TabsContent value="chains" className="w-full min-w-0 space-y-4 mt-4">
+            <ChainsTab
+              deliberationId={deliberationId}
+              currentUserId={currentUserId}
+              onArgumentClick={(argumentId) => {
+                // Could navigate to argument or open actions sheet
+                console.log("[ChainsTab] Argument clicked:", argumentId);
+              }}
+              onAttackArgument={(argumentId) => {
+                // Open attack modal
+                console.log("[ChainsTab] Attack argument:", argumentId);
+              }}
+              onDiscussArgument={(argumentId) => {
+                // Navigate to debate tab with argument context
+                console.log("[ChainsTab] Discuss argument:", argumentId);
+              }}
+              onTabChange={delibActions.setTab}
             />
           </TabsContent>
 

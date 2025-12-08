@@ -720,14 +720,14 @@ interface ChainInsights {
 
 | Task | Description | Files | Hours | Status |
 |------|-------------|-------|-------|--------|
-| **1.7** | Add "Chains" tab to deliberation view | `components/deliberations/DeliberationTabs.tsx` | 2h | |
-| **1.8** | Create `ChainListPanel` (list of chains with expand) | `components/chains/ChainListPanel.tsx` | 2h | |
-| **1.9** | Handle attack overlays in thread view | `components/chains/ThreadAttackOverlay.tsx` | 2h | |
+| **1.7** | Add "Chains" tab to deliberation view | `components/deepdive/v3/tabs/ChainsTab.tsx`, `components/deepdive/DeepDivePanelV2.tsx` | 2h | ✅ Complete |
+| **1.8** | Create `ChainListPanel` (list of chains with expand) | `components/chains/ChainListPanel.tsx`, `app/api/deliberations/[id]/chains/route.ts` | 2h | ✅ Complete |
+| **1.9** | Handle attack overlays in thread view | `components/chains/ThreadAttackOverlay.tsx` | 2h | ✅ Complete |
 
 **Phase 1 Deliverables:**
 - [x] Users can view any chain as a scrollable thread (Tasks 1.1–1.4)
 - [x] Arguments in list view show chain participation badges (Tasks 1.5–1.6)
-- [ ] Deliberation has dedicated "Chains" tab (Tasks 1.7–1.9)
+- [x] Deliberation has dedicated "Chains" tab (Tasks 1.7–1.9)
 
 ---
 

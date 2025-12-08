@@ -15,6 +15,7 @@ export { AnalyticsTab } from "./AnalyticsTab";
 export { DebateTab, type DebateTabProps } from "./DebateTab";
 export { ArgumentsTab } from "./ArgumentsTab";
 export { ThreadedDiscussionTab, type ThreadedDiscussionTabProps } from "./ThreadedDiscussionTab";
+export { ChainsTab } from "./ChainsTab"; // Task 1.7: Chains tab
 
 // Type Definitions
 export type {

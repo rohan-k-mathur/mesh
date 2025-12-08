@@ -11,7 +11,8 @@ export type DeliberationTab =
   | "admin"
   | "sources"
   | "thesis"
-  | "analytics";
+  | "analytics"
+  | "chains"; // Task 1.7: Argument chains tab
 
 /**
  * Confidence calculation mode
