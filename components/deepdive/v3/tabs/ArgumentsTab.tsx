@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
-import { List, Network, GitFork, Shield, Plus, Workflow } from "lucide-react";
+import { List, Network, GitFork, Shield, Plus, Workflow, PlusCircle } from "lucide-react";
 import { SectionCard } from "@/components/deepdive/shared";
 import AIFArgumentsListPro from "@/components/arguments/AIFArgumentsListPro";
 import { SchemesSection } from "../sections/SchemesSection";
@@ -143,7 +143,7 @@ export function ArgumentsTab({
           {
             value: "create",
             label: "Create Argument",
-            icon: <Plus className="size-3.5" />,
+            icon: <PlusCircle className="size-3.5" />,
             content: (
               <SectionCard 
                 title="Build New Argument" 

@@ -17,7 +17,7 @@
 import React, { useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Link2, Plus, Network, LayoutGrid, PlusCircle, FileText } from "lucide-react";
+import { Link2, Plus, Network, LayoutGrid, PlusCircle, FileText, Sparkles, BookOpen, BookOpenText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,7 @@ import { ChainListPanel } from "@/components/chains/ChainListPanel";
 import { ArgumentChainThread } from "@/components/chains/ArgumentChainThread";
 import ArgumentChainCanvas from "@/components/chains/ArgumentChainCanvas";
 import { ChainProseView } from "@/components/chains/ChainProseView";
+import { ChainEssayView } from "@/components/chains/ChainEssayView";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
@@ -66,7 +67,7 @@ export function ChainsTab({
   selectedArgumentId,
 }: ChainsTabProps) {
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "thread" | "canvas" | "prose">("list");
+  const [viewMode, setViewMode] = useState<"list" | "thread" | "canvas" | "prose" | "essay">("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   
   // Create chain form state
@@ -269,7 +270,20 @@ export function ChainsTab({
               disabled={!selectedChainId}
             >
               <FileText className="w-3 h-3" />
-              Prose
+              Brief
+            </button>
+            <button
+              type="button"
+              className={`flex px-3 py-2 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+                viewMode === "essay" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              } ${!selectedChainId ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={(e) => { e.stopPropagation(); if (selectedChainId) setViewMode("essay"); }}
+              disabled={!selectedChainId}
+            >
+              <BookOpenText className="w-3 h-3" />
+              Essay
             </button>
           </div>
 
@@ -311,6 +325,10 @@ export function ChainsTab({
           onViewChainProse={(chainId) => {
             setSelectedChainId(chainId);
             setViewMode("prose");
+          }}
+          onViewChainEssay={(chainId) => {
+            setSelectedChainId(chainId);
+            setViewMode("essay");
           }}
           onViewArgument={handleViewArgument}
           onPreviewArgument={handlePreviewArgument}
@@ -354,9 +372,18 @@ export function ChainsTab({
             onViewCanvas={() => setViewMode("canvas")}
           />
         </div>
+      ) : viewMode === "essay" && selectedChainId ? (
+        <div className="border rounded-lg p-4 bg-white">
+          <ChainEssayView
+            chainId={selectedChainId}
+            onViewThread={() => setViewMode("thread")}
+            onViewCanvas={() => setViewMode("canvas")}
+            onViewProse={() => setViewMode("prose")}
+          />
+        </div>
       ) : (
         <div className="flex items-center justify-center py-12 text-slate-500">
-          Select a chain to view in thread, canvas, or prose mode
+          Select a chain to view in thread, canvas, brief, or essay mode
         </div>
       )}
 

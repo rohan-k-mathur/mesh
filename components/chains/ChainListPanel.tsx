@@ -22,6 +22,8 @@ import {
   PlusCircle,
   List,
   FileText,
+  Sparkles,
+  BookOpenText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +108,9 @@ interface ChainListPanelProps {
   /** Callback when user wants to view chain in prose mode */
   onViewChainProse?: (chainId: string) => void;
   
+  /** Callback when user wants to view chain in essay mode */
+  onViewChainEssay?: (chainId: string) => void;
+  
   /** Callback for viewing an argument (View Details) */
   onViewArgument?: (argumentId: string) => void;
   
@@ -179,6 +184,7 @@ export function ChainListPanel({
   onViewChainGraph,
   onViewChainThread,
   onViewChainProse,
+  onViewChainEssay,
   onViewArgument,
   onPreviewArgument,
   onReplyArgument,
@@ -304,6 +310,7 @@ export function ChainListPanel({
             onViewGraph={() => onViewChainGraph?.(chain.id)}
             onViewThread={() => onViewChainThread?.(chain.id)}
             onViewProse={() => onViewChainProse?.(chain.id)}
+            onViewEssay={() => onViewChainEssay?.(chain.id)}
             onViewArgument={onViewArgument}
             onPreviewArgument={onPreviewArgument}
             onReplyArgument={onReplyArgument}
@@ -327,6 +334,7 @@ interface ChainListItemProps {
   onViewGraph?: () => void;
   onViewThread?: () => void;
   onViewProse?: () => void;
+  onViewEssay?: () => void;
   onViewArgument?: (argumentId: string) => void;
   onPreviewArgument?: (argumentId: string) => void;
   onReplyArgument?: (argumentId: string) => void;
@@ -343,6 +351,7 @@ function ChainListItem({
   onViewGraph,
   onViewThread,
   onViewProse,
+  onViewEssay,
   onViewArgument,
   onPreviewArgument,
   onReplyArgument,
@@ -443,9 +452,20 @@ function ChainListItem({
                   size="sm"
                   className="h-7 w-7 p-0 rounded-md bg-slate-100 hover:bg-slate-200"
                   onClick={onViewProse}
-                  title="View as prose"
+                  title="View as brief"
                 >
                   <FileText className="w-4 h-4" />
+                </Button>
+              )}
+              {onViewEssay && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 rounded-md bg-indigo-100 hover:bg-indigo-200"
+                  onClick={onViewEssay}
+                  title="View as essay"
+                >
+                  <BookOpenText className="w-4 h-4 text-indigo-600" />
                 </Button>
               )}
             </div>

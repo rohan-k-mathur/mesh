@@ -140,6 +140,17 @@ const SCHEME_TEMPLATES: Record<string, SchemeTemplate> = {
       "Is the effect actually attributable to the stated cause?"
     ]
   },
+  "causal": {
+    introduction: "Through causal analysis",
+    elaboration: "This argument establishes a causal relationship between events or conditions, reasoning from cause to effect. The warrant licensing this inference is that effects follow from their causes under normal circumstances.",
+    supportTransition: "This causal connection is further evidenced by",
+    attackTransition: "The causal link is challenged by",
+    criticalQuestions: [
+      "Is the causal relationship well-established?",
+      "Could there be alternative causes?",
+      "Is the effect actually attributable to the stated cause?"
+    ]
+  },
   "causal_reasoning": {
     introduction: "Through causal analysis",
     elaboration: "This argument establishes a causal relationship between events or conditions, reasoning from cause to effect.",
@@ -214,13 +225,57 @@ const SCHEME_TEMPLATES: Record<string, SchemeTemplate> = {
   },
   "argument_from_division": {
     introduction: "Through reasoning from whole to parts",
-    elaboration: "This argument infers properties of parts from properties of the whole. Like composition, it's defeasible because not all properties distribute from wholes to parts.",
+    elaboration: "This argument infers properties of parts from properties of the whole. Like composition, it's defeasible because not all properties distribute from wholes to parts. The formal structure is: Major Premise: The whole W has property F. Minor Premise (implicit): What is true of the whole is true of its parts. Conclusion: Therefore, each part of W has property F. The warrant licensing this inference is that in certain cases, properties of wholes distribute to their constituent parts.",
     supportTransition: "This division of the whole into parts is supported by",
     attackTransition: "However, this inference from whole to parts is challenged by",
     criticalQuestions: [
       "Does the whole really have the stated property?",
       "Is this the kind of property that transfers from wholes to parts?",
       "Are there properties of the whole that do not distribute to the parts?"
+    ]
+  },
+  "argument_from_composition": {
+    introduction: "Through reasoning from parts to whole",
+    elaboration: "This argument infers properties of a whole from properties of its parts. The formal structure is: Major Premise: The parts (or members) of whole W all have property F. Minor Premise (implicit): What is true of the parts is true of the whole. Conclusion: Therefore, the whole W has property F. The warrant licensing this inference is that in certain cases, properties of parts aggregate to the whole—though this is defeasible because not all properties transfer from parts to wholes (e.g., each part being lightweight doesn't necessarily make the whole lightweight).",
+    supportTransition: "This composition analysis is supported by",
+    attackTransition: "However, this inference from parts to whole is challenged by",
+    criticalQuestions: [
+      "Do all the parts really have property F?",
+      "Is F the kind of property that transfers from parts to wholes?",
+      "Are there emergent properties of the whole that differ from the parts?"
+    ]
+  },
+  "composition": {
+    introduction: "Through reasoning from parts to whole",
+    elaboration: "This argument infers properties of a whole from properties of its parts.",
+    supportTransition: "This composition analysis is supported by",
+    attackTransition: "However, this inference from parts to whole is challenged by",
+    criticalQuestions: [
+      "Do all the parts really have property F?",
+      "Is F the kind of property that transfers from parts to wholes?"
+    ]
+  },
+  "slippery_slope": {
+    introduction: "Warning of a slippery slope",
+    elaboration: "This argument warns that taking a first step will lead down a chain of consequences to an unacceptable outcome. The formal structure is: Major Premise: Doing A will lead to B, B will lead to C, and eventually to unacceptable Z. Minor Premise: We should avoid Z. Conclusion: Therefore, we should not do A. The warrant licensing this inference is that causal or probabilistic chains, once initiated, tend to continue to their natural endpoints—though this is highly defeasible when stopping points exist or the chain is speculative.",
+    supportTransition: "The likelihood of this slippery slope is supported by",
+    attackTransition: "However, the plausibility of this slippery slope is challenged by",
+    criticalQuestions: [
+      "Is the causal/probabilistic chain from A to Z plausible?",
+      "Are there realistic stopping points or safeguards?",
+      "How probable is the slide under normal governance?",
+      "Is the endpoint Z truly unacceptable?"
+    ]
+  },
+  "argument_from_example": {
+    introduction: "By way of example",
+    elaboration: "This argument reasons from a particular case to a general rule, then applies it to a new case. The formal structure is: Major Premise: In case C, individual a has property F and also property G. Minor Premise: Therefore, generally, if x has F then x has G. Additional Premise: Individual b has property F. Conclusion: Therefore, b also has property G. The warrant licensing this inference is that representative instances support generalizations, which can then be applied to similar cases.",
+    supportTransition: "This example-based reasoning is supported by",
+    attackTransition: "However, the generalization from this example is challenged by",
+    criticalQuestions: [
+      "Is the example representative of the population?",
+      "Are there counterexamples that would support a different conclusion?",
+      "Is the sample size sufficient to support the generalization?"
     ]
   },
   "division": {
@@ -549,6 +604,8 @@ function generateSchemeIntroduction(schemeInfo: ExtendedSchemeInfo | null): stri
 
 /**
  * Generate elaboration based on scheme metadata
+ * Uses a default formal structure when scheme-specific structure is unavailable:
+ * 1. Major Premise, 2. Minor Premise (optional), 3. Conclusion, 4. Warrant description
  */
 function generateSchemeElaboration(schemeInfo: ExtendedSchemeInfo | null): string {
   if (!schemeInfo) {
@@ -570,21 +627,20 @@ function generateSchemeElaboration(schemeInfo: ExtendedSchemeInfo | null): strin
     parts.push(schemeInfo.summary);
   }
   
-  // Add premise structure explanation if available
-  if (schemeInfo.premises && Array.isArray(schemeInfo.premises) && schemeInfo.premises.length > 0) {
-    const premiseCount = schemeInfo.premises.length;
-    const premiseTexts = schemeInfo.premises
-      .slice(0, 3)
-      .map((p: any) => p.text || p.template || p)
-      .filter(Boolean);
-    
-    if (premiseTexts.length > 0) {
-      parts.push(`The reasoning structure involves ${premiseCount} premise${premiseCount > 1 ? "s" : ""}: ${premiseTexts.map((t: string) => `"${t}"`).join(", ")}.`);
-    }
+  // Parse and display formal premise structure if available
+  const formalStructure = generateFormalStructure(schemeInfo);
+  if (formalStructure) {
+    parts.push(formalStructure);
   }
   
-  // Add reasoning type context
-  if (schemeInfo.reasoningType) {
+  // Generate warrant description based on scheme taxonomy
+  const warrantDescription = generateWarrantDescription(schemeInfo);
+  if (warrantDescription && !parts.some(p => p.includes(warrantDescription))) {
+    parts.push(warrantDescription);
+  }
+  
+  // Add reasoning type context only if we don't have better content
+  if (parts.length < 2 && schemeInfo.reasoningType) {
     const reasoningExplanations: Record<string, string> = {
       "deductive": "The argument proceeds deductively, where the conclusion follows necessarily from the premises if they are true.",
       "inductive": "The argument proceeds inductively, generalizing from particular observations to broader conclusions.",
@@ -603,9 +659,176 @@ function generateSchemeElaboration(schemeInfo: ExtendedSchemeInfo | null): strin
     parts.push(`This form of argument is typically used when ${schemeInfo.whenToUse.toLowerCase()}.`);
   }
   
-  // If we couldn't generate anything, use default
+  // If we couldn't generate anything meaningful, use default with warrant info
   if (parts.length === 0) {
-    return "This reasoning connects premises to conclusion through inference, establishing the basis for the claim.";
+    const defaultWithWarrant = generateDefaultElaboration(schemeInfo);
+    return defaultWithWarrant;
+  }
+  
+  return parts.join(" ");
+}
+
+/**
+ * Parse scheme premises from JSON and generate formal structure prose
+ */
+function generateFormalStructure(schemeInfo: ExtendedSchemeInfo): string | null {
+  if (!schemeInfo.premises) return null;
+  
+  let premisesArray: any[] = [];
+  
+  // Handle various premise formats from the database
+  if (Array.isArray(schemeInfo.premises)) {
+    premisesArray = schemeInfo.premises;
+  } else if (typeof schemeInfo.premises === "object" && schemeInfo.premises !== null) {
+    // Handle object format like { P1: {...}, P2: {...} }
+    premisesArray = Object.values(schemeInfo.premises as Record<string, any>);
+  }
+  
+  if (premisesArray.length === 0) return null;
+  
+  // Categorize premises by type
+  const majorPremises: string[] = [];
+  const minorPremises: string[] = [];
+  const otherPremises: string[] = [];
+  
+  premisesArray.forEach((premise: any) => {
+    const text = premise.text || premise.template || (typeof premise === "string" ? premise : null);
+    if (!text) return;
+    
+    const premiseType = (premise.type || premise.premiseType || "").toLowerCase();
+    
+    if (premiseType === "major" || premiseType.includes("major")) {
+      majorPremises.push(text);
+    } else if (premiseType === "minor" || premiseType.includes("minor")) {
+      minorPremises.push(text);
+    } else {
+      otherPremises.push(text);
+    }
+  });
+  
+  // If no typed premises, treat first as major and rest as minor/supporting
+  if (majorPremises.length === 0 && minorPremises.length === 0 && otherPremises.length > 0) {
+    majorPremises.push(otherPremises.shift()!);
+    minorPremises.push(...otherPremises);
+    otherPremises.length = 0;
+  }
+  
+  const structureParts: string[] = [];
+  
+  structureParts.push("The formal structure of this argument follows the pattern:");
+  
+  if (majorPremises.length > 0) {
+    majorPremises.forEach((p, i) => {
+      const label = majorPremises.length > 1 ? `Major Premise ${i + 1}` : "Major Premise";
+      structureParts.push(`${label}: "${p}"`);
+    });
+  }
+  
+  if (minorPremises.length > 0) {
+    minorPremises.forEach((p, i) => {
+      const label = minorPremises.length > 1 ? `Minor Premise ${i + 1}` : "Minor Premise";
+      structureParts.push(`${label}: "${p}"`);
+    });
+  }
+  
+  // Parse and add conclusion if available
+  if (schemeInfo.conclusion) {
+    const conclusionText = typeof schemeInfo.conclusion === "string" 
+      ? schemeInfo.conclusion 
+      : (schemeInfo.conclusion as any).text || (schemeInfo.conclusion as any).template;
+    
+    if (conclusionText) {
+      structureParts.push(`Conclusion: "${conclusionText}"`);
+    }
+  }
+  
+  return structureParts.length > 1 ? structureParts.join(" ") : null;
+}
+
+/**
+ * Generate a description of the warrant (inferential license) based on scheme taxonomy
+ */
+function generateWarrantDescription(schemeInfo: ExtendedSchemeInfo): string | null {
+  const { materialRelation, reasoningType, ruleForm, conclusionType, purpose } = schemeInfo;
+  
+  // Build warrant description based on taxonomy fields
+  const warrantParts: string[] = [];
+  
+  // Material relation describes the type of connection
+  if (materialRelation) {
+    const relationWarrants: Record<string, string> = {
+      "cause": "The warrant licensing this inference is that effects follow from their causes under normal circumstances.",
+      "effect": "The warrant is that observed effects can be traced back to their probable causes.",
+      "analogy": "The warrant is that what holds true in a similar case also holds in the present case, absent relevant disanalogies.",
+      "definition": "The warrant is that if something satisfies the defining criteria of a category, it belongs to that category.",
+      "authority": "The warrant is that testimony from a qualified authority within their domain of expertise is presumptively reliable.",
+      "sign": "The warrant is that observable indicators reliably correlate with underlying conditions.",
+      "example": "The warrant is that representative instances support generalizations that apply to similar cases.",
+      "classification": "The warrant is that membership in a category confers the properties characteristic of that category.",
+      "practical": "The warrant is that actions which achieve goals without unacceptable costs should be undertaken.",
+      "opposition": "The warrant is that contrasting alternatives help illuminate the relative merits of each option.",
+      "rule": "The warrant is that applicable rules transfer properties from conditions to conclusions.",
+    };
+    
+    if (relationWarrants[materialRelation.toLowerCase()]) {
+      warrantParts.push(relationWarrants[materialRelation.toLowerCase()]);
+    }
+  }
+  
+  // Rule form describes the logical structure of the warrant
+  if (ruleForm && warrantParts.length === 0) {
+    const ruleFormWarrants: Record<string, string> = {
+      "mp": "The warrant has modus ponens form: if the conditional and its antecedent hold, the consequent follows.",
+      "defeasible_mp": "The warrant is a defeasible conditional: the conclusion normally follows, but can be defeated by exceptions.",
+      "mt": "The warrant has modus tollens form: denying the consequent allows us to deny the antecedent.",
+      "disjunctive_syllogism": "The warrant eliminates alternatives: given an either/or, ruling out one option establishes the other.",
+    };
+    
+    if (ruleFormWarrants[ruleForm.toLowerCase()]) {
+      warrantParts.push(ruleFormWarrants[ruleForm.toLowerCase()]);
+    }
+  }
+  
+  // Conclusion type adds context about what is being established
+  if (conclusionType && warrantParts.length > 0) {
+    if (conclusionType.toLowerCase() === "ought") {
+      warrantParts.push("The conclusion establishes what ought to be done.");
+    } else if (conclusionType.toLowerCase() === "is") {
+      warrantParts.push("The conclusion establishes a factual state of affairs.");
+    }
+  }
+  
+  return warrantParts.length > 0 ? warrantParts.join(" ") : null;
+}
+
+/**
+ * Generate default elaboration with basic formal structure when no metadata available
+ */
+function generateDefaultElaboration(schemeInfo: ExtendedSchemeInfo): string {
+  const parts: string[] = [];
+  
+  parts.push("This argument follows a standard inferential pattern connecting premises to conclusion.");
+  
+  // Try to infer structure from what we know
+  if (schemeInfo.reasoningType) {
+    const type = schemeInfo.reasoningType.toLowerCase();
+    if (type === "deductive") {
+      parts.push("The reasoning is deductive: if the premises are true, the conclusion must follow.");
+    } else if (type === "inductive") {
+      parts.push("The reasoning is inductive: the premises provide probabilistic support for the conclusion.");
+    } else if (type === "abductive") {
+      parts.push("The reasoning is abductive: the conclusion represents the best explanation for the observed premises.");
+    } else if (type === "practical") {
+      parts.push("The reasoning is practical: it connects goals and means to reach a normative conclusion about action.");
+    }
+  }
+  
+  // Add generic warrant structure description
+  const warrantDesc = generateWarrantDescription(schemeInfo);
+  if (warrantDesc) {
+    parts.push(warrantDesc);
+  } else {
+    parts.push("The warrant (implicit rule) authorizing the inference from premises to conclusion should be critically examined.");
   }
   
   return parts.join(" ");
