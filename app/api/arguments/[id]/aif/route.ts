@@ -16,6 +16,28 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       id: true, deliberationId: true, authorId: true, createdAt: true, text: true, mediaType: true,
       schemeId: true, conclusionClaimId: true, implicitWarrant: true,
       premises: { select: { claimId: true, isImplicit: true } },
+      // Phase 4+: Multi-scheme support
+      argumentSchemes: {
+        include: {
+          scheme: {
+            select: { id: true, key: true, name: true, slotHints: true }
+          }
+        },
+        orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }]
+      },
+      // Phase 5: SchemeNet (sequential composition)
+      schemeNet: {
+        include: {
+          steps: {
+            include: {
+              scheme: {
+                select: { id: true, key: true, name: true }
+              }
+            },
+            orderBy: { stepOrder: 'asc' }
+          }
+        }
+      }
     },
   });
   if (!a) return NextResponse.json({ error: 'Not found' }, { status: 404, ...NO_STORE });
@@ -109,7 +131,33 @@ const preferences = {
     mediaType: a.mediaType,
     provenance,  // Phase 5A: Cross-deliberation import provenance
     aif: {
+      // Legacy single scheme (for backwards compatibility)
       scheme: scheme ? { id: scheme.id, key: scheme.key, name: scheme.name, slotHints: scheme.slotHints ?? null } : null,
+      // Phase 4+: All assigned schemes (via ArgumentSchemeInstance)
+      schemes: a.argumentSchemes.map(asi => ({
+        id: asi.scheme.id,
+        key: asi.scheme.key,
+        name: asi.scheme.name,
+        slotHints: asi.scheme.slotHints ?? null,
+        role: asi.role,
+        isPrimary: asi.isPrimary,
+        confidence: asi.confidence,
+        explicitness: asi.explicitness,
+      })),
+      // Phase 5: SchemeNet (sequential multi-step reasoning)
+      schemeNet: a.schemeNet ? {
+        id: a.schemeNet.id,
+        overallConfidence: a.schemeNet.overallConfidence,
+        steps: a.schemeNet.steps.map(step => ({
+          id: step.id,
+          schemeId: step.schemeId,
+          schemeName: step.scheme.name,
+          schemeKey: step.scheme.key,
+          stepOrder: step.stepOrder,
+          label: step.label,
+          confidence: step.confidence,
+        }))
+      } : null,
       conclusion: a.conclusionClaimId ? { id: a.conclusionClaimId, text: textById.get(a.conclusionClaimId) ?? '' } : null,
       premises: a.premises.map(p => ({ id: p.claimId, text: textById.get(p.claimId) ?? '', isImplicit: p.isImplicit ?? false })),
       implicitWarrant: (a.implicitWarrant as any) ?? null,

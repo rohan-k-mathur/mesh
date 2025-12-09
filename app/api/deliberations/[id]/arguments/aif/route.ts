@@ -23,7 +23,21 @@ type AifRow = {
 
   // AIF meta
   aif: {
+    // Legacy single scheme (for backwards compatibility)
     scheme?: { id: string; key: string; name: string; slotHints?: any | null } | null;
+    // Phase 4+: Multi-scheme support
+    schemes?: Array<{
+      id: string;
+      key: string;
+      name: string;
+      slotHints?: any | null;
+      role: string;
+      isPrimary: boolean;
+      confidence: number;
+      explicitness: string;
+    }>;
+    // Phase 5: SchemeNet indicator
+    schemeNet?: { id: string; overallConfidence: number } | null;
     preferences?: { preferredBy: number; dispreferredBy: number }; // simple view
     conclusion?: { id: string; text: string } | null;
     premises?: Array<{ id: string; text: string; isImplicit?: boolean }> | null;
@@ -70,6 +84,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       implicitWarrant: true,
       // premises relation itself is cheap; we'll hydrate texts in batch below
       premises: { select: { claimId: true, isImplicit: true } },
+      // Phase 4+: Multi-scheme support (ArgumentSchemeInstance)
+      argumentSchemes: {
+        select: {
+          schemeId: true,
+          role: true,
+          isPrimary: true,
+          confidence: true,
+          explicitness: true,
+        },
+        orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }]
+      },
+      // Phase 5: SchemeNet indicator (just check if exists, don't fetch full steps here)
+      schemeNet: {
+        select: { id: true, overallConfidence: true }
+      },
       // Phase 3: Dialogue Provenance
       createdByMoveId: true,
       createdByMove: {
@@ -108,16 +137,20 @@ if (pageRows.length === 0) {
   // Batch lookup: schemes (+ cqs), claims text for conclusion + premises,
   // attack counts against each argument, and CQ statuses.
   const argIds = pageRows.map(r => r.id);
-  const schemeIds = Array.from(new Set(pageRows.map(r => r.schemeId).filter(Boolean) as string[]));
+  // Collect ALL scheme IDs: legacy schemeId + all ArgumentSchemeInstance schemeIds
+  const allSchemeIds = Array.from(new Set([
+    ...pageRows.map(r => r.schemeId).filter(Boolean) as string[],
+    ...pageRows.flatMap(r => (r as any).argumentSchemes?.map((asi: any) => asi.schemeId) || []),
+  ]));
   const claimIds = Array.from(new Set([
     ...pageRows.flatMap(r => r.premises.map(p => p.claimId)),
     ...pageRows.map(r => r.conclusionClaimId).filter(Boolean) as string[],
   ]));
 
   const [schemes, claims, attackCounts, cqStatuses] = await Promise.all([
-    schemeIds.length
+    allSchemeIds.length
       ? prisma.argumentScheme.findMany({
-          where: { id: { in: schemeIds } },
+          where: { id: { in: allSchemeIds } },
           select: {
             id: true, key: true, name: true, slotHints: true,
             cqs: { select: { cqKey: true, text: true, attackType: true, targetScope: true } },
@@ -288,6 +321,27 @@ const dispreferredByMap = Object.fromEntries(
       speakerName: actorById.get(move.actorId)?.name || actorById.get(move.actorId)?.username || undefined
     } : null;
     
+    // Phase 4+: Multi-scheme support
+    const argumentSchemes = ((r as any).argumentSchemes || []).map((asi: any) => {
+      const s = schemeById.get(asi.schemeId);
+      return s ? {
+        id: s.id,
+        key: s.key,
+        name: s.name ?? "",
+        slotHints: s.slotHints ?? null,
+        role: asi.role,
+        isPrimary: asi.isPrimary,
+        confidence: asi.confidence,
+        explicitness: asi.explicitness,
+      } : null;
+    }).filter(Boolean);
+    
+    // Phase 5: SchemeNet indicator
+    const schemeNet = (r as any).schemeNet ? {
+      id: (r as any).schemeNet.id,
+      overallConfidence: (r as any).schemeNet.overallConfidence,
+    } : null;
+    
     return {
       id: r.id,
       deliberationId: r.deliberationId,
@@ -296,6 +350,7 @@ const dispreferredByMap = Object.fromEntries(
       text: r.text,
       mediaType: (r.mediaType as any) ?? 'text',
       aif: {
+        // Legacy single scheme (for backwards compatibility)
         scheme: scheme
           ? {
               id: scheme.id,
@@ -304,6 +359,10 @@ const dispreferredByMap = Object.fromEntries(
               slotHints: scheme.slotHints ?? null,
             }
           : null,
+        // Phase 4+: All assigned schemes (via ArgumentSchemeInstance)
+        schemes: argumentSchemes,
+        // Phase 5: SchemeNet indicator (sequential composition)
+        schemeNet,
         conclusion: r.conclusionClaimId ? { id: r.conclusionClaimId, text: textByClaimId.get(r.conclusionClaimId) ?? "" } : null,
         premises: (r as any).premises.map((p: any) => ({ id: p.claimId, text: textByClaimId.get(p.claimId) ?? "", isImplicit: p.isImplicit ?? false })),
         implicitWarrant: (r.implicitWarrant as any) ?? null,

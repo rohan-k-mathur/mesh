@@ -246,7 +246,7 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
           />
 
           {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-y-auto max-h-[400px]">
             <div className="p-2 border-b bg-gray-50">
               <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                 Export Format

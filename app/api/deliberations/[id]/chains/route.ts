@@ -35,6 +35,13 @@ export async function GET(
                 id: true,
                 text: true,
                 createdAt: true,
+                // Include conclusion for proper display text
+                conclusion: {
+                  select: {
+                    id: true,
+                    text: true,
+                  },
+                },
               },
             },
           },

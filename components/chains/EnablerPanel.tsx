@@ -60,13 +60,13 @@ export function EnablerPanel({
     nodes.forEach(node => {
       const data = node.data;
       
-      // Check if node has schemes
-      if (!data.argument?.schemes || data.argument.schemes.length === 0) {
+      // Check if node has schemes (use argumentSchemes - Prisma relation name)
+      if (!data.argument?.argumentSchemes || data.argument.argumentSchemes.length === 0) {
         return;
       }
 
       // Process each scheme on this node
-      data.argument.schemes.forEach((schemeInstance: any) => {
+      data.argument.argumentSchemes.forEach((schemeInstance: any) => {
         const scheme = schemeInstance.scheme;
         
         if (!scheme) return;

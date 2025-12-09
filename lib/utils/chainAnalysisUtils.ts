@@ -799,3 +799,140 @@ export function calculateSchemeNetStrengthModifier(
   return Math.max(0.8, Math.min(1.2, modifier));
 }
 
+// ============================================================================
+// Phase 3 Lite: Scheme Aggregation
+// ============================================================================
+
+export interface SchemeAggregation {
+  /** Total arguments with at least one scheme assigned */
+  argumentsWithSchemes: number;
+  /** Total arguments with a SchemeNet (multi-step reasoning) */
+  argumentsWithSchemeNets: number;
+  /** Aggregated scheme usage across all chain nodes */
+  schemeCounts: Array<{
+    schemeId: string;
+    schemeName: string;
+    schemeKey: string;
+    count: number;
+  }>;
+  /** Arguments lacking scheme assignment (potential gaps) */
+  unstructuredArguments: string[];
+}
+
+/**
+ * Aggregate scheme usage across all nodes in a chain
+ * 
+ * Provides a summary of which argumentation schemes are used throughout
+ * the chain, helping users understand the reasoning patterns employed.
+ * 
+ * @param nodes - ReactFlow nodes with argument data
+ * @returns SchemeAggregation with counts and coverage stats
+ */
+export function aggregateSchemes(
+  nodes: Node<ChainNodeData>[]
+): SchemeAggregation {
+  let argumentsWithSchemes = 0;
+  let argumentsWithSchemeNets = 0;
+  const unstructuredArguments: string[] = [];
+  const schemeMap = new Map<string, { id: string; name: string; key: string; count: number }>();
+
+  for (const node of nodes) {
+    const argument = node.data.argument;
+    if (!argument) continue;
+
+    // Check for scheme assignments via ArgumentSchemeInstance (Phase 4+)
+    const schemes = argument.argumentSchemes || [];
+    const hasSchemes = schemes.length > 0;
+    
+    // Check for SchemeNet (multi-step intra-argument reasoning)
+    const hasSchemeNet = argument.schemeNet !== null && argument.schemeNet !== undefined;
+    const schemeNetSteps = argument.schemeNet?.steps || [];
+    
+    // Fallback: Check for legacy single scheme (schemeId on Argument)
+    // Some older arguments may only have this, not ArgumentSchemeInstance records
+    const legacyScheme = (argument as any).scheme;
+    const hasLegacyScheme = !hasSchemes && legacyScheme && legacyScheme.id;
+
+    if (hasSchemes) {
+      argumentsWithSchemes++;
+      
+      // Count each scheme
+      for (const schemeInstance of schemes) {
+        const scheme = schemeInstance.scheme;
+        if (!scheme) continue;
+        
+        const existing = schemeMap.get(scheme.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          schemeMap.set(scheme.id, {
+            id: scheme.id,
+            name: scheme.name || scheme.key || "Unknown",
+            key: scheme.key || "",
+            count: 1,
+          });
+        }
+      }
+    } else if (hasLegacyScheme) {
+      // Fallback to legacy single scheme
+      argumentsWithSchemes++;
+      
+      const existing = schemeMap.get(legacyScheme.id);
+      if (existing) {
+        existing.count++;
+      } else {
+        schemeMap.set(legacyScheme.id, {
+          id: legacyScheme.id,
+          name: legacyScheme.name || legacyScheme.key || "Unknown",
+          key: legacyScheme.key || "",
+          count: 1,
+        });
+      }
+    }
+    
+    if (hasSchemeNet) {
+      argumentsWithSchemeNets++;
+      
+      // Also count schemes from SchemeNet steps
+      for (const step of schemeNetSteps) {
+        const scheme = step.scheme;
+        if (!scheme) continue;
+        
+        const existing = schemeMap.get(scheme.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          schemeMap.set(scheme.id, {
+            id: scheme.id,
+            name: scheme.name || scheme.key || "Unknown",
+            key: scheme.key || "",
+            count: 1,
+          });
+        }
+      }
+    }
+    
+    // Track unstructured arguments (no scheme assignment)
+    if (!hasSchemes && !hasSchemeNet && !hasLegacyScheme) {
+      unstructuredArguments.push(node.id);
+    }
+  }
+
+  // Convert map to sorted array (by count descending)
+  const schemeCounts = Array.from(schemeMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map(({ id, name, key, count }) => ({
+      schemeId: id,
+      schemeName: name,
+      schemeKey: key,
+      count,
+    }));
+
+  return {
+    argumentsWithSchemes,
+    argumentsWithSchemeNets,
+    schemeCounts,
+    unstructuredArguments,
+  };
+}
+

@@ -28,13 +28,7 @@ export async function GET(
           select: {
             id: true,
             conclusion: true,
-            author: {
-              select: {
-                id: true,
-                username: true,
-                name: true,
-              },
-            },
+         authorId: true,
           },
         },
         steps: {

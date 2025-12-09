@@ -199,7 +199,7 @@ function buildEdgeMaps(edges: ArgumentChainEdgeWithNodes[]) {
       description: edge.description,
       connectedNodeId: edge.targetNodeId,
       connectedArgumentId: edge.targetNode?.argument?.id || "",
-      connectedArgumentSnippet: getSnippet(edge.targetNode?.argument?.text),
+      connectedArgumentSnippet: getSnippet(edge.targetNode?.argument?.conclusion?.text || edge.targetNode?.argument?.text),
     };
     
     if (!outgoingMap.has(edge.sourceNodeId)) {
@@ -215,7 +215,7 @@ function buildEdgeMaps(edges: ArgumentChainEdgeWithNodes[]) {
       description: edge.description,
       connectedNodeId: edge.sourceNodeId,
       connectedArgumentId: edge.sourceNode?.argument?.id || "",
-      connectedArgumentSnippet: getSnippet(edge.sourceNode?.argument?.text),
+      connectedArgumentSnippet: getSnippet(edge.sourceNode?.argument?.conclusion?.text || edge.sourceNode?.argument?.text),
     };
     
     if (!incomingMap.has(edge.targetNodeId)) {
@@ -307,7 +307,8 @@ export function chainToThread(
       position,
       depth,
       
-      argumentText: argument?.text || "No content",
+      // Prefer conclusion.text (canonical), fallback to argument.text (may be composite)
+      argumentText: argument?.conclusion?.text || argument?.text || "No content",
       argumentTitle: undefined, // Arguments don't have titles in current schema
       
       schemeKey: primaryScheme?.scheme?.key,
@@ -344,7 +345,8 @@ export function chainToThread(
       position: -1, // Orphan indicator
       depth: -1,
       
-      argumentText: argument?.text || "No content",
+      // Prefer conclusion.text (canonical), fallback to argument.text (may be composite)
+      argumentText: argument?.conclusion?.text || argument?.text || "No content",
       argumentTitle: undefined,
       
       schemeKey: primaryScheme?.scheme?.key,

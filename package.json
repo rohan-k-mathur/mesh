@@ -41,7 +41,8 @@
     "acl:test": "vitest run packages/sheaf-acl",
     "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts",
     "briefseed": "tsx --env-file=.env prisma/brief-seed.ts",
-    "cq:backfill": "tsx --env-file=.env scripts/backfill-cq-responses.ts"
+    "cq:backfill": "tsx --env-file=.env scripts/backfill-cq-responses.ts",
+    "seed:test-chain": "tsx --env-file=.env scripts/seed-test-chain.ts"
   },
   "size-limit": [
     {

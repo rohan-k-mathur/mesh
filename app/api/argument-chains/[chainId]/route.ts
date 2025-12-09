@@ -43,6 +43,26 @@ export async function GET(
                 text: true,
                 authorId: true,
                 createdAt: true,
+                // Include conclusion claim for proper display text
+                conclusion: {
+                  select: {
+                    id: true,
+                    text: true,
+                  },
+                },
+                // Include actual premises for prose structure analysis
+                premises: {
+                  include: {
+                    claim: {
+                      select: {
+                        id: true,
+                        text: true,
+                      },
+                    },
+                  },
+                },
+                // Include implicit warrant if any
+                implicitWarrant: true,
                 argumentSchemes: {
                   include: {
                     scheme: {
@@ -50,6 +70,19 @@ export async function GET(
                         id: true,
                         key: true,
                         name: true,
+                        description: true,
+                        summary: true,
+                        cq: true,
+                        premises: true,
+                        conclusion: true,
+                        purpose: true,
+                        source: true,
+                        materialRelation: true,
+                        reasoningType: true,
+                        ruleForm: true,
+                        conclusionType: true,
+                        whenToUse: true,
+                        tags: true,
                       },
                     },
                   },
@@ -63,6 +96,14 @@ export async function GET(
                             id: true,
                             key: true,
                             name: true,
+                            description: true,
+                            summary: true,
+                            cq: true,
+                            premises: true,
+                            conclusion: true,
+                            purpose: true,
+                            materialRelation: true,
+                            reasoningType: true,
                           },
                         },
                       },
@@ -94,6 +135,12 @@ export async function GET(
                   select: {
                     id: true,
                     text: true,
+                    conclusion: {
+                      select: {
+                        id: true,
+                        text: true,
+                      },
+                    },
                   },
                 },
               },
@@ -104,6 +151,12 @@ export async function GET(
                   select: {
                     id: true,
                     text: true,
+                    conclusion: {
+                      select: {
+                        id: true,
+                        text: true,
+                      },
+                    },
                   },
                 },
               },

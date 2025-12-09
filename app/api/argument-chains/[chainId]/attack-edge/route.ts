@@ -134,12 +134,13 @@ export async function POST(
         argument: {
           include: {
             claim: true,
+            conclusion: true,
             premises: {
               include: {
                 claim: true,
               },
             },
-            schemes: {
+            argumentSchemes: {
               include: {
                 scheme: true,
               },
@@ -154,6 +155,7 @@ export async function POST(
                 argument: {
                   include: {
                     claim: true,
+                    conclusion: true,
                   },
                 },
               },
@@ -163,6 +165,7 @@ export async function POST(
                 argument: {
                   include: {
                     claim: true,
+                    conclusion: true,
                   },
                 },
               },
@@ -223,6 +226,7 @@ export async function GET(
             argument: {
               include: {
                 claim: true,
+                conclusion: true,
                 premises: {
                   include: {
                     claim: true,

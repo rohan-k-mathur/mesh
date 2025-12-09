@@ -48,6 +48,17 @@ interface AnalysisResult {
       isPrimary: boolean;
     }>;
   };
+  schemeInfo?: {
+    argumentsWithSchemes: number;
+    argumentsWithSchemeNets: number;
+    schemeCounts: Array<{
+      schemeId: string;
+      schemeName: string;
+      schemeKey: string;
+      count: number;
+    }>;
+    unstructuredArguments: string[];
+  };
   metadata: {
     analyzedAt: string;
     nodeCount: number;
@@ -310,6 +321,72 @@ export function ChainAnalysisPanel({
                       {(analysis.strength.nodeStrengths[nodeId] * 100).toFixed(0)}%)
                     </Badge>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Scheme Coverage Summary (Phase 3 Lite) */}
+            {analysis.schemeInfo && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  Scheme Coverage
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Argumentation schemes used across the chain
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                  {/* Coverage stats */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">With Schemes:</span>{" "}
+                      <span className="font-medium">
+                        {analysis.schemeInfo.argumentsWithSchemes}/{analysis.metadata.nodeCount}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">With SchemeNets:</span>{" "}
+                      <span className="font-medium">
+                        {analysis.schemeInfo.argumentsWithSchemeNets}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Scheme distribution */}
+                  {analysis.schemeInfo.schemeCounts.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Schemes Used:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {analysis.schemeInfo.schemeCounts.slice(0, 5).map((scheme) => (
+                          <Badge
+                            key={scheme.schemeId}
+                            variant="outline"
+                            className="text-xs border-blue-200 text-blue-700"
+                          >
+                            {scheme.schemeName} ({scheme.count})
+                          </Badge>
+                        ))}
+                        {analysis.schemeInfo.schemeCounts.length > 5 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{analysis.schemeInfo.schemeCounts.length - 5} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Unstructured arguments warning */}
+                  {analysis.schemeInfo.unstructuredArguments.length > 0 && (
+                    <div className="text-xs text-amber-700 bg-amber-50 rounded p-2">
+                      <span className="font-medium">
+                        {analysis.schemeInfo.unstructuredArguments.length} argument(s)
+                      </span>{" "}
+                      without assigned schemes.{" "}
+                      <span className="text-muted-foreground">
+                        Consider adding scheme classifications for deeper analysis.
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

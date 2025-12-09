@@ -20,6 +20,12 @@ export type ArgumentChainWithRelations = Prisma.ArgumentChainGetPayload<{
       include: {
         argument: {
           include: {
+            conclusion: {
+              select: {
+                id: true;
+                text: true;
+              };
+            };
             argumentSchemes: {
               include: {
                 scheme: true;
@@ -59,6 +65,12 @@ export type ArgumentChainWithRelations = Prisma.ArgumentChainGetPayload<{
               select: {
                 id: true;
                 text: true;
+                conclusion: {
+                  select: {
+                    id: true;
+                    text: true;
+                  };
+                };
               };
             };
           };
@@ -69,6 +81,12 @@ export type ArgumentChainWithRelations = Prisma.ArgumentChainGetPayload<{
               select: {
                 id: true;
                 text: true;
+                conclusion: {
+                  select: {
+                    id: true;
+                    text: true;
+                  };
+                };
               };
             };
           };
@@ -183,6 +201,23 @@ export interface ChainAnalysis {
     message: string;
     affectedNodes: string[];
   }>;
+  
+  // Phase 3 Lite: Basic scheme aggregation
+  schemeInfo?: {
+    /** Total arguments with at least one scheme assigned */
+    argumentsWithSchemes: number;
+    /** Total arguments with a SchemeNet (multi-step reasoning) */
+    argumentsWithSchemeNets: number;
+    /** Aggregated scheme usage across all chain nodes */
+    schemeCounts: Array<{
+      schemeId: string;
+      schemeName: string;
+      schemeKey: string;
+      count: number;
+    }>;
+    /** Arguments lacking scheme assignment (potential gaps) */
+    unstructuredArguments: string[];
+  };
 }
 
 // ReactFlow node data

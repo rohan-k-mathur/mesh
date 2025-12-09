@@ -6,9 +6,11 @@ import {
   detectCycles,
   calculateChainStrength,
   detectSchemeNetComplexity,
+  aggregateSchemes,
   type CriticalPath,
   type Cycle,
   type ChainStrength,
+  type SchemeAggregation,
 } from "@/lib/utils/chainAnalysisUtils";
 import type { Node, Edge } from "reactflow";
 import type { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
@@ -77,6 +79,44 @@ export async function POST(
                     text: true,
                   },
                 },
+                // Legacy single scheme relation (for backwards compatibility)
+                scheme: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+                // Phase 4+: Multi-scheme support for chain analysis
+                argumentSchemes: {
+                  include: {
+                    scheme: {
+                      select: {
+                        id: true,
+                        key: true,
+                        name: true,
+                      },
+                    },
+                  },
+                  orderBy: [{ isPrimary: "desc" }, { order: "asc" }],
+                },
+                // Phase 5: SchemeNet for sequential composition
+                schemeNet: {
+                  include: {
+                    steps: {
+                      include: {
+                        scheme: {
+                          select: {
+                            id: true,
+                            key: true,
+                            name: true,
+                          },
+                        },
+                      },
+                      orderBy: { stepOrder: "asc" },
+                    },
+                  },
+                },
               },
             },
             contributor: { select: { id: true } },
@@ -143,6 +183,9 @@ export async function POST(
     const cycles = detectCycles(nodes, edges);
     const strength = calculateChainStrength(nodes, edges);
     const schemeNetComplexity = detectSchemeNetComplexity(nodes);
+    
+    // Phase 3 Lite: Scheme aggregation across chain
+    const schemeInfo = aggregateSchemes(nodes);
 
     // Task 3.4: AI suggestions (placeholder - SHELVED)
     const suggestions: any[] = [];
@@ -156,6 +199,7 @@ export async function POST(
         complexNodes: schemeNetComplexity.complexNodes,
         schemeNetNodes: Object.fromEntries(schemeNetComplexity.schemeNetNodes),
       },
+      schemeInfo,
       suggestions,
       metadata: {
         analyzedAt: new Date().toISOString(),

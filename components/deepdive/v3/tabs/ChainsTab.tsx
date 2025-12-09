@@ -17,7 +17,7 @@
 import React, { useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Link2, Plus, Network, LayoutGrid, PlusCircle } from "lucide-react";
+import { Link2, Plus, Network, LayoutGrid, PlusCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { ChainListPanel } from "@/components/chains/ChainListPanel";
 import { ArgumentChainThread } from "@/components/chains/ArgumentChainThread";
 import ArgumentChainCanvas from "@/components/chains/ArgumentChainCanvas";
+import { ChainProseView } from "@/components/chains/ChainProseView";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
@@ -65,7 +66,7 @@ export function ChainsTab({
   selectedArgumentId,
 }: ChainsTabProps) {
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "thread" | "canvas">("list");
+  const [viewMode, setViewMode] = useState<"list" | "thread" | "canvas" | "prose">("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   
   // Create chain form state
@@ -89,9 +90,9 @@ export function ChainsTab({
   const [selectedAttack, setSelectedAttack] = useState<AttackSuggestion | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Fetch argument details when needed for modals
+  // Fetch argument details when needed for modals (using AIF endpoint for full data)
   const { data: argumentData, mutate: mutateArgument } = useSWR(
-    expandArgumentId ? `/api/arguments/${expandArgumentId}` : null,
+    expandArgumentId ? `/api/arguments/${expandArgumentId}/aif` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -257,6 +258,19 @@ export function ChainsTab({
               <LayoutGrid className="w-3 h-3" />
               Canvas
             </button>
+            <button
+              type="button"
+              className={`flex px-3 py-2 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+                viewMode === "prose" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              } ${!selectedChainId ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={(e) => { e.stopPropagation(); if (selectedChainId) setViewMode("prose"); }}
+              disabled={!selectedChainId}
+            >
+              <FileText className="w-3 h-3" />
+              Prose
+            </button>
           </div>
 
           {/* Create Chain Button */}
@@ -294,6 +308,10 @@ export function ChainsTab({
             setSelectedChainId(chainId);
             setViewMode("thread");
           }}
+          onViewChainProse={(chainId) => {
+            setSelectedChainId(chainId);
+            setViewMode("prose");
+          }}
           onViewArgument={handleViewArgument}
           onPreviewArgument={handlePreviewArgument}
           onReplyArgument={handleReplyArgument}
@@ -328,9 +346,17 @@ export function ChainsTab({
             }}
           />
         </div>
+      ) : viewMode === "prose" && selectedChainId ? (
+        <div className="border rounded-lg p-4 bg-white">
+          <ChainProseView
+            chainId={selectedChainId}
+            onViewThread={() => setViewMode("thread")}
+            onViewCanvas={() => setViewMode("canvas")}
+          />
+        </div>
       ) : (
         <div className="flex items-center justify-center py-12 text-slate-500">
-          Select a chain to view in thread or canvas mode
+          Select a chain to view in thread, canvas, or prose mode
         </div>
       )}
 
@@ -453,7 +479,7 @@ export function ChainsTab({
       </Dialog>
 
       {/* Argument Details Modal (ArgumentCardV2) */}
-      {expandModalOpen && expandArgumentId && argumentData && (
+      {expandModalOpen && expandArgumentId && argumentData?.ok && (
         <Dialog open={expandModalOpen} onOpenChange={(open) => !open && setExpandModalOpen(false)}>
           <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
             <DialogHeader>
@@ -464,12 +490,20 @@ export function ChainsTab({
               authorId={currentUserId || ""}
               id={argumentData.id || expandArgumentId}
               conclusion={{
-                id: argumentData.conclusionClaimId || argumentData.claim?.id || expandArgumentId,
-                text: argumentData.claim?.text || argumentData.text || "Untitled claim"
+                id: argumentData.aif?.conclusion?.id || expandArgumentId,
+                text: argumentData.aif?.conclusion?.text || argumentData.text || "Untitled claim"
               }}
-              premises={argumentData.premises || []}
-              schemeKey={argumentData.schemeKey}
-              schemeName={argumentData.schemeName}
+              premises={argumentData.aif?.premises || []}
+              schemeKey={argumentData.aif?.scheme?.key}
+              schemeName={argumentData.aif?.scheme?.name}
+              schemes={argumentData.aif?.schemes?.map((s: any) => ({
+                schemeId: s.id,
+                schemeKey: s.key,
+                schemeName: s.name,
+                confidence: s.confidence || 1.0,
+                isPrimary: s.isPrimary || false,
+              }))}
+              provenance={argumentData.provenance}
               onAnyChange={() => mutateArgument()}
             />
           </DialogContent>

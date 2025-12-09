@@ -658,6 +658,7 @@ export function ThreadedDiscussionTab({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [expandModalOpen, setExpandModalOpen] = useState(false);
   const [expandNodeId, setExpandNodeId] = useState<string | null>(null);
+  const [expandArgumentId, setExpandArgumentId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<ThreadNode | null>(null);
   
   // Action modal state
@@ -678,6 +679,13 @@ export function ThreadedDiscussionTab({
       revalidateOnFocus: false,
       dedupingInterval: 10000, // 10 seconds
     }
+  );
+
+  // Fetch full argument data when modal is open (for premises, schemes, etc.)
+  const { data: expandArgumentData, mutate: mutateExpandArgument } = useSWR(
+    expandArgumentId ? `/api/arguments/${expandArgumentId}/aif` : null,
+    fetcher,
+    { revalidateOnFocus: false }
   );
 
   // Extract items and authors from unified response
@@ -819,6 +827,7 @@ export function ThreadedDiscussionTab({
   const handleNodeClick = (node: ThreadNode) => {
     if (!node.argumentId) return;
     setExpandNodeId(node.id);
+    setExpandArgumentId(node.argumentId);
     setSelectedNode(node);
     setExpandModalOpen(true);
   };
@@ -1145,13 +1154,19 @@ export function ThreadedDiscussionTab({
         const node = allNodes.find((n) => n.id === expandNodeId);
         if (!node?.argumentId) return null;
 
-        // For arguments, we need to fetch the full AIF data
-        // The items already have basic metadata, but ArgumentCardV2 needs full structure
+        // Use fetched AIF data if available, fallback to basic item data
         const argData = items.find((item: any) => item.argumentId === node.argumentId);
-        if (!argData) return null;
+        const aifData = expandArgumentData?.ok ? expandArgumentData : null;
+        
+        if (!argData && !aifData) return null;
 
         return (
-          <Dialog open={expandModalOpen} onOpenChange={(open) => !open && setExpandModalOpen(false)}>
+          <Dialog open={expandModalOpen} onOpenChange={(open) => {
+            if (!open) {
+              setExpandModalOpen(false);
+              setExpandArgumentId(null);
+            }
+          }}>
             <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-lg font-semibold">Argument Details</DialogTitle>
@@ -1159,15 +1174,26 @@ export function ThreadedDiscussionTab({
               <ArgumentCardV2
                 deliberationId={deliberationId}
                 authorId={currentUserId || ""}
-                id={argData.argumentId}
+                id={aifData?.id || argData?.argumentId || node.argumentId}
                 conclusion={{
-                  id: argData.claimId || argData.argumentId,
-                  text: argData.text || "Untitled claim"
+                  id: aifData?.aif?.conclusion?.id || argData?.claimId || node.argumentId,
+                  text: aifData?.aif?.conclusion?.text || argData?.text || "Untitled claim"
                 }}
-                premises={[]} // TODO: Fetch premises from API if needed
-                schemeKey={argData.schemeKey}
-                schemeName={argData.schemeName}
-                onAnyChange={() => mutate()}
+                premises={aifData?.aif?.premises || []}
+                schemeKey={aifData?.aif?.scheme?.key || argData?.schemeKey}
+                schemeName={aifData?.aif?.scheme?.name || argData?.schemeName}
+                schemes={aifData?.aif?.schemes?.map((s: any) => ({
+                  schemeId: s.id,
+                  schemeKey: s.key,
+                  schemeName: s.name,
+                  confidence: s.confidence || 1.0,
+                  isPrimary: s.isPrimary || false,
+                }))}
+                provenance={aifData?.provenance}
+                onAnyChange={() => {
+                  mutate();
+                  mutateExpandArgument();
+                }}
               />
             </DialogContent>
           </Dialog>

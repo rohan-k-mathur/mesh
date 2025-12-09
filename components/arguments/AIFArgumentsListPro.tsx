@@ -72,7 +72,21 @@ type Arg = {
 };
 
 type AifMeta = {
+  // Legacy single scheme (for backwards compatibility)
   scheme?: { id: string; key: string; name: string; slotHints?: any } | null;
+  // Phase 4+: Multi-scheme support
+  schemes?: Array<{
+    id: string;
+    key: string;
+    name: string;
+    slotHints?: any;
+    role: string;
+    isPrimary: boolean;
+    confidence: number;
+    explicitness: string;
+  }>;
+  // Phase 5: SchemeNet indicator
+  schemeNet?: { id: string; overallConfidence: number } | null;
   conclusion?: { id: string; text: string } | null;
   premises?: { id: string; text: string }[] | null;
   implicitWarrant?: { text: string } | null;
