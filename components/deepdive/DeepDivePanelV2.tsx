@@ -1344,7 +1344,7 @@ const {
               <Link href="/admin/schemes" target="_blank">
                 <button
                  
-                  className="flex  px-2 py-.5 items-center menuv2--lite border-none bg-white/50 rounded-md  h-8 text-xs text-slate-600 "
+                  className="flex  px-2 py-.5 items-center menuv2--lite  bg-white/50 rounded-md  h-8 text-xs text-slate-600 "
                   title="Manage Argumentation Schemes"
                 >
 

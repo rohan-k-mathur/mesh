@@ -37,7 +37,7 @@ export async function GET(
           include: {
             argument: {
               include: {
-                conclusionClaim: {
+                conclusion: {
                   select: {
                     id: true,
                     text: true,

@@ -82,7 +82,7 @@ export interface AifSchemeSet {
 
 /**
  * Get the best text representation for an argument
- * Falls back through: argument.text → conclusionClaim.text → role placeholder
+ * Falls back through: argument.text → conclusion.text → role placeholder
  */
 function getArgumentText(argument: any, role?: string | null): string {
   // First try argument text
@@ -91,8 +91,8 @@ function getArgumentText(argument: any, role?: string | null): string {
   }
   
   // Fall back to conclusion claim text
-  if (argument.conclusionClaim?.text && argument.conclusionClaim.text.trim() !== "") {
-    return argument.conclusionClaim.text;
+  if (argument.conclusion?.text && argument.conclusion.text.trim() !== "") {
+    return argument.conclusion.text;
   }
   
   // Last resort: use role or placeholder

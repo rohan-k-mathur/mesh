@@ -72,7 +72,8 @@ const fetcher = (url: string) =>
     if (!r.ok || json?.ok === false) {
       throw new Error(json?.error || `HTTP ${r.status}`);
     }
-    return json;
+    // Extract chain from response wrapper
+    return json.chain || json;
   });
 
 // ===== Main Component =====

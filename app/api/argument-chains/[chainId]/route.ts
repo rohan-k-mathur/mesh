@@ -146,6 +146,21 @@ export async function GET(
           ...node.contributor,
           id: node.contributor.id.toString(),
         },
+        argument: node.argument ? {
+          ...node.argument,
+          authorId: node.argument.authorId?.toString() ?? null,
+        } : null,
+      })),
+      edges: chain.edges.map((edge) => ({
+        ...edge,
+        sourceNode: edge.sourceNode ? {
+          ...edge.sourceNode,
+          addedBy: edge.sourceNode.addedBy.toString(),
+        } : null,
+        targetNode: edge.targetNode ? {
+          ...edge.targetNode,
+          addedBy: edge.targetNode.addedBy.toString(),
+        } : null,
       })),
     };
 

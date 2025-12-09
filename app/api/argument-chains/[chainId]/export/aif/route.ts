@@ -63,7 +63,7 @@ export async function POST(
           include: {
             argument: {
               include: {
-                conclusionClaim: {
+                conclusion: {
                   select: {
                     id: true,
                     text: true,

@@ -17,11 +17,15 @@
 import React, { useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Link2, Plus, Network } from "lucide-react";
+import { Link2, Plus, Network, LayoutGrid, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { ChainListPanel } from "@/components/chains/ChainListPanel";
 import { ArgumentChainThread } from "@/components/chains/ArgumentChainThread";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ArgumentChainCanvas from "@/components/chains/ArgumentChainCanvas";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
@@ -61,8 +65,13 @@ export function ChainsTab({
   selectedArgumentId,
 }: ChainsTabProps) {
   const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "thread">("list");
+  const [viewMode, setViewMode] = useState<"list" | "thread" | "canvas">("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  
+  // Create chain form state
+  const [newChainTitle, setNewChainTitle] = useState("");
+  const [newChainDescription, setNewChainDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
 
   // Modal state - matches ThreadedDiscussionTab pattern
   const [previewArgumentId, setPreviewArgumentId] = useState<string | null>(null);
@@ -93,9 +102,10 @@ export function ChainsTab({
     fetcher
   );
 
-  // Handle chain click - expand inline or open thread view
+  // Handle chain click - select chain and switch to thread view
   const handleChainClick = (chainId: string) => {
     setSelectedChainId(chainId);
+    setViewMode("thread");
   };
 
   // Handle view chain as graph
@@ -208,37 +218,56 @@ export function ChainsTab({
           <h2 className="text-lg font-semibold text-slate-800">Argument Chains</h2>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex  items-center gap-4">
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg">
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-3"
-              onClick={() => setViewMode("list")}
+          <div className="flex items-center gap-1 h-full bg-slate-100/50 border border-indigo-300 rounded-lg">
+            <button
+              type="button"
+              className={`flex px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "list" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              }`}
+              onClick={(e) => { e.stopPropagation(); setViewMode("list"); }}
             >
               List
-            </Button>
-            <Button
-              variant={viewMode === "thread" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-3"
-              onClick={() => setViewMode("thread")}
+            </button>
+            <button
+              type="button"
+              className={`flex px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "thread" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              } ${!selectedChainId ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={(e) => { e.stopPropagation(); if (selectedChainId) setViewMode("thread"); }}
               disabled={!selectedChainId}
             >
               Thread
-            </Button>
+            </button>
+            <button
+              type="button"
+              className={`flex px-3 py-2 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+                viewMode === "canvas" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              } ${!selectedChainId ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={(e) => { e.stopPropagation(); if (selectedChainId) setViewMode("canvas"); }}
+              disabled={!selectedChainId}
+            >
+              <LayoutGrid className="w-3 h-3" />
+              Canvas
+            </button>
           </div>
 
           {/* Create Chain Button */}
-          <Button
-            size="sm"
+          <button
+            
             onClick={() => setShowCreateDialog(true)}
-            className="h-8"
+            className="flex h-8 px-2 text-xs gap-2 font-medium items-center forumbutton border-indigo-200 bg-white/50 rounded-md"
           >
-            <Plus className="w-4 h-4 mr-1" />
-            New Chain
-          </Button>
+            <PlusCircle className="w-3 h-3 " />
+            Create Argument Chain
+          </button>
         </div>
       </div>
 
@@ -257,7 +286,14 @@ export function ChainsTab({
           showCreate={true}
           onCreateChain={() => setShowCreateDialog(true)}
           onChainClick={handleChainClick}
-          onViewChainGraph={handleViewChainGraph}
+          onViewChainGraph={(chainId) => {
+            setSelectedChainId(chainId);
+            setViewMode("canvas");
+          }}
+          onViewChainThread={(chainId) => {
+            setSelectedChainId(chainId);
+            setViewMode("thread");
+          }}
           onViewArgument={handleViewArgument}
           onPreviewArgument={handlePreviewArgument}
           onReplyArgument={handleReplyArgument}
@@ -265,12 +301,12 @@ export function ChainsTab({
           onAttackArgument={handleAttackArgument}
           currentArgumentId={selectedArgumentId}
         />
-      ) : selectedChainId ? (
+      ) : viewMode === "thread" && selectedChainId ? (
         <div className="border rounded-lg p-4 bg-white">
           <ArgumentChainThread
             chainId={selectedChainId}
             currentArgumentId={selectedArgumentId}
-            onViewGraph={() => handleViewChainGraph(selectedChainId)}
+            onViewGraph={() => setViewMode("canvas")}
             onViewArgument={handleViewArgument}
             onPreview={handlePreviewArgument}
             onReply={handleReplyArgument}
@@ -278,34 +314,122 @@ export function ChainsTab({
             onAttack={handleAttackArgument}
           />
         </div>
+      ) : viewMode === "canvas" && selectedChainId ? (
+        <div className="border rounded-lg bg-white overflow-hidden" style={{ height: "600px" }}>
+          <ArgumentChainCanvas
+            chainId={selectedChainId}
+            deliberationId={deliberationId}
+            isEditable={true}
+            onNodeClick={(nodeId) => {
+              console.log("Node clicked:", nodeId);
+            }}
+            onEdgeClick={(edgeId) => {
+              console.log("Edge clicked:", edgeId);
+            }}
+          />
+        </div>
       ) : (
         <div className="flex items-center justify-center py-12 text-slate-500">
-          Select a chain to view in thread mode
+          Select a chain to view in thread or canvas mode
         </div>
       )}
 
-      {/* Create Chain Dialog - Placeholder */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg">
+      {/* Create Chain Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        setShowCreateDialog(open);
+        if (!open) {
+          // Reset form on close
+          setNewChainTitle("");
+          setNewChainDescription("");
+        }
+      }}>
+        <DialogContent className="max-w-lg bg-white">
           <DialogHeader>
-            <DialogTitle>Create New Chain</DialogTitle>
+            <DialogTitle>Create New Argument Chain</DialogTitle>
+            <DialogDescription>
+              Build a structured reasoning path from premises to conclusion.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-slate-600 mb-4">
-              Chain creation will be available in Phase 2 (Linear Construction Interface).
-              For now, chains can be created programmatically or via the API.
-            </p>
-            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <Network className="w-5 h-5 text-amber-600 shrink-0" />
-              <p className="text-sm text-amber-700">
-                <strong>Coming soon:</strong> Visual chain builder with drag-and-drop argument selection.
-              </p>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="chain-title">Title</Label>
+              <Input
+                id="chain-title"
+                placeholder="e.g., Climate Policy Justification"
+                value={newChainTitle}
+                onChange={(e) => setNewChainTitle(e.target.value)}
+                className="mt-1.5"
+              />
             </div>
-          </div>
-          <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Close
-            </Button>
+            <div>
+              <Label htmlFor="chain-description">Description (optional)</Label>
+              <Textarea
+                id="chain-description"
+                placeholder="Describe the purpose or context of this chain..."
+                value={newChainDescription}
+                onChange={(e) => setNewChainDescription(e.target.value)}
+                className="mt-1.5"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+                disabled={isCreating}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={async () => {
+                  if (!newChainTitle.trim()) {
+                    toast.error("Please enter a title for the chain");
+                    return;
+                  }
+                  
+                  setIsCreating(true);
+                  try {
+                    const response = await fetch("/api/argument-chains", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        name: newChainTitle,
+                        description: newChainDescription || null,
+                        deliberationId,
+                        chainType: "SERIAL",
+                        isPublic: false,
+                        isEditable: true,
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error("Failed to create chain");
+                    }
+
+                    const result = await response.json();
+                    
+                    // Reset form
+                    setNewChainTitle("");
+                    setNewChainDescription("");
+                    setShowCreateDialog(false);
+                    
+                    toast.success("Chain created successfully!");
+                    
+                    // Open the newly created chain in canvas view
+                    setSelectedChainId(result.chain.id);
+                    setViewMode("canvas");
+                  } catch (err) {
+                    console.error("Failed to create chain:", err);
+                    toast.error("Failed to create chain. Please try again.");
+                  } finally {
+                    setIsCreating(false);
+                  }
+                }} 
+                disabled={isCreating}
+              >
+                {isCreating ? "Creating..." : "Create Chain"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

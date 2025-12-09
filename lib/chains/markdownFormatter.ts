@@ -153,7 +153,7 @@ function formatConclusion(argument: any): string {
 
 /**
  * Get the best text representation for an argument
- * Falls back through: argument.text → conclusionClaim.text → "Untitled argument"
+ * Falls back through: argument.text → conclusion.text → "Untitled argument"
  */
 function getArgumentDisplayText(argument: any): string {
   // First try argument text
@@ -162,8 +162,8 @@ function getArgumentDisplayText(argument: any): string {
   }
   
   // Fall back to conclusion claim text
-  if (argument?.conclusionClaim?.text && argument.conclusionClaim.text.trim() !== "") {
-    return argument.conclusionClaim.text;
+  if (argument?.conclusion?.text && argument.conclusion.text.trim() !== "") {
+    return argument.conclusion.text;
   }
   
   return "Untitled argument";

@@ -247,7 +247,7 @@ export function chainToThread(
   if (nodes.length === 0) {
     return {
       chainId: chain.id,
-      chainName: (chain as any).name || (chain as any).chainName || "Untitled Chain",
+      chainName: chain.name || "Untitled Chain",
       chainDescription: chain.description,
       chainType: chain.chainType,
       nodeCount: 0,
@@ -370,7 +370,7 @@ export function chainToThread(
 
   return {
     chainId: chain.id,
-    chainName: (chain as any).name || (chain as any).chainName || "Untitled Chain",
+    chainName: chain.name || "Untitled Chain",
     chainDescription: chain.description,
     chainType: chain.chainType,
     nodeCount: nodes.length,

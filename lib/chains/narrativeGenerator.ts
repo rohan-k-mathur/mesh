@@ -254,7 +254,7 @@ function getSchemeDescription(schemeName: string | null | undefined): string {
 
 /**
  * Get the best text representation for an argument
- * Falls back through: argument.text → conclusionClaim.text → "Untitled argument"
+ * Falls back through: argument.text → conclusion.text → "Untitled argument"
  */
 function getArgumentDisplayText(argument: any): string {
   // First try argument text
@@ -263,11 +263,132 @@ function getArgumentDisplayText(argument: any): string {
   }
   
   // Fall back to conclusion claim text
-  if (argument?.conclusionClaim?.text && argument.conclusionClaim.text.trim() !== "") {
-    return argument.conclusionClaim.text;
+  if (argument?.conclusion?.text && argument.conclusion.text.trim() !== "") {
+    return argument.conclusion.text;
   }
   
   return "Untitled argument";
+}
+
+/**
+ * Edge type labels for plain text
+ */
+const EDGE_TYPE_LABELS_TEXT: Record<string, string> = {
+  SUPPORTS: "supports",
+  ENABLES: "enables",
+  PRESUPPOSES: "presupposes",
+  REFUTES: "refutes",
+  QUALIFIES: "qualifies",
+  EXEMPLIFIES: "exemplifies",
+  GENERALIZES: "generalizes",
+};
+
+/**
+ * Format a single argument node as enhanced plain text
+ */
+function formatNodeEnhanced(
+  sortedNode: SortedNode,
+  options: NarrativeOptions
+): string {
+  const { node, position } = sortedNode;
+  const { argument, role } = node.data;
+  
+  const argumentText = getArgumentDisplayText(argument);
+  const schemeName = argument?.argumentSchemes?.[0]?.scheme?.name || null;
+  const schemeType = argument?.argumentSchemes?.[0]?.scheme?.reasoningType || null;
+  const roleLabel = role ? `[${role}]` : "";
+  
+  // Get transition phrase
+  const transition = getTransitionPhrase(schemeName, position);
+  
+  // Format based on detail level
+  if (options.detailLevel === "brief") {
+    return `${transition}${argumentText}`;
+  }
+  
+  // Build enhanced plain text
+  let text = "";
+  
+  // Header with position and role
+  text += `─────────────────────────────────────────\n`;
+  text += `ARGUMENT ${position + 1}`;
+  if (roleLabel) {
+    text += ` ${roleLabel}`;
+  }
+  if (schemeName) {
+    text += ` — ${schemeName}`;
+  }
+  text += `\n`;
+  text += `─────────────────────────────────────────\n\n`;
+  
+  // Main argument text
+  text += `${argumentText}\n`;
+  
+  // Scheme details for detailed mode
+  if (options.detailLevel === "detailed" && (schemeName || schemeType)) {
+    text += `\n`;
+    if (schemeName) {
+      text += `  Reasoning Pattern: ${schemeName}`;
+      if (schemeType) {
+        text += ` (${schemeType})`;
+      }
+      text += `\n`;
+    }
+  }
+  
+  return text;
+}
+
+/**
+ * Generate edge relationships section for plain text
+ */
+function generateEdgeRelationshipsText(
+  edges: Edge<ChainEdgeData>[],
+  sortedNodes: SortedNode[]
+): string {
+  if (edges.length === 0) {
+    return "";
+  }
+
+  // Create maps for node positions and roles
+  const nodePositionMap = new Map<string, number>();
+  const nodeRoleMap = new Map<string, string>();
+  sortedNodes.forEach((sn, idx) => {
+    nodePositionMap.set(sn.node.id, idx + 1);
+    nodeRoleMap.set(sn.node.id, sn.node.data.role || "CLAIM");
+  });
+
+  let section = "\n═══════════════════════════════════════════\n";
+  section += "ARGUMENT RELATIONSHIPS\n";
+  section += "═══════════════════════════════════════════\n\n";
+  section += "How the arguments connect:\n\n";
+
+  edges.forEach((edge, idx) => {
+    const sourcePos = nodePositionMap.get(edge.source);
+    const targetPos = nodePositionMap.get(edge.target);
+    const sourceRole = nodeRoleMap.get(edge.source) || "CLAIM";
+    const targetRole = nodeRoleMap.get(edge.target) || "CLAIM";
+    
+    const edgeType = edge.data?.edgeType || "SUPPORTS";
+    const edgeLabel = EDGE_TYPE_LABELS_TEXT[edgeType] || edgeType.toLowerCase();
+    const strength = edge.data?.strength;
+    
+    if (sourcePos && targetPos) {
+      section += `  ${idx + 1}. Argument ${sourcePos} (${sourceRole}) ${edgeLabel} Argument ${targetPos} (${targetRole})`;
+      
+      if (strength && strength < 1) {
+        section += ` [${Math.round(strength * 100)}% strength]`;
+      }
+      
+      section += `\n`;
+      
+      if (edge.data?.description) {
+        section += `     → "${edge.data.description}"\n`;
+      }
+    }
+  });
+
+  return section;
 }
 
 /**
@@ -350,12 +471,16 @@ format: narrative
 `;
   }
 
-  // Plain text
-  return `${chainName || "Argument Chain"}
-Generated: ${date}
-Arguments: ${nodeCount} | Connections: ${edgeCount}
-
-`;
+  // Enhanced plain text header
+  let header = "";
+  header += `╔═══════════════════════════════════════════╗\n`;
+  header += `║  ${(chainName || "ARGUMENT CHAIN").toUpperCase().padEnd(39)}║\n`;
+  header += `╚═══════════════════════════════════════════╝\n\n`;
+  header += `Generated: ${date}\n`;
+  header += `Statistics: ${nodeCount} arguments, ${edgeCount} connections\n`;
+  header += `Structure: ${edgeCount === 0 ? "Disconnected claims" : "Linked reasoning chain"}\n\n`;
+  
+  return header;
 }
 
 /**
@@ -447,7 +572,7 @@ export function generateNarrative(
     };
   }
 
-  // Plain text format (existing logic)
+  // Plain text format (enhanced logic)
   // Separate main chain from orphans
   const mainChain = sortedNodes.filter(sn => sn.depth >= 0);
   const orphans = sortedNodes.filter(sn => sn.depth < 0);
@@ -455,18 +580,37 @@ export function generateNarrative(
   // Generate metadata section
   const metadata = generateMetadata(nodes.length, edges.length, chainName, opts);
 
-  // Format each node
-  const narrativeParts = mainChain.map(sortedNode => formatNode(sortedNode, opts));
+  // Format each node with enhanced formatting
+  const narrativeParts = mainChain.map(sortedNode => 
+    opts.detailLevel === "brief" 
+      ? formatNode(sortedNode, opts)
+      : formatNodeEnhanced(sortedNode, opts)
+  );
+
+  // Generate edge relationships section
+  const edgeRelationships = opts.detailLevel !== "brief" 
+    ? generateEdgeRelationshipsText(edges, sortedNodes)
+    : "";
 
   // Add orphans section
   const orphansSection = generateOrphansSection(orphans, opts);
 
   // Combine all parts
-  let narrative = metadata + narrativeParts.join(opts.detailLevel === "brief" ? ". " : "\n\n") + orphansSection;
+  let narrative = metadata;
+  
+  if (opts.detailLevel === "brief") {
+    narrative += narrativeParts.join(". ");
+  } else {
+    narrative += narrativeParts.join("\n");
+  }
+  
+  narrative += edgeRelationships;
+  narrative += orphansSection;
 
   // Add concluding remark for formal tone
   if (opts.tone === "formal" && mainChain.length > 1) {
-    narrative += "\n\nThis completes the argument chain.";
+    narrative += "\n\n═══════════════════════════════════════════\n";
+    narrative += "This completes the argument chain.\n";
   }
 
   return {

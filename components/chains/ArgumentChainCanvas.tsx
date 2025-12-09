@@ -9,6 +9,7 @@ import ReactFlow, {
   ReactFlowProvider,
   Connection,
   ConnectionMode,
+  BackgroundVariant,
   MarkerType,
   useReactFlow,
 } from "reactflow";
@@ -294,7 +295,9 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
           minZoom={0.1}
           maxZoom={2}
         >
-          <Background color="#e5e7eb" gap={16} />
+          <Background           variant={BackgroundVariant.Lines}
+           color="#e5e7eb" gap={20} />
+
           <Controls showInteractive={isEditable} />
           <MiniMap
             nodeColor={(node) => {

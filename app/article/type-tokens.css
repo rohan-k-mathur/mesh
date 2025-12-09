@@ -2341,6 +2341,60 @@ box-shadow:
     0 8px 16px -10px rgba(0, 0, 0, .55);
 }
 
+.bubblebutton
+{
+  background-color: rgba(255,255,255,.32);
+
+  border:none;
+outline: none;
+    /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+    box-shadow: inset 1px 2px 12px rgba(234, 233, 238, 0.45),
+    inset -2px -1px 14px rgba(244, 234, 235, 0.55),
+      3px 3px 7px rgb(204, 199, 224,.35),
+  -1px 2px 7px rgba(90, 45, 45, 0.25);
+
+ 
+}
+.forumbutton {
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+    transition: box-shadow 120ms ease-in-out;
+
+  box-shadow:   1px 1px 3px rgba(253, 205, 215, 0.95),
+  1px -1px 3px rgba(176, 141, 151, 0.95);
+}
+
+.forumbutton:hover{
+  /* box-shadow:   2px 2px 4px rgba(253, 205, 205, 0.95),
+  -.5px 1px 4px rgba(176, 141, 141, 0.95); */
+      transition: box-shadow 120ms ease-in-out;
+
+  box-shadow:   0.5px 0.5px 2px rgba(208, 168, 176, 0.95),
+  0.5px -1px 2px rgba(176, 141, 151, 0.95);
+
+}
+.bubblebutton:hover
+{
+  background-color: rgba(255,255,255,.52);
+  padding: 2px;
+  outline: transparent;
+  border:none;
+  border-radius: 4px;
+
+  outline: none;
+
+    border-radius: 3%;
+    /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+    box-shadow: inset 2px 4px 12px rgba(210, 210, 245, 0.45),
+    inset -4px -2px 14px rgb(254, 205, 211,.55),
+    2px 2px 4px rgb(204, 199, 224,.45),
+      -.5px 1px 4px rgba(65, 20, 20, 0.45);
+    
+}
+
 /* === Accessibility === */
 @media (prefers-reduced-transparency: reduce) {
   .panelv2, .cardv2, .modalv2, .sidebarv2, .surfacev2 {

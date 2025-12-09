@@ -18,6 +18,7 @@ import {
   User,
   Calendar,
   ExternalLink,
+  Network,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,6 +83,7 @@ export function ChainThreadHeader({
           <Button variant="ghost" size="sm" onClick={onViewGraph} className="h-7 px-2">
             <BarChart3 className="w-3.5 h-3.5" />
           </Button>
+          
         )}
       </div>
     );
@@ -111,10 +113,20 @@ export function ChainThreadHeader({
         {showActions && (
           <div className="flex items-center gap-2">
             {onViewGraph && (
-              <Button variant="outline" size="sm" onClick={onViewGraph}>
-                <BarChart3 className="w-4 h-4 mr-1.5" />
-                View Graph
-              </Button>
+            //   <Button variant="outline" size="sm" onClick={onViewGraph}>
+            //     <BarChart3 className="w-4 h-4 mr-1.5" />
+            //     View Graph
+            //   </Button>
+               <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 w-12 p-0 rounded-md bg-white hover:bg-slate-100"
+                  onClick={onViewGraph}
+                  title="View as graph"
+                >
+                  <Network className="w-5 h-5 p-0" />
+                </Button>
+              
             )}
             
             {onExport && (

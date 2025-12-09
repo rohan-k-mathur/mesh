@@ -19,6 +19,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  PlusCircle,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +95,9 @@ interface ChainListPanelProps {
   /** Callback when user wants to view chain in graph mode */
   onViewChainGraph?: (chainId: string) => void;
   
+  /** Callback when user wants to view chain in thread mode */
+  onViewChainThread?: (chainId: string) => void;
+  
   /** Callback for viewing an argument (View Details) */
   onViewArgument?: (argumentId: string) => void;
   
@@ -164,6 +169,7 @@ export function ChainListPanel({
   onCreateChain,
   onChainClick,
   onViewChainGraph,
+  onViewChainThread,
   onViewArgument,
   onPreviewArgument,
   onReplyArgument,
@@ -215,7 +221,7 @@ export function ChainListPanel({
       <div className="flex flex-col items-center justify-center py-12 gap-3">
         <AlertCircle className="w-8 h-8 text-red-400" />
         <p className="text-sm text-slate-600">Failed to load chains</p>
-        <Button variant="outline" size="sm" onClick={() => mutate()}>
+        <Button variant="outline" className="rounded-md" size="sm" onClick={() => mutate()}>
           <RefreshCw className="w-4 h-4 mr-2" />
           Retry
         </Button>
@@ -256,21 +262,24 @@ export function ChainListPanel({
             {chains.length} Chain{chains.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2"
+        <div className="flex items-center gap-3">
+         <button           
+          className="flex h-8 px-2 text-xs gap-2  items-center forumbutton border-indigo-200 bg-white/50 rounded-md"
+
             onClick={() => mutate()}
             title="Refresh chains"
           >
             <RefreshCw className="w-4 h-4" />
-          </Button>
+          </button>
           {showCreate && onCreateChain && (
-            <Button size="sm" className="h-8" onClick={onCreateChain}>
-              <Plus className="w-4 h-4 mr-1" />
-              New Chain
-            </Button>
+            <button 
+            className="flex h-8 px-2 text-xs gap-2  items-center forumbutton border-indigo-200 bg-white/50 rounded-md"
+ 
+            onClick={onCreateChain}>
+              <PlusCircle className="w-4 h-4 " />
+            </button>
+                      
+            
           )}
         </div>
       </div>
@@ -284,6 +293,7 @@ export function ChainListPanel({
             expanded={expandedChains.has(chain.id)}
             onToggle={() => toggleChain(chain.id)}
             onViewGraph={() => onViewChainGraph?.(chain.id)}
+            onViewThread={() => onViewChainThread?.(chain.id)}
             onViewArgument={onViewArgument}
             onPreviewArgument={onPreviewArgument}
             onReplyArgument={onReplyArgument}
@@ -305,6 +315,7 @@ interface ChainListItemProps {
   expanded: boolean;
   onToggle: () => void;
   onViewGraph?: () => void;
+  onViewThread?: () => void;
   onViewArgument?: (argumentId: string) => void;
   onPreviewArgument?: (argumentId: string) => void;
   onReplyArgument?: (argumentId: string) => void;
@@ -319,6 +330,7 @@ function ChainListItem({
   expanded,
   onToggle,
   onViewGraph,
+  onViewThread,
   onViewArgument,
   onPreviewArgument,
   onReplyArgument,
@@ -390,12 +402,23 @@ function ChainListItem({
             </div>
 
             {/* Actions */}
-            <div className="shrink-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <div className="shrink-0 flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+              {onViewThread && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 rounded-md bg-slate-100 hover:bg-slate-200"
+                  onClick={onViewThread}
+                  title="View as thread"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              )}
               {onViewGraph && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0"
+                  className="h-7 w-7 p-0 rounded-md bg-slate-100 hover:bg-slate-200"
                   onClick={onViewGraph}
                   title="View as graph"
                 >

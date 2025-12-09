@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { NestedTabs } from "@/components/deepdive/shared/NestedTabs";
-import { List, Network, GitFork, Shield, Plus, Workflow, Link2 } from "lucide-react";
+import { List, Network, GitFork, Shield, Plus, Workflow } from "lucide-react";
 import { SectionCard } from "@/components/deepdive/shared";
 import AIFArgumentsListPro from "@/components/arguments/AIFArgumentsListPro";
 import { SchemesSection } from "../sections/SchemesSection";
 import { NetworksSection } from "../sections/NetworksSection";
-import { ChainsSection } from "../sections/ChainsSection";
 import { AspicTheoryPanel } from "@/components/aspic/AspicTheoryPanel";
 import { ConflictResolutionPanel } from "@/components/aspic/ConflictResolutionPanel";
 import { ArgumentNetAnalyzer } from "@/components/argumentation/ArgumentNetAnalyzer";
@@ -188,12 +187,6 @@ export function ArgumentsTab({
             icon: <GitFork className="size-3.5" />,
             // TODO: Add badge with net count
             content: <NetworksSection deliberationId={deliberationId} />,
-          },
-          {
-            value: "chains",
-            label: "Chains",
-            icon: <Link2 className="size-3.5" />,
-            content: <ChainsSection deliberationId={deliberationId} currentUserId={currentUserId || undefined} />,
           },
           {
             value: "create-net",
