@@ -12,6 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EpistemicStatusIcon } from "@/components/chains/EpistemicStatusBadge";
+import { ScopeBoundaryMini } from "@/components/chains/ScopeBoundary";
+import { EPISTEMIC_STATUS_CONFIG, type EpistemicStatus, type ScopeType } from "@/lib/types/argumentChain";
 
 interface ExtendedChainNodeData extends ChainNodeData {
   isEditable?: boolean;
@@ -56,6 +59,11 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ id, data, selecte
   const [showSchemeNetDetails, setShowSchemeNetDetails] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
+  // Epistemic status styling
+  const epistemicStatus = (data.epistemicStatus || "ASSERTED") as EpistemicStatus;
+  const epistemicConfig = EPISTEMIC_STATUS_CONFIG[epistemicStatus];
+  const isHypothetical = epistemicStatus !== "ASSERTED";
+
   // Check for multi-scheme structure
   const hasSchemeNet = data.argument.schemeNet !== null && data.argument.schemeNet !== undefined;
   const multipleSchemes = data.argument.argumentSchemes?.length > 1;
@@ -87,11 +95,21 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ id, data, selecte
   return (
     <div
       className={`
-        relative w-[280px] bg-white rounded-lg shadow-md border-l-4 ${borderColor}
+        relative w-[280px] rounded-lg shadow-md border-l-4 ${borderColor}
         ${selected ? "ring-2 ring-sky-400 shadow-lg" : ""}
         ${isHighlighted ? "ring-4 ring-yellow-400 shadow-xl animate-pulse" : ""}
         transition-all duration-200
       `}
+      style={{
+        backgroundColor: isHypothetical ? epistemicConfig.bgColor : "white",
+        borderStyle: epistemicConfig.borderStyle,
+        borderRightWidth: isHypothetical ? "2px" : undefined,
+        borderTopWidth: isHypothetical ? "2px" : undefined,
+        borderBottomWidth: isHypothetical ? "2px" : undefined,
+        borderRightColor: isHypothetical ? epistemicConfig.color : undefined,
+        borderTopColor: isHypothetical ? epistemicConfig.color : undefined,
+        borderBottomColor: isHypothetical ? epistemicConfig.color : undefined,
+      }}
     >
       {/* Top Handle */}
       <Handle
@@ -103,12 +121,16 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ id, data, selecte
 
       {/* Content */}
       <div className="p-3 space-y-2">
-        {/* Role Badge, SchemeNet Indicator, and Actions */}
+        {/* Role Badge, Epistemic Status, SchemeNet Indicator, and Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className={`px-2 py-1 text-xs font-semibold rounded ${badgeColor}`}>
               {role}
             </span>
+            {/* Epistemic Status Indicator */}
+            {isHypothetical && (
+              <EpistemicStatusIcon status={epistemicStatus} size={14} />
+            )}
             {showSchemeNetIndicator && (
               <button
                 onClick={(e) => {
@@ -213,6 +235,18 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ id, data, selecte
             <span className="text-[10px] font-medium text-gray-700">
               {data.addedBy.name || "Unknown"}
             </span>
+          </div>
+        )}
+
+        {/* Scope Membership Indicator */}
+        {data.scope && (
+          <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100">
+            <span className="text-[10px] text-gray-500">In scope:</span>
+            <ScopeBoundaryMini
+              scopeType={data.scope.scopeType as ScopeType}
+              assumption={data.scope.assumption}
+              color={data.scope.color || undefined}
+            />
           </div>
         )}
 

@@ -12,6 +12,14 @@ const addNodeSchema = z.object({
     .optional(),
   positionX: z.number().optional(),
   positionY: z.number().optional(),
+  // Phase 4: Epistemic status fields
+  epistemicStatus: z
+    .enum(["ASSERTED", "HYPOTHETICAL", "COUNTERFACTUAL", "CONDITIONAL", "QUESTIONED", "DENIED", "SUSPENDED"])
+    .optional(),
+  scopeId: z.string().optional(),
+  dialecticalRole: z
+    .enum(["THESIS", "ANTITHESIS", "SYNTHESIS", "OBJECTION", "RESPONSE", "CONCESSION"])
+    .optional(),
 });
 
 export async function GET(
@@ -213,6 +221,10 @@ export async function POST(
         positionX: validatedData.positionX,
         positionY: validatedData.positionY,
         addedBy: BigInt(user.userId),
+        // Phase 4: Epistemic status fields
+        epistemicStatus: validatedData.epistemicStatus || "ASSERTED",
+        scopeId: validatedData.scopeId || null,
+        dialecticalRole: validatedData.dialecticalRole || null,
       },
       include: {
         argument: {
@@ -221,6 +233,12 @@ export async function POST(
             text: true,
             authorId: true,
             createdAt: true,
+            conclusion: {
+              select: {
+                id: true,
+                text: true,
+              },
+            },
             argumentSchemes: {
               include: {
                 scheme: {
@@ -257,6 +275,14 @@ export async function POST(
             id: true,
             name: true,
             image: true,
+          },
+        },
+        scope: {
+          select: {
+            id: true,
+            scopeType: true,
+            assumption: true,
+            color: true,
           },
         },
       },

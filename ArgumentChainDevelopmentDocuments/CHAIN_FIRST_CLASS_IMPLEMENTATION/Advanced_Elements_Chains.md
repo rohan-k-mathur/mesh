@@ -674,56 +674,353 @@ const handleCreated = async (argumentId: string) => {
 };
 ```
 
-#### Phase 4: Future - Epistemic Status Integration (~4 hours)
+#### Phase 4: Epistemic Status & Hypothetical Scopes Implementation
 
-When we implement hypotheticals/counterfactuals, extend the composer:
+**Overview:** This phase adds support for epistemic statuses (hypothetical, counterfactual, conditional, questioned) and argument scopes, enabling users to reason within different "worlds" or assumptions.
 
-**Task 4.1: Add epistemic status selector**
+---
 
-```tsx
-{context?.mode === "hypothetical" && (
-  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-    <Label className="text-sm font-medium text-amber-800">Epistemic Status</Label>
-    <Select value={epistemicStatus} onValueChange={setEpistemicStatus}>
-      <SelectTrigger className="mt-1">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="HYPOTHETICAL">Hypothetical (assume for argument)</SelectItem>
-        <SelectItem value="COUNTERFACTUAL">Counterfactual (contrary to fact)</SelectItem>
-        <SelectItem value="CONDITIONAL">Conditional (if-then)</SelectItem>
-        <SelectItem value="QUESTIONED">Questioned (under examination)</SelectItem>
-      </SelectContent>
-    </Select>
-    <p className="text-xs text-amber-600 mt-1">
-      This argument will be marked as hypothetical in the chain
-    </p>
-  </div>
-)}
+##### 4.1 Schema Changes (Prisma)
+
+**Task 4.1.1: Add EpistemicStatus enum and ArgumentScope model**
+
+```prisma
+// Add to lib/models/schema.prisma
+
+enum EpistemicStatus {
+  ASSERTED        // Normal assertoric claim (default)
+  HYPOTHETICAL    // Assumed true for sake of argument
+  COUNTERFACTUAL  // Assumed contrary to known facts
+  CONDITIONAL     // Part of an if-then structure
+  QUESTIONED      // Under examination, not committed
+  DENIED          // Explicitly negated
+  SUSPENDED       // Temporarily set aside
+}
+
+enum ScopeType {
+  HYPOTHETICAL    // "Suppose X..."
+  COUNTERFACTUAL  // "Had X been the case..."
+  CONDITIONAL     // "If X, then..."
+  OPPONENT        // Reasoning within opponent's assumptions (reductio)
+  MODAL           // Possibility/necessity reasoning
+}
+
+// Scope model for grouping hypothetical arguments
+model ArgumentScope {
+  id             String     @id @default(cuid())
+  chainId        String
+  
+  // Scope semantics
+  scopeType      ScopeType  @default(HYPOTHETICAL)
+  assumption     String     @db.Text       // "If carbon tax passes", "Had we invested earlier"
+  description    String?    @db.Text
+  
+  // Nesting support
+  parentScopeId  String?
+  depth          Int        @default(0)    // 0 = top-level scope
+  
+  // Visual grouping
+  color          String?    @db.VarChar(7) // Hex color for scope boundary
+  collapsed      Boolean    @default(false)
+  
+  createdAt      DateTime   @default(now())
+  createdBy      BigInt
+  
+  // Relations
+  chain          ArgumentChain       @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  parentScope    ArgumentScope?      @relation("ScopeNesting", fields: [parentScopeId], references: [id], onDelete: SetNull)
+  childScopes    ArgumentScope[]     @relation("ScopeNesting")
+  nodes          ArgumentChainNode[] @relation("ScopeNodes")
+  creator        User                @relation(fields: [createdBy], references: [id])
+  
+  @@index([chainId])
+  @@index([parentScopeId])
+}
 ```
 
-**Task 4.2: Pass epistemic status to node creation**
+**Task 4.1.2: Extend ArgumentChainNode with epistemic fields**
 
-Once the schema is extended with `epistemicStatus`:
+```prisma
+model ArgumentChainNode {
+  // ... existing fields ...
+  
+  // Epistemic status
+  epistemicStatus  EpistemicStatus @default(ASSERTED)
+  
+  // Scope membership (null = actual/assertoric world)
+  scopeId          String?
+  scope            ArgumentScope?  @relation("ScopeNodes", fields: [scopeId], references: [id], onDelete: SetNull)
+  
+  // Dialectical role (for objection/response patterns)
+  dialecticalRole  DialecticalRole?
+  
+  @@index([scopeId])
+}
+
+enum DialecticalRole {
+  THESIS         // Main position being argued
+  ANTITHESIS     // Opposing position
+  SYNTHESIS      // Resolution/integration
+  OBJECTION      // Challenge to thesis
+  RESPONSE       // Reply to objection
+  CONCESSION     // Acknowledged point from opponent
+}
+```
+
+**Task 4.1.3: Extend ArgumentChain with scope relations**
+
+```prisma
+model ArgumentChain {
+  // ... existing fields ...
+  
+  // Scope support
+  scopes         ArgumentScope[]
+}
+```
+
+---
+
+##### 4.2 API Endpoints
+
+**Task 4.2.1: Scope CRUD endpoints**
 
 ```typescript
-body: JSON.stringify({
-  argumentId,
-  role: selectedRole,
-  epistemicStatus: epistemicStatus || "ASSERTED",
-  scopeId: context?.scopeId,
-}),
+// app/api/argument-chains/[chainId]/scopes/route.ts
+
+// GET: List scopes for a chain
+// POST: Create new scope
+//   body: { scopeType, assumption, description?, parentScopeId?, color? }
+
+// app/api/argument-chains/[chainId]/scopes/[scopeId]/route.ts
+
+// GET: Get scope with its nodes
+// PATCH: Update scope (assumption, color, collapsed)
+// DELETE: Delete scope (moves nodes back to assertoric)
 ```
 
-### 9.6 Summary: Implementation Timeline
+**Task 4.2.2: Update node creation to support epistemic status**
 
-| Phase | Tasks | Hours | Dependencies |
-|-------|-------|-------|--------------|
-| **Phase 1** | Basic composer integration | 3h | None |
-| **Phase 2** | Context-aware wrapper | 4h | Phase 1 |
-| **Phase 3** | Auto-edge creation | 2h | Phase 2 |
-| **Phase 4** | Epistemic status | 4h | Schema changes from Part 8 |
-| **Total** | | **13h** | |
+```typescript
+// Extend POST /api/argument-chains/[chainId]/nodes
+body: {
+  argumentId: string;
+  role?: ChainNodeRole;
+  epistemicStatus?: EpistemicStatus;  // NEW
+  scopeId?: string;                   // NEW
+  dialecticalRole?: DialecticalRole;  // NEW
+}
+```
+
+---
+
+##### 4.3 UI Components
+
+**Task 4.3.1: EpistemicStatusBadge component**
+
+```tsx
+// components/chains/EpistemicStatusBadge.tsx
+
+interface EpistemicStatusBadgeProps {
+  status: EpistemicStatus;
+  size?: "sm" | "md";
+}
+
+const STATUS_CONFIG = {
+  ASSERTED: { label: "Asserted", color: "bg-gray-100 text-gray-700", icon: Check },
+  HYPOTHETICAL: { label: "Hypothetical", color: "bg-amber-100 text-amber-700", icon: Lightbulb },
+  COUNTERFACTUAL: { label: "Counterfactual", color: "bg-purple-100 text-purple-700", icon: GitBranch },
+  CONDITIONAL: { label: "Conditional", color: "bg-blue-100 text-blue-700", icon: ArrowRightLeft },
+  QUESTIONED: { label: "Questioned", color: "bg-yellow-100 text-yellow-700", icon: HelpCircle },
+  DENIED: { label: "Denied", color: "bg-red-100 text-red-700", icon: X },
+  SUSPENDED: { label: "Suspended", color: "bg-slate-100 text-slate-500", icon: Pause },
+};
+```
+
+**Task 4.3.2: ScopeContainer component (visual grouping)**
+
+```tsx
+// components/chains/ScopeContainer.tsx
+
+interface ScopeContainerProps {
+  scope: ArgumentScope;
+  children: React.ReactNode;
+  onCollapse: (collapsed: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+// Renders a visual boundary around scoped nodes with:
+// - Header showing assumption text ("If carbon tax passes...")
+// - Collapse/expand toggle
+// - Colored border based on scope type
+// - Nested scope support
+```
+
+**Task 4.3.3: ScopeCreator modal**
+
+```tsx
+// components/chains/ScopeCreator.tsx
+
+// Modal for creating a new hypothetical scope
+// - Scope type selector (Hypothetical, Counterfactual, Conditional, Opponent)
+// - Assumption text input ("Suppose...", "If...", "Had...")
+// - Color picker for visual distinction
+// - Optional parent scope selection (for nesting)
+```
+
+**Task 4.3.4: Update ArgumentChainNode to show epistemic status**
+
+```tsx
+// In ArgumentChainNode.tsx
+
+// Add visual indicator for non-asserted nodes:
+// - Amber glow/border for hypothetical
+// - Purple dashed border for counterfactual
+// - Small badge showing status
+// - Different background tint per status
+```
+
+**Task 4.3.5: Update ChainArgumentComposer for epistemic modes**
+
+```tsx
+// Extend ChainArgumentComposer.tsx
+
+interface ChainComposerContext {
+  // ... existing fields ...
+  
+  // Epistemic context
+  epistemicMode?: "hypothetical" | "counterfactual" | "conditional";
+  scopeId?: string;           // Create node within this scope
+  scopeAssumption?: string;   // For display context
+}
+
+// Add epistemic status selector when mode is hypothetical/counterfactual
+// Auto-assign to scope when scopeId provided
+```
+
+---
+
+##### 4.4 Canvas Integration
+
+**Task 4.4.1: Scope rendering in ReactFlow**
+
+```tsx
+// Update ArgumentChainCanvas.tsx
+
+// Option A: Use ReactFlow Groups
+// - Scopes rendered as background containers
+// - Nodes within scope appear inside the group
+
+// Option B: Custom scope overlay
+// - Render colored rectangles behind scoped nodes
+// - Calculate bounding box from node positions
+
+// Option C: Node styling only
+// - No grouping, just color-code nodes by scope
+// - Simpler but less visually clear
+```
+
+**Task 4.4.2: Scope panel in analysis sidebar**
+
+```tsx
+// Add to ChainAnalysisPanel or new ScopesPanel
+
+// List all scopes in the chain
+// - Show assumption text
+// - Count of nodes in scope
+// - Collapse/expand scope in canvas
+// - Quick actions: Edit, Delete, Add Node
+```
+
+**Task 4.4.3: "Enter Hypothetical Mode" action**
+
+```tsx
+// Add button to canvas panel
+
+// "Create Hypothetical Scope"
+// 1. Opens ScopeCreator modal
+// 2. User defines assumption
+// 3. Scope created, user can now add nodes to it
+// 4. Visual boundary appears on canvas
+```
+
+---
+
+##### 4.5 Implementation Order & Time Estimates
+
+| Sub-Phase | Tasks | Hours | Dependencies |
+|-----------|-------|-------|--------------|
+| **4.1** | Schema changes + migration | 1.5h | None |
+| **4.2** | API endpoints (CRUD) | 2h | 4.1 |
+| **4.3.1-4.3.2** | Badge + Container components | 2h | 4.1 |
+| **4.3.3** | ScopeCreator modal | 1.5h | 4.2 |
+| **4.3.4** | Node visual updates | 1h | 4.3.1 |
+| **4.3.5** | Composer epistemic modes | 1.5h | 4.2, 4.3.1 |
+| **4.4** | Canvas integration | 2.5h | All above |
+| **Total** | | **12h** | |
+
+---
+
+##### 4.6 Incremental Rollout Strategy
+
+**MVP (Phase 4A - ~4 hours):**
+- Schema with `epistemicStatus` on nodes only (no scopes yet)
+- Simple badge display on nodes
+- Status selector in composer
+- No visual grouping
+
+**Full Implementation (Phase 4B - ~8 hours):**
+- Full scope model and API
+- Visual scope containers
+- Scope creation/management UI
+- Canvas grouping
+
+---
+
+##### 4.7 Visual Design Considerations
+
+**Status Visual Language:**
+| Status | Border | Background | Icon | Animation |
+|--------|--------|------------|------|-----------|
+| ASSERTED | Solid | White | ✓ | None |
+| HYPOTHETICAL | Solid | Amber-50 | 💡 | None |
+| COUNTERFACTUAL | Dashed | Purple-50 | ⑂ | None |
+| CONDITIONAL | Dotted | Blue-50 | ↔ | None |
+| QUESTIONED | Solid | Yellow-50 | ? | Subtle pulse |
+| DENIED | Solid Red | Red-50 | ✗ | Strikethrough |
+| SUSPENDED | Muted | Gray-50 | ⏸ | 50% opacity |
+
+**Scope Container Design:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 💡 HYPOTHETICAL: "Suppose carbon tax passes"           [−] │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│    ┌──────────┐      ┌──────────┐      ┌──────────┐       │
+│    │  Node 1  │ ───▶ │  Node 2  │ ───▶ │  Node 3  │       │
+│    └──────────┘      └──────────┘      └──────────┘       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+         │
+         │ SCOPE_CONCLUSION
+         ▼
+    ┌──────────────────┐
+    │ Assertoric Node  │  (Back in "actual world")
+    └──────────────────┘
+```
+
+---
+
+### 9.6 Summary: Implementation Timeline (Updated)
+
+| Phase | Tasks | Hours | Dependencies | Status |
+|-------|-------|-------|--------------|--------|
+| **Phase 1** | Basic composer integration | 3h | None | ✅ Complete |
+| **Phase 2** | Context-aware wrapper | 4h | Phase 1 | ✅ Complete |
+| **Phase 3** | Auto-edge creation + edge types | 2h | Phase 2 | ✅ Complete |
+| **Phase 4A** | Epistemic status (MVP) | 4h | Schema changes | 🔲 Planned |
+| **Phase 4B** | Full scopes | 8h | Phase 4A | 🔲 Planned |
+| **Total** | | **21h** | |
 
 ### 9.7 Files to Modify
 

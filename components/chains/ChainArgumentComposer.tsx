@@ -316,8 +316,8 @@ export function ChainArgumentComposer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto space-y-0">
+        <DialogHeader className="space-y-2">
           <DialogTitle className="flex items-center gap-2">
             {dialogContent.icon}
             {dialogContent.title}
@@ -326,7 +326,7 @@ export function ChainArgumentComposer({
         </DialogHeader>
 
         {/* Context Banner */}
-        {context && (
+        {/* {context && (
           <div
             className={`p-3 rounded-lg border ${
               context.mode === "attack"
@@ -380,20 +380,22 @@ export function ChainArgumentComposer({
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Role selector */}
-        <div className="p-3 bg-muted/50 rounded-lg">
-          <Label className="text-sm font-medium">Role in Chain</Label>
+        <div className="p-1 bg-muted/50 rounded-lg">
+          <Label className="text-sm font-medium">Role in Argument Chain</Label>
           <Select value={selectedRole} onValueChange={setSelectedRole}>
-            <SelectTrigger className="mt-1">
+            <SelectTrigger className="mt-1 bg-slate-50">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {ROLE_OPTIONS.map((role) => (
-                <SelectItem key={role.value} value={role.value}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{role.label}</span>
+                <SelectItem className="bg-white hover:bg-slate-100" key={role.value} value={role.value}>
+                  <div className="flex gap-2">
+                    <span className="text-xs flex font-medium">{role.label}</span>
+                    <span className="text-xs flex font-medium">-</span>
+
                     <span className="text-xs text-muted-foreground">
                       {role.description}
                     </span>

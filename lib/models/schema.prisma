@@ -111,6 +111,7 @@ model User {
   // ArgumentChain relations
   createdArgumentChains     ArgumentChain[]     @relation
   addedChainNodes           ArgumentChainNode[]
+  createdArgumentScopes     ArgumentScope[]
 
   @@map("users")
 }
@@ -6808,11 +6809,45 @@ enum ArgumentChainEdgeType {
   QUALIFIES       // A adds conditions to B
   EXEMPLIFIES     // A is example of B's general claim
   GENERALIZES     // A abstracts from B's specific case
+  // ASPIC+ attack types
+  REBUTS          // Directly contradicts conclusion
+  UNDERCUTS       // Challenges inference/reasoning link
+  UNDERMINES      // Attacks supporting premise
 }
 
 enum ChainAttackTargetType {
   NODE            // Attack targets another node (standard)
   EDGE            // Attack targets a relationship/inference (recursive attack)
+}
+
+// Epistemic status for chain nodes (Phase 4: Hypotheticals & Counterfactuals)
+enum EpistemicStatus {
+  ASSERTED        // Normal assertoric claim (default)
+  HYPOTHETICAL    // Assumed true for sake of argument
+  COUNTERFACTUAL  // Assumed contrary to known facts
+  CONDITIONAL     // Part of an if-then structure
+  QUESTIONED      // Under examination, not committed
+  DENIED          // Explicitly negated
+  SUSPENDED       // Temporarily set aside
+}
+
+// Scope types for grouping hypothetical arguments
+enum ScopeType {
+  HYPOTHETICAL    // "Suppose X..."
+  COUNTERFACTUAL  // "Had X been the case..."
+  CONDITIONAL     // "If X, then..."
+  OPPONENT        // Reasoning within opponent's assumptions (reductio)
+  MODAL           // Possibility/necessity reasoning
+}
+
+// Dialectical roles for thesis/antithesis/synthesis patterns
+enum DialecticalRole {
+  THESIS          // Main position being argued
+  ANTITHESIS      // Opposing position
+  SYNTHESIS       // Resolution/integration
+  OBJECTION       // Challenge to thesis
+  RESPONSE        // Reply to objection
+  CONCESSION      // Acknowledged point from opponent
 }
 
 model ArgumentChain {
@@ -6842,9 +6877,43 @@ model ArgumentChain {
   creator        User                @relation(fields: [createdBy], references: [id], onDelete: Restrict)
   nodes          ArgumentChainNode[]
   edges          ArgumentChainEdge[]
+  scopes         ArgumentScope[]     // Hypothetical/counterfactual scopes
   
   @@index([deliberationId])
   @@index([createdBy])
+}
+
+// Scope for grouping hypothetical/counterfactual arguments
+model ArgumentScope {
+  id             String     @id @default(cuid())
+  chainId        String
+  
+  // Scope semantics
+  scopeType      ScopeType  @default(HYPOTHETICAL)
+  assumption     String     @db.Text       // "If carbon tax passes", "Had we invested earlier"
+  description    String?    @db.Text
+  
+  // Nesting support
+  parentScopeId  String?
+  depth          Int        @default(0)    // 0 = top-level scope
+  
+  // Visual grouping
+  color          String?    @db.VarChar(7) // Hex color for scope boundary
+  collapsed      Boolean    @default(false)
+  
+  // Timestamps
+  createdAt      DateTime   @default(now())
+  createdBy      BigInt
+  
+  // Relations
+  chain          ArgumentChain       @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  parentScope    ArgumentScope?      @relation("ScopeNesting", fields: [parentScopeId], references: [id], onDelete: SetNull)
+  childScopes    ArgumentScope[]     @relation("ScopeNesting")
+  nodes          ArgumentChainNode[] @relation("ScopeNodes")
+  creator        User                @relation(fields: [createdBy], references: [id])
+  
+  @@index([chainId])
+  @@index([parentScopeId])
 }
 
 model ArgumentChainNode {
@@ -6855,6 +6924,11 @@ model ArgumentChainNode {
   // Position in chain
   nodeOrder    Int
   role         ChainNodeRole?
+  
+  // Epistemic status (Phase 4: Hypotheticals & Counterfactuals)
+  epistemicStatus  EpistemicStatus @default(ASSERTED)
+  scopeId          String?                           // null = actual/assertoric world
+  dialecticalRole  DialecticalRole?
   
   // Recursive attack support: Node can target either another node OR an edge
   targetType   ChainAttackTargetType @default(NODE)
@@ -6873,6 +6947,7 @@ model ArgumentChainNode {
   argument     Argument            @relation(fields: [argumentId], references: [id], onDelete: Cascade)
   contributor  User                @relation(fields: [addedBy], references: [id])
   targetEdge   ArgumentChainEdge?  @relation("EdgeAttacks", fields: [targetEdgeId], references: [id], onDelete: SetNull)
+  scope        ArgumentScope?      @relation("ScopeNodes", fields: [scopeId], references: [id], onDelete: SetNull)
   
   outgoingEdges ArgumentChainEdge[] @relation("SourceNode")
   incomingEdges ArgumentChainEdge[] @relation("TargetNode")
@@ -6881,6 +6956,7 @@ model ArgumentChainNode {
   @@index([chainId])
   @@index([argumentId])
   @@index([targetEdgeId])
+  @@index([scopeId])
 }
 
 model ArgumentChainEdge {
