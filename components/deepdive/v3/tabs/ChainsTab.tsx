@@ -355,6 +355,7 @@ export function ChainsTab({
           <ArgumentChainCanvas
             chainId={selectedChainId}
             deliberationId={deliberationId}
+            currentUserId={currentUserId}
             isEditable={true}
             onNodeClick={(nodeId) => {
               console.log("Node clicked:", nodeId);

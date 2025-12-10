@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, Sparkles, PlusCircle } from "lucide-react";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 import { getNewNodePosition } from "@/lib/utils/chainLayoutUtils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AIFArgumentWithSchemeComposer } from "@/components/arguments/AIFArgumentWithSchemeComposer";
 
 interface Argument {
   id: string;
@@ -18,6 +20,7 @@ interface Argument {
 
 interface AddNodeButtonProps {
   deliberationId: string;
+  userId?: string; // For creating new arguments
 }
 
 const ROLE_OPTIONS = [
@@ -30,8 +33,9 @@ const ROLE_OPTIONS = [
   { value: "COMMENT", label: "Comment", description: "Lightweight annotation/note" },
 ];
 
-const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
+const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId, userId }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
   const [selectedRole, setSelectedRole] = useState("PREMISE");
   const [searchQuery, setSearchQuery] = useState("");
   const [argumentsList, setArgumentsList] = useState<Argument[]>([]);
@@ -184,7 +188,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-2xl max-h-[80vh] bg-white rounded-xl shadow-2xl flex flex-col">
+          <div className="w-full max-w-2xl max-h-[85vh] bg-white rounded-xl shadow-2xl flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold text-gray-900">Add Argument to Chain</h2>
@@ -222,21 +226,21 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
             </div>
 
             {/* Search */}
-            <div className="p-4 border-b">
+            <div className="p-1 border-b">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-xs text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search arguments..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
             </div>
 
             {/* Arguments List */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-2">
               {loading ? (
                 <div className="text-center text-gray-500 py-8">Loading arguments...</div>
               ) : filteredArguments.length === 0 ? (
@@ -252,7 +256,7 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
                       <h4 className="text-sm font-semibold text-gray-900 mb-1">
                         {arg.title || "Untitled"}
                       </h4>
-                      <p className="text-xs text-gray-600 line-clamp-2 mb-2">{arg.text}</p>
+                      <p className="text-xs text-gray-600 line-clamp-2 mb-1">{arg.text}</p>
                       <div className="text-xs text-gray-500">
                         By {arg.creator.name || "Unknown"}
                       </div>
@@ -261,9 +265,67 @@ const AddNodeButton: React.FC<AddNodeButtonProps> = ({ deliberationId }) => {
                 </div>
               )}
             </div>
+
+            {/* Create New Argument Button */}
+            {userId && (
+              <div className="p-4 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowComposer(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Create New Argument
+                </button>
+                {/* <p className="text-xs text-gray-500 text-center mt-2">
+                  Build a new structured argument with scheme support
+                </p> */}
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* Argument Composer Dialog */}
+      <Dialog open={showComposer} onOpenChange={setShowComposer}>
+        <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto">
+         
+          
+          {userId && (
+            <AIFArgumentWithSchemeComposer
+              deliberationId={deliberationId}
+              authorId={userId}
+              conclusionClaim={null}
+              defaultSchemeKey={null}
+              onCreated={async (argumentId) => {
+                try {
+                  // Fetch the newly created argument details
+                  const response = await fetch(`/api/arguments/${argumentId}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    const newArg: Argument = {
+                      id: argumentId,
+                      text: data.text || "",
+                      title: data.conclusion?.text || data.text?.substring(0, 50) + "...",
+                      createdAt: data.createdAt || new Date().toISOString(),
+                      creator: {
+                        id: userId,
+                        name: "You",
+                      },
+                    };
+                    
+                    // Add the new argument to the chain
+                    await handleAddArgument(newArg);
+                  }
+                } catch (error) {
+                  console.error("Failed to add newly created argument:", error);
+                }
+                
+                setShowComposer(false);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

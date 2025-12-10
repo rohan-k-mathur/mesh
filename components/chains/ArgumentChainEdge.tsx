@@ -1,14 +1,30 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { BaseEdge, EdgeProps, getBezierPath, EdgeLabelRenderer } from "reactflow";
 import { ChainEdgeData } from "@/lib/types/argumentChain";
 import { getEdgeTypeConfig, getEdgeStrokeWidth } from "@/lib/constants/chainEdgeTypes";
+import { Swords } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-interface ArgumentChainEdgeProps extends EdgeProps<ChainEdgeData> {}
+interface ExtendedChainEdgeData extends ChainEdgeData {
+  isTargeted?: boolean;
+  attackCount?: number;
+  isEditable?: boolean;
+  onAttackEdge?: (edgeId: string, sourceNodeId: string, targetNodeId: string) => void;
+}
+
+interface ArgumentChainEdgeProps extends EdgeProps<ExtendedChainEdgeData> {}
 
 const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -21,8 +37,10 @@ const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
 }) => {
   const edgeConfig = getEdgeTypeConfig(data?.edgeType || "SUPPORTS");
   const strokeWidth = getEdgeStrokeWidth(data?.strength || 0.5);
-  const isTargeted = (data as any)?.isTargeted || false;
-  const attackCount = (data as any)?.attackCount || 0;
+  const isTargeted = data?.isTargeted || false;
+  const attackCount = data?.attackCount || 0;
+  const isEditable = data?.isEditable ?? true;
+  const [showAttackButton, setShowAttackButton] = useState(false);
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -32,6 +50,13 @@ const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
     targetY,
     targetPosition,
   });
+
+  const handleAttackEdge = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data?.onAttackEdge) {
+      data.onAttackEdge(id, source, target);
+    }
+  };
 
   return (
     <>
@@ -56,6 +81,8 @@ const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
             pointerEvents: "all",
           }}
           className="nodrag nopan"
+          onMouseEnter={() => setShowAttackButton(true)}
+          onMouseLeave={() => setShowAttackButton(false)}
         >
           <div
             className={`
@@ -80,6 +107,24 @@ const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
                 <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-red-200 text-red-800 rounded-full">
                   ⚔️ {attackCount}
                 </span>
+              )}
+              {/* Attack Edge Button */}
+              {isEditable && data?.onAttackEdge && showAttackButton && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleAttackEdge}
+                        className="ml-1 p-1 rounded hover:bg-purple-100 transition-colors"
+                      >
+                        <Swords className="w-3 h-3 text-purple-600" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      <p>Challenge this inference (Undercut)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             {data?.description && (

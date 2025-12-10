@@ -271,6 +271,7 @@ export function ChainsSection({ deliberationId, currentUserId }: ChainsSectionPr
                 <ArgumentChainCanvas
                   chainId={viewChainId}
                   deliberationId={deliberationId}
+                  currentUserId={currentUserId}
                   isEditable={true}
                   onNodeClick={(nodeId) => {
                     console.log("Node clicked:", nodeId);

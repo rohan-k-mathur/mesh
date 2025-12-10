@@ -3,9 +3,29 @@
 import React, { memo, useState } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
 import { ChainNodeData } from "@/lib/types/argumentChain";
-import { Network, Info } from "lucide-react";
+import { Network, Info, Plus, ThumbsUp, Swords, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-interface ArgumentChainNodeProps extends NodeProps<ChainNodeData> {}
+interface ExtendedChainNodeData extends ChainNodeData {
+  isEditable?: boolean;
+  onSupport?: (nodeId: string, argumentId: string, conclusionText?: string) => void;
+  onAttack?: (
+    nodeId: string, 
+    argumentId: string, 
+    conclusionId?: string,
+    conclusionText?: string,
+    attackType?: "REBUTS" | "UNDERCUTS" | "UNDERMINES"
+  ) => void;
+}
+
+interface ArgumentChainNodeProps extends NodeProps<ExtendedChainNodeData> {}
 
 const roleColors: Record<string, string> = {
   PREMISE: "border-sky-500",
@@ -27,12 +47,14 @@ const roleBgColors: Record<string, string> = {
   COMMENT: "bg-gray-100 text-gray-600",
 };
 
-const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected }) => {
+const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ id, data, selected }) => {
   const role = data.role || "PREMISE";
   const borderColor = roleColors[role] || "border-gray-400";
   const badgeColor = roleBgColors[role] || "bg-gray-100 text-gray-800";
   const isHighlighted = data.isHighlighted || false;
+  const isEditable = data.isEditable ?? true;
   const [showSchemeNetDetails, setShowSchemeNetDetails] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   // Check for multi-scheme structure
   const hasSchemeNet = data.argument.schemeNet !== null && data.argument.schemeNet !== undefined;
@@ -41,6 +63,26 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected })
   const hasSchemeNetSteps = hasSchemeNet && data.argument.schemeNet?.steps?.length > 0;
 
   const showSchemeNetIndicator = hasSchemeNet && (hasSchemeNetSteps || multipleSchemes);
+
+  // Get conclusion text for context
+  const conclusionText = data.argument.conclusion?.text || data.argument.text?.substring(0, 100);
+  const conclusionId = data.argument.conclusion?.id;
+
+  // Handle support action
+  const handleSupport = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.onSupport) {
+      data.onSupport(id, data.argument.id, conclusionText);
+    }
+  };
+
+  // Handle attack actions
+  const handleAttack = (e: React.MouseEvent, attackType: "REBUTS" | "UNDERCUTS" | "UNDERMINES") => {
+    e.stopPropagation();
+    if (data.onAttack) {
+      data.onAttack(id, data.argument.id, conclusionId, conclusionText, attackType);
+    }
+  };
 
   return (
     <div
@@ -61,7 +103,7 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected })
 
       {/* Content */}
       <div className="p-3 space-y-2">
-        {/* Role Badge and SchemeNet Indicator */}
+        {/* Role Badge, SchemeNet Indicator, and Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className={`px-2 py-1 text-xs font-semibold rounded ${badgeColor}`}>
@@ -83,18 +125,84 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ data, selected })
               </button>
             )}
           </div>
-          {data.nodeOrder !== undefined && (
-            <span className="text-xs text-gray-500 font-mono">#{data.nodeOrder}</span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {data.nodeOrder !== undefined && (
+              <span className="text-xs text-gray-500 font-mono">#{data.nodeOrder}</span>
+            )}
+            {/* Action Menu */}
+            {isEditable && (data.onSupport || data.onAttack) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                    title="Actions"
+                  >
+                    <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs text-gray-500">
+                    Respond to this argument
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {data.onSupport && (
+                    <DropdownMenuItem onClick={handleSupport} className="gap-2 cursor-pointer">
+                      <ThumbsUp className="w-4 h-4 text-green-600" />
+                      <span>Create Supporting Argument</span>
+                    </DropdownMenuItem>
+                  )}
+                  {data.onAttack && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-gray-500">
+                        Attack Types
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem 
+                        onClick={(e) => handleAttack(e, "REBUTS")} 
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Swords className="w-4 h-4 text-red-600" />
+                        <div className="flex flex-col">
+                          <span>Rebut (attack conclusion)</span>
+                          <span className="text-[10px] text-gray-500">Deny or contradict the conclusion</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => handleAttack(e, "UNDERMINES")} 
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Swords className="w-4 h-4 text-orange-600" />
+                        <div className="flex flex-col">
+                          <span>Undermine (attack premise)</span>
+                          <span className="text-[10px] text-gray-500">Challenge a supporting premise</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={(e) => handleAttack(e, "UNDERCUTS")} 
+                        className="gap-2 cursor-pointer"
+                      >
+                        <Swords className="w-4 h-4 text-purple-600" />
+                        <div className="flex flex-col">
+                          <span>Undercut (attack inference)</span>
+                          <span className="text-[10px] text-gray-500">Challenge the reasoning link</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {/* Argument Preview */}
         <div className="space-y-1">
           <h4 className="text-sm font-semibold text-gray-800 line-clamp-2">
-            {data.argument.title || "Untitled Argument"}
+            {data.argument.conclusion?.text || data.argument.text?.substring(0, 100) || "No conclusion"}
           </h4>
-          {data.argument.text && (
-            <p className="text-xs text-gray-600 line-clamp-3">{data.argument.text}</p>
+          {data.argument.text && data.argument.conclusion?.text && (
+            <p className="text-xs text-gray-600 line-clamp-2">{data.argument.text}</p>
           )}
         </div>
 

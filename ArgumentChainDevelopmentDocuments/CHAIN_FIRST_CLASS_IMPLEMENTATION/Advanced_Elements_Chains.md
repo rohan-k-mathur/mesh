@@ -2505,8 +2505,35 @@ const EDGE_TYPE_CATEGORIES = {
 9. ✅ Additional reasoning patterns (Part 18)
 10. ✅ Final extended edge type taxonomy (Part 19)
 
+## Implementation Progress
+
+### ✅ Phase 1: Basic Composer Integration (COMPLETE - Dec 9, 2025)
+
+**Files Modified:**
+- `components/chains/AddNodeButton.tsx` — Added "Create New Argument" button and `AIFArgumentWithSchemeComposer` dialog
+- `components/chains/ArgumentChainCanvas.tsx` — Added `currentUserId` prop, passed to AddNodeButton
+- `components/deepdive/v3/tabs/ChainsTab.tsx` — Passes `currentUserId` to ArgumentChainCanvas
+- `components/deepdive/v3/sections/ChainsSection.tsx` — Passes `currentUserId` to ArgumentChainCanvas
+
+**Features Implemented:**
+- ✅ Users can now create new arguments directly from the chain canvas
+- ✅ Full `AIFArgumentWithSchemeComposer` integration with scheme support
+- ✅ Newly created arguments are automatically added to the chain
+- ✅ Role selection (PREMISE, EVIDENCE, CONCLUSION, etc.) preserved
+
+**To Test:**
+1. Open a deliberation with an argument chain
+2. Click "Canvas" view mode
+3. Click "Add Argument" button
+4. Scroll to bottom of argument list
+5. Click "Create New Argument" button
+6. Build argument with scheme in the composer dialog
+7. On save, argument should auto-add to chain
+
 **Upcoming Implementation:**
-- [ ] Phase 1: Basic composer integration (Section 9.5)
+- [ ] Phase 2: Context-aware wrapper (support/attack modes)
+- [ ] Phase 3: Auto-edge creation when creating in context
+- [ ] Phase 4: Epistemic status integration
 - [ ] Schema migration for extended edge types
 - [ ] UI components for pattern-specific chain building
 - [ ] Visualization strategies for complex patterns (scopes, analogies, elimination trees)

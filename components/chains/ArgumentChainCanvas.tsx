@@ -27,6 +27,7 @@ import AddNodeButton from "./AddNodeButton";
 import ConnectionEditor from "./ConnectionEditor";
 import ChainMetadataPanel from "./ChainMetadataPanel";
 import ChainExportButton from "./ChainExportButton";
+import ChainArgumentComposer, { ChainComposerContext } from "./ChainArgumentComposer";
 
 const nodeTypes = {
   argumentNode: ArgumentChainNode,
@@ -39,6 +40,7 @@ const edgeTypes = {
 interface ArgumentChainCanvasProps {
   chainId: string; // Required for analysis
   deliberationId: string; // Required for AddNodeButton
+  currentUserId?: string | null; // Required for creating new arguments
   isEditable?: boolean;
   onNodeClick?: (nodeId: string) => void;
   onEdgeClick?: (edgeId: string) => void;
@@ -47,6 +49,7 @@ interface ArgumentChainCanvasProps {
 const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
   chainId,
   deliberationId,
+  currentUserId,
   isEditable = true,
   onNodeClick,
   onEdgeClick,
@@ -57,6 +60,10 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
   const [highlightedNodes, setHighlightedNodes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [edgeAttacks, setEdgeAttacks] = useState<Record<string, number>>({});
+  
+  // Composer dialog state
+  const [showComposer, setShowComposer] = useState(false);
+  const [composerContext, setComposerContext] = useState<ChainComposerContext | null>(null);
 
   const {
     nodes,
@@ -197,6 +204,194 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
     [openConnectionEditor]
   );
 
+  // Open composer for supporting an argument
+  const handleSupportNode = useCallback((nodeId: string, argumentId: string, conclusionText?: string) => {
+    setComposerContext({
+      mode: "support",
+      targetNode: {
+        nodeId,
+        argumentId,
+        conclusionText,
+      },
+      suggestedRole: "PREMISE",
+      suggestedScheme: "SUPPORTS",
+    });
+    setShowComposer(true);
+  }, []);
+
+  // Open composer for attacking an argument (REBUTS)
+  const handleAttackNode = useCallback((
+    nodeId: string, 
+    argumentId: string, 
+    conclusionId?: string,
+    conclusionText?: string,
+    attackType: "REBUTS" | "UNDERCUTS" | "UNDERMINES" = "REBUTS"
+  ) => {
+    setComposerContext({
+      mode: "attack",
+      attackType,
+      targetNode: {
+        nodeId,
+        argumentId,
+        conclusionId,
+        conclusionText,
+      },
+      suggestedRole: "OBJECTION",
+    });
+    setShowComposer(true);
+  }, []);
+
+  // Open composer for attacking an edge (UNDERCUTS)
+  const handleAttackEdge = useCallback((edgeId: string, sourceNodeId: string, targetNodeId: string) => {
+    setComposerContext({
+      mode: "attack",
+      attackType: "UNDERCUTS",
+      targetEdge: {
+        edgeId,
+        sourceNodeId,
+        targetNodeId,
+      },
+      suggestedRole: "OBJECTION",
+    });
+    setShowComposer(true);
+  }, []);
+
+  // Handle argument created from composer
+  const handleComposerCreated = useCallback(async (argument: any) => {
+    // Add the new argument as a node
+    try {
+      const response = await fetch(`/api/argument-chains/${chainId}/nodes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          argumentId: argument.id,
+          role: composerContext?.suggestedRole || "PREMISE",
+        }),
+      });
+
+      if (response.ok) {
+        const newNode = await response.json();
+        
+        // Add to ReactFlow
+        const nodePosition = { 
+          x: Math.random() * 300, 
+          y: Math.random() * 300 
+        };
+        
+        setNodes([
+          ...nodes,
+          {
+            id: newNode.id,
+            type: "argumentNode",
+            position: nodePosition,
+            data: {
+              argument: argument,
+              role: newNode.role,
+              nodeOrder: newNode.nodeOrder,
+              addedBy: newNode.contributor || null,
+            },
+          },
+        ]);
+
+        // Auto-create edge if we have a target
+        if (composerContext?.targetNode?.nodeId) {
+          const edgeType = composerContext.mode === "support" ? "SUPPORTS" : 
+            composerContext.attackType || "REBUTS";
+          
+          const edgeResponse = await fetch(`/api/argument-chains/${chainId}/edges`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sourceNodeId: newNode.id,
+              targetNodeId: composerContext.targetNode.nodeId,
+              edgeType,
+              strength: 1.0,
+            }),
+          });
+
+          if (edgeResponse.ok) {
+            const newEdge = await edgeResponse.json();
+            setEdges([
+              ...edges,
+              {
+                id: newEdge.id,
+                source: newNode.id,
+                target: composerContext.targetNode.nodeId,
+                type: "chainEdge",
+                data: {
+                  edgeType: newEdge.edgeType,
+                  strength: newEdge.strength,
+                },
+              },
+            ]);
+          }
+        } else if (composerContext?.targetEdge?.edgeId) {
+          // For edge attacks (undercuts), we need different handling
+          // The new node attacks an edge, which requires special edge representation
+          // For now, we'll create a node-to-target-node edge as UNDERCUTS
+          const targetNodeId = composerContext.targetEdge.targetNodeId;
+          
+          const edgeResponse = await fetch(`/api/argument-chains/${chainId}/edges`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sourceNodeId: newNode.id,
+              targetNodeId: targetNodeId,
+              edgeType: "UNDERCUTS",
+              strength: 1.0,
+              description: `Challenges inference in edge ${composerContext.targetEdge.edgeId}`,
+            }),
+          });
+
+          if (edgeResponse.ok) {
+            const newEdge = await edgeResponse.json();
+            setEdges([
+              ...edges,
+              {
+                id: newEdge.id,
+                source: newNode.id,
+                target: targetNodeId,
+                type: "chainEdge",
+                data: {
+                  edgeType: newEdge.edgeType,
+                  strength: newEdge.strength,
+                  description: newEdge.description,
+                },
+              },
+            ]);
+          }
+        }
+
+        // Auto-layout after adding
+        setTimeout(() => {
+          const layouted = getLayoutedElements(
+            [...nodes, { 
+              id: newNode.id, 
+              type: "argumentNode", 
+              position: nodePosition, 
+              data: { 
+                argument, 
+                role: newNode.role,
+                nodeOrder: newNode.nodeOrder,
+                addedBy: newNode.contributor || null,
+              } 
+            }],
+            edges,
+            "TB"
+          );
+          setNodes(layouted.nodes);
+          setEdges(layouted.edges);
+          fitView({ padding: 0.2, duration: 400 });
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Failed to add node to chain:", error);
+    }
+
+    setShowComposer(false);
+    setComposerContext(null);
+  }, [chainId, composerContext, nodes, edges, setNodes, setEdges, fitView]);
+
   // Auto-layout handler
   const handleAutoLayout = useCallback(() => {
     const layouted = getLayoutedElements(nodes, edges, "TB");
@@ -249,10 +444,13 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
         <ReactFlow
           nodes={nodes.map((node) => ({
             ...node,
-            // Add highlight styling to node data
+            // Add highlight styling and action handlers to node data
             data: {
               ...node.data,
               isHighlighted: highlightedNodes.includes(node.id),
+              isEditable,
+              onSupport: handleSupportNode,
+              onAttack: handleAttackNode,
             },
           }))}
           edges={edges.map((edge) => ({
@@ -262,6 +460,8 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
               ...edge.data,
               isTargeted: targetedEdgeId === edge.id,
               attackCount: edgeAttacks[edge.id] || 0,
+              isEditable,
+              onAttackEdge: handleAttackEdge,
             },
             // Update edge styling when targeted
             ...(targetedEdgeId === edge.id && {
@@ -348,7 +548,7 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
                   </button>
                 )}
                 
-                <AddNodeButton deliberationId={deliberationId} />
+                <AddNodeButton deliberationId={deliberationId} userId={currentUserId || undefined} />
                 <ChainMetadataPanel />
                 <ChainExportButton chainName={nodes.length > 0 ? "argument-chain" : undefined} />
                 <button
@@ -424,6 +624,22 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
 
       {/* Connection Editor Modal */}
       <ConnectionEditor />
+
+      {/* Chain Argument Composer for contextual argument creation */}
+      {currentUserId && deliberationId && (
+        <ChainArgumentComposer
+          open={showComposer}
+          onOpenChange={(open) => {
+            setShowComposer(open);
+            if (!open) setComposerContext(null);
+          }}
+          context={composerContext || undefined}
+          deliberationId={deliberationId}
+          userId={currentUserId}
+          chainId={chainId}
+          onCreated={handleComposerCreated}
+        />
+      )}
     </div>
   );
 };
