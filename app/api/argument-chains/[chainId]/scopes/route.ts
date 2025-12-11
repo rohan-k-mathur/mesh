@@ -63,7 +63,23 @@ export async function GET(
 
     // Transform BigInt for JSON serialization
     const transformedScopes = scopes.map((scope) => ({
-      ...scope,
+      id: scope.id,
+      chainId: scope.chainId,
+      scopeType: scope.scopeType,
+      assumption: scope.assumption,
+      description: scope.description,
+      color: scope.color,
+      depth: scope.depth,
+      parentScopeId: scope.parentScopeId,
+      createdBy: scope.createdBy?.toString() || null,
+      createdAt: scope.createdAt,
+      parentScope: scope.parentScope,
+      childScopes: scope.childScopes,
+      creator: scope.creator ? {
+        id: scope.creator.id.toString(),
+        name: scope.creator.name,
+        image: scope.creator.image,
+      } : null,
       nodeCount: scope.nodes.length,
       nodes: scope.nodes.map((n) => ({
         id: n.id,
@@ -180,8 +196,22 @@ export async function POST(
 
     // Transform BigInt
     const transformedScope = {
-      ...scope,
-      createdBy: scope.createdBy.toString(),
+      id: scope.id,
+      chainId: scope.chainId,
+      scopeType: scope.scopeType,
+      assumption: scope.assumption,
+      description: scope.description,
+      color: scope.color,
+      depth: scope.depth,
+      parentScopeId: scope.parentScopeId,
+      createdBy: scope.createdBy?.toString() || null,
+      createdAt: scope.createdAt,
+      parentScope: scope.parentScope,
+      creator: scope.creator ? {
+        id: scope.creator.id.toString(),
+        name: scope.creator.name,
+        image: scope.creator.image,
+      } : null,
       nodeCount: 0,
       nodes: [],
     };

@@ -96,7 +96,7 @@ export function CreateScopeDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="bg-slate-100 max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create Hypothetical Scope</DialogTitle>
           <DialogDescription>

@@ -22,7 +22,18 @@ import {
 } from "@/components/ui/select";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 import { getNewNodePosition } from "@/lib/utils/chainLayoutUtils";
-import { Shield, Swords, Plus, MessageSquare } from "lucide-react";
+import { Shield, Swords, Plus, MessageSquare, Lightbulb, GitBranch, ArrowRightCircle, HelpCircle, User2 } from "lucide-react";
+import { SCOPE_TYPE_CONFIG, type ScopeType } from "@/lib/types/argumentChain";
+
+/**
+ * Epistemic scope context for hypothetical/counterfactual arguments
+ */
+export interface EpistemicScopeContext {
+  scopeId: string;
+  scopeType: ScopeType;
+  assumption: string;
+  color?: string;
+}
 
 /**
  * Context for the chain argument composer
@@ -44,7 +55,8 @@ export interface ChainComposerContext {
   };
   suggestedRole?: string;
   suggestedScheme?: string;
-  scopeId?: string;
+  // Epistemic context - when composing within a hypothetical scope
+  epistemicScope?: EpistemicScopeContext;
 }
 
 interface ChainArgumentComposerProps {
@@ -66,6 +78,15 @@ const ROLE_OPTIONS = [
   { value: "REBUTTAL", label: "Rebuttal", description: "Responds to objection" },
   { value: "QUALIFIER", label: "Qualifier", description: "Adds conditions/scope" },
 ];
+
+// Icons for scope types
+const SCOPE_ICONS: Record<ScopeType, React.ReactNode> = {
+  HYPOTHETICAL: <Lightbulb className="w-4 h-4" />,
+  COUNTERFACTUAL: <GitBranch className="w-4 h-4" />,
+  CONDITIONAL: <ArrowRightCircle className="w-4 h-4" />,
+  OPPONENT: <User2 className="w-4 h-4" />,
+  MODAL: <HelpCircle className="w-4 h-4" />,
+};
 
 // Get default role based on context mode
 function getDefaultRole(context?: ChainComposerContext): string {
@@ -187,6 +208,16 @@ export function ChainArgumentComposer({
           accentColor: "green",
         };
       default:
+        // Check if we have an epistemic scope context without a specific mode
+        if (context?.epistemicScope) {
+          const scopeConfig = SCOPE_TYPE_CONFIG[context.epistemicScope.scopeType];
+          return {
+            title: `New ${scopeConfig.label} Argument`,
+            description: `Build an argument within: "${context.epistemicScope.assumption}"`,
+            icon: SCOPE_ICONS[context.epistemicScope.scopeType],
+            accentColor: "amber",
+          };
+        }
         return {
           title: "Create New Argument",
           description: "Build a structured argument with premises and conclusion",
@@ -197,6 +228,11 @@ export function ChainArgumentComposer({
   };
 
   const dialogContent = getDialogContent();
+  
+  // Get epistemic scope styling
+  const epistemicScope = context?.epistemicScope;
+  const scopeColor = epistemicScope?.color || 
+    (epistemicScope ? SCOPE_TYPE_CONFIG[epistemicScope.scopeType]?.color : null);
 
   const handleCreated = useCallback(
     async (argumentId: string, argument?: any) => {
@@ -316,7 +352,7 @@ export function ChainArgumentComposer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto space-y-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] bg-white overflow-y-auto ">
         <DialogHeader className="space-y-2">
           <DialogTitle className="flex items-center gap-2">
             {dialogContent.icon}
@@ -325,62 +361,50 @@ export function ChainArgumentComposer({
           <DialogDescription>{dialogContent.description}</DialogDescription>
         </DialogHeader>
 
-        {/* Context Banner */}
-        {/* {context && (
+        {/* Epistemic Scope Banner - shows when composing within a hypothetical scope */}
+        {epistemicScope && (
           <div
-            className={`p-3 rounded-lg border ${
-              context.mode === "attack"
-                ? context.attackType === "UNDERCUTS" 
-                  ? "bg-purple-50 border-purple-200"
-                  : context.attackType === "UNDERMINES"
-                  ? "bg-orange-50 border-orange-200"
-                  : "bg-red-50 border-red-200"
-                : "bg-green-50 border-green-200"
-            }`}
+            className="p-3 rounded-lg border-2 transition-all"
+            style={{
+              backgroundColor: `${scopeColor}10`,
+              borderColor: scopeColor || "#f59e0b",
+              borderStyle: SCOPE_TYPE_CONFIG[epistemicScope.scopeType]?.borderStyle || "solid",
+            }}
           >
-            <div className="flex items-start gap-2">
-              {dialogContent.icon}
-              <div className="flex-1">
+            <div className="flex items-start gap-3">
+              <div
+                className="flex items-center justify-center w-8 h-8 rounded-full shrink-0"
+                style={{ backgroundColor: `${scopeColor}25` }}
+              >
+                <span style={{ color: scopeColor }}>
+                  {SCOPE_ICONS[epistemicScope.scopeType]}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: scopeColor,
+                      color: "white",
+                    }}
+                  >
+                    {SCOPE_TYPE_CONFIG[epistemicScope.scopeType]?.label.toUpperCase()} SCOPE
+                  </span>
+                </div>
                 <p
-                  className={`text-sm font-medium ${
-                    context.mode === "attack"
-                      ? context.attackType === "UNDERCUTS"
-                        ? "text-purple-800"
-                        : context.attackType === "UNDERMINES"
-                        ? "text-orange-800"
-                        : "text-red-800"
-                      : "text-green-800"
-                  }`}
+                  className="text-sm font-medium mt-1.5"
+                  style={{ color: scopeColor }}
                 >
-                  {context.mode === "attack"
-                    ? context.attackType === "UNDERCUTS"
-                      ? "Challenging inference"
-                      : context.attackType === "UNDERMINES"
-                      ? "Undermining a premise"
-                      : "Creating an objection"
-                    : "Creating supporting evidence"}
+                  {epistemicScope.assumption}
                 </p>
-                <p
-                  className={`text-xs mt-1 ${
-                    context.mode === "attack"
-                      ? context.attackType === "UNDERCUTS"
-                        ? "text-purple-600"
-                        : context.attackType === "UNDERMINES"
-                        ? "text-orange-600"
-                        : "text-red-600"
-                      : "text-green-600"
-                  }`}
-                >
-                  {context.targetNode
-                    ? `Target: "${context.targetNode.conclusionText || "argument"}"`
-                    : context.targetEdge
-                    ? "Target: inference connection"
-                    : ""}
+                <p className="text-xs text-gray-500 mt-1">
+                  This argument will have <strong>hypothetical</strong> status and be grouped within this scope.
                 </p>
               </div>
             </div>
           </div>
-        )} */}
+        )}
 
         {/* Role selector */}
         <div className="p-1 bg-muted/50 rounded-lg">

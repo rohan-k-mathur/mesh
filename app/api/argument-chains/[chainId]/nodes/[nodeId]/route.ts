@@ -12,6 +12,15 @@ const updateNodeSchema = z.object({
   positionX: z.number().optional(),
   positionY: z.number().optional(),
   nodeOrder: z.number().optional(),
+  // Phase 4: Epistemic status fields
+  epistemicStatus: z
+    .enum(["ASSERTED", "HYPOTHETICAL", "COUNTERFACTUAL", "CONDITIONAL", "QUESTIONED", "DENIED", "SUSPENDED"])
+    .optional(),
+  scopeId: z.string().nullable().optional(),
+  dialecticalRole: z
+    .enum(["THESIS", "ANTITHESIS", "SYNTHESIS", "OBJECTION", "RESPONSE", "CONCESSION"])
+    .nullable()
+    .optional(),
 });
 
 export async function PATCH(
@@ -73,6 +82,20 @@ export async function PATCH(
           select: {
             id: true,
             text: true,
+            conclusion: {
+              select: {
+                id: true,
+                text: true,
+              },
+            },
+          },
+        },
+        scope: {
+          select: {
+            id: true,
+            scopeType: true,
+            assumption: true,
+            color: true,
           },
         },
       },

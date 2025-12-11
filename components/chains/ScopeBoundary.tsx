@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { NodeProps, Handle, Position } from "reactflow";
+import { NodeProps } from "reactflow";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -50,11 +50,15 @@ export interface ScopeBoundaryData {
   nodeCount: number;
   depth?: number;
   parentScopeId?: string;
+  // Visual state
+  isDragOver?: boolean;
+  isHypotheticalMode?: boolean;
   // Actions
   onEdit?: (scopeId: string) => void;
   onDelete?: (scopeId: string) => void;
   onAddNode?: (scopeId: string) => void;
   onToggleCollapse?: (scopeId: string) => void;
+  onEnterMode?: (scopeId: string) => void;
 }
 
 interface ScopeBoundaryProps extends NodeProps<ScopeBoundaryData> {}
@@ -76,9 +80,11 @@ const ScopeBoundary: React.FC<ScopeBoundaryProps> = ({ id, data, selected }) => 
   const color = data.color || config.color;
   const isCollapsed = data.collapsed ?? false;
   const depth = data.depth ?? 0;
+  const isDragOver = data.isDragOver ?? false;
+  const isHypotheticalMode = data.isHypotheticalMode ?? false;
 
   // Calculate visual properties based on depth
-  const borderWidth = Math.max(2, 3 - depth * 0.5);
+  const borderWidth = isDragOver ? 3 : Math.max(2, 3 - depth * 0.5);
   const headerOpacity = Math.max(0.7, 1 - depth * 0.1);
 
   return (
@@ -86,14 +92,18 @@ const ScopeBoundary: React.FC<ScopeBoundaryProps> = ({ id, data, selected }) => 
       className={cn(
         "relative min-w-[320px] min-h-[200px] rounded-xl transition-all duration-200",
         selected && "ring-2 ring-offset-2",
-        isCollapsed && "min-h-[60px]"
+        isCollapsed && "min-h-[60px]",
+        isDragOver && "ring-4 ring-offset-2",
+        isHypotheticalMode && "shadow-lg"
       )}
       style={{
-        backgroundColor: `${color}08`, // Very light background
+        backgroundColor: isDragOver ? `${color}15` : `${color}08`,
         borderWidth: `${borderWidth}px`,
-        borderStyle: config.borderStyle,
+        borderStyle: isDragOver ? "solid" : config.borderStyle,
         borderColor: color,
         ...(selected && { ringColor: color }),
+        ...(isDragOver && { ringColor: `${color}60` }),
+        ...(isHypotheticalMode && { boxShadow: `0 0 20px ${color}40` }),
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -161,8 +171,34 @@ const ScopeBoundary: React.FC<ScopeBoundaryProps> = ({ id, data, selected }) => 
           </div>
         </div>
 
-        {/* Right: Node Count & Actions */}
+        {/* Right: Mode indicator, Node Count & Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Active Mode Indicator */}
+          {isHypotheticalMode && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse"
+              style={{
+                backgroundColor: color,
+                color: "white",
+              }}
+            >
+              ACTIVE
+            </span>
+          )}
+          
+          {/* Drag Over Indicator */}
+          {isDragOver && (
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              style={{
+                backgroundColor: `${color}30`,
+                color,
+              }}
+            >
+              Drop here
+            </span>
+          )}
+          
           {/* Node Count */}
           <span
             className="text-xs font-medium px-1.5 py-0.5 rounded"
@@ -175,7 +211,7 @@ const ScopeBoundary: React.FC<ScopeBoundaryProps> = ({ id, data, selected }) => 
           </span>
 
           {/* Actions Menu */}
-          {(isHovered || selected) && (data.onEdit || data.onDelete || data.onAddNode) && (
+          {(isHovered || selected) && (data.onEdit || data.onDelete || data.onAddNode || data.onEnterMode) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -185,7 +221,20 @@ const ScopeBoundary: React.FC<ScopeBoundaryProps> = ({ id, data, selected }) => 
                   <MoreHorizontal size={16} style={{ color }} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuContent align="end" className="w-48">
+                {data.onEnterMode && (
+                  <DropdownMenuItem
+                    onClick={() => data.onEnterMode?.(id)}
+                    className="gap-2 cursor-pointer font-medium"
+                    style={{ color }}
+                  >
+                    <Sparkles size={14} />
+                    Enter Hypothetical Mode
+                  </DropdownMenuItem>
+                )}
+                {data.onEnterMode && (data.onAddNode || data.onEdit) && (
+                  <DropdownMenuSeparator />
+                )}
                 {data.onAddNode && (
                   <DropdownMenuItem
                     onClick={() => data.onAddNode?.(id)}
