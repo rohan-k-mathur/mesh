@@ -16,6 +16,9 @@ import {
   ArrowDown,
   AlertTriangle,
   Waypoints,
+  Lightbulb,
+  GitBranch,
+  HelpCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -41,6 +44,66 @@ const roleLabels: Record<string, string> = {
   REBUTTAL: "Rebuttal",
   QUALIFIER: "Qualifier",
   COMMENT: "Comment",
+};
+
+// ===== Epistemic Status Styling (Phase 4) =====
+
+const epistemicStatusConfig: Record<string, { 
+  icon: React.ReactNode; 
+  label: string; 
+  bg: string; 
+  text: string; 
+  border: string;
+}> = {
+  ASSERTED: { 
+    icon: null, // Default - no icon needed
+    label: "Asserted", 
+    bg: "bg-green-50", 
+    text: "text-green-700", 
+    border: "border-green-200" 
+  },
+  HYPOTHETICAL: { 
+    icon: <Lightbulb className="w-3 h-3" />, 
+    label: "Hypothetical", 
+    bg: "bg-amber-50", 
+    text: "text-amber-700", 
+    border: "border-amber-200" 
+  },
+  COUNTERFACTUAL: { 
+    icon: <GitBranch className="w-3 h-3" />, 
+    label: "Counterfactual", 
+    bg: "bg-purple-50", 
+    text: "text-purple-700", 
+    border: "border-purple-200" 
+  },
+  CONDITIONAL: { 
+    icon: <HelpCircle className="w-3 h-3" />, 
+    label: "Conditional", 
+    bg: "bg-blue-50", 
+    text: "text-blue-700", 
+    border: "border-blue-200" 
+  },
+  QUESTIONED: { 
+    icon: <HelpCircle className="w-3 h-3" />, 
+    label: "Questioned", 
+    bg: "bg-gray-50", 
+    text: "text-gray-600", 
+    border: "border-gray-200" 
+  },
+  DENIED: { 
+    icon: null, 
+    label: "Denied", 
+    bg: "bg-red-50", 
+    text: "text-red-700", 
+    border: "border-red-200" 
+  },
+  SUSPENDED: { 
+    icon: null, 
+    label: "Suspended", 
+    bg: "bg-orange-50", 
+    text: "text-orange-600", 
+    border: "border-orange-200" 
+  },
 };
 
 // ===== Edge Connector Component =====
@@ -155,6 +218,15 @@ export function ThreadNode({
         {item.position + 1}
       </div>
 
+      {/* Scope Context Indicator */}
+      {item.scope && (
+        <div 
+          className="absolute -left-2 top-0 bottom-0 w-1 rounded-full"
+          style={{ backgroundColor: item.scope.color || "#6366f1" }}
+          title={`Scope: ${item.scope.assumption}`}
+        />
+      )}
+
       {/* Main Card */}
       <div
         className={cn(
@@ -162,7 +234,8 @@ export function ThreadNode({
           "bg-white shadow-sm hover:shadow-md",
           roleStyle.border,
           item.isCurrent && "ring-2 ring-yellow-400 shadow-lg",
-          item.attackingNodes.length > 0 && "border-l-4 border-l-red-400"
+          item.attackingNodes.length > 0 && "border-l-4 border-l-red-400",
+          item.scope && "ml-1" // Slight indent for scoped items
         )}
       >
         {/* Header */}
@@ -186,6 +259,24 @@ export function ThreadNode({
               </Badge>
             )}
 
+            {/* Epistemic Status Badge */}
+            {item.epistemicStatus && item.epistemicStatus !== "ASSERTED" && (
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[9px] font-medium",
+                  epistemicStatusConfig[item.epistemicStatus]?.bg,
+                  epistemicStatusConfig[item.epistemicStatus]?.text,
+                  epistemicStatusConfig[item.epistemicStatus]?.border
+                )}
+              >
+                {epistemicStatusConfig[item.epistemicStatus]?.icon && (
+                  <span className="mr-1">{epistemicStatusConfig[item.epistemicStatus]?.icon}</span>
+                )}
+                {epistemicStatusConfig[item.epistemicStatus]?.label || item.epistemicStatus}
+              </Badge>
+            )}
+
             {/* SchemeNet Indicator */}
             {item.hasSchemeNet && (
               <div 
@@ -203,6 +294,25 @@ export function ThreadNode({
             #{item.nodeOrder}
           </span>
         </div>
+
+        {/* Scope Context Banner */}
+        {item.scope && (
+          <div 
+            className="px-3 py-1.5 text-[10px] font-medium border-b flex items-center gap-1.5"
+            style={{ 
+              backgroundColor: `${item.scope.color || "#6366f1"}10`,
+              borderColor: `${item.scope.color || "#6366f1"}30`
+            }}
+          >
+            <span 
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: item.scope.color || "#6366f1" }}
+            />
+            <span className="text-slate-600">
+              {item.scope.scopeType}: <span className="italic">"{item.scope.assumption}"</span>
+            </span>
+          </div>
+        )}
 
         {/* Content */}
         <div className="px-3 py-3 space-y-2">

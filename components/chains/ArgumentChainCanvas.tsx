@@ -113,11 +113,24 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
     setChainMetadata({ chainId });
   }, [chainId, setChainMetadata]);
 
-  // Fetch and load chain data
+  // Fetch and load chain data (including metadata)
   useEffect(() => {
     const loadChain = async () => {
       setIsLoading(true);
       try {
+        // Load chain metadata first
+        const chainResponse = await fetch(`/api/argument-chains/${chainId}`);
+        if (chainResponse.ok) {
+          const { chain } = await chainResponse.json();
+          // Populate store with chain metadata for ChainMetadataPanel
+          setChainMetadata({
+            chainId,
+            chainName: chain.name || "",
+            chainType: chain.chainType || "SERIAL",
+            isPublic: chain.isPublic || false,
+          });
+        }
+
         // Load nodes and edges
         const response = await fetch(`/api/argument-chains/${chainId}/nodes`);
         if (response.ok) {

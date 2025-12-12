@@ -15,7 +15,7 @@
  * - Task 3.8: ARGUMENT_CHAIN_TASK_3.8_COMPLETE.md
  */
 
-import type { ArgumentChainWithRelations, ArgumentChainNodeWithArgument } from "@/lib/types/argumentChain";
+import type { ArgumentChainWithRelations, ArgumentChainNodeWithArgument, EpistemicStatus, DialecticalRole, ScopeType } from "@/lib/types/argumentChain";
 
 // ============================================================================
 // Type Definitions
@@ -24,8 +24,17 @@ import type { ArgumentChainWithRelations, ArgumentChainNodeWithArgument } from "
 export interface AifNode {
   nodeID: string;
   text: string;
-  type: "I" | "S" | "RA" | "CA" | "PA" | "MA";
+  type: "I" | "S" | "RA" | "CA" | "PA" | "MA" | "CTX";
   timestamp?: string;
+  // Phase 4: Mesh extensions for epistemic/scope data
+  "mesh:epistemicStatus"?: EpistemicStatus;
+  "mesh:dialecticalRole"?: DialecticalRole | null;
+  "mesh:scopeId"?: string | null;
+  // Context node specific fields
+  "mesh:scopeType"?: ScopeType;
+  "mesh:assumption"?: string;
+  "mesh:parentScopeId"?: string | null;
+  "mesh:color"?: string | null;
 }
 
 export interface AifEdge {
@@ -38,6 +47,7 @@ export interface AifEdge {
 export interface AifDocument {
   "@context": {
     AIF: string;
+    mesh: string;
     [key: string]: string;
   };
   nodes: AifNode[];
@@ -45,6 +55,8 @@ export interface AifDocument {
   locutions: AifLocution[];
   participants?: AifParticipant[];
   schemeSets?: AifSchemeSet[];
+  // Phase 4: Scope contexts
+  contexts?: AifScopeContext[];
   metadata?: {
     chainId: string;
     chainName: string;
@@ -54,7 +66,30 @@ export interface AifDocument {
     exportedAt: string;
     nodeCount: number;
     edgeCount: number;
+    // Phase 4: Enhanced metadata
+    epistemicBreakdown?: Record<EpistemicStatus, number>;
+    scopeCount?: number;
+    scopes?: AifScopeMetadata[];
   };
+}
+
+// Phase 4: Scope context for AIF export
+export interface AifScopeContext {
+  contextID: string;
+  scopeType: ScopeType;
+  assumption: string;
+  color?: string | null;
+  parentContextID?: string | null;
+  nodeCount: number;
+}
+
+// Phase 4: Scope metadata summary
+export interface AifScopeMetadata {
+  id: string;
+  type: ScopeType;
+  assumption: string;
+  nodeCount: number;
+  parentId?: string | null;
 }
 
 export interface AifLocution {
@@ -126,6 +161,34 @@ function extractCriticalQuestions(cq: any): string[] | undefined {
   return questions.length > 0 ? questions : undefined;
 }
 
+/**
+ * Calculate epistemic status breakdown across all nodes
+ * @param nodes - Array of chain nodes
+ * @returns Record mapping each status to its count
+ */
+function calculateEpistemicBreakdown(
+  nodes: ArgumentChainNodeWithArgument[]
+): Record<EpistemicStatus, number> {
+  const breakdown: Record<EpistemicStatus, number> = {
+    ASSERTED: 0,
+    HYPOTHETICAL: 0,
+    COUNTERFACTUAL: 0,
+    CONDITIONAL: 0,
+    QUESTIONED: 0,
+    DENIED: 0,
+    SUSPENDED: 0,
+  };
+
+  for (const node of nodes) {
+    const status = (node as any).epistemicStatus || "ASSERTED";
+    if (status in breakdown) {
+      breakdown[status as EpistemicStatus]++;
+    }
+  }
+
+  return breakdown;
+}
+
 // ============================================================================
 // Main Conversion Function
 // ============================================================================
@@ -148,13 +211,59 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
   const locutions: AifLocution[] = [];
   const participants = new Map<string, AifParticipant>();
   const schemeSets = new Map<string, AifSchemeSet>();
+  const contexts: AifScopeContext[] = [];
 
   // Track node mappings
   const nodeIdMap = new Map<string, string>(); // ChainNode.id → AIF I-node ID
   const argumentIdMap = new Map<string, string>(); // Argument.id → AIF RA-node ID
+  const scopeNodeCounts = new Map<string, number>(); // Scope ID → node count
 
   // ========================================================================
-  // Step 1: Convert ChainNodes to I-nodes
+  // Step 0: Process Scopes into Context nodes (Phase 4)
+  // ========================================================================
+  
+  if (chain.scopes && chain.scopes.length > 0) {
+    for (const scope of chain.scopes) {
+      const contextId = `CTX_${scope.id}`;
+      
+      // Count nodes in this scope
+      const nodeCount = chain.nodes.filter((n: any) => n.scopeId === scope.id).length;
+      scopeNodeCounts.set(scope.id, nodeCount);
+      
+      // Create context node in the nodes array
+      nodes.push({
+        nodeID: contextId,
+        text: `[${scope.scopeType}] ${scope.assumption}`,
+        type: "CTX",
+        "mesh:scopeType": scope.scopeType as ScopeType,
+        "mesh:assumption": scope.assumption,
+        "mesh:parentScopeId": scope.parentId || null,
+        "mesh:color": scope.color || null,
+      });
+      
+      // Add to contexts array for structured access
+      contexts.push({
+        contextID: contextId,
+        scopeType: scope.scopeType as ScopeType,
+        assumption: scope.assumption,
+        color: scope.color || null,
+        parentContextID: scope.parentId ? `CTX_${scope.parentId}` : null,
+        nodeCount,
+      });
+
+      // If this scope has a parent, create an edge linking them
+      if (scope.parentId) {
+        edges.push({
+          edgeID: `E_scope_${scope.id}_parent`,
+          fromID: contextId,
+          toID: `CTX_${scope.parentId}`,
+        });
+      }
+    }
+  }
+
+  // ========================================================================
+  // Step 1: Convert ChainNodes to I-nodes (with Phase 4 extensions)
   // ========================================================================
   
   for (const chainNode of chain.nodes) {
@@ -174,12 +283,30 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
     // Get the best text representation for this argument
     const argumentText = getArgumentText(argument, chainNode.role);
     
+    // Phase 4: Extract epistemic status and dialectical role
+    const epistemicStatus = (chainNode as any).epistemicStatus || "ASSERTED";
+    const dialecticalRole = (chainNode as any).dialecticalRole || null;
+    const scopeId = (chainNode as any).scopeId || null;
+
     nodes.push({
       nodeID: iNodeId,
       text: argumentText,
       type: "I",
       timestamp: nodeTimestamp,
+      // Phase 4: Mesh extensions
+      "mesh:epistemicStatus": epistemicStatus as EpistemicStatus,
+      "mesh:dialecticalRole": dialecticalRole as DialecticalRole | null,
+      "mesh:scopeId": scopeId,
     });
+
+    // Phase 4: If node is in a scope, create edge linking I-node to context
+    if (scopeId) {
+      edges.push({
+        edgeID: `E_${iNodeId}_scope`,
+        fromID: iNodeId,
+        toID: `CTX_${scopeId}`,
+      });
+    }
 
     // Create RA-node for the argument's inference
     const raNodeId = `RA_${argument.id}`;
@@ -305,12 +432,23 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
       schemeName: "AIF:schemeName",
       schemeDescription: "AIF:schemeDescription",
       criticalQuestions: "AIF:criticalQuestions",
+      // Phase 4: Mesh namespace for epistemic/scope extensions
+      "mesh:epistemicStatus": "mesh:epistemicStatus",
+      "mesh:dialecticalRole": "mesh:dialecticalRole",
+      "mesh:scopeId": "mesh:scopeId",
+      "mesh:scopeType": "mesh:scopeType",
+      "mesh:assumption": "mesh:assumption",
+      "mesh:parentScopeId": "mesh:parentScopeId",
+      "mesh:color": "mesh:color",
+      contextID: "mesh:contextID",
     },
     nodes,
     edges,
     locutions,
     participants: Array.from(participants.values()),
     schemeSets: Array.from(schemeSets.values()),
+    // Phase 4: Include scope contexts
+    contexts: contexts.length > 0 ? contexts : undefined,
     metadata: {
       chainId: chain.id,
       chainName: chain.chainName || "Untitled Chain",
@@ -324,6 +462,18 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
       exportedAt: new Date().toISOString(),
       nodeCount: nodes.length,
       edgeCount: edges.length,
+      // Phase 4: Enhanced metadata
+      epistemicBreakdown: calculateEpistemicBreakdown(chain.nodes as any[]),
+      scopeCount: contexts.length,
+      scopes: contexts.length > 0 
+        ? contexts.map(ctx => ({
+            id: ctx.contextID.replace("CTX_", ""),
+            type: ctx.scopeType,
+            assumption: ctx.assumption,
+            nodeCount: ctx.nodeCount,
+            parentId: ctx.parentContextID?.replace("CTX_", "") || null,
+          }))
+        : undefined,
     },
   };
 }
@@ -394,9 +544,35 @@ export function validateAifDocument(aifDoc: AifDocument): {
     }
     nodeIds.add(node.nodeID);
 
-    // Check node type
-    if (!["I", "S", "RA", "CA", "PA", "MA"].includes(node.type)) {
+    // Check node type (include CTX for Phase 4 context nodes)
+    if (!["I", "S", "RA", "CA", "PA", "MA", "CTX"].includes(node.type)) {
       errors.push(`Invalid node type: ${node.type} for node ${node.nodeID}`);
+    }
+
+    // Phase 4: Validate epistemic status if present
+    if (node["mesh:epistemicStatus"]) {
+      const validStatuses = ["ASSERTED", "HYPOTHETICAL", "COUNTERFACTUAL", "CONDITIONAL", "QUESTIONED", "DENIED", "SUSPENDED"];
+      if (!validStatuses.includes(node["mesh:epistemicStatus"])) {
+        errors.push(`Invalid epistemic status: ${node["mesh:epistemicStatus"]} for node ${node.nodeID}`);
+      }
+    }
+
+    // Phase 4: Validate dialectical role if present
+    if (node["mesh:dialecticalRole"]) {
+      const validRoles = ["THESIS", "ANTITHESIS", "SYNTHESIS", "OBJECTION", "RESPONSE", "CONCESSION"];
+      if (!validRoles.includes(node["mesh:dialecticalRole"])) {
+        errors.push(`Invalid dialectical role: ${node["mesh:dialecticalRole"]} for node ${node.nodeID}`);
+      }
+    }
+
+    // Phase 4: Validate context nodes have required fields
+    if (node.type === "CTX") {
+      if (!node["mesh:scopeType"]) {
+        errors.push(`Context node ${node.nodeID} missing required mesh:scopeType`);
+      }
+      if (!node["mesh:assumption"]) {
+        errors.push(`Context node ${node.nodeID} missing required mesh:assumption`);
+      }
     }
   }
 

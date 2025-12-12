@@ -122,6 +122,15 @@ export async function GET(
                 image: true,
               },
             },
+            // Phase 4: Include scope information
+            scope: {
+              select: {
+                id: true,
+                scopeType: true,
+                assumption: true,
+                color: true,
+              },
+            },
           },
           orderBy: {
             nodeOrder: "asc",
@@ -161,6 +170,21 @@ export async function GET(
                 },
               },
             },
+          },
+        },
+        // Phase 4: Include all scopes for the chain
+        scopes: {
+          select: {
+            id: true,
+            scopeType: true,
+            assumption: true,
+            color: true,
+            parentId: true,
+            createdBy: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: "asc",
           },
         },
       },
@@ -215,6 +239,11 @@ export async function GET(
           addedBy: edge.targetNode.addedBy.toString(),
         } : null,
       })),
+      // Phase 4: Serialize scopes
+      scopes: chain.scopes?.map((scope) => ({
+        ...scope,
+        createdBy: scope.createdBy.toString(),
+      })) || [],
     };
 
     return NextResponse.json({ ok: true, chain: serializedChain }, NO_STORE);

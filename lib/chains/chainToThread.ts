@@ -5,7 +5,7 @@
  * Task 1.4: Create chainToThread() utility (topological sort → linear)
  */
 
-import { ArgumentChainWithRelations, ArgumentChainNodeWithArgument, ArgumentChainEdgeWithNodes } from "@/lib/types/argumentChain";
+import { ArgumentChainWithRelations, ArgumentChainNodeWithArgument, ArgumentChainEdgeWithNodes, ScopeType, EpistemicStatus } from "@/lib/types/argumentChain";
 
 // ===== Types =====
 
@@ -28,6 +28,16 @@ export interface ThreadItem {
   // Role & metadata
   role: string;
   nodeOrder: number;
+  
+  // Phase 4: Epistemic Status & Scopes
+  epistemicStatus?: EpistemicStatus;
+  dialecticalRole?: string;
+  scope?: {
+    id: string;
+    scopeType: ScopeType;
+    assumption: string;
+    color?: string | null;
+  } | null;
   
   // Contributor
   contributor: {
@@ -319,6 +329,16 @@ export function chainToThread(
       role: node.role || "PREMISE",
       nodeOrder: node.nodeOrder,
       
+      // Phase 4: Epistemic Status & Scope
+      epistemicStatus: (node as any).epistemicStatus || "ASSERTED",
+      dialecticalRole: (node as any).dialecticalRole,
+      scope: (node as any).scope ? {
+        id: (node as any).scope.id,
+        scopeType: (node as any).scope.scopeType,
+        assumption: (node as any).scope.assumption,
+        color: (node as any).scope.color,
+      } : null,
+      
       contributor: node.contributor,
       
       incomingEdges: incomingMap.get(node.id) || [],
@@ -356,6 +376,16 @@ export function chainToThread(
       
       role: node.role || "COMMENT",
       nodeOrder: node.nodeOrder,
+      
+      // Phase 4: Epistemic Status & Scope
+      epistemicStatus: (node as any).epistemicStatus || "ASSERTED",
+      dialecticalRole: (node as any).dialecticalRole,
+      scope: (node as any).scope ? {
+        id: (node as any).scope.id,
+        scopeType: (node as any).scope.scopeType,
+        assumption: (node as any).scope.assumption,
+        color: (node as any).scope.color,
+      } : null,
       
       contributor: node.contributor,
       

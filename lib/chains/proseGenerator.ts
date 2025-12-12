@@ -25,6 +25,14 @@ export interface ProseOptions {
   includeMetadata?: boolean;
   /** Maximum characters per argument elaboration */
   maxElaborationLength?: number;
+  /** Include chain type description in introduction (Phase 4) */
+  includeChainTypeDescription?: boolean;
+  /** Apply epistemic status language prefixes/suffixes (Phase 4) */
+  includeEpistemicLanguage?: boolean;
+  /** Group arguments by scope (Phase 4 - Phase C) */
+  groupByScope?: boolean;
+  /** Adjust flow based on chain type (Phase 4 - Phase C) */
+  adjustFlowForChainType?: boolean;
 }
 
 export interface ProseResult {
@@ -348,11 +356,455 @@ const SCHEME_TEMPLATES: Record<string, SchemeTemplate> = {
     supportTransition: "This position is further supported by",
     attackTransition: "This argument faces the objection that",
     criticalQuestions: [
+
       "Are the premises well-established?",
       "Does the conclusion follow from the premises?"
     ]
   }
 };
+
+// ===== Chain Type Descriptions (Phase 4) =====
+
+const CHAIN_TYPE_DESCRIPTIONS: Record<string, {
+  intro: string;
+  structure: string;
+  flowHint: string;
+}> = {
+  SERIAL: {
+    intro: "This argument proceeds as a chain of sequential reasoning",
+    structure: "Each step builds upon the previous, forming a linear inferential path from initial premises to final conclusion.",
+    flowHint: "follows a step-by-step progression"
+  },
+  CONVERGENT: {
+    intro: "Multiple independent lines of reasoning converge to support a central conclusion",
+    structure: "Several distinct arguments, each with their own premises and warrants, combine their force to establish a shared thesis.",
+    flowHint: "brings together complementary perspectives"
+  },
+  DIVERGENT: {
+    intro: "From a foundational claim, several distinct implications and conclusions emerge",
+    structure: "A single premise or established fact gives rise to multiple independent conclusions, each warranting separate consideration.",
+    flowHint: "branches into multiple applications"
+  },
+  TREE: {
+    intro: "This argument exhibits a hierarchical structure",
+    structure: "Moving from general principles to specific applications, the reasoning branches at key points to address distinct aspects of the matter.",
+    flowHint: "proceeds from broad principles to specific conclusions"
+  },
+  GRAPH: {
+    intro: "The argumentative structure forms an interconnected network of claims and inferences",
+    structure: "Arguments relate to one another in complex ways, with support, attack, and qualification relationships creating a rich deliberative fabric.",
+    flowHint: "navigates an interconnected web of considerations"
+  }
+};
+
+// ===== Epistemic Status Language (Phase 4) =====
+
+const EPISTEMIC_LANGUAGE: Record<string, {
+  prefix: string;
+  suffix: string;
+  contextPhrase: string;
+}> = {
+  ASSERTED: {
+    prefix: "",
+    suffix: "",
+    contextPhrase: ""
+  },
+  HYPOTHETICAL: {
+    prefix: "Suppose, for the sake of argument, that ",
+    suffix: "",
+    contextPhrase: "Under this hypothesis, "
+  },
+  COUNTERFACTUAL: {
+    prefix: "Had it been the case that ",
+    suffix: ", though we know this to be contrary to fact",
+    contextPhrase: "In this counterfactual scenario, "
+  },
+  CONDITIONAL: {
+    prefix: "If we accept that ",
+    suffix: "",
+    contextPhrase: "Given this condition, "
+  },
+  QUESTIONED: {
+    prefix: "It remains an open question whether ",
+    suffix: "—this matter awaits further examination",
+    contextPhrase: "Pending resolution of this question, "
+  },
+  DENIED: {
+    prefix: "While it has been argued that ",
+    suffix: "—though this claim has been rejected",
+    contextPhrase: "Despite the denial, some maintain that "
+  },
+  SUSPENDED: {
+    prefix: "Setting aside for the moment the question of whether ",
+    suffix: "",
+    contextPhrase: "Bracketing this consideration, "
+  }
+};
+
+/**
+ * Get epistemic prefix for argument text
+ */
+function getEpistemicPrefix(status: string | null | undefined): string {
+  if (!status || status === "ASSERTED") return "";
+  return EPISTEMIC_LANGUAGE[status]?.prefix || "";
+}
+
+/**
+ * Get epistemic suffix for argument text
+ */
+function getEpistemicSuffix(status: string | null | undefined): string {
+  if (!status || status === "ASSERTED") return "";
+  return EPISTEMIC_LANGUAGE[status]?.suffix || "";
+}
+
+/**
+ * Get epistemic context phrase for transitions
+ */
+function getEpistemicContextPhrase(status: string | null | undefined): string {
+  if (!status || status === "ASSERTED") return "";
+  return EPISTEMIC_LANGUAGE[status]?.contextPhrase || "";
+}
+
+// ===== Scope Section Generation (Phase C) =====
+
+/**
+ * Scope introduction phrases by type
+ */
+const SCOPE_INTRODUCTIONS: Record<string, {
+  opening: string;
+  transition: string;
+  closing: string;
+}> = {
+  HYPOTHETICAL: {
+    opening: "For the sake of argument, let us assume",
+    transition: "Under this hypothesis, we consider the following arguments:",
+    closing: "This hypothetical analysis illuminates potential implications worth considering."
+  },
+  COUNTERFACTUAL: {
+    opening: "Consider a counterfactual scenario in which",
+    transition: "Contrary to the actual state of affairs, in this alternative scenario:",
+    closing: "Though contrary to fact, this counterfactual analysis reveals important structural features of the argument."
+  },
+  CONDITIONAL: {
+    opening: "Under the condition that",
+    transition: "Given this conditional framework, the following reasoning applies:",
+    closing: "The conditional nature of these arguments should inform their application."
+  },
+  OPPONENT: {
+    opening: "From the opposing perspective, which maintains that",
+    transition: "This opposing view advances the following arguments:",
+    closing: "Understanding this opposing position is essential for a complete analysis."
+  },
+  MODAL: {
+    opening: "In a possible world where",
+    transition: "Within this modal context, we find:",
+    closing: "This modal analysis expands our understanding of the argumentative space."
+  }
+};
+
+/**
+ * Interface for scope data with nodes
+ */
+interface ScopeWithNodes {
+  id: string;
+  scopeType: string;
+  assumption: string;
+  color?: string | null;
+  parentId?: string | null;
+  nodes: ArgumentChainNodeWithArgument[];
+  childScopes?: ScopeWithNodes[];
+}
+
+/**
+ * Group nodes by their scope assignment
+ */
+function groupNodesByScope(
+  nodes: ArgumentChainNodeWithArgument[],
+  scopes: any[] | undefined
+): { unscopedNodes: ArgumentChainNodeWithArgument[]; scopedGroups: ScopeWithNodes[] } {
+  const unscopedNodes: ArgumentChainNodeWithArgument[] = [];
+  const scopeMap = new Map<string, ScopeWithNodes>();
+
+  // Initialize scope groups
+  if (scopes) {
+    for (const scope of scopes) {
+      scopeMap.set(scope.id, {
+        id: scope.id,
+        scopeType: scope.scopeType,
+        assumption: scope.assumption,
+        color: scope.color,
+        parentId: scope.parentId,
+        nodes: [],
+        childScopes: []
+      });
+    }
+  }
+
+  // Assign nodes to scopes or unscoped list
+  for (const node of nodes) {
+    const scopeId = (node as any).scopeId;
+    if (scopeId && scopeMap.has(scopeId)) {
+      scopeMap.get(scopeId)!.nodes.push(node);
+    } else {
+      unscopedNodes.push(node);
+    }
+  }
+
+  // Build scope hierarchy (nest child scopes under parents)
+  const rootScopes: ScopeWithNodes[] = [];
+  for (const scope of scopeMap.values()) {
+    if (scope.parentId && scopeMap.has(scope.parentId)) {
+      scopeMap.get(scope.parentId)!.childScopes?.push(scope);
+    } else {
+      rootScopes.push(scope);
+    }
+  }
+
+  return { unscopedNodes, scopedGroups: rootScopes };
+}
+
+/**
+ * Generate prose section for a single scope
+ */
+function generateScopeSection(
+  scope: ScopeWithNodes,
+  sectionNumber: string,
+  style: string,
+  includeNumbering: boolean,
+  includeCriticalQuestions: boolean,
+  includeEpistemicLanguage: boolean,
+  nodeById: Map<string, ArgumentChainNodeWithArgument>,
+  edges: any[],
+  depth: number = 0
+): ProseSection {
+  const scopeIntro = SCOPE_INTRODUCTIONS[scope.scopeType] || SCOPE_INTRODUCTIONS.HYPOTHETICAL;
+  const indent = "  ".repeat(depth);
+  
+  const contentParts: string[] = [];
+  
+  // Scope header with assumption
+  contentParts.push(`${indent}**${scopeIntro.opening}:** "${scope.assumption}"\n`);
+  contentParts.push(`${indent}${scopeIntro.transition}\n`);
+  
+  // Generate prose for each node in this scope
+  scope.nodes.forEach((node, index) => {
+    const argNumber = includeNumbering ? `${sectionNumber}.${index + 1}. ` : "";
+    const argText = getArgumentText(node);
+    const schemeInfo = getSchemeInfo(node);
+    
+    const epistemicStatus = (node as any).epistemicStatus as string | null;
+    const premises = getArgumentPremises(node);
+    const implicitWarrant = getImplicitWarrant(node);
+    
+    const paragraphs: string[] = [];
+    
+    // Opening with scheme introduction
+    const introduction = generateSchemeIntroduction(schemeInfo);
+    
+    // Apply epistemic language
+    let formattedArgText = cleanText(argText);
+    if (includeEpistemicLanguage && epistemicStatus && epistemicStatus !== "ASSERTED") {
+      const prefix = getEpistemicPrefix(epistemicStatus);
+      const suffix = getEpistemicSuffix(epistemicStatus);
+      if (prefix) {
+        formattedArgText = `${prefix}${formattedArgText.charAt(0).toLowerCase()}${formattedArgText.slice(1)}`;
+      }
+      if (suffix) {
+        formattedArgText = `${formattedArgText}${suffix}`;
+      }
+    }
+    
+    const opening = `${indent}${argNumber}${introduction}: "${formattedArgText}"`;
+    paragraphs.push(opening);
+    
+    // Scheme elaboration for detailed styles
+    if (style === "legal_brief" || style === "academic") {
+      const elaboration = generateSchemeElaboration(schemeInfo);
+      paragraphs.push(`${indent}${elaboration}`);
+      
+      // Premise analysis
+      const premiseAnalysis = generatePremiseAnalysis(premises, implicitWarrant);
+      if (premiseAnalysis) {
+        paragraphs.push(`${indent}${premiseAnalysis}`);
+      }
+    }
+    
+    contentParts.push(paragraphs.join("\n\n"));
+  });
+  
+  // Recursively generate nested scopes
+  if (scope.childScopes && scope.childScopes.length > 0) {
+    scope.childScopes.forEach((childScope, index) => {
+      const childSection = generateScopeSection(
+        childScope,
+        `${sectionNumber}.${scope.nodes.length + index + 1}`,
+        style,
+        includeNumbering,
+        includeCriticalQuestions,
+        includeEpistemicLanguage,
+        nodeById,
+        edges,
+        depth + 1
+      );
+      contentParts.push(`\n${childSection.content}`);
+    });
+  }
+  
+  // Scope closing
+  contentParts.push(`\n${indent}${scopeIntro.closing}`);
+  
+  return {
+    id: `scope_${scope.id}`,
+    heading: `${scope.scopeType}: ${scope.assumption}`,
+    content: contentParts.join("\n\n"),
+    type: "analysis"
+  };
+}
+
+/**
+ * Generate chain-type-specific flow structure
+ */
+function generateChainTypeFlow(
+  chainType: string,
+  nodes: ArgumentChainNodeWithArgument[],
+  edges: any[],
+  nodeById: Map<string, ArgumentChainNodeWithArgument>
+): { structuredNodes: ArgumentChainNodeWithArgument[][]; flowDescription: string } {
+  const typeInfo = CHAIN_TYPE_DESCRIPTIONS[chainType] || CHAIN_TYPE_DESCRIPTIONS.GRAPH;
+  
+  switch (chainType) {
+    case "SERIAL": {
+      // For serial chains, maintain topological order
+      const { sorted } = topologicalSort(nodes, edges);
+      return {
+        structuredNodes: [sorted],
+        flowDescription: "The arguments are presented in sequence, each building upon its predecessor."
+      };
+    }
+    
+    case "CONVERGENT": {
+      // For convergent chains, group by their target conclusion
+      const targetCounts = new Map<string, number>();
+      edges.forEach(e => {
+        if (e.edgeType === "SUPPORTS" || e.edgeType === "SUPPORT") {
+          targetCounts.set(e.targetNodeId, (targetCounts.get(e.targetNodeId) || 0) + 1);
+        }
+      });
+      
+      // Find the main conclusion (most supported)
+      let mainConclusionId: string | null = null;
+      let maxSupport = 0;
+      targetCounts.forEach((count, id) => {
+        if (count > maxSupport) {
+          maxSupport = count;
+          mainConclusionId = id;
+        }
+      });
+      
+      if (mainConclusionId) {
+        // Group: premises that support conclusion, then the conclusion itself
+        const supportingPremises = edges
+          .filter(e => e.targetNodeId === mainConclusionId && (e.edgeType === "SUPPORTS" || e.edgeType === "SUPPORT"))
+          .map(e => nodeById.get(e.sourceNodeId))
+          .filter(Boolean) as ArgumentChainNodeWithArgument[];
+        
+        const conclusion = nodeById.get(mainConclusionId);
+        const otherNodes = nodes.filter(n => 
+          n.id !== mainConclusionId && 
+          !supportingPremises.some(p => p.id === n.id)
+        );
+        
+        return {
+          structuredNodes: [supportingPremises, conclusion ? [conclusion] : [], otherNodes].filter(arr => arr.length > 0),
+          flowDescription: `${supportingPremises.length} independent lines of reasoning converge to support the central thesis.`
+        };
+      }
+      
+      return { structuredNodes: [nodes], flowDescription: typeInfo.flowHint };
+    }
+    
+    case "DIVERGENT": {
+      // For divergent chains, find root premise and group by branches
+      const inDegree = new Map<string, number>();
+      nodes.forEach(n => inDegree.set(n.id, 0));
+      edges.forEach(e => inDegree.set(e.targetNodeId, (inDegree.get(e.targetNodeId) || 0) + 1));
+      
+      const rootNodes = nodes.filter(n => inDegree.get(n.id) === 0);
+      
+      if (rootNodes.length === 1) {
+        const root = rootNodes[0];
+        const branches = edges
+          .filter(e => e.sourceNodeId === root.id)
+          .map(e => nodeById.get(e.targetNodeId))
+          .filter(Boolean) as ArgumentChainNodeWithArgument[];
+        
+        const otherNodes = nodes.filter(n => 
+          n.id !== root.id && 
+          !branches.some(b => b.id === n.id)
+        );
+        
+        return {
+          structuredNodes: [[root], branches, otherNodes].filter(arr => arr.length > 0),
+          flowDescription: `From the foundational claim, ${branches.length} distinct implications emerge.`
+        };
+      }
+      
+      return { structuredNodes: [nodes], flowDescription: typeInfo.flowHint };
+    }
+    
+    case "TREE": {
+      // For tree chains, organize by depth level
+      const levels: ArgumentChainNodeWithArgument[][] = [];
+      const visited = new Set<string>();
+      const inDegree = new Map<string, number>();
+      
+      nodes.forEach(n => inDegree.set(n.id, 0));
+      edges.forEach(e => inDegree.set(e.targetNodeId, (inDegree.get(e.targetNodeId) || 0) + 1));
+      
+      // Start with roots
+      let currentLevel = nodes.filter(n => inDegree.get(n.id) === 0);
+      
+      while (currentLevel.length > 0) {
+        levels.push(currentLevel);
+        currentLevel.forEach(n => visited.add(n.id));
+        
+        // Find next level: nodes whose all predecessors have been visited
+        const nextLevel: ArgumentChainNodeWithArgument[] = [];
+        nodes.forEach(n => {
+          if (visited.has(n.id)) return;
+          const predecessors = edges
+            .filter(e => e.targetNodeId === n.id)
+            .map(e => e.sourceNodeId);
+          if (predecessors.length > 0 && predecessors.every(p => visited.has(p))) {
+            nextLevel.push(n);
+          }
+        });
+        
+        currentLevel = nextLevel;
+      }
+      
+      // Add any remaining unvisited nodes
+      const remaining = nodes.filter(n => !visited.has(n.id));
+      if (remaining.length > 0) {
+        levels.push(remaining);
+      }
+      
+      return {
+        structuredNodes: levels,
+        flowDescription: `The argument proceeds through ${levels.length} levels, from general principles to specific applications.`
+      };
+    }
+    
+    default: {
+      // GRAPH: Use topological sort
+      const { sorted, orphans } = topologicalSort(nodes, edges);
+      return {
+        structuredNodes: orphans.length > 0 ? [sorted, orphans] : [sorted],
+        flowDescription: typeInfo.flowHint
+      };
+    }
+  }
+}
 
 // ===== Edge Type Transition Phrases =====
 
@@ -1048,6 +1500,132 @@ function cleanText(text: string): string {
     .replace(/([.!?])\s*$/, "$1");
 }
 
+/**
+ * Convert number to Roman numeral for section headings
+ */
+function toRoman(num: number): string {
+  const romanNumerals: [number, string][] = [
+    [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]
+  ];
+  let result = "";
+  for (const [value, symbol] of romanNumerals) {
+    while (num >= value) {
+      result += symbol;
+      num -= value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Get human-readable heading for scope type
+ */
+function getScopeHeading(scopeType: string): string {
+  const headings: Record<string, string> = {
+    HYPOTHETICAL: "Hypothetical Analysis",
+    COUNTERFACTUAL: "Counterfactual Scenario",
+    CONDITIONAL: "Conditional Reasoning",
+    OPPONENT: "Opposing Perspective",
+    MODAL: "Modal Analysis"
+  };
+  return headings[scopeType] || "Scoped Analysis";
+}
+
+/**
+ * Generate prose for a single argument (refactored for reuse)
+ */
+function generateArgumentProse(
+  node: ArgumentChainNodeWithArgument,
+  argNumber: string,
+  style: string,
+  includeEpistemicLanguage: boolean,
+  includeCriticalQuestions: boolean,
+  nodeById: Map<string, ArgumentChainNodeWithArgument>,
+  edges: any[]
+): string {
+  const argText = getArgumentText(node);
+  const schemeInfo = getSchemeInfo(node);
+  
+  // Phase 4: Get epistemic status
+  const epistemicStatus = (node as any).epistemicStatus as string | null;
+  
+  // Get intra-argument structure
+  const premises = getArgumentPremises(node);
+  const implicitWarrant = getImplicitWarrant(node);
+  
+  // Find incoming edges (what supports/attacks this argument)
+  const incomingEdges = findEdgesForNode(node.id, edges, "incoming");
+  
+  // Build argument paragraph
+  const paragraphs: string[] = [];
+  
+  // Opening with scheme introduction - use dynamic generation based on metadata
+  const introduction = generateSchemeIntroduction(schemeInfo);
+  
+  // Phase 4: Apply epistemic language if enabled
+  let formattedArgText = cleanText(argText);
+  if (includeEpistemicLanguage && epistemicStatus && epistemicStatus !== "ASSERTED") {
+    const prefix = getEpistemicPrefix(epistemicStatus);
+    const suffix = getEpistemicSuffix(epistemicStatus);
+    // For prefix-style statuses, integrate with the text
+    if (prefix) {
+      formattedArgText = `${prefix}${formattedArgText.charAt(0).toLowerCase()}${formattedArgText.slice(1)}`;
+    }
+    if (suffix) {
+      formattedArgText = `${formattedArgText}${suffix}`;
+    }
+  }
+  
+  const opening = `${argNumber}${introduction}: "${formattedArgText}"`;
+  paragraphs.push(opening);
+  
+  // Scheme elaboration (for detailed style) - use database metadata
+  if (style === "legal_brief" || style === "academic") {
+    const elaboration = generateSchemeElaboration(schemeInfo);
+    paragraphs.push(elaboration);
+    
+    // Add scheme name context for custom schemes
+    if (schemeInfo?.name && !SCHEME_TEMPLATES[schemeInfo.key?.toLowerCase().replace(/\s+/g, "_") || ""]) {
+      paragraphs.push(`This reasoning employs the "${schemeInfo.name}" argumentation scheme.`);
+    }
+    
+    // Add intra-argument structure analysis (premises, warrants)
+    const premiseAnalysis = generatePremiseAnalysis(premises, implicitWarrant);
+    if (premiseAnalysis) {
+      paragraphs.push(premiseAnalysis);
+    }
+  }
+  
+  // Describe incoming connections (what leads to this argument)
+  if (incomingEdges.length > 0) {
+    const connectionDescriptions = incomingEdges.map(edge => {
+      const sourceNode = nodeById.get(edge.sourceNodeId);
+      const sourceText = sourceNode ? getArgumentText(sourceNode) : "a prior argument";
+      const transition = getEdgeTransition(edge.edgeType);
+      const snippet = sourceText.length > 100 ? sourceText.slice(0, 100) + "..." : sourceText;
+      
+      // Phase 4: Add epistemic context phrase if source has non-ASSERTED status
+      const sourceEpistemicStatus = (sourceNode as any)?.epistemicStatus as string | null;
+      const contextPhrase = includeEpistemicLanguage ? getEpistemicContextPhrase(sourceEpistemicStatus) : "";
+      
+      return `${transition.support}, we note that this follows from: ${contextPhrase}"${snippet}"`;
+    });
+    paragraphs.push(connectionDescriptions.join(" Additionally, "));
+  }
+  
+  // Critical questions (if enabled) - use database CQs for custom schemes
+  if (includeCriticalQuestions) {
+    const criticalQuestions = getSchemeCriticalQuestions(schemeInfo);
+    if (criticalQuestions.length > 0) {
+      const cqIntro = "This form of argument invites scrutiny of the following questions:";
+      const cqList = criticalQuestions.map(cq => `• ${cq}`).join("\n");
+      paragraphs.push(`${cqIntro}\n${cqList}`);
+    }
+  }
+  
+  return paragraphs.join("\n\n");
+}
+
 // ===== Main Generator Function =====
 
 /**
@@ -1063,22 +1641,50 @@ export function generateProse(
     includeNumbering = true,
     includeCriticalQuestions = false,
     includeMetadata = true,
+    includeChainTypeDescription = true,
+    includeEpistemicLanguage = true,
+    groupByScope = true,
+    adjustFlowForChainType = true,
   } = options;
   
   const nodes = chain.nodes || [];
   const edges = chain.edges || [];
+  const scopes = (chain as any).scopes || [];
+  const chainType = (chain as any).chainType || "GRAPH";
   
   const sections: ProseSection[] = [];
-  
-  // Sort nodes topologically
-  const { sorted, orphans } = topologicalSort(nodes, edges);
   
   // Build node lookup for edge references
   const nodeById = new Map(nodes.map(n => [n.id, n]));
   
+  // Phase C: Group nodes by scope
+  const { unscopedNodes, scopedGroups } = groupByScope 
+    ? groupNodesByScope(nodes, scopes)
+    : { unscopedNodes: nodes, scopedGroups: [] };
+  
+  // Phase C: Apply chain type flow structure to unscoped nodes
+  const { structuredNodes, flowDescription } = adjustFlowForChainType
+    ? generateChainTypeFlow(chainType, unscopedNodes, edges, nodeById)
+    : { structuredNodes: [unscopedNodes], flowDescription: "" };
+  
+  // For simple topological sort fallback
+  const { sorted, orphans } = topologicalSort(nodes, edges);
+  
   // ===== Introduction Section =====
   if (includeSections) {
-    const introContent = generateIntroduction(chain, sorted.length, edges.length, style);
+    let introContent = generateIntroduction(chain, sorted.length, edges.length, style, includeChainTypeDescription);
+    
+    // Phase C: Add flow description if chain type adjustment is enabled
+    if (adjustFlowForChainType && flowDescription) {
+      introContent += `\n\n${flowDescription}`;
+    }
+    
+    // Phase C: Mention scopes if present
+    if (groupByScope && scopedGroups.length > 0) {
+      const scopeTypes = scopedGroups.map(s => s.scopeType.toLowerCase()).join(", ");
+      introContent += `\n\nThe analysis includes ${scopedGroups.length} specialized scope${scopedGroups.length > 1 ? "s" : ""} (${scopeTypes}) that examine the arguments under specific assumptions or perspectives.`;
+    }
+    
     sections.push({
       id: "introduction",
       heading: "I. Introduction",
@@ -1087,71 +1693,60 @@ export function generateProse(
     });
   }
   
-  // ===== Main Arguments Section =====
+  // ===== Main Arguments Section (Unscoped) =====
   const argumentsContent: string[] = [];
+  let sectionNumber = 2; // Track section numbering
   
-  sorted.forEach((node, index) => {
-    const argNumber = includeNumbering ? `${index + 1}. ` : "";
-    const argText = getArgumentText(node);
-    const schemeInfo = getSchemeInfo(node);
-    
-    // Get intra-argument structure
-    const premises = getArgumentPremises(node);
-    const implicitWarrant = getImplicitWarrant(node);
-    
-    // Find incoming edges (what supports/attacks this argument)
-    const incomingEdges = findEdgesForNode(node.id, edges, "incoming");
-    const outgoingEdges = findEdgesForNode(node.id, edges, "outgoing");
-    
-    // Build argument paragraph
-    const paragraphs: string[] = [];
-    
-    // Opening with scheme introduction - use dynamic generation based on metadata
-    const introduction = generateSchemeIntroduction(schemeInfo);
-    const opening = `${argNumber}${introduction}: "${cleanText(argText)}"`;
-    paragraphs.push(opening);
-    
-    // Scheme elaboration (for detailed style) - use database metadata
-    if (style === "legal_brief" || style === "academic") {
-      const elaboration = generateSchemeElaboration(schemeInfo);
-      paragraphs.push(elaboration);
-      
-      // Add scheme name context for custom schemes
-      if (schemeInfo?.name && !SCHEME_TEMPLATES[schemeInfo.key?.toLowerCase().replace(/\s+/g, "_") || ""]) {
-        paragraphs.push(`This reasoning employs the "${schemeInfo.name}" argumentation scheme.`);
+  // Phase C: Process structured node groups for chain type flow
+  if (adjustFlowForChainType && structuredNodes.length > 0) {
+    structuredNodes.forEach((nodeGroup, groupIndex) => {
+      // Add group separator for multi-group structures (convergent, divergent, tree)
+      if (structuredNodes.length > 1 && groupIndex > 0) {
+        const groupLabels: Record<string, string[]> = {
+          CONVERGENT: ["Supporting Arguments", "Central Thesis", "Additional Considerations"],
+          DIVERGENT: ["Foundational Premise", "Derived Implications", "Extended Analysis"],
+          TREE: [`Level ${groupIndex + 1}`, `Level ${groupIndex + 1}`, `Level ${groupIndex + 1}`],
+          SERIAL: ["Sequential Arguments"],
+          GRAPH: ["Connected Arguments", "Related Arguments"]
+        };
+        const labels = groupLabels[chainType] || groupLabels.GRAPH;
+        const label = labels[Math.min(groupIndex, labels.length - 1)];
+        argumentsContent.push(`\n### ${label}\n`);
       }
       
-      // Add intra-argument structure analysis (premises, warrants)
-      const premiseAnalysis = generatePremiseAnalysis(premises, implicitWarrant);
-      if (premiseAnalysis) {
-        paragraphs.push(premiseAnalysis);
-      }
-    }
-    
-    // Describe incoming connections (what leads to this argument)
-    if (incomingEdges.length > 0) {
-      const connectionDescriptions = incomingEdges.map(edge => {
-        const sourceNode = nodeById.get(edge.sourceNodeId);
-        const sourceText = sourceNode ? getArgumentText(sourceNode) : "a prior argument";
-        const transition = getEdgeTransition(edge.edgeType);
-        const snippet = sourceText.length > 100 ? sourceText.slice(0, 100) + "..." : sourceText;
-        return `${transition.support}, we note that this follows from: "${snippet}"`;
+      nodeGroup.forEach((node, index) => {
+        const argNumber = includeNumbering ? `${groupIndex + 1}.${index + 1}. ` : "";
+        const argProse = generateArgumentProse(
+          node, 
+          argNumber, 
+          style, 
+          includeEpistemicLanguage, 
+          includeCriticalQuestions,
+          nodeById,
+          edges
+        );
+        argumentsContent.push(argProse);
       });
-      paragraphs.push(connectionDescriptions.join(" Additionally, "));
-    }
-    
-    // Critical questions (if enabled) - use database CQs for custom schemes
-    if (includeCriticalQuestions) {
-      const criticalQuestions = getSchemeCriticalQuestions(schemeInfo);
-      if (criticalQuestions.length > 0) {
-        const cqIntro = "This form of argument invites scrutiny of the following questions:";
-        const cqList = criticalQuestions.map(cq => `• ${cq}`).join("\n");
-        paragraphs.push(`${cqIntro}\n${cqList}`);
-      }
-    }
-    
-    argumentsContent.push(paragraphs.join("\n\n"));
-  });
+    });
+  } else {
+    // Fallback: Original linear processing
+    sorted.forEach((node, index) => {
+      // Skip scoped nodes if grouping by scope
+      if (groupByScope && (node as any).scopeId) return;
+      
+      const argNumber = includeNumbering ? `${index + 1}. ` : "";
+      const argProse = generateArgumentProse(
+        node,
+        argNumber,
+        style,
+        includeEpistemicLanguage,
+        includeCriticalQuestions,
+        nodeById,
+        edges
+      );
+      argumentsContent.push(argProse);
+    });
+  }
   
   if (argumentsContent.length > 0) {
     sections.push({
@@ -1160,17 +1755,45 @@ export function generateProse(
       content: argumentsContent.join("\n\n---\n\n"),
       type: "argument"
     });
+    sectionNumber++;
+  }
+  
+  // ===== Phase C: Scope Sections =====
+  if (groupByScope && scopedGroups.length > 0) {
+    scopedGroups.forEach((scope, scopeIndex) => {
+      const scopeSection = generateScopeSection(
+        scope,
+        `${sectionNumber}`,
+        style,
+        includeNumbering,
+        includeCriticalQuestions,
+        includeEpistemicLanguage,
+        nodeById,
+        edges,
+        0
+      );
+      
+      sections.push({
+        id: scopeSection.id,
+        heading: `${toRoman(sectionNumber)}. ${getScopeHeading(scope.scopeType)}: "${scope.assumption}"`,
+        content: scopeSection.content,
+        type: "analysis"
+      });
+      sectionNumber++;
+    });
   }
   
   // ===== Chain Flow Section =====
-  if (edges.length > 0) {
+  if (edges.length > 0 && !adjustFlowForChainType) {
+    // Only show separate flow section if not already integrated via chain type adjustment
     const flowContent = generateChainFlow(sorted, edges, nodeById);
     sections.push({
       id: "flow",
-      heading: "III. Logical Structure",
+      heading: `${toRoman(sectionNumber)}. Logical Structure`,
       content: flowContent,
       type: "transition"
     });
+    sectionNumber++;
   }
   
   // ===== Orphan Arguments (if any) =====
@@ -1182,10 +1805,11 @@ export function generateProse(
     
     sections.push({
       id: "orphans",
-      heading: "IV. Additional Considerations",
+      heading: `${toRoman(sectionNumber)}. Additional Considerations`,
       content: `The following arguments exist within this chain but are not directly connected to the main line of reasoning:\n\n${orphanContent}`,
       type: "analysis"
     });
+    sectionNumber++;
   }
   
   // ===== Conclusion Section =====
@@ -1193,7 +1817,7 @@ export function generateProse(
     const conclusionContent = generateConclusion(chain, sorted, edges, style);
     sections.push({
       id: "conclusion",
-      heading: orphans.length > 0 ? "V. Conclusion" : "IV. Conclusion",
+      heading: `${toRoman(sectionNumber)}. Conclusion`,
       content: conclusionContent,
       type: "conclusion"
     });
@@ -1227,16 +1851,26 @@ function generateIntroduction(
   chain: ArgumentChainWithRelations,
   nodeCount: number,
   edgeCount: number,
-  style: string
+  style: string,
+  includeChainTypeDescription: boolean = true
 ): string {
   const name = chain.name || "This argument chain";
   const description = chain.description || "";
   const purpose = chain.purpose || "";
+  const chainType = (chain as any).chainType || "GRAPH";
   
   let intro = "";
   
+  // Get chain type description
+  const typeInfo = CHAIN_TYPE_DESCRIPTIONS[chainType] || CHAIN_TYPE_DESCRIPTIONS.GRAPH;
+  
   if (style === "legal_brief") {
     intro = `${name} presents a structured analysis comprising ${nodeCount} argument${nodeCount !== 1 ? "s" : ""} connected through ${edgeCount} logical relationship${edgeCount !== 1 ? "s" : ""}.`;
+    
+    // Add chain type description (Phase 4)
+    if (includeChainTypeDescription && typeInfo) {
+      intro += ` ${typeInfo.intro}. ${typeInfo.structure}`;
+    }
     
     if (description) {
       intro += `\n\n${description}`;
@@ -1246,11 +1880,27 @@ function generateIntroduction(
       intro += `\n\nThe purpose of this analysis is: ${purpose}`;
     }
     
-    intro += "\n\nThe arguments are presented below in logical order, with each building upon or responding to those that precede it.";
+    intro += `\n\nThe arguments are presented below in logical order, as the reasoning ${typeInfo.flowHint}.`;
   } else if (style === "academic") {
-    intro = `This document analyzes ${name}, a chain of ${nodeCount} interconnected arguments. ${description ? description + " " : ""}The analysis proceeds by examining each argument in turn, elucidating its structure and relationship to other arguments in the chain.`;
+    intro = `This document analyzes ${name}, a chain of ${nodeCount} interconnected arguments.`;
+    
+    // Add chain type description (Phase 4)
+    if (includeChainTypeDescription && typeInfo) {
+      intro += ` ${typeInfo.intro}. ${typeInfo.structure}`;
+    }
+    
+    intro += ` ${description ? description + " " : ""}The analysis proceeds by examining each argument in turn, elucidating its structure and relationship to other arguments in the chain.`;
   } else {
-    intro = `${name} contains ${nodeCount} arguments and ${edgeCount} connections. ${description || ""}`;
+    intro = `${name} contains ${nodeCount} arguments and ${edgeCount} connections.`;
+    
+    // Add chain type description even in summary mode (Phase 4)
+    if (includeChainTypeDescription && typeInfo) {
+      intro += ` ${typeInfo.intro}.`;
+    }
+    
+    if (description) {
+      intro += ` ${description}`;
+    }
   }
   
   return intro;

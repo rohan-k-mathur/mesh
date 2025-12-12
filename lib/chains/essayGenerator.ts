@@ -36,6 +36,14 @@ export interface EssayOptions {
   includeDialectic?: boolean;
   /** Maximum essay length (approximate word count) */
   maxLength?: number;
+  /** Include chain type description in opening (Phase 4) */
+  describeChainStructure?: boolean;
+  /** Apply epistemic status language (Phase 4) */
+  includeEpistemicLanguage?: boolean;
+  /** Structure essay sections around scopes (Phase C) */
+  structureByScopes?: boolean;
+  /** Handle nested scopes as subsections (Phase C) */
+  handleNestedScopes?: boolean;
 }
 
 export interface EssayResult {
@@ -274,6 +282,329 @@ const EDGE_NARRATIVE_TRANSITIONS: Record<string, string[]> = {
     "The particular reveals the general:",
   ],
 };
+
+// ===== Chain Type Essay Descriptions (Phase 4) =====
+
+const CHAIN_TYPE_ESSAY_DESCRIPTIONS: Record<string, {
+  opening: string;
+  structure: string;
+  flowDescription: string;
+}> = {
+  SERIAL: {
+    opening: "This essay traces a sequence of interconnected arguments",
+    structure: "each building upon its predecessor in a logical chain",
+    flowDescription: "The reasoning unfolds step by step, with each argument laying the groundwork for the next."
+  },
+  CONVERGENT: {
+    opening: "This essay presents multiple independent arguments that converge upon a central thesis",
+    structure: "offering complementary perspectives that reinforce one another",
+    flowDescription: "Several distinct lines of reasoning come together to establish a shared conclusion."
+  },
+  DIVERGENT: {
+    opening: "Beginning from a foundational premise, this essay explores multiple implications",
+    structure: "drawing several distinct conclusions from common ground",
+    flowDescription: "A single well-established claim gives rise to a range of consequences and applications."
+  },
+  TREE: {
+    opening: "This essay is structured hierarchically",
+    structure: "moving from broad principles to specific applications",
+    flowDescription: "The argumentation branches at key points, addressing distinct aspects at each level."
+  },
+  GRAPH: {
+    opening: "The argumentative landscape forms a complex network of interrelated claims",
+    structure: "which this essay navigates systematically",
+    flowDescription: "Arguments relate to one another in multiple ways, creating a rich deliberative fabric."
+  }
+};
+
+// ===== Epistemic Status Essay Language (Phase 4) =====
+
+const EPISTEMIC_ESSAY_LANGUAGE: Record<string, {
+  introPhrase: string;
+  contextMarker: string;
+  closingNote: string;
+}> = {
+  ASSERTED: {
+    introPhrase: "",
+    contextMarker: "",
+    closingNote: ""
+  },
+  HYPOTHETICAL: {
+    introPhrase: "Let us suppose, for the sake of argument, that ",
+    contextMarker: "Under this hypothesis, ",
+    closingNote: "This hypothetical exploration illuminates possibilities worth considering."
+  },
+  COUNTERFACTUAL: {
+    introPhrase: "Consider a counterfactual scenario in which ",
+    contextMarker: "In this contrary-to-fact scenario, ",
+    closingNote: "Though contrary to actual events, this counterfactual analysis reveals important insights."
+  },
+  CONDITIONAL: {
+    introPhrase: "If we accept that ",
+    contextMarker: "Given this condition, ",
+    closingNote: "The conditional nature of this reasoning should be kept in mind."
+  },
+  QUESTIONED: {
+    introPhrase: "It remains an open question whether ",
+    contextMarker: "Pending further examination, ",
+    closingNote: "This matter awaits conclusive resolution."
+  },
+  DENIED: {
+    introPhrase: "While some have argued that ",
+    contextMarker: "Despite the rejection of this view, ",
+    closingNote: "Though this position has been denied, understanding it illuminates the debate."
+  },
+  SUSPENDED: {
+    introPhrase: "Setting aside for now the question of whether ",
+    contextMarker: "Bracketing this consideration, ",
+    closingNote: "This suspended judgment may be revisited as the analysis develops."
+  }
+};
+
+/**
+ * Get epistemic intro phrase for essay
+ */
+function getEssayEpistemicIntro(status: string | null | undefined): string {
+  if (!status || status === "ASSERTED") return "";
+  return EPISTEMIC_ESSAY_LANGUAGE[status]?.introPhrase || "";
+}
+
+/**
+ * Get epistemic context marker for essay transitions
+ */
+function getEssayEpistemicContext(status: string | null | undefined): string {
+  if (!status || status === "ASSERTED") return "";
+  return EPISTEMIC_ESSAY_LANGUAGE[status]?.contextMarker || "";
+}
+
+// ===== Scope Essay Section Templates (Phase C) =====
+
+const SCOPE_ESSAY_TEMPLATES: Record<string, {
+  sectionTitle: string;
+  opening: string;
+  transition: string;
+  closing: string;
+}> = {
+  HYPOTHETICAL: {
+    sectionTitle: "Hypothetical Analysis",
+    opening: "Let us consider a hypothetical scenario",
+    transition: "Under this assumption, a distinct line of reasoning emerges",
+    closing: "This hypothetical exploration, while not conclusive, illuminates possibilities that merit consideration in our overall assessment."
+  },
+  COUNTERFACTUAL: {
+    sectionTitle: "Counterfactual Exploration",
+    opening: "Consider, contrary to the actual facts, a scenario in which",
+    transition: "In this alternative reality, the argumentative landscape shifts",
+    closing: "Though this scenario did not come to pass, understanding its implications deepens our grasp of the underlying causal and logical structures."
+  },
+  CONDITIONAL: {
+    sectionTitle: "Conditional Reasoning",
+    opening: "If we accept the following condition",
+    transition: "Given this conditional framework, certain conclusions follow",
+    closing: "The conditional nature of this analysis should guide how we apply these conclusions to cases where the condition obtains."
+  },
+  OPPONENT: {
+    sectionTitle: "Considering the Opposition",
+    opening: "From a contrasting perspective, some maintain that",
+    transition: "This opposing viewpoint advances arguments that",
+    closing: "Engaging seriously with this opposition strengthens our overall understanding and highlights where the strongest points of contention lie."
+  },
+  MODAL: {
+    sectionTitle: "Modal Analysis",
+    opening: "In a possible world where",
+    transition: "The logical consequences in this modal context reveal",
+    closing: "This modal exploration extends our analysis beyond the actual to consider what is possible, necessary, or contingent."
+  }
+};
+
+/**
+ * Interface for scope with nodes for essay generation
+ */
+interface EssayScopeData {
+  id: string;
+  scopeType: string;
+  assumption: string;
+  color?: string | null;
+  parentId?: string | null;
+  nodes: ArgumentChainNodeWithArgument[];
+  childScopes?: EssayScopeData[];
+  depth: number;
+}
+
+/**
+ * Group nodes by scope and build hierarchy for essay structure
+ */
+function groupNodesForEssay(
+  nodes: ArgumentChainNodeWithArgument[],
+  scopes: any[] | undefined
+): { mainNodes: ArgumentChainNodeWithArgument[]; scopeSections: EssayScopeData[] } {
+  const mainNodes: ArgumentChainNodeWithArgument[] = [];
+  const scopeMap = new Map<string, EssayScopeData>();
+
+  // Initialize scope groups
+  if (scopes) {
+    for (const scope of scopes) {
+      scopeMap.set(scope.id, {
+        id: scope.id,
+        scopeType: scope.scopeType,
+        assumption: scope.assumption,
+        color: scope.color,
+        parentId: scope.parentId,
+        nodes: [],
+        childScopes: [],
+        depth: 0
+      });
+    }
+  }
+
+  // Assign nodes to scopes or main list
+  for (const node of nodes) {
+    const scopeId = (node as any).scopeId;
+    if (scopeId && scopeMap.has(scopeId)) {
+      scopeMap.get(scopeId)!.nodes.push(node);
+    } else {
+      mainNodes.push(node);
+    }
+  }
+
+  // Build scope hierarchy and calculate depths
+  const rootScopes: EssayScopeData[] = [];
+  
+  const calculateDepth = (scope: EssayScopeData, depth: number) => {
+    scope.depth = depth;
+    scope.childScopes?.forEach(child => calculateDepth(child, depth + 1));
+  };
+
+  for (const scope of scopeMap.values()) {
+    if (scope.parentId && scopeMap.has(scope.parentId)) {
+      scopeMap.get(scope.parentId)!.childScopes?.push(scope);
+    } else {
+      rootScopes.push(scope);
+    }
+  }
+
+  // Calculate depths starting from roots
+  rootScopes.forEach(scope => calculateDepth(scope, 0));
+
+  return { mainNodes, scopeSections: rootScopes };
+}
+
+/**
+ * Generate essay section for a scope (with recursive handling for nested scopes)
+ */
+function generateScopeEssaySection(
+  scope: EssayScopeData,
+  options: EssayOptions,
+  nodeIndex: { current: number }
+): string {
+  const template = SCOPE_ESSAY_TEMPLATES[scope.scopeType] || SCOPE_ESSAY_TEMPLATES.HYPOTHETICAL;
+  const headingLevel = Math.min(scope.depth + 2, 4); // h2, h3, h4 max
+  const heading = "#".repeat(headingLevel);
+  
+  const parts: string[] = [];
+  
+  // Section header
+  parts.push(`${heading} ${template.sectionTitle}: *${scope.assumption}*\n`);
+  
+  // Opening paragraph
+  parts.push(`${template.opening}: *"${scope.assumption}"*. ${template.transition}.\n`);
+  
+  // Generate prose for nodes in this scope
+  if (scope.nodes.length > 0) {
+    scope.nodes.forEach(node => {
+      const scheme = extractSchemeMetadata(node);
+      const premises = getArgumentPremises(node);
+      const warrant = getImplicitWarrant(node);
+      const nodeProse = generateArgumentProseForEssay(node, scheme, premises, warrant, options);
+      parts.push(nodeProse);
+      nodeIndex.current++;
+    });
+  }
+  
+  // Recursively handle nested scopes
+  if (scope.childScopes && scope.childScopes.length > 0) {
+    scope.childScopes.forEach(childScope => {
+      parts.push("\n" + generateScopeEssaySection(childScope, options, nodeIndex));
+    });
+  }
+  
+  // Closing paragraph
+  parts.push(`\n${template.closing}\n`);
+  
+  return parts.join("\n");
+}
+
+/**
+ * Generate argument prose specifically for essay context (simplified wrapper)
+ */
+function generateArgumentProseForEssay(
+  node: ArgumentChainNodeWithArgument,
+  scheme: SchemeMetadata | null,
+  premises: Array<{ text: string; isImplicit: boolean }>,
+  warrant: string | null,
+  options: EssayOptions
+): string {
+  // Delegate to the existing generateArgumentProse function
+  return generateArgumentProse(node, scheme, premises, warrant, options);
+}
+
+/**
+ * Generate overview paragraph introducing the scoped sections
+ */
+function generateScopeOverview(scopes: EssayScopeData[]): string {
+  if (scopes.length === 0) return "";
+  
+  const scopeDescriptions: string[] = [];
+  
+  scopes.forEach(scope => {
+    const template = SCOPE_ESSAY_TEMPLATES[scope.scopeType] || SCOPE_ESSAY_TEMPLATES.HYPOTHETICAL;
+    const nodeCount = countNodesInScope(scope);
+    scopeDescriptions.push(
+      `a ${template.sectionTitle.toLowerCase()} (${nodeCount} argument${nodeCount !== 1 ? "s" : ""}) examining the assumption that *"${scope.assumption}"*`
+    );
+  });
+  
+  if (scopes.length === 1) {
+    return `Beyond the main line of argument, this essay also includes ${scopeDescriptions[0]}. This scoped analysis allows us to explore reasoning under specific conditions or perspectives.`;
+  }
+  
+  const lastScope = scopeDescriptions.pop();
+  return `Beyond the main line of argument, this essay includes ${scopeDescriptions.join(", ")}, and ${lastScope}. These scoped sections allow us to explore reasoning under various conditions and perspectives, enriching the overall analysis.`;
+}
+
+/**
+ * Count total nodes in a scope including nested scopes
+ */
+function countNodesInScope(scope: EssayScopeData): number {
+  let count = scope.nodes.length;
+  if (scope.childScopes) {
+    scope.childScopes.forEach(child => {
+      count += countNodesInScope(child);
+    });
+  }
+  return count;
+}
+
+/**
+ * Generate conclusion paragraph summarizing scoped analyses
+ */
+function generateScopeConclusion(scopes: EssayScopeData[]): string {
+  if (scopes.length === 0) return "";
+  
+  const summaries: string[] = [];
+  
+  scopes.forEach(scope => {
+    const template = SCOPE_ESSAY_TEMPLATES[scope.scopeType] || SCOPE_ESSAY_TEMPLATES.HYPOTHETICAL;
+    summaries.push(`The ${template.sectionTitle.toLowerCase()} of *"${scope.assumption}"*`);
+  });
+  
+  if (scopes.length === 1) {
+    return `${summaries[0]} has provided additional depth to our understanding, illuminating aspects of the argument that might otherwise remain implicit or unexplored.`;
+  }
+  
+  const lastSummary = summaries.pop();
+  return `The various scoped analyses—${summaries.join(", ")}, and ${lastSummary}—have each contributed unique perspectives that enrich our understanding of the central thesis and its implications.`;
+}
 
 /**
  * Select a random element from array for variety
@@ -572,6 +903,11 @@ function generateOpening(
   options: EssayOptions
 ): string {
   const paragraphs: string[] = [];
+  const { describeChainStructure = true } = options;
+  
+  // Phase 4: Get chain type for structural description
+  const chainType = (chain as any).chainType || "GRAPH";
+  const typeInfo = CHAIN_TYPE_ESSAY_DESCRIPTIONS[chainType] || CHAIN_TYPE_ESSAY_DESCRIPTIONS.GRAPH;
   
   // Helper to clean text for introduction
   const cleanPurpose = (text: string): string => {
@@ -584,17 +920,37 @@ function generateOpening(
   
   // Thematic opening based on chain purpose
   if (chain.purpose) {
-    paragraphs.push(
-      `The question before us concerns ${cleanPurpose(chain.purpose)}. ` +
-      `This analysis examines the arguments and considerations that bear on this matter.`
-    );
+    let openingParagraph = `The question before us concerns ${cleanPurpose(chain.purpose)}.`;
+    
+    // Phase 4: Add chain type description
+    if (describeChainStructure) {
+      openingParagraph += ` ${typeInfo.opening}, ${typeInfo.structure}.`;
+    } else {
+      openingParagraph += ` This analysis examines the arguments and considerations that bear on this matter.`;
+    }
+    
+    paragraphs.push(openingParagraph);
   } else if (chain.description) {
-    paragraphs.push(chain.description);
+    let descParagraph = chain.description;
+    
+    // Phase 4: Append chain type description if not already descriptive
+    if (describeChainStructure && descParagraph.length < 200) {
+      descParagraph += ` ${typeInfo.flowDescription}`;
+    }
+    
+    paragraphs.push(descParagraph);
   } else {
-    paragraphs.push(
-      `This essay presents a structured analysis of interconnected arguments, ` +
-      `tracing the logical relationships that bind them together.`
-    );
+    // Default opening with chain type (Phase 4)
+    if (describeChainStructure) {
+      paragraphs.push(
+        `${typeInfo.opening}, ${typeInfo.structure}. ${typeInfo.flowDescription}`
+      );
+    } else {
+      paragraphs.push(
+        `This essay presents a structured analysis of interconnected arguments, ` +
+        `tracing the logical relationships that bind them together.`
+      );
+    }
   }
   
   // Preview the argumentative landscape
@@ -633,9 +989,34 @@ function generateArgumentProse(
 ): string {
   const conclusion = getArgumentConclusion(node);
   const parts: string[] = [];
+  const { includeEpistemicLanguage = true } = options;
+  
+  // Phase 4: Get epistemic status
+  const epistemicStatus = (node as any).epistemicStatus as string | null;
+  const epistemicIntro = includeEpistemicLanguage ? getEssayEpistemicIntro(epistemicStatus) : "";
   
   // Opening: integrate conclusion naturally based on scheme type
-  if (scheme?.reasoningType) {
+  // Phase 4: Prepend epistemic intro if non-ASSERTED
+  if (epistemicIntro) {
+    // For non-ASSERTED statuses, lead with the epistemic framing
+    if (scheme?.reasoningType) {
+      const reasoningType = scheme.reasoningType.toLowerCase();
+      
+      if (reasoningType === "inductive") {
+        parts.push(`${epistemicIntro}the evidence points to an important conclusion: ${smartLowercase(conclusion)}`);
+      } else if (reasoningType === "abductive") {
+        parts.push(`${epistemicIntro}the most plausible explanation is that ${smartLowercase(conclusion)}`);
+      } else if (reasoningType === "practical") {
+        parts.push(`${epistemicIntro}from a practical standpoint, ${smartLowercase(conclusion)}`);
+      } else if (reasoningType === "deductive") {
+        parts.push(`${epistemicIntro}it follows that ${smartLowercase(conclusion)}`);
+      } else {
+        parts.push(`${epistemicIntro}${smartLowercase(conclusion)}`);
+      }
+    } else {
+      parts.push(`${epistemicIntro}${smartLowercase(conclusion)}`);
+    }
+  } else if (scheme?.reasoningType) {
     const reasoningType = scheme.reasoningType.toLowerCase();
     
     // Create natural sentence openings based on reasoning type
@@ -655,19 +1036,28 @@ function generateArgumentProse(
   }
   
   // Weave in premises using material relation bridges
+  // Phase 4: Use epistemic context marker for premise transitions
+  const epistemicContext = includeEpistemicLanguage ? getEssayEpistemicContext(epistemicStatus) : "";
+  
   if (premises.length > 0 && options.includePremiseStructure !== false) {
     if (premises.length === 1) {
       const bridge = scheme?.materialRelation 
         ? sample(MATERIAL_RELATION_BRIDGES[scheme.materialRelation.toLowerCase()] || ["This follows from the fact that"])
         : "This follows from the fact that";
-      parts.push(`${bridge} ${smartLowercase(premises[0].text)}`);
+      parts.push(`${epistemicContext}${epistemicContext ? bridge.toLowerCase() : bridge} ${smartLowercase(premises[0].text)}`);
     } else {
       // Multiple premises - create sophisticated enumeration
-      const premiseIntros = [
-        "This conclusion draws support from several observations.",
-        "The reasoning rests on multiple considerations.",
-        "Several factors converge to support this view.",
-      ];
+      const premiseIntros = epistemicContext 
+        ? [
+            `${epistemicContext}this conclusion draws support from several observations.`,
+            `${epistemicContext}the reasoning rests on multiple considerations.`,
+            `${epistemicContext}several factors converge to support this view.`,
+          ]
+        : [
+            "This conclusion draws support from several observations.",
+            "The reasoning rests on multiple considerations.",
+            "Several factors converge to support this view.",
+          ];
       
       parts.push(sample(premiseIntros));
       
@@ -1053,23 +1443,39 @@ export function generateEssay(
     includeCriticalQuestions = true,
     includePremiseStructure = true,
     includeDialectic = true,
+    structureByScopes = true,
+    handleNestedScopes = true,
   } = options;
   
   const nodes = chain.nodes || [];
   const edges = chain.edges || [];
+  const scopes = (chain as any).scopes || [];
   
-  // Analyze structure for narrative arc
-  const structure = analyzeNarrativeStructure(nodes, edges);
+  // Phase C: Group nodes by scope
+  const { mainNodes, scopeSections } = structureByScopes 
+    ? groupNodesForEssay(nodes, scopes)
+    : { mainNodes: nodes, scopeSections: [] };
+  
+  // Analyze structure for narrative arc (using main nodes for structure)
+  const structure = analyzeNarrativeStructure(mainNodes, edges);
   
   // Generate essay sections
   const opening = generateOpening(chain, structure, options);
   
+  // Phase C: Add scope overview to opening if scopes exist
+  let enhancedOpening = opening;
+  if (structureByScopes && scopeSections.length > 0) {
+    const scopeOverview = generateScopeOverview(scopeSections);
+    enhancedOpening = `${opening}\n\n${scopeOverview}`;
+  }
+  
   // Main body: arguments woven together
   const bodyParts: string[] = [];
   
-  // First, present opening arguments
-  if (structure.openingArguments.length > 0) {
-    structure.openingArguments.forEach(node => {
+  // First, present opening arguments (from main/unscoped nodes)
+  const unscopedOpening = structure.openingArguments.filter(n => !(n as any).scopeId);
+  if (unscopedOpening.length > 0) {
+    unscopedOpening.forEach(node => {
       const scheme = extractSchemeMetadata(node);
       const premises = getArgumentPremises(node);
       const warrant = getImplicitWarrant(node);
@@ -1077,17 +1483,23 @@ export function generateEssay(
     });
   }
   
-  // Present dialectical exchanges if any
+  // Present dialectical exchanges if any (from main/unscoped nodes)
   if (includeDialectic && structure.dialecticalPairs.length > 0) {
-    bodyParts.push("\n---\n"); // Thematic break
-    structure.dialecticalPairs.forEach(pair => {
-      bodyParts.push(generateDialecticalExchange(pair, edges, options));
-    });
+    const unscopedPairs = structure.dialecticalPairs.filter(
+      p => !(p.thesis as any).scopeId && !(p.antithesis as any).scopeId
+    );
+    if (unscopedPairs.length > 0) {
+      bodyParts.push("\n---\n"); // Thematic break
+      unscopedPairs.forEach(pair => {
+        bodyParts.push(generateDialecticalExchange(pair, edges, options));
+      });
+    }
   }
   
-  // Present developing arguments
+  // Present developing arguments (from main/unscoped nodes)
   if (structure.developingArguments.length > 0) {
     const developingNodes = structure.developingArguments
+      .filter(n => !(n as any).scopeId)
       .filter(n => !structure.dialecticalPairs.some(
         p => p.thesis.id === n.id || p.antithesis.id === n.id
       ));
@@ -1100,9 +1512,10 @@ export function generateEssay(
     });
   }
   
-  // Present resolution arguments
+  // Present resolution arguments (from main/unscoped nodes)
   if (structure.resolutionArguments.length > 0) {
     const resolutionNodes = structure.resolutionArguments
+      .filter(n => !(n as any).scopeId)
       .filter(n => !structure.dialecticalPairs.some(p => p.synthesis?.id === n.id));
     
     resolutionNodes.forEach(node => {
@@ -1113,11 +1526,28 @@ export function generateEssay(
     });
   }
   
+  // Phase C: Generate scope sections
+  if (structureByScopes && scopeSections.length > 0) {
+    bodyParts.push("\n---\n"); // Section break before scopes
+    const nodeIndex = { current: mainNodes.length };
+    
+    scopeSections.forEach(scope => {
+      const scopeContent = generateScopeEssaySection(scope, options, nodeIndex);
+      bodyParts.push(scopeContent);
+    });
+  }
+  
   // Logical flow analysis (optional section)
   const logicalFlow = generateLogicalFlow(nodes, edges, options);
   
   // Essay conclusion
   const conclusion = generateEssayConclusion(chain, structure, options);
+  
+  // Phase C: Enhance conclusion with scope summary
+  let enhancedConclusion = conclusion;
+  if (structureByScopes && scopeSections.length > 0) {
+    enhancedConclusion = `${conclusion}\n\n${generateScopeConclusion(scopeSections)}`;
+  }
   
   // Compose full text
   const title = chain.name || "Argument Analysis";
@@ -1136,13 +1566,13 @@ export function generateEssay(
     "",
     "---",
     "",
-    opening,
+    enhancedOpening,
     "",
     body,
     "",
     "---",
     "",
-    conclusion,
+    enhancedConclusion,
   ].join("\n");
   
   // Count words
