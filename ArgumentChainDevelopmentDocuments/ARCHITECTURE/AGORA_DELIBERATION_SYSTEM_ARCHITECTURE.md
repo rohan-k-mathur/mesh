@@ -2,61 +2,311 @@
 
 ## Executive Summary
 
-This document provides a comprehensive architectural overview of the Mesh Digital Agora deliberation system, designed for whiteboard communication and technical onboarding. The system is built around `DeepDivePanelV2` as the central UI orchestration component, connecting multiple subsystems that implement formal argumentation theory.
+This document provides a comprehensive architectural overview of the Mesh Digital Agora deliberation system. The architecture addresses a fundamental challenge: **how do we build public infrastructure for evidence-based reasoning that scales from casual conversation to formal argumentation to stable, citable knowledge artifacts?**
+
+The answer is a **progressive formalization architecture**—a system where structure emerges on-demand as discourse complexity increases, rather than being imposed upfront. Ideas begin as lightweight propositions in social spaces, graduate to canonical claims when validated, connect through structured arguments with explicit premises and schemes, and ultimately crystallize into knowledge base pages that institutions can cite, audit, and build upon.
+
+This document covers both the *conceptual architecture* (the "why" and "what") and the *implementation architecture* (the "how"). For day-to-day development, `DeepDivePanelV2` serves as the central UI orchestration component, connecting the subsystems described herein.
 
 ---
 
 ## Table of Contents
 
-1. [System Overview](#1-system-overview)
-2. [Architectural Layers](#2-architectural-layers)
-3. [DeepDivePanelV2 - Central Hub](#3-deepdivepanelv2---central-hub)
-4. [Core Subsystems](#4-core-subsystems)
-   - [4.1 Dialogue Subsystem](#41-dialogue-subsystem)
-   - [4.2 Arguments Subsystem (AIF)](#42-arguments-subsystem-aif)
-   - [4.3 Claims Subsystem](#43-claims-subsystem)
-   - [4.4 Schemes Subsystem](#44-schemes-subsystem)
-   - [4.5 Ludics Subsystem](#45-ludics-subsystem)
-   - [4.6 Chains Subsystem (Comprehensive)](#46-chains-subsystem-comprehensive)
-   - [4.7 ASPIC Subsystem](#47-aspic-subsystem)
-5. [Data Flow Diagrams](#5-data-flow-diagrams)
-6. [Component Hierarchy](#6-component-hierarchy)
-7. [API Architecture](#7-api-architecture)
-8. [Theoretical Foundations](#8-theoretical-foundations)
-9. [Whiteboard Diagrams](#9-whiteboard-diagrams)
+1. [Global System Design](#1-global-system-design)
+   - [1.1 The Problem We Solve](#11-the-problem-we-solve)
+   - [1.2 Core Design Philosophy](#12-core-design-philosophy)
+   - [1.3 The Three Conceptual Layers](#13-the-three-conceptual-layers)
+   - [1.4 The User Journey (11-Step Flow)](#14-the-user-journey-11-step-flow)
+   - [1.5 The Graph-of-Graphs Vision](#15-the-graph-of-graphs-vision)
+   - [1.6 Design Principles](#16-design-principles)
+2. [Technical Architecture Overview](#2-technical-architecture-overview)
+3. [Architectural Layers](#3-architectural-layers)
+4. [DeepDivePanelV2 - Central Hub](#4-deepdivepanelv2---central-hub)
+5. [Core Subsystems](#5-core-subsystems)
+   - [5.1 Dialogue Subsystem](#51-dialogue-subsystem)
+   - [5.2 Arguments Subsystem (AIF)](#52-arguments-subsystem-aif)
+   - [5.3 Claims Subsystem](#53-claims-subsystem)
+   - [5.4 Schemes Subsystem](#54-schemes-subsystem)
+   - [5.5 Ludics Subsystem](#55-ludics-subsystem)
+   - [5.6 Chains Subsystem (Comprehensive)](#56-chains-subsystem-comprehensive)
+   - [5.7 ASPIC Subsystem](#57-aspic-subsystem)
+6. [Data Flow Diagrams](#6-data-flow-diagrams)
+7. [Component Hierarchy](#7-component-hierarchy)
+8. [API Architecture](#8-api-architecture)
+9. [Theoretical Foundations](#9-theoretical-foundations)
+10. [Whiteboard Diagrams](#10-whiteboard-diagrams)
 
 ---
 
-## 1. System Overview
+## 1. Global System Design
 
-The Agora deliberation system implements a **three-layer formal argumentation architecture**:
+This section presents the big-picture architecture—the conceptual framework that explains *why* the system is structured the way it is, before diving into implementation details.
+
+### 1.1 The Problem We Solve
+
+Current infrastructure for collective reasoning fails in three critical ways:
+
+| Problem | Symptom | Cost |
+|---------|---------|------|
+| **No shared method** | Ideas lack structure; disagreement defaults to rhetoric | Decisions based on persuasion, not evidence |
+| **Evidence isn't first-class** | Sources sit in PDFs, disconnected from claims | No way to trace claims to grounds |
+| **No audit trail** | Reasoning scatters across threads, docs, and email | Slow, opaque decisions; brittle public trust |
+
+**The fix isn't "better comments."** It's a method and data model for public reasoning—from social workshopping to structured argument to stable knowledge artifacts.
+
+### 1.2 Core Design Philosophy
+
+#### Progressive Formalization
+Not all conversations require formal structure. Most casual exchanges—greetings, status updates, clarifications—function well as unstructured messages. The system applies **progressive disclosure**: structure activates only when complexity warrants it.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PROGRESSIVE FORMALIZATION                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   INFORMAL                                                      FORMAL       │
+│   ◄──────────────────────────────────────────────────────────────────►      │
+│                                                                              │
+│   Discussion     Proposition      Claim         Argument      KB Page        │
+│   (chat/forum)   (workshopping)   (canonical)   (structured)  (published)   │
+│        │              │              │              │              │         │
+│        │   upgrade    │   promote    │    link      │   publish    │         │
+│        └──────────────┴──────────────┴──────────────┴──────────────┘         │
+│                                                                              │
+│   Structure emerges on-demand, not imposed upfront                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Public Semantics
+Legality and status are derived **solely from public record**. There are no hidden states. Every assertion, challenge, and resolution is recorded and traceable. This enables:
+- **Auditability**: Decisions can be reviewed and reconstructed
+- **Repeatability**: Others can rerun the reasoning with the same inputs
+- **Agent-neutrality**: Protocols apply to human and AI participants under shared rules
+
+#### Institutional Readiness
+The system is built for institutional use where reasoning must be auditable, defensible, and reproducible:
+
+| Property | Description |
+|----------|-------------|
+| **Legibility** | Every proposition, claim, inference, and counter-move is linkable |
+| **Repeatability** | Methods are explicit; dialogues are replayable |
+| **Interoperability** | Export to AIF/AIF+; APIs for claims, arguments, edges, schemes |
+| **Agent-neutral** | Protocols apply to human and AI participants under shared rules |
+| **Governance** | Decisions traced through DecisionReceipts; moderation via Panels |
+
+### 1.3 The Three Conceptual Layers
+
+The platform organizes reasoning into three distinct but connected layers:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         THREE CONCEPTUAL LAYERS                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 3: MAPPING, CLUSTERING & KNOWLEDGE ARTIFACTS                 │    │
+│  │  DebateSheets • Clusters • ViewpointSelection • KbPages • Briefs    │    │
+│  │  ─────────────────────────────────────────────────────────────────  │    │
+│  │  Visual navigation, camp surfacing, stable publications             │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                              ▲                                               │
+│                              │ generates                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 2: ARGUMENTS & THEIR INTERNAL STRUCTURE                      │    │
+│  │  Arguments • ArgumentDiagrams • Schemes + CQs • DialogueMoves       │    │
+│  │  ─────────────────────────────────────────────────────────────────  │    │
+│  │  Narrative + logical structure, formal dialogue protocol            │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                              ▲                                               │
+│                              │ connects                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 1: SOCIAL SUBSTRATE → STRUCTURED CLAIMS                      │    │
+│  │  Discussions • Propositions • Claims • ClaimEdges • Evidence        │    │
+│  │  ─────────────────────────────────────────────────────────────────  │    │
+│  │  Social validation before formalization, canonical atoms            │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Layer 1: Social Substrate → Structured Claims
+
+**Purpose**: Transform informal ideas into canonical, evidence-linked assertions.
+
+- **Propositions**: Lightweight assertions for community workshopping (votes, endorsements, replies)
+- **Claims**: Canonical atomic assertions with stable identifiers, promoted from validated propositions
+- **Evidence**: First-class citizens with citations, locators, excerpts, and CSL metadata
+- **ClaimEdges**: Typed relations (supports, rebuts, undercuts, undermines) with scope targeting
+
+**Key Insight**: The two-stage path (Proposition → Claim) balances accessibility with rigor. Anyone can float an idea; structured reasoning begins when the community validates it.
+
+#### Layer 2: Arguments & Their Internal Structure
+
+**Purpose**: Structure reasoning with explicit premises, conclusions, and inferential steps.
+
+Arguments work at **two levels**:
+1. **Narrative Unit (Argument)**: Links premise Claims to conclusion Claims with confidence, quantifiers, and optional scheme reference
+2. **Logical Structure (ArgumentDiagram)**: Breaks reasoning into Statements (atomic text) and Inferences (inferential steps), making warrants explicit and targetable
+
+**Key Insight**: This two-level structure lets you present arguments narratively while exposing logical shape for scrutiny. Undercuts can target specific warrants (via `targetInferenceId`), not just conclusions.
+
+#### Layer 3: Mapping, Clustering & Knowledge Artifacts
+
+**Purpose**: Navigate complexity, surface camps, and produce stable publications.
+
+- **DebateSheet**: Two-level map with nodes (arguments) expandable to internal diagrams, edges showing typed relations
+- **Clusters**: Surface camps/themes; ViewpointSelection picks k representatives under rules (utilitarian | harmonic | maxcov)
+- **KbPages**: Live or pinned blocks referencing deliberation artifacts; stable, citable, composable
+- **TheoryWorks**: Longform structured reasoning (DN/IH/TC/OP frameworks)
+
+**Key Insight**: The deliberation produces artifacts that institutions can cite, communities can fork, and AI systems can process.
+
+### 1.4 The User Journey (11-Step Flow)
+
+The system supports a complete journey from casual conversation to publishable knowledge:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        THE 11-STEP DELIBERATION JOURNEY                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │ SOCIAL SUBSTRATE (Layer 1)                                           │   │
+│  │                                                                       │   │
+│  │  1. JOIN DISCUSSION          Discussions → Deliberation upgrade      │   │
+│  │        ↓                                                              │   │
+│  │  2. COMPOSE PROPOSITION      Lightweight assertion for workshopping  │   │
+│  │        ↓                                                              │   │
+│  │  3. WORKSHOP                 Vote, endorse, reply → social filtering │   │
+│  │        ↓                                                              │   │
+│  │  4. PROMOTE TO CLAIM         Validated → canonical atom              │   │
+│  │        ↓                                                              │   │
+│  │  5. VIEW CLAIMS              Minimap / CEG graph navigation          │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                       ↓                                      │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │ ARGUMENTATION (Layer 2)                                              │   │
+│  │                                                                       │   │
+│  │  6. COMPOSE ARGUMENT         Scheme Composer → premises + conclusion │   │
+│  │        ↓                                                              │   │
+│  │  7. VIEW ARGUMENTS           AIF Arguments List → filter, compare    │   │
+│  │        ↓                                                              │   │
+│  │  8. DIALOGUE MOVE            Attack menu → Rebut / Undercut          │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                       ↓                                      │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │ KNOWLEDGE ARTIFACTS (Layer 3)                                        │   │
+│  │                                                                       │   │
+│  │  9. NAVIGATE DEBATE SHEET    Two-level map of entire deliberation    │   │
+│  │        ↓                                                              │   │
+│  │  10. PUBLISH TO KB           Live/pinned blocks → stable citation    │   │
+│  │        ↓                                                              │   │
+│  │  11. EXPLORE NETWORK         Plexus → cross-room graph-of-graphs     │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Step | Action | Key Component | Key Model |
+|------|--------|--------------|-----------|
+| 1 | Join Discussion → Deliberation | `DiscussionView`, `ThreadUpgradeButton` | `Deliberation` |
+| 2 | Compose Proposition | `PropositionComposer` | `Proposition` |
+| 3 | Workshop (Vote, Endorse, Reply) | `PropositionCard`, `VoteButton` | `PropositionVote`, `Endorsement` |
+| 4 | Promote to Claim | `ClaimElevator` | `Claim` (via `promotedClaimId`) |
+| 5 | View Claims | `ClaimMiniMap`, `CegMiniMap` | `Claim`, `ClaimEdge` |
+| 6 | Compose Argument | `SchemeComposer` | `Argument`, `ArgumentPremise` |
+| 7 | View Arguments | `AIFArgumentsListPro` | `Argument`, `ArgumentDiagram` |
+| 8 | Dialogue Move | `CommandCard`, `DialogueActionsButton` | `DialogueMove` |
+| 9 | Navigate Debate Sheet | `DebateSheetReader` | `DebateNode`, `DebateEdge` |
+| 10 | Publish to KB | `KbPageEditor`, `BlockSelector` | `KbPage`, `KbBlock` |
+| 11 | Explore Network | `Plexus`, `PlexusBoard` | `RoomFunctor`, `ArgumentImport` |
+
+### 1.5 The Graph-of-Graphs Vision
+
+The platform is not just a single deliberation space—it's a **graph-of-graphs** where deliberations connect, arguments flow across rooms, and knowledge compounds:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         GRAPH-OF-GRAPHS (PLEXUS)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│     ┌─────────────┐                           ┌─────────────┐               │
+│     │   Room A    │──── RoomFunctor ─────────▶│   Room B    │               │
+│     │  (Climate   │     (import args)         │  (Energy    │               │
+│     │   Policy)   │                           │   Policy)   │               │
+│     └─────────────┘                           └─────────────┘               │
+│            │                                         │                       │
+│            │ XRef (cross-reference)                  │                       │
+│            ▼                                         ▼                       │
+│     ┌─────────────┐                           ┌─────────────┐               │
+│     │   Room C    │◀──── ArgumentImport ──────│   Room D    │               │
+│     │  (Economic  │      (reuse argument)     │  (Research  │               │
+│     │   Impact)   │                           │   Review)   │               │
+│     └─────────────┘                           └─────────────┘               │
+│                                                                              │
+│  Edge Types in Plexus Network:                                              │
+│  • xref: Cross-reference links between rooms                                │
+│  • overlap: Shared claim/argument content                                   │
+│  • stack_ref: Knowledge base block references                               │
+│  • imports: RoomFunctor materialized imports                                │
+│  • shared_author: Common contributor connections                            │
+│                                                                              │
+│  Transport Functors:                                                         │
+│  • Preview: Generate proposal with fingerprint                               │
+│  • Apply: Materialize with transaction, create ArgumentImport records       │
+│  • Modes: off | materialized | virtual | all                                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Concepts**:
+- **RoomFunctor**: Maps claims/arguments from source room to target room (category-theoretic transport)
+- **ArgumentImport**: Records provenance when arguments are reused across rooms
+- **XRef**: Explicit cross-references between related deliberations
+- **Plexus UI**: Navigable network visualization showing how deliberations connect
+
+### 1.6 Design Principles
+
+| Principle | Description | Implementation |
+|-----------|-------------|----------------|
+| **Public Semantics Only** | Legality/status derived solely from public record | All moves recorded in `DialogueMove`, commitments in `Commitment` |
+| **Explicit Reply Tree** | Every non-initial move replies to a prior move/locus | `replyToMoveId` on moves, `targetArgumentId` on edges |
+| **Attack vs Surrender Classification** | Drives branch state and status | `force` field: ATTACK, SURRENDER, NEUTRAL |
+| **Progressive Disclosure** | Simple tools for simple tasks, powerful tools on-demand | Proposition → Claim promotion, Discussion → Deliberation upgrade |
+| **Formal Grounding** | Based on AIF standards and argumentation theory | AIF node types (I, RA, CA, PA), Walton schemes |
+| **Composable Artifacts** | Outputs can be cited, forked, and built upon | KB pages, snapshots, AIF export |
+
+---
+
+## 2. Technical Architecture Overview
+
+The Agora deliberation system implements the conceptual layers through a **three-layer formal argumentation architecture**:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     AGORA DELIBERATION ENGINE                    │
 ├─────────────────────────────────────────────────────────────────┤
 │  Layer 1: PROTOCOL (PPD)                                        │
-│  • Move legality, attack vs surrender, public semantics         │
+│  • Move legality, challenge vs concede, public semantics         │
 ├─────────────────────────────────────────────────────────────────┤
 │  Layer 2: GEOMETRY (Ludics)                                     │
 │  • Loci, polarized acts, convergence/divergence                 │
 ├─────────────────────────────────────────────────────────────────┤
 │  Layer 3: CONTENT (Toulmin/Walton/AIF)                          │
-│  • Schemes + CQs, rebut/undercut, Toulmin structure             │
+│  • Argument Schemes, CQs, Toulmin structure, AIF graph             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Design Principles
-- **Public Semantics Only**: Legality/status derived solely from public record
-- **Explicit Reply Tree**: Every non-initial move replies to a prior move/locus
-- **Attack vs Surrender Classification**: Drives branch state and status
-- **Formal Grounding**: Based on AIF (Argument Interchange Format) standards
+This maps to the conceptual layers as follows:
+- **Protocol Layer** ↔ Dialogue subsystem (DialogueMoves, legality engine)
+- **Geometry Layer** ↔ Ludics subsystem (LudicDesign, ConvergentDesign)
+- **Content Layer** ↔ Arguments/Claims/Schemes subsystems (AIF structure)
 
 ---
 
-## 2. Architectural Layers
+## 3. Architectural Layers
 
-### 2.1 Presentation Layer (React/Next.js)
+### 3.1 Presentation Layer (React/Next.js)
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -76,7 +326,7 @@ The Agora deliberation system implements a **three-layer formal argumentation ar
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 State Management Layer
+### 3.2 State Management Layer
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -89,7 +339,7 @@ The Agora deliberation system implements a **three-layer formal argumentation ar
 └────────────────────┴────────────────────────────────────────┘
 ```
 
-### 2.3 Service/API Layer
+### 3.3 Service/API Layer
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -102,7 +352,7 @@ The Agora deliberation system implements a **three-layer formal argumentation ar
 └──────────────┴───────────────┴───────────────┴──────────────┘
 ```
 
-### 2.4 Data Layer (Prisma/PostgreSQL)
+### 3.4 Data Layer (Prisma/PostgreSQL)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -116,9 +366,9 @@ The Agora deliberation system implements a **three-layer formal argumentation ar
 
 ---
 
-## 3. DeepDivePanelV2 - Central Hub
+## 4. DeepDivePanelV2 - Central Hub
 
-### 3.1 Component Structure
+### 4.1 Component Structure
 
 `DeepDivePanelV2` serves as the **main orchestration component** for deliberation interfaces. Located at `components/deepdive/DeepDivePanelV2.tsx` (~1861 lines).
 
@@ -151,7 +401,7 @@ DeepDivePanelV2
     └── Analytics → AnalyticsTab
 ```
 
-### 3.2 Key Imports & Dependencies
+### 4.2 Key Imports & Dependencies
 
 ```typescript
 // Core UI Components
@@ -185,7 +435,7 @@ import LudicsPanel from "./LudicsPanel";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 ```
 
-### 3.3 State Hooks Used
+### 4.3 State Hooks Used
 
 ```typescript
 // Deliberation state management
@@ -211,9 +461,9 @@ const { nodes: minimapNodes, edges: minimapEdges, loading, error } = useMinimapD
 
 ---
 
-## 4. Core Subsystems
+## 5. Core Subsystems
 
-### 4.1 Dialogue Subsystem
+### 5.1 Dialogue Subsystem
 
 **Purpose**: Manages formal dialogue protocol (PPD moves)
 
@@ -252,7 +502,7 @@ const { nodes: minimapNodes, edges: minimapEdges, loading, error } = useMinimapD
 - `lib/dialogue/legalMoves.ts`
 - `lib/dialogue/types.ts`
 
-### 4.2 Arguments Subsystem (AIF)
+### 5.2 Arguments Subsystem (AIF)
 
 **Purpose**: Structured argumentation using Argument Interchange Format
 
@@ -297,7 +547,7 @@ const { nodes: minimapNodes, edges: minimapEdges, loading, error } = useMinimapD
 - `components/map/Aifdiagramviewerdagre.tsx`
 - `lib/arguments/diagram.ts`
 
-### 4.3 Claims Subsystem
+### 5.3 Claims Subsystem
 
 **Purpose**: Manage atomic propositions and their evaluation
 
@@ -341,7 +591,7 @@ const { nodes: minimapNodes, edges: minimapEdges, loading, error } = useMinimapD
 - `components/deepdive/CegMiniMap.tsx`
 - `app/api/claims/[id]/route.ts`
 
-### 4.4 Schemes Subsystem
+### 5.4 Schemes Subsystem
 
 **Purpose**: Argumentation schemes and critical questions
 
@@ -390,7 +640,7 @@ const { nodes: minimapNodes, edges: minimapEdges, loading, error } = useMinimapD
 - `app/api/aif/schemes/route.ts`
 - `app/server/services/ArgumentGenerationService.ts`
 
-### 4.5 Ludics Subsystem
+### 5.5 Ludics Subsystem
 
 **Purpose**: Game-theoretic analysis of dialogue
 
@@ -444,7 +694,7 @@ const { nodes: minimapNodes, edges: minimapEdges, loading, error } = useMinimapD
 - `packages/ludics-core/types.ts`
 - `packages/ludics-react/LociTree.tsx`
 
-### 4.6 Chains Subsystem (Comprehensive)
+### 5.6 Chains Subsystem (Comprehensive)
 
 **Purpose**: Link arguments into coherent threads with epistemic scoping, visual canvas editing, and export capabilities.
 
@@ -452,7 +702,7 @@ The Argument Chain system is a core feature of the Agora deliberation platform t
 
 ---
 
-#### 4.6.1 Data Model Architecture
+#### 5.6.1 Data Model Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
@@ -544,7 +794,7 @@ The Argument Chain system is a core feature of the Agora deliberation platform t
 
 ---
 
-#### 4.6.2 Epistemic Status System (Phase 4)
+#### 5.6.2 Epistemic Status System (Phase 4)
 
 The epistemic status system tracks the commitment level and modal status of arguments:
 
@@ -610,7 +860,7 @@ The epistemic status system tracks the commitment level and modal status of argu
 
 ---
 
-#### 4.6.3 View Modes
+#### 5.6.3 View Modes
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
@@ -655,7 +905,7 @@ The epistemic status system tracks the commitment level and modal status of argu
 
 ---
 
-#### 4.6.4 Canvas Architecture (ReactFlow)
+#### 5.6.4 Canvas Architecture (ReactFlow)
 
 The ArgumentChainCanvas uses ReactFlow for interactive graph editing:
 
@@ -714,7 +964,7 @@ The ArgumentChainCanvas uses ReactFlow for interactive graph editing:
 
 ---
 
-#### 4.6.5 Scope Boundaries (Phase 4)
+#### 5.6.5 Scope Boundaries (Phase 4)
 
 Visual containers for hypothetical reasoning:
 
@@ -754,7 +1004,7 @@ Visual containers for hypothetical reasoning:
 
 ---
 
-#### 4.6.6 Key Components
+#### 5.6.6 Key Components
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
@@ -771,7 +1021,7 @@ Visual containers for hypothetical reasoning:
 
 ---
 
-#### 4.6.7 API Endpoints
+#### 5.6.7 API Endpoints
 
 ```
 /api/chains/
@@ -805,7 +1055,7 @@ Visual containers for hypothetical reasoning:
 
 ---
 
-#### 4.6.8 User Flow: Creating a Chain with Scopes
+#### 5.6.8 User Flow: Creating a Chain with Scopes
 
 **Step 1: Create a New Chain**
 ```
@@ -886,7 +1136,7 @@ Essay View:
 
 ---
 
-#### 4.6.9 Seed Script Pattern
+#### 5.6.9 Seed Script Pattern
 
 For testing or bulk data creation, use the seed script pattern:
 
@@ -973,7 +1223,7 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
 
 ---
 
-#### 4.6.10 Key Files Reference
+#### 5.6.10 Key Files Reference
 
 **Core Components**:
 - `components/deepdive/v3/tabs/ChainsTab.tsx` - Tab orchestration
@@ -1004,7 +1254,7 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
 - `scripts/seed-test-chain.ts` - Basic chain seeding
 - `scripts/seed-test-chain-scopes.ts` - Chain with scopes (Phase 4)
 
-### 4.7 ASPIC Subsystem
+### 5.7 ASPIC Subsystem
 
 **Purpose**: Formal argumentation framework (ASPIC+)
 
@@ -1047,7 +1297,7 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
 
 ---
 
-## 5. Data Flow Diagrams
+## 6. Data Flow Diagrams
 
 ### 5.1 Dialogue Move Flow
 
@@ -1149,7 +1399,7 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
 
 ---
 
-## 6. Component Hierarchy
+## 7. Component Hierarchy
 
 ### 6.1 Full Component Tree
 
@@ -1245,7 +1495,7 @@ DeepDivePanelV2
 
 ---
 
-## 7. API Architecture
+## 8. API Architecture
 
 ### 7.1 Core API Routes
 
@@ -1348,7 +1598,7 @@ interface AIFEdge {
 
 ---
 
-## 8. Theoretical Foundations
+## 9. Theoretical Foundations
 
 ### 8.1 Formal Argumentation Theory
 
@@ -1436,7 +1686,7 @@ Key Invariants:
 
 ---
 
-## 9. Whiteboard Diagrams
+## 10. Whiteboard Diagrams
 
 ### 9.1 System Overview (Simple)
 

@@ -1,10 +1,23 @@
 /**
  * Argument Chain Narrative Generator
  * Converts formal AIF/ASPIC+ argument chains into human-readable narratives
+ * 
+ * Phase 4 Enhancements:
+ * - Scope awareness: Groups arguments by scope with contextual introductions
+ * - Chain type descriptions: Explains the structure based on chain type
+ * - Epistemic status: Includes epistemic indicators in argument text
  */
 
 import { Node, Edge } from "reactflow";
-import { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
+import { 
+  ChainNodeData, 
+  ChainEdgeData,
+  EpistemicStatus,
+  ScopeType,
+  EPISTEMIC_STATUS_CONFIG,
+  SCOPE_TYPE_CONFIG,
+  ArgumentScopeWithNodes
+} from "@/lib/types/argumentChain";
 import { generateEnhancedMarkdown, MarkdownOptions } from "./markdownFormatter";
 
 // ===== Types =====
@@ -16,6 +29,12 @@ export interface NarrativeOptions {
   detailLevel?: "brief" | "standard" | "detailed";
   // Markdown-specific options
   markdownOptions?: MarkdownOptions;
+  // Phase 4: Scope and chain type options
+  groupByScope?: boolean;
+  includeChainTypeDescription?: boolean;
+  includeEpistemicStatus?: boolean;
+  scopes?: ArgumentScopeWithNodes[];
+  chainType?: "SERIAL" | "CONVERGENT" | "DIVERGENT" | "TREE" | "GRAPH";
 }
 
 export interface NarrativeResult {
@@ -140,6 +159,110 @@ const SCHEME_TEMPLATES: Record<string, {
     transition: "Furthermore",
     description: "general inference"
   }
+};
+
+// ===== Phase 4: Chain Type Descriptions =====
+
+const CHAIN_TYPE_DESCRIPTIONS: Record<string, {
+  intro: string;
+  structure: string;
+  transition: string;
+}> = {
+  SERIAL: {
+    intro: "This argument chain follows a sequential structure, where each conclusion becomes the premise for the next argument.",
+    structure: "linear progression",
+    transition: "Building upon the previous conclusion",
+  },
+  CONVERGENT: {
+    intro: "This argument chain presents multiple independent lines of reasoning that converge to support a central conclusion.",
+    structure: "convergent reasoning",
+    transition: "From another line of reasoning",
+  },
+  DIVERGENT: {
+    intro: "This argument chain starts from a common premise and explores multiple divergent conclusions or implications.",
+    structure: "divergent exploration",
+    transition: "Exploring another implication",
+  },
+  TREE: {
+    intro: "This argument chain is structured as a hierarchical tree, with premises at the leaves supporting intermediate conclusions that combine toward a root conclusion.",
+    structure: "tree hierarchy",
+    transition: "At the next level of the argument",
+  },
+  GRAPH: {
+    intro: "This argument chain forms a complex graph with multiple interconnections, allowing for rich dialectical exchange including supports, attacks, and qualifications.",
+    structure: "interconnected graph",
+    transition: "In connection with the above",
+  },
+};
+
+// ===== Phase 4: Scope Narrative Templates =====
+
+const SCOPE_NARRATIVE_TEMPLATES: Record<ScopeType, {
+  intro: string;
+  context: string;
+  closing: string;
+}> = {
+  HYPOTHETICAL: {
+    intro: "Suppose for the sake of argument that",
+    context: "Under this hypothetical assumption",
+    closing: "This concludes the hypothetical reasoning.",
+  },
+  COUNTERFACTUAL: {
+    intro: "Consider the counterfactual scenario where",
+    context: "In this contrary-to-fact world",
+    closing: "End of counterfactual analysis.",
+  },
+  CONDITIONAL: {
+    intro: "If the following condition holds:",
+    context: "Given this condition",
+    closing: "This conditional reasoning completes here.",
+  },
+  OPPONENT: {
+    intro: "From the opponent's perspective",
+    context: "The opponent argues that",
+    closing: "End of opponent's position.",
+  },
+  MODAL: {
+    intro: "Considering the modal dimension of",
+    context: "Within this modal scope",
+    closing: "Modal analysis concludes.",
+  },
+};
+
+// ===== Phase 4: Epistemic Status Narrative Labels =====
+
+const EPISTEMIC_NARRATIVE_LABELS: Record<EpistemicStatus, {
+  prefix: string;
+  qualifier: string;
+}> = {
+  ASSERTED: {
+    prefix: "",
+    qualifier: "",
+  },
+  HYPOTHETICAL: {
+    prefix: "[Hypothetically] ",
+    qualifier: "hypothetically",
+  },
+  COUNTERFACTUAL: {
+    prefix: "[Counterfactually] ",
+    qualifier: "counterfactually",
+  },
+  CONDITIONAL: {
+    prefix: "[Conditionally] ",
+    qualifier: "conditionally",
+  },
+  QUESTIONED: {
+    prefix: "[Questioned] ",
+    qualifier: "questioningly",
+  },
+  DENIED: {
+    prefix: "[Denied] ",
+    qualifier: "as denied",
+  },
+  SUSPENDED: {
+    prefix: "[Suspended] ",
+    qualifier: "with judgment suspended",
+  },
 };
 
 // ===== Helper Functions =====
@@ -284,36 +407,62 @@ const EDGE_TYPE_LABELS_TEXT: Record<string, string> = {
 };
 
 /**
+ * Get epistemic status label for narrative
+ */
+function getEpistemicLabel(
+  epistemicStatus: EpistemicStatus | undefined,
+  includeEpistemic: boolean
+): { prefix: string; qualifier: string } {
+  if (!includeEpistemic || !epistemicStatus || epistemicStatus === "ASSERTED") {
+    return { prefix: "", qualifier: "" };
+  }
+  return EPISTEMIC_NARRATIVE_LABELS[epistemicStatus] || { prefix: "", qualifier: "" };
+}
+
+/**
  * Format a single argument node as enhanced plain text
+ * Phase 4: Now includes epistemic status indicators
  */
 function formatNodeEnhanced(
   sortedNode: SortedNode,
   options: NarrativeOptions
 ): string {
   const { node, position } = sortedNode;
-  const { argument, role } = node.data;
+  const { argument, role, epistemicStatus } = node.data;
   
   const argumentText = getArgumentDisplayText(argument);
   const schemeName = argument?.argumentSchemes?.[0]?.scheme?.name || null;
   const schemeType = argument?.argumentSchemes?.[0]?.scheme?.reasoningType || null;
   const roleLabel = role ? `[${role}]` : "";
   
+  // Phase 4: Get epistemic status label
+  const { prefix: epistemicPrefix, qualifier: epistemicQualifier } = getEpistemicLabel(
+    epistemicStatus as EpistemicStatus | undefined,
+    options.includeEpistemicStatus ?? true
+  );
+  
   // Get transition phrase
   const transition = getTransitionPhrase(schemeName, position);
   
   // Format based on detail level
   if (options.detailLevel === "brief") {
-    return `${transition}${argumentText}`;
+    return `${transition}${epistemicPrefix}${argumentText}`;
   }
   
   // Build enhanced plain text
   let text = "";
   
-  // Header with position and role
+  // Header with position, role, and epistemic status
   text += `─────────────────────────────────────────\n`;
   text += `ARGUMENT ${position + 1}`;
   if (roleLabel) {
     text += ` ${roleLabel}`;
+  }
+  if (epistemicStatus && epistemicStatus !== "ASSERTED" && options.includeEpistemicStatus !== false) {
+    const statusConfig = EPISTEMIC_STATUS_CONFIG[epistemicStatus as EpistemicStatus];
+    if (statusConfig) {
+      text += ` ${statusConfig.icon} ${statusConfig.label}`;
+    }
   }
   if (schemeName) {
     text += ` — ${schemeName}`;
@@ -321,8 +470,8 @@ function formatNodeEnhanced(
   text += `\n`;
   text += `─────────────────────────────────────────\n\n`;
   
-  // Main argument text
-  text += `${argumentText}\n`;
+  // Main argument text with epistemic prefix
+  text += `${epistemicPrefix}${argumentText}\n`;
   
   // Scheme details for detailed mode
   if (options.detailLevel === "detailed" && (schemeName || schemeType)) {
@@ -471,14 +620,26 @@ format: narrative
 `;
   }
 
-  // Enhanced plain text header
+  // Enhanced plain text header with Phase 4 chain type description
   let header = "";
   header += `╔═══════════════════════════════════════════╗\n`;
   header += `║  ${(chainName || "ARGUMENT CHAIN").toUpperCase().padEnd(39)}║\n`;
   header += `╚═══════════════════════════════════════════╝\n\n`;
   header += `Generated: ${date}\n`;
   header += `Statistics: ${nodeCount} arguments, ${edgeCount} connections\n`;
-  header += `Structure: ${edgeCount === 0 ? "Disconnected claims" : "Linked reasoning chain"}\n\n`;
+  
+  // Phase 4: Include chain type description
+  if (options.chainType && options.includeChainTypeDescription !== false) {
+    const chainTypeDesc = CHAIN_TYPE_DESCRIPTIONS[options.chainType];
+    if (chainTypeDesc) {
+      header += `Structure: ${chainTypeDesc.structure}\n\n`;
+      header += `${chainTypeDesc.intro}\n\n`;
+    } else {
+      header += `Structure: ${edgeCount === 0 ? "Disconnected claims" : "Linked reasoning chain"}\n\n`;
+    }
+  } else {
+    header += `Structure: ${edgeCount === 0 ? "Disconnected claims" : "Linked reasoning chain"}\n\n`;
+  }
   
   return header;
 }
@@ -512,7 +673,105 @@ function generateOrphansSection(
 // ===== Main Export Function =====
 
 /**
+ * Phase 4: Group sorted nodes by scope for scope-aware narrative generation
+ */
+function groupNodesByScope(
+  sortedNodes: SortedNode[],
+  scopes: ArgumentScopeWithNodes[] | undefined
+): Map<string | null, SortedNode[]> {
+  const scopeGroups = new Map<string | null, SortedNode[]>();
+  
+  if (!scopes || scopes.length === 0) {
+    // No scopes - all nodes go to default group
+    scopeGroups.set(null, sortedNodes);
+    return scopeGroups;
+  }
+
+  // Build a map of nodeId -> scopeId
+  const nodeToScope = new Map<string, string>();
+  scopes.forEach(scope => {
+    scope.nodes?.forEach(scopeNode => {
+      nodeToScope.set(scopeNode.id, scope.id);
+    });
+  });
+
+  // Group nodes
+  sortedNodes.forEach(sortedNode => {
+    const scopeId = nodeToScope.get(sortedNode.node.id) || null;
+    const existing = scopeGroups.get(scopeId) || [];
+    existing.push(sortedNode);
+    scopeGroups.set(scopeId, existing);
+  });
+
+  return scopeGroups;
+}
+
+/**
+ * Phase 4: Generate narrative section for a scope
+ */
+function generateScopeNarrativeSection(
+  scopeId: string | null,
+  nodes: SortedNode[],
+  scopes: ArgumentScopeWithNodes[] | undefined,
+  options: NarrativeOptions
+): string {
+  if (nodes.length === 0) {
+    return "";
+  }
+
+  let section = "";
+
+  // Find scope details
+  const scope = scopes?.find(s => s.id === scopeId);
+  
+  if (scope) {
+    const scopeType = scope.scopeType as ScopeType;
+    const scopeTemplate = SCOPE_NARRATIVE_TEMPLATES[scopeType];
+    
+    // Scope introduction
+    section += `\n\n════════════════════════════════════════════\n`;
+    section += `SCOPE: ${scope.name.toUpperCase()}\n`;
+    section += `════════════════════════════════════════════\n\n`;
+    
+    if (scopeTemplate) {
+      section += `${scopeTemplate.intro} ${scope.description || scope.name.toLowerCase()}.\n\n`;
+    }
+  } else if (scopeId === null) {
+    // Main/unscoped arguments
+    section += `\n\n════════════════════════════════════════════\n`;
+    section += `MAIN ARGUMENT THREAD\n`;
+    section += `════════════════════════════════════════════\n\n`;
+  }
+
+  // Format nodes within scope
+  nodes.forEach((sortedNode, idx) => {
+    if (options.detailLevel === "brief") {
+      section += formatNode(sortedNode, options);
+      section += idx < nodes.length - 1 ? ". " : "";
+    } else {
+      section += formatNodeEnhanced(sortedNode, options);
+    }
+  });
+
+  // Scope closing (if scope exists)
+  if (scope) {
+    const scopeType = scope.scopeType as ScopeType;
+    const scopeTemplate = SCOPE_NARRATIVE_TEMPLATES[scopeType];
+    if (scopeTemplate) {
+      section += `\n${scopeTemplate.closing}\n`;
+    }
+  }
+
+  return section;
+}
+
+/**
  * Generate a natural language narrative from an argument chain
+ * 
+ * Phase 4 Enhancements:
+ * - Scope awareness: Arguments can be grouped by scope
+ * - Chain type descriptions: Structural context in metadata
+ * - Epistemic status: Visual and textual indicators
  * 
  * @param nodes - ReactFlow nodes with argument data
  * @param edges - ReactFlow edges with connection data
@@ -526,13 +785,19 @@ export function generateNarrative(
   chainName?: string,
   options: NarrativeOptions = {}
 ): NarrativeResult {
-  // Set defaults
+  // Set defaults with Phase 4 options
   const opts: NarrativeOptions = {
     format: options.format || "text",
     includeMetadata: options.includeMetadata ?? true,
     tone: options.tone || "formal",
     detailLevel: options.detailLevel || "standard",
-    markdownOptions: options.markdownOptions || {}
+    markdownOptions: options.markdownOptions || {},
+    // Phase 4 options
+    groupByScope: options.groupByScope ?? true,
+    includeChainTypeDescription: options.includeChainTypeDescription ?? true,
+    includeEpistemicStatus: options.includeEpistemicStatus ?? true,
+    scopes: options.scopes,
+    chainType: options.chainType,
   };
 
   // Handle empty chain
@@ -551,14 +816,20 @@ export function generateNarrative(
   // Sort nodes topologically
   const sortedNodes = topologicalSort(nodes, edges);
   
-  // If markdown format, use enhanced formatter
+  // If markdown format, use enhanced formatter (with Phase 4 options passed through)
   if (opts.format === "markdown") {
     const markdown = generateEnhancedMarkdown(
       nodes,
       edges,
       sortedNodes,
       chainName,
-      opts.markdownOptions
+      {
+        ...opts.markdownOptions,
+        // Phase 4: Pass scope and chain type info to markdown formatter
+        scopes: opts.scopes,
+        chainType: opts.chainType,
+        includeEpistemicBadges: opts.includeEpistemicStatus,
+      }
     );
 
     return {
@@ -572,7 +843,7 @@ export function generateNarrative(
     };
   }
 
-  // Plain text format (enhanced logic)
+  // Plain text format (enhanced logic with Phase 4 scope awareness)
   // Separate main chain from orphans
   const mainChain = sortedNodes.filter(sn => sn.depth >= 0);
   const orphans = sortedNodes.filter(sn => sn.depth < 0);
@@ -580,31 +851,50 @@ export function generateNarrative(
   // Generate metadata section
   const metadata = generateMetadata(nodes.length, edges.length, chainName, opts);
 
-  // Format each node with enhanced formatting
-  const narrativeParts = mainChain.map(sortedNode => 
-    opts.detailLevel === "brief" 
-      ? formatNode(sortedNode, opts)
-      : formatNodeEnhanced(sortedNode, opts)
-  );
+  let narrative = metadata;
+
+  // Phase 4: Check if we should group by scope
+  if (opts.groupByScope && opts.scopes && opts.scopes.length > 0) {
+    // Group nodes by scope and generate scope-aware narrative
+    const scopeGroups = groupNodesByScope(mainChain, opts.scopes);
+    
+    // First output unscoped nodes (main thread)
+    const unscopedNodes = scopeGroups.get(null) || [];
+    if (unscopedNodes.length > 0) {
+      narrative += generateScopeNarrativeSection(null, unscopedNodes, opts.scopes, opts);
+    }
+    
+    // Then output each scope's nodes
+    opts.scopes.forEach(scope => {
+      const scopeNodes = scopeGroups.get(scope.id) || [];
+      if (scopeNodes.length > 0) {
+        narrative += generateScopeNarrativeSection(scope.id, scopeNodes, opts.scopes, opts);
+      }
+    });
+  } else {
+    // Legacy behavior: Format each node sequentially
+    const narrativeParts = mainChain.map(sortedNode => 
+      opts.detailLevel === "brief" 
+        ? formatNode(sortedNode, opts)
+        : formatNodeEnhanced(sortedNode, opts)
+    );
+
+    if (opts.detailLevel === "brief") {
+      narrative += narrativeParts.join(". ");
+    } else {
+      narrative += narrativeParts.join("\n");
+    }
+  }
 
   // Generate edge relationships section
   const edgeRelationships = opts.detailLevel !== "brief" 
     ? generateEdgeRelationshipsText(edges, sortedNodes)
     : "";
+  
+  narrative += edgeRelationships;
 
   // Add orphans section
   const orphansSection = generateOrphansSection(orphans, opts);
-
-  // Combine all parts
-  let narrative = metadata;
-  
-  if (opts.detailLevel === "brief") {
-    narrative += narrativeParts.join(". ");
-  } else {
-    narrative += narrativeParts.join("\n");
-  }
-  
-  narrative += edgeRelationships;
   narrative += orphansSection;
 
   // Add concluding remark for formal tone
