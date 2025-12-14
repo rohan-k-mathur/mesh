@@ -463,3 +463,398 @@ The existing executive summaries (from `AGORA_DELIBERATION_SYSTEM_ARCHITECTURE.m
 ---
 
 *This is a working document. Add notes, variations, and feedback as the messaging evolves.*
+
+---
+
+## 10. Gestalt Reframing: New Lenses on the Whole
+
+This section steps outside existing framings to explore fundamentally different ways of seeing what Mesh is and does. Instead of starting from "what we built," we start from "what patterns emerge when you look at all the pieces together?"
+
+### 10.1 Systems Inventory (What We Actually Have)
+
+Before reframing, let's inventory the actual capabilities without the usual framing:
+
+| System | What It Actually Does |
+|--------|----------------------|
+| **Claims** | Creates stable, addressable units of assertion that can be linked, versioned, and related |
+| **Arguments** | Connects claims in structured premise-conclusion relationships with typed schemes |
+| **Chains** | Composes arguments into larger networks (serial, convergent, divergent, linked) |
+| **Dialogue Moves** | Records every speech act with actor, target, and type (assert, challenge, concede, retract) |
+| **Commitment Stores** | Tracks what each participant is publicly committed to at any point |
+| **Attack/Defense** | Models disagreement as typed relationships (rebut, undercut, undermine) |
+| **Critical Questions** | Auto-generates challenges appropriate to each argument scheme |
+| **Schemes** | Provides 60+ recognized patterns for reasoning with structure |
+| **Evidence Linking** | Connects claims to external sources with typed relationships |
+| **ASPIC+ Theory** | Formalizes arguments as defeasible rules with preferences |
+| **Ludics** | Models reasoning as game-theoretic interaction with positions and commitments |
+| **Propositions** | Enables informal discussion, voting, and endorsement |
+| **Issues** | Tracks open questions, clarification requests, and community flags |
+| **Non-Canonical Moves** | Allows community contributions with author approval workflow |
+| **Thesis/Output** | Composes reasoning into publishable documents with citation |
+| **Scopes** | Partitions arguments by epistemic status (hypothetical, counterfactual, etc.) |
+| **Graphs/Visualization** | Renders reasoning as navigable visual networks |
+
+---
+
+### 10.2 Radical Reframings
+
+#### Reframe A: "A Programming Language for Thought"
+
+What if Mesh isn't a platform but a **language**?
+
+Programming languages don't just store code — they provide primitives (variables, functions, types) and composition rules (how primitives combine). Mesh provides primitives for reasoning (claims, arguments, attacks) and composition rules (how they combine into chains, dialogues, theories).
+
+**Implications**:
+- Users aren't "discussing" — they're "programming" a reasoning structure
+- The output isn't a document — it's an executable specification of thought
+- Errors aren't disagreements — they're type mismatches or logical faults
+- Learning Mesh is like learning to code, not learning to use an app
+
+**Pitch**: "Mesh is a programming language for collective reasoning. Instead of variables and functions, you work with claims and arguments. Instead of compiling to machine code, you compile to defensible decisions."
+
+---
+
+#### Reframe B: "A Forensic Laboratory for Ideas"
+
+What if Mesh is fundamentally about **investigation** rather than discussion?
+
+Forensic labs don't create evidence — they analyze it, trace its provenance, test its reliability, and establish chains of custody. Mesh does the same for ideas: every claim has provenance, every argument can be stress-tested, every conclusion has a traceable chain.
+
+**Implications**:
+- The platform is for *interrogating* ideas, not just sharing them
+- Critical questions become forensic tests
+- Attack types are diagnostic categories
+- The output is an investigation report, not a summary
+
+**Pitch**: "Mesh is a forensic laboratory for ideas. When reasoning matters — in policy, in law, in governance — you need to trace every claim to its source, test every inference, and document the chain of evidence. That's what we do."
+
+---
+
+#### Reframe C: "A Constitution-Writing System"
+
+What if Mesh is about creating **binding agreements** rather than just understanding?
+
+Constitutions aren't just documents — they're negotiated structures that bind future action. They require: explicit statement of principles (claims), justification for those principles (arguments), acknowledged areas of disagreement (attack relations), and mechanisms for amendment (dialogue moves).
+
+**Implications**:
+- Deliberations produce *constitutional* artifacts — binding, citable, amendable
+- Commitment stores become *signatories* — who has agreed to what
+- The platform is for groups that need to commit, not just converse
+- Output isn't a thesis — it's a charter
+
+**Pitch**: "Mesh is a system for writing constitutions — not just national ones, but any binding agreement that needs to be justified, debated, and ratified. From organizational charters to community guidelines to policy frameworks."
+
+---
+
+#### Reframe D: "A Collaborative Proof Assistant"
+
+What if Mesh is **mathematical** rather than rhetorical?
+
+Proof assistants (Coq, Lean, Isabelle) help mathematicians verify that proofs are correct. Mesh helps groups verify that arguments are sound. The difference: math proofs are about abstract objects; Mesh proofs are about claims in the world.
+
+**Implications**:
+- Arguments are *proofs* subject to verification
+- Critical questions are *proof obligations* that must be discharged
+- ASPIC+ theory is the *type system* for reasoning
+- Acceptability semantics are *proof checkers*
+
+**Pitch**: "Mesh is a proof assistant for real-world reasoning. Just as mathematicians use Coq to verify proofs, organizations use Mesh to verify arguments. Every claim, every inference, every conclusion — checked for soundness."
+
+---
+
+#### Reframe E: "A Version Control System for Belief"
+
+What if Mesh is **Git for ideas**?
+
+Version control doesn't just store code — it tracks changes, manages branches, handles conflicts, and enables collaboration at scale. Mesh does the same for reasoning: commits (dialogue moves), branches (scopes), conflicts (attacks), merges (resolutions).
+
+**Implications**:
+- Every dialogue move is a *commit* to a reasoning repository
+- Scopes are *branches* — alternative lines of reasoning
+- Attacks are *merge conflicts* — incompatible changes that need resolution
+- Thesis output is a *release* — a stable, tagged version of understanding
+
+**Pitch**: "Mesh is Git for belief. Track every change to your collective understanding. Branch into hypotheticals. Resolve conflicts when reasoning collides. Tag stable releases. Never lose the history of how you got here."
+
+---
+
+#### Reframe F: "A Court System for Epistemic Disputes"
+
+What if Mesh is a **legal system** rather than a discussion platform?
+
+Courts don't just host arguments — they provide procedures, roles, standards of evidence, and binding judgments. Mesh provides dialogue protocols (procedures), participant roles (proponent/opponent), evidence standards (source linking), and resolution mechanisms (acceptability).
+
+**Implications**:
+- Dialogue moves are *pleadings* and *motions*
+- Schemes are *legal standards* — established patterns for what counts as proof
+- Critical questions are *cross-examination*
+- ASPIC+ acceptability is *judgment* — what stands after challenge
+
+**Pitch**: "Mesh is a court system for epistemic disputes. When groups need to settle contested questions — not by authority or vote, but by reasoned argument — they need procedures, standards, and judgments. That's what we provide."
+
+---
+
+#### Reframe G: "An Immune System for Organizations"
+
+What if Mesh is about **organizational health** rather than decision-making?
+
+Immune systems detect threats, mount responses, and remember past pathogens. Organizations face epistemic threats: bad reasoning, unsupported claims, circular arguments. Mesh detects (contradiction detection), responds (attack mechanisms), and remembers (institutional memory).
+
+**Implications**:
+- Critical questions are *antibodies* — targeted responses to weak arguments
+- Attack types are *immune responses* — specific to the threat type
+- Commitment stores are *immune memory* — what the organization "knows"
+- The platform is preventive medicine for institutional reasoning
+
+**Pitch**: "Mesh is an immune system for organizations. Bad reasoning is a pathogen — it spreads, causes damage, weakens institutions. We provide the detection, response, and memory systems that keep organizational reasoning healthy."
+
+---
+
+#### Reframe H: "A Slow Media Platform"
+
+What if Mesh is the opposite of social media — **anti-viral by design**?
+
+Social media optimizes for speed, emotion, and sharing. Mesh optimizes for depth, reflection, and resolution. Virality is a failure mode, not a success metric. The goal is not reach but rigor.
+
+**Implications**:
+- "Engagement" means depth of reasoning, not clicks
+- Success is resolution, not reaction
+- Content that spreads is content that survives challenge
+- The platform is a refuge from the attention economy
+
+**Pitch**: "Mesh is slow media. In a world optimized for outrage and virality, we optimize for depth and resolution. No infinite scroll. No engagement metrics. Just structured reasoning that takes as long as it takes."
+
+---
+
+#### Reframe I: "A Scoring System for Ideas"
+
+What if Mesh is fundamentally about **evaluation** rather than discussion?
+
+Sports have scoring systems. Science has peer review. Markets have prices. What's the scoring system for ideas? Mesh provides it: ideas are scored by how well they survive challenge, how much evidence supports them, how many critical questions they've answered.
+
+**Implications**:
+- Every claim has a *score* based on support/attack balance
+- Arguments are *rated* by scheme appropriateness and premise strength
+- Participants have *ratings* based on commitment consistency
+- The platform is a meritocracy for reasoning
+
+**Pitch**: "Mesh is a scoring system for ideas. In sports, the best team wins. In markets, the best price wins. In Mesh, the best argument wins — objectively scored by evidence, structure, and survival under challenge."
+
+---
+
+#### Reframe J: "A Collective Exocortex"
+
+What if Mesh is a **cognitive prosthetic** for groups?
+
+Individuals have brains that remember, reason, and revise. Groups don't — they have meetings, which are forgotten; documents, which are static; and cultures, which are slow. Mesh gives groups the cognitive capabilities individuals have.
+
+**Implications**:
+- Commitment stores are *group memory*
+- Dialogue is *group reasoning* made visible
+- Resolution mechanisms are *group revision* of belief
+- The platform is a brain for collectives
+
+**Pitch**: "Mesh is a collective exocortex — an external brain for groups. Individuals remember; groups forget. Individuals reason; groups argue. Individuals revise; groups repeat. Mesh gives groups the cognitive capabilities individuals take for granted."
+
+---
+
+### 10.3 Cross-Cutting Themes
+
+Looking across all reframings, some themes emerge:
+
+| Theme | Description |
+|-------|-------------|
+| **Addressability** | Things have stable identifiers and can be pointed to |
+| **Composability** | Small pieces combine into larger structures |
+| **Traceability** | Every state connects to the actions that produced it |
+| **Adversariality** | Challenge is built in, not bolted on |
+| **Durability** | Structures persist beyond the conversation |
+| **Formalism** | Structure is explicit, not implicit |
+
+These might be more fundamental than any single metaphor.
+
+---
+
+### 10.4 Provocative Questions
+
+Questions that might unlock new perspectives:
+
+1. **What if the primary output isn't text but *relationships*?**
+   - The graph of claim-argument-attack relations might be the real product
+   - Documents are just one rendering of that graph
+
+2. **What if Mesh is primarily a *memory* system?**
+   - Not for making decisions but for remembering how decisions were made
+   - The platform is a historian, not a facilitator
+
+3. **What if the value is in the *structure*, not the content?**
+   - The scheme annotations, attack types, and chain patterns are the value
+   - Content could be placeholder; structure is the asset
+
+4. **What if Mesh is a *calibration* tool?**
+   - Not for reaching conclusions but for discovering where you actually disagree
+   - The platform reveals the precise points of divergence
+
+5. **What if users are *co-authors of a formal system*?**
+   - Each deliberation creates a local formal language for that topic
+   - The claims become the vocabulary; the arguments become the grammar
+
+6. **What if Mesh is infrastructure for *human-AI hybrid reasoning*?**
+   - AI can generate arguments; humans can evaluate them
+   - AI can suggest attacks; humans can judge acceptability
+   - The platform is a collaboration medium between human and machine reasoning
+
+7. **What if the "dialogue" is with *future selves*?**
+   - The primary audience for a deliberation is the same group in 6 months
+   - The platform is a message to the future
+
+8. **What if Mesh is a *speculation* platform?**
+   - Not for reaching truth but for exploring possibility space
+   - Scopes become parallel universes of assumption
+   - The platform is a multiverse simulator for ideas
+
+---
+
+### 10.5 Hybrid Framings
+
+Some combinations that might be generative:
+
+| Hybrid | Description |
+|--------|-------------|
+| **Forensic Proof Assistant** | Investigate ideas with mathematical rigor |
+| **Constitutional Git** | Version-controlled binding agreements |
+| **Legal Immune System** | Procedural responses to epistemic threats |
+| **Slow Exocortex** | Deep collective cognition, not fast reaction |
+| **Scored Court** | Judicial process with transparent metrics |
+| **Programming Language for Constitutions** | Formal specification of governance |
+
+---
+
+### 10.6 Wild Cards: Completely Different Angles
+
+#### "Mesh as Archaeology"
+The platform doesn't create knowledge — it *excavates* it. Claims are artifacts. Arguments are strata. Deliberations are dig sites. The work is careful extraction and cataloging.
+
+#### "Mesh as Gardening"
+Ideas are plants. Some need to be pruned (attacked). Some need support (arguments). The gardener's job is cultivation over time, not construction.
+
+#### "Mesh as Cuisine"
+Claims are ingredients. Arguments are recipes. Chains are meals. Schemes are cooking techniques. The output is something people can consume and be nourished by.
+
+#### "Mesh as Cartography"
+The platform doesn't create territory — it maps it. The territory is the space of possible beliefs. Deliberation is surveying. Output is a map others can use to navigate.
+
+#### "Mesh as Therapy"
+The platform helps groups process disagreement. Attack/defense isn't combat — it's working through. Resolution isn't winning — it's healing. The facilitator role is therapeutic.
+
+#### "Mesh as Journalism"
+Every claim needs sourcing. Every argument needs fact-checking. The platform is a newsroom for ideas, with editorial standards and verification processes.
+
+---
+
+### 10.7 Implications for Messaging
+
+Different framings suggest different:
+
+| Framing | Primary Verb | Success Metric | Failure Mode | User Identity |
+|---------|-------------|----------------|--------------|---------------|
+| Programming Language | Compile | Runs without errors | Syntax error | Developer |
+| Forensic Lab | Investigate | Evidence holds up | Contamination | Investigator |
+| Constitution | Ratify | Binding agreement | Rejection | Delegate |
+| Proof Assistant | Verify | Proof complete | Unproven | Mathematician |
+| Version Control | Commit | Clean merge | Conflict | Collaborator |
+| Court System | Adjudicate | Judgment rendered | Mistrial | Jurist |
+| Immune System | Protect | Health maintained | Infection | Caretaker |
+| Slow Media | Reflect | Resolution reached | Noise | Thinker |
+| Scoring System | Evaluate | Best wins | Rigged game | Judge |
+| Exocortex | Remember | Knowledge persists | Amnesia | Collective |
+
+---
+
+### 10.8 Underexplored System Synergies
+
+Looking at how systems combine in non-obvious ways:
+
+#### Scopes × Commitments = "Conditional Agreements"
+What if scopes aren't just for organizing arguments but for organizing *agreements*? "Under assumption X, we commit to Y." Conditional treaties.
+
+#### Critical Questions × Issues = "Structured Due Diligence"
+What if the CQ system automatically generates the issues that due diligence requires? Every argument scheme comes with its audit checklist.
+
+#### Chains × Dialogue Moves = "Choreographed Debate"
+What if argument chains aren't just structures but *scripts* for dialogue? The chain defines the moves that need to happen for the argument to be complete.
+
+#### Attack Types × Analytics = "Vulnerability Assessment"
+What if tracking attack patterns reveals organizational blind spots? "Your arguments are frequently undercut at the evidence level — strengthen sourcing."
+
+#### ASPIC+ × Output = "Formally Verified Documents"
+What if thesis documents could carry formal certificates? "This document's central argument has been checked for acceptability under the Dung grounded extension."
+
+#### Ludics × Propositions = "Game-Theoretic Voting"
+What if voting was informed by game-theoretic analysis? "Warning: this vote would commit you to positions you've previously attacked."
+
+---
+
+### 10.9 "Accidental" Use Cases
+
+What if the platform gets used in ways we didn't design for?
+
+| Accidental Use | How It Would Work |
+|---------------|-------------------|
+| **Philosophical Inquiry** | Use schemes and CQs as a structured method for doing philosophy |
+| **Jury Deliberation Support** | Track juror commitments, map the argument, identify contested facts |
+| **Scientific Peer Review** | Structure reviews as attacks, track responses, generate revision requirements |
+| **Treaty Negotiation** | Map positions, identify zones of agreement, generate treaty text from resolved claims |
+| **Classroom Debate Training** | Students practice structured argumentation with real-time scheme identification |
+| **AI Alignment Research** | Use the platform to map alignment arguments and track open problems |
+| **Legal Brief Drafting** | Compose briefs by selecting arguments from pre-structured pools |
+| **Investigative Journalism** | Map claims, sources, and evidence chains for complex stories |
+
+---
+
+### 10.10 The "One Weird Trick" Framing
+
+What's the single most surprising or counterintuitive thing about Mesh?
+
+**Candidates**:
+
+1. **"Disagreement is a feature, not a bug."**
+   We build attack/defense into the core model. Most tools try to minimize conflict; we formalize it.
+
+2. **"We make you commit."**
+   Commitment stores track what you've publicly asserted. You can't just argue — you're accountable.
+
+3. **"Arguments have types."**
+   Not all arguments are the same. Schemes make the structure explicit — and expose the weaknesses.
+
+4. **"The conversation is the document."**
+   Dialogue moves directly compose into publishable artifacts. No separate write-up phase.
+
+5. **"We slow you down on purpose."**
+   Progressive formalization adds friction. That's intentional — rigor requires effort.
+
+6. **"Your arguments can be graded."**
+   ASPIC+ acceptability semantics give objective ratings. Arguments that survive challenge win.
+
+---
+
+### 10.11 Workshop Exercise: Gestalt Synthesis
+
+**Exercise**: Pick 2-3 reframings that resonate. For each:
+
+1. Write a one-sentence summary using that frame
+2. Identify what this framing makes visible that others hide
+3. Identify what this framing hides that might matter
+4. Name one user story that this framing illuminates
+
+**Space for notes**:
+
+| Reframing | One-Sentence | Makes Visible | Hides | User Story |
+|-----------|--------------|---------------|-------|------------|
+| | | | | |
+| | | | | |
+| | | | | |
+
+---
+
+*This is a working document. Add notes, variations, and feedback as the messaging evolves.*
