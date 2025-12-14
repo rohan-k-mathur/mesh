@@ -2,11 +2,38 @@
 
 ## Executive Summary
 
-This document provides a comprehensive architectural overview of the Mesh Digital Agora deliberation system. The architecture addresses a fundamental challenge: **how do we build public infrastructure for evidence-based reasoning that scales from casual conversation to formal argumentation to stable, citable knowledge artifacts?**
+### The Crisis of Collective Reasoning
 
-The answer is a **progressive formalization architecture**—a system where structure emerges on-demand as discourse complexity increases, rather than being imposed upfront. Ideas begin as lightweight propositions in social spaces, graduate to canonical claims when validated, connect through structured arguments with explicit premises and schemes, and ultimately crystallize into knowledge base pages that institutions can cite, audit, and build upon.
+Democratic societies depend on a capacity that current infrastructure actively undermines: the ability to reason together about complex questions. Climate adaptation, healthcare policy, technology governance, institutional reform—these challenges require collective intelligence that emerges from structured dialogue, not engagement metrics. Yet the platforms where public discourse occurs are optimized for attention capture, not deliberation. The result is predictable: polarization accelerates, trust erodes, and institutions lose the ability to justify their decisions to the publics they serve.
 
-This document covers both the *conceptual architecture* (the "why" and "what") and the *implementation architecture* (the "how"). For day-to-day development, `DeepDivePanelV2` serves as the central UI orchestration component, connecting the subsystems described herein.
+This is not a content moderation problem. It is an infrastructure problem. We lack the basic tooling to connect evidence to claims, claims to arguments, arguments to counter-arguments, and the entire structure to outcomes that communities can cite, audit, and build upon.
+
+### What Agora Provides
+
+The **Mesh Digital Agora** is a deliberation platform that treats reasoning as infrastructure. It provides:
+
+- **Structured claim management**: Canonical assertions with stable identifiers, typed relationships (supports, rebuts, undercuts, undermines), and evidence linking
+- **Scheme-based argumentation**: Arguments constructed using established patterns (Walton schemes) with automatically surfaced critical questions
+- **Dialogue protocol enforcement**: Every assertion, challenge, and concession recorded as a dialogue move with provenance tracking
+- **Composable knowledge artifacts**: Deliberations produce thesis documents, knowledge base pages, and exportable AIF graphs that persist as institutional memory
+
+The platform implements a **progressive formalization architecture**—structure emerges on-demand as discourse complexity increases, rather than being imposed upfront. A casual discussion can remain lightweight. A policy deliberation can upgrade to full formal reasoning with scheme-based arguments, attack/defense tracking, and commitment stores. The same infrastructure serves both use cases.
+
+### Architecture at a Glance
+
+The system organizes reasoning into three layers:
+
+| Layer | Purpose | Key Artifacts |
+|-------|---------|---------------|
+| **Claims & Evidence** | Transform informal ideas into canonical, evidence-linked assertions | Propositions, Claims, ClaimEdges, Evidence |
+| **Arguments & Dialogue** | Structure reasoning with premises, conclusions, schemes, and tracked moves | Arguments, ArgumentChains, DialogueMoves, Commitments |
+| **Outputs & Artifacts** | Compose reasoning into publishable, citable documents | Thesis, TheoryWorks, KbPages, DebateSheets |
+
+All structures conform to the **Argument Interchange Format (AIF)** ontology, enabling interoperability with academic argumentation tools and ensuring that reasoning graphs can be exported, analyzed, and verified independently.
+
+### For Developers
+
+This document serves as both conceptual orientation and implementation reference. The central UI orchestration component is `DeepDivePanelV2` (located at `components/deepdive/DeepDivePanelV2.tsx`), which connects the subsystems described herein through a tabbed interface with floating sheets for deep exploration. Understanding this component provides a practical entry point into the codebase.
 
 ---
 
@@ -16,9 +43,10 @@ This document covers both the *conceptual architecture* (the "why" and "what") a
    - [1.1 The Problem We Solve](#11-the-problem-we-solve)
    - [1.2 Core Design Philosophy](#12-core-design-philosophy)
    - [1.3 The Three Conceptual Layers](#13-the-three-conceptual-layers)
-   - [1.4 The User Journey (11-Step Flow)](#14-the-user-journey-11-step-flow)
-   - [1.5 The Graph-of-Graphs Vision](#15-the-graph-of-graphs-vision)
-   - [1.6 Design Principles](#16-design-principles)
+   - [1.4 The User Journey (Actual Flow)](#14-the-user-journey-actual-flow)
+   - [1.5 The DeepDivePanelV2 Hub](#15-the-deepdivepanelv2-hub)
+   - [1.6 Key Subsystems Overview](#16-key-subsystems-overview)
+   - [1.7 Design Principles (Implemented)](#17-design-principles-implemented)
 2. [Technical Architecture Overview](#2-technical-architecture-overview)
 3. [Architectural Layers](#3-architectural-layers)
 4. [DeepDivePanelV2 - Central Hub](#4-deepdivepanelv2---central-hub)
@@ -40,24 +68,62 @@ This document covers both the *conceptual architecture* (the "why" and "what") a
 
 ## 1. Global System Design
 
-This section presents the big-picture architecture—the conceptual framework that explains *why* the system is structured the way it is, before diving into implementation details.
+This section presents the big-picture architecture—the conceptual framework that explains *why* the system is structured the way it is, before diving into implementation details. This section reflects the **current implemented state** of the platform as of December 2024.
 
 ### 1.1 The Problem We Solve
 
-Current infrastructure for collective reasoning fails in three critical ways:
+#### Why Good Decisions Are Hard to Make Together
 
-| Problem | Symptom | Cost |
-|---------|---------|------|
-| **No shared method** | Ideas lack structure; disagreement defaults to rhetoric | Decisions based on persuasion, not evidence |
-| **Evidence isn't first-class** | Sources sit in PDFs, disconnected from claims | No way to trace claims to grounds |
-| **No audit trail** | Reasoning scatters across threads, docs, and email | Slow, opaque decisions; brittle public trust |
+Every organization—whether a company, a government agency, a nonprofit, or a community group—faces the same fundamental challenge: **how do you reason well together?**
 
-**The fix isn't "better comments."** It's a method and data model for public reasoning—from social workshopping to structured argument to stable knowledge artifacts.
+Good collective decisions require several things that are surprisingly difficult to achieve:
+
+1. **You need to see the reasoning, not just the conclusion.** When someone proposes "we should do X," you need to understand *why*—what evidence supports it, what assumptions underlie it, what alternatives were considered. Without this, you can't evaluate the decision or improve it.
+
+2. **You need to navigate complexity.** Real questions generate dozens of claims, each supported or challenged by others, referencing different sources. Linear documents and threaded comments can't represent this structure. People either oversimplify or get lost.
+
+3. **You need to know who said what and why.** Ideas shouldn't float anonymously. Every claim should have an author, a source, and a context. When claims conflict, there should be a clear way to trace the disagreement.
+
+4. **You need arguments to get better, not just louder.** When someone finds a flaw in reasoning, there should be a path to address it—to strengthen the premise, acknowledge the limitation, or revise the conclusion. Most platforms reward winning arguments, not refining them.
+
+5. **You need to build on prior work.** When a team spends months analyzing a question, that analysis shouldn't disappear when the project ends. Future teams facing similar questions should be able to find, reference, and extend that work.
+
+These aren't exotic requirements. They're what thoughtful reasoning looks like. But current digital tools make all five nearly impossible.
+
+#### What's Broken Today
+
+The platforms where groups discuss important questions—email threads, Slack channels, Google Docs, comment sections—were not designed for structured reasoning. They're optimized for conversation, not deliberation.
+
+| Problem | What Happens | What It Costs |
+|---------|--------------|---------------|
+| **No shared structure** | Ideas exist as prose, not as claims with explicit relationships | Disagreements become rhetorical battles rather than structured analysis |
+| **Evidence is disconnected** | Sources live in attachments, footnotes, or separate documents | No way to trace a claim back to its grounds, or see what depends on disputed evidence |
+| **No institutional memory** | Reasoning scatters across threads, docs, meetings, and email | Every discussion starts from scratch; past conclusions can't be cited or audited |
+| **No path to resolution** | Comments pile up but don't converge toward conclusions | Decisions get made elsewhere (or not at all), without clear justification |
+
+These aren't just inconveniences. They erode the ability of institutions to justify their decisions, of teams to learn from past analysis, and of communities to resolve disagreements constructively.
+
+#### What We Build Instead
+
+**The solution isn't "better comments."** It's infrastructure for reasoning—a method and data model that treats arguments as structured objects rather than unstructured text.
+
+Agora provides:
+
+- **Canonical claims**: Discrete assertions with stable identifiers that persist across contexts. When you reference "Claim #247," everyone is talking about the same thing.
+- **Typed relationships**: Explicit structure showing how claims relate. Does A *support* B, *rebut* it, *undercut* the inference, or *undermine* a premise? The system distinguishes these.
+- **Scheme-based reasoning**: Arguments built using recognized patterns (e.g., argument from expert opinion, argument from analogy) with automatically surfaced questions that challenge each pattern.
+- **Dialogue tracking**: Every assertion, challenge, and concession recorded as a move in an ongoing dialogue, with full provenance (who, when, in response to what).
+- **Composable outputs**: Deliberations produce documents, knowledge base pages, and exportable graphs that persist as institutional memory—citable, auditable, and extensible
 
 ### 1.2 Core Design Philosophy
 
+The architecture embodies four key principles that distinguish Agora from both traditional forums and document-centric collaboration tools.
+
 #### Progressive Formalization
-Not all conversations require formal structure. Most casual exchanges—greetings, status updates, clarifications—function well as unstructured messages. The system applies **progressive disclosure**: structure activates only when complexity warrants it.
+
+Not all conversations require formal structure. A team checking in on project status doesn't need argumentation schemes. A policy working group evaluating regulatory options does.
+
+The system applies **progressive disclosure**: structure activates only when complexity warrants it. Users can stay in lightweight discussion mode indefinitely, or upgrade to full deliberation when formalization becomes valuable. The same platform serves casual check-ins and multi-year institutional deliberations.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -67,7 +133,7 @@ Not all conversations require formal structure. Most casual exchanges—greeting
 │   INFORMAL                                                      FORMAL       │
 │   ◄──────────────────────────────────────────────────────────────────►      │
 │                                                                              │
-│   Discussion     Proposition      Claim         Argument      KB Page        │
+│   Discussion     Proposition      Claim         Argument      Thesis/KB     │
 │   (chat/forum)   (workshopping)   (canonical)   (structured)  (published)   │
 │        │              │              │              │              │         │
 │        │   upgrade    │   promote    │    link      │   publish    │         │
@@ -77,26 +143,59 @@ Not all conversations require formal structure. Most casual exchanges—greeting
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Public Semantics
-Legality and status are derived **solely from public record**. There are no hidden states. Every assertion, challenge, and resolution is recorded and traceable. This enables:
-- **Auditability**: Decisions can be reviewed and reconstructed
-- **Repeatability**: Others can rerun the reasoning with the same inputs
-- **Agent-neutrality**: Protocols apply to human and AI participants under shared rules
+**Currently Implemented Transitions**:
+- `Discussion → Deliberation`: Via `DeliberateButton` component, creates linked deliberation space
+- `Proposition → Claim`: Via `PromoteToClaimButton`, elevates validated propositions to canonical claims
+- `Claim → Argument`: Via `AIFArgumentWithSchemeComposer`, creates structured arguments with scheme
+- `Argument → Thesis`: Via `ThesisComposer`, composes claims/arguments into legal-style documents
 
-#### Institutional Readiness
-The system is built for institutional use where reasoning must be auditable, defensible, and reproducible:
+#### AIF-Centric Architecture
 
-| Property | Description |
-|----------|-------------|
-| **Legibility** | Every proposition, claim, inference, and counter-move is linkable |
-| **Repeatability** | Methods are explicit; dialogues are replayable |
-| **Interoperability** | Export to AIF/AIF+; APIs for claims, arguments, edges, schemes |
-| **Agent-neutral** | Protocols apply to human and AI participants under shared rules |
-| **Governance** | Decisions traced through DecisionReceipts; moderation via Panels |
+Academic argumentation research has produced a standard for representing argument structures: the **Argument Interchange Format (AIF)**. Rather than inventing proprietary representations, Agora implements AIF as its canonical data model. This provides:
+
+- **Interoperability**: Export to tools used in argumentation research and formal verification
+- **Theoretical grounding**: Decades of research on argument semantics, attack types, and extension computation
+- **Explicit structure**: Clear distinction between content (I-nodes), inference (RA-nodes), conflict (CA-nodes), and preference (PA-nodes)
+
+| AIF Node Type | Description | Implementation |
+|---------------|-------------|----------------|
+| **I-node** (Information) | Propositions/claims containing content | `Claim`, `AifNode` (nodeKind='I') |
+| **RA-node** (Rule of Application) | Inference steps applying schemes | `Argument`, `AifNode` (nodeKind='RA') |
+| **CA-node** (Conflict Application) | Attack relations (rebut/undercut/undermine) | `ArgumentEdge`, `AifNode` (nodeKind='CA') |
+| **PA-node** (Preference Application) | Priority/ordering relations | `AifNode` (nodeKind='PA') |
+| **DM-node** (Dialogue Move) | Locutions in dialogue (WHY, GROUNDS, CONCEDE) | `DialogueMove`, `AifNode` (nodeKind='DM') |
+
+#### Dialogue-First Reasoning
+
+Arguments don't exist in isolation—they emerge through **structured dialogue**. Someone asserts a claim. Another participant challenges it ("WHY do you believe that?"). The original author provides grounds. A third party undercuts the inference. Each of these is a **dialogue move** with explicit semantics.
+
+This dialogue-first approach means every structure in the system has provenance: who created it, when, in response to what. Arguments are not free-floating logical objects but moves in an ongoing conversation.
+
+```
+DialogueMove (locution) → creates → AifNode (content)
+                       → records → who said what, when, in reply to what
+```
+
+**Implemented Move Types**: ASSERT, WHY, GROUNDS, CONCEDE, RETRACT, CLOSE
+
+#### Confidence & Uncertainty
+
+Real-world reasoning involves uncertainty. Premises may be likely rather than certain. Evidence may be partial. The system treats confidence as first-class, tracking it at multiple levels:
+
+| Scope | Implementation | UI |
+|-------|----------------|-----|
+| Per-argument | `Argument.confidence` (0.0-1.0) | Confidence sliders in composers |
+| Aggregation mode | `DeliberationState.confMode` | Product / Min toggle |
+| Dempster-Shafer intervals | `Deliberation.dsMode` | DS Mode toggle in header |
+| Temporal decay | `Argument.lastUpdatedAt` | Stale badges on old arguments |
+
+This allows the system to distinguish between strongly-supported conclusions and tentative hypotheses, and to surface when previously confident conclusions have become stale due to lack of recent validation.
 
 ### 1.3 The Three Conceptual Layers
 
-The platform organizes reasoning into three distinct but connected layers:
+The platform organizes reasoning into three distinct but connected layers. Each layer builds on the one below, adding structure and formalization as needed. A deliberation might use only Layer 1 (informal discussion with workshopping). A policy analysis might span all three, culminating in published thesis documents that cite structured arguments grounded in canonical claims.
+
+This layered architecture reflects how reasoning actually works: ideas start informal, get refined through dialogue, connect into argument structures, and eventually crystallize into outputs that persist beyond the conversation.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -104,203 +203,926 @@ The platform organizes reasoning into three distinct but connected layers:
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  LAYER 3: MAPPING, CLUSTERING & KNOWLEDGE ARTIFACTS                 │    │
-│  │  DebateSheets • Clusters • ViewpointSelection • KbPages • Briefs    │    │
+│  │  LAYER 3: OUTPUTS & ARTIFACTS                                       │    │
+│  │  Thesis • TheoryWorks • DebateSheets • KbPages • Briefs             │    │
 │  │  ─────────────────────────────────────────────────────────────────  │    │
-│  │  Visual navigation, camp surfacing, stable publications             │    │
+│  │  Structured documents, visual maps, publishable knowledge            │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                              ▲                                               │
-│                              │ generates                                     │
+│                              │ composes                                      │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  LAYER 2: ARGUMENTS & THEIR INTERNAL STRUCTURE                      │    │
-│  │  Arguments • ArgumentDiagrams • Schemes + CQs • DialogueMoves       │    │
+│  │  LAYER 2: ARGUMENTS & DIALOGUE                                      │    │
+│  │  Arguments • ArgumentChains • Schemes • DialogueMoves • Commitments │    │
 │  │  ─────────────────────────────────────────────────────────────────  │    │
-│  │  Narrative + logical structure, formal dialogue protocol            │    │
+│  │  Scheme-based reasoning, attack/defense, formal dialogue protocol   │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                              ▲                                               │
-│                              │ connects                                      │
+│                              │ builds on                                     │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  LAYER 1: SOCIAL SUBSTRATE → STRUCTURED CLAIMS                      │    │
+│  │  LAYER 1: CLAIMS & EVIDENCE                                         │    │
 │  │  Discussions • Propositions • Claims • ClaimEdges • Evidence        │    │
 │  │  ─────────────────────────────────────────────────────────────────  │    │
-│  │  Social validation before formalization, canonical atoms            │    │
+│  │  Community input, workshopping, canonical atomic assertions          │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Layer 1: Social Substrate → Structured Claims
+#### Layer 1: Claims & Evidence (Currently Implemented)
 
 **Purpose**: Transform informal ideas into canonical, evidence-linked assertions.
 
-- **Propositions**: Lightweight assertions for community workshopping (votes, endorsements, replies)
-- **Claims**: Canonical atomic assertions with stable identifiers, promoted from validated propositions
-- **Evidence**: First-class citizens with citations, locators, excerpts, and CSL metadata
-- **ClaimEdges**: Typed relations (supports, rebuts, undercuts, undermines) with scope targeting
+The foundation of structured reasoning is the **claim**—a discrete assertion that can be referenced, linked, attacked, and defended. But claims don't appear fully-formed. They emerge from informal discussion, get refined through community workshopping, and only graduate to canonical status when they've proven their value.
 
-**Key Insight**: The two-stage path (Proposition → Claim) balances accessibility with rigor. Anyone can float an idea; structured reasoning begins when the community validates it.
+This layer provides the path from "someone said something in a meeting" to "we have a stable assertion we can build arguments around."
 
-#### Layer 2: Arguments & Their Internal Structure
+| Component | Model | Key Features |
+|-----------|-------|--------------|
+| **Discussions** | `Discussion` | Forum-style threads, chat mode, upgradable to deliberation |
+| **Propositions** | `Proposition` | Workshopping with votes (`PropositionVote`), endorsements, replies |
+| **Claims** | `Claim` | Canonical assertions with MOID identifiers, negation relations |
+| **ClaimEdges** | `ClaimEdge` | Typed relations: SUPPORTS, REBUTS, UNDERCUTS, UNDERMINES |
+| **Evidence** | `ClaimEvidence` | Citations with confidence, source URLs, CSL metadata |
+| **Contraries** | `ClaimContrary` | ASPIC+ explicit contrary relations between claims |
+
+**Key Components**:
+- `PropositionComposer` / `PropositionComposerPro`: Create propositions with evidence
+- `PromoteToClaimButton`: Elevate validated propositions to canonical claims
+- `ClaimMiniMap` / `CegMiniMap`: Visual navigation of claim relationships
+- `ClaimDetailPanel`: Deep-dive into individual claims with CQ status
+
+#### Layer 2: Arguments & Dialogue (Currently Implemented)
 
 **Purpose**: Structure reasoning with explicit premises, conclusions, and inferential steps.
 
-Arguments work at **two levels**:
-1. **Narrative Unit (Argument)**: Links premise Claims to conclusion Claims with confidence, quantifiers, and optional scheme reference
-2. **Logical Structure (ArgumentDiagram)**: Breaks reasoning into Statements (atomic text) and Inferences (inferential steps), making warrants explicit and targetable
+Claims alone don't make arguments. An argument connects claims through inference: "Given premises A and B, therefore conclusion C." The strength of this inference can be challenged. The premises can be disputed. The inference pattern itself can be questioned.
 
-**Key Insight**: This two-level structure lets you present arguments narratively while exposing logical shape for scrutiny. Undercuts can target specific warrants (via `targetInferenceId`), not just conclusions.
+Layer 2 provides the machinery for structured argumentation. Arguments reference **schemes**—recognized patterns of reasoning (argument from expert opinion, argument from analogy, argument from cause to effect) with **critical questions** that expose their vulnerabilities. When you create an argument using a scheme, the system automatically surfaces the questions that would challenge that reasoning pattern.
 
-#### Layer 3: Mapping, Clustering & Knowledge Artifacts
+Crucially, all activity in this layer is mediated by **dialogue moves**. You don't just add an argument to the graph—you ASSERT it. Someone else doesn't just attack—they explicitly REBUT or UNDERCUT. This makes the discourse structure as important as the logical structure.
 
-**Purpose**: Navigate complexity, surface camps, and produce stable publications.
+| Component | Model | Key Features |
+|-----------|-------|--------------|
+| **Arguments** | `Argument` | Premise claims → conclusion claim, scheme reference, confidence |
+| **Premises** | `ArgumentPremise` | Links claims as premises with role/order |
+| **Edges** | `ArgumentEdge` | Inter-argument relations: ATTACK (rebut/undercut/undermine), SUPPORT |
+| **Schemes** | `ArgumentScheme`, `ArgumentSchemeInstance` | Walton schemes with critical questions |
+| **Diagrams** | `ArgumentDiagram` | AIF graph representation of argument structure |
+| **Chains** | `ArgumentChain`, `ArgumentChainNode`, `ArgumentChainEdge` | Threaded reasoning with scopes |
+| **Scopes** | `ArgumentScope` | Hypothetical/counterfactual groupings |
+| **Dialogue Moves** | `DialogueMove` | ASSERT, WHY, GROUNDS, CONCEDE, RETRACT, CLOSE |
+| **Commitments** | `Commitment` | Participant commitment stores for dialogue tracking |
 
-- **DebateSheet**: Two-level map with nodes (arguments) expandable to internal diagrams, edges showing typed relations
-- **Clusters**: Surface camps/themes; ViewpointSelection picks k representatives under rules (utilitarian | harmonic | maxcov)
-- **KbPages**: Live or pinned blocks referencing deliberation artifacts; stable, citable, composable
-- **TheoryWorks**: Longform structured reasoning (DN/IH/TC/OP frameworks)
+**Key Components**:
+- `AIFArgumentWithSchemeComposer`: Create arguments with scheme selection
+- `AIFArgumentsListPro`: Browse/filter arguments with scheme breakdown
+- `ArgumentActionsSheet`: Attack menu with rebut/undercut/undermine options
+- `SchemeNavigator` / `SchemeSuggester`: Browse and match argumentation schemes
+- `ArgumentChainCanvas`: Visual canvas for threaded argument chains
+- `DialogueInspector`: View dialogue move history and commitments
+- `CommitmentStorePanel`: Track participant commitments
 
-**Key Insight**: The deliberation produces artifacts that institutions can cite, communities can fork, and AI systems can process.
+#### Layer 3: Outputs & Artifacts (Currently Implemented)
 
-### 1.4 The User Journey (11-Step Flow)
+**Purpose**: Compose reasoning into publishable, citable artifacts.
 
-The system supports a complete journey from casual conversation to publishable knowledge:
+Deliberation should produce durable outputs. When a working group spends months analyzing a policy question, the result shouldn't evaporate when the project ends. It should persist as institutional memory—citable, auditable, and available for future groups facing similar questions.
+
+Layer 3 provides artifact types designed for different publication needs: **Thesis documents** for legal-style structured arguments with prongs and supporting evidence; **TheoryWorks** for longer-form analysis using established frameworks (Deontological, Instrumental Harm, Teleological Consequentialist, Original Position); **KbPages** for knowledge base entries that compose blocks of content with live links to underlying claims and arguments; **Briefs** for generated summaries.
+
+These artifacts don't just reference the underlying reasoning—they link to it. A thesis claim points to the canonical claim it's asserting. A KB block embeds a live view of an argument that updates as the underlying structure evolves.
+
+| Component | Model | Key Features |
+|-----------|-------|--------------|
+| **Thesis** | `Thesis`, `ThesisProng`, `ThesisProngArgument` | Legal-style structured documents |
+| **TheoryWorks** | `TheoryWork` | Longform DN/IH/TC/OP frameworks |
+| **DebateSheet** | `DebateSheet`, `DebateNode`, `DebateEdge` | Visual debate mapping |
+| **KbPages** | `KbPage`, `KbBlock` | Knowledge base pages with block system |
+| **Briefs** | `BriefCompiler` | Generated summaries from deliberation content |
+| **Glossary** | `GlossaryTerm` | Per-deliberation term definitions |
+
+**Key Components**:
+- `ThesisComposer` / `ThesisRenderer`: Create and view structured thesis documents
+- `WorksList` / `WorkDetailClient`: Browse and edit TheoryWorks
+- `KbPageEditor`: Rich block-based knowledge page editor
+- `BriefCompiler`: AI-assisted brief generation
+- `DefinitionSheet`: Deliberation glossary management
+
+### 1.4 The User Journey (Actual Flow)
+
+The three-layer architecture translates into a concrete user journey. A participant might enter at any point—joining an existing deliberation, creating a new proposition, or composing an argument against an existing claim. But the canonical path from scratch illustrates how the layers connect.
+
+The journey below represents the **currently implemented** flow. Every step has working UI components and backend support. This is not a roadmap—it's a description of what the platform does today.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        THE 11-STEP DELIBERATION JOURNEY                      │
+│                        DELIBERATION JOURNEY (IMPLEMENTED)                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ SOCIAL SUBSTRATE (Layer 1)                                           │   │
+│  │ LAYER 1: CLAIMS & EVIDENCE                                          │   │
 │  │                                                                       │   │
-│  │  1. JOIN DISCUSSION          Discussions → Deliberation upgrade      │   │
+│  │  1. ENTER DISCUSSION         Forum/Chat hybrid via DiscussionView    │   │
 │  │        ↓                                                              │   │
-│  │  2. COMPOSE PROPOSITION      Lightweight assertion for workshopping  │   │
+│  │  2. COMPOSE PROPOSITION      PropositionComposerPro with evidence    │   │
 │  │        ↓                                                              │   │
-│  │  3. WORKSHOP                 Vote, endorse, reply → social filtering │   │
+│  │  3. WORKSHOP                 Vote, endorse, reply in DebateTab       │   │
 │  │        ↓                                                              │   │
-│  │  4. PROMOTE TO CLAIM         Validated → canonical atom              │   │
+│  │  4. PROMOTE TO CLAIM         PromoteToClaimButton → canonical atom   │   │
 │  │        ↓                                                              │   │
-│  │  5. VIEW CLAIMS              Minimap / CEG graph navigation          │   │
+│  │  5. UPGRADE TO DELIBERATION  DeliberateButton → full deliberation    │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                       ↓                                      │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ ARGUMENTATION (Layer 2)                                              │   │
+│  │ LAYER 2: ARGUMENTS & DIALOGUE                                        │   │
 │  │                                                                       │   │
-│  │  6. COMPOSE ARGUMENT         Scheme Composer → premises + conclusion │   │
+│  │  6. COMPOSE ARGUMENT         AIFArgumentWithSchemeComposer + scheme  │   │
 │  │        ↓                                                              │   │
-│  │  7. VIEW ARGUMENTS           AIF Arguments List → filter, compare    │   │
+│  │  7. VIEW IN ARGUMENTS TAB    AIFArgumentsListPro with filters        │   │
 │  │        ↓                                                              │   │
-│  │  8. DIALOGUE MOVE            Attack menu → Rebut / Undercut          │   │
+│  │  8. ATTACK/DEFEND            ArgumentActionsSheet → Rebut/Undercut   │   │
+│  │        ↓                                                              │   │
+│  │  9. BUILD CHAINS             ArgumentChainCanvas for threading       │   │
+│  │        ↓                                                              │   │
+│  │  10. TRACK COMMITMENTS       CommitmentStorePanel per participant    │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                       ↓                                      │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │ KNOWLEDGE ARTIFACTS (Layer 3)                                        │   │
+│  │ LAYER 3: OUTPUTS & ARTIFACTS                                         │   │
 │  │                                                                       │   │
-│  │  9. NAVIGATE DEBATE SHEET    Two-level map of entire deliberation    │   │
+│  │  11. CREATE THESIS           ThesisComposer with prongs + arguments  │   │
 │  │        ↓                                                              │   │
-│  │  10. PUBLISH TO KB           Live/pinned blocks → stable citation    │   │
+│  │  12. VIEW ANALYTICS          AnalyticsTab with agreement matrices    │   │
 │  │        ↓                                                              │   │
-│  │  11. EXPLORE NETWORK         Plexus → cross-room graph-of-graphs     │   │
+│  │  13. MANAGE ISSUES           IssuesList for objections/disputes      │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Step | Action | Key Component | Key Model |
-|------|--------|--------------|-----------|
-| 1 | Join Discussion → Deliberation | `DiscussionView`, `ThreadUpgradeButton` | `Deliberation` |
-| 2 | Compose Proposition | `PropositionComposer` | `Proposition` |
-| 3 | Workshop (Vote, Endorse, Reply) | `PropositionCard`, `VoteButton` | `PropositionVote`, `Endorsement` |
-| 4 | Promote to Claim | `ClaimElevator` | `Claim` (via `promotedClaimId`) |
-| 5 | View Claims | `ClaimMiniMap`, `CegMiniMap` | `Claim`, `ClaimEdge` |
-| 6 | Compose Argument | `SchemeComposer` | `Argument`, `ArgumentPremise` |
-| 7 | View Arguments | `AIFArgumentsListPro` | `Argument`, `ArgumentDiagram` |
-| 8 | Dialogue Move | `CommandCard`, `DialogueActionsButton` | `DialogueMove` |
-| 9 | Navigate Debate Sheet | `DebateSheetReader` | `DebateNode`, `DebateEdge` |
-| 10 | Publish to KB | `KbPageEditor`, `BlockSelector` | `KbPage`, `KbBlock` |
-| 11 | Explore Network | `Plexus`, `PlexusBoard` | `RoomFunctor`, `ArgumentImport` |
+| Step | Action | Key Component | Key Model | Status |
+|------|--------|---------------|-----------|--------|
+| 1 | Enter Discussion | `DiscussionView`, `ForumPane` | `Discussion` | ✅ Implemented |
+| 2 | Compose Proposition | `PropositionComposerPro` | `Proposition` | ✅ Implemented |
+| 3 | Workshop | `PropositionsList` | `PropositionVote`, `PropositionEndorsement` | ✅ Implemented |
+| 4 | Promote to Claim | `PromoteToClaimButton` | `Claim` (sourceProposition) | ✅ Implemented |
+| 5 | Upgrade to Deliberation | `DeliberateButton` | `Deliberation` (upgradedFromDiscussionId) | ✅ Implemented |
+| 6 | Compose Argument | `AIFArgumentWithSchemeComposer` | `Argument`, `ArgumentSchemeInstance` | ✅ Implemented |
+| 7 | View Arguments | `AIFArgumentsListPro` | `Argument`, `ArgumentDiagram` | ✅ Implemented |
+| 8 | Attack/Defend | `ArgumentActionsSheet`, `AttackMenuProV2` | `ArgumentEdge`, `DialogueMove` | ✅ Implemented |
+| 9 | Build Chains | `ArgumentChainCanvas`, `ChainsTab` | `ArgumentChain`, `ArgumentChainNode` | ✅ Implemented |
+| 10 | Track Commitments | `CommitmentStorePanel` | `Commitment` | ✅ Implemented |
+| 11 | Create Thesis | `ThesisComposer` | `Thesis`, `ThesisProng` | ✅ Implemented |
+| 12 | View Analytics | `AnalyticsTab`, `CommitmentAnalyticsDashboard` | (computed) | ✅ Implemented |
+| 13 | Manage Issues | `IssuesList`, `IssueComposer` | `Issue`, `IssueLink` | ✅ Implemented |
 
-### 1.5 The Graph-of-Graphs Vision
+### 1.5 The DeepDivePanelV2 Hub
 
-The platform is not just a single deliberation space—it's a **graph-of-graphs** where deliberations connect, arguments flow across rooms, and knowledge compounds:
+Architecture documents often describe systems in terms of modules and data flows, but users experience systems through interfaces. The `DeepDivePanelV2` component is where theory meets practice—where the careful layering of propositions, claims, arguments, and dialogue manifests as clickable tabs and draggable panels.
+
+This single component (~1861 lines in `components/deepdive/DeepDivePanelV2.tsx`) serves as the **central orchestration hub** for all deliberation interfaces. Every deliberation in Mesh renders through this component. Understanding its structure provides the clearest map of what the system actually does, because every feature visible here is a feature that exists.
+
+The hub organizes the full feature set into tabs and floating sheets:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         GRAPH-OF-GRAPHS (PLEXUS)                             │
+│                         DEEPDIVEPANELV2 STRUCTURE                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│     ┌─────────────┐                           ┌─────────────┐               │
-│     │   Room A    │──── RoomFunctor ─────────▶│   Room B    │               │
-│     │  (Climate   │     (import args)         │  (Energy    │               │
-│     │   Policy)   │                           │   Policy)   │               │
-│     └─────────────┘                           └─────────────┘               │
-│            │                                         │                       │
-│            │ XRef (cross-reference)                  │                       │
-│            ▼                                         ▼                       │
-│     ┌─────────────┐                           ┌─────────────┐               │
-│     │   Room C    │◀──── ArgumentImport ──────│   Room D    │               │
-│     │  (Economic  │      (reuse argument)     │  (Research  │               │
-│     │   Impact)   │                           │   Review)   │               │
-│     └─────────────┘                           └─────────────┘               │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ FLOATING SHEETS                                                     │    │
+│  │  Left: Graph Explorer (Claims/Arguments/Commitments/Analytics)      │    │
+│  │  Right: Actions Sheet (Dialogue moves, AIF diagram viewer)          │    │
+│  │  Terms: Deliberation Dictionary (Glossary)                          │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
-│  Edge Types in Plexus Network:                                              │
-│  • xref: Cross-reference links between rooms                                │
-│  • overlap: Shared claim/argument content                                   │
-│  • stack_ref: Knowledge base block references                               │
-│  • imports: RoomFunctor materialized imports                                │
-│  • shared_author: Common contributor connections                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ HEADER                                                              │    │
+│  │  StatusChip | Confidence Mode | DS Mode | Settings Toggle           │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
-│  Transport Functors:                                                         │
-│  • Preview: Generate proposal with fingerprint                               │
-│  • Apply: Materialize with transaction, create ArgumentImport records       │
-│  • Modes: off | materialized | virtual | all                                │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ MAIN TABS                                                           │    │
+│  │                                                                      │    │
+│  │  [Debate]     DebateTab → Claims, propositions, CQs                 │    │
+│  │  [Arguments]  ArgumentsTab → AIFArgumentsListPro, scheme breakdown  │    │
+│  │  [Chains]     ChainsTab → ArgumentChainCanvas, threaded reasoning   │    │
+│  │  [Ludics]     LudicsPanel → Game-theoretic analysis                 │    │
+│  │  [Admin]      Discourse dashboard, Issues, Assumptions              │    │
+│  │  [Sources]    EvidenceList → Source quality ratings                 │    │
+│  │  [Thesis]     ThesisListView → Structured legal documents           │    │
+│  │  [Analytics]  AnalyticsTab → Commitment analytics                   │    │
+│  │                                                                      │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Concepts**:
-- **RoomFunctor**: Maps claims/arguments from source room to target room (category-theoretic transport)
-- **ArgumentImport**: Records provenance when arguments are reused across rooms
-- **XRef**: Explicit cross-references between related deliberations
-- **Plexus UI**: Navigable network visualization showing how deliberations connect
+**Tab Details**:
 
-### 1.6 Design Principles
+| Tab | Primary Components | Purpose |
+|-----|-------------------|---------|
+| **Debate** | `DebateTab`, `PropositionsList`, `ClaimDetailPanel` | Main workspace for claims and propositions |
+| **Arguments** | `AIFArgumentsListPro`, `SchemeBreakdown`, `AspicTheoryPanel` | Structured argument browsing with scheme analysis |
+| **Chains** | `ChainsTab`, `ArgumentChainCanvas` | Build threaded argument chains with hypothetical scopes |
+| **Ludics** | `LudicsPanel`, `BehaviourInspectorCard` | Game-theoretic dialogue analysis |
+| **Admin** | `DiscourseDashboard`, `IssuesList`, `ActiveAssumptionsPanel` | Moderation and issue tracking |
+| **Sources** | `EvidenceList` | View and rate evidence sources |
+| **Thesis** | `ThesisListView`, `ThesisComposer` | Create legal-style structured documents |
+| **Analytics** | `AnalyticsTab`, `CommitmentAnalyticsDashboard` | Participant agreement matrices
+
+### 1.6 Key Subsystems Overview
+
+The deliberation platform is not a single application—it is a **federation of subsystems**, each handling a distinct aspect of the reasoning process. These subsystems are deeply interconnected but conceptually separable, allowing developers to understand one domain without mastering all of them simultaneously.
+
+The diagram below shows how subsystems relate. The general flow moves from informal (Discussion) through formal (Arguments, Dialogue) to output (Thesis), with Claims serving as the central currency that all subsystems share. Ludics and ASPIC provide analytical overlays that enrich the core argumentation without blocking basic functionality.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           SUBSYSTEM MAP                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐               │
+│  │   DISCUSSION  │───▶│  DELIBERATION │───▶│    THESIS     │               │
+│  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │               │
+│  └───────────────┘    └───────────────┘    └───────────────┘               │
+│         │                    │                    │                         │
+│         │                    ▼                    │                         │
+│         │           ┌───────────────┐             │                         │
+│         └──────────▶│    CLAIMS     │◀────────────┘                         │
+│                     │   SUBSYSTEM   │                                       │
+│                     └───────────────┘                                       │
+│                            │                                                │
+│                            ▼                                                │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐               │
+│  │   DIALOGUE    │◀──▶│   ARGUMENTS   │───▶│    CHAINS     │               │
+│  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │               │
+│  └───────────────┘    └───────────────┘    └───────────────┘               │
+│         │                    │                                              │
+│         ▼                    ▼                                              │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐               │
+│  │    LUDICS     │    │    SCHEMES    │    │     ASPIC     │               │
+│  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │               │
+│  └───────────────┘    └───────────────┘    └───────────────┘               │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Subsystem | Primary Purpose | Key Models | Key Components |
+|-----------|-----------------|------------|----------------|
+| **Discussion** | Forum/chat conversations | `Discussion`, `ForumComment`, `Conversation` | `DiscussionView`, `ForumPane` |
+| **Claims** | Canonical atomic assertions | `Claim`, `ClaimEdge`, `ClaimEvidence` | `ClaimMiniMap`, `ClaimDetailPanel` |
+| **Arguments** | Structured reasoning | `Argument`, `ArgumentPremise`, `ArgumentEdge` | `AIFArgumentsListPro`, `ArgumentActionsSheet` |
+| **Dialogue** | Move-based discourse | `DialogueMove`, `Commitment` | `DialogueInspector`, `CommitmentStorePanel` |
+| **Schemes** | Argumentation patterns | `ArgumentScheme`, `CriticalQuestion` | `SchemeNavigator`, `SchemeSuggester` |
+| **Chains** | Threaded argument flows | `ArgumentChain`, `ArgumentChainNode`, `ArgumentScope` | `ArgumentChainCanvas`, `ChainsTab` |
+| **Ludics** | Game-theoretic analysis | `LudicDesign`, `LudicAct` | `LudicsPanel`, `BehaviourInspectorCard` |
+| **ASPIC** | Defeasible reasoning | `ClaimContrary`, extension computation | `AspicTheoryPanel`, `GroundedExtensionPanel` |
+| **Thesis** | Structured documents | `Thesis`, `ThesisProng` | `ThesisComposer`, `ThesisRenderer` |
+| **Deliberation** | Core orchestration | `Deliberation`, `AifNode`, `AifEdge` | `DeepDivePanelV2`, `DebateTab` |
+
+### 1.7 Design Principles (Implemented)
+
+Architectural principles only matter if they constrain actual implementation decisions. The principles below are not aspirations—they are constraints that the existing codebase actually satisfies. Each row in the table links a named principle to concrete implementation evidence.
+
+These principles emerged from the theoretical foundations discussed in Section 9 (particularly AIF, Walton schemes, and Girard's Ludics), but they have been operationalized into database columns, API contracts, and UI behaviors. When a principle appears here, it means the system will break if that principle is violated during development.
 
 | Principle | Description | Implementation |
 |-----------|-------------|----------------|
-| **Public Semantics Only** | Legality/status derived solely from public record | All moves recorded in `DialogueMove`, commitments in `Commitment` |
-| **Explicit Reply Tree** | Every non-initial move replies to a prior move/locus | `replyToMoveId` on moves, `targetArgumentId` on edges |
-| **Attack vs Surrender Classification** | Drives branch state and status | `force` field: ATTACK, SURRENDER, NEUTRAL |
-| **Progressive Disclosure** | Simple tools for simple tasks, powerful tools on-demand | Proposition → Claim promotion, Discussion → Deliberation upgrade |
-| **Formal Grounding** | Based on AIF standards and argumentation theory | AIF node types (I, RA, CA, PA), Walton schemes |
-| **Composable Artifacts** | Outputs can be cited, forked, and built upon | KB pages, snapshots, AIF export |
+| **AIF Compliance** | Argument graphs follow AIF ontology | `AifNode`, `AifEdge` with nodeKind (I/RA/CA/PA/DM) |
+| **Dialogue Provenance** | Every structure has creator/move tracking | `createdByMoveId`, `introducedByMoveId` on models |
+| **Scheme-Based Reasoning** | Arguments reference Walton schemes | `ArgumentScheme`, `ArgumentSchemeInstance`, CQ system |
+| **Progressive Disclosure** | Simple tools first, power on-demand | Discussion → Deliberation, Proposition → Claim |
+| **Commitment Tracking** | Participant positions are recorded | `Commitment` model, `CommitmentStorePanel` |
+| **Attack Taxonomy** | Rebut/Undercut/Undermine distinguished | `ArgumentEdge.attackType`, `ArgumentAttackSubtype` |
+| **Confidence Quantification** | Uncertainty modeled explicitly | Per-argument confidence, DS mode, temporal decay |
+| **Composable Outputs** | Artifacts build on each other | Thesis references claims/arguments, KB cites deliberations |
 
 ---
 
 ## 2. Technical Architecture Overview
 
-The Agora deliberation system implements the conceptual layers through a **three-layer formal argumentation architecture**:
+Section 1 presented the *conceptual* architecture—what the system does and why. This section presents the *technical* architecture—how the system is actually built, what technologies compose it, and how data flows through its layers.
+
+### 2.1 Technology Stack
+
+The Agora deliberation system is built on a modern TypeScript stack optimized for real-time collaborative applications:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     AGORA DELIBERATION ENGINE                    │
-├─────────────────────────────────────────────────────────────────┤
-│  Layer 1: PROTOCOL (PPD)                                        │
-│  • Move legality, challenge vs concede, public semantics         │
-├─────────────────────────────────────────────────────────────────┤
-│  Layer 2: GEOMETRY (Ludics)                                     │
-│  • Loci, polarized acts, convergence/divergence                 │
-├─────────────────────────────────────────────────────────────────┤
-│  Layer 3: CONTENT (Toulmin/Walton/AIF)                          │
-│  • Argument Schemes, CQs, Toulmin structure, AIF graph             │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           TECHNOLOGY STACK                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  PRESENTATION        Next.js 14 (App Router) + React 18 + TypeScript        │
+│                      Tailwind CSS, Radix UI, Tiptap (rich text)             │
+│                      ReactFlow (graph visualization)                         │
+│                                                                              │
+│  STATE MANAGEMENT    SWR (data fetching & caching)                          │
+│                      React Context + custom hooks                            │
+│                      localStorage persistence for UI state                   │
+│                                                                              │
+│  API LAYER           Next.js Route Handlers (app/api/*)                     │
+│                      REST conventions with JSON payloads                     │
+│                                                                              │
+│  DATA LAYER          Prisma ORM + PostgreSQL                                │
+│                      Supabase (auth, realtime, storage)                     │
+│                      Redis (caching, queues via BullMQ)                     │
+│                                                                              │
+│  EXTERNAL SERVICES   OpenAI (embeddings, generation)                        │
+│                      Pinecone (vector search)                               │
+│                      LiveKit (real-time communication)                      │
+│                      Stripe (payments)                                      │
+│                                                                              │
+│  INFRASTRUCTURE      Node 18+, Yarn workspaces                              │
+│                      AWS (S3, SES, KMS)                                     │
+│                      Docker → Kubernetes (production)                       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-This maps to the conceptual layers as follows:
-- **Protocol Layer** ↔ Dialogue subsystem (DialogueMoves, legality engine)
-- **Geometry Layer** ↔ Ludics subsystem (LudicDesign, ConvergentDesign)
-- **Content Layer** ↔ Arguments/Claims/Schemes subsystems (AIF structure)
+### 2.2 Three-Layer Formal Argumentation Architecture
+
+The technical implementation maps to a **three-layer formal argumentation architecture** drawn from research in computational argumentation. Each layer handles a distinct aspect of structured dialogue:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      AGORA DELIBERATION ENGINE                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 1: PROTOCOL                                                     │  │
+│  │ ─────────────────────────────────────────────────────────────────────  │  │
+│  │ What moves are legal? What must you do after a challenge?              │  │
+│  │                                                                        │  │
+│  │ • Move types: ASSERT, WHY, GROUNDS, CONCEDE, RETRACT, CLOSE           │  │
+│  │ • Force classification: ATTACK (WHY, GROUNDS), SURRENDER (RETRACT,    │  │
+│  │   CLOSE, CONCEDE), NEUTRAL (ASSERT, THEREFORE)                        │  │
+│  │ • Legal move computation based on dialogue state                       │  │
+│  │ • Commitment tracking (what each participant has asserted/conceded)   │  │
+│  │                                                                        │  │
+│  │ Implementation: lib/dialogue/*, app/api/dialogue/legal-moves/*        │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                       │                                      │
+│                                       ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 2: GEOMETRY (Ludics)                                            │  │
+│  │ ─────────────────────────────────────────────────────────────────────  │  │
+│  │ Where are we in the dialogue tree? Who has the initiative?             │  │
+│  │                                                                        │  │
+│  │ • Loci: Addresses in the interaction tree (e.g., "0.1.2.3")           │  │
+│  │ • Polarity: P (positive/proponent) vs O (opponent/questioner)         │  │
+│  │ • Acts: PROPER (regular move) vs DAIMON (†, convergence signal)       │  │
+│  │ • Designs: Player strategies (what moves are available at each locus) │  │
+│  │ • Traces: Records of actual interactions (sequence of acts)           │  │
+│  │ • Travel status: ONGOING, CONVERGENT (†), DIVERGENT                   │  │
+│  │                                                                        │  │
+│  │ Implementation: LudicDesign, LudicAct, LudicLocus, LudicTrace         │  │
+│  │                 app/api/ludics/*, components/ludics/*                 │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                       │                                      │
+│                                       ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ LAYER 3: CONTENT (AIF + Walton + ASPIC+)                              │  │
+│  │ ─────────────────────────────────────────────────────────────────────  │  │
+│  │ What are the arguments? How do they relate? What's defensible?         │  │
+│  │                                                                        │  │
+│  │ • AIF nodes: I (information), RA (inference), CA (conflict),          │  │
+│  │   PA (preference), DM (dialogue move)                                 │  │
+│  │ • AIF edges: premise, conclusion, conflictingElement, repliesTo       │  │
+│  │ • Argumentation schemes (Walton): Expert opinion, Analogy,            │  │
+│  │   Cause-to-effect, etc. with associated Critical Questions            │  │
+│  │ • ASPIC+ attack types: REBUT (attack conclusion), UNDERCUT (attack    │  │
+│  │   inference), UNDERMINE (attack premise)                              │  │
+│  │ • Grounded semantics: IN / OUT / UNDEC labeling for arguments         │  │
+│  │ • ClaimContrary: Explicit contrary relations for defeasible logic     │  │
+│  │                                                                        │  │
+│  │ Implementation: AifNode, AifEdge, ArgumentScheme, ClaimContrary       │  │
+│  │                 app/api/aif/*, components/arguments/*                 │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.3 Layer Mappings to Codebase
+
+Each theoretical layer maps to specific subsystems and database models:
+
+| Theoretical Layer | Subsystem | Key Models | Key API Endpoints | Key Components |
+|-------------------|-----------|------------|-------------------|----------------|
+| **Protocol** | Dialogue | `DialogueMove`, `Commitment`, `DialogueVisualizationNode` | `/api/dialogue/legal-moves`, `/api/dialogue/move`, `/api/dialogue/commitments` | `DialogueActionsButton`, `CommandCard`, `DialogueInspector`, `CommitmentStorePanel` |
+| **Geometry** | Ludics | `LudicDesign`, `LudicAct`, `LudicLocus`, `LudicTrace` | `/api/ludics/designs`, `/api/ludics/acts`, `/api/ludics/step`, `/api/ludics/sync-to-aif` | `LudicsPanel`, `LociTreeWithControls`, `BehaviourInspectorCard`, `TraceRibbon` |
+| **Content** | Arguments/Claims/Schemes | `AifNode`, `AifEdge`, `Argument`, `Claim`, `ArgumentScheme`, `ClaimContrary` | `/api/aif/graph`, `/api/aif/schemes`, `/api/arguments/*`, `/api/claims/*` | `AIFArgumentsListPro`, `AifDiagramViewerDagre`, `SchemeBreakdown`, `AspicTheoryPanel` |
+
+### 2.4 Cross-Layer Data Flow
+
+The three layers are not independent—they interact through well-defined synchronization paths:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CROSS-LAYER DATA FLOW                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  USER ACTION                                                                 │
+│      │                                                                       │
+│      ▼                                                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ 1. PROTOCOL: Create DialogueMove                                    │    │
+│  │    User clicks "Challenge" → POST /api/dialogue/move                │    │
+│  │    Creates: DialogueMove { kind: 'WHY', targetId, polarity: 'O' }   │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│      │                                                                       │
+│      ▼                                                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ 2. GEOMETRY: Sync to LudicAct                                       │    │
+│  │    Move handler creates LudicAct with locus, polarity, ramification │    │
+│  │    Updates LudicDesign for participant                              │    │
+│  │    Computes travel status (ongoing/convergent/divergent)            │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│      │                                                                       │
+│      ▼                                                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ 3. CONTENT: Sync to AifNode/AifEdge                                 │    │
+│  │    POST /api/ludics/sync-to-aif                                     │    │
+│  │    Creates AifNode (nodeKind based on move type)                    │    │
+│  │    Creates AifEdge linking to target                                │    │
+│  │    Recomputes grounded extension labels (IN/OUT/UNDEC)              │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│      │                                                                       │
+│      ▼                                                                       │
+│  UI UPDATE                                                                   │
+│      SWR revalidation → Components re-render with new state                 │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Synchronization Endpoints**:
+- `/api/ludics/sync-to-aif`: Syncs LudicAct rows to AifNode/AifEdge for visualization
+- `/api/aif/evaluate`: Recomputes grounded semantics labels after graph changes
+- `/api/dialogue/commitments`: Derives commitment stores from DialogueMove history
+
+### 2.5 Database Model Relationships
+
+The core models form a connected graph with clear provenance chains:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       CORE MODEL RELATIONSHIPS                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│                           ┌──────────────────┐                               │
+│                           │   Deliberation   │                               │
+│                           │   (root anchor)  │                               │
+│                           └────────┬─────────┘                               │
+│               ┌────────────────────┼────────────────────┐                    │
+│               ▼                    ▼                    ▼                    │
+│     ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐           │
+│     │  DialogueMove   │  │      Claim      │  │   LudicDesign   │           │
+│     │ (protocol acts) │  │ (content atoms) │  │ (geometry)      │           │
+│     └────────┬────────┘  └────────┬────────┘  └────────┬────────┘           │
+│              │                    │                    │                     │
+│              │ creates            │ links to           │ contains            │
+│              ▼                    ▼                    ▼                     │
+│     ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐           │
+│     │    Argument     │  │   ClaimEdge     │  │    LudicAct     │           │
+│     │ (RA-node equiv) │  │ (support/attack)│  │ (moves @ loci)  │           │
+│     └────────┬────────┘  └─────────────────┘  └────────┬────────┘           │
+│              │                                         │                     │
+│              │ syncs to                                │ syncs to            │
+│              ▼                                         ▼                     │
+│     ┌───────────────────────────────────────────────────────────┐           │
+│     │                       AifNode / AifEdge                    │           │
+│     │         (unified graph representation for export)          │           │
+│     └───────────────────────────────────────────────────────────┘           │
+│                                                                              │
+│  Provenance tracking:                                                        │
+│  • Argument.createdByMoveId → DialogueMove                                  │
+│  • Claim.introducedByMoveId → DialogueMove                                  │
+│  • AifNode.dialogueMoveId → DialogueMove                                    │
+│  • AifNode.ludicActId → LudicAct                                            │
+│  • AifEdge.causedByMoveId → DialogueMove                                    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.6 API Route Organization
+
+The API layer is organized by domain, with consistent patterns across subsystems:
+
+```
+/api
+├── dialogue/                    # Protocol layer
+│   ├── legal-moves/            # Compute available moves
+│   ├── move/                   # Execute a dialogue move
+│   ├── commitments/            # Track participant commitments
+│   ├── contradictions/         # Detect inconsistencies
+│   └── forum/                  # Forum-mode dialogue
+│
+├── ludics/                      # Geometry layer
+│   ├── designs/                # CRUD for LudicDesign
+│   ├── acts/                   # CRUD for LudicAct
+│   ├── step/                   # Execute interaction step
+│   ├── sync-to-aif/            # Sync geometry → content
+│   ├── strategies/             # DDS Phase 2: strategy analysis
+│   └── correspondences/        # DDS Phase 3: behavior correspondence
+│
+├── aif/                         # Content layer (AIF)
+│   ├── graph/                  # Full AIF graph for deliberation
+│   ├── nodes/                  # CRUD for AifNode
+│   ├── schemes/                # Argumentation scheme catalog
+│   ├── conflicts/              # CA-node management
+│   ├── preferences/            # PA-node management
+│   ├── evaluate/               # Compute grounded semantics
+│   ├── export/                 # AIF-compliant export
+│   └── validate/               # Graph validation
+│
+├── arguments/                   # Argument CRUD
+│   ├── [id]/                   # Individual argument
+│   ├── diagram/                # Argument diagram generation
+│   └── batch/                  # Bulk operations
+│
+├── claims/                      # Claim CRUD
+│   ├── [id]/                   # Individual claim
+│   ├── edges/                  # ClaimEdge relations
+│   └── label/                  # Semantic labels
+│
+├── schemes/                     # Scheme catalog & matching
+├── contraries/                  # ASPIC+ contrary relations
+├── thesis/                      # Thesis document generation
+└── deliberations/               # Deliberation management
+```
+
+### 2.7 Full Platform Architecture (Beyond the Three Layers)
+
+The three-layer formal argumentation architecture (Protocol → Geometry → Content) describes the *core reasoning engine*. But the full Mesh platform encompasses much more: entry points, output generators, AI services, background workers, and integrations. This section presents the complete end-to-end architecture.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              MESH AGORA: FULL PLATFORM ARCHITECTURE                              │
+├─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              ENTRY POINTS & CONTEXTS                                       │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │
+│  │  │  Discussions │  │   Articles   │  │    Stacks    │  │     Rooms    │  │   KB Pages   │ │ │
+│  │  │  (forum/chat)│  │  (longform)  │  │  (curated)   │  │  (real-time) │  │  (knowledge) │ │ │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘ │ │
+│  │         │                 │                 │                 │                 │          │ │
+│  │         └─────────────────┴─────────────────┼─────────────────┴─────────────────┘          │ │
+│  │                                             ▼                                              │ │
+│  │                               ┌──────────────────────────┐                                 │ │
+│  │                               │      Deliberation        │                                 │ │
+│  │                               │    (central container)   │                                 │ │
+│  │                               └────────────┬─────────────┘                                 │ │
+│  └────────────────────────────────────────────┼───────────────────────────────────────────────┘ │
+│                                               ▼                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              CORE DELIBERATION ENGINE                                      │ │
+│  │                                                                                            │ │
+│  │    ┌─────────────────────────────────────────────────────────────────────────────────┐    │ │
+│  │    │  CLAIMS & EVIDENCE                                                              │    │ │
+│  │    │  Proposition → Claim → ClaimEdge → ClaimEvidence → ClaimContrary                │    │ │
+│  │    └─────────────────────────────────────────────────────────────────────────────────┘    │ │
+│  │                                         │                                                  │ │
+│  │                                         ▼                                                  │ │
+│  │    ┌─────────────────────────────────────────────────────────────────────────────────┐    │ │
+│  │    │  ARGUMENTS & SCHEMES                                                            │    │ │
+│  │    │  Argument → ArgumentPremise → ArgumentEdge → ArgumentScheme → CriticalQuestion  │    │ │
+│  │    └─────────────────────────────────────────────────────────────────────────────────┘    │ │
+│  │                                         │                                                  │ │
+│  │                                         ▼                                                  │ │
+│  │    ┌─────────────────────────────────────────────────────────────────────────────────┐    │ │
+│  │    │  DIALOGUE & COMMITMENTS                                                         │    │ │
+│  │    │  DialogueMove → Commitment → DialogueVisualizationNode                          │    │ │
+│  │    └─────────────────────────────────────────────────────────────────────────────────┘    │ │
+│  │                                         │                                                  │ │
+│  │                                         ▼                                                  │ │
+│  │    ┌─────────────────────────────────────────────────────────────────────────────────┐    │ │
+│  │    │  CHAINS & SCOPES                                                                │    │ │
+│  │    │  ArgumentChain → ArgumentChainNode → ArgumentChainEdge → ArgumentScope          │    │ │
+│  │    └─────────────────────────────────────────────────────────────────────────────────┘    │ │
+│  │                                         │                                                  │ │
+│  │                                         ▼                                                  │ │
+│  │    ┌─────────────────────────────────────────────────────────────────────────────────┐    │ │
+│  │    │  LUDICS & GAME THEORY                                                           │    │ │
+│  │    │  LudicDesign → LudicAct → LudicLocus → LudicTrace → LudicStrategy               │    │ │
+│  │    └─────────────────────────────────────────────────────────────────────────────────┘    │ │
+│  │                                         │                                                  │ │
+│  │                                         ▼                                                  │ │
+│  │    ┌─────────────────────────────────────────────────────────────────────────────────┐    │ │
+│  │    │  AIF GRAPH (Unified Representation)                                             │    │ │
+│  │    │  AifNode (I/RA/CA/PA/DM) → AifEdge (premise/conclusion/conflict/triggers)       │    │ │
+│  │    └─────────────────────────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                                            │ │
+│  └────────────────────────────────────────────┬───────────────────────────────────────────────┘ │
+│                                               ▼                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              OUTPUT GENERATORS & ARTIFACTS                                 │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │
+│  │  │    Thesis    │  │  TheoryWorks │  │  DebateSheet │  │   KB Pages   │  │    Briefs    │ │ │
+│  │  │ (legal-style)│  │ (frameworks) │  │   (visual)   │  │ (knowledge)  │  │  (generated) │ │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘ │ │
+│  └────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              AI & COMPUTATIONAL SERVICES                                   │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │
+│  │  │   OpenAI     │  │   Pinecone   │  │     NLI      │  │   Grounded   │  │   Scheme     │ │ │
+│  │  │ (generation) │  │   (search)   │  │  (entailment)│  │  (semantics) │  │  (matching)  │ │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘ │ │
+│  └────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                              BACKGROUND WORKERS & CRON                                     │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │
+│  │  │  Confidence  │  │   Reembed    │  │    KNN       │  │   Shared     │  │    Cron      │ │ │
+│  │  │    Decay     │  │   (vectors)  │  │   Builder    │  │   Authors    │  │    Jobs      │ │ │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘ │ │
+│  └────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.8 Entry Points & Hosting Contexts
+
+A deliberation doesn't exist in isolation—it's always attached to a hosting context. The platform supports multiple entry points, each with its own UX patterns and use cases:
+
+| Entry Point | Model | Description | Path to Deliberation |
+|-------------|-------|-------------|---------------------|
+| **Discussion** | `Discussion` | Lightweight forum/chat threads for informal conversation | `DeliberateButton` upgrades to full deliberation |
+| **Article** | `Article` | Longform content with embedded deliberation anchors | Annotations spawn focused deliberations |
+| **Stack** | `Stack`, `StackItem` | Curated collections with commentary | Stack items can anchor deliberations |
+| **Room** | `AgoraRoom` | Real-time spaces for synchronous deliberation | Deliberation is the room's primary content |
+| **KB Page** | `KbPage` | Knowledge base entries with embedded arguments | Blocks link to underlying deliberations |
+
+**Deliberation Hosting**:
+
+```typescript
+model Deliberation {
+  hostType  DeliberationHostType  // 'room' | 'article' | 'stack' | 'discussion'
+  hostId    String                // ID of the hosting entity
+  
+  // Upgrade path from Discussion
+  upgradedFromDiscussionId  String?  @unique
+  upgradedFromDiscussion    Discussion?
+}
+```
+
+### 2.9 Complete Subsystem Inventory
+
+The platform comprises the following subsystems, each with its own models, API routes, and UI components:
+
+#### Core Reasoning Subsystems
+
+| Subsystem | Purpose | Key Models | Key API Routes | Key Components |
+|-----------|---------|------------|----------------|----------------|
+| **Deliberation** | Container & orchestration | `Deliberation`, `DeliberationRole`, `DeliberationPref` | `/api/deliberations/*` | `DeepDivePanelV2` |
+| **Discussion** | Lightweight entry point | `Discussion`, `DiscussionMessage`, `ForumComment` | `/api/discussions/*` | `DiscussionView`, `ForumPane` |
+| **Claims** | Canonical assertions | `Claim`, `ClaimEdge`, `ClaimEvidence`, `ClaimContrary` | `/api/claims/*` | `ClaimMiniMap`, `ClaimDetailPanel` |
+| **Propositions** | Pre-claim workshopping | `Proposition`, `PropositionVote`, `PropositionEndorsement` | `/api/propositions/*` | `PropositionComposerPro`, `PropositionsList` |
+| **Arguments** | Structured reasoning | `Argument`, `ArgumentPremise`, `ArgumentEdge` | `/api/arguments/*` | `AIFArgumentsListPro`, `ArgumentActionsSheet` |
+| **Schemes** | Argumentation patterns | `ArgumentScheme`, `ArgumentSchemeInstance`, `CriticalQuestion` | `/api/schemes/*`, `/api/aif/schemes/*` | `SchemeNavigator`, `SchemeBreakdown` |
+| **Chains** | Threaded argument flows | `ArgumentChain`, `ArgumentChainNode`, `ArgumentChainEdge`, `ArgumentScope` | `/api/argument-chains/*` | `ArgumentChainCanvas`, `ChainsTab` |
+| **Dialogue** | Move-based protocol | `DialogueMove`, `Commitment`, `DialogueVisualizationNode` | `/api/dialogue/*` | `DialogueInspector`, `CommandCard` |
+| **Ludics** | Game-theoretic analysis | `LudicDesign`, `LudicAct`, `LudicLocus`, `LudicTrace` | `/api/ludics/*` | `LudicsPanel`, `LociTreeWithControls` |
+| **AIF** | Graph representation | `AifNode`, `AifEdge` | `/api/aif/*` | `AifDiagramViewerDagre` |
+| **ASPIC** | Defeasible reasoning | `ClaimContrary` + extension computation | `/api/aspic/*`, `/api/contraries/*` | `AspicTheoryPanel`, `GroundedExtensionPanel` |
+
+#### Output & Artifact Subsystems
+
+| Subsystem | Purpose | Key Models | Key API Routes | Key Components |
+|-----------|---------|------------|----------------|----------------|
+| **Thesis** | Legal-style documents | `Thesis`, `ThesisProng`, `ThesisProngArgument` | `/api/thesis/*` | `ThesisComposer`, `ThesisRenderer` |
+| **TheoryWorks** | Framework analysis | `TheoryWork`, `TheoryWorkCitation`, `TheoryWorkClaim` | `/api/theory-works/*` | `WorksList`, `WorkDetailClient` |
+| **DebateSheet** | Visual debate mapping | `DebateSheet`, `DebateNode`, `DebateEdge` | `/api/debates/*` | `DebateSheetCanvas` |
+| **KB** | Knowledge base | `KbPage`, `KbBlock`, `DebateCitation` | `/api/kb/*` | `KbPageEditor` |
+| **Briefs** | Generated summaries | (computed) | `/api/briefs/*` | `BriefCompiler` |
+| **Glossary** | Term definitions | `GlossaryTerm` | `/api/glossary/*` | `DefinitionSheet` |
+| **Issues** | Objection tracking | `Issue`, `IssueLink` | `/api/issues/*` | `IssuesList`, `IssueComposer` |
+
+#### Supporting Subsystems
+
+| Subsystem | Purpose | Key Models | Key API Routes | Key Components |
+|-----------|---------|------------|----------------|----------------|
+| **Evidence** | Source management | `ClaimEvidence`, `ClaimCitation` | `/api/evidence/*`, `/api/citations/*` | `EvidenceList` |
+| **CQ** | Critical questions | `CriticalQuestionResponse`, `CqResponseVote` | `/api/cq/*`, `/api/cqs/*` | `CriticalQuestionsV3` |
+| **Votes** | Endorsement tracking | `PropositionVote`, `ArgumentApproval` | `/api/votes/*` | Vote buttons, approval UI |
+| **Analytics** | Commitment analytics | (computed from Commitment) | (internal) | `AnalyticsTab`, `CommitmentAnalyticsDashboard` |
+
+### 2.10 AI & Computational Services
+
+The platform integrates several AI and computational services that augment the core reasoning functionality:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       AI & COMPUTATIONAL SERVICES                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  EMBEDDINGS & SEARCH                                                │    │
+│  │  • OpenAI embeddings for claims, arguments, evidence                │    │
+│  │  • Pinecone vector index for semantic similarity search             │    │
+│  │  • Used in: scheme matching, similar claim detection, search        │    │
+│  │  Implementation: lib/pineconeClient.ts, workers/reembed.ts          │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  NATURAL LANGUAGE INFERENCE (NLI)                                   │    │
+│  │  • Entailment detection between claims                              │    │
+│  │  • Contradiction detection for ClaimContrary population             │    │
+│  │  • Configurable threshold (Deliberation.nliThreshold)               │    │
+│  │  Implementation: lib/nli/*, app/api/nli/*                           │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  SCHEME SUGGESTION                                                  │    │
+│  │  • Match claim text to argumentation schemes                        │    │
+│  │  • Surface critical questions for selected schemes                  │    │
+│  │  Implementation: lib/schemes/*, app/api/schemes/*                   │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  GROUNDED SEMANTICS                                                 │    │
+│  │  • Compute IN/OUT/UNDEC labels for arguments                        │    │
+│  │  • Dempster-Shafer uncertainty intervals (when dsMode enabled)      │    │
+│  │  Implementation: lib/semantics/*, app/api/semantics/*               │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  GENERATION & SUMMARIZATION                                         │    │
+│  │  • Brief generation from deliberation content                       │    │
+│  │  • Argument generation assistance                                   │    │
+│  │  • Missing premise suggestion                                       │    │
+│  │  Implementation: app/api/briefs/*, app/api/compose/*                │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.11 Background Workers & Scheduled Jobs
+
+Long-running or periodic tasks run outside the request-response cycle via background workers:
+
+| Worker | File | Purpose | Trigger |
+|--------|------|---------|---------|
+| **Confidence Decay** | `workers/decayConfidenceJob.ts` | Apply temporal decay to stale argument confidence | Cron (daily) |
+| **Reembed** | `workers/reembed.ts` | Recompute embeddings for modified content | BullMQ queue |
+| **User KNN Builder** | `workers/user-knn-builder.ts` | Build user similarity graphs | Cron |
+| **Shared Author Edges** | `workers/computeSharedAuthorEdges.ts` | Link deliberations by shared authors | Cron |
+| **Candidate Builder** | `workers/candidate-builder.ts` | Build recommendation candidates | Cron |
+| **Token Refresh** | `workers/tokenRefresh.ts` | Refresh integration tokens | Cron |
+
+**Worker Infrastructure**:
+```typescript
+// workers/index.ts - Entry point
+// Uses BullMQ for job queues, backed by Redis
+// Run with: npm run worker
+```
+
+**Cron Routes** (app/api/_cron/):
+- `close_auctions/` - Close expired auctions
+- Various scheduled maintenance tasks
+
+### 2.12 State Management Architecture
+
+The frontend manages state at multiple levels:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       STATE MANAGEMENT ARCHITECTURE                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  SERVER STATE (SWR)                                                 │    │
+│  │  • useSWR hooks for API data fetching                               │    │
+│  │  • Automatic revalidation on focus, interval, mutation              │    │
+│  │  • Optimistic updates for responsive UI                             │    │
+│  │  Example: useSWR(`/api/deliberations/${id}`)                        │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  COMPONENT STATE (React hooks)                                      │    │
+│  │  • useDeliberationState - tab, config, UI toggles                   │    │
+│  │  • useSheetPersistence - floating sheet open/close state            │    │
+│  │  • useMinimapData - graph visualization data                        │    │
+│  │  Location: lib/hooks/*, components/deepdive/hooks/*                 │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  PERSISTENT STATE (localStorage)                                    │    │
+│  │  • Sheet positions and sizes                                        │    │
+│  │  • User preferences                                                 │    │
+│  │  • Draft content (propositions, arguments in progress)              │    │
+│  │  Key pattern: dd:sheets:${deliberationId}                           │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  AUTH STATE (Supabase)                                              │    │
+│  │  • Session management via Supabase SSR                              │    │
+│  │  • User context via AuthContext                                     │    │
+│  │  Implementation: lib/AuthContext.ts, lib/supabase-*.ts              │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.13 Component Directory Structure
+
+The UI is organized into domain-specific component directories:
+
+```
+components/
+├── deepdive/              # Main deliberation interface
+│   ├── DeepDivePanelV2.tsx     # Central orchestration (1861 lines)
+│   ├── v3/tabs/                # Tab implementations
+│   ├── hooks/                  # Deliberation-specific hooks
+│   └── CegMiniMap.tsx          # Claim-evidence graph
+│
+├── arguments/             # Argument composition & display
+│   ├── AIFArgumentsListPro.tsx      # Argument list with filters
+│   ├── AIFArgumentWithSchemeComposer.tsx  # Create with scheme
+│   ├── ArgumentActionsSheet.tsx     # Attack/defend actions
+│   └── SchemeBreakdown.tsx          # Scheme visualization
+│
+├── claims/                # Claim management
+│   ├── ClaimMiniMap.tsx        # Claim relationship graph
+│   ├── ClaimDetailPanel.tsx    # Claim inspector
+│   └── CriticalQuestionsV3.tsx # CQ interface
+│
+├── chains/                # Argument chain canvas
+│   ├── ArgumentChainCanvas.tsx # Visual canvas editor
+│   ├── ChainNode.tsx           # Individual node
+│   └── ScopesPanel.tsx         # Scope management
+│
+├── dialogue/              # Dialogue protocol UI
+│   ├── DialogueInspector.tsx   # Move history
+│   ├── DialogueActionsButton.tsx # Trigger moves
+│   └── command-card/           # Move execution UI
+│
+├── ludics/                # Game-theoretic views
+│   ├── LociTreeWithControls.tsx # Locus tree
+│   ├── BehaviourInspectorCard.tsx # Strategy analysis
+│   └── TraceRibbon.tsx         # Interaction trace
+│
+├── aif/                   # AIF visualization
+│   ├── DialogueAwareGraphPanel.tsx
+│   └── CommitmentStorePanel.tsx
+│
+├── aspic/                 # ASPIC+ interface
+│   ├── AspicTheoryPanel.tsx
+│   └── GroundedExtensionPanel.tsx
+│
+├── thesis/                # Thesis documents
+│   ├── ThesisComposer.tsx
+│   └── ThesisRenderer.tsx
+│
+├── propositions/          # Proposition workshopping
+│   ├── PropositionComposerPro.tsx
+│   └── PropositionsList.tsx
+│
+├── discussion/            # Discussion/forum
+│   ├── DiscussionView.tsx
+│   └── ForumPane.tsx
+│
+├── kb/                    # Knowledge base
+│   └── KbPageEditor.tsx
+│
+└── map/                   # Graph visualizations
+    └── Aifdiagramviewerdagre.tsx
+```
+
+### 2.14 Library Directory Structure
+
+Shared logic and utilities are organized in `lib/`:
+
+```
+lib/
+├── dialogue/              # Dialogue protocol logic
+│   ├── legalMoves.ts           # Legal move computation
+│   ├── types.ts                # MoveKind, MoveForce
+│   ├── movesToActions.ts       # UI action mapping
+│   └── validate.ts             # Move validation
+│
+├── ludics/                # Ludics computation
+│   ├── designs.ts              # Design operations
+│   └── traces.ts               # Trace computation
+│
+├── aif/                   # AIF graph utilities
+├── schemes/               # Scheme matching & catalog
+├── semantics/             # Grounded semantics
+├── nli/                   # Natural language inference
+├── chains/                # Chain utilities
+│
+├── hooks/                 # Shared React hooks
+├── models/                # Prisma schema
+│   └── schema.prisma           # 6989 lines
+│
+├── prismaclient.ts        # Prisma client singleton
+├── redis.ts               # Redis client
+├── queue.ts               # BullMQ queue setup
+├── pineconeClient.ts      # Pinecone vector client
+│
+└── supabase-*.ts          # Supabase client variants
+```
 
 ---
 
