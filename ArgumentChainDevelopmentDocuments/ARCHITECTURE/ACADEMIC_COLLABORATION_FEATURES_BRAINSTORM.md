@@ -34,59 +34,59 @@
 
 ### 1.2 Academic Application of Vision
 
-| Mesh Principle | Academic Translation |
-|----------------|---------------------|
-| **Claims are canonical objects** | Research claims become citable, versionable entities across papers |
-| **Arguments have visible structure** | Theoretical frameworks expose their inferential dependencies |
+| Mesh Principle                        | Academic Translation                                                    |
+|---------------------------------------|-------------------------------------------------------------------------|
+| **Claims are canonical objects**      | Research claims become citable, versionable entities across papers      |
+| **Arguments have visible structure**  | Theoretical frameworks expose their inferential dependencies            |
 | **Disagreement is typed and tracked** | Scientific debates become navigable with clear attack/support semantics |
-| **Discussions produce artifacts** | Peer review produces exportable argument graphs, not just PDFs |
-| **Progressive formalization** | From informal lab meeting to formal publication-ready argumentation |
+| **Discussions produce artifacts**     | Peer review produces exportable argument graphs, not just PDFs          |
+| **Progressive formalization**         | From informal lab meeting to formal publication-ready argumentation     |
 
 ### 1.3 The Academic Knowledge Crisis (Problem Statement)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    CURRENT STATE OF ACADEMIC DISCOURSE                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────────────────┐    ┌──────────────────────┐                       │
-│  │  SILOED DISCOVERY    │    │  STATIC PUBLICATIONS │                       │
-│  │                      │    │                      │                       │
-│  │ • Discipline-bound   │    │ • PDF as final form  │                       │
-│  │   search             │    │ • No structured      │                       │
-│  │ • Citation networks  │    │   argument data      │                       │
-│  │   but no argument    │    │ • Debates happen in  │                       │
-│  │   networks           │    │   isolated response  │                       │
-│  │ • Serendipity is     │    │   papers             │                       │
-│  │   rare               │    │                      │                       │
-│  └──────────────────────┘    └──────────────────────┘                       │
-│                                                                              │
-│  ┌──────────────────────┐    ┌──────────────────────┐                       │
-│  │  OPAQUE PEER REVIEW  │    │  REPUTATION SILOS    │                       │
-│  │                      │    │                      │                       │
-│  │ • Anonymous but not  │    │ • H-index measures   │                       │
-│  │   accountable        │    │   citations, not     │                       │
-│  │ • No structured      │    │   argument quality   │                       │
-│  │   dialogue           │    │ • Cross-discipline   │                       │
-│  │ • Labor extracted,   │    │   contributions      │                       │
-│  │   not credited       │    │   invisible          │                       │
-│  └──────────────────────┘    └──────────────────────┘                       │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│                   CURRENT STATE OF ACADEMIC DISCOURSE                     │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  ┌──────────────────────┐    ┌──────────────────────┐                     │
+│  │  SILOED DISCOVERY    │    │  STATIC PUBLICATIONS │                     │
+│  │                      │    │                      │                     │
+│  │ • Discipline-bound   │    │ • PDF as final form  │                     │
+│  │   search             │    │ • No structured      │                     │
+│  │ • Citation networks  │    │   argument data      │                     │
+│  │   but no argument    │    │ • Debates happen in  │                     │
+│  │   networks           │    │   isolated response  │                     │
+│  │ • Serendipity is     │    │   papers             │                     │
+│  │   rare               │    │                      │                     │
+│  └──────────────────────┘    └──────────────────────┘                     │
+│                                                                           │
+│  ┌──────────────────────┐    ┌──────────────────────┐                     │
+│  │  OPAQUE PEER REVIEW  │    │  REPUTATION SILOS    │                     │
+│  │                      │    │                      │                     │
+│  │ • Anonymous but not  │    │ • H-index measures   │                     │
+│  │   accountable        │    │   citations, not     │                     │
+│  │ • No structured      │    │   argument quality   │                     │
+│  │   dialogue           │    │ • Cross-discipline   │                     │
+│  │ • Labor extracted,   │    │   contributions      │                     │
+│  │   not credited       │    │   invisible          │                     │
+│  └──────────────────────┘    └──────────────────────┘                     │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.4 Mesh's Unique Position
 
 Unlike existing platforms, Mesh offers:
 
-| Differentiator | What It Enables |
-|----------------|-----------------|
-| **Argumentation-first data model** | Papers as argument chains, not just text blobs |
-| **AIF compliance** | Interoperability with formal argumentation tools |
-| **Walton schemes** | Recognizing 60+ reasoning patterns in research |
-| **ASPIC+ evaluation** | Formal acceptability analysis for competing theories |
-| **Categorical semantics** | Cross-deliberation transport (research area → research area) |
-| **Commitment tracking** | Visible intellectual positions that evolve |
+| Differentiator                     | What It Enables                                              |
+|------------------------------------|--------------------------------------------------------------|
+| **Argumentation-first data model** | Papers as argument chains, not just text blobs               |
+| **AIF compliance**                 | Interoperability with formal argumentation tools             |
+| **Walton schemes**                 | Recognizing 60+ reasoning patterns in research               |
+| **ASPIC+ evaluation**              | Formal acceptability analysis for competing theories         |
+| **Categorical semantics**          | Cross-deliberation transport (research area → research area) |
+| **Commitment tracking**            | Visible intellectual positions that evolve                   |
 
 ---
 
@@ -94,35 +94,35 @@ Unlike existing platforms, Mesh offers:
 
 ### 2.1 Current Research Platforms
 
-| Platform | Core Value | Mesh Can Differentiate By |
-|----------|------------|---------------------------|
-| **arXiv** | Preprint distribution | *Adding structured discourse layer atop papers* |
-| **ResearchGate** | Academic social network | *Arguments, not just follows; debates, not just shares* |
-| **Research Rabbit** | Citation-based discovery | *Argument-based discovery (who challenged claim X?)* |
-| **PubMed** | Biomedical literature search | *Adding deliberation to systematic reviews* |
-| **Zotero** | Personal reference management | *Collaborative stacks with citation-to-argument links* |
-| **Semantic Scholar** | AI-powered literature analysis | *Human-structured argument networks* |
-| **OpenReview** | Open peer review | *Formal attack/support tracking, scheme-based review* |
-| **Hypothesis** | Web annotation | *Annotations that become arguments in deliberations* |
+| Platform             | Core Value                     | Mesh Can Differentiate By                               |
+|----------------------|--------------------------------|---------------------------------------------------------|
+| **arXiv**            | Preprint distribution          | *Adding structured discourse layer atop papers*         |
+| **ResearchGate**     | Academic social network        | *Arguments, not just follows; debates, not just shares* |
+| **Research Rabbit**  | Citation-based discovery       | *Argument-based discovery (who challenged claim X?)*    |
+| **PubMed**           | Biomedical literature search   | *Adding deliberation to systematic reviews*             |
+| **Zotero**           | Personal reference management  | *Collaborative stacks with citation-to-argument links*  |
+| **Semantic Scholar** | AI-powered literature analysis | *Human-structured argument networks*                    |
+| **OpenReview**       | Open peer review               | *Formal attack/support tracking, scheme-based review*   |
+| **Hypothesis**       | Web annotation                 | *Annotations that become arguments in deliberations*    |
 
 ### 2.2 Gap Analysis
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         MARKET GAP MESH CAN FILL                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  EXISTING: Papers → Citations → Metrics                                      │
-│                                                                              │
-│  MISSING:  Papers → CLAIMS → ARGUMENTS → DEBATES → SYNTHESIS                │
-│                           ↓        ↓           ↓                            │
-│                      Typed     Scheme-    Commitment                         │
-│                      links     based      stores with                        │
-│                               attacks     provenance                         │
-│                                                                              │
-│  MESH FILLS THE "ARGUMENT GRAPH" LAYER BETWEEN PAPERS AND METRICS           │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│                        MARKET GAP MESH CAN FILL                           │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  EXISTING: Papers → Citations → Metrics                                   │
+│                                                                           │
+│  MISSING:  Papers → CLAIMS → ARGUMENTS → DEBATES → SYNTHESIS              │
+│                           ↓        ↓           ↓                          │
+│                      Typed     Scheme-    Commitment                      │
+│                      links     based      stores with                     │
+│                               attacks     provenance                      │
+│                                                                           │
+│  MESH FILLS THE "ARGUMENT GRAPH" LAYER BETWEEN PAPERS AND METRICS         │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -133,56 +133,56 @@ Unlike existing platforms, Mesh offers:
 
 #### Persona A: The Interdisciplinary Researcher
 
-| Attribute | Description |
-|-----------|-------------|
-| **Role** | Faculty member working at intersection of 2+ fields |
+| Attribute       | Description                                                                                                            |
+|-----------------|------------------------------------------------------------------------------------------------------------------------|
+| **Role**        | Faculty member working at intersection of 2+ fields                                                                    |
 | **Pain Points** | Can't find who's making similar arguments in adjacent fields; citation metrics don't capture cross-disciplinary impact |
-| **Needs** | Discover researchers by *claim similarity*, not just citation overlap |
-| **Mesh Value** | Plexus visualization across deliberation rooms; transport functors to bring arguments from Field A to Field B |
+| **Needs**       | Discover researchers by *claim similarity*, not just citation overlap                                                  |
+| **Mesh Value**  | Plexus visualization across deliberation rooms; transport functors to bring arguments from Field A to Field B          |
 
 #### Persona B: The PhD Candidate
 
-| Attribute | Description |
-|-----------|-------------|
-| **Role** | Early-career researcher building literature foundation |
-| **Pain Points** | Overwhelmed by paper volume; unclear which debates are "live" vs. settled |
-| **Needs** | Map of contested vs. accepted claims in the field; who's defending what |
-| **Mesh Value** | Commitment stores show who stands where; debate sheets visualize open questions |
+| Attribute       | Description                                                                     |
+|-----------------|---------------------------------------------------------------------------------|
+| **Role**        | Early-career researcher building literature foundation                          |
+| **Pain Points** | Overwhelmed by paper volume; unclear which debates are "live" vs. settled       |
+| **Needs**       | Map of contested vs. accepted claims in the field; who's defending what         |
+| **Mesh Value**  | Commitment stores show who stands where; debate sheets visualize open questions |
 
 #### Persona C: The Systematic Reviewer
 
-| Attribute | Description |
-|-----------|-------------|
-| **Role** | Researcher conducting literature review or meta-analysis |
+| Attribute       | Description                                                                                     |
+|-----------------|-------------------------------------------------------------------------------------------------|
+| **Role**        | Researcher conducting literature review or meta-analysis                                        |
 | **Pain Points** | Extracting claims from papers manually; tracking which studies attack/support which conclusions |
-| **Needs** | Structured extraction of claims and evidence from papers |
-| **Mesh Value** | Citation → Claim pipeline; argument chain visualization; evidence aggregation |
+| **Needs**       | Structured extraction of claims and evidence from papers                                        |
+| **Mesh Value**  | Citation → Claim pipeline; argument chain visualization; evidence aggregation                   |
 
 #### Persona D: The Open Science Advocate
 
-| Attribute | Description |
-|-----------|-------------|
-| **Role** | Researcher pushing for transparent, reproducible science |
+| Attribute       | Description                                                        |
+|-----------------|--------------------------------------------------------------------|
+| **Role**        | Researcher pushing for transparent, reproducible science           |
 | **Pain Points** | Peer review is opaque; replication debates scattered across venues |
-| **Needs** | Public, structured peer review; traceable argument evolution |
-| **Mesh Value** | Open deliberation rooms per paper; typed attacks on methodology |
+| **Needs**       | Public, structured peer review; traceable argument evolution       |
+| **Mesh Value**  | Open deliberation rooms per paper; typed attacks on methodology    |
 
 #### Persona E: The Research Group Lead
 
-| Attribute | Description |
-|-----------|-------------|
-| **Role** | PI managing a lab with multiple research threads |
+| Attribute       | Description                                                                        |
+|-----------------|------------------------------------------------------------------------------------|
+| **Role**        | PI managing a lab with multiple research threads                                   |
 | **Pain Points** | Institutional knowledge lost when students graduate; internal debates not captured |
-| **Needs** | Persistent group reasoning; onboard new members to intellectual context |
-| **Mesh Value** | Stacks as group libraries; deliberations as persistent lab notebooks |
+| **Needs**       | Persistent group reasoning; onboard new members to intellectual context            |
+| **Mesh Value**  | Stacks as group libraries; deliberations as persistent lab notebooks               |
 
 ### 3.2 Secondary Personas
 
-| Persona | Key Need | Mesh Opportunity |
-|---------|----------|------------------|
-| **Science Journalist** | Understand who's debating what in a field | Read-only access to deliberation summaries |
-| **Funding Agency** | Track intellectual lineage of funded work | Argument provenance from grants to claims |
-| **Policy Analyst** | Find scientific consensus/dissent on issues | Aggregated claim confidence across deliberations |
+| Persona                | Key Need                                    | Mesh Opportunity                                 |
+|------------------------|---------------------------------------------|--------------------------------------------------|
+| **Science Journalist** | Understand who's debating what in a field   | Read-only access to deliberation summaries       |
+| **Funding Agency**     | Track intellectual lineage of funded work   | Argument provenance from grants to claims        |
+| **Policy Analyst**     | Find scientific consensus/dissent on issues | Aggregated claim confidence across deliberations |
 
 ---
 
@@ -190,51 +190,51 @@ Unlike existing platforms, Mesh offers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         FEATURE CATEGORY TAXONOMY                            │
+│                         FEATURE CATEGORY TAXONOMY                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  TIER 1: RESEARCH DISCOVERY & NAVIGATION                            │    │
 │  │  • Paper-to-argument extraction                                     │    │
 │  │  • Claim-based search                                               │    │
 │  │  • "Related arguments" (not just "related papers")                  │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  TIER 2: CROSS-INSTITUTIONAL COLLABORATION                          │    │
 │  │  • Shared stacks across institutions                                │    │
 │  │  • Multi-author argument chains                                     │    │
 │  │  • Federated room discovery                                         │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  TIER 3: STRUCTURED ACADEMIC DISCOURSE                              │    │
 │  │  • Journal club deliberation template                               │    │
 │  │  • Paper response deliberations                                     │    │
 │  │  • Conference session deliberations                                 │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  TIER 4: KNOWLEDGE GRAPH & CITATION INTELLIGENCE                    │    │
 │  │  • Argument-level citations (not just paper-level)                  │    │
 │  │  • Claim provenance across papers                                   │    │
 │  │  • "What challenges this claim?" queries                            │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  TIER 5: OPEN PEER REVIEW & REPUTATION                              │    │
 │  │  • Public peer review deliberations                                 │    │
 │  │  • Reviewer commitment tracking                                     │    │
 │  │  • Reputation from argument quality, not just citations             │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  TIER 6: INTERDISCIPLINARY BRIDGE-BUILDING                          │    │
 │  │  • Cross-field claim mapping                                        │    │
 │  │  • Translation deliberations                                        │    │
 │  │  • Shared vocabulary negotiation                                    │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -247,40 +247,40 @@ Unlike existing platforms, Mesh offers:
 **Vision:** When a researcher adds a paper to their Stack, the system offers to extract structured claims and arguments.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    PAPER-TO-ARGUMENT PIPELINE                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  PDF Upload                                                                  │
-│      │                                                                       │
-│      ▼                                                                       │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  1. CLAIM EXTRACTION (AI-assisted + human verified)                │     │
-│  │     • Identify thesis statements                                   │     │
-│  │     • Extract numbered hypotheses                                  │     │
-│  │     • Parse conclusion sections                                    │     │
-│  │     • Flag methodological claims                                   │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
-│      │                                                                       │
-│      ▼                                                                       │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  2. ARGUMENT STRUCTURE INFERENCE                                    │     │
-│  │     • Premises → Conclusion chains                                  │     │
-│  │     • Scheme detection (e.g., "argument from statistical evidence")│     │
-│  │     • Critical question surfacing                                   │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
-│      │                                                                       │
-│      ▼                                                                       │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  3. CITATION-TO-CLAIM LINKING                                       │     │
-│  │     • Which citation supports which premise?                        │     │
-│  │     • Parse citation context for support/attack intent              │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
-│      │                                                                       │
-│      ▼                                                                       │
-│  Structured Argument Chain → Ready for Deliberation                         │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    PAPER-TO-ARGUMENT PIPELINE                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  PDF Upload                                                               │
+│      │                                                                    │
+│      ▼                                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  1. CLAIM EXTRACTION (AI-assisted + human verified)                 │  │
+│  │     • Identify thesis statements                                    │  │
+│  │     • Extract numbered hypotheses                                   │  │
+│  │     • Parse conclusion sections                                     │  │
+│  │     • Flag methodological claims                                    │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│      │                                                                    │
+│      ▼                                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  2. ARGUMENT STRUCTURE INFERENCE                                    │  │
+│  │     • Premises → Conclusion chains                                  │  │
+│  │     • Scheme detection (e.g., "argument from statistical evidence") │  │
+│  │     • Critical question surfacing                                   │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│      │                                                                    │
+│      ▼                                                                    │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  3. CITATION-TO-CLAIM LINKING                                       │  │
+│  │     • Which citation supports which premise?                        │  │
+│  │     • Parse citation context for support/attack intent              │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│      │                                                                    │
+│      ▼                                                                    │
+│  Structured Argument Chain → Ready for Deliberation                       │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Implementation Notes:**
@@ -292,12 +292,12 @@ Unlike existing platforms, Mesh offers:
 
 **Vision:** Search the platform not just by paper title or author, but by *claim content*.
 
-| Search Type | Example Query | Returns |
-|-------------|---------------|---------|
-| **Claim search** | "neural networks are universal approximators" | Claims making this assertion |
-| **Attack search** | "challenges to backpropagation" | Arguments attacking claims about backprop |
+| Search Type       | Example Query                                           | Returns                                   |
+|-------------------|---------------------------------------------------------|-------------------------------------------|
+| **Claim search**  | "neural networks are universal approximators"           | Claims making this assertion              |
+| **Attack search** | "challenges to backpropagation"                         | Arguments attacking claims about backprop |
 | **Scheme search** | "arguments from statistical significance in psychology" | Arguments using this scheme in this field |
-| **Author-claim** | "claims by Kahneman about heuristics" | Tracked claims by author |
+| **Author-claim**  | "claims by Kahneman about heuristics"                   | Tracked claims by author                  |
 
 **Implementation:**
 - Vector embeddings for claim text (Pinecone already in stack)
@@ -309,38 +309,38 @@ Unlike existing platforms, Mesh offers:
 **Vision:** When viewing an argument, show not just related papers but related *arguments* from anywhere in the Mesh network.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              RELATED ARGUMENTS PANEL                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  VIEWING: "fMRI studies show activity in prefrontal cortex during..."       │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  SIMILAR CLAIMS (semantic)                                          │    │
-│  │  • "Prefrontal activity correlates with working memory" (0.89)     │    │
-│  │  • "Executive function localizes to dorsolateral PFC" (0.84)       │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  SUPPORTING ARGUMENTS (same conclusion, different premises)         │    │
-│  │  • EEG study by [Author] reaching same conclusion                   │    │
-│  │  • Meta-analysis pooling 12 fMRI datasets                          │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  ATTACKING ARGUMENTS (challenges this claim)                        │    │
-│  │  • [Rebut] "fMRI activation doesn't imply causal role"             │    │
-│  │  • [Undercut] "Reverse inference fallacy applies here"              │    │
-│  │  • [Undermine] "Sample size insufficient for this conclusion"       │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  FROM OTHER FIELDS (transport functor matches)                      │    │
-│  │  • Philosophy of Mind: "Neural correlates ≠ explanations"          │    │
-│  │  • Cognitive Psychology: "Behavioral data contradicts..."           │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│              RELATED ARGUMENTS PANEL                                      │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  VIEWING: "fMRI studies show activity in prefrontal cortex during..."     │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  SIMILAR CLAIMS (semantic)                                          │  │
+│  │  • "Prefrontal activity correlates with working memory" (0.89)      │  │
+│  │  • "Executive function localizes to dorsolateral PFC" (0.84)        │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  SUPPORTING ARGUMENTS (same conclusion, different premises)         │  │
+│  │  • EEG study by [Author] reaching same conclusion                   │  │
+│  │  • Meta-analysis pooling 12 fMRI datasets                           │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  ATTACKING ARGUMENTS (challenges this claim)                        │  │
+│  │  • [Rebut] "fMRI activation doesn't imply causal role"              │  │
+│  │  • [Undercut] "Reverse inference fallacy applies here"              │  │
+│  │  • [Undermine] "Sample size insufficient for this conclusion"       │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  FROM OTHER FIELDS (transport functor matches)                      │  │
+│  │  • Philosophy of Mind: "Neural correlates ≠ explanations"           │  │
+│  │  • Cognitive Psychology: "Behavioral data contradicts..."           │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -352,21 +352,21 @@ Unlike existing platforms, Mesh offers:
 **Vision:** Institutions, departments, and research groups have collective presence on Mesh.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              ORGANIZATION ENTITY MODEL                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  Organization                                                                │
-│  ├── type: university | department | lab | consortium | journal             │
-│  ├── members: User[]                                                        │
-│  ├── stacks: Stack[] (institutional libraries)                              │
-│  ├── deliberations: Deliberation[] (public org discussions)                 │
-│  ├── claims: Claim[] (aggregated from member activity)                      │
-│  └── relationships: OrgRelationship[]                                       │
-│        ├── parent: Organization (e.g., Dept → University)                   │
-│        └── collaborators: Organization[] (formal partnerships)              │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│              ORGANIZATION ENTITY MODEL                                    │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  Organization                                                             │
+│  ├── type: university | department | lab | consortium | journal           │
+│  ├── members: User[]                                                      │
+│  ├── stacks: Stack[] (institutional libraries)                            │
+│  ├── deliberations: Deliberation[] (public org discussions)               │
+│  ├── claims: Claim[] (aggregated from member activity)                    │
+│  └── relationships: OrgRelationship[]                                     │ 
+│        ├── parent: Organization (e.g., Dept → University)                 │
+│        └── collaborators: Organization[] (formal partnerships)            │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Features:**
@@ -378,12 +378,12 @@ Unlike existing platforms, Mesh offers:
 
 **Vision:** A deliberation that explicitly spans institutions, tracking contributions by affiliation.
 
-| Feature | Description |
-|---------|-------------|
-| **Affiliation badges** | Each participant's institution shown on contributions |
+| Feature                             | Description                                                 |
+|-------------------------------------|-------------------------------------------------------------|
+| **Affiliation badges**              | Each participant's institution shown on contributions       |
 | **Institutional commitment stores** | Aggregate what each institution's members have committed to |
-| **Cross-institution visualization** | Plexus view colored by institution |
-| **Facilitated dialogue** | Designated moderators from neutral institutions |
+| **Cross-institution visualization** | Plexus view colored by institution                          |
+| **Facilitated dialogue**            | Designated moderators from neutral institutions             |
 
 ### 6.3 Feature: Shared Research Stacks
 
@@ -426,53 +426,53 @@ Scenario: Three universities collaborating on a systematic review
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│              JOURNAL CLUB DELIBERATION TEMPLATE                              │
+│              JOURNAL CLUB DELIBERATION TEMPLATE                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  PHASES (timed, facilitator-managed):                                        │
 │                                                                              │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
+│  ┌────────────────────────────────────────────────────────────────────┐      │
 │  │  1. CLAIM EXTRACTION (20 min)                                       │     │
 │  │     • Participants surface main claims from paper                   │     │
 │  │     • Automatic deduplication and voting on central claim           │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
+│  └────────────────────────────────────────────────────────────────────┘      │
 │                                                                              │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
+│  ┌────────────────────────────────────────────────────────────────────┐      │
 │  │  2. METHODOLOGY CHALLENGE (15 min)                                  │     │
 │  │     • Structured attacks on methods                                 │     │
 │  │     • Pre-populated critical questions for common schemes           │     │
 │  │       (statistical inference, experimental design, etc.)            │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
+│  └────────────────────────────────────────────────────────────────────┘      │
 │                                                                              │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
+│  ┌────────────────────────────────────────────────────────────────────┐      │
 │  │  3. THEORETICAL FRAMING (15 min)                                    │     │
 │  │     • How does this connect to existing literature?                 │     │
 │  │     • Transport existing arguments from other deliberations         │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
+│  └────────────────────────────────────────────────────────────────────┘      │
 │                                                                              │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
+│  ┌────────────────────────────────────────────────────────────────────┐      │
 │  │  4. SYNTHESIS (10 min)                                              │     │
 │  │     • Debate sheet generation                                       │     │
 │  │     • "Our take" thesis document                                    │     │
 │  │     • Open questions for future reading                             │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
+│  └────────────────────────────────────────────────────────────────────┘      │
 │                                                                              │
-│  OUTPUT: Exportable AIF graph + summary + reading recommendations           │
+│  OUTPUT: Exportable AIF graph + summary + reading recommendations            │
 │                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────────────────── ┘
 ```
 
 ### 7.2 Feature: Paper Response Deliberation
 
 **Vision:** When responding to a published paper, structure the response as a deliberation.
 
-| Component | Implementation |
-|-----------|----------------|
-| **Original paper claims** | Auto-extracted or manually entered as propositions |
-| **Response claims** | New claims linked as supports/attacks to originals |
-| **Typed responses** | Rebut (conclusion wrong), Undercut (inference flawed), Undermine (premise false) |
-| **Response document** | Thesis generator produces structured response paper |
-| **Linked to original** | When original paper is in Mesh, creates cross-reference |
+| Component                 | Implementation                                                                   |
+|---------------------------|----------------------------------------------------------------------------------|
+| **Original paper claims** | Auto-extracted or manually entered as propositions                               |
+| **Response claims**       | New claims linked as supports/attacks to originals                               |
+| **Typed responses**       | Rebut (conclusion wrong), Undercut (inference flawed), Undermine (premise false) |
+| **Response document**     | Thesis generator produces structured response paper                              |
+| **Linked to original**    | When original paper is in Mesh, creates cross-reference                          |
 
 ### 7.3 Feature: Conference Session Deliberation
 
@@ -486,21 +486,21 @@ During a conference talk:
 │  Speaker: Dr. Jane Smith, MIT                                               │
 │  Conference: QIP 2025                                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
+│                                                                             │
 │  CLAIM STREAM (live capture):                                               │
-│  • 10:02 - "Surface codes achieve threshold at 1%" [3 👍 2 ❓]              │
-│  • 10:07 - "Our new decoder reduces overhead by 40%" [5 👍 1 🔥]            │
-│  • 10:12 - "This enables fault-tolerant gates at room temp" [2 👍 4 ❓]     │
-│                                                                              │
-│  Q&A QUEUE:                                                                  │
+│  • 10:02 - "Surface codes achieve threshold at 1%" [3 👍 2 ❓]               │
+│  • 10:07 - "Our new decoder reduces overhead by 40%" [5 👍 1 🔥]             │
+│  • 10:12 - "This enables fault-tolerant gates at room temp" [2 👍 4 ❓]      │
+│                                                                             │
+│  Q&A QUEUE:                                                                 │
 │  1. [Challenge] "What about correlated errors?" - @bob_quantum              │
 │  2. [Clarify] "Define 'overhead' in this context" - @alice_codes            │
-│                                                                              │
-│  LIVE PARTICIPANTS: 47                                                       │
-│  REMOTE VIEWERS: 312                                                         │
-│                                                                              │
+│                                                                             │
+│  LIVE PARTICIPANTS: 47                                                      │
+│  REMOTE VIEWERS: 312                                                        │
+│                                                                             │
 │  POST-SESSION: Deliberation persists for async follow-up                    │
-│                                                                              │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -512,11 +512,11 @@ During a conference talk:
 
 **Vision:** Cite specific arguments, not just papers.
 
-| Current State | Mesh Enhancement |
-|---------------|------------------|
-| "Smith et al. 2023" | "Smith et al. 2023, Argument 3 (response to Jones's rebuttal)" |
-| Paper-level granularity | Claim-level granularity with stable IDs |
-| Citation context lost | Citation context preserved in argument graph |
+| Current State           | Mesh Enhancement                                               |
+|-------------------------|----------------------------------------------------------------|
+| "Smith et al. 2023"     | "Smith et al. 2023, Argument 3 (response to Jones's rebuttal)" |
+| Paper-level granularity | Claim-level granularity with stable IDs                        |
+| Citation context lost   | Citation context preserved in argument graph                   |
 
 **Implementation:**
 - Extend `Citation` model with `targetArgumentId`, `targetClaimId`
@@ -529,31 +529,29 @@ During a conference talk:
 
 ```
 CLAIM: "Transformer attention is not Turing complete"
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              CLAIM PROVENANCE                                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ORIGIN:                                                                     │
-│  └── First asserted: Pérez et al. 2019 (ICLR submission)                    │
-│                                                                              │
-│  EVOLUTION:                                                                  │
-│  ├── 2019-03: Initial formulation                                           │
-│  ├── 2020-01: Refined by Yun et al. (added conditions)                      │
-│  ├── 2020-06: Challenged by Dehghani et al. (undercut)                      │
-│  ├── 2021-02: Defended with additional proof (Pérez response)               │
-│  └── 2023-09: Current consensus: conditional acceptance                     │
-│                                                                              │
-│  CURRENT STATUS:                                                             │
-│  ├── Acceptability: PREFERRED (under ASPIC+ grounded semantics)             │
-│  ├── Active challenges: 2                                                   │
-│  ├── Undefeated defenses: 3                                                 │
-│  └── Confidence: 0.78 (DS aggregated)                                       │
-│                                                                              │
-│  CANONICAL ID: mesh://claims/turing-complete-attention-2019                 │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+┌───────────────────────────────────────────────────────────────────────────┐
+│              CLAIM PROVENANCE                                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  ORIGIN:                                                                  │
+│  └── First asserted: Pérez et al. 2019 (ICLR submission)                  │
+│                                                                           │
+│  EVOLUTION:                                                               │
+│  ├── 2019-03: Initial formulation                                         │
+│  ├── 2020-01: Refined by Yun et al. (added conditions)                    │
+│  ├── 2020-06: Challenged by Dehghani et al. (undercut)                    │
+│  ├── 2021-02: Defended with additional proof (Pérez response)             │
+│  └── 2023-09: Current consensus: conditional acceptance                   │
+│                                                                           │
+│  CURRENT STATUS:                                                          │
+│  ├── Acceptability: PREFERRED (under ASPIC+ grounded semantics)           │
+│  ├── Active challenges: 2                                                 │
+│  ├── Undefeated defenses: 3                                               │
+│  └── Confidence: 0.78 (DS aggregated)                                     │
+│                                                                           │
+│  CANONICAL ID: mesh://claims/turing-complete-attention-2019               │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 
 ### 8.3 Feature: "What Challenges This?" Query
 
@@ -566,21 +564,21 @@ Returns:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  ATTACKS ON: "Backpropagation is biologically plausible"                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  REBUTTALS (12):                                                             │
+│                                                                             │
+│  REBUTTALS (12):                                                            │
 │  • "Weight transport problem makes BP implausible" (Lillicrap 2016)         │
 │  • "BP requires symmetric weights; biology doesn't" (Crick 1989)            │
-│                                                                              │
-│  UNDERCUTS (8):                                                              │
+│                                                                             │
+│  UNDERCUTS (8):                                                             │
 │  • "Similarity != mechanism; inference fallacy" (Philosophy of Mind)        │
-│  • "Predictive coding explains same phenomena differently"                   │
-│                                                                              │
-│  UNDERMINES (5):                                                             │
-│  • "Evidence for BP in biology is correlational" (Methods critique)          │
-│  • "Sample sizes in key studies insufficient"                                │
-│                                                                              │
-│  DEFENSES AVAILABLE: 15 (from BP proponents)                                 │
-│                                                                              │
+│  • "Predictive coding explains same phenomena differently"                  │
+│                                                                             │
+│  UNDERMINES (5):                                                            │
+│  • "Evidence for BP in biology is correlational" (Methods critique)         │
+│  • "Sample sizes in key studies insufficient"                               │
+│                                                                             │
+│  DEFENSES AVAILABLE: 15 (from BP proponents)                                │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -594,39 +592,39 @@ Returns:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│              OPEN PEER REVIEW DELIBERATION                                   │
+│              OPEN PEER REVIEW DELIBERATION                                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
+│                                                                             │
 │  PAPER: "A Novel Approach to Protein Folding Prediction"                    │
 │  SUBMITTED TO: Mesh Open Biology                                            │
 │  STATUS: Under Review (Day 12 of 30)                                        │
-│                                                                              │
+│                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │  REVIEWER COMMITMENTS (public, attributed):                          │   │
 │  │                                                                      │   │
 │  │  @reviewer_A (Stanford Structural Bio):                              │   │
-│  │  ├── CONCEDED: "Method is novel" ✓                                  │   │
-│  │  ├── CHALLENGED: "Statistical validation insufficient" ⚡            │   │
+│  │  ├── CONCEDED: "Method is novel" ✓                                   │   │
+│  │  ├── CHALLENGED: "Statistical validation insufficient" ⚡             │   │
 │  │  └── AWAITING: Author response on validation                         │   │
 │  │                                                                      │   │
 │  │  @reviewer_B (DeepMind):                                             │   │
-│  │  ├── SUPPORTED: "Benchmark improvements are real" ✓                 │   │
-│  │  ├── UNDERCUT: "Comparison to AlphaFold2 unfair" ⚡                  │   │
-│  │  └── SUGGESTED: Add head-to-head on CASP14                          │   │
+│  │  ├── SUPPORTED: "Benchmark improvements are real" ✓                  │   │
+│  │  ├── UNDERCUT: "Comparison to AlphaFold2 unfair" ⚡                   │   │
+│  │  └── SUGGESTED: Add head-to-head on CASP14                           │   │
 │  │                                                                      │   │
 │  │  @community_member (Oxford):                                         │   │
-│  │  └── NOTED: "Prior work by [X] not cited" 📝                        │   │
+│  │  └── NOTED: "Prior work by [X] not cited" 📝                         │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
+│                                                                             │
 │  AUTHOR RESPONSES: 8 (linked to specific challenges)                        │
 │  OPEN ISSUES: 3                                                             │
 │  RESOLVED ISSUES: 5                                                         │
-│                                                                              │
-│  DECISION FACTORS (visible):                                                 │
+│                                                                             │
+│  DECISION FACTORS (visible):                                                │
 │  • Methodology attacks: 2/4 resolved                                        │
 │  • Novelty confirmed: Yes                                                   │
 │  • Ethics concerns: None                                                    │
-│                                                                              │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -634,23 +632,23 @@ Returns:
 
 **Vision:** Reputation derived from argument quality, not just citation counts.
 
-| Metric | Description | Implementation |
-|--------|-------------|----------------|
-| **Defense Success Rate** | % of your claims that survive challenges | Track claim status over time |
-| **Attack Precision** | % of your attacks that result in retractions | Track attack → target retraction |
-| **Scheme Diversity** | Variety of argumentation schemes used | Count scheme types in your arguments |
-| **Cross-Disciplinary Reach** | Arguments transported to other fields | Count transport functor usage |
-| **Constructive Contribution** | Synthesis vs. pure attack ratio | Classify argument role |
-| **Commitment Stability** | Consistency of positions over time | Analyze commitment store diffs |
+| Metric                        | Description                                  | Implementation                       |
+|-------------------------------|----------------------------------------------|--------------------------------------|
+| **Defense Success Rate**      | % of your claims that survive challenges     | Track claim status over time         |
+| **Attack Precision**          | % of your attacks that result in retractions | Track attack → target retraction     |
+| **Scheme Diversity**          | Variety of argumentation schemes used        | Count scheme types in your arguments |
+| **Cross-Disciplinary Reach**  | Arguments transported to other fields        | Count transport functor usage        |
+| **Constructive Contribution** | Synthesis vs. pure attack ratio              | Classify argument role               |
+| **Commitment Stability**      | Consistency of positions over time           | Analyze commitment store diffs       |
 
 ### 9.3 Feature: Reviewer Recognition
 
 **Vision:** Credit reviewers for their intellectual labor.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────────────────── ──┐
 │              REVIEWER PROFILE CARD                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────────────────── ─┤
 │                                                                              │
 │  @jane_methodologist                                                         │
 │  Stanford Quantitative Methods                                               │
@@ -658,20 +656,20 @@ Returns:
 │  REVIEW CONTRIBUTIONS:                                                       │
 │  • Papers reviewed: 47                                                       │
 │  • Arguments contributed during review: 312                                  │
-│  • Issues identified that led to revisions: 89                              │
+│  • Issues identified that led to revisions: 89                               │
 │  • Papers improved by your methodology critiques: 34                         │
 │                                                                              │
 │  REVIEW SPECIALTIES (from scheme analysis):                                  │
 │  • Statistical reasoning ████████████ 89%                                    │
-│  • Causal inference     ████████░░░ 67%                                     │
-│  • Experimental design  ███████░░░░ 58%                                     │
+│  • Causal inference     ████████░░░ 67%                                      │
+│  • Experimental design  ███████░░░░ 58%                                      │
 │                                                                              │
 │  REVIEW STYLE:                                                               │
-│  • Constructive/Critical ratio: 2.3:1                                       │
-│  • Average response time: 4 days                                            │
+│  • Constructive/Critical ratio: 2.3:1                                        │
+│  • Average response time: 4 days                                             │
 │  • Completion rate: 94%                                                      │
 │                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────────── ──┘
 ```
 
 ---
@@ -683,60 +681,60 @@ Returns:
 **Vision:** Automatically surface when claims in different fields address similar questions.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              CROSS-FIELD CLAIM MAP                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  CONCEPT: "Free will"                                                        │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  PHILOSOPHY                    │  NEUROSCIENCE                      │    │
-│  │                                │                                    │    │
-│  │  "Libertarian free will is    │  "Libet experiments show decisions │    │
-│  │   incompatible with           │   are made unconsciously before    │    │
-│  │   determinism"                │   conscious awareness"             │    │
-│  │         │                     │          │                         │    │
-│  │         └───────ATTACKS───────┴──────────┘                         │    │
-│  │                                                                     │    │
-│  │  "Compatibilism reconciles    │  "Readiness potential doesn't      │    │
-│  │   free will with causation"   │   preclude conscious veto"         │    │
-│  │         │                     │          │                         │    │
-│  │         └───────SUPPORTS──────┴──────────┘                         │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  PSYCHOLOGY                   │  LAW                                │    │
-│  │                               │                                     │    │
-│  │  "Sense of agency is         │  "Criminal responsibility requires │    │
-│  │   constructed post-hoc"      │   mens rea (guilty mind)"          │    │
-│  │                              │                                     │    │
-│  │         └───────INFORMS──────┴──────────┘                          │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
-│  CROSS-FIELD DELIBERATION: "Free Will Across Disciplines" (23 participants) │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│              CROSS-FIELD CLAIM MAP                                        │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  CONCEPT: "Free will"                                                     │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  PHILOSOPHY                    │  NEUROSCIENCE                      │  │
+│  │                                │                                    │  │
+│  │  "Libertarian free will is    │  "Libet experiments show decisions  │  │
+│  │   incompatible with           │   are made unconsciously before     │  │
+│  │   determinism"                │   conscious awareness"              │  │
+│  │         │                     │          │                          │  │
+│  │         └───────ATTACKS───────┴──────────┘                          │  │
+│  │                                                                     │  │
+│  │  "Compatibilism reconciles    │  "Readiness potential doesn't       │  │
+│  │   free will with causation"   │   preclude conscious veto"          │  │
+│  │         │                     │          │                          │  │
+│  │         └───────SUPPORTS──────┴──────────┘                          │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  PSYCHOLOGY                   │  LAW                                │  │
+│  │                               │                                     │  │
+│  │  "Sense of agency is         │  "Criminal responsibility requires   │  │
+│  │   constructed post-hoc"      │   mens rea (guilty mind)"            │  │
+│  │                              │                                      │  │
+│  │         └───────INFORMS──────┴──────────┘                           │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+│ CROSS-FIELD DELIBERATION: "Free Will Across Disciplines" (23 participants)│
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 10.2 Feature: Translation Deliberations
 
 **Vision:** Dedicated spaces for translating concepts between fields.
 
-| Component | Purpose |
-|-----------|---------|
-| **Concept mapping** | "X in Field A = Y in Field B" claims |
-| **Vocabulary negotiation** | Track terminological disagreements |
-| **Translation arguments** | "Why we should interpret A's X as B's Y" |
-| **Translation attacks** | "This translation loses crucial nuance" |
+| Component                  | Purpose                                  |
+|----------------------------|------------------------------------------|
+| **Concept mapping**        | "X in Field A = Y in Field B" claims     |
+| **Vocabulary negotiation** | Track terminological disagreements       |
+| **Translation arguments**  | "Why we should interpret A's X as B's Y" |
+| **Translation attacks**    | "This translation loses crucial nuance"  |
 
 ### 10.3 Feature: Interdisciplinary Collaboration Matching
 
 **Vision:** Surface potential collaborators across fields based on argument alignment.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────────── ─────────┐
 │  COLLABORATION SUGGESTION                                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
+├─────────────────────────────────────────────────────────────────── ──────────┤
 │                                                                              │
 │  You (@cognitive_scientist) might want to collaborate with:                  │
 │                                                                              │
@@ -754,7 +752,7 @@ Returns:
 │  • METHODOLOGICAL OVERLAP: Both use surprisal measures                       │
 │  • POTENTIAL SYNERGY: "Neural correlates of syntactic prediction"            │
 │                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────────────── ────┘
 ```
 
 ---
@@ -764,54 +762,54 @@ Returns:
 ### 11.1 Existing Infrastructure → Academic Features
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              INFRASTRUCTURE → FEATURE MAPPING                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  EXISTING INFRASTRUCTURE        │  ACADEMIC FEATURE ENABLED                 │
-│  ─────────────────────────────────────────────────────────────────────────  │
-│                                                                              │
-│  Stack/Library System           │  Research group shared libraries           │
-│  ├── LibraryPost + Source      │  Paper-to-claim extraction pipeline        │
-│  ├── Citation model             │  Argument-level citations                  │
-│  └── StackReference            │  Cross-stack knowledge links               │
-│                                                                              │
-│  Deliberation System            │  Journal club templates                    │
-│  ├── Walton Schemes            │  Research argumentation patterns           │
-│  ├── ASPIC+ Evaluation         │  Theory acceptability analysis             │
-│  ├── Commitment Stores         │  Reviewer commitment tracking              │
-│  └── Debate Sheets             │  Structured peer review                    │
-│                                                                              │
-│  Agora Feed                     │  Research discovery feed                   │
-│  ├── Following system          │  Follow researchers by argument activity   │
-│  ├── Plexus visualization      │  Cross-field claim mapping                 │
-│  └── Event stream              │  Real-time conference deliberations        │
-│                                                                              │
-│  Article System                 │  Academic paper hosting                    │
-│  ├── TipTap editor             │  Collaborative paper writing               │
-│  ├── Annotation system         │  Structured paper commentary               │
-│  └── Deliberation hosting      │  Paper response deliberations              │
-│                                                                              │
-│  Categorical Foundations        │  Transport across research areas           │
-│  ├── RoomFunctor               │  Import arguments between fields           │
-│  └── Canonical claims          │  Universal claim identifiers               │
-│                                                                              │
-│  Social/Profile System          │  Academic profiles & org pages             │
-│  ├── User profiles             │  Researcher profiles with affiliations     │
-│  └── Following                 │  Cross-institution connections             │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│              INFRASTRUCTURE → FEATURE MAPPING                             │
+├───────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  EXISTING INFRASTRUCTURE        │  ACADEMIC FEATURE ENABLED               │
+│  ───────────────────────────────────────────────────────────────────────  │
+│                                                                           │
+│  Stack/Library System           │  Research group shared libraries        │
+│  ├── LibraryPost + Source       │  Paper-to-claim extraction pipeline     │
+│  ├── Citation model             │  Argument-level citations               │
+│  └── StackReference             │  Cross-stack knowledge links            │
+│                                                                           │
+│  Deliberation System            │  Journal club templates                 │
+│  ├── Walton Schemes             │  Research argumentation patterns        │
+│  ├── ASPIC+ Evaluation          │  Theory acceptability analysis          │
+│  ├── Commitment Stores          │  Reviewer commitment tracking           │
+│  └── Debate Sheets              │  Structured peer review                 │
+│                                                                           │
+│  Agora Feed                     │  Research discovery feed                │
+│  ├── Following system           │  Follow researchers by argument activity│
+│  ├── Plexus visualization       │  Cross-field claim mapping              │
+│  └── Event stream               │  Real-time conference deliberations     │
+│                                                                           │
+│  Article System                 │  Academic paper hosting                 │
+│  ├── TipTap editor              │  Collaborative paper writing            │
+│  ├── Annotation system          │  Structured paper commentary            │
+│  └── Deliberation hosting       │  Paper response deliberations           │
+│                                                                           │
+│  Categorical Foundations        │  Transport across research areas        │
+│  ├── RoomFunctor                │  Import arguments between fields        │
+│  └── Canonical claims           │  Universal claim identifiers            │
+│                                                                           │
+│  Social/Profile System          │  Academic profiles & org pages          │
+│  ├── User profiles              │  Researcher profiles with affiliations  │
+│  └── Following                  │  Cross-institution connections          │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 11.2 New Infrastructure Needed
 
-| New Component | Purpose | Builds On |
-|---------------|---------|-----------|
-| **Organization model** | Institution/department/lab entities | User model |
-| **ClaimExtraction pipeline** | PDF → structured claims | Source + LibraryPost |
-| **Academic scheme set** | Research-specific argumentation patterns | Walton schemes |
-| **Review workflow** | Peer review state machine | Deliberation phases |
-| **Cross-discipline matching** | Semantic similarity for collaboration | Pinecone embeddings |
+| New Component                 | Purpose                                  | Builds On            |
+|-------------------------------|------------------------------------------|----------------------|
+| **Organization model**        | Institution/department/lab entities      | User model           |
+| **ClaimExtraction pipeline**  | PDF → structured claims                  | Source + LibraryPost |
+| **Academic scheme set**       | Research-specific argumentation patterns | Walton schemes       |
+| **Review workflow**           | Peer review state machine                | Deliberation phases  |
+| **Cross-discipline matching** | Semantic similarity for collaboration    | Pinecone embeddings  |
 
 ---
 
@@ -850,13 +848,13 @@ Returns:
 
 ### 12.2 Recommended Phasing
 
-| Phase | Focus | Features |
-|-------|-------|----------|
-| **Phase 1: Foundation** | Enable academic workflows | Journal club template, Claim-based search, Related arguments |
-| **Phase 2: Collaboration** | Cross-institutional features | Organization profiles, Shared research stacks, Multi-institution rooms |
-| **Phase 3: Discovery** | Knowledge graph intelligence | Paper-to-argument extraction, Claim provenance, Attack queries |
-| **Phase 4: Reputation** | Open science infrastructure | Public peer review, Argumentation reputation, Reviewer recognition |
-| **Phase 5: Interdisciplinary** | Bridge-building features | Cross-field mapping, Translation deliberations, Collaboration matching |
+| Phase                          | Focus                        | Features                                                               |
+|--------------------------------|------------------------------|------------------------------------------------------------------------|
+| **Phase 1: Foundation**        | Enable academic workflows    | Journal club template, Claim-based search, Related arguments           |
+| **Phase 2: Collaboration**     | Cross-institutional features | Organization profiles, Shared research stacks, Multi-institution rooms |
+| **Phase 3: Discovery**         | Knowledge graph intelligence | Paper-to-argument extraction, Claim provenance, Attack queries         |
+| **Phase 4: Reputation**        | Open science infrastructure  | Public peer review, Argumentation reputation, Reviewer recognition     |
+| **Phase 5: Interdisciplinary** | Bridge-building features     | Cross-field mapping, Translation deliberations, Collaboration matching |
 
 ---
 
