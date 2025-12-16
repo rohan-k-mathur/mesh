@@ -58,6 +58,38 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
+    // Fetch user's response moves (GROUNDS, CONCEDE, RETRACT) to check responded status
+    // A user has "responded" to an attack if they've made a dialogue move targeting
+    // the same claim/argument that was attacked
+    const userResponseMoves = await prisma.dialogueMove.findMany({
+      where: {
+        deliberationId,
+        actorId: userId,
+        kind: { in: ["GROUNDS", "CONCEDE", "RETRACT"] },
+        OR: [
+          { targetType: "claim", targetId: { in: userClaimIds } },
+          { targetType: "argument", targetId: { in: userArgumentIds } },
+        ],
+      },
+      select: {
+        targetType: true,
+        targetId: true,
+        kind: true,
+        createdAt: true,
+      },
+    });
+
+    // Create a map of responded targets: "claim:id" or "argument:id" -> response info
+    const respondedTargets = new Map<string, { kind: string; respondedAt: Date }>();
+    for (const move of userResponseMoves) {
+      const key = `${move.targetType}:${move.targetId}`;
+      // Keep the most recent response
+      const existing = respondedTargets.get(key);
+      if (!existing || move.createdAt > existing.respondedAt) {
+        respondedTargets.set(key, { kind: move.kind, respondedAt: move.createdAt });
+      }
+    }
+
     // Collect all unique claim/argument IDs we need to fetch
     const conflictingClaimIds = attacks
       .map((a: any) => a.conflictingClaimId)
@@ -162,6 +194,13 @@ export async function GET(
                          conflictedArgument?.claim?.text || 
                          "";
 
+      // Check if user has responded to this attack target
+      const targetKey = `${targetType}:${targetId}`;
+      const responseInfo = respondedTargets.get(targetKey);
+      const responded = !!responseInfo;
+      const responseType = responseInfo?.kind || null;
+      const respondedAt = responseInfo?.respondedAt || null;
+
       return {
         id: attack.id,
         attackerId,
@@ -172,7 +211,9 @@ export async function GET(
         targetId,
         targetText,
         createdAt: attack.createdAt,
-        responded: false, // TODO: Check if user has responded (CONCEDE/RETRACT/GROUNDS)
+        responded,
+        responseType,
+        respondedAt,
       };
     });
 

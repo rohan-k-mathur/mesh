@@ -72,6 +72,49 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
+    // Fetch user's response moves (GROUNDS, CONCEDE, RETRACT) to check responded status
+    const userResponseMoves = await prisma.dialogueMove.findMany({
+      where: {
+        deliberationId,
+        actorId: userId,
+        kind: { in: ["GROUNDS", "CONCEDE", "RETRACT"] },
+        OR: [
+          { targetType: "claim", targetId: { in: userClaimIds } },
+          { targetType: "argument", targetId: { in: userArgumentIds } },
+        ],
+      },
+      select: {
+        targetType: true,
+        targetId: true,
+        kind: true,
+        createdAt: true,
+      },
+    });
+
+    // Create a map of responded targets: "claim:id" or "argument:id" -> response info
+    const respondedTargets = new Map<string, { kind: string; respondedAt: Date }>();
+    for (const move of userResponseMoves) {
+      const key = `${move.targetType}:${move.targetId}`;
+      const existing = respondedTargets.get(key);
+      if (!existing || move.createdAt > existing.respondedAt) {
+        respondedTargets.set(key, { kind: move.kind, respondedAt: move.createdAt });
+      }
+    }
+
+    // Fetch challenger user profiles
+    const challengerIds = whyMoves
+      .map((m) => m.actorId)
+      .filter(Boolean) as string[];
+    
+    const challengerUsers = await prisma.user.findMany({
+      where: { id: { in: challengerIds.map(id => BigInt(id)) } },
+      select: { id: true, name: true, username: true },
+    });
+
+    const challengerUserMap = new Map(
+      challengerUsers.map((u) => [u.id.toString(), u])
+    );
+
     // Format for dashboard
     const formatted = whyMoves.map((move) => {
       // Find target text
@@ -80,16 +123,31 @@ export async function GET(
         userArguments.find((a) => a.id === move.targetId)?.claim?.text ||
         "";
 
+      // Get challenger name
+      const challengerUser = move.actorId 
+        ? challengerUserMap.get(move.actorId)
+        : null;
+      const challengerName = challengerUser?.name || challengerUser?.username || "Unknown";
+
+      // Check if user has responded to this challenge
+      const targetKey = `${move.targetType}:${move.targetId}`;
+      const responseInfo = respondedTargets.get(targetKey);
+      const responded = !!responseInfo;
+      const responseType = responseInfo?.kind || null;
+      const respondedAt = responseInfo?.respondedAt || null;
+
       return {
         id: move.id,
         challengerId: move.actorId,
-        challengerName: null, // TODO: Fetch user names
+        challengerName,
         targetType: move.targetType,
         targetId: move.targetId,
         targetText,
         payload: move.payload,
         createdAt: move.createdAt,
-        responded: false, // TODO: Check if user has responded with GROUNDS
+        responded,
+        responseType,
+        respondedAt,
       };
     });
 
