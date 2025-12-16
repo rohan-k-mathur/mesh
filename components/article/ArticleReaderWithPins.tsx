@@ -12,6 +12,8 @@ import { RhetoricProvider } from "../rhetoric/RhetoricContext";
 import { DeepDiveBackdrop } from "./DeepDiveBackground";
 import { DialogueTargetProvider } from "@/components/dialogue/DialogueTargetContext";
 import { SWRConfig } from 'swr';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 
 
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
@@ -336,7 +338,7 @@ export default function ArticleReaderWithPins({
   }
 
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const [adder, setAdder] = useState<{ anchor: Anchor; rect: DOMRect } | null>(
+  const [adder, setAdder] = useState<{ anchor: Anchor; rect: DOMRect; text: string } | null>(
     null
   );
   const [selectionRects, setSelectionRects] = useState<DOMRect[] | null>(null); // visual highlight
@@ -364,6 +366,11 @@ export default function ArticleReaderWithPins({
     text: string;
   } | null>(null);
   const [draftBody, setDraftBody] = useState("");
+
+  // claim composer dialog state
+  const [claimComposerOpen, setClaimComposerOpen] = useState(false);
+  const [claimComposerInitialText, setClaimComposerInitialText] = useState("");
+  const [claimComposerAnchor, setClaimComposerAnchor] = useState<Anchor | null>(null);
 
   // recalc on scroll/resize
   useEffect(() => {
@@ -482,10 +489,13 @@ export default function ArticleReaderWithPins({
     const packed = buildAnchorFromSelection(root, sel);
     if (!packed) return;
 
+    // Capture the selected text now, before it gets cleared
+    const selectedText = sel.toString().slice(0, 1000);
+
     // show the adder but keep selection; also draw our own highlight
-    setAdder({ anchor: packed.anchor, rect: packed.rect });
+    setAdder({ anchor: packed.anchor, rect: packed.rect, text: selectedText });
     setSelectionRects(getAnchorRects(packed.anchor, root));
-    setBubble(null); // don’t open yet
+    setBubble(null); // don't open yet
   };
 
   async function createThread() {
@@ -507,6 +517,7 @@ export default function ArticleReaderWithPins({
     setBubble(null);
     setDraftBody("");
   }
+
   const clusters = useMemo(() => clusterByTop(positions, 40), [positions]);
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null); // cluster key = `${top}` or a generated id
   const railAnchorRef = useRef<HTMLDivElement>(null);
@@ -663,39 +674,72 @@ export default function ArticleReaderWithPins({
               })}
             </div>
 
-            {/* Small “+” adder above selection */}
+            {/* Selection toolbar with Comment and Make Claim buttons */}
             {adder && (
-              <button
-                className="absolute  mt-4 flex flex-col z-30 w-fit h-fit rounded-xl bg-indigo-300 p-[6px] text-white text-center 
-    justify-center text-sm  place-items-center shadow-md shadow-slate-500/70 btnv2--ghost"
+              <div
+                className="absolute mt-4 flex flex-row z-30 gap-1 rounded-xl bg-slate-800/90 p-1 shadow-md shadow-slate-500/70"
                 style={{
                   top: Math.max(0, adder.rect.top + 6),
-                  left: adder.rect.left + adder.rect.width / 2 - 12,
+                  left: adder.rect.left + adder.rect.width / 2 - (deliberationId ? 56 : 18),
                 }}
                 onMouseDown={(e) => e.preventDefault()} // keep selection
-                onClick={() => {
-                  // open composer bubble with the same anchor
-                  const root = containerRef.current!;
-                  const rects = getAnchorRects(adder.anchor, root);
-                  const first = rects[0] ?? adder.rect;
-                  setBubble({
-                    anchor: adder.anchor,
-                    rect: first,
-                    text: window.getSelection()?.toString().slice(0, 280) ?? "",
-                  });
-                  setAdder(null);
-                  setSelectionRects(null);
-                }}
-                aria-label="Comment on selection"
               >
-                <Image
-                  src="/assets/document--comment.svg"
-                  alt={"text"}
-                  className="flex flex-1"
-                  width={15}
-                  height={15}
-                />
-              </button>
+                {/* Comment button */}
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-xs transition-colors"
+                  onClick={() => {
+                    const root = containerRef.current!;
+                    const rects = getAnchorRects(adder.anchor, root);
+                    const first = rects[0] ?? adder.rect;
+                    setBubble({
+                      anchor: adder.anchor,
+                      rect: first,
+                      text: adder.text.slice(0, 280),
+                    });
+                    setAdder(null);
+                    setSelectionRects(null);
+                  }}
+                  aria-label="Comment on selection"
+                >
+                  <Image
+                    src="/assets/document--comment.svg"
+                    alt="comment"
+                    width={14}
+                    height={14}
+                  />
+                  <span>Comment</span>
+                </button>
+
+                {/* Make Claim button - only show if deliberationId exists */}
+                {deliberationId && (
+                  <button
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs transition-colors"
+                    onClick={() => {
+                      setClaimComposerInitialText(adder.text);
+                      setClaimComposerAnchor(adder.anchor);
+                      setClaimComposerOpen(true);
+                      setAdder(null);
+                      setSelectionRects(null);
+                    }}
+                    aria-label="Make claim from selection"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>Make Claim</span>
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Floating composer bubble */}
@@ -775,9 +819,9 @@ export default function ArticleReaderWithPins({
         {deliberationId && (
           <section className="relative mt-0">
             <DeepDiveBackdrop attach="absolute"/>
-            <h2 className="text-4xl font-semibold tracking-wide text-center my-4">
+            {/* <h2 className="text-4xl font-semibold tracking-wide text-center my-4">
               Discussion
-            </h2>
+            </h2> */}
             <div className=" justify-center items-center mx-auto border-b-[.5px] border-slate-700/70 w-[75%] mb-2" />
          <div className="px-10">
             <RhetoricProvider>
@@ -799,6 +843,56 @@ export default function ArticleReaderWithPins({
             setOpenId(null);
           }}
         />
+      )}
+
+      {/* Claim Composer Dialog - opens when "Make Claim" is clicked */}
+      {deliberationId && (
+        <Dialog open={claimComposerOpen} onOpenChange={setClaimComposerOpen}>
+          <DialogContent className="max-w-3xl bg-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-amber-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Create Claim from Article Selection
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mb-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <div className="text-xs font-medium text-amber-700 mb-1">Selected text from article:</div>
+              <div className="text-sm text-slate-700 line-clamp-3">
+                {claimComposerInitialText || "(no text selected)"}
+              </div>
+            </div>
+            <PropositionComposerPro
+              deliberationId={deliberationId}
+              initialText={claimComposerInitialText}
+              autoPromote={true}
+              onCreated={(prop) => {
+                // Claim created and auto-promoted
+                setClaimComposerOpen(false);
+                setClaimComposerInitialText("");
+                setClaimComposerAnchor(null);
+                // TODO: Save ArticleClaimAnchor for bidirectional linking
+              }}
+              onPosted={() => {
+                setClaimComposerOpen(false);
+                setClaimComposerInitialText("");
+                setClaimComposerAnchor(null);
+              }}
+              placeholder="Edit or refine the claim text..."
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </ArticleReader>
   );

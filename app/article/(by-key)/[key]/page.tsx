@@ -54,7 +54,6 @@ export default async function ArticlePage({ params }: { params: { key: string } 
       astJson: true,
       heroImageKey: true,
       deletedAt: true,
-      roomId: true, // <-- add this line
     },
   });
   if (!article) notFound();
@@ -63,7 +62,7 @@ export default async function ArticlePage({ params }: { params: { key: string } 
   const deliberationId = await getOrCreateDeliberationId(
     'article',
     article.id,
-    article.roomId ?? null,
+    null, // roomId no longer on Article model
     userId ?? 'system'
   );
 

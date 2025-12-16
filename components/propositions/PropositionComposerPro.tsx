@@ -32,6 +32,9 @@ type Props = {
   onPosted?: () => void;                            // generic "done" hook
   className?: string;
   placeholder?: string;
+  initialText?: string;                             // pre-fill text (e.g., from article selection)
+  autoPromote?: boolean;                            // auto-promote proposition to claim after creation
+  onPromoted?: (claimId: string) => void;           // fired after auto-promote completes
 };
 
 // --- Validation (aligned to your API contracts) ------------------------------
@@ -62,8 +65,16 @@ export function PropositionComposerPro({
   onPosted,
   className,
   placeholder = 'State your proposition…',
+  initialText = '',
+  autoPromote = false,
+  onPromoted,
 }: Props) {
-  const [text, setText] = React.useState('');
+  const [text, setText] = React.useState(initialText);
+  
+  // Reset text when initialText changes (e.g., new selection)
+  React.useEffect(() => {
+    if (initialText) setText(initialText);
+  }, [initialText]);
   const [imageUrl, setImageUrl] = React.useState('');
   
   // Citation management - collect citations to attach after proposition is created
@@ -288,6 +299,26 @@ export function PropositionComposerPro({
       
       // Call onCreated AFTER citations are attached
       onCreated?.(created ?? ({ id: createdId!, deliberationId, authorId: '', text: trimmed, mediaType: parsed.data.mediaType, mediaUrl: (parsed.data as any).mediaUrl ?? null, status: 'PUBLISHED', promotedClaimId: null, voteUpCount: 0, voteDownCount: 0, endorseCount: 0, replyCount: 0, createdAt: new Date().toISOString() } as any));
+      
+      // Auto-promote to claim if requested
+      if (autoPromote && createdId) {
+        try {
+          const promoteRes = await fetch(`/api/propositions/${createdId}/promote`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ deliberationId, text: trimmed }),
+            signal: ctrl.signal,
+          });
+          const promoteJson = await promoteRes.json().catch(() => null);
+          if (promoteRes.ok && promoteJson?.claimId) {
+            onPromoted?.(promoteJson.claimId);
+            window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } }));
+          }
+        } catch (e) {
+          console.error('Failed to auto-promote proposition to claim:', e);
+        }
+      }
+      
       onPosted?.();
       window.dispatchEvent(new CustomEvent('propositions:created', { detail: { deliberationId, id: createdId } }));
 
