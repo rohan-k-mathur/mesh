@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ESSAY_LLM_POLISH_IDEATION.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="../ARCHITECTURE/print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="essay-generator-llm-polish-ideation-document">Essay Generator LLM Polish: Ideation Document</h1>
+<p><strong>Date</strong>: December 9, 2025<br>
+<strong>Status</strong>: 🧠 <strong>BRAINSTORMING / IDEATION</strong><br>
+<strong>Context</strong>: Exploring lightweight LLM integration for syntactical/grammatical refinement of generated essays</p>
+<hr>
+<h2 id="current-state">Current State</h2>
+<h3 id="what-we-have">What We Have</h3>
+<p>The <code>essayGenerator.ts</code> produces academically-styled prose from argument chains using:</p>
+<ul>
+<li>Template-based sentence construction</li>
+<li>Scheme-aware transitions and discourse markers</li>
+<li>Dialectical structure (thesis-antithesis-synthesis)</li>
+<li>Critical question weaving</li>
+<li><code>smartLowercase()</code> for proper noun/acronym preservation</li>
+</ul>
+<h3 id="current-limitations">Current Limitations</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Example</th>
+<th>Root Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Awkward infinitive phrases</strong></td>
+<td>&quot;concerns to analyze and evaluate arguments&quot;</td>
+<td>Chain purpose field starts with infinitive</td>
+</tr>
+<tr>
+<td><strong>Placeholder leakage</strong></td>
+<td>&quot;is the goal/value g explicit&quot;</td>
+<td>CQ templates have unfilled variables</td>
+</tr>
+<tr>
+<td><strong>Run-on sentences</strong></td>
+<td>Long support relationship descriptions</td>
+<td>Template concatenation without length awareness</td>
+</tr>
+<tr>
+<td><strong>Repetitive transitions</strong></td>
+<td>Multiple &quot;Furthermore,&quot; in sequence</td>
+<td>Random sampling without context</td>
+</tr>
+<tr>
+<td><strong>Occasional double punctuation</strong></td>
+<td>&quot;argument.. The&quot;</td>
+<td>Edge description already has period</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="design-philosophy">Design Philosophy</h2>
+<h3 id="principles">Principles</h3>
+<ol>
+<li><strong>LLM as Polish, Not Author</strong> — The argument structure and content come from the chain; LLM only improves surface form</li>
+<li><strong>Preserve Semantic Content</strong> — No adding/removing claims, no changing logical relationships</li>
+<li><strong>Efficient Token Usage</strong> — Process only problematic sections, not entire essay</li>
+<li><strong>Graceful Degradation</strong> — If LLM unavailable, original essay is still usable</li>
+<li><strong>User Control</strong> — Optional enhancement, not mandatory</li>
+</ol>
+<h3 id="non-goals">Non-Goals</h3>
+<ul>
+<li>❌ LLM-generated argument content</li>
+<li>❌ Restructuring the essay organization</li>
+<li>❌ Adding new information not in the chain</li>
+<li>❌ Changing the argumentative stance</li>
+</ul>
+<hr>
+<h2 id="architecture-options">Architecture Options</h2>
+<h3 id="option-a-post-generation-full-pass">Option A: Post-Generation Full Pass</h3>
+<pre class="hljs"><code><div>┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ Chain Data  │ ──▶ │ Essay Gen   │ ──▶ │ LLM Polish  │ ──▶ Final Essay
+└─────────────┘     │ (Template)  │     │ (Full Text) │
+                    └─────────────┘     └─────────────┘
+</div></code></pre>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Simple implementation</li>
+<li>LLM sees full context</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>High token usage (~2x essay length)</li>
+<li>Latency for full processing</li>
+<li>Risk of semantic drift</li>
+</ul>
+<h3 id="option-b-section-by-section-polish">Option B: Section-by-Section Polish</h3>
+<pre class="hljs"><code><div>┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ Chain Data  │ ──▶ │ Essay Gen   │ ──▶ │ Per-Section │ ──▶ Final Essay
+└─────────────┘     │ (Template)  │     │ LLM Polish  │
+                    └─────────────┘     └─────────────┘
+                                              │
+                                    ┌─────────┴─────────┐
+                                    │ Intro │ Body │ ... │
+                                    └───────────────────┘
+</div></code></pre>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Parallel processing possible</li>
+<li>Smaller context windows</li>
+<li>Easier to cache/skip unchanged sections</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>May lose cross-section coherence</li>
+<li>More API calls</li>
+</ul>
+<h3 id="option-c-targeted-fix-ups-recommended">Option C: Targeted Fix-Ups (Recommended)</h3>
+<pre class="hljs"><code><div>┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ Chain Data  │ ──▶ │ Essay Gen   │ ──▶ │ Issue       │ ──▶ │ LLM Fix     │ ──▶ Final
+└─────────────┘     │ (Template)  │     │ Detection   │     │ (Targeted)  │
+                    └─────────────┘     └─────────────┘     └─────────────┘
+                                              │
+                                    ┌─────────┴─────────┐
+                                    │ • Awkward phrases │
+                                    │ • Run-on sentences│
+                                    │ • Repetition      │
+                                    └───────────────────┘
+</div></code></pre>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Minimal token usage</li>
+<li>Fast (only processes problem areas)</li>
+<li>Preserves good template output</li>
+<li>Easier to validate changes</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Requires issue detection logic</li>
+<li>May miss subtle problems</li>
+</ul>
+<hr>
+<h2 id="recommended-implementation-targeted-fix-ups">Recommended Implementation: Targeted Fix-Ups</h2>
+<h3 id="phase-1-issue-detection">Phase 1: Issue Detection</h3>
+<p>Create heuristic detectors that flag problematic text:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/chains/essayPolish/issueDetectors.ts</span>
+
+<span class="hljs-keyword">interface</span> TextIssue {
+  <span class="hljs-keyword">type</span>: <span class="hljs-string">"awkward_phrase"</span> | <span class="hljs-string">"run_on"</span> | <span class="hljs-string">"repetition"</span> | <span class="hljs-string">"placeholder"</span> | <span class="hljs-string">"punctuation"</span>;
+  startIndex: <span class="hljs-built_in">number</span>;
+  endIndex: <span class="hljs-built_in">number</span>;
+  text: <span class="hljs-built_in">string</span>;
+  context: <span class="hljs-built_in">string</span>; <span class="hljs-comment">// Surrounding sentences for LLM</span>
+  severity: <span class="hljs-string">"low"</span> | <span class="hljs-string">"medium"</span> | <span class="hljs-string">"high"</span>;
+}
+
+<span class="hljs-comment">// Detector functions</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectAwkwardInfinitives</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[]</span>;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectRunOnSentences</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span>, maxLength?: <span class="hljs-built_in">number</span></span>): <span class="hljs-title">TextIssue</span>[]</span>;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectRepetitiveTransitions</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[]</span>;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectPlaceholderLeakage</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[]</span>;
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectPunctuationIssues</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[]</span>;
+
+<span class="hljs-comment">// Main detector</span>
+<span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectEssayIssues</span>(<span class="hljs-params">essay: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[] </span>{
+  <span class="hljs-keyword">return</span> [
+    ...detectAwkwardInfinitives(essay),
+    ...detectRunOnSentences(essay),
+    ...detectRepetitiveTransitions(essay),
+    ...detectPlaceholderLeakage(essay),
+    ...detectPunctuationIssues(essay),
+  ].sort(<span class="hljs-function">(<span class="hljs-params">a, b</span>) =&gt;</span> b.severity.localeCompare(a.severity));
+}
+</div></code></pre>
+<h3 id="phase-2-llm-fix-request-builder">Phase 2: LLM Fix Request Builder</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/chains/essayPolish/fixRequestBuilder.ts</span>
+
+<span class="hljs-keyword">interface</span> PolishRequest {
+  original: <span class="hljs-built_in">string</span>;
+  issues: TextIssue[];
+  instructions: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildPolishPrompt</span>(<span class="hljs-params">request: PolishRequest</span>): <span class="hljs-title">string</span> </span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-string">`You are a copy editor improving academic prose. Fix ONLY the specific issues listed below. 
+Do not change the meaning, add information, or restructure arguments.
+
+TEXT TO IMPROVE:
+"""
+<span class="hljs-subst">${request.original}</span>
+"""
+
+ISSUES TO FIX:
+<span class="hljs-subst">${request.issues.map((issue, i) =&gt; <span class="hljs-string">`
+<span class="hljs-subst">${i + <span class="hljs-number">1</span>}</span>. [<span class="hljs-subst">${issue.<span class="hljs-keyword">type</span>}</span>] "<span class="hljs-subst">${issue.text}</span>"
+   Context: "<span class="hljs-subst">${issue.context}</span>"
+`</span>).join(<span class="hljs-string">"\n"</span>)}</span>
+
+INSTRUCTIONS:
+- Fix only the listed issues
+- Preserve all factual claims and logical relationships
+- Maintain academic tone
+- Return the improved text only, no explanations
+
+IMPROVED TEXT:`</span>;
+}
+</div></code></pre>
+<h3 id="phase-3-minimal-llm-integration">Phase 3: Minimal LLM Integration</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/chains/essayPolish/polishEssay.ts</span>
+
+<span class="hljs-keyword">import</span> { openai } <span class="hljs-keyword">from</span> <span class="hljs-string">"@/lib/openai"</span>; <span class="hljs-comment">// Existing OpenAI client</span>
+
+<span class="hljs-keyword">interface</span> PolishOptions {
+  enabled: <span class="hljs-built_in">boolean</span>;
+  maxIssues?: <span class="hljs-built_in">number</span>; <span class="hljs-comment">// Limit issues to fix per call</span>
+  model?: <span class="hljs-built_in">string</span>; <span class="hljs-comment">// Default: "gpt-4o-mini" for speed/cost</span>
+  temperature?: <span class="hljs-built_in">number</span>; <span class="hljs-comment">// Default: 0.3 for consistency</span>
+}
+
+<span class="hljs-keyword">interface</span> PolishResult {
+  original: <span class="hljs-built_in">string</span>;
+  polished: <span class="hljs-built_in">string</span>;
+  issuesFound: <span class="hljs-built_in">number</span>;
+  issuesFixed: <span class="hljs-built_in">number</span>;
+  tokensUsed: <span class="hljs-built_in">number</span>;
+  duration: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">polishEssay</span>(<span class="hljs-params">
+  essay: <span class="hljs-built_in">string</span>,
+  options: PolishOptions = { enabled: <span class="hljs-literal">true</span> }
+</span>): <span class="hljs-title">Promise</span>&lt;<span class="hljs-title">PolishResult</span>&gt; </span>{
+  <span class="hljs-keyword">const</span> startTime = <span class="hljs-built_in">Date</span>.now();
+  
+  <span class="hljs-keyword">if</span> (!options.enabled) {
+    <span class="hljs-keyword">return</span> {
+      original: essay,
+      polished: essay,
+      issuesFound: <span class="hljs-number">0</span>,
+      issuesFixed: <span class="hljs-number">0</span>,
+      tokensUsed: <span class="hljs-number">0</span>,
+      duration: <span class="hljs-number">0</span>,
+    };
+  }
+
+  <span class="hljs-comment">// Detect issues</span>
+  <span class="hljs-keyword">const</span> issues = detectEssayIssues(essay);
+  <span class="hljs-keyword">const</span> issuesToFix = issues.slice(<span class="hljs-number">0</span>, options.maxIssues || <span class="hljs-number">10</span>);
+  
+  <span class="hljs-keyword">if</span> (issuesToFix.length === <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">return</span> {
+      original: essay,
+      polished: essay,
+      issuesFound: <span class="hljs-number">0</span>,
+      issuesFixed: <span class="hljs-number">0</span>,
+      tokensUsed: <span class="hljs-number">0</span>,
+      duration: <span class="hljs-built_in">Date</span>.now() - startTime,
+    };
+  }
+
+  <span class="hljs-comment">// Build and send request</span>
+  <span class="hljs-keyword">const</span> prompt = buildPolishPrompt({ original: essay, issues: issuesToFix, instructions: <span class="hljs-string">""</span> });
+  
+  <span class="hljs-keyword">const</span> response = <span class="hljs-keyword">await</span> openai.chat.completions.create({
+    model: options.model || <span class="hljs-string">"gpt-4o-mini"</span>,
+    messages: [{ role: <span class="hljs-string">"user"</span>, content: prompt }],
+    temperature: options.temperature || <span class="hljs-number">0.3</span>,
+    max_tokens: <span class="hljs-built_in">Math</span>.ceil(essay.length * <span class="hljs-number">1.2</span> / <span class="hljs-number">4</span>), <span class="hljs-comment">// Estimate tokens needed</span>
+  });
+
+  <span class="hljs-keyword">const</span> polished = response.choices[<span class="hljs-number">0</span>]?.message?.content || essay;
+  
+  <span class="hljs-keyword">return</span> {
+    original: essay,
+    polished,
+    issuesFound: issues.length,
+    issuesFixed: issuesToFix.length,
+    tokensUsed: response.usage?.total_tokens || <span class="hljs-number">0</span>,
+    duration: <span class="hljs-built_in">Date</span>.now() - startTime,
+  };
+}
+</div></code></pre>
+<h3 id="phase-4-ui-integration">Phase 4: UI Integration</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// In ChainEssayView.tsx</span>
+
+<span class="hljs-keyword">const</span> [polishEnabled, setPolishEnabled] = useState(<span class="hljs-literal">false</span>);
+<span class="hljs-keyword">const</span> [isPolishing, setIsPolishing] = useState(<span class="hljs-literal">false</span>);
+<span class="hljs-keyword">const</span> [polishedEssay, setPolishedEssay] = useState&lt;<span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>&gt;(<span class="hljs-literal">null</span>);
+
+<span class="hljs-keyword">const</span> handlePolish = <span class="hljs-keyword">async</span> () =&gt; {
+  <span class="hljs-keyword">if</span> (!essayResult) <span class="hljs-keyword">return</span>;
+  setIsPolishing(<span class="hljs-literal">true</span>);
+  
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> fetch(<span class="hljs-string">"/api/argument-chains/polish"</span>, {
+      method: <span class="hljs-string">"POST"</span>,
+      headers: { <span class="hljs-string">"Content-Type"</span>: <span class="hljs-string">"application/json"</span> },
+      body: <span class="hljs-built_in">JSON</span>.stringify({ essay: essayResult.fullText }),
+    }).then(<span class="hljs-function"><span class="hljs-params">r</span> =&gt;</span> r.json());
+    
+    setPolishedEssay(result.polished);
+    toast.success(<span class="hljs-string">`Improved <span class="hljs-subst">${result.issuesFixed}</span> issues`</span>);
+  } <span class="hljs-keyword">catch</span> (err) {
+    toast.error(<span class="hljs-string">"Polish failed - using original"</span>);
+  } <span class="hljs-keyword">finally</span> {
+    setIsPolishing(<span class="hljs-literal">false</span>);
+  }
+};
+
+<span class="hljs-comment">// In settings dropdown</span>
+&lt;DropdownMenuCheckboxItem
+  checked={polishEnabled}
+  onCheckedChange={setPolishEnabled}
+&gt;
+  &lt;Sparkles className=<span class="hljs-string">"w-4 h-4 mr-2"</span> /&gt;
+  AI Polish (Beta)
+&lt;<span class="hljs-regexp">/DropdownMenuCheckboxItem&gt;
+
+/</span><span class="hljs-regexp">/ Polish button (when enabled)
+{polishEnabled &amp;&amp; (
+  &lt;Button
+    variant="outline"
+    size="sm"
+    onClick={handlePolish}
+    disabled={isPolishing}
+  &gt;
+    {isPolishing ? (
+      &lt;Loader2 className="w-4 h-4 animate-spin" /</span>&gt;
+    ) : (
+      &lt;Wand2 className=<span class="hljs-string">"w-4 h-4"</span> /&gt;
+    )}
+  &lt;<span class="hljs-regexp">/Button&gt;
+)}
+</span></div></code></pre>
+<hr>
+<h2 id="issue-detection-heuristics">Issue Detection Heuristics</h2>
+<h3 id="1-awkward-infinitive-phrases">1. Awkward Infinitive Phrases</h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectAwkwardInfinitives</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[] </span>{
+  <span class="hljs-keyword">const</span> patterns = [
+    <span class="hljs-regexp">/concerns to \w+/gi</span>,           <span class="hljs-comment">// "concerns to analyze"</span>
+    /about to \w+ and \w+<span class="hljs-regexp">/gi,      /</span><span class="hljs-regexp">/ "about to analyze and evaluate"
+    /</span>regarding to \w+<span class="hljs-regexp">/gi,          /</span><span class="hljs-regexp">/ "regarding to discuss"
+  ];
+  
+  return patterns.flatMap(pattern =&gt; 
+    [...text.matchAll(pattern)].map(match =&gt; ({
+      type: "awkward_phrase" as const,
+      startIndex: match.index!,
+      endIndex: match.index! + match[0].length,
+      text: match[0],
+      context: extractSentence(text, match.index!),
+      severity: "medium" as const,
+    }))
+  );
+}
+</span></div></code></pre>
+<h3 id="2-run-on-sentences">2. Run-On Sentences</h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectRunOnSentences</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span>, maxLength = 250</span>): <span class="hljs-title">TextIssue</span>[] </span>{
+  <span class="hljs-keyword">const</span> sentences = text.match(<span class="hljs-regexp">/[^.!?]+[.!?]+/g</span>) || [];
+  
+  <span class="hljs-keyword">return</span> sentences
+    .filter(<span class="hljs-function"><span class="hljs-params">s</span> =&gt;</span> s.length &gt; maxLength)
+    .map(<span class="hljs-function"><span class="hljs-params">sentence</span> =&gt;</span> ({
+      <span class="hljs-keyword">type</span>: <span class="hljs-string">"run_on"</span> <span class="hljs-keyword">as</span> <span class="hljs-keyword">const</span>,
+      startIndex: text.indexOf(sentence),
+      endIndex: text.indexOf(sentence) + sentence.length,
+      text: sentence,
+      context: sentence,
+      severity: sentence.length &gt; <span class="hljs-number">350</span> ? <span class="hljs-string">"high"</span> : <span class="hljs-string">"medium"</span> <span class="hljs-keyword">as</span> <span class="hljs-keyword">const</span>,
+    }));
+}
+</div></code></pre>
+<h3 id="3-repetitive-transitions">3. Repetitive Transitions</h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectRepetitiveTransitions</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[] </span>{
+  <span class="hljs-keyword">const</span> transitions = [<span class="hljs-string">"Furthermore"</span>, <span class="hljs-string">"Additionally"</span>, <span class="hljs-string">"Moreover"</span>, <span class="hljs-string">"However"</span>, <span class="hljs-string">"Therefore"</span>];
+  <span class="hljs-keyword">const</span> issues: TextIssue[] = [];
+  
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> transition of transitions) {
+    <span class="hljs-keyword">const</span> regex = <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(<span class="hljs-string">`<span class="hljs-subst">${transition}</span>[^.]+\\.\\s*<span class="hljs-subst">${transition}</span>`</span>, <span class="hljs-string">"gi"</span>);
+    <span class="hljs-keyword">const</span> matches = [...text.matchAll(regex)];
+    
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> match of matches) {
+      issues.push({
+        <span class="hljs-keyword">type</span>: <span class="hljs-string">"repetition"</span>,
+        startIndex: match.index!,
+        endIndex: match.index! + match[<span class="hljs-number">0</span>].length,
+        text: match[<span class="hljs-number">0</span>],
+        context: match[<span class="hljs-number">0</span>],
+        severity: <span class="hljs-string">"low"</span>,
+      });
+    }
+  }
+  
+  <span class="hljs-keyword">return</span> issues;
+}
+</div></code></pre>
+<h3 id="4-placeholder-leakage">4. Placeholder Leakage</h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectPlaceholderLeakage</span>(<span class="hljs-params">text: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">TextIssue</span>[] </span>{
+  <span class="hljs-keyword">const</span> patterns = [
+    <span class="hljs-regexp">/\b[a-z]\b(?=\s+explicit|\s+acceptable)/gi</span>, <span class="hljs-comment">// Single letter variables</span>
+    /\[.*?\]/g,                                   <span class="hljs-comment">// Bracketed placeholders</span>
+    /\{.*?\}/g,                                   <span class="hljs-comment">// Curly brace placeholders</span>
+    /\$\w+<span class="hljs-regexp">/g,                                     /</span><span class="hljs-regexp">/ Dollar sign variables
+  ];
+  
+  return patterns.flatMap(pattern =&gt;
+    [...text.matchAll(pattern)].map(match =&gt; ({
+      type: "placeholder" as const,
+      startIndex: match.index!,
+      endIndex: match.index! + match[0].length,
+      text: match[0],
+      context: extractSentence(text, match.index!),
+      severity: "high" as const,
+    }))
+  );
+}
+</span></div></code></pre>
+<hr>
+<h2 id="api-endpoint">API Endpoint</h2>
+<pre class="hljs"><code><div><span class="hljs-comment">// app/api/argument-chains/polish/route.ts</span>
+
+<span class="hljs-keyword">import</span> { NextRequest, NextResponse } <span class="hljs-keyword">from</span> <span class="hljs-string">"next/server"</span>;
+<span class="hljs-keyword">import</span> { polishEssay } <span class="hljs-keyword">from</span> <span class="hljs-string">"@/lib/chains/essayPolish/polishEssay"</span>;
+<span class="hljs-keyword">import</span> { getServerSession } <span class="hljs-keyword">from</span> <span class="hljs-string">"next-auth"</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">POST</span>(<span class="hljs-params">req: NextRequest</span>) </span>{
+  <span class="hljs-keyword">const</span> session = <span class="hljs-keyword">await</span> getServerSession();
+  <span class="hljs-keyword">if</span> (!session?.user) {
+    <span class="hljs-keyword">return</span> NextResponse.json({ error: <span class="hljs-string">"Unauthorized"</span> }, { status: <span class="hljs-number">401</span> });
+  }
+
+  <span class="hljs-keyword">const</span> { essay, options } = <span class="hljs-keyword">await</span> req.json();
+  
+  <span class="hljs-keyword">if</span> (!essay || <span class="hljs-keyword">typeof</span> essay !== <span class="hljs-string">"string"</span>) {
+    <span class="hljs-keyword">return</span> NextResponse.json({ error: <span class="hljs-string">"Invalid essay"</span> }, { status: <span class="hljs-number">400</span> });
+  }
+
+  <span class="hljs-comment">// Rate limiting check here...</span>
+
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> polishEssay(essay, {
+      enabled: <span class="hljs-literal">true</span>,
+      maxIssues: <span class="hljs-number">10</span>,
+      model: <span class="hljs-string">"gpt-4o-mini"</span>,
+      ...options,
+    });
+    
+    <span class="hljs-keyword">return</span> NextResponse.json(result);
+  } <span class="hljs-keyword">catch</span> (err) {
+    <span class="hljs-built_in">console</span>.error(<span class="hljs-string">"Polish error:"</span>, err);
+    <span class="hljs-keyword">return</span> NextResponse.json(
+      { error: <span class="hljs-string">"Polish failed"</span>, original: essay, polished: essay },
+      { status: <span class="hljs-number">500</span> }
+    );
+  }
+}
+</div></code></pre>
+<hr>
+<h2 id="cost--performance-estimates">Cost &amp; Performance Estimates</h2>
+<h3 id="token-usage-per-essay">Token Usage (per essay)</h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Input Tokens</th>
+<th>Output Tokens</th>
+<th>Cost (gpt-4o-mini)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No issues detected</td>
+<td>0</td>
+<td>0</td>
+<td>$0.00</td>
+</tr>
+<tr>
+<td>5 small fixes</td>
+<td>~500</td>
+<td>~600</td>
+<td>~$0.0003</td>
+</tr>
+<tr>
+<td>10 medium fixes</td>
+<td>~1,000</td>
+<td>~1,200</td>
+<td>~$0.0006</td>
+</tr>
+<tr>
+<td>Full essay rewrite</td>
+<td>~3,000</td>
+<td>~3,500</td>
+<td>~$0.002</td>
+</tr>
+</tbody>
+</table>
+<h3 id="latency">Latency</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Estimated Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Issue detection</td>
+<td>5-10ms</td>
+</tr>
+<tr>
+<td>LLM call (gpt-4o-mini)</td>
+<td>500-1500ms</td>
+</tr>
+<tr>
+<td>Total with 5 fixes</td>
+<td>~600-1600ms</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="future-enhancements">Future Enhancements</h2>
+<h3 id="1-caching-layer">1. Caching Layer</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Cache polished results by content hash</span>
+<span class="hljs-keyword">const</span> cacheKey = <span class="hljs-string">`polish:<span class="hljs-subst">${hashEssay(essay)}</span>`</span>;
+<span class="hljs-keyword">const</span> cached = <span class="hljs-keyword">await</span> redis.get(cacheKey);
+<span class="hljs-keyword">if</span> (cached) <span class="hljs-keyword">return</span> <span class="hljs-built_in">JSON</span>.parse(cached);
+</div></code></pre>
+<h3 id="2-streaming-response">2. Streaming Response</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Stream polished essay as it's generated</span>
+<span class="hljs-keyword">const</span> stream = <span class="hljs-keyword">await</span> openai.chat.completions.create({
+  model: <span class="hljs-string">"gpt-4o-mini"</span>,
+  messages: [...],
+  stream: <span class="hljs-literal">true</span>,
+});
+
+<span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Response(stream.toReadableStream());
+</div></code></pre>
+<h3 id="3-ab-display">3. A/B Display</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Show original and polished side-by-side with diff highlighting</span>
+&lt;DiffViewer
+  original={essayResult.fullText}
+  polished={polishedEssay}
+  highlightChanges={<span class="hljs-literal">true</span>}
+/&gt;
+</div></code></pre>
+<h3 id="4-user-feedback-loop">4. User Feedback Loop</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Collect user ratings on polish quality</span>
+<span class="hljs-keyword">interface</span> PolishFeedback {
+  essayHash: <span class="hljs-built_in">string</span>;
+  issueType: <span class="hljs-built_in">string</span>;
+  originalSnippet: <span class="hljs-built_in">string</span>;
+  polishedSnippet: <span class="hljs-built_in">string</span>;
+  userRating: <span class="hljs-number">1</span> | <span class="hljs-number">2</span> | <span class="hljs-number">3</span> | <span class="hljs-number">4</span> | <span class="hljs-number">5</span>;
+  userComment?: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-comment">// Use feedback to improve detection heuristics</span>
+</div></code></pre>
+<hr>
+<h2 id="implementation-roadmap">Implementation Roadmap</h2>
+<h3 id="phase-1-foundation-4-hours">Phase 1: Foundation (~4 hours)</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Description</th>
+<th>Hours</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.1</td>
+<td>Create issue detection module</td>
+<td>2h</td>
+</tr>
+<tr>
+<td>1.2</td>
+<td>Create polish prompt builder</td>
+<td>1h</td>
+</tr>
+<tr>
+<td>1.3</td>
+<td>Create polishEssay function</td>
+<td>1h</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-2-api--ui-3-hours">Phase 2: API &amp; UI (~3 hours)</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Description</th>
+<th>Hours</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2.1</td>
+<td>Create <code>/api/argument-chains/polish</code> endpoint</td>
+<td>1h</td>
+</tr>
+<tr>
+<td>2.2</td>
+<td>Add polish toggle to ChainEssayView settings</td>
+<td>1h</td>
+</tr>
+<tr>
+<td>2.3</td>
+<td>Add polish button with loading state</td>
+<td>1h</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-3-polish-2-hours">Phase 3: Polish (~2 hours)</h3>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Description</th>
+<th>Hours</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.1</td>
+<td>Add error handling and fallback</td>
+<td>0.5h</td>
+</tr>
+<tr>
+<td>3.2</td>
+<td>Add rate limiting</td>
+<td>0.5h</td>
+</tr>
+<tr>
+<td>3.3</td>
+<td>Add usage tracking/logging</td>
+<td>1h</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Total Estimated Time: ~9 hours</strong></p>
+<hr>
+<h2 id="open-questions">Open Questions</h2>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Options</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>When to polish?</strong></td>
+<td>On-demand / Auto / Both</td>
+<td>On-demand with opt-in auto</td>
+</tr>
+<tr>
+<td><strong>Model choice?</strong></td>
+<td>gpt-4o-mini / gpt-4o / claude-haiku</td>
+<td>gpt-4o-mini (cost/speed)</td>
+</tr>
+<tr>
+<td><strong>Diff display?</strong></td>
+<td>Side-by-side / Inline / Toggle</td>
+<td>Toggle with highlight option</td>
+</tr>
+<tr>
+<td><strong>Cache duration?</strong></td>
+<td>None / 1 hour / 24 hours</td>
+<td>24 hours (essays are deterministic)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="summary">Summary</h2>
+<p>This ideation outlines a <strong>lightweight, targeted LLM integration</strong> for essay polish that:</p>
+<ol>
+<li><strong>Detects specific issues</strong> using heuristics (no LLM needed for detection)</li>
+<li><strong>Fixes only problematic sections</strong> (minimal token usage)</li>
+<li><strong>Preserves semantic content</strong> (LLM cannot add/remove arguments)</li>
+<li><strong>Degrades gracefully</strong> (original essay always available)</li>
+<li><strong>Gives users control</strong> (opt-in feature)</li>
+</ol>
+<p>The estimated implementation time is <strong>~9 hours</strong> with an ongoing cost of <strong>~$0.0003-0.002 per polish</strong> using gpt-4o-mini.</p>
+
+</body>
+</html>

@@ -1,0 +1,322 @@
+/**
+ * Shared Print Optimization Stylesheet
+ * =====================================
+ * Include this in HTML files with:
+ *   <link rel="stylesheet" href="print-styles.css" media="print">
+ * 
+ * Or for all media (to preview print layout on screen):
+ *   <link rel="stylesheet" href="print-styles.css">
+ */
+
+/* ==========================================================================
+   PRINT OPTIMIZATION STYLES - TWO-COLUMN LAYOUT
+   ========================================================================== */
+
+@media print {
+	/* Page setup - landscape for two columns */
+	@page {
+		size: letter landscape;
+		margin: 0.4in 0.3in 0.4in 0.3in;
+	}
+
+	/* Body - two column layout */
+	body {
+		font-size: 8pt !important;
+		line-height: 1.3 !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		color: #000 !important;
+		background: #fff !important;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		
+		/* Two-column layout */
+		column-count: 2 !important;
+		column-gap: 0.4in !important;
+		column-rule: 1px solid #ccc !important;
+	}
+
+	/* Heading sizes - more compact for two-column */
+	h1 {
+		font-size: 14pt !important;
+		margin-top: 0 !important;
+		margin-bottom: 6pt !important;
+		padding-bottom: 3pt !important;
+		page-break-after: avoid !important;
+		break-after: avoid !important;
+		column-span: all !important; /* Title spans both columns */
+	}
+
+	h2 {
+		font-size: 11pt !important;
+		margin-top: 10pt !important;
+		margin-bottom: 4pt !important;
+		page-break-after: avoid !important;
+		break-after: avoid !important;
+	}
+
+	h3 {
+		font-size: 9pt !important;
+		margin-top: 8pt !important;
+		margin-bottom: 3pt !important;
+		page-break-after: avoid !important;
+		break-after: avoid !important;
+	}
+
+	h4 {
+		font-size: 8pt !important;
+		margin-top: 6pt !important;
+		margin-bottom: 2pt !important;
+		page-break-after: avoid !important;
+		break-after: avoid !important;
+	}
+
+	h5, h6 {
+		font-size: 8pt !important;
+		margin-top: 4pt !important;
+		margin-bottom: 2pt !important;
+		page-break-after: avoid !important;
+		break-after: avoid !important;
+	}
+
+	/* Keep headings with content */
+	h1 + *, h2 + *, h3 + *, h4 + *, h5 + *, h6 + * {
+		page-break-before: avoid !important;
+		break-before: avoid !important;
+	}
+
+	/* Paragraphs */
+	p {
+		margin-top: 0 !important;
+		margin-bottom: 4pt !important;
+		orphans: 2;
+		widows: 2;
+		text-align: justify !important;
+		hyphens: auto !important;
+	}
+
+	/* Lists - more compact */
+	ul, ol {
+		margin-top: 3pt !important;
+		margin-bottom: 4pt !important;
+		padding-left: 14pt !important;
+	}
+
+	li {
+		margin-bottom: 1pt !important;
+		break-inside: avoid-column !important;
+	}
+
+	/* Nested lists */
+	li ul, li ol {
+		margin-top: 1pt !important;
+		margin-bottom: 1pt !important;
+	}
+
+	/* Tables - optimized for narrow columns */
+	table {
+		width: 100% !important;
+		border-collapse: collapse !important;
+		font-size: 7pt !important;
+		margin-top: 4pt !important;
+		margin-bottom: 6pt !important;
+		break-inside: auto !important;
+	}
+
+	thead {
+		display: table-header-group !important;
+	}
+
+	tfoot {
+		display: table-footer-group !important;
+	}
+
+	tr {
+		break-inside: avoid !important;
+	}
+
+	th, td {
+		padding: 2pt 4pt !important;
+		border: 0.5pt solid #888 !important;
+		text-align: left !important;
+		word-wrap: break-word !important;
+	}
+
+	th {
+		background-color: #e8e8e8 !important;
+		font-weight: bold !important;
+	}
+
+	/* Code blocks - compact for narrow columns */
+	pre, code {
+		font-size: 6pt !important;
+		line-height: 1.2 !important;
+		font-family: "SF Mono", Monaco, "Courier New", monospace !important;
+	}
+
+	pre {
+		padding: 4pt !important;
+		margin: 4pt 0 !important;
+		break-inside: avoid-column !important;
+		white-space: pre-wrap !important;
+		word-wrap: break-word !important;
+		overflow-wrap: break-word !important;
+		max-width: 100% !important;
+		border: 0.5pt solid #bbb !important;
+		background-color: #f5f5f5 !important;
+	}
+
+	/* ASCII art diagrams - keep together, allow overflow wrap */
+	pre.hljs {
+		break-inside: avoid-column !important;
+		font-size: 5.5pt !important;
+		line-height: 1.15 !important;
+		letter-spacing: -0.2pt !important;
+	}
+
+	/* Inline code */
+	:not(pre) > code {
+		padding: 0 1pt !important;
+		background-color: #eee !important;
+		border-radius: 1pt !important;
+		font-size: 7pt !important;
+	}
+
+	/* Blockquotes */
+	blockquote {
+		margin: 4pt 0 4pt 8pt !important;
+		padding: 3pt 6pt !important;
+		border-left: 1.5pt solid #999 !important;
+		break-inside: avoid-column !important;
+		background: transparent !important;
+		font-style: italic !important;
+	}
+
+	/* Horizontal rules */
+	hr {
+		margin: 8pt 0 !important;
+		border: none !important;
+		border-top: 0.5pt solid #aaa !important;
+		height: 0 !important;
+		break-after: avoid !important;
+	}
+
+	/* Links - print-friendly */
+	a {
+		color: #000 !important;
+		text-decoration: none !important;
+	}
+
+	/* Hide elements not needed in print */
+	#code-csp-warning {
+		display: none !important;
+	}
+
+	/* Mermaid diagrams - span columns if needed */
+	.mermaid {
+		break-inside: avoid-column !important;
+		max-width: 100% !important;
+	}
+
+	/* Ensure figures/diagrams stay together */
+	figure, .diagram, .chart, svg {
+		break-inside: avoid-column !important;
+		max-width: 100% !important;
+	}
+
+	/* Strong/emphasis */
+	strong, b {
+		font-weight: bold !important;
+	}
+
+	em, i {
+		font-style: italic !important;
+	}
+
+	/* Definition lists */
+	dl {
+		margin: 4pt 0 !important;
+	}
+
+	dt {
+		font-weight: bold !important;
+		margin-top: 3pt !important;
+	}
+
+	dd {
+		margin-left: 12pt !important;
+		margin-bottom: 2pt !important;
+	}
+
+	/* Images */
+	img {
+		max-width: 100% !important;
+		break-inside: avoid-column !important;
+	}
+
+	/* Page break utility classes */
+	.page-break-before {
+		break-before: column !important;
+	}
+
+	.page-break-after {
+		break-after: column !important;
+	}
+
+	.no-break {
+		break-inside: avoid-column !important;
+	}
+
+	/* Span both columns for important elements */
+	.full-width, .span-columns {
+		column-span: all !important;
+	}
+
+	/* Abstract/intro styling */
+	h1 + p {
+		break-before: avoid !important;
+	}
+
+	/* Table of contents - keep compact */
+	#table-of-contents,
+	h2#table-of-contents {
+		break-after: avoid !important;
+	}
+}
+
+/* ==========================================================================
+   SCREEN PREVIEW STYLES (for checking print layout)
+   ========================================================================== */
+
+@media screen {
+	/* Preview two-column layout on screen */
+	body.print-preview {
+		max-width: 11in;
+		margin: 0 auto;
+		padding: 0.4in;
+		column-count: 2;
+		column-gap: 0.4in;
+		column-rule: 1px solid #ccc;
+		font-size: 8pt;
+		line-height: 1.3;
+	}
+
+	/* Add visual indicator for page breaks when previewing */
+	.page {
+		border-bottom: 2px dashed #ccc;
+		padding-bottom: 20px;
+		margin-bottom: 20px;
+	}
+
+	.page-break-before {
+		border-top: 2px dashed #ccc;
+		padding-top: 20px;
+		margin-top: 20px;
+	}
+
+	.page-break-after {
+		border-bottom: 2px dashed #ccc;
+		padding-bottom: 20px;
+		margin-bottom: 20px;
+	}
+}

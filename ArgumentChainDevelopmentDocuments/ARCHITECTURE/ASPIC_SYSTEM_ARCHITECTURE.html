@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ASPIC_SYSTEM_ARCHITECTURE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="aspic-argumentation-system-architecture">ASPIC+ Argumentation System Architecture</h1>
+<h2 id="overview">Overview</h2>
+<p>The Mesh platform implements a comprehensive <strong>ASPIC+ (Argumentation System with Preferences, Incomplete information, and Conflicts)</strong> framework for structured argumentation. This document provides detailed technical documentation of the system design, data flow, and integration points.</p>
+<p>ASPIC+ is a formal argumentation framework based on:</p>
+<ul>
+<li>Modgil, S., &amp; Prakken, H. (2013). &quot;A general account of argumentation with preferences&quot;</li>
+<li>Caminada, M., &amp; Amgoud, L. (2007). &quot;On the evaluation of argumentation formalisms&quot;</li>
+<li>Dung, P.M. (1995). &quot;On the acceptability of arguments&quot;</li>
+</ul>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#system-architecture-diagram">System Architecture Diagram</a></li>
+<li><a href="#core-domain-model">Core Domain Model</a></li>
+<li><a href="#type-definitions">Type Definitions</a></li>
+<li><a href="#data-pipeline">Data Pipeline</a></li>
+<li><a href="#subsystem-details">Subsystem Details</a></li>
+<li><a href="#api-layer">API Layer</a></li>
+<li><a href="#ui-components">UI Components</a></li>
+<li><a href="#integration-points">Integration Points</a></li>
+<li><a href="#rationality-postulates">Rationality Postulates</a></li>
+</ol>
+<hr>
+<h2 id="system-architecture-diagram">System Architecture Diagram</h2>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                    USER INTERFACE                                     │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐│
+│  │ AspicTheoryPanel │  │GroundedExtension │  │RationalityCheck- │  │ ConflictResolu-││
+│  │    (Theory Tab)  │  │     Panel        │  │    list          │  │   tionPanel    ││
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  └───────┬────────┘│
+│           │                     │                     │                    │          │
+│  ┌────────┴─────────┐  ┌────────┴─────────┐  ┌────────┴─────────┐  ┌───────┴────────┐│
+│  │AspicTheoryViewer │  │ArgumentStatusCard│  │ RationalityItem  │  │ConflictCycleUI ││
+│  │  (Rules/KB View) │  │ (IN/OUT/UNDEC)   │  │   (Postulates)   │  │ (Resolution)   ││
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └────────────────┘│
+└───────────────────────────────────────────┬─────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                                     API LAYER                                        │
+│  ┌─────────────────────────────────────────────────────────────────────────────────┐│
+│  │                            /api/aspic/evaluate                                   ││
+│  │  GET:  Translate deliberation → ASPIC+ Theory → Compute Semantics               ││
+│  │  POST: Direct ASPIC+ theory evaluation                                          ││
+│  └────────────────────────────────────┬────────────────────────────────────────────┘│
+│                                       │                                              │
+│  ┌────────────────────┐  ┌────────────┴───────────┐  ┌─────────────────────────────┐│
+│  │/api/aspic/conflicts│  │/api/aspic/transposition│  │  /api/assumptions/*         ││
+│  │  Cycle Detection   │  │  Generate/Cleanup      │  │  CRUD + Lifecycle           ││
+│  └────────┬───────────┘  └────────────┬───────────┘  └──────────┬──────────────────┘│
+│           │                           │                         │                    │
+│  ┌────────┴───────────┐  ┌────────────┴───────────┐  ┌──────────┴──────────────────┐│
+│  │/api/aspic/cq-attack│  │/api/aspic/conflicts/   │  │  /api/ca (Conflict Applic.) ││
+│  │  CQ → Attack       │  │  resolve, undo         │  │  Create/Manage Attacks      ││
+│  └────────────────────┘  └────────────────────────┘  └─────────────────────────────┘│
+└───────────────────────────────────────┬─────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                               ENGINE LIBRARY LAYER                                   │
+│                                   /lib/aspic/*                                       │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                               CORE MODULES                                      │ │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌───────────┐ │ │
+│  │  │  types.ts   │ │arguments.ts │ │ attacks.ts  │ │ defeats.ts  │ │semantics.ts│ │ │
+│  │  │ (Interfaces)│ │(Construct)  │ │ (Compute)   │ │(Preference) │ │(Grounded) │ │ │
+│  │  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └─────┬─────┘ │ │
+│  │         │               │               │               │              │       │ │
+│  │         └───────────────┴───────────────┼───────────────┴──────────────┘       │ │
+│  │                                         │                                       │ │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌──────┴──────┐ ┌─────────────┐               │ │
+│  │  │transposition│ │rationality  │ │ cqMapping.ts│ │validation.ts│               │ │
+│  │  │     .ts     │ │    .ts      │ │ (CQ→Attack) │ │ (Rules/KB)  │               │ │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘               │ │
+│  └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                           TRANSLATION MODULES                                   │ │
+│  │                        /lib/aspic/translation/*                                 │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────┐ │ │
+│  │  │ aifToASPIC.ts   │  │ aspicToAIF.ts   │  │ integration.ts                  │ │ │
+│  │  │ (AIF→Theory)    │  │ (Theory→AIF)    │  │ (Bidirectional sync)            │ │ │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────────────────────┘ │ │
+│  └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                           CONFLICT MODULES                                      │ │
+│  │                        /lib/aspic/conflicts/*                                   │ │
+│  │  ┌─────────────────┐  ┌─────────────────────────────────────────────────────┐  │ │
+│  │  │ detection.ts    │  │ resolution.ts                                       │  │ │
+│  │  │ (Cycle finding) │  │ (Strategy application)                              │  │ │
+│  │  └─────────────────┘  └─────────────────────────────────────────────────────┘  │ │
+│  └────────────────────────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────┬─────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                               DATA PERSISTENCE LAYER                                 │
+│                               (Prisma + PostgreSQL)                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────────────┐│
+│  │                              CORE MODELS                                         ││
+│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐  ┌───────────────┐ ││
+│  │  │   Argument   │  │    Claim     │  │ ConflictApplication │  │ PreferenceApp-│ ││
+│  │  │  (RA-nodes)  │  │  (I-nodes)   │  │   (CA-nodes/Attacks)│  │   lication    │ ││
+│  │  └──────────────┘  └──────────────┘  └─────────────────────┘  └───────────────┘ ││
+│  │                                                                                  ││
+│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐  ┌───────────────┐ ││
+│  │  │AssumptionUse │  │ClaimContrary │  │ ArgumentScheme-     │  │   ClaimEdge   │ ││
+│  │  │  (K_a items) │  │  (Explicit)  │  │   Instance          │  │   (Attacks)   │ ││
+│  │  └──────────────┘  └──────────────┘  └─────────────────────┘  └───────────────┘ ││
+│  └─────────────────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="core-domain-model">Core Domain Model</h2>
+<h3 id="argumentation-theory-at--%E2%9F%A8as-kb%E2%9F%A9">Argumentation Theory (AT = ⟨AS, KB⟩)</h3>
+<p>An ASPIC+ Argumentation Theory consists of two main components:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                        ARGUMENTATION THEORY (AT)                                     │
+│                                                                                      │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │                    ARGUMENTATION SYSTEM (AS)                                   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ LANGUAGE (L)                                                            │   │ │
+│   │  │ • Well-formed formulae (propositions, predicates)                      │   │ │
+│   │  │ • Claim texts, rule identifiers, negated forms                         │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ CONTRARINESS FUNCTION (¯)                                              │   │ │
+│   │  │ • Maps formulae to their contraries: φ̄ = {ψ | ψ conflicts with φ}      │   │ │
+│   │  │ • Symmetric (contradictory) or asymmetric (contrary)                   │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────┐    ┌─────────────────────────────────────────┐   │ │
+│   │  │ STRICT RULES (Rs)      │    │ DEFEASIBLE RULES (Rd)                    │   │ │
+│   │  │ φ₁,...,φₙ → ψ          │    │ φ₁,...,φₙ ⇒ ψ                            │   │ │
+│   │  │ (Deductive, certain)   │    │ (Presumptive, defeasible)               │   │ │
+│   │  └────────────────────────┘    └─────────────────────────────────────────┘   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ RULE NAMING FUNCTION (n: Rd → L)                                        │   │ │
+│   │  │ • Assigns each defeasible rule a unique name in the language           │   │ │
+│   │  │ • Required for undercutting attacks                                     │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │                        KNOWLEDGE BASE (KB)                                     │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ AXIOMS (Kn) - Necessary Premises                                        │   │ │
+│   │  │ • Infallible, cannot be attacked                                        │   │ │
+│   │  │ • Established facts, definitions                                        │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ ORDINARY PREMISES (Kp) - Fallible Premises                              │   │ │
+│   │  │ • Can be undermined (attacked)                                          │   │ │
+│   │  │ • Defeat depends on preference comparison                               │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ ASSUMPTIONS (Ka) - Weak Premises                                        │   │ │
+│   │  │ • Can be undermined (attacked)                                          │   │ │
+│   │  │ • Attacks ALWAYS succeed (no preference check)                          │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   │                                                                                │ │
+│   │  ┌────────────────────────────────────────────────────────────────────────┐   │ │
+│   │  │ PREFERENCES                                                              │   │ │
+│   │  │ • Premise preferences: ≤' on Kp                                         │   │ │
+│   │  │ • Rule preferences: ≤ on Rd                                             │   │ │
+│   │  └────────────────────────────────────────────────────────────────────────┘   │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="type-definitions">Type Definitions</h2>
+<h3 id="core-types-libaspictypests">Core Types (<code>/lib/aspic/types.ts</code>)</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Rule: Inference pattern (strict or defeasible)
+ */</span>
+<span class="hljs-keyword">interface</span> Rule {
+  id: <span class="hljs-built_in">string</span>;
+  antecedents: <span class="hljs-built_in">string</span>[];    <span class="hljs-comment">// Premise formulae</span>
+  consequent: <span class="hljs-built_in">string</span>;       <span class="hljs-comment">// Conclusion formula</span>
+  <span class="hljs-keyword">type</span>: <span class="hljs-string">"strict"</span> | <span class="hljs-string">"defeasible"</span>;
+}
+
+<span class="hljs-comment">/**
+ * Argumentation System (AS)
+ */</span>
+<span class="hljs-keyword">interface</span> ArgumentationSystem {
+  language: Set&lt;<span class="hljs-built_in">string</span>&gt;;
+  contraries: Map&lt;<span class="hljs-built_in">string</span>, Set&lt;<span class="hljs-built_in">string</span>&gt;&gt;;
+  strictRules: Rule[];
+  defeasibleRules: Rule[];
+  ruleNames: Map&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span>&gt;;  <span class="hljs-comment">// ruleId → formula</span>
+}
+
+<span class="hljs-comment">/**
+ * Knowledge Base (KB)
+ */</span>
+<span class="hljs-keyword">interface</span> KnowledgeBase {
+  axioms: Set&lt;<span class="hljs-built_in">string</span>&gt;;       <span class="hljs-comment">// Kn</span>
+  premises: Set&lt;<span class="hljs-built_in">string</span>&gt;;     <span class="hljs-comment">// Kp</span>
+  assumptions: Set&lt;<span class="hljs-built_in">string</span>&gt;;  <span class="hljs-comment">// Ka</span>
+  premisePreferences: <span class="hljs-built_in">Array</span>&lt;{ preferred: <span class="hljs-built_in">string</span>; dispreferred: <span class="hljs-built_in">string</span> }&gt;;
+  rulePreferences: <span class="hljs-built_in">Array</span>&lt;{ preferred: <span class="hljs-built_in">string</span>; dispreferred: <span class="hljs-built_in">string</span> }&gt;;
+}
+
+<span class="hljs-comment">/**
+ * Argumentation Theory (AT = AS + KB)
+ */</span>
+<span class="hljs-keyword">interface</span> ArgumentationTheory {
+  system: ArgumentationSystem;
+  knowledgeBase: KnowledgeBase;
+}
+</div></code></pre>
+<h3 id="argument-structure">Argument Structure</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Argument: Inference tree built from KB and rules
+ * 
+ * Base case: φ (where φ ∈ K)
+ * Strict inference: A1,...,An →s φ
+ * Defeasible inference: A1,...,An ⇒d φ
+ */</span>
+<span class="hljs-keyword">interface</span> Argument {
+  id: <span class="hljs-built_in">string</span>;
+  premises: Set&lt;<span class="hljs-built_in">string</span>&gt;;           <span class="hljs-comment">// prem(A)</span>
+  conclusion: <span class="hljs-built_in">string</span>;              <span class="hljs-comment">// conc(A)</span>
+  subArguments: Argument[];        <span class="hljs-comment">// sub(A)</span>
+  defeasibleRules: Set&lt;<span class="hljs-built_in">string</span>&gt;;    <span class="hljs-comment">// DefRules(A)</span>
+  topRule?: {
+    ruleId: <span class="hljs-built_in">string</span>;
+    <span class="hljs-keyword">type</span>: <span class="hljs-string">"strict"</span> | <span class="hljs-string">"defeasible"</span>;
+  };
+  structure: ArgumentStructure;
+}
+
+<span class="hljs-keyword">type</span> ArgumentStructure =
+  | { <span class="hljs-keyword">type</span>: <span class="hljs-string">"premise"</span>; formula: <span class="hljs-built_in">string</span>; source: <span class="hljs-string">"axiom"</span> | <span class="hljs-string">"premise"</span> | <span class="hljs-string">"assumption"</span> }
+  | { <span class="hljs-keyword">type</span>: <span class="hljs-string">"inference"</span>; rule: Rule; subArguments: ArgumentStructure[]; conclusion: <span class="hljs-built_in">string</span> };
+</div></code></pre>
+<h3 id="attack-types">Attack Types</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           THREE FUNDAMENTAL ATTACK TYPES                             │
+│                                                                                      │
+│  ┌───────────────────────────────────────────────────────────────────────────────┐  │
+│  │                         1. UNDERMINING ATTACK                                  │  │
+│  │                                                                                │  │
+│  │   Condition: conc(A) ∈ φ̄ where φ ∈ Prem(B) ∩ (Kp ∪ Ka)                        │  │
+│  │                                                                                │  │
+│  │   Target: Ordinary premises or assumptions                                     │  │
+│  │                                                                                │  │
+│  │       Argument A                     Argument B                                │  │
+│  │   ┌──────────────┐              ┌────────────────────┐                        │  │
+│  │   │ Conclusion:  │   ATTACKS    │ Premise: φ         │                        │  │
+│  │   │   ¬φ        ├─────────────►│ (ordinary/assump.) │                        │  │
+│  │   └──────────────┘              └────────────────────┘                        │  │
+│  │                                                                                │  │
+│  │   • Ka (assumptions): Attack ALWAYS succeeds as defeat                        │  │
+│  │   • Kp (ordinary): Attack succeeds if attacker not &lt; defended                 │  │
+│  │   • Kn (axioms): CANNOT be attacked                                           │  │
+│  └───────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                      │
+│  ┌───────────────────────────────────────────────────────────────────────────────┐  │
+│  │                         2. REBUTTING ATTACK                                    │  │
+│  │                                                                                │  │
+│  │   Condition: conc(A) ∈ conc(B')̄ where B' ∈ Sub(B) has defeasible top rule    │  │
+│  │                                                                                │  │
+│  │   Target: Defeasible conclusions (NOT strict conclusions)                     │  │
+│  │                                                                                │  │
+│  │       Argument A                     Argument B                                │  │
+│  │   ┌──────────────┐              ┌────────────────────┐                        │  │
+│  │   │ Conclusion:  │   ATTACKS    │ Sub-arg B':        │                        │  │
+│  │   │   ¬ψ        ├─────────────►│ conc(B') = ψ       │                        │  │
+│  │   └──────────────┘              │ (defeasible rule)  │                        │  │
+│  │                                 └────────────────────┘                        │  │
+│  │                                                                                │  │
+│  │   Preference check applies: Attack succeeds if A ⊀ B'                         │  │
+│  └───────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                      │
+│  ┌───────────────────────────────────────────────────────────────────────────────┐  │
+│  │                         3. UNDERCUTTING ATTACK                                 │  │
+│  │                                                                                │  │
+│  │   Condition: conc(A) ∈ n(r)̄ where r ∈ DefRules(B')                            │  │
+│  │                                                                                │  │
+│  │   Target: Rule applicability (the inference step itself)                      │  │
+│  │                                                                                │  │
+│  │       Argument A                     Argument B                                │  │
+│  │   ┌──────────────┐              ┌────────────────────┐                        │  │
+│  │   │ Conclusion:  │   ATTACKS    │ Rule r in B':      │                        │  │
+│  │   │ ¬n(r)        ├─────────────►│ φ₁,...,φₙ ⇒ ψ      │                        │  │
+│  │   │ &quot;rule r     │              │ (defeasible rule)  │                        │  │
+│  │   │  doesn't    │              └────────────────────┘                        │  │
+│  │   │  apply&quot;     │                                                             │  │
+│  │   └──────────────┘                                                             │  │
+│  │                                                                                │  │
+│  │   Undercutting ALWAYS succeeds as defeat (no preference check)                │  │
+│  └───────────────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="data-pipeline">Data Pipeline</h2>
+<h3 id="complete-evaluation-flow">Complete Evaluation Flow</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                        ASPIC+ EVALUATION PIPELINE                                    │
+│                                                                                      │
+│   Step 1: Data Fetching                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  Prisma Queries (in /api/aspic/evaluate)                                     │   │
+│   │  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────────────┐ │   │
+│   │  │ Arguments        │ │ ConflictApps     │ │ PreferenceApplications       │ │   │
+│   │  │ + premises       │ │ (CA-nodes)       │ │ + weight, justification      │ │   │
+│   │  │ + conclusion     │ │                  │ │                              │ │   │
+│   │  │ + scheme         │ │                  │ │                              │ │   │
+│   │  └──────────────────┘ └──────────────────┘ └──────────────────────────────┘ │   │
+│   │  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────────────┐ │   │
+│   │  │ AssumptionUse    │ │ ClaimContrary    │ │ ClaimEdges                   │ │   │
+│   │  │ (Ka items)       │ │ (Explicit)       │ │ (Attack edges)               │ │   │
+│   │  └──────────────────┘ └──────────────────┘ └──────────────────────────────┘ │   │
+│   └──────────────────────────────────────────┬──────────────────────────────────┘   │
+│                                              ▼                                       │
+│   Step 2: AIF → ASPIC+ Translation                                                   │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  aifToASPIC() in /lib/aif/translation/aifToAspic.ts                         │   │
+│   │                                                                              │   │
+│   │  • Build Language L from I-nodes (claims) and RA-nodes (arguments)          │   │
+│   │  • Populate KB:                                                              │   │
+│   │    - Kn (axioms): Claims with role=&quot;axiom&quot; or isAxiom=true                  │   │
+│   │    - Kp (premises): Root I-nodes with no incoming edges                      │   │
+│   │    - Ka (assumptions): ACCEPTED AssumptionUse records                        │   │
+│   │  • Extract Rules from RA-nodes:                                              │   │
+│   │    - Strict: scheme.ruleType === 'strict'                                    │   │
+│   │    - Defeasible: default (most argumentation schemes)                        │   │
+│   │  • Build Contraries from:                                                    │   │
+│   │    - Explicit ClaimContrary records                                          │   │
+│   │    - CA-node attack edges (inferred)                                         │   │
+│   │    - Classical negation (¬φ)                                                 │   │
+│   │  • Extract Preferences from PreferenceApplication records                    │   │
+│   └──────────────────────────────────────┬──────────────────────────────────────┘   │
+│                                          ▼                                           │
+│   Step 3: Argument Construction                                                      │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  constructArguments() in /lib/aspic/arguments.ts                             │   │
+│   │                                                                              │   │
+│   │  Bottom-up recursive construction:                                           │   │
+│   │  1. Create base arguments from KB elements                                   │   │
+│   │     • For each φ ∈ Kn: create argument with conc(A) = φ, source=&quot;axiom&quot;     │   │
+│   │     • For each φ ∈ Kp: create argument with conc(A) = φ, source=&quot;premise&quot;   │   │
+│   │     • For each φ ∈ Ka: create argument with conc(A) = φ, source=&quot;assumption&quot;│   │
+│   │  2. Iterate: apply rules to existing arguments                               │   │
+│   │     • For each rule r with antecedents matching existing conclusions         │   │
+│   │     • Create new argument combining sub-arguments via rule                   │   │
+│   │  3. Repeat until no new arguments or limits reached                          │   │
+│   │     • maxDepth (default: 5)                                                  │   │
+│   │     • maxArguments (default: 500)                                            │   │
+│   │     • maxArgsPerConclusion (default: 3)                                      │   │
+│   └──────────────────────────────────────┬──────────────────────────────────────┘   │
+│                                          ▼                                           │
+│   Step 4: Attack Computation                                                         │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  computeAttacks() in /lib/aspic/attacks.ts                                   │   │
+│   │                                                                              │   │
+│   │  For each pair (A, B) of arguments:                                          │   │
+│   │  • Check undermining: conc(A) ∈ φ̄ for φ ∈ Prem(B) ∩ (Kp ∪ Ka)               │   │
+│   │  • Check rebutting: conc(A) ∈ conc(B')̄ for defeasible B' ∈ Sub(B)           │   │
+│   │  • Check undercutting: conc(A) ∈ n(r)̄ for r ∈ DefRules(B')                  │   │
+│   │                                                                              │   │
+│   │  Complexity: O(n²) where n = |Arguments|                                     │   │
+│   └──────────────────────────────────────┬──────────────────────────────────────┘   │
+│                                          ▼                                           │
+│   Step 5: Defeat Computation                                                         │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  computeDefeats() in /lib/aspic/defeats.ts                                   │   │
+│   │                                                                              │   │
+│   │  For each attack:                                                            │   │
+│   │  • Undercutting: ALWAYS succeeds as defeat                                   │   │
+│   │  • Undermining on Ka: ALWAYS succeeds as defeat                              │   │
+│   │  • Undermining on Kp: Check preferences, succeed if attacker ⊀ target        │   │
+│   │  • Rebutting: Check preferences, succeed if attacker ⊀ target                │   │
+│   │                                                                              │   │
+│   │  Preference Orderings:                                                       │   │
+│   │  • Last-link: Compare top rules only (legal/normative reasoning)            │   │
+│   │  • Weakest-link: Compare weakest rule/premise (epistemic reasoning)          │   │
+│   └──────────────────────────────────────┬──────────────────────────────────────┘   │
+│                                          ▼                                           │
+│   Step 6: Grounded Semantics                                                         │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  computeGroundedExtension() in /lib/aspic/semantics.ts                       │   │
+│   │                                                                              │   │
+│   │  Fixed-point iteration:                                                      │   │
+│   │  1. E₀ = ∅ (empty extension)                                                 │   │
+│   │  2. Apply characteristic function F:                                         │   │
+│   │     F(S) = {A | all defeaters of A are in OUT(S)}                            │   │
+│   │  3. OUT(S) = {B | ∃A ∈ S: A defeats B}                                       │   │
+│   │  4. Repeat until Eᵢ₊₁ = Eᵢ (fixpoint)                                        │   │
+│   │                                                                              │   │
+│   │  Result:                                                                     │   │
+│   │  • IN: Arguments in grounded extension (justified)                          │   │
+│   │  • OUT: Arguments defeated by extension (defeated)                          │   │
+│   │  • UNDEC: Neither IN nor OUT (undecided)                                     │   │
+│   └─────────────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="subsystem-details">Subsystem Details</h2>
+<h3 id="1-assumption-lifecycle-system">1. Assumption Lifecycle System</h3>
+<p>The assumption system manages the knowledge base component Ka (weak premises).</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                          ASSUMPTION LIFECYCLE                                        │
+│                                                                                      │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
+│   │  PROPOSED   │───▶│  ACCEPTED   │───▶│ CHALLENGED  │───▶│  RETRACTED  │          │
+│   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘          │
+│         │                   │                  │                  ▲                  │
+│         │                   │                  │                  │                  │
+│         └───────────────────┴──────────────────┴──────────────────┘                  │
+│                              Direct retraction path                                  │
+│                                                                                      │
+│   States:                                                                            │
+│   • PROPOSED: Initial state, awaiting review                                         │
+│   • ACCEPTED: Valid assumption, included in Ka for ASPIC+ evaluation                │
+│   • CHALLENGED: Under dispute, may require resolution                               │
+│   • RETRACTED: Withdrawn, no longer in knowledge base                               │
+│                                                                                      │
+│   ASPIC+ Integration:                                                                │
+│   • Only ACCEPTED assumptions enter Ka                                               │
+│   • Undermining attacks on Ka ALWAYS succeed (no preference check)                  │
+│   • This makes assumptions the &quot;weakest&quot; form of premise                            │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<p><strong>Database Model</strong>: <code>AssumptionUse</code> in Prisma schema</p>
+<pre class="hljs"><code><div>model AssumptionUse {
+  id             String @id @default(cuid())
+  deliberationId String
+  argumentId     String?           // Optional: can be standalone
+  assumptionClaimId String?        // Link to existing claim
+  assumptionText    String?        // Freeform text
+  role       String @default(&quot;premise&quot;)
+  weight     Float?                // Local weight 0..1
+  confidence Float?                // Author confidence
+  
+  // Lifecycle tracking
+  status          AssumptionStatus @default(PROPOSED)
+  statusChangedAt DateTime
+  statusChangedBy String?
+  challengeReason String?
+}
+
+enum AssumptionStatus {
+  PROPOSED
+  ACCEPTED
+  RETRACTED
+  CHALLENGED
+}
+</div></code></pre>
+<p><strong>API Endpoints</strong>:</p>
+<ul>
+<li><code>GET /api/assumptions</code> - List assumptions</li>
+<li><code>POST /api/assumptions</code> - Create assumption</li>
+<li><code>POST /api/assumptions/[id]/accept</code> - Accept assumption</li>
+<li><code>POST /api/assumptions/[id]/challenge</code> - Challenge assumption</li>
+<li><code>POST /api/assumptions/[id]/retract</code> - Retract assumption</li>
+</ul>
+<p><strong>UI Component</strong>: <code>ActiveAssumptionsPanel</code>, <code>AssumptionCard</code>, <code>CreateAssumptionForm</code></p>
+<hr>
+<h3 id="2-transposition-closure-system">2. Transposition Closure System</h3>
+<p>Ensures strict rules satisfy the transposition (contraposition) rationality requirement.</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                         TRANSPOSITION CLOSURE                                        │
+│                                                                                      │
+│   Original Rule:                                                                     │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  r: φ₁, φ₂, ..., φₙ → ψ                                                      │   │
+│   └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                      │
+│   Required Transpositions (one per antecedent):                                      │
+│   ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│   │  r_transpose_0: ¬ψ, φ₂, ..., φₙ → ¬φ₁                                        │   │
+│   │  r_transpose_1: φ₁, ¬ψ, φ₃, ..., φₙ → ¬φ₂                                    │   │
+│   │  ...                                                                         │   │
+│   │  r_transpose_n-1: φ₁, φ₂, ..., ¬ψ → ¬φₙ                                      │   │
+│   └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                      │
+│   Example:                                                                           │
+│   Original: p, p→q → q  (modus ponens)                                               │
+│   Transpose 0: ¬q, p→q → ¬p  (modus tollens)                                         │
+│   Transpose 1: p, ¬q → ¬(p→q)                                                        │
+│                                                                                      │
+│   Why Required:                                                                      │
+│   • Enables modus tollens reasoning                                                  │
+│   • Ensures logical completeness                                                     │
+│   • Required for rationality postulates (Caminada &amp; Amgoud 2007)                    │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<p><strong>Library Functions</strong> (<code>/lib/aspic/transposition.ts</code>):</p>
+<ul>
+<li><code>validateTranspositionClosure(strictRules)</code> - Check if closed</li>
+<li><code>generateTranspositions(rule)</code> - Generate contrapositives for one rule</li>
+<li><code>applyTranspositionClosure(rules)</code> - Generate all missing transpositions</li>
+</ul>
+<p><strong>API Endpoints</strong>:</p>
+<ul>
+<li><code>POST /api/aspic/transposition/generate</code> - Auto-generate missing transpositions</li>
+<li><code>DELETE /api/aspic/transposition/cleanup</code> - Remove generated transpositions</li>
+<li><code>GET /api/aspic/validate-transposition</code> - Validate closure</li>
+</ul>
+<hr>
+<h3 id="3-preference-conflict-resolution">3. Preference Conflict Resolution</h3>
+<p>Detects and resolves cycles in preference orderings.</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                      PREFERENCE CONFLICT DETECTION                                   │
+│                                                                                      │
+│   Cycle Example:                                                                     │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │                                                                                │ │
+│   │            A ≻ B                                                               │ │
+│   │          ┌───────┐                                                             │ │
+│   │          │       │                                                             │ │
+│   │          ▼       │                                                             │ │
+│   │          B       A                                                             │ │
+│   │          │       ▲                                                             │ │
+│   │          │ B ≻ C │                                                             │ │
+│   │          ▼       │                                                             │ │
+│   │          C ──────┘                                                             │ │
+│   │            C ≻ A                                                               │ │
+│   │                                                                                │ │
+│   │   This creates: A ≻ B ≻ C ≻ A (cycle!)                                        │ │
+│   │   Makes defeat computation non-deterministic                                   │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│   Resolution Strategies:                                                             │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │  1. Remove Weakest: Remove preference with lowest weight                      │ │
+│   │  2. Keep Most Recent: Remove oldest preference in cycle                        │ │
+│   │  3. Vote-Based: Remove minority user's preferences                             │ │
+│   │  4. Manual Selection: User chooses which to remove                             │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<p><strong>Library Functions</strong> (<code>/lib/aspic/conflicts/*.ts</code>):</p>
+<ul>
+<li><code>detectConflicts(deliberationId)</code> - Find preference cycles</li>
+<li><code>suggestResolutionStrategies(conflict)</code> - Generate resolution options</li>
+<li><code>applyResolution(strategy, paIds)</code> - Execute resolution</li>
+</ul>
+<p><strong>Database Model</strong>: <code>PreferenceApplication</code></p>
+<pre class="hljs"><code><div>model PreferenceApplication {
+  id             String   @id @default(cuid())
+  deliberationId String
+  
+  // Preferred/Dispreferred elements
+  preferredClaimId    String?
+  preferredArgumentId String?
+  dispreferredClaimId    String?
+  dispreferredArgumentId String?
+  
+  // ASPIC+ metadata
+  orderingPolicy String?   // &quot;last-link&quot; | &quot;weakest-link&quot;
+  weight         Float?    @default(1.0)
+  justification  String?
+  
+  // Conflict tracking
+  conflictStatus     String?   @default(&quot;none&quot;)
+  conflictResolution Json?
+  conflictResolvedAt DateTime?
+}
+</div></code></pre>
+<hr>
+<h3 id="4-critical-question-%E2%86%92-attack-mapping">4. Critical Question → Attack Mapping</h3>
+<p>Translates domain-specific critical questions into formal ASPIC+ attacks.</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                      CQ → ASPIC+ ATTACK MAPPING                                      │
+│                                                                                      │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │  Argumentation Scheme: Expert Opinion                                          │ │
+│   │                                                                                │ │
+│   │  Premises:                                                                     │ │
+│   │    P1: E is an expert in domain D                                              │ │
+│   │    P2: E asserts that A is true                                                │ │
+│   │    P3: A is within domain D                                                    │ │
+│   │  Conclusion: A is true                                                         │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│   Critical Questions and ASPIC+ Mapping:                                             │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │  CQ1: Is E really an expert?                                                   │ │
+│   │    → UNDERMINING attack on P1                                                  │ │
+│   │    → Target: premise &quot;E is an expert in domain D&quot;                              │ │
+│   │                                                                                │ │
+│   │  CQ2: Is E biased or unreliable?                                               │ │
+│   │    → UNDERCUTTING attack on inference rule                                     │ │
+│   │    → Target: applicability of Expert Opinion scheme                            │ │
+│   │                                                                                │ │
+│   │  CQ3: Is the claim consistent with other experts?                              │ │
+│   │    → REBUTTING attack on conclusion                                            │ │
+│   │    → Target: conclusion &quot;A is true&quot; (provide counter-conclusion)               │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│   Implementation Flow:                                                               │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │  1. User selects CQ from scheme's critical question set                        │ │
+│   │  2. cqToAspicAttack() determines attack type from CQ metadata                  │ │
+│   │  3. System constructs attacking argument with appropriate conclusion           │ │
+│   │  4. Attack relation created in ConflictApplication                             │ │
+│   │  5. Defeats computed with preference check (if applicable)                     │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<p><strong>Library Functions</strong> (<code>/lib/aspic/cqMapping.ts</code>):</p>
+<ul>
+<li><code>cqToAspicAttack(cq, targetArg, theory)</code> - Main translation function</li>
+<li><code>constructUnderminingAttack(...)</code> - Build undermining attack</li>
+<li><code>constructRebuttingAttack(...)</code> - Build rebutting attack</li>
+<li><code>constructUndercuttingAttack(...)</code> - Build undercutting attack</li>
+</ul>
+<hr>
+<h2 id="api-layer">API Layer</h2>
+<h3 id="main-endpoints">Main Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/aspic/evaluate</code></td>
+<td>GET</td>
+<td>Evaluate deliberation's ASPIC+ semantics</td>
+</tr>
+<tr>
+<td><code>/api/aspic/evaluate</code></td>
+<td>POST</td>
+<td>Direct theory evaluation</td>
+</tr>
+<tr>
+<td><code>/api/aspic/conflicts</code></td>
+<td>GET</td>
+<td>Detect preference cycles</td>
+</tr>
+<tr>
+<td><code>/api/aspic/conflicts/resolve</code></td>
+<td>POST</td>
+<td>Apply resolution strategy</td>
+</tr>
+<tr>
+<td><code>/api/aspic/conflicts/undo</code></td>
+<td>POST</td>
+<td>Undo resolution</td>
+</tr>
+<tr>
+<td><code>/api/aspic/transposition/generate</code></td>
+<td>POST</td>
+<td>Generate transpositions</td>
+</tr>
+<tr>
+<td><code>/api/aspic/transposition/cleanup</code></td>
+<td>DELETE</td>
+<td>Remove transpositions</td>
+</tr>
+<tr>
+<td><code>/api/aspic/cq-attack</code></td>
+<td>POST</td>
+<td>Create CQ-based attack</td>
+</tr>
+<tr>
+<td><code>/api/aspic/validate-transposition</code></td>
+<td>GET</td>
+<td>Validate closure</td>
+</tr>
+<tr>
+<td><code>/api/assumptions/*</code></td>
+<td>CRUD</td>
+<td>Assumption management</td>
+</tr>
+<tr>
+<td><code>/api/ca</code></td>
+<td>POST</td>
+<td>Create ConflictApplication</td>
+</tr>
+</tbody>
+</table>
+<h3 id="get-apiaspicevaluate-response">GET /api/aspic/evaluate Response</h3>
+<pre class="hljs"><code><div>{
+  theory: {
+    system: {
+      language: <span class="hljs-built_in">string</span>[],
+      contraries: { [key: <span class="hljs-built_in">string</span>]: <span class="hljs-built_in">string</span>[] },
+      strictRules: Rule[],
+      defeasibleRules: Rule[],
+    },
+    knowledgeBase: {
+      axioms: <span class="hljs-built_in">string</span>[],
+      premises: <span class="hljs-built_in">string</span>[],
+      assumptions: <span class="hljs-built_in">string</span>[],
+    }
+  },
+  semantics: {
+    <span class="hljs-built_in">arguments</span>: <span class="hljs-built_in">Array</span>&lt;{
+      id: <span class="hljs-built_in">string</span>,
+      premises: <span class="hljs-built_in">string</span>[],
+      conclusion: <span class="hljs-built_in">string</span>,
+      defeasibleRules: <span class="hljs-built_in">string</span>[],
+      topRule: { ruleId: <span class="hljs-built_in">string</span>, <span class="hljs-keyword">type</span>: <span class="hljs-built_in">string</span> } | <span class="hljs-literal">null</span>,
+      structure: <span class="hljs-built_in">string</span>  <span class="hljs-comment">// JSON-encoded ArgumentStructure</span>
+    }&gt;,
+    attacks: <span class="hljs-built_in">Array</span>&lt;{
+      attackerId: <span class="hljs-built_in">string</span>,
+      attackedId: <span class="hljs-built_in">string</span>,
+      <span class="hljs-keyword">type</span>: <span class="hljs-string">"undermining"</span> | <span class="hljs-string">"rebutting"</span> | <span class="hljs-string">"undercutting"</span>,
+      target: { premise?: <span class="hljs-built_in">string</span>, subArgument?: object, ruleId?: <span class="hljs-built_in">string</span> }
+    }&gt;,
+    defeats: <span class="hljs-built_in">Array</span>&lt;{
+      defeaterId: <span class="hljs-built_in">string</span>,
+      defeatedId: <span class="hljs-built_in">string</span>,
+      attackType: <span class="hljs-built_in">string</span>,
+      preferenceApplied: <span class="hljs-built_in">boolean</span>
+    }&gt;,
+    groundedExtension: <span class="hljs-built_in">string</span>[],  <span class="hljs-comment">// Argument IDs in extension</span>
+    justificationStatus: { [argId: <span class="hljs-built_in">string</span>]: <span class="hljs-string">"in"</span> | <span class="hljs-string">"out"</span> | <span class="hljs-string">"undec"</span> }
+  },
+  rationality: {
+    wellFormed: <span class="hljs-built_in">boolean</span>,
+    violations: <span class="hljs-built_in">string</span>[],
+    postulates: {
+      axiomConsistency: <span class="hljs-built_in">boolean</span>,
+      wellFormedness: <span class="hljs-built_in">boolean</span>,
+      subArgumentClosure: <span class="hljs-built_in">boolean</span>,
+      transpositionClosure: <span class="hljs-built_in">boolean</span>
+    }
+  }
+}
+</div></code></pre>
+<hr>
+<h2 id="ui-components">UI Components</h2>
+<h3 id="component-hierarchy">Component Hierarchy</h3>
+<pre class="hljs"><code><div>AspicTheoryPanel (main container)
+├── AspicTheoryViewer (Theory tab)
+│   ├── Language section
+│   ├── Rules section (Strict/Defeasible)
+│   ├── Knowledge Base section (Kn/Kp/Ka)
+│   └── Contraries section
+│
+├── GroundedExtensionPanel (Extension tab)
+│   ├── ExtensionStats (IN/OUT/UNDEC counts)
+│   └── ArgumentStatusCard[] (per argument)
+│
+├── RationalityChecklist (Rationality tab)
+│   └── PostulateItem[] (per postulate)
+│
+└── (Graph tab - planned)
+    └── AttackGraphVisualization
+
+ConflictResolutionPanel (separate component)
+├── Conflict cards
+├── Strategy selection
+└── Resolution actions
+
+ActiveAssumptionsPanel
+├── AssumptionCard[] (per assumption)
+├── CreateAssumptionForm
+└── Status stats
+
+AttackCreationModal
+├── Attack type selection
+├── Attacker selection
+└── Target display
+</div></code></pre>
+<h3 id="key-ui-patterns">Key UI Patterns</h3>
+<ol>
+<li><strong>Theory Viewer</strong>: Collapsible sections for each ASPIC+ component</li>
+<li><strong>Argument Status</strong>: Color-coded cards (green=IN, red=OUT, amber=UNDEC)</li>
+<li><strong>Rationality Checklist</strong>: Postulate validation with explanations</li>
+<li><strong>Conflict Resolution</strong>: Guided workflow with strategy suggestions</li>
+</ol>
+<hr>
+<h2 id="integration-points">Integration Points</h2>
+<h3 id="aif-%E2%86%94-aspic-translation">AIF ↔ ASPIC+ Translation</h3>
+<p>The system maintains bidirectional translation between AIF (Argument Interchange Format) and ASPIC+:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                          AIF ↔ ASPIC+ CORRESPONDENCE                                 │
+│                                                                                      │
+│   AIF Node Types → ASPIC+ Concepts:                                                  │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │  I-node (Information)     → Language L, KB elements (Kn/Kp/Ka)                │ │
+│   │  RA-node (Rule Applic.)   → Rules (Rs/Rd), Arguments                          │ │
+│   │  CA-node (Conflict)       → Attacks, Contraries                               │ │
+│   │  PA-node (Preference)     → Preferences (≤', ≤)                               │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                      │
+│   Database → ASPIC+ Mapping:                                                         │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐ │
+│   │  Claim                    → I-node content, Language element                  │ │
+│   │  Argument                 → RA-node, Argument (ASPIC+)                        │ │
+│   │  Argument.scheme          → Defeasible rule identifier                        │ │
+│   │  ArgumentPremise          → Rule antecedents                                  │ │
+│   │  Argument.conclusion      → Rule consequent                                   │ │
+│   │  ConflictApplication      → CA-node, Attack                                   │ │
+│   │  ClaimContrary            → Contrariness function entries                     │ │
+│   │  PreferenceApplication    → PA-node, Preference ordering                      │ │
+│   │  AssumptionUse (ACCEPTED) → Ka (weak premises)                                │ │
+│   │  Claim (role=axiom)       → Kn (necessary premises)                           │ │
+│   │  Claim (root, no edges)   → Kp (ordinary premises)                            │ │
+│   └───────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="rationality-postulates">Rationality Postulates</h2>
+<p>ASPIC+ requires satisfaction of rationality postulates for sound reasoning:</p>
+<h3 id="1-sub-argument-closure">1. Sub-Argument Closure</h3>
+<blockquote>
+<p>If A ∈ E, then Sub(A) ⊆ E</p>
+</blockquote>
+<p>All sub-arguments of a justified argument must also be justified.</p>
+<h3 id="2-closure-under-strict-rules">2. Closure Under Strict Rules</h3>
+<blockquote>
+<p>If all antecedents of strict rule r are in Conc(E), then r's consequent is in Conc(E)</p>
+</blockquote>
+<p>The extension is closed under logical consequence.</p>
+<h3 id="3-direct-consistency">3. Direct Consistency</h3>
+<blockquote>
+<p>No φ, ψ ∈ Conc(E) where ψ ∈ φ̄</p>
+</blockquote>
+<p>The extension does not contain contradictions.</p>
+<h3 id="4-indirect-consistency">4. Indirect Consistency</h3>
+<blockquote>
+<p>Closure of Conc(E) under strict rules is consistent</p>
+</blockquote>
+<p>Derived conclusions are also consistent.</p>
+<h3 id="necessary-conditions">Necessary Conditions</h3>
+<p>For rationality postulates to hold:</p>
+<ol>
+<li><strong>Axiom Consistency</strong>: Kn must be consistent (no φ, ψ ∈ Kn with ψ ∈ φ̄)</li>
+<li><strong>Transposition Closure</strong>: Rs must be closed under contraposition</li>
+<li><strong>Reasonable Preferences</strong>: Preference ordering must be acyclic and well-defined</li>
+</ol>
+<hr>
+<h2 id="file-reference">File Reference</h2>
+<h3 id="engine-library-libaspic">Engine Library (<code>/lib/aspic/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>types.ts</code></td>
+<td>Core type definitions</td>
+</tr>
+<tr>
+<td><code>index.ts</code></td>
+<td>Module exports</td>
+</tr>
+<tr>
+<td><code>arguments.ts</code></td>
+<td>Argument construction</td>
+</tr>
+<tr>
+<td><code>attacks.ts</code></td>
+<td>Attack computation</td>
+</tr>
+<tr>
+<td><code>defeats.ts</code></td>
+<td>Defeat with preferences</td>
+</tr>
+<tr>
+<td><code>semantics.ts</code></td>
+<td>Grounded extension</td>
+</tr>
+<tr>
+<td><code>transposition.ts</code></td>
+<td>Contrapositive rules</td>
+</tr>
+<tr>
+<td><code>rationality.ts</code></td>
+<td>Postulate checking</td>
+</tr>
+<tr>
+<td><code>cqMapping.ts</code></td>
+<td>CQ → Attack mapping</td>
+</tr>
+<tr>
+<td><code>validation.ts</code></td>
+<td>Theory validation</td>
+</tr>
+<tr>
+<td><code>conflictHelpers.ts</code></td>
+<td>Conflict utilities</td>
+</tr>
+<tr>
+<td><code>conflicts/detection.ts</code></td>
+<td>Cycle detection</td>
+</tr>
+<tr>
+<td><code>conflicts/resolution.ts</code></td>
+<td>Resolution strategies</td>
+</tr>
+<tr>
+<td><code>translation/aifToASPIC.ts</code></td>
+<td>AIF → ASPIC+</td>
+</tr>
+<tr>
+<td><code>translation/aspicToAIF.ts</code></td>
+<td>ASPIC+ → AIF</td>
+</tr>
+<tr>
+<td><code>translation/integration.ts</code></td>
+<td>Bidirectional sync</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-routes-appapiaspic">API Routes (<code>/app/api/aspic/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>evaluate/route.ts</code></td>
+<td>Main evaluation endpoint</td>
+</tr>
+<tr>
+<td><code>conflicts/route.ts</code></td>
+<td>Conflict detection</td>
+</tr>
+<tr>
+<td><code>conflicts/resolve/route.ts</code></td>
+<td>Resolution application</td>
+</tr>
+<tr>
+<td><code>conflicts/undo/route.ts</code></td>
+<td>Resolution rollback</td>
+</tr>
+<tr>
+<td><code>transposition/generate/route.ts</code></td>
+<td>Auto-generate</td>
+</tr>
+<tr>
+<td><code>transposition/cleanup/route.ts</code></td>
+<td>Remove generated</td>
+</tr>
+<tr>
+<td><code>validate-transposition/route.ts</code></td>
+<td>Validate closure</td>
+</tr>
+<tr>
+<td><code>cq-attack/route.ts</code></td>
+<td>CQ-based attacks</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ui-components-componentsaspic">UI Components (<code>/components/aspic/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AspicTheoryPanel.tsx</code></td>
+<td>Main container with tabs</td>
+</tr>
+<tr>
+<td><code>AspicTheoryViewer.tsx</code></td>
+<td>Theory display</td>
+</tr>
+<tr>
+<td><code>GroundedExtensionPanel.tsx</code></td>
+<td>Extension results</td>
+</tr>
+<tr>
+<td><code>ArgumentStatusCard.tsx</code></td>
+<td>Single argument status</td>
+</tr>
+<tr>
+<td><code>ExtensionStats.tsx</code></td>
+<td>Summary statistics</td>
+</tr>
+<tr>
+<td><code>RationalityChecklist.tsx</code></td>
+<td>Postulate validation</td>
+</tr>
+<tr>
+<td><code>ConflictResolutionPanel.tsx</code></td>
+<td>Cycle resolution</td>
+</tr>
+<tr>
+<td><code>AttackCreationModal.tsx</code></td>
+<td>Attack creation UI</td>
+</tr>
+</tbody>
+</table>
+<h3 id="assumption-components-componentsassumptions">Assumption Components (<code>/components/assumptions/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ActiveAssumptionsPanel.tsx</code></td>
+<td>List assumptions</td>
+</tr>
+<tr>
+<td><code>AssumptionCard.tsx</code></td>
+<td>Single assumption</td>
+</tr>
+<tr>
+<td><code>CreateAssumptionForm.tsx</code></td>
+<td>New assumption form</td>
+</tr>
+<tr>
+<td><code>AssumptionDependencyGraph.tsx</code></td>
+<td>Impact analysis</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="references">References</h2>
+<ol>
+<li>
+<p>Modgil, S., &amp; Prakken, H. (2013). A general account of argumentation with preferences. <em>Artificial Intelligence</em>, 195, 361-397.</p>
+</li>
+<li>
+<p>Caminada, M., &amp; Amgoud, L. (2007). On the evaluation of argumentation formalisms. <em>Artificial Intelligence</em>, 171(5-6), 286-310.</p>
+</li>
+<li>
+<p>Dung, P. M. (1995). On the acceptability of arguments and its fundamental role in nonmonotonic reasoning, logic programming and n-person games. <em>Artificial Intelligence</em>, 77(2), 321-357.</p>
+</li>
+<li>
+<p>Bex, F., Prakken, H., Reed, C., &amp; Walton, D. (2003). Towards a formal account of reasoning about evidence: Argumentation schemes and generalisations. <em>Artificial Intelligence and Law</em>, 11(2-3), 125-165.</p>
+</li>
+</ol>
+<hr>
+<p><em>Document Version: 1.0</em><br>
+<em>Last Updated: December 2025</em><br>
+<em>Author: Mesh Engineering Team</em></p>
+
+</body>
+</html>

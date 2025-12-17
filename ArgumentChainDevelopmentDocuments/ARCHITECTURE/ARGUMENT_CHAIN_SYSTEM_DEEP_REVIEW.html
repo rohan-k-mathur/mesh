@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ARGUMENT_CHAIN_SYSTEM_DEEP_REVIEW.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="argument-chain-system---deep-technical-review">Argument Chain System - Deep Technical Review</h1>
+<p><strong>Date:</strong> January 2025<br>
+<strong>Purpose:</strong> Comprehensive system map for understanding architecture before integration work<br>
+<strong>Status:</strong> Complete Review</p>
+<hr>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>The <strong>Argument Chain</strong> system is a complex, full-featured graph-based argumentation tool that allows users to:</p>
+<ol>
+<li>Construct visual argument structures using ReactFlow</li>
+<li>Apply formal argumentation theory (ASPIC+, Walton schemes, Wei &amp; Prakken structures)</li>
+<li>Analyze chain strength, detect cycles, and find critical paths</li>
+<li>Export chains to multiple narrative formats (prose, essay, markdown)</li>
+<li>Work with hypothetical/counterfactual reasoning via scopes</li>
+</ol>
+<p>The system spans ~20+ files across data layer (Prisma), API routes (12+ endpoints), state management (Zustand), UI components (23 files), and analysis utilities.</p>
+<hr>
+<h2 id="1-data-model-architecture">1. Data Model Architecture</h2>
+<h3 id="11-core-entities-prisma-schema">1.1 Core Entities (Prisma Schema)</h3>
+<pre class="hljs"><code><div>┌──────────────────────────────────────────────────────────────────────────────┐
+│                           ArgumentChain                                       │
+│  ┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐              │
+│  │ Metadata    │    │ Structure        │    │ Permissions     │              │
+│  │ - name      │    │ - chainType      │    │ - createdBy     │              │
+│  │ - descrip.  │    │ - rootNodeId     │    │ - isPublic      │              │
+│  │ - purpose   │    │                  │    │ - isEditable    │              │
+│  └─────────────┘    └──────────────────┘    └─────────────────┘              │
+│                                                                               │
+│  ┌─────────────────────────────────────┐                                     │
+│  │ Relations                           │                                     │
+│  │ - deliberation → Deliberation       │                                     │
+│  │ - creator → User                    │                                     │
+│  │ - nodes[] → ArgumentChainNode       │                                     │
+│  │ - edges[] → ArgumentChainEdge       │                                     │
+│  │ - scopes[] → ArgumentScope          │                                     │
+│  └─────────────────────────────────────┘                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="12-chain-types-argumentchaintype-enum">1.2 Chain Types (ArgumentChainType Enum)</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+<th>Visual Structure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SERIAL</code></td>
+<td>Linear chain</td>
+<td>A → B → C</td>
+</tr>
+<tr>
+<td><code>CONVERGENT</code></td>
+<td>Multiple premises to one conclusion</td>
+<td>A → C, B → C</td>
+</tr>
+<tr>
+<td><code>DIVERGENT</code></td>
+<td>One premise to multiple conclusions</td>
+<td>A → B, A → C</td>
+</tr>
+<tr>
+<td><code>TREE</code></td>
+<td>Hierarchical premise-conclusion</td>
+<td>Tree structure</td>
+</tr>
+<tr>
+<td><code>GRAPH</code></td>
+<td>General DAG</td>
+<td>Complex interdependencies</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-node-model-argumentchainnode">1.3 Node Model (ArgumentChainNode)</h3>
+<pre class="hljs"><code><div>model ArgumentChainNode {
+  id           <span class="hljs-built_in">String</span>   <span class="hljs-meta">@id</span> <span class="hljs-meta">@default</span>(cuid())
+  chainId      <span class="hljs-built_in">String</span>
+  argumentId   <span class="hljs-built_in">String</span>   <span class="hljs-comment">// Links to Argument entity</span>
+  
+  <span class="hljs-comment">// Position &amp; Role</span>
+  nodeOrder    Int
+  role         ChainNodeRole?    <span class="hljs-comment">// PREMISE, EVIDENCE, CONCLUSION, OBJECTION, REBUTTAL, QUALIFIER, COMMENT</span>
+  positionX    Float?
+  positionY    Float?
+  
+  <span class="hljs-comment">// Phase 4: Epistemic Status</span>
+  epistemicStatus  EpistemicStatus   <span class="hljs-comment">// ASSERTED, HYPOTHETICAL, COUNTERFACTUAL, CONDITIONAL, QUESTIONED, DENIED, SUSPENDED</span>
+  scopeId          <span class="hljs-built_in">String</span>?           <span class="hljs-comment">// Links to ArgumentScope</span>
+  dialecticalRole  DialecticalRole?  <span class="hljs-comment">// THESIS, ANTITHESIS, SYNTHESIS, OBJECTION, RESPONSE, CONCESSION</span>
+  
+  <span class="hljs-comment">// Recursive Attack Support</span>
+  targetType   ChainAttackTargetType  <span class="hljs-comment">// NODE or EDGE</span>
+  targetEdgeId <span class="hljs-built_in">String</span>?                <span class="hljs-comment">// Populated when targetType = EDGE</span>
+  
+  <span class="hljs-comment">// Contributor</span>
+  addedBy      BigInt
+  addedAt      DateTime
+}
+</div></code></pre>
+<h3 id="14-edge-model-argumentchainedge">1.4 Edge Model (ArgumentChainEdge)</h3>
+<pre class="hljs"><code><div>model ArgumentChainEdge {
+  id             <span class="hljs-built_in">String</span>   <span class="hljs-meta">@id</span> <span class="hljs-meta">@default</span>(cuid())
+  chainId        <span class="hljs-built_in">String</span>
+  sourceNodeId   <span class="hljs-built_in">String</span>
+  targetNodeId   <span class="hljs-built_in">String</span>
+  
+  <span class="hljs-comment">// Relationship Semantics</span>
+  edgeType       ArgumentChainEdgeType  <span class="hljs-comment">// 10+ types</span>
+  strength       Float <span class="hljs-meta">@default</span>(<span class="hljs-number">1.0</span>)     <span class="hljs-comment">// 0.0 to 1.0</span>
+  
+  <span class="hljs-comment">// Slot Mapping (for scheme integration)</span>
+  description    <span class="hljs-built_in">String</span>?
+  slotMapping    Json?    <span class="hljs-comment">// Maps premise slots to scheme slots</span>
+  
+  <span class="hljs-comment">// Recursive Attack Support</span>
+  attackingNodes ArgumentChainNode[]  <span class="hljs-comment">// Nodes that attack this edge</span>
+}
+</div></code></pre>
+<h3 id="15-edge-types-argumentchainedgetype-enum">1.5 Edge Types (ArgumentChainEdgeType Enum)</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Support</strong></td>
+<td><code>SUPPORTS</code></td>
+<td>A supports B (conclusion → premise)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>ENABLES</code></td>
+<td>A enables B (makes B's claim possible)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>PRESUPPOSES</code></td>
+<td>B presupposes A (A must be true for B)</td>
+</tr>
+<tr>
+<td><strong>Attack</strong></td>
+<td><code>REFUTES</code></td>
+<td>A challenges B (attack relation)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>REBUTS</code></td>
+<td>Directly contradicts conclusion</td>
+</tr>
+<tr>
+<td></td>
+<td><code>UNDERCUTS</code></td>
+<td>Challenges inference/reasoning link</td>
+</tr>
+<tr>
+<td></td>
+<td><code>UNDERMINES</code></td>
+<td>Attacks supporting premise</td>
+</tr>
+<tr>
+<td><strong>Modifier</strong></td>
+<td><code>QUALIFIES</code></td>
+<td>A adds conditions to B</td>
+</tr>
+<tr>
+<td></td>
+<td><code>EXEMPLIFIES</code></td>
+<td>A is example of B's general claim</td>
+</tr>
+<tr>
+<td></td>
+<td><code>GENERALIZES</code></td>
+<td>A abstracts from B's specific case</td>
+</tr>
+</tbody>
+</table>
+<h3 id="16-scope-model-argumentscope">1.6 Scope Model (ArgumentScope)</h3>
+<p>Used for grouping hypothetical/counterfactual arguments:</p>
+<pre class="hljs"><code><div>model ArgumentScope {
+  id             <span class="hljs-built_in">String</span>     <span class="hljs-meta">@id</span> <span class="hljs-meta">@default</span>(cuid())
+  chainId        <span class="hljs-built_in">String</span>
+  scopeType      ScopeType  <span class="hljs-comment">// HYPOTHETICAL, COUNTERFACTUAL, CONDITIONAL, OPPONENT, MODAL</span>
+  assumption     <span class="hljs-built_in">String</span>     <span class="hljs-comment">// "If carbon tax passes", "Had we invested earlier"</span>
+  description    <span class="hljs-built_in">String</span>?
+  
+  <span class="hljs-comment">// Nesting Support</span>
+  parentScopeId  <span class="hljs-built_in">String</span>?
+  depth          Int <span class="hljs-meta">@default</span>(<span class="hljs-number">0</span>)
+  
+  <span class="hljs-comment">// Visual</span>
+  color          <span class="hljs-built_in">String</span>?    <span class="hljs-comment">// Hex color for boundary</span>
+  collapsed      <span class="hljs-built_in">Boolean</span> <span class="hljs-meta">@default</span>(<span class="hljs-literal">false</span>)
+}
+</div></code></pre>
+<hr>
+<h2 id="2-api-layer">2. API Layer</h2>
+<h3 id="21-route-structure">2.1 Route Structure</h3>
+<pre class="hljs"><code><div>app/api/argument-chains/
+├── route.ts                           # GET (list by deliberation), POST (create)
+├── [chainId]/
+│   ├── route.ts                       # GET (full chain with includes)
+│   ├── analyze/
+│   │   └── route.ts                   # POST (run analysis)
+│   ├── export/
+│   │   └── route.ts                   # POST (prose/essay/markdown export)
+│   ├── nodes/
+│   │   ├── route.ts                   # GET (list), POST (create)
+│   │   └── [nodeId]/
+│   │       └── route.ts               # GET, PATCH, DELETE
+│   ├── edges/
+│   │   ├── route.ts                   # GET (list), POST (create)
+│   │   └── [edgeId]/
+│   │       └── route.ts               # GET, PATCH, DELETE
+│   └── scopes/
+│       ├── route.ts                   # GET (list), POST (create)
+│       └── [scopeId]/
+│           └── route.ts               # GET, PATCH, DELETE
+</div></code></pre>
+<h3 id="22-key-api-behaviors">2.2 Key API Behaviors</h3>
+<p><strong>Create Chain (POST /api/argument-chains)</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Request body</span>
+{
+  deliberationId: <span class="hljs-built_in">string</span>,
+  name: <span class="hljs-built_in">string</span>,
+  description?: <span class="hljs-built_in">string</span>,
+  purpose?: <span class="hljs-built_in">string</span>,
+  chainType: <span class="hljs-string">"SERIAL"</span> | <span class="hljs-string">"CONVERGENT"</span> | <span class="hljs-string">"DIVERGENT"</span> | <span class="hljs-string">"TREE"</span> | <span class="hljs-string">"GRAPH"</span>,
+  isPublic?: <span class="hljs-built_in">boolean</span>,
+  isEditable?: <span class="hljs-built_in">boolean</span>
+}
+</div></code></pre>
+<p><strong>Create Node (POST /api/argument-chains/[chainId]/nodes)</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Request body</span>
+{
+  argumentId: <span class="hljs-built_in">string</span>,
+  role?: ChainNodeRole,
+  position?: { x: <span class="hljs-built_in">number</span>, y: <span class="hljs-built_in">number</span> },
+  epistemicStatus?: EpistemicStatus,
+  scopeId?: <span class="hljs-built_in">string</span>,
+  dialecticalRole?: DialecticalRole
+}
+</div></code></pre>
+<p><strong>Create Edge (POST /api/argument-chains/[chainId]/edges)</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Request body</span>
+{
+  sourceNodeId: <span class="hljs-built_in">string</span>,
+  targetNodeId: <span class="hljs-built_in">string</span>,
+  edgeType: ArgumentChainEdgeType,
+  strength?: <span class="hljs-built_in">number</span>,      <span class="hljs-comment">// 0.0 to 1.0</span>
+  description?: <span class="hljs-built_in">string</span>,
+  slotMapping?: object
+}
+</div></code></pre>
+<p><strong>Analyze Chain (POST /api/argument-chains/[chainId]/analyze)</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Response</span>
+{
+  criticalPath: {
+    nodeIds: <span class="hljs-built_in">string</span>[],
+    totalStrength: <span class="hljs-built_in">number</span>,
+    avgStrength: <span class="hljs-built_in">number</span>,
+    weakestLink: { nodeId: <span class="hljs-built_in">string</span>, edgeStrength: <span class="hljs-built_in">number</span> },
+    pathLength: <span class="hljs-built_in">number</span>
+  },
+  cycles: <span class="hljs-built_in">Array</span>&lt;{
+    nodeIds: <span class="hljs-built_in">string</span>[],
+    severity: <span class="hljs-string">"warning"</span> | <span class="hljs-string">"error"</span>,
+    avgStrength: <span class="hljs-built_in">number</span>
+  }&gt;,
+  strength: {
+    overallStrength: <span class="hljs-built_in">number</span>,       <span class="hljs-comment">// 0.0 to 1.0</span>
+    nodeStrengths: Map&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">number</span>&gt;,
+    vulnerableNodes: <span class="hljs-built_in">string</span>[],
+    strongNodes: <span class="hljs-built_in">string</span>[],
+    structureType: <span class="hljs-string">"SCS"</span> | <span class="hljs-string">"SDS"</span> | <span class="hljs-string">"LCS"</span> | <span class="hljs-string">"LDS"</span> | <span class="hljs-string">"MS"</span> | <span class="hljs-string">"Unit"</span>
+  },
+  suggestions: <span class="hljs-built_in">Array</span>&lt;...&gt;,
+  schemeInfo?: {...}
+}
+</div></code></pre>
+<hr>
+<h2 id="3-state-management-zustand">3. State Management (Zustand)</h2>
+<h3 id="31-store-libstoreschaineditorstorets">3.1 Store: <code>lib/stores/chainEditorStore.ts</code></h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> ChainEditorState {
+  <span class="hljs-comment">// ReactFlow Canvas State</span>
+  nodes: Node&lt;ChainNodeData&gt;[];
+  edges: Edge&lt;ChainEdgeData&gt;[];
+  
+  <span class="hljs-comment">// Selection</span>
+  selectedNodeId: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  selectedEdgeId: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  
+  <span class="hljs-comment">// Chain Metadata</span>
+  chainId: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  chainName: <span class="hljs-built_in">string</span>;
+  chainType: ArgumentChainType;
+  isPublic: <span class="hljs-built_in">boolean</span>;
+  isEditable: <span class="hljs-built_in">boolean</span>;
+  
+  <span class="hljs-comment">// Recursive Attack Mode</span>
+  edgeAttackMode: <span class="hljs-built_in">boolean</span>;
+  targetedEdgeId: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  
+  <span class="hljs-comment">// Connection Editor State</span>
+  connectionEditorOpen: <span class="hljs-built_in">boolean</span>;
+  pendingConnection: { source: <span class="hljs-built_in">string</span>; target: <span class="hljs-built_in">string</span> } | <span class="hljs-literal">null</span>;
+}
+</div></code></pre>
+<h3 id="32-key-actions">3.2 Key Actions</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>setNodes(nodes)</code></td>
+<td>Replace all nodes</td>
+</tr>
+<tr>
+<td><code>addNode(node)</code></td>
+<td>Add single node</td>
+</tr>
+<tr>
+<td><code>updateNode(id, data)</code></td>
+<td>Update node data</td>
+</tr>
+<tr>
+<td><code>removeNode(id)</code></td>
+<td>Remove node</td>
+</tr>
+<tr>
+<td><code>setEdges(edges)</code></td>
+<td>Replace all edges</td>
+</tr>
+<tr>
+<td><code>addEdge(edge)</code></td>
+<td>Add single edge</td>
+</tr>
+<tr>
+<td><code>updateEdge(id, data)</code></td>
+<td>Update edge data</td>
+</tr>
+<tr>
+<td><code>removeEdge(id)</code></td>
+<td>Remove edge</td>
+</tr>
+<tr>
+<td><code>setSelectedNode(id)</code></td>
+<td>Select node</td>
+</tr>
+<tr>
+<td><code>setSelectedEdge(id)</code></td>
+<td>Select edge</td>
+</tr>
+<tr>
+<td><code>enterEdgeAttackMode()</code></td>
+<td>Enable recursive attack mode</td>
+</tr>
+<tr>
+<td><code>exitEdgeAttackMode()</code></td>
+<td>Disable recursive attack mode</td>
+</tr>
+<tr>
+<td><code>setTargetedEdge(id)</code></td>
+<td>Set edge being attacked</td>
+</tr>
+<tr>
+<td><code>openConnectionEditor(source, target)</code></td>
+<td>Open edge creation modal</td>
+</tr>
+<tr>
+<td><code>setChainMetadata({...})</code></td>
+<td>Update chain metadata</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="4-analysis-engine">4. Analysis Engine</h2>
+<h3 id="41-file-libutilschainanalysisutilsts-939-lines">4.1 File: <code>lib/utils/chainAnalysisUtils.ts</code> (939 lines)</h3>
+<h4 id="core-analysis-functions">Core Analysis Functions</h4>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+<th>Algorithm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>findCriticalPath(nodes, edges)</code></td>
+<td>Find strongest reasoning chain</td>
+<td>DFS with strength tracking</td>
+</tr>
+<tr>
+<td><code>detectCycles(nodes, edges)</code></td>
+<td>Detect circular reasoning</td>
+<td>DFS with recursion stack</td>
+</tr>
+<tr>
+<td><code>calculateChainStrength(nodes, edges)</code></td>
+<td>WWAW strength formula</td>
+<td>Support - Attack aggregation</td>
+</tr>
+<tr>
+<td><code>detectChainStructureType(nodes, edges)</code></td>
+<td>Wei &amp; Prakken classification</td>
+<td>Graph topology analysis</td>
+</tr>
+<tr>
+<td><code>aggregateSchemes(nodes)</code></td>
+<td>Scheme usage statistics</td>
+<td>Count and group schemes</td>
+</tr>
+<tr>
+<td><code>generateSuggestions(analysis)</code></td>
+<td>Improvement suggestions</td>
+<td>Rule-based recommendations</td>
+</tr>
+</tbody>
+</table>
+<h4 id="wwaw-strength-formula">WWAW Strength Formula</h4>
+<p>Based on Rahwan et al. (2007):</p>
+<pre class="hljs"><code><div>strength(node) = Σ(incoming support edges) - Σ(incoming attack edges)
+</div></code></pre>
+<p>Overall chain strength by structure type:</p>
+<ul>
+<li><strong>Serial chains (SCS, SDS):</strong> Weakest link principle (<code>min(nodeStrengths)</code>)</li>
+<li><strong>Convergent (LCS):</strong> Weighted average</li>
+<li><strong>Complex graphs (MS):</strong> Harmonic mean (penalizes weak links)</li>
+</ul>
+<h4 id="wei--prakken-structure-types">Wei &amp; Prakken Structure Types</h4>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Full Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SCS</code></td>
+<td>Serial Convergent Structure</td>
+<td>Multiple premises → single conclusion, serial</td>
+</tr>
+<tr>
+<td><code>SDS</code></td>
+<td>Serial Divergent Structure</td>
+<td>Single premise → multiple conclusions, serial</td>
+</tr>
+<tr>
+<td><code>LCS</code></td>
+<td>Linked Convergent Structure</td>
+<td>Interdependent premises</td>
+</tr>
+<tr>
+<td><code>LDS</code></td>
+<td>Linked Divergent Structure</td>
+<td>Interdependent conclusions</td>
+</tr>
+<tr>
+<td><code>MS</code></td>
+<td>Mixed Structure</td>
+<td>Complex combination</td>
+</tr>
+<tr>
+<td><code>Unit</code></td>
+<td>Single-inference argument</td>
+<td>One node or minimal chain</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5-ui-component-architecture">5. UI Component Architecture</h2>
+<h3 id="51-component-hierarchy">5.1 Component Hierarchy</h3>
+<pre class="hljs"><code><div>&lt;ArgumentChainCanvas&gt;               [1293 lines]
+├── &lt;ReactFlow&gt;
+│   ├── &lt;ArgumentChainNode&gt;         [373 lines] - Custom node renderer
+│   │   ├── &lt;EpistemicStatusIcon&gt;   - Shows epistemic status
+│   │   ├── Role Badge              - PREMISE, OBJECTION, etc.
+│   │   └── Action Menu             - Support, Attack, Details
+│   ├── &lt;ArgumentChainEdge&gt;         - Custom edge renderer
+│   └── &lt;ScopeBoundary&gt;             - Visual scope grouping
+├── &lt;Panel&gt; (Controls)
+│   ├── &lt;AddNodeButton&gt;             - Add argument to chain
+│   ├── &lt;ChainMetadataPanel&gt;        - Edit name, type, visibility
+│   ├── &lt;ChainExportButton&gt;         - Export dropdown
+│   └── Attack Mode Toggle          - Enable edge attacks
+├── &lt;ChainAnalysisPanel&gt;            [457 lines] - Sidebar
+│   └── Analysis results display
+├── &lt;EnablerPanel&gt;                  - Enablers analysis
+├── &lt;ScopesPanel&gt;                   - Scope management
+├── &lt;ConnectionEditor&gt;              - Edge creation modal
+├── &lt;ChainArgumentComposer&gt;         - In-context argument creation
+└── &lt;CreateScopeDialog&gt;/&lt;EditScopeDialog&gt;
+</div></code></pre>
+<h3 id="52-key-ui-interactions">5.2 Key UI Interactions</h3>
+<ol>
+<li><strong>Add Node:</strong> Click &quot;Add Node&quot; → Select argument from deliberation → Node appears on canvas</li>
+<li><strong>Create Edge:</strong> Drag from source node handle → Drop on target node → Connection Editor opens</li>
+<li><strong>Attack Node:</strong> Click node menu → Choose attack type (Rebuts, Undercuts, Undermines) → Composer opens</li>
+<li><strong>Attack Edge:</strong> Toggle &quot;Attack Edge&quot; mode → Click edge → Add argument → Creates UNDERCUTS edge</li>
+<li><strong>Create Scope:</strong> Open Scopes Panel → &quot;New Scope&quot; → Select type &amp; assumption</li>
+<li><strong>Assign to Scope:</strong> Drag node into scope boundary (auto-detects drop zone)</li>
+<li><strong>Hypothetical Mode:</strong> Click &quot;Enter Mode&quot; on scope → All new arguments auto-assigned with HYPOTHETICAL status</li>
+</ol>
+<hr>
+<h2 id="6-export-system">6. Export System</h2>
+<h3 id="61-export-generators-libchains">6.1 Export Generators (<code>lib/chains/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Format</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>proseGenerator.ts</code></td>
+<td>Legal brief style</td>
+<td>Elaborate scheme-based narratives</td>
+</tr>
+<tr>
+<td><code>essayGenerator.ts</code></td>
+<td>Academic essay</td>
+<td>Structured academic format</td>
+</tr>
+<tr>
+<td><code>narrativeGenerator.ts</code></td>
+<td>Story format</td>
+<td>Chronological flow narrative</td>
+</tr>
+<tr>
+<td><code>markdownFormatter.ts</code></td>
+<td>Markdown</td>
+<td>Structured MD with headers</td>
+</tr>
+<tr>
+<td><code>chainToThread.ts</code></td>
+<td>Thread view</td>
+<td>Linear discussion format</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-export-features-phase-d-enhancements">6.2 Export Features (Phase D Enhancements)</h3>
+<ul>
+<li><strong>Epistemic language prefixes:</strong> &quot;Assuming that...&quot;, &quot;Contrary to fact...&quot;</li>
+<li><strong>Scope grouping:</strong> Arguments grouped by hypothetical context</li>
+<li><strong>Chain type descriptions:</strong> Introduction varies by SERIAL, CONVERGENT, etc.</li>
+<li><strong>Critical questions:</strong> Include scheme-specific CQs in analysis sections</li>
+</ul>
+<hr>
+<h2 id="7-integration-points-for-aif-neighborhood">7. Integration Points for AIF Neighborhood</h2>
+<h3 id="71-current-argument-data-access">7.1 Current Argument Data Access</h3>
+<p>When a node is loaded, it includes the full <code>Argument</code> with:</p>
+<ul>
+<li><code>conclusion</code> (Claim)</li>
+<li><code>premises[]</code> (Claims)</li>
+<li><code>argumentSchemes[]</code> (SchemeApplication with Scheme)</li>
+<li><code>schemeNet</code> (SchemeNet with steps)</li>
+</ul>
+<h3 id="72-potential-integration-points">7.2 Potential Integration Points</h3>
+<table>
+<thead>
+<tr>
+<th>Integration</th>
+<th>Location</th>
+<th>Mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View Neighborhood from Node</td>
+<td><code>ArgumentChainNode.tsx</code></td>
+<td>Add &quot;View Neighborhood&quot; action button</td>
+</tr>
+<tr>
+<td>Import from Neighborhood</td>
+<td><code>AddNodeButton.tsx</code></td>
+<td>Browse AIF neighborhood, select arguments</td>
+</tr>
+<tr>
+<td>Cross-reference Display</td>
+<td><code>ChainAnalysisPanel.tsx</code></td>
+<td>Show related arguments from neighborhood</td>
+</tr>
+<tr>
+<td>Attack Suggestions</td>
+<td><code>ChainArgumentComposer.tsx</code></td>
+<td>Suggest attacks based on neighborhood attackers</td>
+</tr>
+<tr>
+<td>Scheme Context</td>
+<td>Node tooltip/expansion</td>
+<td>Show scheme details from AIF data</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-data-flow-for-integration">7.3 Data Flow for Integration</h3>
+<pre class="hljs"><code><div>AIF Neighborhood API                     Argument Chain Canvas
+─────────────────────                    ────────────────────
+GET /api/arguments/[id]/aif-neighborhood
+     │
+     ▼
+┌─────────────────────────┐              ┌─────────────────────────┐
+│ AIFNeighborhood         │    Import    │ ReactFlow Node          │
+│ - centralNode           │ ──────────► │ - id                    │
+│ - premises[]            │              │ - argument (hydrated)   │
+│ - conclusions[]         │              │ - role                  │
+│ - attacks[]             │              │ - epistemicStatus       │
+│ - supports[]            │              │                         │
+└─────────────────────────┘              └─────────────────────────┘
+                                                    │
+                                                    ▼
+                                         ┌─────────────────────────┐
+                                         │ Chain Analysis          │
+                                         │ - criticalPath          │
+                                         │ - strength              │
+                                         │ - cycles                │
+                                         └─────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="8-key-files-reference">8. Key Files Reference</h2>
+<h3 id="81-data-layer">8.1 Data Layer</h3>
+<ul>
+<li><code>lib/models/schema.prisma</code> (lines 6786-7050) - Chain models</li>
+<li><code>lib/types/argumentChain.ts</code> - TypeScript types</li>
+</ul>
+<h3 id="82-api-routes">8.2 API Routes</h3>
+<ul>
+<li><code>app/api/argument-chains/route.ts</code> - List/Create chains</li>
+<li><code>app/api/argument-chains/[chainId]/route.ts</code> - Get chain details</li>
+<li><code>app/api/argument-chains/[chainId]/analyze/route.ts</code> - Run analysis</li>
+<li><code>app/api/argument-chains/[chainId]/nodes/route.ts</code> - Node CRUD</li>
+<li><code>app/api/argument-chains/[chainId]/edges/route.ts</code> - Edge CRUD</li>
+<li><code>app/api/argument-chains/[chainId]/scopes/route.ts</code> - Scope CRUD</li>
+</ul>
+<h3 id="83-state-management">8.3 State Management</h3>
+<ul>
+<li><code>lib/stores/chainEditorStore.ts</code> - Zustand store</li>
+</ul>
+<h3 id="84-analysis-utilities">8.4 Analysis Utilities</h3>
+<ul>
+<li><code>lib/utils/chainAnalysisUtils.ts</code> - All analysis algorithms</li>
+<li><code>lib/constants/chainEdgeTypes.ts</code> - Edge type configurations</li>
+<li><code>lib/utils/chainLayoutUtils.ts</code> - Auto-layout algorithms</li>
+</ul>
+<h3 id="85-ui-components">8.5 UI Components</h3>
+<ul>
+<li><code>components/chains/ArgumentChainCanvas.tsx</code> - Main canvas (1293 lines)</li>
+<li><code>components/chains/ArgumentChainNode.tsx</code> - Node renderer (373 lines)</li>
+<li><code>components/chains/ArgumentChainEdge.tsx</code> - Edge renderer</li>
+<li><code>components/chains/ChainAnalysisPanel.tsx</code> - Analysis sidebar (457 lines)</li>
+<li><code>components/chains/ScopeBoundary.tsx</code> - Scope visual</li>
+<li><code>components/chains/ChainArgumentComposer.tsx</code> - In-context composer</li>
+</ul>
+<h3 id="86-export-generators">8.6 Export Generators</h3>
+<ul>
+<li><code>lib/chains/proseGenerator.ts</code> - Legal brief prose (2128 lines)</li>
+<li><code>lib/chains/essayGenerator.ts</code> - Academic essay</li>
+<li><code>lib/chains/narrativeGenerator.ts</code> - Story narrative</li>
+<li><code>lib/chains/markdownFormatter.ts</code> - Markdown export</li>
+</ul>
+<h3 id="87-consumer-components">8.7 Consumer Components</h3>
+<ul>
+<li><code>components/deepdive/v3/tabs/ChainsTab.tsx</code> - Tab integration (661 lines)</li>
+<li><code>components/deepdive/v3/sections/ChainsSection.tsx</code> - Section integration</li>
+</ul>
+<hr>
+<h2 id="9-development-phases-completed">9. Development Phases Completed</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Focus</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 1</td>
+<td>Core data model, basic CRUD</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Phase 2</td>
+<td>ReactFlow canvas, node/edge types</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Phase 3</td>
+<td>Analysis engine (WWAW, cycles, critical path)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Phase 4</td>
+<td>Epistemic status, scopes, hypotheticals</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Phase 5</td>
+<td>Export generators (prose, essay, narrative)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Phase C</td>
+<td>Markdown export enhancements</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Phase D</td>
+<td>Narrative/prose epistemic language</td>
+<td>✅ Complete</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="10-observations--recommendations">10. Observations &amp; Recommendations</h2>
+<h3 id="101-strengths">10.1 Strengths</h3>
+<ol>
+<li><strong>Rich formal model:</strong> Full ASPIC+ attack types, Wei &amp; Prakken structures</li>
+<li><strong>Epistemic sophistication:</strong> Hypotheticals, counterfactuals, scopes</li>
+<li><strong>Strong analysis:</strong> WWAW formula, cycle detection, critical path</li>
+<li><strong>Multiple export formats:</strong> Prose, essay, narrative, markdown</li>
+</ol>
+<h3 id="102-integration-opportunities">10.2 Integration Opportunities</h3>
+<ol>
+<li><strong>AIF Neighborhood browser</strong> in AddNodeButton for selecting arguments</li>
+<li><strong>Preview neighborhood</strong> action on ArgumentChainNode</li>
+<li><strong>Attack suggestions</strong> from neighborhood attackers in composer</li>
+<li><strong>Cross-chain references</strong> showing where arguments appear in other chains</li>
+</ol>
+<h3 id="103-technical-debt">10.3 Technical Debt</h3>
+<ol>
+<li><code>ArgumentChainCanvas.tsx</code> at 1293 lines could be refactored</li>
+<li><code>proseGenerator.ts</code> at 2128 lines could use modularization</li>
+<li>Scope boundary calculation is recalculated on every render</li>
+</ol>
+<hr>
+<p><em>This document provides a complete technical map of the Argument Chain system for integration planning.</em></p>
+
+</body>
+</html>

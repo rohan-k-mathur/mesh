@@ -1,0 +1,2854 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>STACKS_LIBRARY_SYSTEM_ARCHITECTURE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="stackslibrary-system-architecture--design">Stacks/Library System Architecture &amp; Design</h1>
+<h2 id="mesh-platform---comprehensive-technical-specification">Mesh Platform - Comprehensive Technical Specification</h2>
+<p><strong>Version:</strong> 1.0<br>
+<strong>Last Updated:</strong> December 15, 2025<br>
+<strong>Document Type:</strong> End-to-End System Architecture</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-executive-summary">Executive Summary</a></li>
+<li><a href="#2-system-overview">System Overview</a></li>
+<li><a href="#3-architecture-diagrams">Architecture Diagrams</a></li>
+<li><a href="#4-data-models">Data Models</a></li>
+<li><a href="#5-component-architecture">Component Architecture</a></li>
+<li><a href="#6-api-specifications">API Specifications</a></li>
+<li><a href="#7-citation-pipeline">Citation Pipeline</a></li>
+<li><a href="#8-deliberation-integration">Deliberation Integration</a></li>
+<li><a href="#9-feed-integration">Feed Integration</a></li>
+<li><a href="#10-security--authorization">Security &amp; Authorization</a></li>
+<li><a href="#11-performance-considerations">Performance Considerations</a></li>
+<li><a href="#12-appendices">Appendices</a></li>
+</ol>
+<hr>
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<h3 id="11-purpose">1.1 Purpose</h3>
+<p>The Mesh Stacks/Library System is a document management and knowledge organization infrastructure that enables users to curate collections of PDFs and other documents. It provides deep integration with the deliberation engine, enabling evidence-based argumentation through a sophisticated citation pipeline.</p>
+<h3 id="12-key-capabilities">1.2 Key Capabilities</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Document Management</strong></td>
+<td>Upload, organize, and preview PDFs in curated stacks</td>
+</tr>
+<tr>
+<td><strong>Citation Infrastructure</strong></td>
+<td>Attach sources (URL, DOI, Library items) to arguments and claims</td>
+</tr>
+<tr>
+<td><strong>Deliberation Hosting</strong></td>
+<td>Stacks can host deliberations via <code>library_stack</code> host type</td>
+</tr>
+<tr>
+<td><strong>Discussion Threads</strong></td>
+<td>FeedPost-based comment system with citation support</td>
+</tr>
+<tr>
+<td><strong>Evidence Aggregation</strong></td>
+<td>Track source usage and quality ratings across deliberations</td>
+</tr>
+<tr>
+<td><strong>Collaborative Editing</strong></td>
+<td>RBAC with owner/editor/viewer roles</td>
+</tr>
+<tr>
+<td><strong>Cross-Deliberation References</strong></td>
+<td>StackReference model for knowledge graph edges</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-technology-stack">1.3 Technology Stack</h3>
+<ul>
+<li><strong>Frontend:</strong> Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS</li>
+<li><strong>Drag-and-Drop:</strong> @dnd-kit/core, @dnd-kit/sortable</li>
+<li><strong>Backend:</strong> Next.js Server Actions, API Routes</li>
+<li><strong>Database:</strong> PostgreSQL via Prisma ORM</li>
+<li><strong>Storage:</strong> Supabase Storage (pdfs, pdf-thumbs buckets)</li>
+<li><strong>Real-Time:</strong> Custom event bus (<code>emitBus</code>)</li>
+</ul>
+<h3 id="14-core-entities">1.4 Core Entities</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CORE ENTITY RELATIONSHIPS                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│    User ──owns──▶ Stack ──contains──▶ LibraryPost ──resolves──▶ Source     │
+│      │              │                       │                      │        │
+│      │              │                       │                      │        │
+│   subscribes    hosts                   annotated              cited-by     │
+│      │              │                       │                      │        │
+│      ▼              ▼                       ▼                      ▼        │
+│  Subscription   Deliberation           Annotation              Citation    │
+│                     │                                              │        │
+│                     │                                              │        │
+│                  contains                                       targets     │
+│                     │                                              │        │
+│                     ▼                                              ▼        │
+│             Claims + Arguments ◀──────────────────────────────────┘        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="2-system-overview">2. System Overview</h2>
+<h3 id="21-architectural-principles">2.1 Architectural Principles</h3>
+<ol>
+<li><strong>Server-First Operations</strong> - Stack mutations via Next.js server actions</li>
+<li><strong>Optimistic Updates</strong> - Local state changes with background sync</li>
+<li><strong>Polymorphic Citations</strong> - Single Citation model targets multiple entity types</li>
+<li><strong>Source Deduplication</strong> - SHA1 fingerprinting prevents duplicate sources</li>
+<li><strong>FeedPost Reuse</strong> - Discussion threads leverage existing FeedPost infrastructure</li>
+<li><strong>Event-Driven Updates</strong> - Bus emissions for real-time synchronization</li>
+</ol>
+<h3 id="22-system-boundaries">2.2 System Boundaries</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          STACKS/LIBRARY SYSTEM                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────────┐ │
+│  │   Stack Page    │    │  PDF Viewer     │    │      Citation Picker        │ │
+│  │                 │    │                 │    │                             │ │
+│  │ • SortablePdf   │    │ • PdfLightbox   │    │ • URL/DOI/Library tabs      │ │
+│  │   Grid          │    │ • Annotations   │    │ • LibrarySearchModal        │ │
+│  │ • StackDiscuss  │    │ • CiteButton    │    │ • Locator/Quote/Note        │ │
+│  │ • Collaborators │    │                 │    │                             │ │
+│  └────────┬────────┘    └────────┬────────┘    └─────────────┬───────────────┘ │
+│           │                      │                           │                  │
+│           └──────────────────────┴───────────────────────────┘                  │
+│                                  │                                               │
+│                                  ▼                                               │
+│  ┌───────────────────────────────────────────────────────────────────────────┐ │
+│  │                         SERVER ACTIONS / API ROUTES                        │ │
+│  │                                                                            │ │
+│  │  stack.actions.ts    /api/library/*    /api/citations/*    /api/comments  │ │
+│  └───────────────────────────────────────────────────────────────────────────┘ │
+│                                  │                                               │
+│                                  ▼                                               │
+│  ┌───────────────────────────────────────────────────────────────────────────┐ │
+│  │                              DATABASE                                       │ │
+│  │                                                                            │ │
+│  │  Stack  │  LibraryPost  │  Source  │  Citation  │  FeedPost  │  Delib...  │ │
+│  └───────────────────────────────────────────────────────────────────────────┘ │
+│                                  │                                               │
+│                                  ▼                                               │
+│  ┌───────────────────────────────────────────────────────────────────────────┐ │
+│  │                          SUPABASE STORAGE                                   │ │
+│  │                                                                            │ │
+│  │           pdfs/                              pdf-thumbs/                   │ │
+│  │      {userId}/{hash}.pdf              {userId}/{hash}.png                 │ │
+│  └───────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="23-integration-points">2.3 Integration Points</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           EXTERNAL INTEGRATIONS                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────────────┐  │
+│  │  DELIBERATION    │    │     FEED         │    │    KNOWLEDGE BASE        │  │
+│  │    SYSTEM        │    │    SYSTEM        │    │       (KB)               │  │
+│  │                  │    │                  │    │                          │  │
+│  │ • library_stack  │    │ • LIBRARY type   │    │ • StackReference         │  │
+│  │   host type      │    │ • LibraryCard    │    │ • Cross-delib edges      │  │
+│  │ • Lift to debate │    │ • Cover hydrate  │    │ • ArgumentImport         │  │
+│  │ • EvidenceList   │    │                  │    │                          │  │
+│  └──────────────────┘    └──────────────────┘    └──────────────────────────┘  │
+│                                                                                  │
+│  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────────────┐  │
+│  │    REAL-TIME     │    │    EXTERNAL      │    │      ARTICLE             │  │
+│  │      BUS         │    │    SOURCES       │    │      SYSTEM              │  │
+│  │                  │    │                  │    │                          │  │
+│  │ • stacks:changed │    │ • Zotero import  │    │ • Article citations      │  │
+│  │ • comments:chngd │    │ • DOI resolution │    │ • Shared Source model    │  │
+│  │ • citations:chgd │    │ • URL metadata   │    │                          │  │
+│  └──────────────────┘    └──────────────────┘    └──────────────────────────┘  │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="3-architecture-diagrams">3. Architecture Diagrams</h2>
+<h3 id="31-high-level-system-architecture">3.1 High-Level System Architecture</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              CLIENT LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                         STACK PAGE (/stacks/[slugOrId])                  │   │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  │   │
+│  │  │   Header        │  │   Collaborators │  │   Subscribe Button      │  │   │
+│  │  │   (name, desc)  │  │   Form          │  │                         │  │   │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  │   │
+│  │                                                                          │   │
+│  │  ┌───────────────────────────────────────────────────────────────────┐  │   │
+│  │  │                      SortablePdfGrid                               │  │   │
+│  │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐              │  │   │
+│  │  │  │ PDF     │  │ PDF     │  │ PDF     │  │ PDF     │              │  │   │
+│  │  │  │ Tile    │  │ Tile    │  │ Tile    │  │ Tile    │   ...        │  │   │
+│  │  │  │ [Cite]  │  │ [Cite]  │  │ [Cite]  │  │ [Cite]  │              │  │   │
+│  │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘              │  │   │
+│  │  └───────────────────────────────────────────────────────────────────┘  │   │
+│  │                                                                          │   │
+│  │  ┌───────────────────────────────────────────────────────────────────┐  │   │
+│  │  │                      StackDiscussion                               │  │   │
+│  │  │  ┌─────────────────────────────────────────────────────────────┐  │  │   │
+│  │  │  │  CommentComposer  [textarea] [Citations] [Send]             │  │  │   │
+│  │  │  └─────────────────────────────────────────────────────────────┘  │  │   │
+│  │  │  ┌────────────────────────────────────────────┐                   │  │   │
+│  │  │  │  Comment 1           [Deliberate] [Open]   │                   │  │   │
+│  │  │  │    └─ Citation chips                       │                   │  │   │
+│  │  │  ├────────────────────────────────────────────┤                   │  │   │
+│  │  │  │  Comment 2           [Deliberate] [Open]   │                   │  │   │
+│  │  │  └────────────────────────────────────────────┘                   │  │   │
+│  │  └───────────────────────────────────────────────────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              SERVER LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                        SERVER ACTIONS                                    │   │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐               │   │
+│  │  │ getStackPage  │  │ addStack      │  │ setStackOrder │               │   │
+│  │  │ Data          │  │ Comment       │  │               │               │   │
+│  │  └───────────────┘  └───────────────┘  └───────────────┘               │   │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐               │   │
+│  │  │ toggleStack   │  │ removeFrom    │  │ add/remove    │               │   │
+│  │  │ Subscription  │  │ Stack         │  │ Collaborator  │               │   │
+│  │  └───────────────┘  └───────────────┘  └───────────────┘               │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                          API ROUTES                                      │   │
+│  │  ┌───────────────────┐  ┌───────────────────┐  ┌──────────────────────┐ │   │
+│  │  │ /api/library/*    │  │ /api/citations/*  │  │ /api/comments/lift   │ │   │
+│  │  │ • upload          │  │ • resolve         │  │                      │ │   │
+│  │  │ • search          │  │ • attach          │  │                      │ │   │
+│  │  │ • status          │  │ • batch           │  │                      │ │   │
+│  │  └───────────────────┘  └───────────────────┘  └──────────────────────┘ │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              DATA LAYER                                          │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                         PRISMA / POSTGRESQL                              │   │
+│  │                                                                          │   │
+│  │  Stack ◀─────────▶ LibraryPost ◀─────────▶ Source ◀─────────▶ Citation  │   │
+│  │    │                     │                    │                          │   │
+│  │    │                     │                    │                          │   │
+│  │    ▼                     ▼                    ▼                          │   │
+│  │  FeedPost            Annotation          SourceRating                    │   │
+│  │  (discussion)                                                            │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                       SUPABASE STORAGE                                   │   │
+│  │                                                                          │   │
+│  │         pdfs bucket                    pdf-thumbs bucket                 │   │
+│  │    /{userId}/{hash}.pdf            /{userId}/{hash}.png                  │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="32-upload-flow-sequence">3.2 Upload Flow Sequence</h3>
+<pre class="hljs"><code><div>┌──────────┐     ┌──────────────┐     ┌─────────────────┐     ┌─────────────┐
+│  User    │     │ StackAddModal│     │ /api/library/   │     │  Supabase   │
+│          │     │              │     │    upload       │     │  Storage    │
+└────┬─────┘     └──────┬───────┘     └────────┬────────┘     └──────┬──────┘
+     │                  │                      │                     │
+     │  Select PDFs     │                      │                     │
+     ├─────────────────▶│                      │                     │
+     │                  │                      │                     │
+     │  Generate        │                      │                     │
+     │  previews        │                      │                     │
+     │  (client-side)   │                      │                     │
+     │                  │                      │                     │
+     │                  │  POST multipart      │                     │
+     │                  │  (files + previews)  │                     │
+     │                  ├─────────────────────▶│                     │
+     │                  │                      │                     │
+     │                  │                      │  Upload PDF         │
+     │                  │                      ├────────────────────▶│
+     │                  │                      │                     │
+     │                  │                      │  Upload thumb       │
+     │                  │                      ├────────────────────▶│
+     │                  │                      │                     │
+     │                  │                      │  Return URLs        │
+     │                  │                      │◀────────────────────┤
+     │                  │                      │                     │
+     │                  │                      │  Create/Get Stack   │
+     │                  │                      │  (getOrCreateStackId)│
+     │                  │                      │                     │
+     │                  │                      │  Create LibraryPost │
+     │                  │                      │  (file_url, thumb_urls)│
+     │                  │                      │                     │
+     │                  │                      │  Update stack.order │
+     │                  │                      │                     │
+     │                  │  { stackId, posts }  │                     │
+     │                  │◀─────────────────────┤                     │
+     │                  │                      │                     │
+     │  Refresh page    │                      │                     │
+     │◀─────────────────┤                      │                     │
+     │                  │                      │                     │
+</div></code></pre>
+<h3 id="33-citation-attachment-flow">3.3 Citation Attachment Flow</h3>
+<pre class="hljs"><code><div>┌──────────┐  ┌───────────┐  ┌────────────────┐  ┌──────────────┐  ┌─────────────┐
+│  PDF     │  │ Comment   │  │  /api/citations│  │ /api/citations│  │  Database   │
+│  Tile    │  │ Composer  │  │  /resolve      │  │ /attach       │  │             │
+└────┬─────┘  └─────┬─────┘  └───────┬────────┘  └──────┬───────┘  └──────┬──────┘
+     │              │                │                  │                 │
+     │  Click Cite  │                │                  │                 │
+     ├─────────────▶│                │                  │                 │
+     │              │                │                  │                 │
+     │  CustomEvent │                │                  │                 │
+     │  composer:cite                │                  │                 │
+     │  {libraryPostId,              │                  │                 │
+     │   mode: &quot;quick&quot;}              │                  │                 │
+     │              │                │                  │                 │
+     │              │  POST resolve  │                  │                 │
+     │              │  {libraryPostId}                  │                 │
+     │              ├───────────────▶│                  │                 │
+     │              │                │                  │                 │
+     │              │                │  Compute         │                 │
+     │              │                │  fingerprint     │                 │
+     │              │                │                  │                 │
+     │              │                │  Find/Create     │                 │
+     │              │                │  Source          │                 │
+     │              │                ├─────────────────────────────────▶│
+     │              │                │                  │                 │
+     │              │  {source: {id}}│                  │                 │
+     │              │◀───────────────┤                  │                 │
+     │              │                │                  │                 │
+     │              │  POST attach   │                  │                 │
+     │              │  {targetType,  │                  │                 │
+     │              │   targetId,    │                  │                 │
+     │              │   sourceId}    │                  │                 │
+     │              ├──────────────────────────────────▶│                 │
+     │              │                │                  │                 │
+     │              │                │                  │  Create Citation│
+     │              │                │                  ├────────────────▶│
+     │              │                │                  │                 │
+     │              │  {citation}    │                  │                 │
+     │              │◀──────────────────────────────────┤                 │
+     │              │                │                  │                 │
+     │              │  Dispatch      │                  │                 │
+     │              │  citations:changed                │                 │
+     │              │                │                  │                 │
+</div></code></pre>
+<h3 id="34-lift-to-debate-flow">3.4 Lift-to-Debate Flow</h3>
+<pre class="hljs"><code><div>┌──────────┐  ┌───────────────┐  ┌──────────────────┐  ┌─────────────────────┐
+│  User    │  │ LiftToDebate  │  │ /api/comments/   │  │      Database       │
+│          │  │ Button        │  │    lift          │  │                     │
+└────┬─────┘  └──────┬────────┘  └────────┬─────────┘  └──────────┬──────────┘
+     │               │                    │                       │
+     │  Click        │                    │                       │
+     │  &quot;Deliberate&quot; │                    │                       │
+     ├──────────────▶│                    │                       │
+     │               │                    │                       │
+     │               │  POST              │                       │
+     │               │  {commentId,       │                       │
+     │               │   hostType:&quot;stack&quot;,│                       │
+     │               │   hostId, as:&quot;claim&quot;}                      │
+     │               ├───────────────────▶│                       │
+     │               │                    │                       │
+     │               │                    │  Normalize hostType   │
+     │               │                    │  → library_stack      │
+     │               │                    │                       │
+     │               │                    │  Find/Create          │
+     │               │                    │  Deliberation         │
+     │               │                    ├──────────────────────▶│
+     │               │                    │                       │
+     │               │                    │  Fetch comment text   │
+     │               │                    │  from FeedPost        │
+     │               │                    ├──────────────────────▶│
+     │               │                    │                       │
+     │               │                    │  Create Claim         │
+     │               │                    │  {text, deliberationId}│
+     │               │                    ├──────────────────────▶│
+     │               │                    │                       │
+     │               │                    │  Create DialogueMove  │
+     │               │                    │  {kind: ASSERT}       │
+     │               │                    ├──────────────────────▶│
+     │               │                    │                       │
+     │               │                    │  Emit bus events      │
+     │               │                    │                       │
+     │               │  {deliberationId,  │                       │
+     │               │   claimId}         │                       │
+     │               │◀───────────────────┤                       │
+     │               │                    │                       │
+     │  Redirect to  │                    │                       │
+     │  /deliberation│                    │                       │
+     │  /{id}        │                    │                       │
+     │◀──────────────┤                    │                       │
+</div></code></pre>
+<hr>
+<h2 id="4-data-models">4. Data Models</h2>
+<h3 id="41-stack-model">4.1 Stack Model</h3>
+<p>The Stack model represents a curated collection of documents.</p>
+<pre class="hljs"><code><div>model Stack {
+  id             String              @id @default(cuid())
+  owner_id       BigInt
+  name           String
+  description    String?
+  is_public      Boolean             @default(false)
+  order          String[]            // Ordered LibraryPost IDs
+  created_at     DateTime            @default(now()) @db.Timestamptz(6)
+  parent_id      String?             // Hierarchical stacks
+  slug           String?             @unique
+
+  // Relations
+  owner          User                @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  posts          LibraryPost[]
+  parent         Stack?              @relation(&quot;StackHierarchy&quot;, fields: [parent_id], references: [id])
+  children       Stack[]             @relation(&quot;StackHierarchy&quot;)
+  feedPosts      FeedPost[]
+  collaborators  StackCollaborator[]
+  subscribers    StackSubscription[]
+  StackReference StackReference[]
+
+  @@unique([owner_id, name])
+  @@map(&quot;stacks&quot;)
+}
+</div></code></pre>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li><strong>Ordering:</strong> <code>order</code> array maintains custom document sequence</li>
+<li><strong>Hierarchy:</strong> Self-referential <code>parent_id</code> enables nested stacks</li>
+<li><strong>Slugs:</strong> Human-readable URLs via unique <code>slug</code> field</li>
+<li><strong>Access Control:</strong> <code>is_public</code> flag + collaborators for fine-grained access</li>
+</ul>
+<h3 id="42-librarypost-model">4.2 LibraryPost Model</h3>
+<p>Individual documents within stacks.</p>
+<pre class="hljs"><code><div>model LibraryPost {
+  id          String   @id @default(cuid())
+  uploader_id BigInt
+  stack_id    String?
+  title       String?
+  page_count  Int
+  file_url    String           // Supabase storage URL
+  thumb_urls  String[]         // Generated preview images
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  annotations Annotation[]
+  stack       Stack?       @relation(fields: [stack_id], references: [id])
+  uploader    User         @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
+  feedPosts   FeedPost[]
+
+  @@index([uploader_id, created_at])
+  @@index([stack_id])
+  @@map(&quot;library_posts&quot;)
+}
+</div></code></pre>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li><strong>Flexible Attachment:</strong> Optional <code>stack_id</code> allows standalone documents</li>
+<li><strong>Thumbnails:</strong> Array of preview URLs for multi-page support</li>
+<li><strong>Annotations:</strong> Page-level annotations with rect coordinates</li>
+</ul>
+<h3 id="43-source-model">4.3 Source Model</h3>
+<p>Canonical reference entity for citations.</p>
+<pre class="hljs"><code><div>model Source {
+  id            String    @id @default(cuid())
+  kind          String    // 'article' | 'book' | 'web' | 'dataset' | 'video' | 'other'
+  title         String?
+  authorsJson   Json?     // [{family, given}] CSL-style
+  year          Int?
+  container     String?   // Journal, site, channel name
+  publisher     String?
+  volume        String?
+  issue         String?
+  pages         String?
+  doi           String?   @unique
+  url           String?   @unique
+  platform      String?   // 'arxiv' | 'substack' | 'youtube' | ...
+  accessedAt    DateTime?
+  archiveUrl    String?   // Wayback/perma.cc link
+  zoteroKey     String?   // Cross-reference key
+  libraryPostId String?   // Link to internal LibraryPost
+  fingerprint   String?   // SHA1 dedup key
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  citations Citation[]
+  ratings   SourceRating[]
+}
+</div></code></pre>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li><strong>Deduplication:</strong> <code>fingerprint</code> field prevents duplicate sources</li>
+<li><strong>Flexible Origin:</strong> Can come from URL, DOI, or internal LibraryPost</li>
+<li><strong>Rich Metadata:</strong> CSL-compatible author JSON, publication details</li>
+<li><strong>Quality Tracking:</strong> Related <code>SourceRating</code> entries</li>
+</ul>
+<h3 id="44-citation-model">4.4 Citation Model</h3>
+<p>Links sources to target entities.</p>
+<pre class="hljs"><code><div>model Citation {
+  id          String   @id @default(cuid())
+  targetType  String   // 'argument' | 'claim' | 'card' | 'comment' | 'move' | 'proposition'
+  targetId    String
+  sourceId    String
+  locator     String?  // 'p. 13', 'fig. 2', '08:14'
+  quote       String?  // ≤280 chars excerpt
+  note        String?  // User annotation
+  relevance   Int?     // 1-5 quick rating
+  createdById String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  source Source @relation(fields: [sourceId], references: [id])
+
+  @@unique([targetType, targetId, sourceId, locator])
+}
+</div></code></pre>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li><strong>Polymorphic Target:</strong> <code>targetType</code> + <code>targetId</code> pattern</li>
+<li><strong>Rich Annotations:</strong> locator, quote, note fields</li>
+<li><strong>Duplicate Prevention:</strong> Composite unique constraint</li>
+</ul>
+<h3 id="45-supporting-models">4.5 Supporting Models</h3>
+<h4 id="stackcollaborator">StackCollaborator</h4>
+<pre class="hljs"><code><div>model StackCollaborator {
+  stack_id   String
+  user_id    BigInt
+  role       StackRole @default(EDITOR)  // OWNER | EDITOR | VIEWER
+  created_at DateTime  @default(now())
+
+  stack Stack @relation(fields: [stack_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([stack_id, user_id])
+}
+</div></code></pre>
+<h4 id="stacksubscription">StackSubscription</h4>
+<pre class="hljs"><code><div>model StackSubscription {
+  stack_id   String
+  user_id    BigInt
+  created_at DateTime @default(now())
+
+  stack Stack @relation(fields: [stack_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([stack_id, user_id])
+}
+</div></code></pre>
+<h4 id="sourcerating">SourceRating</h4>
+<pre class="hljs"><code><div>model SourceRating {
+  id        String   @id @default(cuid())
+  sourceId  String
+  userId    BigInt
+  rating    Int      // 1-10 scale
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, userId])
+}
+</div></code></pre>
+<h4 id="stackreference-cross-deliberation">StackReference (Cross-Deliberation)</h4>
+<pre class="hljs"><code><div>model StackReference {
+  id                 String  @id @default(cuid())
+  fromDeliberationId String
+  toDeliberationId   String
+  stackId            String?
+  relation           String? // 'attached' | 'cites' | 'embeds'
+  createdAt          DateTime @default(now())
+
+  fromDeliberation Deliberation @relation(&quot;StackRefFrom&quot;, ...)
+  toDeliberation   Deliberation @relation(&quot;StackRefTo&quot;, ...)
+  stack            Stack?       @relation(...)
+
+  @@unique([fromDeliberationId, toDeliberationId, stackId, relation])
+}
+</div></code></pre>
+<h3 id="46-entity-relationship-diagram">4.6 Entity Relationship Diagram</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           ENTITY RELATIONSHIPS                                   │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│   ┌──────────┐          ┌──────────────┐          ┌──────────────┐             │
+│   │   User   │──owns───▶│    Stack     │──contains▶│ LibraryPost  │             │
+│   │          │          │              │          │              │             │
+│   │ id       │          │ id           │          │ id           │             │
+│   │ name     │          │ name         │          │ title        │             │
+│   │ ...      │          │ order[]      │          │ file_url     │             │
+│   └────┬─────┘          │ is_public    │          │ thumb_urls[] │             │
+│        │                └──────┬───────┘          └──────┬───────┘             │
+│        │                       │                         │                      │
+│        │                       │                         │                      │
+│   subscribes              hosts                     resolves-to                 │
+│        │                       │                         │                      │
+│        ▼                       ▼                         ▼                      │
+│   ┌──────────────┐      ┌──────────────┐          ┌──────────────┐             │
+│   │ StackSub     │      │ Deliberation │          │    Source    │             │
+│   │              │      │              │          │              │             │
+│   │ stack_id     │      │ id           │          │ id           │             │
+│   │ user_id      │      │ hostType     │◀─────────│ libraryPostId│             │
+│   └──────────────┘      │ hostId       │          │ url/doi      │             │
+│                         └──────┬───────┘          │ fingerprint  │             │
+│                                │                   └──────┬───────┘             │
+│                                │                          │                      │
+│                           contains                    cited-by                   │
+│                                │                          │                      │
+│                                ▼                          ▼                      │
+│                         ┌──────────────┐          ┌──────────────┐             │
+│                         │ Claim/Arg    │◀─────────│   Citation   │             │
+│                         │              │          │              │             │
+│                         │ id           │          │ targetType   │             │
+│                         │ text         │          │ targetId     │             │
+│                         │ deliberation │          │ sourceId     │             │
+│                         └──────────────┘          │ locator      │             │
+│                                                   │ quote        │             │
+│                                                   └──────────────┘             │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="5-component-architecture">5. Component Architecture</h2>
+<h3 id="51-stack-page-components">5.1 Stack Page Components</h3>
+<h4 id="511-component-hierarchy">5.1.1 Component Hierarchy</h4>
+<pre class="hljs"><code><div>app/stacks/[slugOrId]/page.tsx (Server Component)
+│
+├── Header Section
+│   ├── Stack name &amp; description
+│   ├── Visibility badge
+│   └── Subscribe button (form → toggleStackSubscription)
+│
+├── Collaborators Section (owner only)
+│   └── Add collaborator form → addCollaborator
+│
+├── SortablePdfGrid (Client Component)
+│   └── SortableTile[]
+│       ├── PdfLightbox (trigger)
+│       ├── Drag handle
+│       ├── CiteButton
+│       └── Remove button → removeFromStack
+│
+└── StackDiscussion (Server Component)
+    ├── CommentComposer (Client Component)
+    │   ├── Textarea
+    │   ├── Citations button
+    │   └── CitePickerInlinePro (conditional)
+    │
+    └── Comment List
+        └── Comment Row
+            ├── Author avatar
+            ├── Comment text
+            ├── Citation chips
+            ├── LiftToDebateButton
+            └── OpenInDiscussionsButton
+</div></code></pre>
+<h4 id="512-sortablepdfgrid">5.1.2 SortablePdfGrid</h4>
+<p><strong>Location:</strong> <code>components/stack/SortablePdfGrid.tsx</code></p>
+<p>Provides drag-and-drop reordering of PDF tiles with optimistic updates.</p>
+<pre class="hljs"><code><div>type StackPostTile = {
+  id: string;
+  title?: string | null;
+  file_url: string;
+  thumb_urls?: string[] | null;
+};
+
+type Props = {
+  stackId: string;
+  posts: StackPostTile[];
+  editable: boolean;
+};
+
+export default function SortablePdfGrid({ stackId, posts, editable }: Props) {
+  // Local optimistic state
+  const [items, setItems] = React.useState&lt;StackPostTile[]&gt;(posts);
+
+  // Sensors for pointer and keyboard
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  // Hidden form for server action
+  const formRef = React.useRef&lt;HTMLFormElement&gt;(null);
+  const orderInputRef = React.useRef&lt;HTMLInputElement&gt;(null);
+
+  function onDragEnd(evt: any) {
+    const { active, over } = evt;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((it) =&gt; it.id === String(active.id));
+    const newIndex = items.findIndex((it) =&gt; it.id === String(over.id));
+    
+    // Optimistic update
+    const next = arrayMove(items, oldIndex, newIndex);
+    setItems(next);
+
+    // Submit to server
+    const ids = next.map((i) =&gt; i.id);
+    orderInputRef.current!.value = JSON.stringify(ids);
+    formRef.current!.requestSubmit();
+  }
+
+  return (
+    &lt;&gt;
+      &lt;form action={setStackOrder} ref={formRef} className=&quot;hidden&quot;&gt;
+        &lt;input type=&quot;hidden&quot; name=&quot;stackId&quot; value={stackId} /&gt;
+        &lt;input type=&quot;hidden&quot; name=&quot;orderJson&quot; ref={orderInputRef} /&gt;
+      &lt;/form&gt;
+
+      &lt;DndContext sensors={sensors} onDragEnd={editable ? onDragEnd : undefined}&gt;
+        &lt;SortableContext items={items.map((i) =&gt; i.id)} strategy={rectSortingStrategy}&gt;
+          &lt;div className=&quot;grid grid-cols-2 sm:grid-cols-3 gap-3&quot;&gt;
+            {items.map((p) =&gt; (
+              &lt;SortableTile key={p.id} tile={p} editable={editable} stackId={stackId} /&gt;
+            ))}
+          &lt;/div&gt;
+        &lt;/SortableContext&gt;
+      &lt;/DndContext&gt;
+    &lt;/&gt;
+  );
+}
+</div></code></pre>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li>Uses <code>@dnd-kit/core</code> and <code>@dnd-kit/sortable</code></li>
+<li>Optimistic local state with form submission</li>
+<li>Distance activation constraint prevents accidental drags</li>
+</ul>
+<h4 id="513-stackdiscussion">5.1.3 StackDiscussion</h4>
+<p><strong>Location:</strong> <code>components/stack/StackDiscussion.tsx</code></p>
+<p>Server component that renders the discussion thread with citations.</p>
+<pre class="hljs"><code><div>export default async function StackDiscussion({
+  feedPostId,
+}: {
+  feedPostId: number | bigint;
+}) {
+  const rootId = BigInt(feedPostId);
+
+  // Fetch comments under the root FeedPost
+  const comments = await prisma.feedPost.findMany({
+    where: { parent_id: rootId },
+    orderBy: { created_at: &quot;asc&quot; },
+    select: {
+      id: true,
+      content: true,
+      created_at: true,
+      author: { select: { id: true, name: true, image: true } },
+    },
+  });
+
+  // Fetch citations for comments
+  const commentIds = comments.map((c) =&gt; c.id.toString());
+  const citations = await prisma.citation.findMany({
+    where: { targetType: &quot;comment&quot;, targetId: { in: commentIds } },
+    include: { source: true },
+  });
+
+  // Group citations by comment
+  const citesByComment = new Map&lt;string, typeof citations&gt;();
+  for (const cit of citations) {
+    const arr = citesByComment.get(cit.targetId) ?? [];
+    arr.push(cit);
+    citesByComment.set(cit.targetId, arr);
+  }
+
+  return (
+    &lt;div className=&quot;flex flex-col space-y-4&quot;&gt;
+      &lt;CommentComposer rootId={rootId.toString()} /&gt;
+      
+      &lt;div className=&quot;space-y-4&quot;&gt;
+        {comments.map((c) =&gt; (
+          &lt;CommentRow 
+            key={c.id.toString()} 
+            comment={c} 
+            citations={citesByComment.get(c.id.toString()) ?? []} 
+          /&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+</div></code></pre>
+<h4 id="514-lifttodebatebutton">5.1.4 LiftToDebateButton</h4>
+<p><strong>Location:</strong> <code>components/stack/LiftToDebateButton.tsx</code></p>
+<p>Client component that promotes a comment to a claim in the deliberation system.</p>
+<pre class="hljs"><code><div>export default function LiftToDebateButton({ 
+  commentId, 
+  hostType, 
+  hostId 
+}: {
+  commentId: string; 
+  hostType: string; 
+  hostId: string;
+}) {
+  async function go() {
+    const r = await fetch(&quot;/api/comments/lift&quot;, {
+      method: &quot;POST&quot;,
+      headers: { &quot;content-type&quot;: &quot;application/json&quot; },
+      body: JSON.stringify({ 
+        commentId, 
+        hostType,   // &quot;stack&quot;
+        hostId,     // stackId
+        as: &quot;claim&quot; 
+      }),
+    });
+    
+    const j = await r.json();
+    if (r.ok &amp;&amp; j?.deliberationId) {
+      location.href = `/deliberation/${j.deliberationId}`;
+    } else {
+      alert(j?.error || `Lift failed (HTTP ${r.status})`);
+    }
+  }
+  
+  return (
+    &lt;button onClick={go} className=&quot;btnv2 btnv2--sm text-xs&quot;&gt;
+      Deliberate
+    &lt;/button&gt;
+  );
+}
+</div></code></pre>
+<h4 id="515-commentcomposer">5.1.5 CommentComposer</h4>
+<p><strong>Location:</strong> <code>components/stack/CommentComposer.tsx</code></p>
+<p>Client component for posting comments with citation support.</p>
+<pre class="hljs"><code><div>export default function CommentComposer({ rootId }: { rootId: string }) {
+  const [text, setText] = React.useState(&quot;&quot;);
+  const [justPostedId, setJustPostedId] = React.useState&lt;string | null&gt;(null);
+  const [inlineOpen, setInlineOpen] = React.useState(false);
+  const [modalOpen, setModalOpen] = React.useState(false);
+
+  // Ensure we have a comment to attach citations to
+  async function ensureTargetComment() {
+    if (text.trim()) {
+      const fd = new FormData();
+      fd.set(&quot;rootId&quot;, String(rootId));
+      fd.set(&quot;text&quot;, text);
+      const id = await addStackComment(fd);
+      setJustPostedId(String(id));
+      setText(&quot;&quot;);
+      return String(id);
+    }
+    if (justPostedId) return justPostedId;
+    // Create placeholder
+    const fd = new FormData();
+    fd.set(&quot;rootId&quot;, String(rootId));
+    fd.set(&quot;text&quot;, &quot;Sources:&quot;);
+    const id = await addStackComment(fd);
+    setJustPostedId(String(id));
+    return String(id);
+  }
+
+  // Listen for cite events from PDF tiles
+  React.useEffect(() =&gt; {
+    async function handleCite(ev: CustomEvent) {
+      const { mode, libraryPostId, locator, quote, note } = ev.detail;
+      const targetId = await ensureTargetComment();
+
+      if (mode === &quot;quick&quot; &amp;&amp; libraryPostId) {
+        // Immediate resolve + attach
+        const r = await fetch(&quot;/api/citations/resolve&quot;, {
+          method: &quot;POST&quot;,
+          body: JSON.stringify({ libraryPostId }),
+        });
+        const { source } = await r.json();
+        
+        await fetch(&quot;/api/citations/attach&quot;, {
+          method: &quot;POST&quot;,
+          body: JSON.stringify({
+            targetType: &quot;comment&quot;,
+            targetId,
+            sourceId: source.id,
+            locator, quote, note,
+          }),
+        });
+        
+        window.dispatchEvent(new CustomEvent(&quot;citations:changed&quot;));
+      } else {
+        // Open modal for detailed citation
+        setModalOpen(true);
+      }
+    }
+
+    window.addEventListener(&quot;composer:cite&quot;, handleCite);
+    return () =&gt; window.removeEventListener(&quot;composer:cite&quot;, handleCite);
+  }, [rootId, justPostedId, text]);
+
+  return (
+    &lt;div className=&quot;flex flex-col gap-2&quot;&gt;
+      &lt;form action={addStackComment} className=&quot;flex items-start gap-3&quot;&gt;
+        &lt;input type=&quot;hidden&quot; name=&quot;rootId&quot; value={rootId} /&gt;
+        &lt;textarea
+          name=&quot;text&quot;
+          value={text}
+          onChange={(e) =&gt; setText(e.target.value)}
+          placeholder=&quot;Add a comment…&quot;
+          className=&quot;flex-1 border rounded-xl&quot;
+        /&gt;
+        &lt;button type=&quot;submit&quot;&gt;Send&lt;/button&gt;
+        &lt;button type=&quot;button&quot; onClick={() =&gt; setInlineOpen(true)}&gt;
+          Citations
+        &lt;/button&gt;
+      &lt;/form&gt;
+
+      {inlineOpen &amp;&amp; justPostedId &amp;&amp; (
+        &lt;CitePickerInlinePro
+          targetType=&quot;comment&quot;
+          targetId={justPostedId}
+          onDone={() =&gt; setInlineOpen(false)}
+        /&gt;
+      )}
+    &lt;/div&gt;
+  );
+}
+</div></code></pre>
+<h3 id="52-citation-components">5.2 Citation Components</h3>
+<h4 id="521-citepickerinlinepro">5.2.1 CitePickerInlinePro</h4>
+<p><strong>Location:</strong> <code>components/citations/CitePickerInlinePro.tsx</code></p>
+<p>Full-featured citation picker with URL, DOI, and Library tabs.</p>
+<pre class="hljs"><code><div>type Props = {
+  targetType: &quot;comment&quot; | &quot;claim&quot; | &quot;argument&quot; | &quot;card&quot; | &quot;move&quot; | &quot;work&quot; | &quot;proposition&quot;;
+  targetId: string;
+  onDone?: () =&gt; void;
+  initialUrl?: string;
+  initialDOI?: string;
+  initialLocator?: string;
+  initialQuote?: string;
+  initialNote?: string;
+};
+
+export default function CitePickerInlinePro({
+  targetType,
+  targetId,
+  onDone,
+  ...prefills
+}: Props) {
+  const [tab, setTab] = React.useState&lt;&quot;url&quot; | &quot;doi&quot; | &quot;library&quot;&gt;(&quot;url&quot;);
+  
+  // Form state for each tab
+  const [url, setUrl] = React.useState(prefills.initialUrl ?? &quot;&quot;);
+  const [doi, setDoi] = React.useState(prefills.initialDOI ?? &quot;&quot;);
+  const [libraryId, setLibraryId] = React.useState(&quot;&quot;);
+  
+  // Common fields
+  const [locator, setLocator] = React.useState(prefills.initialLocator ?? &quot;&quot;);
+  const [quote, setQuote] = React.useState(prefills.initialQuote ?? &quot;&quot;);
+  const [note, setNote] = React.useState(prefills.initialNote ?? &quot;&quot;);
+
+  async function doAttach() {
+    let sourceId: string;
+
+    // Resolve source based on active tab
+    if (tab === &quot;url&quot;) {
+      const { source } = await resolveSource({ url });
+      sourceId = source.id;
+    } else if (tab === &quot;doi&quot;) {
+      const { source } = await resolveSource({ doi });
+      sourceId = source.id;
+    } else {
+      const { source } = await resolveSource({ libraryPostId: libraryId });
+      sourceId = source.id;
+    }
+
+    // Attach to target
+    await attachCitation({
+      targetType,
+      targetId,
+      sourceId,
+      locator: locator || undefined,
+      quote: quote || undefined,
+      note: note || undefined,
+    });
+
+    // Notify listeners
+    window.dispatchEvent(new CustomEvent(&quot;citations:changed&quot;, {
+      detail: { targetType, targetId }
+    }));
+
+    onDone?.();
+  }
+
+  return (
+    &lt;div className=&quot;border rounded-xl p-3&quot;&gt;
+      {/* Tab buttons */}
+      &lt;div className=&quot;flex gap-2 mb-2&quot;&gt;
+        {[&quot;url&quot;, &quot;doi&quot;, &quot;library&quot;].map((t) =&gt; (
+          &lt;button
+            key={t}
+            className={tab === t ? &quot;bg-slate-300&quot; : &quot;bg-white&quot;}
+            onClick={() =&gt; setTab(t as any)}
+          &gt;
+            {t.toUpperCase()}
+          &lt;/button&gt;
+        ))}
+      &lt;/div&gt;
+
+      {/* Tab content */}
+      {tab === &quot;url&quot; &amp;&amp; &lt;UrlInput value={url} onChange={setUrl} /&gt;}
+      {tab === &quot;doi&quot; &amp;&amp; &lt;DoiInput value={doi} onChange={setDoi} /&gt;}
+      {tab === &quot;library&quot; &amp;&amp; (
+        &lt;LibraryPicker value={libraryId} onChange={setLibraryId} /&gt;
+      )}
+
+      {/* Common fields */}
+      &lt;input placeholder=&quot;Locator (p. 13, fig. 2)&quot; value={locator} onChange={...} /&gt;
+      &lt;input placeholder=&quot;Note&quot; value={note} onChange={...} /&gt;
+      &lt;textarea placeholder=&quot;Quote (≤280 chars)&quot; value={quote} onChange={...} /&gt;
+
+      {/* Submit */}
+      &lt;button onClick={doAttach}&gt;Attach citation&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</div></code></pre>
+<h4 id="522-citationcollector">5.2.2 CitationCollector</h4>
+<p><strong>Location:</strong> <code>components/citations/CitationCollector.tsx</code></p>
+<p>Collects citations before the target entity exists (for composition flows).</p>
+<pre class="hljs"><code><div>type PendingCitation = {
+  type: &quot;url&quot; | &quot;doi&quot; | &quot;library&quot;;
+  value: string;
+  locator?: string;
+  quote?: string;
+  note?: string;
+  title?: string;
+  quality?: &quot;strong&quot; | &quot;moderate&quot; | &quot;weak&quot;;
+};
+
+type Props = {
+  citations: PendingCitation[];
+  onChange: (citations: PendingCitation[]) =&gt; void;
+  showQualityHints?: boolean;
+};
+
+export default function CitationCollector({ citations, onChange }: Props) {
+  const [showForm, setShowForm] = React.useState(false);
+  const [tab, setTab] = React.useState&lt;&quot;url&quot; | &quot;doi&quot; | &quot;library&quot;&gt;(&quot;url&quot;);
+
+  function addCitation() {
+    let newCitation: PendingCitation | null = null;
+
+    if (tab === &quot;url&quot; &amp;&amp; url.trim()) {
+      newCitation = { type: &quot;url&quot;, value: url.trim(), ... };
+    } else if (tab === &quot;doi&quot; &amp;&amp; doi.trim()) {
+      newCitation = { type: &quot;doi&quot;, value: doi.trim(), ... };
+    } else if (tab === &quot;library&quot; &amp;&amp; libraryId.trim()) {
+      newCitation = { type: &quot;library&quot;, value: libraryId.trim(), ... };
+    }
+
+    if (newCitation) {
+      onChange([...citations, newCitation]);
+      resetForm();
+    }
+  }
+
+  function removeCitation(index: number) {
+    onChange(citations.filter((_, i) =&gt; i !== index));
+  }
+
+  return (
+    &lt;div&gt;
+      &lt;div className=&quot;flex gap-3 mb-2&quot;&gt;
+        &lt;label&gt;Evidence &amp; Citations&lt;/label&gt;
+        &lt;button onClick={() =&gt; setShowForm(!showForm)}&gt;
+          {showForm ? &quot;Hide&quot; : &quot;Add citation&quot;}
+        &lt;/button&gt;
+      &lt;/div&gt;
+
+      {showForm &amp;&amp; &lt;CitationForm onAdd={addCitation} /&gt;}
+
+      {/* Display pending citations */}
+      &lt;div className=&quot;flex flex-wrap gap-1&quot;&gt;
+        {citations.map((c, i) =&gt; (
+          &lt;CitationBadge key={i} citation={c} onRemove={() =&gt; removeCitation(i)} /&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+</div></code></pre>
+<p><strong>Usage Pattern:</strong></p>
+<pre class="hljs"><code><div>// In PropositionComposerPro or ArgumentComposer
+const [citations, setCitations] = useState&lt;PendingCitation[]&gt;([]);
+
+// On submit:
+const proposition = await createProposition(...);
+for (const c of citations) {
+  const source = await resolveSource(c);
+  await attachCitation({ targetType: &quot;proposition&quot;, targetId: proposition.id, sourceId: source.id });
+}
+</div></code></pre>
+<h4 id="523-librarysearchmodal">5.2.3 LibrarySearchModal</h4>
+<p><strong>Location:</strong> <code>components/citations/LibrarySearchModal.tsx</code></p>
+<p>Modal for searching the user's library items.</p>
+<pre class="hljs"><code><div>export default function LibrarySearchModal({
+  open,
+  onOpenChange,
+  onPick,
+  trigger,
+}: {
+  open?: boolean;
+  onOpenChange?: (v: boolean) =&gt; void;
+  onPick: (libraryPostId: string) =&gt; void;
+  trigger?: React.ReactNode;
+}) {
+  const [q, setQ] = React.useState(&quot;&quot;);
+  const [items, setItems] = React.useState&lt;any[]&gt;([]);
+  const [busy, setBusy] = React.useState(false);
+
+  async function search() {
+    setBusy(true);
+    const res = await fetch(`/api/library/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    setItems(data.items ?? []);
+    setBusy(false);
+  }
+
+  return (
+    &lt;Dialog open={open} onOpenChange={onOpenChange}&gt;
+      {trigger &amp;&amp; &lt;DialogTrigger asChild&gt;{trigger}&lt;/DialogTrigger&gt;}
+      &lt;DialogContent&gt;
+        &lt;DialogHeader&gt;
+          &lt;DialogTitle&gt;Find a library item&lt;/DialogTitle&gt;
+        &lt;/DialogHeader&gt;
+
+        &lt;div className=&quot;flex gap-2&quot;&gt;
+          &lt;input
+            placeholder=&quot;Search your library…&quot;
+            value={q}
+            onChange={(e) =&gt; setQ(e.target.value)}
+          /&gt;
+          &lt;button onClick={search} disabled={busy}&gt;Search&lt;/button&gt;
+        &lt;/div&gt;
+
+        &lt;div className=&quot;max-h-[50vh] overflow-y-auto&quot;&gt;
+          {items.map((it) =&gt; (
+            &lt;div key={it.id} className=&quot;flex justify-between p-2 border-b&quot;&gt;
+              &lt;span&gt;{it.title || it.file_url}&lt;/span&gt;
+              &lt;button onClick={() =&gt; { onPick(it.id); onOpenChange?.(false); }}&gt;
+                Pick
+              &lt;/button&gt;
+            &lt;/div&gt;
+          ))}
+        &lt;/div&gt;
+      &lt;/DialogContent&gt;
+    &lt;/Dialog&gt;
+  );
+}
+</div></code></pre>
+<h3 id="53-feed-integration-components">5.3 Feed Integration Components</h3>
+<h4 id="531-librarycard">5.3.1 LibraryCard</h4>
+<p><strong>Location:</strong> <code>components/cards/LibraryCard.tsx</code></p>
+<p>Renders stacks and single PDFs in the social feed.</p>
+<pre class="hljs"><code><div>export type LibraryCardProps = {
+  kind: &quot;single&quot; | &quot;stack&quot;;
+  coverUrl?: string;              // For single PDF
+  libraryPostId?: string;
+  stackId?: string;               // For stacks
+  coverUrls?: string[];           // Stack thumbnails
+  size?: number;                  // Stack size
+  caption?: string | null;
+  onOpenPdf?: (libraryPostId: string) =&gt; void;
+  onOpenStack?: (stackId: string) =&gt; void;
+};
+
+export default function LibraryCard(props: LibraryCardProps) {
+  const { kind, coverUrl, coverUrls = [], size = 0, caption, ... } = props;
+
+  if (kind === &quot;single&quot;) {
+    if (coverUrl) {
+      return (
+        &lt;div&gt;
+          &lt;img src={coverUrl} onClick={() =&gt; onOpenPdf?.(libraryPostId!)} /&gt;
+          {caption &amp;&amp; &lt;div className=&quot;text-sm&quot;&gt;{caption}&lt;/div&gt;}
+        &lt;/div&gt;
+      );
+    }
+    return &lt;Placeholder label=&quot;PDF&quot; sublabel={caption} onClick={...} /&gt;;
+  }
+
+  if (kind === &quot;stack&quot;) {
+    if (size &lt;= 10 &amp;&amp; coverUrls.length &gt; 0) {
+      return &lt;StackCarousel urls={coverUrls} caption={caption} /&gt;;
+    }
+    
+    if (coverUrls.length &gt; 0) {
+      // 2x2 collage for large stacks
+      return (
+        &lt;div className=&quot;grid grid-cols-2 gap-1&quot;&gt;
+          {coverUrls.slice(0, 4).map((u, i) =&gt; (
+            &lt;img key={i} src={u} className=&quot;aspect-[4/3] object-cover&quot; /&gt;
+          ))}
+        &lt;/div&gt;
+      );
+    }
+    
+    return &lt;Placeholder label={`Stack (${size})`} onClick={...} /&gt;;
+  }
+
+  return null;
+}
+</div></code></pre>
+<h3 id="54-evidence-components">5.4 Evidence Components</h3>
+<h4 id="541-evidencelist">5.4.1 EvidenceList</h4>
+<p><strong>Location:</strong> <code>components/evidence/EvidenceList.tsx</code></p>
+<p>Displays all sources used in a deliberation with usage metrics and ratings.</p>
+<pre class="hljs"><code><div>type EvidenceSource = {
+  sourceId: string;
+  title: string;
+  url: string;
+  type: string;
+  authorsJson: any;
+  year: number | null;
+  usageCount: number;
+  usedInArguments: number;
+  usedInClaims: number;
+  uniqueUsers: number;
+  averageRating: number | null;
+  ratingCount: number;
+};
+
+export function EvidenceList({ deliberationId }: { deliberationId: string }) {
+  const [sortBy, setSortBy] = React.useState&lt;&quot;usage&quot; | &quot;rating&quot;&gt;(&quot;usage&quot;);
+  const [selectedSource, setSelectedSource] = React.useState&lt;string | null&gt;(null);
+
+  const { data, mutate } = useSWR(
+    `/api/deliberations/${deliberationId}/sources`,
+    fetcher
+  );
+
+  const sources = data?.sources || [];
+
+  const sortedSources = React.useMemo(() =&gt; {
+    const sorted = [...sources];
+    if (sortBy === &quot;usage&quot;) {
+      sorted.sort((a, b) =&gt; b.usageCount - a.usageCount);
+    } else {
+      sorted.sort((a, b) =&gt; (b.averageRating || 0) - (a.averageRating || 0));
+    }
+    return sorted;
+  }, [sources, sortBy]);
+
+  async function submitRating(sourceId: string, rating: number) {
+    await fetch(`/api/sources/${sourceId}/rate`, {
+      method: &quot;POST&quot;,
+      body: JSON.stringify({ rating }),
+    });
+    mutate(); // Refresh
+  }
+
+  return (
+    &lt;div className=&quot;space-y-4&quot;&gt;
+      {/* Header with stats and sort */}
+      &lt;div className=&quot;flex justify-between&quot;&gt;
+        &lt;span&gt;{data?.totalSources} Sources • {data?.totalCitations} citations&lt;/span&gt;
+        &lt;select value={sortBy} onChange={(e) =&gt; setSortBy(e.target.value)}&gt;
+          &lt;option value=&quot;usage&quot;&gt;Most Used&lt;/option&gt;
+          &lt;option value=&quot;rating&quot;&gt;Highest Rated&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/div&gt;
+
+      {/* Source list */}
+      {sortedSources.map((source) =&gt; (
+        &lt;SourceCard
+          key={source.sourceId}
+          source={source}
+          onRate={(rating) =&gt; submitRating(source.sourceId, rating)}
+        /&gt;
+      ))}
+    &lt;/div&gt;
+  );
+}
+</div></code></pre>
+<hr>
+<h2 id="6-api-specifications">6. API Specifications</h2>
+<h3 id="61-library-routes">6.1 Library Routes</h3>
+<h4 id="post-apilibraryupload">POST /api/library/upload</h4>
+<p>Uploads PDF files with optional preview images.</p>
+<p><strong>Request:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-attribute">POST /api/library/upload
+Content-Type</span>: multipart/form-data
+
+<span class="vim"><span class="hljs-keyword">file</span><span class="hljs-variable">s:</span> File[]               # Required: PDF <span class="hljs-keyword">files</span>
+preview<span class="hljs-variable">s:</span> JSON <span class="hljs-built_in">string</span>       # Optiona<span class="hljs-variable">l:</span> base64 data URLs <span class="hljs-keyword">for</span> previews
+stackId: <span class="hljs-built_in">string</span>             # Optiona<span class="hljs-variable">l:</span> existing stack ID
+stackName: <span class="hljs-built_in">string</span>           # Optiona<span class="hljs-variable">l:</span> create/<span class="hljs-keyword">find</span> stack by name
+isPublic: <span class="hljs-string">"true"</span> | <span class="hljs-string">"false"</span>  # Optiona<span class="hljs-variable">l:</span> stack visibility
+</span></div></code></pre>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"stackId"</span>: <span class="hljs-string">"clxxxx"</span>,
+  <span class="hljs-attr">"posts"</span>: [
+    {
+      <span class="hljs-attr">"id"</span>: <span class="hljs-string">"clyyyy"</span>,
+      <span class="hljs-attr">"file_url"</span>: <span class="hljs-string">"https://supabase.../pdfs/user/hash.pdf"</span>,
+      <span class="hljs-attr">"thumb_urls"</span>: [<span class="hljs-string">"https://supabase.../pdf-thumbs/user/hash.png"</span>]
+    }
+  ]
+}
+</div></code></pre>
+<p><strong>Implementation Flow:</strong></p>
+<ol>
+<li>Authenticate user</li>
+<li>Validate stack permissions if <code>stackId</code> provided</li>
+<li>Get or create stack via <code>getOrCreateStackId()</code></li>
+<li>For each file:
+<ul>
+<li>Generate safe filename</li>
+<li>Upload to Supabase <code>pdfs</code> bucket</li>
+<li>If preview provided, upload to <code>pdf-thumbs</code> bucket</li>
+<li>Create <code>LibraryPost</code> record</li>
+</ul>
+</li>
+<li>Update <code>stack.order</code> array</li>
+<li>Return created resources</li>
+</ol>
+<h4 id="get-apilibrarysearch">GET /api/library/search</h4>
+<p>Searches the user's library items.</p>
+<p><strong>Request:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-attribute">GET /api/library/search?q=keyword
+</span></div></code></pre>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"items"</span>: [
+    {
+      <span class="hljs-attr">"id"</span>: <span class="hljs-string">"clxxxx"</span>,
+      <span class="hljs-attr">"title"</span>: <span class="hljs-string">"Research Paper.pdf"</span>,
+      <span class="hljs-attr">"file_url"</span>: <span class="hljs-string">"https://..."</span>,
+      <span class="hljs-attr">"thumb_urls"</span>: [<span class="hljs-string">"https://..."</span>],
+      <span class="hljs-attr">"stack_id"</span>: <span class="hljs-string">"clyyyy"</span>
+    }
+  ]
+}
+</div></code></pre>
+<h3 id="62-citation-routes">6.2 Citation Routes</h3>
+<h4 id="post-apicitationsresolve">POST /api/citations/resolve</h4>
+<p>Finds or creates a Source from URL, DOI, or LibraryPost.</p>
+<p><strong>Request:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://example.com/article"</span>,    <span class="hljs-comment">// Option 1</span>
+  <span class="hljs-attr">"doi"</span>: <span class="hljs-string">"10.1234/example"</span>,                 <span class="hljs-comment">// Option 2</span>
+  <span class="hljs-attr">"libraryPostId"</span>: <span class="hljs-string">"clxxxx"</span>,               <span class="hljs-comment">// Option 3</span>
+  <span class="hljs-attr">"meta"</span>: {                                 <span class="hljs-comment">// Optional metadata</span>
+    <span class="hljs-attr">"title"</span>: <span class="hljs-string">"Article Title"</span>,
+    <span class="hljs-attr">"authorsJson"</span>: [{<span class="hljs-attr">"family"</span>: <span class="hljs-string">"Smith"</span>, <span class="hljs-attr">"given"</span>: <span class="hljs-string">"John"</span>}],
+    <span class="hljs-attr">"year"</span>: <span class="hljs-number">2024</span>
+  }
+}
+</div></code></pre>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"source"</span>: {
+    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"clxxxx"</span>,
+    <span class="hljs-attr">"title"</span>: <span class="hljs-string">"Article Title"</span>,
+    <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://example.com/article"</span>,
+    <span class="hljs-attr">"kind"</span>: <span class="hljs-string">"web"</span>,
+    <span class="hljs-attr">"platform"</span>: <span class="hljs-string">"web"</span>
+  }
+}
+</div></code></pre>
+<p><strong>Implementation:</strong></p>
+<ol>
+<li>Normalize input to canonical form</li>
+<li>Compute SHA1 fingerprint</li>
+<li>Search for existing Source by fingerprint/url/doi</li>
+<li>If found, return existing</li>
+<li>If not found, create new Source with metadata</li>
+<li>Return source record</li>
+</ol>
+<h4 id="post-apicitationsattach">POST /api/citations/attach</h4>
+<p>Attaches a Source to a target entity.</p>
+<p><strong>Request:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"targetType"</span>: <span class="hljs-string">"argument"</span>,    <span class="hljs-comment">// argument | claim | card | comment | move | proposition</span>
+  <span class="hljs-attr">"targetId"</span>: <span class="hljs-string">"clxxxx"</span>,
+  <span class="hljs-attr">"sourceId"</span>: <span class="hljs-string">"clyyyy"</span>,
+  <span class="hljs-attr">"locator"</span>: <span class="hljs-string">"p. 13-15"</span>,       <span class="hljs-comment">// Optional</span>
+  <span class="hljs-attr">"quote"</span>: <span class="hljs-string">"Key excerpt..."</span>,   <span class="hljs-comment">// Optional, ≤280 chars</span>
+  <span class="hljs-attr">"note"</span>: <span class="hljs-string">"Supports claim X"</span>,  <span class="hljs-comment">// Optional</span>
+  <span class="hljs-attr">"relevance"</span>: <span class="hljs-number">4</span>               <span class="hljs-comment">// Optional, 1-5</span>
+}
+</div></code></pre>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"citation"</span>: {
+    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"clzzzz"</span>,
+    <span class="hljs-attr">"targetType"</span>: <span class="hljs-string">"argument"</span>,
+    <span class="hljs-attr">"targetId"</span>: <span class="hljs-string">"clxxxx"</span>,
+    <span class="hljs-attr">"sourceId"</span>: <span class="hljs-string">"clyyyy"</span>,
+    <span class="hljs-attr">"locator"</span>: <span class="hljs-string">"p. 13-15"</span>,
+    <span class="hljs-attr">"createdAt"</span>: <span class="hljs-string">"2025-12-15T..."</span>
+  }
+}
+</div></code></pre>
+<h4 id="get-apicitationsbatch">GET /api/citations/batch</h4>
+<p>Fetches citations for multiple targets.</p>
+<p><strong>Request:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-attribute">GET /api/citations/batch?targetType=claim&amp;targetIds=id1,id2,id3
+</span></div></code></pre>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"items"</span>: {
+    <span class="hljs-attr">"id1"</span>: [{ <span class="hljs-attr">"id"</span>: <span class="hljs-string">"..."</span>, <span class="hljs-attr">"source"</span>: {...}, <span class="hljs-attr">"locator"</span>: <span class="hljs-string">"..."</span> }],
+    <span class="hljs-attr">"id2"</span>: [{ <span class="hljs-attr">"id"</span>: <span class="hljs-string">"..."</span>, <span class="hljs-attr">"source"</span>: {...} }],
+    <span class="hljs-attr">"id3"</span>: []
+  }
+}
+</div></code></pre>
+<h3 id="63-commentlift-routes">6.3 Comment/Lift Routes</h3>
+<h4 id="post-apicommentslift">POST /api/comments/lift</h4>
+<p>Promotes a stack comment to a claim in the deliberation system.</p>
+<p><strong>Request:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"commentId"</span>: <span class="hljs-string">"123456789"</span>,    <span class="hljs-comment">// FeedPost ID (bigint as string)</span>
+  <span class="hljs-attr">"hostType"</span>: <span class="hljs-string">"stack"</span>,         <span class="hljs-comment">// Normalized to library_stack</span>
+  <span class="hljs-attr">"hostId"</span>: <span class="hljs-string">"clxxxx"</span>,          <span class="hljs-comment">// Stack ID</span>
+  <span class="hljs-attr">"as"</span>: <span class="hljs-string">"claim"</span>                <span class="hljs-comment">// Currently only "claim" supported</span>
+}
+</div></code></pre>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"deliberationId"</span>: <span class="hljs-string">"clyyyy"</span>,
+  <span class="hljs-attr">"claimId"</span>: <span class="hljs-string">"clzzzz"</span>
+}
+</div></code></pre>
+<p><strong>Implementation:</strong></p>
+<ol>
+<li>Authenticate user</li>
+<li>Normalize <code>hostType</code> → <code>DeliberationHostType.library_stack</code></li>
+<li>Find or create Deliberation with hostType/hostId</li>
+<li>Fetch comment text from FeedPost</li>
+<li>Create Claim with text</li>
+<li>Create DialogueMove (kind: ASSERT)</li>
+<li>Emit bus events for real-time updates</li>
+<li>Return IDs for client redirect</li>
+</ol>
+<h3 id="64-deliberation-sources-route">6.4 Deliberation Sources Route</h3>
+<h4 id="get-apideliberationsidsources">GET /api/deliberations/[id]/sources</h4>
+<p>Fetches all sources used in a deliberation with aggregated metrics.</p>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"totalSources"</span>: <span class="hljs-number">12</span>,
+  <span class="hljs-attr">"totalCitations"</span>: <span class="hljs-number">47</span>,
+  <span class="hljs-attr">"sources"</span>: [
+    {
+      <span class="hljs-attr">"sourceId"</span>: <span class="hljs-string">"clxxxx"</span>,
+      <span class="hljs-attr">"title"</span>: <span class="hljs-string">"Research Paper"</span>,
+      <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://..."</span>,
+      <span class="hljs-attr">"type"</span>: <span class="hljs-string">"article"</span>,
+      <span class="hljs-attr">"authorsJson"</span>: [...],
+      <span class="hljs-attr">"year"</span>: <span class="hljs-number">2024</span>,
+      <span class="hljs-attr">"usageCount"</span>: <span class="hljs-number">8</span>,
+      <span class="hljs-attr">"usedInArguments"</span>: <span class="hljs-number">5</span>,
+      <span class="hljs-attr">"usedInClaims"</span>: <span class="hljs-number">3</span>,
+      <span class="hljs-attr">"uniqueUsers"</span>: <span class="hljs-number">4</span>,
+      <span class="hljs-attr">"firstUsed"</span>: <span class="hljs-string">"2025-12-01T..."</span>,
+      <span class="hljs-attr">"lastUsed"</span>: <span class="hljs-string">"2025-12-15T..."</span>,
+      <span class="hljs-attr">"averageRating"</span>: <span class="hljs-number">7.5</span>,
+      <span class="hljs-attr">"ratingCount"</span>: <span class="hljs-number">6</span>
+    }
+  ]
+}
+</div></code></pre>
+<hr>
+<h2 id="7-citation-pipeline">7. Citation Pipeline</h2>
+<h3 id="71-pipeline-overview">7.1 Pipeline Overview</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          CITATION PIPELINE                                       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  INPUT SOURCES                      RESOLUTION                    OUTPUT        │
+│  ────────────────                   ──────────                   ───────        │
+│                                                                                  │
+│  ┌─────────────┐                 ┌──────────────┐             ┌─────────────┐  │
+│  │   URL       │────┐            │   /resolve   │             │   Source    │  │
+│  │ https://... │    │            │              │             │             │  │
+│  └─────────────┘    │            │ 1. Normalize │             │ id          │  │
+│                     │            │ 2. Fingerprint│───────────▶│ title       │  │
+│  ┌─────────────┐    ├───────────▶│ 3. Find/Create             │ url/doi     │  │
+│  │   DOI       │    │            │              │             │ platform    │  │
+│  │ 10.xxx/...  │────┤            └──────────────┘             │ fingerprint │  │
+│  └─────────────┘    │                    │                    └──────┬──────┘  │
+│                     │                    │                           │         │
+│  ┌─────────────┐    │                    │                           │         │
+│  │ LibraryPost │────┘                    │                           │         │
+│  │ clxxxx      │                         │                           │         │
+│  └─────────────┘                         │                           │         │
+│                                          ▼                           │         │
+│                                   ┌──────────────┐                   │         │
+│                                   │   /attach    │                   │         │
+│                                   │              │                   │         │
+│  TARGET ENTITIES                  │ targetType   │                   │         │
+│  ────────────────                 │ targetId     │◀──────────────────┘         │
+│                                   │ sourceId     │                             │
+│  • Argument                       │ locator?     │                             │
+│  • Claim                          │ quote?       │                             │
+│  • Comment                        │ note?        │                             │
+│  • Card                           │              │                             │
+│  • Move                           └──────┬───────┘                             │
+│  • Proposition                           │                                      │
+│                                          ▼                                      │
+│                                   ┌──────────────┐                             │
+│                                   │   Citation   │                             │
+│                                   │              │                             │
+│                                   │ id           │                             │
+│                                   │ targetType   │                             │
+│                                   │ targetId     │                             │
+│                                   │ sourceId     │                             │
+│                                   │ locator      │                             │
+│                                   │ quote        │                             │
+│                                   └──────────────┘                             │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="72-source-resolution">7.2 Source Resolution</h3>
+<h4 id="721-fingerprint-computation">7.2.1 Fingerprint Computation</h4>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fpFrom</span>(<span class="hljs-params">parts: {
+  doi?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  url?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  libraryPostId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  workId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+}</span>) </span>{
+  <span class="hljs-keyword">const</span> base =
+    (parts.doi?.toLowerCase() || <span class="hljs-string">""</span>) +
+    <span class="hljs-string">"|"</span> +
+    (parts.url?.toLowerCase() || <span class="hljs-string">""</span>) +
+    <span class="hljs-string">"|"</span> +
+    (parts.libraryPostId || <span class="hljs-string">""</span>) +
+    <span class="hljs-string">"|"</span> +
+    (parts.workId || <span class="hljs-string">""</span>);
+  <span class="hljs-keyword">return</span> crypto.createHash(<span class="hljs-string">"sha1"</span>).update(base, <span class="hljs-string">"utf8"</span>).digest(<span class="hljs-string">"hex"</span>);
+}
+</div></code></pre>
+<h4 id="722-url-canonicalization">7.2.2 URL Canonicalization</h4>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">canonicalUrl</span>(<span class="hljs-params">u?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span></span>) </span>{
+  <span class="hljs-keyword">if</span> (!u) <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> url = <span class="hljs-keyword">new</span> URL(u);
+    url.hash = <span class="hljs-string">""</span>;  <span class="hljs-comment">// Remove fragment</span>
+    <span class="hljs-comment">// Remove tracking parameters</span>
+    [<span class="hljs-string">"utm_source"</span>, <span class="hljs-string">"utm_medium"</span>, <span class="hljs-string">"utm_campaign"</span>, <span class="hljs-string">"utm_term"</span>, <span class="hljs-string">"utm_content"</span>]
+      .forEach(<span class="hljs-function">(<span class="hljs-params">k</span>) =&gt;</span> url.searchParams.delete(k));
+    <span class="hljs-keyword">return</span> url.toString();
+  } <span class="hljs-keyword">catch</span> {
+    <span class="hljs-keyword">return</span> u.trim();
+  }
+}
+</div></code></pre>
+<h4 id="723-platform-inference">7.2.3 Platform Inference</h4>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">inferPlatform</span>(<span class="hljs-params">u?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span></span>) </span>{
+  <span class="hljs-keyword">if</span> (!u) <span class="hljs-keyword">return</span> <span class="hljs-string">"web"</span>;
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> h = <span class="hljs-keyword">new</span> URL(u).hostname;
+    <span class="hljs-keyword">if</span> (h.includes(<span class="hljs-string">"arxiv"</span>)) <span class="hljs-keyword">return</span> <span class="hljs-string">"arxiv"</span>;
+    <span class="hljs-keyword">if</span> (h.includes(<span class="hljs-string">"substack"</span>)) <span class="hljs-keyword">return</span> <span class="hljs-string">"substack"</span>;
+    <span class="hljs-keyword">if</span> (h.includes(<span class="hljs-string">"youtube"</span>) || h.includes(<span class="hljs-string">"youtu.be"</span>)) <span class="hljs-keyword">return</span> <span class="hljs-string">"youtube"</span>;
+    <span class="hljs-keyword">return</span> <span class="hljs-string">"web"</span>;
+  } <span class="hljs-keyword">catch</span> {
+    <span class="hljs-keyword">return</span> <span class="hljs-string">"web"</span>;
+  }
+}
+</div></code></pre>
+<h3 id="73-citation-attachment-patterns">7.3 Citation Attachment Patterns</h3>
+<h4 id="731-quick-cite-from-pdf-tile">7.3.1 Quick Cite (from PDF Tile)</h4>
+<pre class="hljs"><code><div>User clicks [Cite] on PDF tile
+        │
+        ▼
+CiteButton dispatches CustomEvent
+  { libraryPostId, mode: &quot;quick&quot; }
+        │
+        ▼
+CommentComposer.handleCite()
+        │
+        ├─── ensureTargetComment()
+        │    (creates comment if needed)
+        │
+        ▼
+POST /api/citations/resolve
+  { libraryPostId }
+        │
+        ▼
+POST /api/citations/attach
+  { targetType: &quot;comment&quot;, targetId, sourceId }
+        │
+        ▼
+Dispatch &quot;citations:changed&quot; event
+</div></code></pre>
+<h4 id="732-detailed-cite-with-modal">7.3.2 Detailed Cite (with Modal)</h4>
+<pre class="hljs"><code><div>User clicks [Cite with details...]
+        │
+        ▼
+CitePickerModal opens
+        │
+        ▼
+User selects tab (URL/DOI/Library)
+User fills locator, quote, note
+        │
+        ▼
+Click [Attach citation]
+        │
+        ▼
+doAttach()
+  ├─── resolveSource({ url | doi | libraryPostId })
+  └─── attachCitation({ targetType, targetId, sourceId, locator, quote, note })
+        │
+        ▼
+Modal closes, citations:changed dispatched
+</div></code></pre>
+<h4 id="733-pre-composition-collection">7.3.3 Pre-Composition Collection</h4>
+<pre class="hljs"><code><div>PropositionComposerPro / ArgumentComposer
+        │
+        ▼
+CitationCollector manages PendingCitation[]
+        │
+        ▼
+User adds citations (stored in state)
+        │
+        ▼
+On Submit:
+  1. Create Proposition/Argument
+  2. For each PendingCitation:
+     a. resolveSource(citation)
+     b. attachCitation({ targetType, targetId: newEntity.id, sourceId })
+</div></code></pre>
+<h3 id="74-evidence-aggregation">7.4 Evidence Aggregation</h3>
+<pre class="hljs"><code><div>GET /api/deliberations/{id}/sources
+        │
+        ▼
+┌────────────────────────────────────────────────────────────────────────────────┐
+│  1. Find all Arguments in deliberation                                          │
+│  2. Find all Claims in deliberation                                             │
+│  3. Query Citations where:                                                       │
+│     - (targetType: &quot;argument&quot; AND targetId IN argumentIds) OR                   │
+│     - (targetType: &quot;claim&quot; AND targetId IN claimIds)                            │
+│  4. Group by sourceId:                                                          │
+│     - Count total uses                                                          │
+│     - Count uses in arguments vs claims                                         │
+│     - Track unique users                                                         │
+│     - Track first/last used dates                                               │
+│  5. Join with SourceRating for average ratings                                  │
+│  6. Return aggregated source list                                               │
+└────────────────────────────────────────────────────────────────────────────────┘
+        │
+        ▼
+EvidenceList component renders with sort options
+</div></code></pre>
+<hr>
+<h2 id="8-deliberation-integration">8. Deliberation Integration</h2>
+<h3 id="81-integration-architecture">8.1 Integration Architecture</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    STACKS ↔ DELIBERATION INTEGRATION                             │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                           STACK                                          │   │
+│  │                                                                          │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                      │   │
+│  │  │    PDF      │  │    PDF      │  │    PDF      │                      │   │
+│  │  │   [Cite]    │  │   [Cite]    │  │   [Cite]    │                      │   │
+│  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘                      │   │
+│  │         │                │                │                              │   │
+│  │         └────────────────┼────────────────┘                              │   │
+│  │                          │                                               │   │
+│  │                          ▼                                               │   │
+│  │  ┌───────────────────────────────────────────────────────────────────┐  │   │
+│  │  │                     DISCUSSION THREAD                              │  │   │
+│  │  │                                                                    │  │   │
+│  │  │  ┌─────────────────────────────────────────────────────────────┐  │  │   │
+│  │  │  │  Comment: &quot;This paper supports...&quot;  [📎 Source] [Deliberate]│  │  │   │
+│  │  │  └─────────────────────────────────────────────────────────────┘  │  │   │
+│  │  │                              │                                     │  │   │
+│  │  │                              │ POST /api/comments/lift             │  │   │
+│  │  │                              ▼                                     │  │   │
+│  │  └───────────────────────────────────────────────────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                    │                                            │
+│                                    ▼                                            │
+│  ┌─────────────────────────────────────────────────────────────────────────┐   │
+│  │                        DELIBERATION                                      │   │
+│  │                                                                          │   │
+│  │  hostType: library_stack                                                 │   │
+│  │  hostId: {stackId}                                                       │   │
+│  │                                                                          │   │
+│  │  ┌─────────────────────────────────────────────────────────────────┐    │   │
+│  │  │                         CLAIMS                                   │    │   │
+│  │  │  ┌─────────────────────────────────────────────────────────┐    │    │   │
+│  │  │  │  Claim: &quot;This paper supports...&quot; (lifted from comment)  │    │    │   │
+│  │  │  │  └─ Citations: [PDF Source]                             │    │    │   │
+│  │  │  └─────────────────────────────────────────────────────────┘    │    │   │
+│  │  └─────────────────────────────────────────────────────────────────┘    │   │
+│  │                                                                          │   │
+│  │  ┌─────────────────────────────────────────────────────────────────┐    │   │
+│  │  │                       ARGUMENTS                                  │    │   │
+│  │  │  ┌─────────────────────────────────────────────────────────┐    │    │   │
+│  │  │  │  Argument supporting claim                              │    │    │   │
+│  │  │  │  └─ Citations: [PDF Source], [URL Source]               │    │    │   │
+│  │  │  └─────────────────────────────────────────────────────────┘    │    │   │
+│  │  └─────────────────────────────────────────────────────────────────┘    │   │
+│  │                                                                          │   │
+│  │  ┌─────────────────────────────────────────────────────────────────┐    │   │
+│  │  │                    EVIDENCE LIST (Sources Tab)                   │    │   │
+│  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │    │   │
+│  │  │  │ PDF Source   │  │ URL Source   │  │ DOI Source   │           │    │   │
+│  │  │  │ Used: 5x     │  │ Used: 3x     │  │ Used: 2x     │           │    │   │
+│  │  │  │ Rating: 8.2  │  │ Rating: 7.0  │  │ Rating: 9.1  │           │    │   │
+│  │  │  └──────────────┘  └──────────────┘  └──────────────┘           │    │   │
+│  │  └─────────────────────────────────────────────────────────────────┘    │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="82-host-type-configuration">8.2 Host Type Configuration</h3>
+<p>Stacks can host deliberations via the <code>library_stack</code> host type:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">enum</span> DeliberationHostType {
+  article
+  post
+  room_thread
+  library_stack      <span class="hljs-comment">// ← Stack-hosted deliberation</span>
+  site
+  inbox_thread
+  discussion
+  free
+  work
+}
+</div></code></pre>
+<h3 id="83-lift-to-debate-implementation">8.3 Lift-to-Debate Implementation</h3>
+<p><strong>Route:</strong> <code>/api/comments/lift</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">POST</span>(<span class="hljs-params">req: NextRequest</span>) </span>{
+  <span class="hljs-keyword">const</span> userId = <span class="hljs-keyword">await</span> getCurrentUserId();
+  <span class="hljs-keyword">const</span> { commentId, hostType, hostId, <span class="hljs-keyword">as</span> = <span class="hljs-string">"claim"</span> } = <span class="hljs-keyword">await</span> req.json();
+
+  <span class="hljs-comment">// Normalize host type (handle aliases)</span>
+  <span class="hljs-keyword">const</span> hostTypeEnum = normalizeHostType(<span class="hljs-built_in">String</span>(hostType));
+  <span class="hljs-comment">// "stack" | "stacks" | "library" → DeliberationHostType.library_stack</span>
+
+  <span class="hljs-comment">// Find or create deliberation</span>
+  <span class="hljs-keyword">let</span> d = <span class="hljs-keyword">await</span> prisma.deliberation.findFirst({
+    where: { hostType: hostTypeEnum, hostId: <span class="hljs-built_in">String</span>(hostId) },
+    select: { id: <span class="hljs-literal">true</span> },
+  });
+  
+  <span class="hljs-keyword">if</span> (!d) {
+    d = <span class="hljs-keyword">await</span> prisma.deliberation.create({
+      data: { 
+        hostType: hostTypeEnum, 
+        hostId: <span class="hljs-built_in">String</span>(hostId), 
+        createdById: <span class="hljs-built_in">String</span>(userId) 
+      },
+      select: { id: <span class="hljs-literal">true</span> },
+    });
+  }
+
+  <span class="hljs-comment">// Fetch comment text</span>
+  <span class="hljs-keyword">const</span> post = <span class="hljs-keyword">await</span> prisma.feedPost.findUnique({
+    where: { id: BigInt(commentId) },
+    select: { content: <span class="hljs-literal">true</span> },
+  });
+  
+  <span class="hljs-keyword">const</span> text = (post?.content ?? <span class="hljs-string">""</span>).trim();
+  <span class="hljs-keyword">if</span> (!text) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">"Cannot lift empty comment"</span>);
+
+  <span class="hljs-comment">// Create claim</span>
+  <span class="hljs-keyword">const</span> claim = <span class="hljs-keyword">await</span> prisma.claim.create({
+    data: {
+      text: text.slice(<span class="hljs-number">0</span>, <span class="hljs-number">4000</span>),
+      createdById: <span class="hljs-built_in">String</span>(userId),
+      moid: <span class="hljs-string">`cm-<span class="hljs-subst">${commentId}</span>-<span class="hljs-subst">${<span class="hljs-built_in">Date</span>.now()}</span>`</span>,
+      deliberationId: d.id,
+    },
+  });
+
+  <span class="hljs-comment">// Create dialogue move for provenance</span>
+  <span class="hljs-keyword">const</span> move = <span class="hljs-keyword">await</span> prisma.dialogueMove.create({
+    data: {
+      deliberationId: d.id,
+      targetType: <span class="hljs-string">"claim"</span>,
+      targetId: claim.id,
+      kind: <span class="hljs-string">"ASSERT"</span>,
+      payload: { text: claim.text },
+      actorId: <span class="hljs-built_in">String</span>(userId),
+      signature: <span class="hljs-string">`lift:<span class="hljs-subst">${commentId}</span>:<span class="hljs-subst">${<span class="hljs-built_in">Date</span>.now()}</span>`</span>,
+    },
+  });
+
+  <span class="hljs-comment">// Emit events for real-time updates</span>
+  emitBus(<span class="hljs-string">"deliberations:created"</span>, { 
+    id: d.id, 
+    hostType: hostTypeEnum, 
+    hostId: <span class="hljs-built_in">String</span>(hostId) 
+  });
+  emitBus(<span class="hljs-string">"dialogue:moves:refresh"</span>, { 
+    moveId: move.id, 
+    deliberationId: d.id 
+  });
+
+  <span class="hljs-keyword">return</span> NextResponse.json({ 
+    deliberationId: d.id, 
+    claimId: claim.id 
+  });
+}
+</div></code></pre>
+<h3 id="84-citation-flow-to-deliberation">8.4 Citation Flow to Deliberation</h3>
+<p>When citations are attached to claims/arguments in a stack-hosted deliberation:</p>
+<pre class="hljs"><code><div>Stack PDF → Citation attached to comment
+     │
+     │ Lift to debate
+     ▼
+Claim created in Deliberation
+     │
+     │ User adds citation to claim
+     ▼
+POST /api/citations/attach
+  { targetType: &quot;claim&quot;, targetId: claimId, sourceId }
+     │
+     ▼
+Citation linked to Source (may be LibraryPost-backed)
+     │
+     ▼
+EvidenceList aggregates all sources in deliberation
+</div></code></pre>
+<h3 id="85-deepdivepanelv2-sources-tab">8.5 DeepDivePanelV2 Sources Tab</h3>
+<p>The Sources tab in the deliberation panel displays all evidence:</p>
+<pre class="hljs"><code><div>// From DeepDivePanelV2.tsx
+&lt;TabsContent value=&quot;sources&quot;&gt;
+  &lt;SectionCard
+    title=&quot;Evidence &amp; Sources&quot;
+    action={
+      &lt;div className=&quot;text-xs text-neutral-500&quot;&gt;
+        Community-evaluated sources used across arguments and claims
+      &lt;/div&gt;
+    }
+  &gt;
+    &lt;div className=&quot;text-sm text-neutral-600 mb-4&quot;&gt;
+      All citations and sources referenced in this deliberation. 
+      Rate sources to help the community evaluate evidence quality.
+    &lt;/div&gt;
+    &lt;EvidenceList deliberationId={deliberationId} /&gt;
+  &lt;/SectionCard&gt;
+&lt;/TabsContent&gt;
+</div></code></pre>
+<h3 id="86-cross-deliberation-references">8.6 Cross-Deliberation References</h3>
+<p>The <code>StackReference</code> model enables knowledge graph edges between deliberations:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// When a stack in one deliberation references content from another</span>
+model StackReference {
+  id                 <span class="hljs-built_in">String</span>
+  fromDeliberationId <span class="hljs-built_in">String</span>    <span class="hljs-comment">// Source deliberation</span>
+  toDeliberationId   <span class="hljs-built_in">String</span>    <span class="hljs-comment">// Referenced deliberation</span>
+  stackId            <span class="hljs-built_in">String</span>?   <span class="hljs-comment">// Linking stack</span>
+  relation           <span class="hljs-built_in">String</span>?   <span class="hljs-comment">// 'attached' | 'cites' | 'embeds'</span>
+  createdAt          DateTime
+
+  @<span class="hljs-meta">@unique</span>([fromDeliberationId, toDeliberationId, stackId, relation])
+}
+</div></code></pre>
+<p><strong>Use Cases:</strong></p>
+<ul>
+<li>Stack in Deliberation A cites research from Deliberation B</li>
+<li>Arguments imported across deliberations via stacks</li>
+<li>Building knowledge graphs from interconnected discussions</li>
+</ul>
+<hr>
+<h2 id="9-feed-integration">9. Feed Integration</h2>
+<h3 id="91-library-post-type">9.1 LIBRARY Post Type</h3>
+<p>Stacks and library items appear in the social feed via the <code>LIBRARY</code> post type:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">enum</span> feed_post_type {
+  TEXT
+  IMAGE
+  VIDEO
+  <span class="hljs-comment">// ...</span>
+  LIBRARY           <span class="hljs-comment">// ← Stack/PDF posts</span>
+  ARTICLE
+  <span class="hljs-comment">// ...</span>
+}
+</div></code></pre>
+<h3 id="92-feedpost-structure-for-library-items">9.2 FeedPost Structure for Library Items</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// FeedPost record for a stack</span>
+{
+  id: bigint,
+  <span class="hljs-keyword">type</span>: <span class="hljs-string">"LIBRARY"</span>,
+  author_id: bigint,
+  stack_id: <span class="hljs-built_in">string</span>,           <span class="hljs-comment">// Link to Stack</span>
+  library_post_id: <span class="hljs-built_in">string</span>?,   <span class="hljs-comment">// Link to single LibraryPost (if not stack)</span>
+  content: <span class="hljs-built_in">JSON</span>.stringify({   <span class="hljs-comment">// Fallback metadata</span>
+    kind: <span class="hljs-string">"stack"</span>,
+    stackId: <span class="hljs-string">"..."</span>,
+    name: <span class="hljs-string">"..."</span>,
+    size: <span class="hljs-number">5</span>
+  }),
+  image_url: <span class="hljs-built_in">string</span>?,         <span class="hljs-comment">// Cover image</span>
+  caption: <span class="hljs-built_in">string</span>?
+}
+</div></code></pre>
+<h3 id="93-feed-hydration-pipeline">9.3 Feed Hydration Pipeline</h3>
+<p>When fetching feed posts, library items are hydrated with cover images:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// From feed.actions.ts</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchFeedPosts</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">const</span> rows = <span class="hljs-keyword">await</span> prisma.feedPost.findMany({
+    where: { isPublic: <span class="hljs-literal">true</span>, parent_id: <span class="hljs-literal">null</span> },
+    orderBy: { created_at: <span class="hljs-string">"desc"</span> },
+    <span class="hljs-comment">// ... includes author, likes, etc.</span>
+  });
+
+  <span class="hljs-comment">// Hydrate LIBRARY posts with covers</span>
+  <span class="hljs-keyword">const</span> stackIds = rows
+    .filter(<span class="hljs-function"><span class="hljs-params">r</span> =&gt;</span> r.type === <span class="hljs-string">"LIBRARY"</span> &amp;&amp; r.stack_id)
+    .map(<span class="hljs-function"><span class="hljs-params">r</span> =&gt;</span> r.stack_id!);
+
+  <span class="hljs-comment">// Fetch first thumbnail for each stack</span>
+  <span class="hljs-keyword">const</span> stackCovers = <span class="hljs-keyword">await</span> getStackCovers(stackIds);
+
+  <span class="hljs-keyword">const</span> hydrated = rows.map(<span class="hljs-function">(<span class="hljs-params">r</span>) =&gt;</span> {
+    <span class="hljs-keyword">if</span> (r.type !== <span class="hljs-string">"LIBRARY"</span>) <span class="hljs-keyword">return</span> r;
+    
+    <span class="hljs-keyword">if</span> (r.stack_id &amp;&amp; stackCovers[r.stack_id]) {
+      <span class="hljs-keyword">const</span> { urls, size } = stackCovers[r.stack_id];
+      <span class="hljs-keyword">return</span> {
+        ...r,
+        library: { 
+          kind: <span class="hljs-string">"stack"</span>, 
+          stackId: r.stack_id, 
+          coverUrls: urls, 
+          size 
+        },
+      };
+    }
+    
+    <span class="hljs-keyword">if</span> (r.library_post_id) {
+      <span class="hljs-keyword">return</span> {
+        ...r,
+        library: { 
+          kind: <span class="hljs-string">"single"</span>, 
+          libraryPostId: r.library_post_id, 
+          coverUrl: singleCovers[r.library_post_id] 
+        },
+      };
+    }
+    
+    <span class="hljs-keyword">return</span> r;
+  });
+
+  <span class="hljs-keyword">return</span> hydrated;
+}
+</div></code></pre>
+<h3 id="94-librarycard-rendering">9.4 LibraryCard Rendering</h3>
+<pre class="hljs"><code><div>// In PostCard.tsx, handle LIBRARY type
+{type === &quot;LIBRARY&quot; &amp;&amp; library &amp;&amp; (
+  &lt;LibraryCard
+    kind={library.kind}
+    stackId={library.stackId}
+    libraryPostId={library.libraryPostId}
+    coverUrl={library.coverUrl}
+    coverUrls={library.coverUrls}
+    size={library.size}
+    caption={caption}
+    onOpenStack={(id) =&gt; router.push(`/stacks/${id}`)}
+    onOpenPdf={(id) =&gt; openLightbox(id)}
+  /&gt;
+)}
+</div></code></pre>
+<h3 id="95-stack-sharing-flow">9.5 Stack Sharing Flow</h3>
+<pre class="hljs"><code><div>User creates/updates Stack
+        │
+        │ (optional) Create FeedPost
+        ▼
+┌────────────────────────────────────────────────────────────────────────────────┐
+│  POST /api/feed (or automatic on stack creation)                                │
+│                                                                                 │
+│  {                                                                              │
+│    type: &quot;LIBRARY&quot;,                                                             │
+│    stack_id: stackId,                                                           │
+│    caption: &quot;Check out my research collection&quot;,                                 │
+│    isPublic: true                                                               │
+│  }                                                                              │
+└────────────────────────────────────────────────────────────────────────────────┘
+        │
+        ▼
+FeedPost created → appears in followers' feeds
+        │
+        ▼
+LibraryCard renders with StackCarousel or collage
+</div></code></pre>
+<hr>
+<h2 id="10-security--authorization">10. Security &amp; Authorization</h2>
+<h3 id="101-stack-access-control">10.1 Stack Access Control</h3>
+<h4 id="1011-role-based-permissions">10.1.1 Role-Based Permissions</h4>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>View</th>
+<th>Comment</th>
+<th>Edit Posts</th>
+<th>Manage Collaborators</th>
+<th>Delete</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Owner</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Editor</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Viewer</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Subscriber</td>
+<td>✅*</td>
+<td>✅*</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Public</td>
+<td>✅**</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<p><em>* Only if stack is public or user is collaborator</em><br>
+<em>** Only if <code>is_public = true</code></em></p>
+<h4 id="1012-permission-checks">10.1.2 Permission Checks</h4>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/actions/stack.actions.ts</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">canEdit</span>(<span class="hljs-params">stack: <span class="hljs-built_in">any</span>, viewer: { id: bigint | <span class="hljs-literal">null</span> }</span>) </span>{
+  <span class="hljs-keyword">if</span> (!viewer.id) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">if</span> (stack.owner_id === viewer.id) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  <span class="hljs-keyword">if</span> (!stack.collaborators) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">return</span> stack.collaborators.some(
+    <span class="hljs-function">(<span class="hljs-params">c</span>) =&gt;</span> c.user_id === viewer.id &amp;&amp; 
+           (c.role === <span class="hljs-string">"EDITOR"</span> || c.role === <span class="hljs-string">"OWNER"</span>)
+  );
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">canView</span>(<span class="hljs-params">stack: <span class="hljs-built_in">any</span>, viewer: { id: bigint | <span class="hljs-literal">null</span> }</span>) </span>{
+  <span class="hljs-keyword">if</span> (stack.is_public) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  <span class="hljs-keyword">if</span> (!viewer.id) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+  <span class="hljs-keyword">if</span> (stack.owner_id === viewer.id) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+  <span class="hljs-keyword">return</span> stack.collaborators?.some(<span class="hljs-function">(<span class="hljs-params">c</span>) =&gt;</span> c.user_id === viewer.id) ?? <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">assertCanEditStack</span>(<span class="hljs-params">stackId: <span class="hljs-built_in">string</span>, userId: bigint</span>) </span>{
+  <span class="hljs-keyword">const</span> stack = <span class="hljs-keyword">await</span> prisma.stack.findUnique({
+    where: { id: stackId },
+    include: { collaborators: <span class="hljs-literal">true</span> },
+  });
+  <span class="hljs-keyword">if</span> (!stack) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">"Stack not found"</span>);
+  <span class="hljs-keyword">if</span> (!canEdit(stack, { id: userId })) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">"Forbidden"</span>);
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+</div></code></pre>
+<h3 id="102-comment-authorization">10.2 Comment Authorization</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Only allow comment if:</span>
+<span class="hljs-comment">// 1. Stack is public, OR</span>
+<span class="hljs-comment">// 2. User is owner/editor/subscriber</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">addStackComment</span>(<span class="hljs-params">formData: FormData</span>) </span>{
+  <span class="hljs-keyword">const</span> userId = BigInt(u.userId);
+  
+  <span class="hljs-keyword">const</span> stack = <span class="hljs-keyword">await</span> prisma.stack.findUnique({
+    where: { id: stackId },
+    include: {
+      collaborators: <span class="hljs-literal">true</span>,
+      subscribers: { where: { user_id: userId } },
+    },
+  });
+  
+  <span class="hljs-keyword">const</span> isOwner = stack?.owner_id === userId;
+  <span class="hljs-keyword">const</span> isEditor = stack?.collaborators?.some(
+    <span class="hljs-function">(<span class="hljs-params">c</span>) =&gt;</span> c.user_id === userId &amp;&amp; (c.role === <span class="hljs-string">"EDITOR"</span> || c.role === <span class="hljs-string">"OWNER"</span>)
+  );
+  <span class="hljs-keyword">const</span> isSub = !!stack?.subscribers?.length;
+  
+  <span class="hljs-keyword">const</span> allowed = stack?.is_public || isOwner || isEditor || isSub;
+  <span class="hljs-keyword">if</span> (!allowed) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">"Forbidden"</span>);
+  
+  <span class="hljs-comment">// Create comment...</span>
+}
+</div></code></pre>
+<h3 id="103-citation-authorization">10.3 Citation Authorization</h3>
+<p>Citations inherit permissions from their target:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// POST /api/citations/attach</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">POST</span>(<span class="hljs-params">req: NextRequest</span>) </span>{
+  <span class="hljs-keyword">const</span> userId = <span class="hljs-keyword">await</span> getCurrentUserId();
+  <span class="hljs-keyword">if</span> (!userId) <span class="hljs-keyword">return</span> unauthorized();
+
+  <span class="hljs-keyword">const</span> { targetType, targetId, sourceId } = <span class="hljs-keyword">await</span> req.json();
+
+  <span class="hljs-comment">// Validate user can access target</span>
+  <span class="hljs-comment">// (Specific validation depends on targetType)</span>
+  
+  <span class="hljs-comment">// For comments: check stack permissions</span>
+  <span class="hljs-keyword">if</span> (targetType === <span class="hljs-string">"comment"</span>) {
+    <span class="hljs-keyword">const</span> comment = <span class="hljs-keyword">await</span> prisma.feedPost.findUnique({
+      where: { id: BigInt(targetId) },
+      select: { author_id: <span class="hljs-literal">true</span>, parent_id: <span class="hljs-literal">true</span> },
+    });
+    <span class="hljs-comment">// Allow if user is comment author or has stack edit rights</span>
+  }
+  
+  <span class="hljs-comment">// For claims/arguments: check deliberation access</span>
+  <span class="hljs-keyword">if</span> (targetType === <span class="hljs-string">"claim"</span> || targetType === <span class="hljs-string">"argument"</span>) {
+    <span class="hljs-comment">// Deliberation access check</span>
+  }
+  
+  <span class="hljs-comment">// Create citation...</span>
+}
+</div></code></pre>
+<h3 id="104-storage-security">10.4 Storage Security</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Supabase storage buckets</span>
+<span class="hljs-keyword">const</span> buckets = {
+  pdfs: {
+    <span class="hljs-keyword">public</span>: <span class="hljs-literal">false</span>,           <span class="hljs-comment">// Requires signed URLs</span>
+    allowedMimeTypes: [<span class="hljs-string">"application/pdf"</span>],
+    fileSizeLimit: <span class="hljs-string">"50MB"</span>,
+  },
+  <span class="hljs-string">"pdf-thumbs"</span>: {
+    <span class="hljs-keyword">public</span>: <span class="hljs-literal">true</span>,            <span class="hljs-comment">// Thumbnails are public</span>
+    allowedMimeTypes: [<span class="hljs-string">"image/png"</span>],
+    fileSizeLimit: <span class="hljs-string">"10MB"</span>,
+  },
+};
+
+<span class="hljs-comment">// Generate signed URL for PDF access</span>
+<span class="hljs-keyword">const</span> { data } = <span class="hljs-keyword">await</span> supabase.storage
+  .from(<span class="hljs-string">"pdfs"</span>)
+  .createSignedUrl(key, <span class="hljs-number">3600</span>); <span class="hljs-comment">// 1 hour expiry</span>
+</div></code></pre>
+<hr>
+<h2 id="11-performance-considerations">11. Performance Considerations</h2>
+<h3 id="111-thumbnail-generation">11.1 Thumbnail Generation</h3>
+<pre class="hljs"><code><div>PDF Upload
+    │
+    ├─── Client-side preview generation (optional)
+    │    • PDF.js renders first page to canvas
+    │    • Canvas exported as PNG data URL
+    │    • Sent with upload as base64
+    │
+    └─── Server-side fallback
+         • Detect missing thumbnails
+         • Queue background job
+         • Generate via pdf-lib or similar
+</div></code></pre>
+<h3 id="112-feed-hydration-optimization">11.2 Feed Hydration Optimization</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Batch fetch stack covers instead of N+1 queries</span>
+<span class="hljs-keyword">const</span> stackIds = posts
+  .filter(<span class="hljs-function"><span class="hljs-params">p</span> =&gt;</span> p.type === <span class="hljs-string">"LIBRARY"</span> &amp;&amp; p.stack_id)
+  .map(<span class="hljs-function"><span class="hljs-params">p</span> =&gt;</span> p.stack_id!);
+
+<span class="hljs-comment">// Single query for all stack thumbnails</span>
+<span class="hljs-keyword">const</span> items = <span class="hljs-keyword">await</span> prisma.libraryPost.findMany({
+  where: { stack_id: { <span class="hljs-keyword">in</span>: stackIds } },
+  orderBy: { created_at: <span class="hljs-string">"asc"</span> },
+  select: { stack_id: <span class="hljs-literal">true</span>, thumb_urls: <span class="hljs-literal">true</span> },
+});
+
+<span class="hljs-comment">// Group and extract first thumb per stack</span>
+<span class="hljs-keyword">const</span> stackCovers = groupBy(items, <span class="hljs-string">'stack_id'</span>, <span class="hljs-function">(<span class="hljs-params">items</span>) =&gt;</span> ({
+  urls: items.map(<span class="hljs-function"><span class="hljs-params">i</span> =&gt;</span> i.thumb_urls?.[<span class="hljs-number">0</span>]).filter(<span class="hljs-built_in">Boolean</span>),
+  size: items.length,
+}));
+</div></code></pre>
+<h3 id="113-citation-aggregation">11.3 Citation Aggregation</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Efficient source aggregation for deliberation</span>
+<span class="hljs-comment">// Uses two queries instead of per-entity lookups</span>
+
+<span class="hljs-comment">// 1. Get all entity IDs</span>
+<span class="hljs-keyword">const</span> [argumentIds, claimIds] = <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all([
+  prisma.argument.findMany({ where: { deliberationId }, select: { id: <span class="hljs-literal">true</span> } }),
+  prisma.claim.findMany({ where: { deliberationId }, select: { id: <span class="hljs-literal">true</span> } }),
+]);
+
+<span class="hljs-comment">// 2. Single citation query with OR</span>
+<span class="hljs-keyword">const</span> citations = <span class="hljs-keyword">await</span> prisma.citation.findMany({
+  where: {
+    OR: [
+      { targetType: <span class="hljs-string">"argument"</span>, targetId: { <span class="hljs-keyword">in</span>: argumentIds.map(<span class="hljs-function"><span class="hljs-params">a</span> =&gt;</span> a.id) } },
+      { targetType: <span class="hljs-string">"claim"</span>, targetId: { <span class="hljs-keyword">in</span>: claimIds.map(<span class="hljs-function"><span class="hljs-params">c</span> =&gt;</span> c.id) } },
+    ],
+  },
+  include: { source: <span class="hljs-literal">true</span> },
+});
+
+<span class="hljs-comment">// 3. In-memory aggregation</span>
+<span class="hljs-keyword">const</span> sourceMap = <span class="hljs-keyword">new</span> Map();
+citations.forEach(<span class="hljs-function"><span class="hljs-params">c</span> =&gt;</span> {
+  <span class="hljs-keyword">const</span> entry = sourceMap.get(c.sourceId) || { usageCount: <span class="hljs-number">0</span>, ... };
+  entry.usageCount++;
+  sourceMap.set(c.sourceId, entry);
+});
+</div></code></pre>
+<h3 id="114-drag-and-drop-performance">11.4 Drag-and-Drop Performance</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Optimistic updates with deferred server sync</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onDragEnd</span>(<span class="hljs-params">evt</span>) </span>{
+  <span class="hljs-comment">// 1. Immediate local state update</span>
+  <span class="hljs-keyword">const</span> next = arrayMove(items, oldIndex, newIndex);
+  setItems(next);
+
+  <span class="hljs-comment">// 2. Async server sync (non-blocking)</span>
+  orderInputRef.current.value = <span class="hljs-built_in">JSON</span>.stringify(next.map(<span class="hljs-function"><span class="hljs-params">i</span> =&gt;</span> i.id));
+  formRef.current.requestSubmit();
+  
+  <span class="hljs-comment">// Server action revalidates path on completion</span>
+}
+</div></code></pre>
+<h3 id="115-caching-strategies">11.5 Caching Strategies</h3>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Cache Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stack metadata</td>
+<td>SWR with revalidateOnFocus</td>
+</tr>
+<tr>
+<td>Thumbnails</td>
+<td>CDN + browser cache (long TTL)</td>
+</tr>
+<tr>
+<td>Citations</td>
+<td>SWR with event-based invalidation</td>
+</tr>
+<tr>
+<td>Evidence aggregates</td>
+<td>Fresh fetch on tab open</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="12-appendices">12. Appendices</h2>
+<h3 id="appendix-a-file-reference">Appendix A: File Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib/actions/stack.actions.ts</code></td>
+<td>Server actions for stack operations</td>
+</tr>
+<tr>
+<td><code>lib/server/stack-helpers.ts</code></td>
+<td>Stack creation utilities</td>
+</tr>
+<tr>
+<td><code>components/stack/SortablePdfGrid.tsx</code></td>
+<td>Drag-and-drop PDF grid</td>
+</tr>
+<tr>
+<td><code>components/stack/StackDiscussion.tsx</code></td>
+<td>Server-rendered comment thread</td>
+</tr>
+<tr>
+<td><code>components/stack/LiftToDebateButton.tsx</code></td>
+<td>Promote comment to claim</td>
+</tr>
+<tr>
+<td><code>components/stack/CommentComposer.tsx</code></td>
+<td>Comment input with citations</td>
+</tr>
+<tr>
+<td><code>components/citations/CitePickerInlinePro.tsx</code></td>
+<td>Full citation picker</td>
+</tr>
+<tr>
+<td><code>components/citations/CitationCollector.tsx</code></td>
+<td>Pre-composition citation collection</td>
+</tr>
+<tr>
+<td><code>components/citations/LibrarySearchModal.tsx</code></td>
+<td>Library item search</td>
+</tr>
+<tr>
+<td><code>components/citations/CitePickerModal.tsx</code></td>
+<td>Modal wrapper for picker</td>
+</tr>
+<tr>
+<td><code>components/citations/SourcesSidebar.tsx</code></td>
+<td>Sidebar source display</td>
+</tr>
+<tr>
+<td><code>components/cards/LibraryCard.tsx</code></td>
+<td>Feed card for stacks/PDFs</td>
+</tr>
+<tr>
+<td><code>components/evidence/EvidenceList.tsx</code></td>
+<td>Deliberation sources view</td>
+</tr>
+<tr>
+<td><code>app/stacks/[slugOrId]/page.tsx</code></td>
+<td>Stack page route</td>
+</tr>
+<tr>
+<td><code>app/api/library/upload/route.ts</code></td>
+<td>PDF upload endpoint</td>
+</tr>
+<tr>
+<td><code>app/api/library/search/route.ts</code></td>
+<td>Library search endpoint</td>
+</tr>
+<tr>
+<td><code>app/api/citations/resolve/route.ts</code></td>
+<td>Source resolution</td>
+</tr>
+<tr>
+<td><code>app/api/citations/attach/route.ts</code></td>
+<td>Citation attachment</td>
+</tr>
+<tr>
+<td><code>app/api/comments/lift/route.ts</code></td>
+<td>Lift to debate</td>
+</tr>
+<tr>
+<td><code>app/api/deliberations/[id]/sources/route.ts</code></td>
+<td>Evidence aggregation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="appendix-b-environment-variables">Appendix B: Environment Variables</h3>
+<pre class="hljs"><code><div># Supabase Storage
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+
+# Database
+DATABASE_URL=postgresql://...
+
+# (Optional) External metadata APIs
+CROSSREF_API_KEY=...
+</div></code></pre>
+<h3 id="appendix-c-event-bus-events">Appendix C: Event Bus Events</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Payload</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stacks:changed</code></td>
+<td><code>{ stackId, op, postId?, userId? }</code></td>
+<td>Add/remove/reorder posts, subscribe</td>
+</tr>
+<tr>
+<td><code>comments:changed</code></td>
+<td><code>{ stackId, op }</code></td>
+<td>Add/delete comments</td>
+</tr>
+<tr>
+<td><code>citations:changed</code></td>
+<td><code>{ targetType, targetId, sourceId? }</code></td>
+<td>Attach citation</td>
+</tr>
+<tr>
+<td><code>deliberations:created</code></td>
+<td><code>{ id, hostType, hostId, source }</code></td>
+<td>Lift creates deliberation</td>
+</tr>
+<tr>
+<td><code>dialogue:moves:refresh</code></td>
+<td><code>{ moveId, deliberationId, kind }</code></td>
+<td>Lift creates move</td>
+</tr>
+</tbody>
+</table>
+<h3 id="appendix-d-glossary">Appendix D: Glossary</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stack</strong></td>
+<td>A curated collection of documents (LibraryPosts)</td>
+</tr>
+<tr>
+<td><strong>LibraryPost</strong></td>
+<td>Individual document (PDF) with metadata and thumbnails</td>
+</tr>
+<tr>
+<td><strong>Source</strong></td>
+<td>Canonical reference entity for citations (URL, DOI, or LibraryPost-backed)</td>
+</tr>
+<tr>
+<td><strong>Citation</strong></td>
+<td>Link between a Source and a target entity (argument, claim, etc.)</td>
+</tr>
+<tr>
+<td><strong>Lift</strong></td>
+<td>Promote a stack comment to a claim in the deliberation system</td>
+</tr>
+<tr>
+<td><strong>Fingerprint</strong></td>
+<td>SHA1 hash for Source deduplication</td>
+</tr>
+<tr>
+<td><strong>EvidenceList</strong></td>
+<td>Aggregated view of all sources in a deliberation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="appendix-e-data-flow-summary">Appendix E: Data Flow Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                         END-TO-END DATA FLOW                                     │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  1. UPLOAD                                                                       │
+│     User → StackAddModal → /api/library/upload → Supabase → LibraryPost         │
+│                                                                                  │
+│  2. ORGANIZE                                                                     │
+│     SortablePdfGrid → setStackOrder action → Stack.order update                 │
+│                                                                                  │
+│  3. DISCUSS                                                                      │
+│     CommentComposer → addStackComment action → FeedPost (child of root)         │
+│                                                                                  │
+│  4. CITE                                                                         │
+│     CiteButton → /api/citations/resolve → Source                                │
+│                → /api/citations/attach → Citation                               │
+│                                                                                  │
+│  5. LIFT                                                                         │
+│     LiftToDebateButton → /api/comments/lift → Deliberation + Claim + Move       │
+│                                                                                  │
+│  6. DELIBERATE                                                                   │
+│     DeepDivePanel → EvidenceList → /api/deliberations/{id}/sources              │
+│     PropositionComposer → CitationCollector → resolve + attach                  │
+│                                                                                  │
+│  7. SHARE                                                                        │
+│     Stack → FeedPost (LIBRARY) → LibraryCard in feed                            │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="document-changelog">Document Changelog</h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2025-12-15</td>
+<td>Initial comprehensive documentation</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><em>This document is part of the Mesh Platform Architecture Documentation Suite.</em><br>
+<em>For questions or updates, consult the ArgumentChainDevelopmentDocuments folder.</em></p>
+
+</body>
+</html>

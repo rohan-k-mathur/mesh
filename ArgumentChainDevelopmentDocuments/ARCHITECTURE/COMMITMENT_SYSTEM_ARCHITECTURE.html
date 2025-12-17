@@ -1,0 +1,2360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>COMMITMENT_SYSTEM_ARCHITECTURE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="commitment-system-architecture">Commitment System Architecture</h1>
+<h2 id="document-overview">Document Overview</h2>
+<p>This document provides comprehensive technical documentation for the Mesh platform's <strong>Commitment System</strong> — a dual-layer architecture that tracks participant commitments in formal dialogues. The system implements both <strong>Dialogue Commitments</strong> (tracking public debate claims) and <strong>Ludics Commitments</strong> (tracking formal proof obligations with game-theoretic semantics).</p>
+<p><strong>Document Version</strong>: 1.0<br>
+<strong>Last Updated</strong>: December 2024<br>
+<strong>Related Documents</strong>: <code>ASPIC_SYSTEM_ARCHITECTURE.md</code>, <code>ARGUMENTS_TAB_ARCHITECTURE.md</code>, <code>NCR_ISSUES_PROPOSITIONS_ARCHITECTURE.md</code></p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-executive-summary">Executive Summary</a></li>
+<li><a href="#2-system-architecture-overview">System Architecture Overview</a></li>
+<li><a href="#3-database-schema">Database Schema</a></li>
+<li><a href="#4-dialogue-commitment-system">Dialogue Commitment System</a></li>
+<li><a href="#5-ludics-commitment-system">Ludics Commitment System</a></li>
+<li><a href="#6-commitment-ludics-bridge">Commitment-Ludics Bridge</a></li>
+<li><a href="#7-component-architecture">Component Architecture</a></li>
+<li><a href="#8-api-routes-reference">API Routes Reference</a></li>
+<li><a href="#9-service-layer">Service Layer</a></li>
+<li><a href="#10-event-system">Event System</a></li>
+<li><a href="#11-data-flow-diagrams">Data Flow Diagrams</a></li>
+<li><a href="#12-theoretical-foundations">Theoretical Foundations</a></li>
+<li><a href="#13-type-definitions">Type Definitions</a></li>
+<li><a href="#14-file-location-summary">File Location Summary</a></li>
+</ol>
+<hr>
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<p>The Mesh platform implements a <strong>dual commitment tracking system</strong> with intentionally separate purposes:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                        COMMITMENT SYSTEM OVERVIEW                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────┐       ┌─────────────────────────────────┐  │
+│  │   DIALOGUE COMMITMENTS      │       │    LUDICS COMMITMENTS           │  │
+│  │                             │       │                                 │  │
+│  │  • Track public claims      │       │  • Track proof obligations      │  │
+│  │  • Per-participant stores   │ ───▶  │  • Game-theoretic semantics     │  │
+│  │  • Simple flat structure    │       │  • Polarity-based (pos/neg)     │  │
+│  │  • Derived from moves       │       │  • Locus-scoped inference       │  │
+│  │                             │       │                                 │  │
+│  └─────────────────────────────┘       └─────────────────────────────────┘  │
+│                                                                              │
+│                    CommitmentLudicMapping (Bridge)                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="key-design-principles">Key Design Principles</h3>
+<table>
+<thead>
+<tr>
+<th>Principle</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Separation of Concerns</strong></td>
+<td>Dialogue layer for debate tracking, Ludics layer for formal reasoning</td>
+</tr>
+<tr>
+<td><strong>Provenance Tracking</strong></td>
+<td>Every commitment traced back to its originating DialogueMove</td>
+</tr>
+<tr>
+<td><strong>Defeasibility</strong></td>
+<td>Commitments can be retracted (dialogue) or lose entitlement (ludics)</td>
+</tr>
+<tr>
+<td><strong>Bridge Mechanism</strong></td>
+<td>CommitmentLudicMapping enables promotion from informal to formal</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Redis caching, indexed queries, pagination support</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2-system-architecture-overview">2. System Architecture Overview</h2>
+<h3 id="high-level-architecture-diagram">High-Level Architecture Diagram</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                           USER INTERFACE LAYER                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────────────┐    ┌─────────────────────────────────────┐  │
+│  │    CommitmentStorePanel    │    │       CommitmentsPanel (Ludics)     │  │
+│  │  • Per-participant tabs    │    │  • Add facts/rules                  │  │
+│  │  • Active/retracted view   │    │  • Forward-chaining inference       │  │
+│  │  • Timeline visualization  │    │  • Contradiction detection          │  │
+│  │  • &quot;Promote to Ludics&quot; btn │    │  • Entitlement toggling             │  │
+│  └────────────────────────────┘    └─────────────────────────────────────┘  │
+│                    │                                │                        │
+│                    ▼                                ▼                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                              API LAYER                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────────────┐    ┌─────────────────────────────────────┐  │
+│  │   Dialogue Commitment APIs │    │       Ludics Commitment APIs        │  │
+│  │  • GET .../commitments     │    │  • POST /commitments/apply          │  │
+│  │  • GET .../analytics       │    │  • GET /commitments/state           │  │
+│  │  • GET .../diff            │    │  • POST /commitments/infer          │  │
+│  │                            │    │  • POST /commitments/promote        │  │
+│  └────────────────────────────┘    └─────────────────────────────────────┘  │
+│                    │                                │                        │
+│                    ▼                                ▼                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                            SERVICE LAYER                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────────────┐    ┌─────────────────────────────────────┐  │
+│  │   getCommitmentStores()    │    │      Ludics Engine                  │  │
+│  │   lib/aif/graph-builder    │    │  • applyToCS()                      │  │
+│  │  • Derives from DialogMove │    │  • interactCE()                     │  │
+│  │  • Redis caching           │    │  • interactCEScoped()               │  │
+│  │  • Includes promotion      │    │  • checkSemanticDivergence()        │  │
+│  └────────────────────────────┘    └─────────────────────────────────────┘  │
+│                    │                                │                        │
+│                    ▼                                ▼                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                           DATABASE LAYER (Prisma)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────────────────┐    ┌─────────────────────────────────────┐  │
+│  │   Dialogue Models          │    │      Ludics Models                  │  │
+│  │  • DialogueMove            │◄───┼──• CommitmentLudicMapping          │  │
+│  │  • Commitment              │    │  • LudicCommitmentElement           │  │
+│  │  • Claim                   │    │  • LudicCommitmentState             │  │
+│  │  • Argument                │    │  • LudicLocus                       │  │
+│  └────────────────────────────┘    └─────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="layer-responsibilities">Layer Responsibilities</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Responsibility</th>
+<th>Key Technologies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>UI Layer</strong></td>
+<td>Display commitment stores, enable management</td>
+<td>React, SWR, Tailwind</td>
+</tr>
+<tr>
+<td><strong>API Layer</strong></td>
+<td>REST endpoints for CRUD and analytics</td>
+<td>Next.js API Routes</td>
+</tr>
+<tr>
+<td><strong>Service Layer</strong></td>
+<td>Business logic, derivation, inference</td>
+<td>TypeScript functions</td>
+</tr>
+<tr>
+<td><strong>Database Layer</strong></td>
+<td>Persistence, relationships, indexing</td>
+<td>Prisma, PostgreSQL</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-database-schema">3. Database Schema</h2>
+<h3 id="31-dialogue-layer-models">3.1 Dialogue Layer Models</h3>
+<h4 id="commitment-model">Commitment Model</h4>
+<p><strong>Location</strong>: <code>lib/models/schema.prisma</code></p>
+<pre class="hljs"><code><div>model Commitment {
+  id             String   @id @default(cuid())
+  deliberationId String
+  participantId  String
+  proposition    String   @db.Text
+  isRetracted    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([deliberationId, participantId, proposition])
+  @@index([deliberationId, participantId])
+}
+</div></code></pre>
+<p><strong>Purpose</strong>: Track participant commitments in formal dialogue games (public debate layer)</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Simple flat structure (no FKs to Claim/DialogueMove for flexibility)</li>
+<li>Unique constraint prevents duplicate commitments per participant</li>
+<li>Soft delete via <code>isRetracted</code> flag</li>
+<li>Fast indexed lookups by deliberation and participant</li>
+</ul>
+<hr>
+<h4 id="dialoguemove-model-commitment-source">DialogueMove Model (Commitment Source)</h4>
+<p><strong>Location</strong>: <code>lib/models/schema.prisma</code></p>
+<pre class="hljs"><code><div>model DialogueMove {
+  id             String      @id @default(cuid())
+  authorId       String?
+  deliberationId String
+  targetType     String      // 'argument' | 'claim'
+  targetId       String
+  kind           String      // 'ASSERT' | 'WHY' | 'GROUNDS' | 'RETRACT' | 'CONCEDE' ...
+  payload        Json?
+  actorId        String
+  createdAt      DateTime    @default(now())
+  replyToMoveId  String?
+  polarity       String?     // 'P' | 'O' (Proponent/Opponent)
+  locusId        String?
+
+  // Relations
+  deliberation   Deliberation @relation(fields: [deliberationId], references: [id])
+  author         User?        @relation(fields: [authorId], references: [id])
+  locus          LudicLocus?  @relation(fields: [locusId], references: [id])
+  replyToMove    DialogueMove? @relation(&quot;MoveReplies&quot;, fields: [replyToMoveId], references: [id])
+  replies        DialogueMove[] @relation(&quot;MoveReplies&quot;)
+
+  @@index([deliberationId, createdAt])
+  @@index([targetType, targetId])
+  @@index([actorId])
+}
+</div></code></pre>
+<p><strong>Purpose</strong>: Source of truth for dialogue moves that create/modify commitments</p>
+<p><strong>Commitment-Relevant Move Kinds</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Move Kind</th>
+<th>Commitment Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ASSERT</code></td>
+<td>Adds claim to speaker's commitment store</td>
+</tr>
+<tr>
+<td><code>CONCEDE</code></td>
+<td>Adds opponent's claim to own commitment store</td>
+</tr>
+<tr>
+<td><code>RETRACT</code></td>
+<td>Marks commitment as retracted</td>
+</tr>
+<tr>
+<td><code>THEREFORE</code></td>
+<td>Adds conclusion to commitment store</td>
+</tr>
+<tr>
+<td><code>GROUNDS</code></td>
+<td>Provides justification (may create supporting commitments)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="32-ludics-layer-models">3.2 Ludics Layer Models</h3>
+<h4 id="ludiccommitmentelement-model">LudicCommitmentElement Model</h4>
+<p><strong>Location</strong>: <code>lib/models/schema.prisma</code></p>
+<pre class="hljs"><code><div>model LudicCommitmentElement {
+  id                     String      @id @default(cuid())
+  ownerId                String      // &quot;Proponent&quot; | &quot;Opponent&quot; | user ID
+  basePolarity           String      // 'pos' | 'neg'
+  baseLocusId            String
+  baseLocus              LudicLocus  @relation(fields: [baseLocusId], references: [id])
+  label                  String?     // The proposition content
+  entitled               Boolean?    @default(true)
+  extJson                Json?       // Extended metadata
+  
+  // Relations
+  designs                LudicDesign[]
+  LudicCommitmentState   LudicCommitmentState? @relation(fields: [ludicCommitmentStateId], references: [id])
+  ludicCommitmentStateId String?
+  commitmentMappings     CommitmentLudicMapping[]
+
+  @@index([ownerId, basePolarity])
+  @@index([baseLocusId])
+}
+</div></code></pre>
+<p><strong>Purpose</strong>: Individual commitment elements in the proof-theoretic system</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li><strong>Polarity-based</strong>: <code>pos</code> = facts (assertions), <code>neg</code> = rules (implications)</li>
+<li><strong>Locus-addressed</strong>: Scoped to specific positions in dialogue tree</li>
+<li><strong>Entitlement tracking</strong>: Can be marked as &quot;not entitled&quot; for defeasibility</li>
+<li><strong>Design provenance</strong>: Many-to-many with LudicDesign for derivation tracking</li>
+</ul>
+<hr>
+<h4 id="ludiccommitmentstate-model">LudicCommitmentState Model</h4>
+<pre class="hljs"><code><div>model LudicCommitmentState {
+  id        String                   @id @default(cuid())
+  ownerId   String                   // Aggregate owner identifier
+  updatedAt DateTime                 @default(now())
+  extJson   Json?                    // Snapshot metadata
+  elements  LudicCommitmentElement[]
+
+  @@index([ownerId])
+}
+</div></code></pre>
+<p><strong>Purpose</strong>: Aggregate state container for a participant's ludics commitments</p>
+<hr>
+<h4 id="ludiclocus-model">LudicLocus Model</h4>
+<pre class="hljs"><code><div>model LudicLocus {
+  id              String       @id @default(cuid())
+  dialogueId      String?
+  path            String       @db.VarChar(255)  // &quot;0&quot;, &quot;0.1&quot;, &quot;0.1.2&quot;
+  parentId        String?
+  parent          LudicLocus?  @relation(&quot;LocusChildren&quot;, fields: [parentId], references: [id])
+  children        LudicLocus[] @relation(&quot;LocusChildren&quot;)
+  
+  // Back-references
+  commitmentElements LudicCommitmentElement[]
+  dialogueMoves      DialogueMove[]
+
+  @@unique([dialogueId, path])
+  @@index([dialogueId, path])
+  @@index([parentId])
+}
+</div></code></pre>
+<p><strong>Purpose</strong>: Tree structure for nested dialogue positions (loci)</p>
+<p><strong>Path Convention</strong>:</p>
+<ul>
+<li>Root: <code>&quot;0&quot;</code></li>
+<li>First child: <code>&quot;0.1&quot;</code></li>
+<li>Nested: <code>&quot;0.1.2&quot;</code>, <code>&quot;0.1.2.1&quot;</code>, etc.</li>
+</ul>
+<hr>
+<h3 id="33-bridge-model">3.3 Bridge Model</h3>
+<h4 id="commitmentludicmapping-model">CommitmentLudicMapping Model</h4>
+<pre class="hljs"><code><div>model CommitmentLudicMapping {
+  id                       String   @id @default(cuid())
+  dialogueCommitmentId     String   // Reference to dialogue commitment
+  deliberationId           String
+  participantId            String
+  proposition              String   @db.Text
+  ludicCommitmentElementId String
+  ludicOwnerId             String
+  ludicLocusId             String
+  promotedAt               DateTime @default(now())
+  promotedBy               String   // User who initiated promotion
+  promotionContext         Json?    // Additional metadata
+
+  // Relations
+  ludicCommitmentElement   LudicCommitmentElement @relation(fields: [ludicCommitmentElementId], references: [id])
+
+  @@unique([dialogueCommitmentId, ludicCommitmentElementId])
+  @@index([deliberationId, participantId])
+  @@index([ludicOwnerId])
+}
+</div></code></pre>
+<p><strong>Purpose</strong>: Bridge between dialogue and ludics commitment systems</p>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Links dialogue proposition to ludics element</li>
+<li>Tracks who promoted and when</li>
+<li>Allows same dialogue commitment to be promoted to multiple loci</li>
+</ul>
+<hr>
+<h3 id="34-schema-comparison-table">3.4 Schema Comparison Table</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Dialogue Commitments</th>
+<th>Ludics Commitments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Track public claims</td>
+<td>Track proof obligations</td>
+</tr>
+<tr>
+<td><strong>Granularity</strong></td>
+<td>Deliberation-wide</td>
+<td>Locus-specific</td>
+</tr>
+<tr>
+<td><strong>Structure</strong></td>
+<td>Flat key-value</td>
+<td>Graph with relations</td>
+</tr>
+<tr>
+<td><strong>Provenance</strong></td>
+<td>Implicit (via DialogueMove)</td>
+<td>Explicit (via designs, locus)</td>
+</tr>
+<tr>
+<td><strong>Logic</strong></td>
+<td>Simple (committed/retracted)</td>
+<td>Rich (polarity, entitlement, derivation)</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Fast (indexed)</td>
+<td>Complex (requires joins)</td>
+</tr>
+<tr>
+<td><strong>Use Case</strong></td>
+<td>UI display, basic tracking</td>
+<td>Formal inference, contradiction detection</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="4-dialogue-commitment-system">4. Dialogue Commitment System</h2>
+<h3 id="41-core-concepts">4.1 Core Concepts</h3>
+<p>The Dialogue Commitment System tracks <strong>what each participant has publicly committed to</strong> during a deliberation. This follows the Walton-Krabbe model of commitment stores in formal dialogue games.</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                     DIALOGUE COMMITMENT FLOW                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Participant A                          Participant B                       │
+│   ┌─────────────────┐                    ┌─────────────────┐                │
+│   │ Commitment      │                    │ Commitment      │                │
+│   │ Store           │                    │ Store           │                │
+│   │                 │                    │                 │                │
+│   │ • Claim X ✓     │                    │ • Claim Y ✓     │                │
+│   │ • Claim Z ✓     │◄───── CONCEDE ─────│ • Claim X ✓     │                │
+│   │ • Claim W ✗     │                    │ (conceded from A)│               │
+│   │   (retracted)   │                    │                 │                │
+│   └─────────────────┘                    └─────────────────┘                │
+│          │                                        │                         │
+│          └────────────── ASSERT ─────────────────►│                         │
+│          │                                        │                         │
+│          │◄───────────── RETRACT ────────────────│                         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="42-move-kinds-and-their-effects">4.2 Move Kinds and Their Effects</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> MoveKind =
+  | <span class="hljs-string">"ASSERT"</span>           <span class="hljs-comment">// Adds claim to commitment store</span>
+  | <span class="hljs-string">"WHY"</span>              <span class="hljs-comment">// Challenge for justification (no commitment change)</span>
+  | <span class="hljs-string">"GROUNDS"</span>          <span class="hljs-comment">// Provide supporting argument</span>
+  | <span class="hljs-string">"RETRACT"</span>          <span class="hljs-comment">// Removes claim from commitment store</span>
+  | <span class="hljs-string">"CONCEDE"</span>          <span class="hljs-comment">// Adds opponent's claim to own commitment store</span>
+  | <span class="hljs-string">"CLOSE"</span>            <span class="hljs-comment">// Close dialogue branch</span>
+  | <span class="hljs-string">"THEREFORE"</span>        <span class="hljs-comment">// Draw conclusion (creates commitment)</span>
+  | <span class="hljs-string">"SUPPOSE"</span>          <span class="hljs-comment">// Hypothetical assumption</span>
+  | <span class="hljs-string">"DISCHARGE"</span>        <span class="hljs-comment">// Close hypothetical</span>
+  | <span class="hljs-string">"ACCEPT_ARGUMENT"</span>; <span class="hljs-comment">// Accept argument structure</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> MoveForce = <span class="hljs-string">"ATTACK"</span> | <span class="hljs-string">"SURRENDER"</span> | <span class="hljs-string">"NEUTRAL"</span>;
+</div></code></pre>
+<h3 id="43-commitment-store-derivation">4.3 Commitment Store Derivation</h3>
+<p>The system <strong>derives</strong> commitment stores from DialogueMove history rather than storing them directly. This ensures consistency and enables time-travel queries.</p>
+<p><strong>Derivation Algorithm</strong>:</p>
+<pre class="hljs"><code><div>getCommitmentStores(deliberationId, options):
+  
+  1. QUERY: Fetch all DialogueMoves for deliberation
+     - JOIN with User (for participant names)
+     - JOIN with Claim (for claim text)
+     - JOIN with Argument (for argument conclusions)
+     - JOIN with CommitmentLudicMapping (for promotion status)
+     - ORDER BY createdAt ASC
+  
+  2. INITIALIZE: Create empty commitment store per participant
+     stores = Map&lt;participantId, CommitmentRecord[]&gt;
+  
+  3. PROCESS moves chronologically:
+     FOR each move in moves:
+       SWITCH move.kind:
+         CASE &quot;ASSERT&quot;, &quot;CONCEDE&quot;, &quot;THEREFORE&quot;:
+           ADD commitment to stores[move.actorId]
+           SET isActive = true
+         CASE &quot;RETRACT&quot;:
+           FIND matching commitment in stores[move.actorId]
+           SET isActive = false
+  
+  4. ENRICH: Add promotion status from CommitmentLudicMapping
+  
+  5. RETURN: Array of CommitmentStore objects with pagination
+</div></code></pre>
+<h3 id="44-commitment-store-data-structure">4.4 Commitment Store Data Structure</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> CommitmentStore {
+  participantId: <span class="hljs-built_in">string</span>;
+  participantName: <span class="hljs-built_in">string</span>;
+  commitments: CommitmentRecord[];
+  totalCommitments: <span class="hljs-built_in">number</span>;
+  hasMore: <span class="hljs-built_in">boolean</span>;
+}
+
+<span class="hljs-keyword">interface</span> CommitmentRecord {
+  claimId: <span class="hljs-built_in">string</span>;
+  claimText: <span class="hljs-built_in">string</span>;
+  moveId: <span class="hljs-built_in">string</span>;
+  moveKind: <span class="hljs-string">"ASSERT"</span> | <span class="hljs-string">"CONCEDE"</span> | <span class="hljs-string">"RETRACT"</span>;
+  timestamp: <span class="hljs-built_in">string</span> | <span class="hljs-built_in">Date</span>;
+  isActive: <span class="hljs-built_in">boolean</span>;           <span class="hljs-comment">// false if retracted</span>
+  isPromoted?: <span class="hljs-built_in">boolean</span>;        <span class="hljs-comment">// true if promoted to ludics</span>
+  promotedAt?: <span class="hljs-built_in">string</span>;
+  ludicOwnerId?: <span class="hljs-built_in">string</span>;
+  ludicPolarity?: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<h3 id="45-contradiction-detection-dialogue-layer">4.5 Contradiction Detection (Dialogue Layer)</h3>
+<p>The dialogue layer includes basic contradiction detection without requiring ludics formalization:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> Contradiction {
+  claimA: { id: <span class="hljs-built_in">string</span>; text: <span class="hljs-built_in">string</span>; moveId: <span class="hljs-built_in">string</span> };
+  claimB: { id: <span class="hljs-built_in">string</span>; text: <span class="hljs-built_in">string</span>; moveId: <span class="hljs-built_in">string</span> };
+  reason: <span class="hljs-built_in">string</span>;
+  confidence: <span class="hljs-built_in">number</span>;  <span class="hljs-comment">// 0-1</span>
+  <span class="hljs-keyword">type</span>: <span class="hljs-string">"explicit_negation"</span> | <span class="hljs-string">"semantic_opposition"</span> | <span class="hljs-string">"contraries"</span>;
+}
+</div></code></pre>
+<p><strong>Detection Strategies</strong>:</p>
+<ol>
+<li><strong>Explicit negation</strong>: &quot;X&quot; vs &quot;not X&quot;, &quot;X&quot; vs &quot;¬X&quot;</li>
+<li><strong>Infix negation</strong>: &quot;can&quot; vs &quot;cannot&quot;, &quot;should&quot; vs &quot;should not&quot;</li>
+<li><strong>Suffix negation</strong>: &quot;X is true&quot; vs &quot;X is false&quot;</li>
+<li><strong>Semantic opposition</strong>: Detected via NLP/embedding similarity</li>
+</ol>
+<hr>
+<h2 id="5-ludics-commitment-system">5. Ludics Commitment System</h2>
+<h3 id="51-theoretical-background">5.1 Theoretical Background</h3>
+<p>The Ludics Commitment System is based on <strong>Jean-Yves Girard's Ludics</strong> framework — a proof-theoretic approach to dialogue and interaction. Unlike the flat dialogue commitment stores, ludics commitments have rich structure:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                     LUDICS COMMITMENT STRUCTURE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                        COMMITMENT STATE                              │    │
+│  │                        (ownerId: &quot;Proponent&quot;)                        │    │
+│  ├─────────────────────────────────────────────────────────────────────┤    │
+│  │                                                                      │    │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │    │
+│  │  │ POSITIVE (Facts) │  │ POSITIVE (Facts) │  │ NEGATIVE (Rules) │   │    │
+│  │  │                  │  │                  │  │                  │   │    │
+│  │  │ label: &quot;contract&quot;│  │ label: &quot;paid&quot;    │  │ label: &quot;contract │   │    │
+│  │  │ locus: &quot;0&quot;       │  │ locus: &quot;0.1&quot;     │  │   &amp; paid -&gt;      │   │    │
+│  │  │ entitled: true   │  │ entitled: true   │  │   fulfilled&quot;     │   │    │
+│  │  │                  │  │                  │  │ locus: &quot;0&quot;       │   │    │
+│  │  │                  │  │                  │  │ entitled: true   │   │    │
+│  │  └──────────────────┘  └──────────────────┘  └──────────────────┘   │    │
+│  │                                                                      │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+│  INFERENCE: contract ∧ paid → fulfilled                                     │
+│  DERIVED:   { fulfilled } ← Now entitled as derived fact                    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="52-core-concepts">5.2 Core Concepts</h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Polarity</strong></td>
+<td><code>pos</code> = facts, <code>neg</code> = rules</td>
+<td><code>pos: &quot;contract&quot;</code>, <code>neg: &quot;A &amp; B -&gt; C&quot;</code></td>
+</tr>
+<tr>
+<td><strong>Locus</strong></td>
+<td>Position in dialogue tree</td>
+<td><code>&quot;0&quot;</code> (root), <code>&quot;0.1.2&quot;</code> (nested)</td>
+</tr>
+<tr>
+<td><strong>Entitlement</strong></td>
+<td>Whether commitment is defensible</td>
+<td><code>entitled: true</code> (can be challenged)</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td>Participant holding commitment</td>
+<td><code>&quot;Proponent&quot;</code>, <code>&quot;Opponent&quot;</code>, user ID</td>
+</tr>
+<tr>
+<td><strong>Design</strong></td>
+<td>Derivation/proof structure</td>
+<td>Links to source elements</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-polarity-system">5.3 Polarity System</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                         POLARITY SEMANTICS                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  POSITIVE (pos)                         NEGATIVE (neg)                       │
+│  ─────────────                          ─────────────                        │
+│  • Facts / Assertions                   • Rules / Implications               │
+│  • &quot;I claim X is true&quot;                  • &quot;If X then Y&quot;                      │
+│  • Can be challenged                    • Can be applied to derive facts     │
+│  • Example: &quot;contract&quot;                  • Example: &quot;contract &amp; paid -&gt; ok&quot;   │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    FORWARD-CHAINING INFERENCE                        │    │
+│  ├─────────────────────────────────────────────────────────────────────┤    │
+│  │                                                                      │    │
+│  │  GIVEN:                                                              │    │
+│  │    Facts (pos):  { contract, delivered }                             │    │
+│  │    Rules (neg):  { contract &amp; delivered -&gt; payment_due }             │    │
+│  │                                                                      │    │
+│  │  DERIVE:                                                             │    │
+│  │    1. Match rule antecedent: &quot;contract &amp; delivered&quot;                  │    │
+│  │    2. All antecedents present in facts? YES                          │    │
+│  │    3. Add consequent to derived facts: { payment_due }               │    │
+│  │                                                                      │    │
+│  │  RESULT:                                                             │    │
+│  │    derivedFacts: [ { label: &quot;payment_due&quot; } ]                        │    │
+│  │                                                                      │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="54-locus-inheritance">5.4 Locus Inheritance</h3>
+<p>Commitments at a locus <strong>inherit</strong> from ancestor loci:</p>
+<pre class="hljs"><code><div>                    Locus &quot;0&quot; (Root)
+                    ┌───────────────┐
+                    │ Facts: {A, B} │
+                    │ Rules: {A-&gt;C} │
+                    └───────┬───────┘
+                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+        Locus &quot;0.1&quot;                 Locus &quot;0.2&quot;
+        ┌───────────────┐          ┌───────────────┐
+        │ Facts: {D}    │          │ Facts: {E}    │
+        │ Inherited:    │          │ Inherited:    │
+        │   {A, B, A-&gt;C}│          │   {A, B, A-&gt;C}│
+        └───────┬───────┘          └───────────────┘
+                │
+                ▼
+          Locus &quot;0.1.1&quot;
+          ┌───────────────┐
+          │ Facts: {F}    │
+          │ Inherited:    │
+          │   {A,B,D,A-&gt;C}│
+          └───────────────┘
+</div></code></pre>
+<p><strong>Scoped Inference</strong>: When running inference at a locus, the engine:</p>
+<ol>
+<li>Collects all ancestor loci</li>
+<li>Gathers commitments from each ancestor</li>
+<li>Runs forward-chaining with combined fact/rule sets</li>
+<li>Reports contradictions with source tracking (local vs inherited)</li>
+</ol>
+<h3 id="55-entitlement-system">5.5 Entitlement System</h3>
+<p>Entitlement tracks whether a commitment is <strong>defensible</strong>:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Entitlement states</span>
+entitled: <span class="hljs-literal">true</span>   <span class="hljs-comment">// Commitment is defensible, can be used in inference</span>
+entitled: <span class="hljs-literal">false</span>  <span class="hljs-comment">// Commitment is challenged/defeated, excluded from inference</span>
+
+<span class="hljs-comment">// Toggling entitlement via API</span>
+POST /api/commitments/entitlement
+{
+  elementId: <span class="hljs-string">"cel_123"</span>,
+  entitled: <span class="hljs-literal">false</span>,
+  reason: <span class="hljs-string">"Challenged by opponent"</span>
+}
+</div></code></pre>
+<p><strong>Use Cases</strong>:</p>
+<ul>
+<li>Mark commitment as challenged after successful attack</li>
+<li>Temporarily disable commitment for what-if analysis</li>
+<li>Track defeasibility in ASPIC+ style reasoning</li>
+</ul>
+<h3 id="56-ludics-engine-operations">5.6 Ludics Engine Operations</h3>
+<h4 id="applytocs--apply-operations-to-commitment-state">applyToCS() — Apply Operations to Commitment State</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> ApplyToCSOps {
+  add?: <span class="hljs-built_in">Array</span>&lt;{
+    label: <span class="hljs-built_in">string</span>;           <span class="hljs-comment">// Proposition content</span>
+    basePolarity: <span class="hljs-string">'pos'</span> | <span class="hljs-string">'neg'</span>;
+    baseLocusPath?: <span class="hljs-built_in">string</span>;  <span class="hljs-comment">// Default: "0"</span>
+    entitled?: <span class="hljs-built_in">boolean</span>;      <span class="hljs-comment">// Default: true</span>
+    derived?: <span class="hljs-built_in">boolean</span>;       <span class="hljs-comment">// If true, mark as derived</span>
+  }&gt;;
+  erase?: <span class="hljs-built_in">Array</span>&lt;{
+    byLabel?: <span class="hljs-built_in">string</span>;        <span class="hljs-comment">// Erase by label match</span>
+    byLocusPath?: <span class="hljs-built_in">string</span>;    <span class="hljs-comment">// Erase by locus</span>
+  }&gt;;
+}
+
+<span class="hljs-comment">// Usage</span>
+POST /api/commitments/apply
+{
+  dialogueId: <span class="hljs-string">"dlg_123"</span>,
+  ownerId: <span class="hljs-string">"Proponent"</span>,
+  ops: {
+    add: [
+      { label: <span class="hljs-string">"contract"</span>, basePolarity: <span class="hljs-string">"pos"</span> },
+      { label: <span class="hljs-string">"delivered"</span>, basePolarity: <span class="hljs-string">"pos"</span> },
+      { label: <span class="hljs-string">"contract &amp; delivered -&gt; payment_due"</span>, basePolarity: <span class="hljs-string">"neg"</span> }
+    ]
+  },
+  autoPersistDerived: <span class="hljs-literal">true</span>
+}
+</div></code></pre>
+<h4 id="interactce--forward-chaining-inference">interactCE() — Forward-Chaining Inference</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> InteractCEResult {
+  derivedFacts: <span class="hljs-built_in">Array</span>&lt;{ label: <span class="hljs-built_in">string</span> }&gt;;
+  contradictions: <span class="hljs-built_in">Array</span>&lt;{ a: <span class="hljs-built_in">string</span>; b: <span class="hljs-built_in">string</span> }&gt;;
+  blocked: <span class="hljs-built_in">boolean</span>;          <span class="hljs-comment">// true if contradiction blocks reasoning</span>
+  code?: <span class="hljs-string">'CS_CONTRADICTION'</span> | <span class="hljs-string">'RULE_VALIDATION_ERROR'</span>;
+}
+</div></code></pre>
+<p><strong>Algorithm</strong>:</p>
+<ol>
+<li>Load all entitled elements for owner</li>
+<li>Partition into positive (facts) and negative (rules)</li>
+<li>Parse rules into antecedent/consequent pairs</li>
+<li>Forward-chain: For each rule, check if antecedents ⊆ facts</li>
+<li>If match, add consequent to derived facts</li>
+<li>Repeat until fixed-point</li>
+<li>Check for contradictions: fact ∧ ¬fact</li>
+</ol>
+<h4 id="interactcescoped--scoped-inference-at-locus">interactCEScoped() — Scoped Inference at Locus</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> ScopedInferenceResult <span class="hljs-keyword">extends</span> InteractCEResult {
+  inheritedFrom: <span class="hljs-built_in">Array</span>&lt;{
+    locusPath: <span class="hljs-built_in">string</span>;
+    elements: <span class="hljs-built_in">string</span>[];
+  }&gt;;
+  contradictionSources: <span class="hljs-built_in">Array</span>&lt;{
+    contradiction: { a: <span class="hljs-built_in">string</span>; b: <span class="hljs-built_in">string</span> };
+    source: <span class="hljs-string">'local'</span> | <span class="hljs-string">'inherited'</span>;
+    locusPath: <span class="hljs-built_in">string</span>;
+  }&gt;;
+}
+</div></code></pre>
+<p><strong>Key Difference</strong>: Includes ancestor locus commitments in inference scope.</p>
+<hr>
+<h2 id="6-commitment-ludics-bridge">6. Commitment-Ludics Bridge</h2>
+<h3 id="61-bridge-overview">6.1 Bridge Overview</h3>
+<p>The bridge system allows <strong>promotion</strong> of dialogue commitments to the formal ludics layer for deeper analysis:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                     COMMITMENT PROMOTION FLOW                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   DIALOGUE LAYER                           LUDICS LAYER                      │
+│   ──────────────                           ────────────                      │
+│                                                                              │
+│   CommitmentStore                                                            │
+│   ┌─────────────────┐                                                       │
+│   │ Participant: A  │                                                       │
+│   │                 │                                                       │
+│   │ ┌─────────────┐ │    &quot;Promote to Ludics&quot;    ┌─────────────────────┐    │
+│   │ │ &quot;contract   │ │ ─────────────────────────▶│ LudicCommitmentElem │    │
+│   │ │  is valid&quot;  │ │                           │                     │    │
+│   │ │  ✓ active   │ │                           │ label: &quot;contract    │    │
+│   │ │  ⬆ promote  │ │                           │        is valid&quot;    │    │
+│   │ └─────────────┘ │                           │ polarity: pos       │    │
+│   │                 │                           │ locus: &quot;0&quot;          │    │
+│   └─────────────────┘                           │ owner: &quot;Proponent&quot;  │    │
+│                                                  └──────────┬──────────┘    │
+│                                                             │               │
+│                                                             ▼               │
+│   ┌───────────────────────────────────────────────────────────────────┐    │
+│   │                   CommitmentLudicMapping                           │    │
+│   │                                                                    │    │
+│   │  dialogueCommitmentId ──────────────▶ ludicCommitmentElementId    │    │
+│   │  deliberationId: &quot;del_123&quot;           ludicOwnerId: &quot;Proponent&quot;    │    │
+│   │  participantId: &quot;user_456&quot;           ludicLocusId: &quot;loc_789&quot;      │    │
+│   │  proposition: &quot;contract is valid&quot;    promotedAt: 2024-12-13       │    │
+│   │                                      promotedBy: &quot;user_456&quot;        │    │
+│   └───────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="62-promotion-api">6.2 Promotion API</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// POST /api/commitments/promote</span>
+<span class="hljs-keyword">interface</span> PromoteCommitmentRequest {
+  deliberationId: <span class="hljs-built_in">string</span>;
+  participantId: <span class="hljs-built_in">string</span>;
+  proposition: <span class="hljs-built_in">string</span>;
+  targetOwnerId: <span class="hljs-built_in">string</span>;      <span class="hljs-comment">// e.g., "Proponent", "Opponent"</span>
+  targetLocusPath?: <span class="hljs-built_in">string</span>;   <span class="hljs-comment">// default: "0" (root)</span>
+  basePolarity: <span class="hljs-string">'pos'</span> | <span class="hljs-string">'neg'</span>;
+}
+
+<span class="hljs-keyword">interface</span> PromoteCommitmentResponse {
+  ok: <span class="hljs-built_in">boolean</span>;
+  mapping: {
+    id: <span class="hljs-built_in">string</span>;
+    dialogueCommitmentId: <span class="hljs-built_in">string</span>;
+    ludicCommitmentElementId: <span class="hljs-built_in">string</span>;
+    promotedAt: <span class="hljs-built_in">string</span>;
+  };
+  ludicElement: {
+    id: <span class="hljs-built_in">string</span>;
+    label: <span class="hljs-built_in">string</span>;
+    basePolarity: <span class="hljs-built_in">string</span>;
+    baseLocusId: <span class="hljs-built_in">string</span>;
+  };
+}
+</div></code></pre>
+<h3 id="63-export-from-ludics">6.3 Export from Ludics</h3>
+<p>Derived facts can be <strong>exported back</strong> to the dialogue layer:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// POST /api/commitments/export-from-ludics</span>
+<span class="hljs-keyword">interface</span> ExportFromLudicsRequest {
+  ludicElementId: <span class="hljs-built_in">string</span>;
+  targetDeliberationId: <span class="hljs-built_in">string</span>;
+  targetParticipantId: <span class="hljs-built_in">string</span>;
+  createDialogueMove?: <span class="hljs-built_in">boolean</span>;  <span class="hljs-comment">// If true, creates ASSERT move</span>
+}
+</div></code></pre>
+<h3 id="64-semantic-divergence-detection">6.4 Semantic Divergence Detection</h3>
+<p>Check if two owners have semantically contradictory commitments:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// GET /api/commitments/semantic-divergence?ownerId1=Proponent&amp;ownerId2=Opponent&amp;locusPath=0</span>
+<span class="hljs-keyword">interface</span> SemanticDivergenceResult {
+  hasDivergence: <span class="hljs-built_in">boolean</span>;
+  divergences: <span class="hljs-built_in">Array</span>&lt;{
+    owner1Element: <span class="hljs-built_in">string</span>;
+    owner2Element: <span class="hljs-built_in">string</span>;
+    <span class="hljs-keyword">type</span>: <span class="hljs-string">'direct_contradiction'</span> | <span class="hljs-string">'derived_contradiction'</span> | <span class="hljs-string">'semantic'</span>;
+    confidence: <span class="hljs-built_in">number</span>;
+  }&gt;;
+}
+</div></code></pre>
+<hr>
+<h2 id="7-component-architecture">7. Component Architecture</h2>
+<h3 id="71-component-hierarchy">7.1 Component Hierarchy</h3>
+<pre class="hljs"><code><div>DeepDivePanelV2
+├── Tab: &quot;Commitments&quot;
+│   └── CommitmentsTabContent
+│       ├── CommitmentStorePanel (dialogue commitments)
+│       │   ├── ParticipantTabs
+│       │   │   └── CommitmentList
+│       │   │       ├── CommitmentCard
+│       │   │       │   ├── ClaimText
+│       │   │       │   ├── StatusBadge (active/retracted)
+│       │   │       │   ├── PromoteButton
+│       │   │       │   └── MoveTimestamp
+│       │   │       └── TimelineView (optional)
+│       │   └── ContradictionIndicator
+│       │
+│       └── CommitmentAnalyticsDashboard (analytics)
+│           ├── MetricsOverview
+│           ├── TemporalChart
+│           ├── ConsensusDistribution
+│           └── AgreementMatrix
+│
+├── DialogueAwareGraphPanel
+│   ├── DialogueControls
+│   └── CommitmentStorePanel (optional sidebar)
+│
+└── Tab: &quot;Ludics&quot;
+    └── LudicsPanel
+        └── CommitmentsPanel (ludics commitments)
+            ├── FactsSection
+            │   ├── FactInput
+            │   └── FactList
+            ├── RulesSection
+            │   ├── RuleInput (with syntax validation)
+            │   └── RuleList
+            ├── InferenceControls
+            │   ├── RunInferenceButton
+            │   └── ScopeSelector (locus)
+            ├── DerivedFactsDisplay
+            └── ContradictionWarnings
+</div></code></pre>
+<h3 id="72-commitmentstorepanel">7.2 CommitmentStorePanel</h3>
+<p><strong>Location</strong>: <code>components/chains/dialogues/CommitmentStorePanel.tsx</code></p>
+<p><strong>Purpose</strong>: Display per-participant commitment tracking in dialogue visualizations</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> CommitmentStorePanelProps {
+  stores: CommitmentStore[];
+  deliberationId?: <span class="hljs-built_in">string</span>;
+  onClaimClick?: <span class="hljs-function">(<span class="hljs-params">claimId: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-built_in">void</span>;
+  onRefresh?: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-built_in">void</span>;
+  showTimeline?: <span class="hljs-built_in">boolean</span>;
+  className?: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Per-participant tabs for easy navigation</li>
+<li>Color-coded claims (active vs retracted)</li>
+<li>Timeline view showing commitment evolution</li>
+<li>Contradiction detection with visual indicators</li>
+<li>&quot;Promote to Ludics&quot; button for bridging systems</li>
+<li>Tooltips with move timestamps</li>
+</ul>
+<h3 id="73-commitmentanalyticsdashboard">7.3 CommitmentAnalyticsDashboard</h3>
+<p><strong>Location</strong>: <code>components/chains/dialogues/CommitmentAnalyticsDashboard.tsx</code></p>
+<p><strong>Purpose</strong>: Comprehensive analytics for commitment activity</p>
+<p><strong>Visualizations</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MetricsOverview</strong></td>
+<td>Total participants, commitments, retractions, participation rate</td>
+</tr>
+<tr>
+<td><strong>TemporalChart</strong></td>
+<td>Commitment velocity over time</td>
+</tr>
+<tr>
+<td><strong>ConsensusDistribution</strong></td>
+<td>Claims with highest agreement across participants</td>
+</tr>
+<tr>
+<td><strong>RetractionAnalysis</strong></td>
+<td>Retraction patterns and reasons</td>
+</tr>
+<tr>
+<td><strong>AgreementMatrix</strong></td>
+<td>Participant × Participant agreement scores</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-commitmentspanel-ludics">7.4 CommitmentsPanel (Ludics)</h3>
+<p><strong>Location</strong>: <code>components/ludics/CommitmentsPanel.tsx</code></p>
+<p><strong>Purpose</strong>: Manage ludics commitments (facts and rules)</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> CommitmentsPanelProps {
+  dialogueId: <span class="hljs-built_in">string</span>;
+  ownerId: <span class="hljs-built_in">string</span>;
+  locusPath?: <span class="hljs-built_in">string</span>;
+  onInferenceComplete?: <span class="hljs-function">(<span class="hljs-params">result: InferenceResult</span>) =&gt;</span> <span class="hljs-built_in">void</span>;
+  showInheritedCommitments?: <span class="hljs-built_in">boolean</span>;
+}
+</div></code></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Add facts and rules with syntax validation</li>
+<li>Forward-chaining inference</li>
+<li>Contradiction detection with source tracking</li>
+<li>Entitlement toggling</li>
+<li>Scoped inference at specific loci</li>
+<li>Export to dialogue layer</li>
+</ul>
+<hr>
+<h2 id="8-api-routes-reference">8. API Routes Reference</h2>
+<h3 id="81-dialogue-commitment-apis">8.1 Dialogue Commitment APIs</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/aif/dialogue/[deliberationId]/commitments</code></td>
+<td>GET</td>
+<td>Fetch commitment stores with provenance</td>
+</tr>
+<tr>
+<td><code>/api/aif/dialogue/[deliberationId]/commitments/export</code></td>
+<td>GET</td>
+<td>Export commitments as data</td>
+</tr>
+<tr>
+<td><code>/api/aif/dialogue/[deliberationId]/commitments/diff</code></td>
+<td>GET</td>
+<td>Compare commitment stores</td>
+</tr>
+<tr>
+<td><code>/api/aif/dialogue/[deliberationId]/commitments/analytics</code></td>
+<td>GET</td>
+<td>Fetch analytics</td>
+</tr>
+</tbody>
+</table>
+<h4 id="get-apiaifdialoguedeliberationidcommitments">GET <code>/api/aif/dialogue/[deliberationId]/commitments</code></h4>
+<p><strong>Query Parameters</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>participantId</code></td>
+<td>string</td>
+<td>Filter to specific participant</td>
+</tr>
+<tr>
+<td><code>asOf</code></td>
+<td>ISO timestamp</td>
+<td>Time-travel query</td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>number</td>
+<td>Max commitments per participant (default: 100)</td>
+</tr>
+<tr>
+<td><code>offset</code></td>
+<td>number</td>
+<td>Pagination offset</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response</strong>:</p>
+<pre class="hljs"><code><div>{
+  stores: <span class="hljs-built_in">Array</span>&lt;{
+    participantId: <span class="hljs-built_in">string</span>;
+    participantName: <span class="hljs-built_in">string</span>;
+    commitments: CommitmentRecord[];
+    totalCommitments: <span class="hljs-built_in">number</span>;
+    hasMore: <span class="hljs-built_in">boolean</span>;
+  }&gt;;
+  meta: {
+    deliberationId: <span class="hljs-built_in">string</span>;
+    asOf: <span class="hljs-built_in">string</span>;
+    totalParticipants: <span class="hljs-built_in">number</span>;
+  };
+}
+</div></code></pre>
+<h4 id="get-apiaifdialoguedeliberationidcommitmentsanalytics">GET <code>/api/aif/dialogue/[deliberationId]/commitments/analytics</code></h4>
+<p><strong>Response</strong>:</p>
+<pre class="hljs"><code><div>{
+  participation: {
+    totalParticipants: <span class="hljs-built_in">number</span>;
+    activeParticipants: <span class="hljs-built_in">number</span>;
+    totalCommitments: <span class="hljs-built_in">number</span>;
+    activeCommitments: <span class="hljs-built_in">number</span>;
+    totalRetractions: <span class="hljs-built_in">number</span>;
+    participationRate: <span class="hljs-built_in">number</span>;
+    avgCommitmentsPerParticipant: <span class="hljs-built_in">number</span>;
+  };
+  consensus: <span class="hljs-built_in">Array</span>&lt;{
+    claimText: <span class="hljs-built_in">string</span>;
+    participants: <span class="hljs-built_in">string</span>[];
+    count: <span class="hljs-built_in">number</span>;
+  }&gt;;
+  temporal: {
+    commitmentsByHour: <span class="hljs-built_in">Array</span>&lt;{ hour: <span class="hljs-built_in">string</span>; count: <span class="hljs-built_in">number</span> }&gt;;
+    peakHour: <span class="hljs-built_in">string</span>;
+    avgVelocity: <span class="hljs-built_in">number</span>;
+  };
+  retractions: {
+    totalRetractions: <span class="hljs-built_in">number</span>;
+    retractionRate: <span class="hljs-built_in">number</span>;
+    topRetractedClaims: <span class="hljs-built_in">Array</span>&lt;{ claim: <span class="hljs-built_in">string</span>; count: <span class="hljs-built_in">number</span> }&gt;;
+  };
+  agreementMatrix: Record&lt;<span class="hljs-built_in">string</span>, Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">number</span>&gt;&gt;;
+  computedAt: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<hr>
+<h3 id="82-ludics-commitment-apis">8.2 Ludics Commitment APIs</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/commitments/apply</code></td>
+<td>POST</td>
+<td>Apply add/erase operations</td>
+</tr>
+<tr>
+<td><code>/api/commitments/state</code></td>
+<td>GET</td>
+<td>List facts and rules</td>
+</tr>
+<tr>
+<td><code>/api/commitments/infer</code></td>
+<td>POST</td>
+<td>Run forward-chaining inference</td>
+</tr>
+<tr>
+<td><code>/api/commitments/infer-scoped</code></td>
+<td>POST</td>
+<td>Run scoped inference at locus</td>
+</tr>
+<tr>
+<td><code>/api/commitments/entitlement</code></td>
+<td>POST</td>
+<td>Toggle entitlement</td>
+</tr>
+<tr>
+<td><code>/api/commitments/contradictions</code></td>
+<td>GET</td>
+<td>Detect contradictions</td>
+</tr>
+<tr>
+<td><code>/api/commitments/semantic-divergence</code></td>
+<td>POST</td>
+<td>Check semantic divergence</td>
+</tr>
+<tr>
+<td><code>/api/commitments/promote</code></td>
+<td>POST</td>
+<td>Promote to ludics</td>
+</tr>
+<tr>
+<td><code>/api/commitments/export-from-ludics</code></td>
+<td>POST</td>
+<td>Export to dialogue</td>
+</tr>
+<tr>
+<td><code>/api/commitments/elements</code></td>
+<td>GET</td>
+<td>Get commitment elements</td>
+</tr>
+<tr>
+<td><code>/api/commitments/analyze</code></td>
+<td>POST</td>
+<td>Analyze commitments</td>
+</tr>
+</tbody>
+</table>
+<h4 id="post-apicommitmentsapply">POST <code>/api/commitments/apply</code></h4>
+<p><strong>Request Body</strong>:</p>
+<pre class="hljs"><code><div>{
+  dialogueId: <span class="hljs-built_in">string</span>;
+  ownerId: <span class="hljs-built_in">string</span>;
+  ops: {
+    add?: <span class="hljs-built_in">Array</span>&lt;{
+      label: <span class="hljs-built_in">string</span>;
+      basePolarity: <span class="hljs-string">'pos'</span> | <span class="hljs-string">'neg'</span>;
+      baseLocusPath?: <span class="hljs-built_in">string</span>;
+      entitled?: <span class="hljs-built_in">boolean</span>;
+      derived?: <span class="hljs-built_in">boolean</span>;
+    }&gt;;
+    erase?: <span class="hljs-built_in">Array</span>&lt;{
+      byLabel?: <span class="hljs-built_in">string</span>;
+      byLocusPath?: <span class="hljs-built_in">string</span>;
+    }&gt;;
+  };
+  autoPersistDerived?: <span class="hljs-built_in">boolean</span>;
+}
+</div></code></pre>
+<p><strong>Response</strong>:</p>
+<pre class="hljs"><code><div>{
+  ok: <span class="hljs-built_in">boolean</span>;
+  csId: <span class="hljs-built_in">string</span>;                              <span class="hljs-comment">// Commitment state ID</span>
+  added: <span class="hljs-built_in">string</span>[];                           <span class="hljs-comment">// IDs of added elements</span>
+  erased: <span class="hljs-built_in">string</span>[];                          <span class="hljs-comment">// IDs of erased elements</span>
+  derivedFacts: <span class="hljs-built_in">Array</span>&lt;{ label: <span class="hljs-built_in">string</span> }&gt;;    <span class="hljs-comment">// Inferred facts</span>
+  contradictions: <span class="hljs-built_in">Array</span>&lt;{ a: <span class="hljs-built_in">string</span>; b: <span class="hljs-built_in">string</span> }&gt;;
+  persistedDerivedIds: <span class="hljs-built_in">string</span>[];             <span class="hljs-comment">// IDs of persisted derived</span>
+  blocked: <span class="hljs-built_in">boolean</span>;                          <span class="hljs-comment">// True if contradiction blocks</span>
+  code?: <span class="hljs-string">'CS_CONTRADICTION'</span> | <span class="hljs-string">'RULE_VALIDATION_ERROR'</span>;
+}
+</div></code></pre>
+<h4 id="post-apicommitmentsinfer-scoped">POST <code>/api/commitments/infer-scoped</code></h4>
+<p><strong>Request Body</strong>:</p>
+<pre class="hljs"><code><div>{
+  dialogueId: <span class="hljs-built_in">string</span>;
+  ownerId: <span class="hljs-built_in">string</span>;
+  locusPath: <span class="hljs-built_in">string</span>;           <span class="hljs-comment">// e.g., "0.1.2"</span>
+  includeInherited: <span class="hljs-built_in">boolean</span>;   <span class="hljs-comment">// Include ancestor loci</span>
+}
+</div></code></pre>
+<p><strong>Response</strong>:</p>
+<pre class="hljs"><code><div>{
+  derivedFacts: <span class="hljs-built_in">Array</span>&lt;{ label: <span class="hljs-built_in">string</span>; source: <span class="hljs-string">'local'</span> | <span class="hljs-string">'inherited'</span> }&gt;;
+  contradictions: <span class="hljs-built_in">Array</span>&lt;{
+    a: <span class="hljs-built_in">string</span>;
+    b: <span class="hljs-built_in">string</span>;
+    source: <span class="hljs-string">'local'</span> | <span class="hljs-string">'inherited'</span>;
+    locusPath: <span class="hljs-built_in">string</span>;
+  }&gt;;
+  inheritedFrom: <span class="hljs-built_in">Array</span>&lt;{
+    locusPath: <span class="hljs-built_in">string</span>;
+    elements: <span class="hljs-built_in">string</span>[];
+  }&gt;;
+}
+</div></code></pre>
+<h4 id="post-apicommitmentspromote">POST <code>/api/commitments/promote</code></h4>
+<p><strong>Request Body</strong>:</p>
+<pre class="hljs"><code><div>{
+  deliberationId: <span class="hljs-built_in">string</span>;
+  participantId: <span class="hljs-built_in">string</span>;
+  proposition: <span class="hljs-built_in">string</span>;
+  targetOwnerId: <span class="hljs-built_in">string</span>;      <span class="hljs-comment">// e.g., "Proponent", "Opponent"</span>
+  targetLocusPath?: <span class="hljs-built_in">string</span>;   <span class="hljs-comment">// default: "0"</span>
+  basePolarity: <span class="hljs-string">'pos'</span> | <span class="hljs-string">'neg'</span>;
+}
+</div></code></pre>
+<p><strong>Response</strong>:</p>
+<pre class="hljs"><code><div>{
+  ok: <span class="hljs-built_in">boolean</span>;
+  mapping: {
+    id: <span class="hljs-built_in">string</span>;
+    dialogueCommitmentId: <span class="hljs-built_in">string</span>;
+    ludicCommitmentElementId: <span class="hljs-built_in">string</span>;
+    promotedAt: <span class="hljs-built_in">string</span>;
+    promotedBy: <span class="hljs-built_in">string</span>;
+  };
+  ludicElement: {
+    id: <span class="hljs-built_in">string</span>;
+    label: <span class="hljs-built_in">string</span>;
+    basePolarity: <span class="hljs-built_in">string</span>;
+    ownerId: <span class="hljs-built_in">string</span>;
+    baseLocusId: <span class="hljs-built_in">string</span>;
+  };
+}
+</div></code></pre>
+<hr>
+<h2 id="9-service-layer">9. Service Layer</h2>
+<h3 id="91-getcommitmentstores">9.1 getCommitmentStores()</h3>
+<p><strong>Location</strong>: <code>lib/aif/graph-builder.ts</code></p>
+<p><strong>Purpose</strong>: Build commitment stores by deriving from DialogueMove history</p>
+<p><strong>Signature</strong>:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getCommitmentStores</span>(<span class="hljs-params">
+  deliberationId: <span class="hljs-built_in">string</span>,
+  options?: {
+    participantId?: <span class="hljs-built_in">string</span>;
+    asOf?: <span class="hljs-built_in">Date</span>;
+    limit?: <span class="hljs-built_in">number</span>;
+    offset?: <span class="hljs-built_in">number</span>;
+  }
+</span>): <span class="hljs-title">Promise</span>&lt;<span class="hljs-title">CommitmentStore</span>[]&gt;
+</span></div></code></pre>
+<p><strong>Implementation Details</strong>:</p>
+<ul>
+<li>Uses single optimized SQL query with joins</li>
+<li>Redis caching with 60-second TTL</li>
+<li>Processes moves chronologically</li>
+<li>Includes promotion status from CommitmentLudicMapping</li>
+</ul>
+<h3 id="92-computecommitmentanalytics">9.2 computeCommitmentAnalytics()</h3>
+<p><strong>Location</strong>: <code>lib/aif/commitment-analytics.ts</code></p>
+<p><strong>Purpose</strong>: Compute comprehensive commitment analytics</p>
+<p><strong>Metrics Computed</strong>:</p>
+<ol>
+<li><strong>Participation</strong>: Active participants, commitment counts, participation rate</li>
+<li><strong>Consensus</strong>: Claims with highest agreement across participants</li>
+<li><strong>Temporal</strong>: Commitment velocity, peak hours</li>
+<li><strong>Retractions</strong>: Retraction rate, commonly retracted claims</li>
+<li><strong>Agreement Matrix</strong>: Pairwise participant agreement scores</li>
+</ol>
+<h3 id="93-ludics-engine-functions">9.3 Ludics Engine Functions</h3>
+<p><strong>Location</strong>: <code>lib/ludics/commitment-engine.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>applyToCS()</code></td>
+<td>Apply add/erase operations to commitment state</td>
+</tr>
+<tr>
+<td><code>listFactsAndRules()</code></td>
+<td>Get facts and rules for owner at locus</td>
+</tr>
+<tr>
+<td><code>interactCE()</code></td>
+<td>Run forward-chaining inference</td>
+</tr>
+<tr>
+<td><code>interactCEScoped()</code></td>
+<td>Run scoped inference with locus inheritance</td>
+</tr>
+<tr>
+<td><code>getCommitmentsAtLocusWithInherited()</code></td>
+<td>Get local + inherited commitments</td>
+</tr>
+<tr>
+<td><code>checkSemanticDivergence()</code></td>
+<td>Check for contradictions between owners</td>
+</tr>
+<tr>
+<td><code>toggleEntitlement()</code></td>
+<td>Toggle element entitlement status</td>
+</tr>
+</tbody>
+</table>
+<h3 id="94-contradiction-detection">9.4 Contradiction Detection</h3>
+<p><strong>Location</strong>: <code>lib/aif/contradiction-detection.ts</code></p>
+<p><strong>Purpose</strong>: Detect contradictions in dialogue commitments without ludics formalization</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">detectContradictions</span>(<span class="hljs-params">
+  commitments: CommitmentRecord[]
+</span>): <span class="hljs-title">Contradiction</span>[]
+</span></div></code></pre>
+<p><strong>Detection Strategies</strong>:</p>
+<ol>
+<li><strong>Explicit Negation</strong>: Pattern matching for &quot;not&quot;, &quot;¬&quot;, negation words</li>
+<li><strong>Infix Negation</strong>: Detect &quot;cannot&quot;, &quot;won't&quot;, &quot;shouldn't&quot;</li>
+<li><strong>Suffix Negation</strong>: &quot;is false&quot;, &quot;is untrue&quot;</li>
+<li><strong>Semantic Opposition</strong>: Embedding-based similarity detection</li>
+</ol>
+<hr>
+<h2 id="10-event-system">10. Event System</h2>
+<h3 id="101-event-bus-integration">10.1 Event Bus Integration</h3>
+<p><strong>Event Name</strong>: <code>dialogue:cs:refresh</code></p>
+<p><strong>Payload</strong>:</p>
+<pre class="hljs"><code><div>{
+  deliberationId: <span class="hljs-built_in">string</span>;
+  participantId?: <span class="hljs-built_in">string</span>;
+  ownerId?: <span class="hljs-built_in">string</span>;
+  source: <span class="hljs-string">'dialogue'</span> | <span class="hljs-string">'ludics'</span> | <span class="hljs-string">'promotion'</span>;
+}
+</div></code></pre>
+<h3 id="102-event-emitters">10.2 Event Emitters</h3>
+<table>
+<thead>
+<tr>
+<th>Location</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/aif/dialogue/[id]/move</code></td>
+<td>After commitment-relevant move (ASSERT, CONCEDE, RETRACT)</td>
+</tr>
+<tr>
+<td><code>/api/commitments/apply</code></td>
+<td>After applyToCS() completes</td>
+</tr>
+<tr>
+<td><code>/api/commitments/promote</code></td>
+<td>After successful promotion</td>
+</tr>
+<tr>
+<td><code>/api/commitments/entitlement</code></td>
+<td>After entitlement toggle</td>
+</tr>
+</tbody>
+</table>
+<h3 id="103-event-listeners">10.3 Event Listeners</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Action on Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CommitmentStorePanel</code></td>
+<td>SWR revalidation via DialogueAwareGraphPanel</td>
+</tr>
+<tr>
+<td><code>CommitmentsPanel</code></td>
+<td>Refresh ludics commitment list</td>
+</tr>
+<tr>
+<td><code>EntailmentWidget</code></td>
+<td>Re-compute entailment status</td>
+</tr>
+<tr>
+<td><code>ContradictionIndicator</code></td>
+<td>Re-run contradiction detection</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="11-data-flow-diagrams">11. Data Flow Diagrams</h2>
+<h3 id="111-dialogue-move-%E2%86%92-commitment-flow">11.1 Dialogue Move → Commitment Flow</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DIALOGUE MOVE → COMMITMENT FLOW                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌─────────────┐                                                           │
+│   │   User UI   │                                                           │
+│   │  (ASSERT)   │                                                           │
+│   └──────┬──────┘                                                           │
+│          │                                                                   │
+│          ▼                                                                   │
+│   ┌─────────────────────────────────────┐                                   │
+│   │  POST /api/aif/dialogue/[id]/move   │                                   │
+│   │  { kind: &quot;ASSERT&quot;, targetId: ... }  │                                   │
+│   └──────┬──────────────────────────────┘                                   │
+│          │                                                                   │
+│          ├─────────────────────────────────┐                                │
+│          ▼                                  ▼                               │
+│   ┌─────────────────┐            ┌─────────────────────┐                   │
+│   │ Create          │            │ Upsert Commitment   │                   │
+│   │ DialogueMove    │            │ (if commitment-     │                   │
+│   │ record          │            │  relevant move)     │                   │
+│   └──────┬──────────┘            └──────────┬──────────┘                   │
+│          │                                   │                              │
+│          └───────────────┬───────────────────┘                              │
+│                          ▼                                                   │
+│                   ┌─────────────────────────┐                               │
+│                   │  Emit Event:            │                               │
+│                   │  &quot;dialogue:cs:refresh&quot;  │                               │
+│                   └──────────┬──────────────┘                               │
+│                              ▼                                               │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                    CommitmentStorePanel                              │   │
+│   │                    (SWR revalidation)                                │   │
+│   │   ┌────────────┐  ┌────────────┐  ┌────────────┐                    │   │
+│   │   │ Part. A    │  │ Part. B    │  │ Part. C    │                    │   │
+│   │   │ • Claim X ✓│  │ • Claim Y ✓│  │ • Claim Z ✓│                    │   │
+│   │   └────────────┘  └────────────┘  └────────────┘                    │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="112-ludics-commitment-flow">11.2 Ludics Commitment Flow</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                      LUDICS COMMITMENT FLOW                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌──────────────────┐                                                      │
+│   │ CommitmentsPanel │                                                      │
+│   │ (Add fact/rule)  │                                                      │
+│   └────────┬─────────┘                                                      │
+│            │                                                                 │
+│            ▼                                                                 │
+│   ┌────────────────────────────────────────┐                                │
+│   │  POST /api/commitments/apply           │                                │
+│   │  {                                     │                                │
+│   │    dialogueId, ownerId,                │                                │
+│   │    ops: { add: [{ label, polarity }] } │                                │
+│   │  }                                     │                                │
+│   └────────┬───────────────────────────────┘                                │
+│            │                                                                 │
+│            ▼                                                                 │
+│   ┌────────────────────────────────────────┐                                │
+│   │           applyToCS()                  │                                │
+│   │                                        │                                │
+│   │  1. Get/Create LudicCommitmentState    │                                │
+│   │  2. Create LudicCommitmentElement      │                                │
+│   │  3. Link to LudicLocus                 │                                │
+│   └────────┬───────────────────────────────┘                                │
+│            │                                                                 │
+│            ▼                                                                 │
+│   ┌────────────────────────────────────────┐                                │
+│   │           interactCE()                 │                                │
+│   │                                        │                                │
+│   │  1. Load entitled facts &amp; rules        │                                │
+│   │  2. Forward-chain to derive            │                                │
+│   │  3. Check for contradictions           │                                │
+│   └────────┬───────────────────────────────┘                                │
+│            │                                                                 │
+│            ▼                                                                 │
+│   ┌────────────────────────────────────────────────────────────────────┐    │
+│   │  Response:                                                          │    │
+│   │  {                                                                  │    │
+│   │    ok: true,                                                        │    │
+│   │    derivedFacts: [{ label: &quot;payment_due&quot; }],                        │    │
+│   │    contradictions: [],                                              │    │
+│   │    blocked: false                                                   │    │
+│   │  }                                                                  │    │
+│   └────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="113-commitment-promotion-flow">11.3 Commitment Promotion Flow</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    COMMITMENT PROMOTION FLOW                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   DIALOGUE LAYER                              LUDICS LAYER                   │
+│                                                                              │
+│   ┌─────────────────┐                                                       │
+│   │ CommitmentStore │                                                       │
+│   │ Panel           │                                                       │
+│   │                 │                                                       │
+│   │ ┌─────────────┐ │                                                       │
+│   │ │ &quot;contract&quot;  │ │                                                       │
+│   │ │ [Promote ⬆] │─┼────────┐                                             │
+│   │ └─────────────┘ │        │                                             │
+│   └─────────────────┘        │                                             │
+│                              ▼                                              │
+│              ┌────────────────────────────────┐                            │
+│              │  POST /api/commitments/promote │                            │
+│              │  {                             │                            │
+│              │    deliberationId,             │                            │
+│              │    participantId,              │                            │
+│              │    proposition: &quot;contract&quot;,    │                            │
+│              │    targetOwnerId: &quot;Proponent&quot;, │                            │
+│              │    basePolarity: &quot;pos&quot;         │                            │
+│              │  }                             │                            │
+│              └───────────────┬────────────────┘                            │
+│                              │                                              │
+│         ┌────────────────────┼────────────────────┐                        │
+│         ▼                    ▼                    ▼                        │
+│   ┌───────────┐       ┌─────────────┐      ┌──────────────┐               │
+│   │ Verify/   │       │ applyToCS() │      │ Create       │               │
+│   │ Create    │       │ Create      │      │ Commitment   │               │
+│   │ Dialogue  │       │ LudicCommit │      │ LudicMapping │               │
+│   │ Commitment│       │ Element     │      │              │               │
+│   └───────────┘       └─────────────┘      └──────────────┘               │
+│                              │                                              │
+│                              ▼                                              │
+│                       ┌─────────────────────────────────────┐              │
+│                       │  LudicCommitmentElement             │              │
+│                       │  ┌─────────────────────────────┐   │              │
+│                       │  │ label: &quot;contract&quot;           │   │              │
+│                       │  │ polarity: pos               │   │              │
+│                       │  │ locus: &quot;0&quot;                  │   │              │
+│                       │  │ owner: &quot;Proponent&quot;          │   │              │
+│                       │  │ entitled: true              │   │              │
+│                       │  └─────────────────────────────┘   │              │
+│                       └─────────────────────────────────────┘              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="12-theoretical-foundations">12. Theoretical Foundations</h2>
+<h3 id="121-commitment-store-semantics-walton-krabbe">12.1 Commitment Store Semantics (Walton-Krabbe)</h3>
+<p>The Dialogue Commitment System implements formal dialogue game semantics based on <strong>Douglas Walton and Erik Krabbe's</strong> work on commitment in dialogue:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    WALTON-KRABBE COMMITMENT MODEL                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  CORE PRINCIPLE: A commitment store CS_i(t) represents the set of           │
+│  propositions that participant i is publicly committed to at time t.        │
+│                                                                              │
+│  COMMITMENT OPERATIONS:                                                      │
+│  ──────────────────────                                                      │
+│                                                                              │
+│  1. ASSERTION: CS_i(t+1) = CS_i(t) ∪ {p}                                    │
+│     Participant i asserts p, adding it to their commitment store            │
+│                                                                              │
+│  2. CONCESSION: CS_i(t+1) = CS_i(t) ∪ {p}                                   │
+│     Participant i concedes opponent's claim p                                │
+│                                                                              │
+│  3. RETRACTION: CS_i(t+1) = CS_i(t) \ {p}                                   │
+│     Participant i withdraws commitment to p                                  │
+│                                                                              │
+│  DARK-SIDE COMMITMENTS:                                                      │
+│  ──────────────────────                                                      │
+│  Implicit commitments from argument structure:                               │
+│  - If i asserts A as argument for B, then i is committed to A→B             │
+│  - If i uses modus ponens with A and A→B, i is committed to B               │
+│                                                                              │
+│  CONSISTENCY REQUIREMENTS:                                                   │
+│  ─────────────────────────                                                   │
+│  - No participant should have {p, ¬p} ⊆ CS_i(t)                             │
+│  - Contradictions may be challenged by opponent                              │
+│  - Resolution requires retraction of one commitment                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<p><strong>Key References</strong>:</p>
+<ul>
+<li>Walton, D. &amp; Krabbe, E. (1995). <em>Commitment in Dialogue</em></li>
+<li>Prakken, H. (2006). &quot;Formal systems for persuasion dialogue&quot;</li>
+<li>Hamblin, C. L. (1970). <em>Fallacies</em></li>
+</ul>
+<h3 id="122-ludics-commitment-model-girard">12.2 Ludics Commitment Model (Girard)</h3>
+<p>The Ludics Commitment System is based on <strong>Jean-Yves Girard's Ludics</strong> — a proof-theoretic approach to dialogue:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                       GIRARD'S LUDICS MODEL                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  LOCUS SEMANTICS:                                                            │
+│  ────────────────                                                            │
+│  A locus ξ represents a position in the interaction tree.                    │
+│  Loci form a tree structure with paths like &quot;0&quot;, &quot;0.1&quot;, &quot;0.1.2&quot;.            │
+│                                                                              │
+│  POLARITY:                                                                   │
+│  ─────────                                                                   │
+│  • POSITIVE (⊕): Facts, assertions, data                                    │
+│    - Represents what is known/claimed                                        │
+│    - Can be used as premises in inference                                    │
+│                                                                              │
+│  • NEGATIVE (⊖): Rules, implications, co-data                               │
+│    - Represents conditional knowledge                                        │
+│    - Form: A₁ &amp; A₂ &amp; ... → C                                                │
+│    - Applied to derive new facts                                             │
+│                                                                              │
+│  DESIGNS:                                                                    │
+│  ────────                                                                    │
+│  A design is a proof structure showing how commitments are derived.          │
+│  Designs track the provenance of derived facts.                              │
+│                                                                              │
+│  INTERACTION:                                                                │
+│  ────────────                                                                │
+│  When positive meets negative at a locus:                                    │
+│    - If antecedents of rule are satisfied → derive consequent               │
+│    - If contradiction detected → interaction fails (fax)                     │
+│                                                                              │
+│  INHERITANCE:                                                                │
+│  ────────────                                                                │
+│  Commitments at a locus inherit from ancestor loci.                          │
+│  ξ.α inherits from ξ, which inherits from root.                             │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<p><strong>Key References</strong>:</p>
+<ul>
+<li>Girard, J.-Y. (2001). &quot;Locus Solum: From the rules of logic to the logic of rules&quot;</li>
+<li>Girard, J.-Y. (2011). <em>The Blind Spot: Lectures on Logic</em></li>
+</ul>
+<h3 id="123-forward-chaining-inference">12.3 Forward-Chaining Inference</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FORWARD-CHAINING ALGORITHM                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  INPUT:                                                                      │
+│    Facts = { f₁, f₂, ..., fₙ }     (positive commitments)                   │
+│    Rules = { r₁, r₂, ..., rₘ }     (negative commitments, form: A → C)      │
+│                                                                              │
+│  ALGORITHM:                                                                  │
+│    derived = ∅                                                               │
+│    changed = true                                                            │
+│                                                                              │
+│    WHILE changed:                                                            │
+│      changed = false                                                         │
+│      FOR each rule r ∈ Rules:                                               │
+│        antecedents = parse_antecedents(r)                                   │
+│        consequent = parse_consequent(r)                                     │
+│                                                                              │
+│        IF antecedents ⊆ (Facts ∪ derived):                                  │
+│          IF consequent ∉ (Facts ∪ derived):                                 │
+│            derived = derived ∪ { consequent }                               │
+│            changed = true                                                   │
+│                                                                              │
+│  OUTPUT:                                                                     │
+│    derivedFacts = derived                                                   │
+│                                                                              │
+│  EXAMPLE:                                                                    │
+│    Facts = { contract, delivered }                                          │
+│    Rules = { &quot;contract &amp; delivered -&gt; payment_due&quot; }                        │
+│                                                                              │
+│    Iteration 1:                                                              │
+│      - Rule matches: contract ∈ Facts, delivered ∈ Facts                    │
+│      - Derive: payment_due                                                   │
+│      - derived = { payment_due }                                            │
+│                                                                              │
+│    Iteration 2:                                                              │
+│      - No new matches                                                        │
+│      - Fixed point reached                                                   │
+│                                                                              │
+│    Result: derivedFacts = [ { label: &quot;payment_due&quot; } ]                      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="124-contradiction-detection">12.4 Contradiction Detection</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CONTRADICTION DETECTION                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  DEFINITION:                                                                 │
+│  A contradiction exists when both X and ¬X are in the commitment set.       │
+│                                                                              │
+│  DETECTION ALGORITHM:                                                        │
+│                                                                              │
+│    contradictions = []                                                       │
+│                                                                              │
+│    FOR each fact f₁ ∈ AllFacts:                                             │
+│      FOR each fact f₂ ∈ AllFacts where f₂ ≠ f₁:                            │
+│                                                                              │
+│        // Explicit negation check                                            │
+│        IF f₂ = &quot;not &quot; + f₁ OR f₂ = &quot;¬&quot; + f₁:                               │
+│          contradictions.push({ a: f₁, b: f₂, type: 'explicit' })           │
+│                                                                              │
+│        // Semantic opposition check (embedding similarity)                   │
+│        IF semantic_opposition(f₁, f₂) &gt; THRESHOLD:                          │
+│          contradictions.push({ a: f₁, b: f₂, type: 'semantic' })           │
+│                                                                              │
+│    RETURN contradictions                                                     │
+│                                                                              │
+│  BLOCKING BEHAVIOR:                                                          │
+│  If contradictions.length &gt; 0, inference is marked as 'blocked'.            │
+│  User must resolve contradiction before further inference.                   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="13-type-definitions">13. Type Definitions</h2>
+<h3 id="131-core-types">13.1 Core Types</h3>
+<p><strong>Location</strong>: <code>types/dialogue.ts</code>, <code>types/commitments.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Move kinds that affect commitment stores</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> CommitmentMoveKind = 
+  | <span class="hljs-string">"ASSERT"</span> 
+  | <span class="hljs-string">"CONCEDE"</span> 
+  | <span class="hljs-string">"RETRACT"</span> 
+  | <span class="hljs-string">"THEREFORE"</span>;
+
+<span class="hljs-comment">// All dialogue move kinds</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> MoveKind =
+  | CommitmentMoveKind
+  | <span class="hljs-string">"WHY"</span>
+  | <span class="hljs-string">"GROUNDS"</span>
+  | <span class="hljs-string">"CLOSE"</span>
+  | <span class="hljs-string">"SUPPOSE"</span>
+  | <span class="hljs-string">"DISCHARGE"</span>
+  | <span class="hljs-string">"ACCEPT_ARGUMENT"</span>;
+
+<span class="hljs-comment">// Move force (attack/surrender semantics)</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> MoveForce = <span class="hljs-string">"ATTACK"</span> | <span class="hljs-string">"SURRENDER"</span> | <span class="hljs-string">"NEUTRAL"</span>;
+
+<span class="hljs-comment">// Commitment record in dialogue store</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> CommitmentRecord {
+  claimId: <span class="hljs-built_in">string</span>;
+  claimText: <span class="hljs-built_in">string</span>;
+  moveId: <span class="hljs-built_in">string</span>;
+  moveKind: CommitmentMoveKind;
+  timestamp: <span class="hljs-built_in">Date</span> | <span class="hljs-built_in">string</span>;
+  isActive: <span class="hljs-built_in">boolean</span>;
+  isPromoted?: <span class="hljs-built_in">boolean</span>;
+  promotedAt?: <span class="hljs-built_in">Date</span> | <span class="hljs-built_in">string</span>;
+  ludicOwnerId?: <span class="hljs-built_in">string</span>;
+  ludicPolarity?: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-comment">// Commitment store for a participant</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> CommitmentStore {
+  participantId: <span class="hljs-built_in">string</span>;
+  participantName: <span class="hljs-built_in">string</span>;
+  commitments: CommitmentRecord[];
+  totalCommitments: <span class="hljs-built_in">number</span>;
+  hasMore: <span class="hljs-built_in">boolean</span>;
+}
+</div></code></pre>
+<h3 id="132-analytics-types">13.2 Analytics Types</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> CommitmentAnalytics {
+  participation: ParticipationMetrics;
+  consensus: ClaimConsensus[];
+  temporal: TemporalMetrics;
+  retractions: RetractionAnalysis;
+  agreementMatrix: ParticipantAgreementMatrix;
+  topClaims: ClaimConsensus[];
+  computedAt: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> ParticipationMetrics {
+  totalParticipants: <span class="hljs-built_in">number</span>;
+  activeParticipants: <span class="hljs-built_in">number</span>;
+  totalCommitments: <span class="hljs-built_in">number</span>;
+  activeCommitments: <span class="hljs-built_in">number</span>;
+  totalRetractions: <span class="hljs-built_in">number</span>;
+  participationRate: <span class="hljs-built_in">number</span>;
+  avgCommitmentsPerParticipant: <span class="hljs-built_in">number</span>;
+  medianCommitmentsPerParticipant: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> ClaimConsensus {
+  claimText: <span class="hljs-built_in">string</span>;
+  claimId: <span class="hljs-built_in">string</span>;
+  participants: <span class="hljs-built_in">string</span>[];
+  count: <span class="hljs-built_in">number</span>;
+  agreementPercentage: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> RetractionAnalysis {
+  totalRetractions: <span class="hljs-built_in">number</span>;
+  retractionRate: <span class="hljs-built_in">number</span>;
+  topRetractedClaims: <span class="hljs-built_in">Array</span>&lt;{
+    claimText: <span class="hljs-built_in">string</span>;
+    count: <span class="hljs-built_in">number</span>;
+  }&gt;;
+  averageTimeToRetraction: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> ParticipantAgreementMatrix = Record&lt;<span class="hljs-built_in">string</span>, Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">number</span>&gt;&gt;;
+</div></code></pre>
+<h3 id="133-ludics-types">13.3 Ludics Types</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Polarity for ludics commitments</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> LudicPolarity = <span class="hljs-string">'pos'</span> | <span class="hljs-string">'neg'</span>;
+
+<span class="hljs-comment">// Ludics commitment element</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> LudicCommitmentElement {
+  id: <span class="hljs-built_in">string</span>;
+  ownerId: <span class="hljs-built_in">string</span>;
+  label: <span class="hljs-built_in">string</span>;
+  basePolarity: LudicPolarity;
+  baseLocusId: <span class="hljs-built_in">string</span>;
+  baseLocusPath: <span class="hljs-built_in">string</span>;
+  entitled: <span class="hljs-built_in">boolean</span>;
+  derived?: <span class="hljs-built_in">boolean</span>;
+  extJson?: Record&lt;<span class="hljs-built_in">string</span>, unknown&gt;;
+}
+
+<span class="hljs-comment">// Ludics commitment state (aggregate)</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> LudicCommitmentState {
+  id: <span class="hljs-built_in">string</span>;
+  ownerId: <span class="hljs-built_in">string</span>;
+  elements: LudicCommitmentElement[];
+  updatedAt: <span class="hljs-built_in">Date</span>;
+}
+
+<span class="hljs-comment">// Inference result</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> InferenceResult {
+  derivedFacts: <span class="hljs-built_in">Array</span>&lt;{ label: <span class="hljs-built_in">string</span>; source?: <span class="hljs-built_in">string</span> }&gt;;
+  contradictions: <span class="hljs-built_in">Array</span>&lt;{ a: <span class="hljs-built_in">string</span>; b: <span class="hljs-built_in">string</span> }&gt;;
+  blocked: <span class="hljs-built_in">boolean</span>;
+  code?: <span class="hljs-string">'CS_CONTRADICTION'</span> | <span class="hljs-string">'RULE_VALIDATION_ERROR'</span>;
+}
+
+<span class="hljs-comment">// Scoped inference result</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> ScopedInferenceResult <span class="hljs-keyword">extends</span> InferenceResult {
+  inheritedFrom: <span class="hljs-built_in">Array</span>&lt;{
+    locusPath: <span class="hljs-built_in">string</span>;
+    elements: <span class="hljs-built_in">string</span>[];
+  }&gt;;
+  contradictionSources: <span class="hljs-built_in">Array</span>&lt;{
+    contradiction: { a: <span class="hljs-built_in">string</span>; b: <span class="hljs-built_in">string</span> };
+    source: <span class="hljs-string">'local'</span> | <span class="hljs-string">'inherited'</span>;
+    locusPath: <span class="hljs-built_in">string</span>;
+  }&gt;;
+}
+</div></code></pre>
+<h3 id="134-bridge-types">13.4 Bridge Types</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Promotion request</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> PromoteCommitmentRequest {
+  deliberationId: <span class="hljs-built_in">string</span>;
+  participantId: <span class="hljs-built_in">string</span>;
+  proposition: <span class="hljs-built_in">string</span>;
+  targetOwnerId: <span class="hljs-built_in">string</span>;
+  targetLocusPath?: <span class="hljs-built_in">string</span>;
+  basePolarity: LudicPolarity;
+}
+
+<span class="hljs-comment">// Commitment with promotion status</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> CommitmentWithPromotionStatus {
+  claimId: <span class="hljs-built_in">string</span>;
+  claimText: <span class="hljs-built_in">string</span>;
+  moveId: <span class="hljs-built_in">string</span>;
+  moveKind: <span class="hljs-built_in">string</span>;
+  timestamp: <span class="hljs-built_in">Date</span>;
+  isActive: <span class="hljs-built_in">boolean</span>;
+  isPromoted: <span class="hljs-built_in">boolean</span>;
+  promotedAt?: <span class="hljs-built_in">Date</span>;
+  ludicOwnerId?: <span class="hljs-built_in">string</span>;
+  ludicPolarity?: <span class="hljs-built_in">string</span>;
+  ludicElementId?: <span class="hljs-built_in">string</span>;
+}
+
+<span class="hljs-comment">// Commitment-Ludic mapping</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">interface</span> CommitmentLudicMappingRecord {
+  id: <span class="hljs-built_in">string</span>;
+  dialogueCommitmentId: <span class="hljs-built_in">string</span>;
+  deliberationId: <span class="hljs-built_in">string</span>;
+  participantId: <span class="hljs-built_in">string</span>;
+  proposition: <span class="hljs-built_in">string</span>;
+  ludicCommitmentElementId: <span class="hljs-built_in">string</span>;
+  ludicOwnerId: <span class="hljs-built_in">string</span>;
+  ludicLocusId: <span class="hljs-built_in">string</span>;
+  promotedAt: <span class="hljs-built_in">Date</span>;
+  promotedBy: <span class="hljs-built_in">string</span>;
+  promotionContext?: Record&lt;<span class="hljs-built_in">string</span>, unknown&gt;;
+}
+</div></code></pre>
+<hr>
+<h2 id="14-file-location-summary">14. File Location Summary</h2>
+<h3 id="141-database">14.1 Database</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib/models/schema.prisma</code></td>
+<td>All database models</td>
+</tr>
+</tbody>
+</table>
+<h3 id="142-components">14.2 Components</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>components/chains/dialogues/CommitmentStorePanel.tsx</code></td>
+<td>Dialogue commitment UI</td>
+</tr>
+<tr>
+<td><code>components/chains/dialogues/CommitmentAnalyticsDashboard.tsx</code></td>
+<td>Analytics dashboard</td>
+</tr>
+<tr>
+<td><code>components/ludics/CommitmentsPanel.tsx</code></td>
+<td>Ludics commitment management</td>
+</tr>
+<tr>
+<td><code>components/chains/dialogues/ContradictionIndicator.tsx</code></td>
+<td>Contradiction display</td>
+</tr>
+</tbody>
+</table>
+<h3 id="143-api-routes">14.3 API Routes</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app/api/aif/dialogue/[deliberationId]/commitments/route.ts</code></td>
+<td>Fetch commitment stores</td>
+</tr>
+<tr>
+<td><code>app/api/aif/dialogue/[deliberationId]/commitments/analytics/route.ts</code></td>
+<td>Commitment analytics</td>
+</tr>
+<tr>
+<td><code>app/api/aif/dialogue/[deliberationId]/commitments/diff/route.ts</code></td>
+<td>Compare stores</td>
+</tr>
+<tr>
+<td><code>app/api/commitments/apply/route.ts</code></td>
+<td>Apply ludics operations</td>
+</tr>
+<tr>
+<td><code>app/api/commitments/infer/route.ts</code></td>
+<td>Forward-chaining inference</td>
+</tr>
+<tr>
+<td><code>app/api/commitments/infer-scoped/route.ts</code></td>
+<td>Scoped inference</td>
+</tr>
+<tr>
+<td><code>app/api/commitments/promote/route.ts</code></td>
+<td>Promote to ludics</td>
+</tr>
+<tr>
+<td><code>app/api/commitments/entitlement/route.ts</code></td>
+<td>Toggle entitlement</td>
+</tr>
+<tr>
+<td><code>app/api/commitments/semantic-divergence/route.ts</code></td>
+<td>Divergence check</td>
+</tr>
+</tbody>
+</table>
+<h3 id="144-services">14.4 Services</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib/aif/graph-builder.ts</code></td>
+<td><code>getCommitmentStores()</code></td>
+</tr>
+<tr>
+<td><code>lib/aif/commitment-analytics.ts</code></td>
+<td><code>computeCommitmentAnalytics()</code></td>
+</tr>
+<tr>
+<td><code>lib/aif/contradiction-detection.ts</code></td>
+<td><code>detectContradictions()</code></td>
+</tr>
+<tr>
+<td><code>lib/ludics/commitment-engine.ts</code></td>
+<td>Ludics engine functions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="145-types">14.5 Types</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>types/dialogue.ts</code></td>
+<td>MoveKind, dialogue types</td>
+</tr>
+<tr>
+<td><code>types/commitments.ts</code></td>
+<td>Commitment and bridge types</td>
+</tr>
+<tr>
+<td><code>types/ludics.ts</code></td>
+<td>Ludics-specific types</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="summary">Summary</h2>
+<p>The Commitment System is a <strong>dual-layer architecture</strong> designed to support both informal dialogue tracking and formal proof-theoretic reasoning:</p>
+<ol>
+<li>
+<p><strong>Dialogue Layer</strong>: Simple, fast commitment stores derived from DialogueMove history. Suitable for UI display and basic contradiction detection.</p>
+</li>
+<li>
+<p><strong>Ludics Layer</strong>: Rich, structured commitments with polarity, locus scoping, and entitlement tracking. Supports forward-chaining inference and formal reasoning.</p>
+</li>
+<li>
+<p><strong>Bridge Mechanism</strong>: CommitmentLudicMapping enables promotion from dialogue to ludics when deeper analysis is needed.</p>
+</li>
+</ol>
+<p>The system implements well-established theoretical foundations from dialogue game theory (Walton-Krabbe) and proof theory (Girard's Ludics), making it suitable for rigorous argumentation analysis.</p>
+<hr>
+<p><em>Document generated for Mesh Platform Architecture Documentation</em></p>
+
+</body>
+</html>

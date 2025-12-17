@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DISCUSSIONS_AND_CHAT_ARCHITECTURE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="discussions--chat-system-architecture">Discussions &amp; Chat System Architecture</h1>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>This document provides a comprehensive architectural overview of the Mesh Discussions and Chat system. The architecture implements a <strong>dual-mode communication model</strong> where users can seamlessly switch between real-time chat and threaded forum discussions within a unified Discussion container.</p>
+<p>Key design goals:</p>
+<ul>
+<li><strong>Dual-Mode Interaction</strong>: Chat for rapid back-and-forth, Forum for structured threaded discussions</li>
+<li><strong>Progressive Deliberation</strong>: Discussions can upgrade to formal Deliberations when complexity warrants</li>
+<li><strong>Sheaf-Aware Messaging</strong>: Messages support multi-audience facets with access control (Sheaf ACL)</li>
+<li><strong>Real-Time Presence</strong>: Supabase-powered presence and typing indicators</li>
+<li><strong>Cross-Mode Bridging</strong>: Content can flow between Chat and Forum (quote to chat, promote to forum)</li>
+</ul>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-global-system-design">Global System Design</a>
+<ul>
+<li><a href="#11-core-concepts">1.1 Core Concepts</a></li>
+<li><a href="#12-dual-mode-architecture">1.2 Dual-Mode Architecture</a></li>
+<li><a href="#13-data-flow-overview">1.3 Data Flow Overview</a></li>
+<li><a href="#14-progressive-deliberation">1.4 Progressive Deliberation</a></li>
+</ul>
+</li>
+<li><a href="#2-data-models-prisma">Data Models (Prisma)</a>
+<ul>
+<li><a href="#21-discussion-model">2.1 Discussion Model</a></li>
+<li><a href="#22-conversation-model">2.2 Conversation Model</a></li>
+<li><a href="#23-message-model">2.3 Message Model</a></li>
+<li><a href="#24-forumcomment-model">2.4 ForumComment Model</a></li>
+<li><a href="#25-drift-model-threadsside-conversations">2.5 Drift Model (Threads/Side Conversations)</a></li>
+<li><a href="#26-poll-models">2.6 Poll Models</a></li>
+<li><a href="#27-entity-relationship-diagram">2.7 Entity Relationship Diagram</a></li>
+</ul>
+</li>
+<li><a href="#3-component-architecture">Component Architecture</a>
+<ul>
+<li><a href="#31-discussion-components">3.1 Discussion Components</a></li>
+<li><a href="#32-chat-components">3.2 Chat Components</a></li>
+<li><a href="#33-sheaf-components">3.3 Sheaf Components</a></li>
+<li><a href="#34-component-hierarchy-diagram">3.4 Component Hierarchy Diagram</a></li>
+</ul>
+</li>
+<li><a href="#4-state-management">State Management</a>
+<ul>
+<li><a href="#41-usechatstore-zustand">4.1 useChatStore (Zustand)</a></li>
+<li><a href="#42-state-shape">4.2 State Shape</a></li>
+<li><a href="#43-key-actions">4.3 Key Actions</a></li>
+</ul>
+</li>
+<li><a href="#5-api-routes">API Routes</a>
+<ul>
+<li><a href="#51-discussion-apis">5.1 Discussion APIs</a></li>
+<li><a href="#52-sheafmessage-apis">5.2 Sheaf/Message APIs</a></li>
+<li><a href="#53-conversation-apis">5.3 Conversation APIs</a></li>
+<li><a href="#54-bridge-apis">5.4 Bridge APIs</a></li>
+</ul>
+</li>
+<li><a href="#6-sheaf-acl-package">Sheaf ACL Package</a>
+<ul>
+<li><a href="#61-overview">6.1 Overview</a></li>
+<li><a href="#62-audience-selectors">6.2 Audience Selectors</a></li>
+<li><a href="#63-share-policies">6.3 Share Policies</a></li>
+<li><a href="#64-visibility-logic">6.4 Visibility Logic</a></li>
+</ul>
+</li>
+<li><a href="#7-real-time-system">Real-Time System</a>
+<ul>
+<li><a href="#71-supabase-channels">7.1 Supabase Channels</a></li>
+<li><a href="#72-presence-tracking">7.2 Presence Tracking</a></li>
+<li><a href="#73-typing-indicators">7.3 Typing Indicators</a></li>
+<li><a href="#74-message-broadcasting">7.4 Message Broadcasting</a></li>
+</ul>
+</li>
+<li><a href="#8-key-user-flows">Key User Flows</a>
+<ul>
+<li><a href="#81-creating-a-discussion">8.1 Creating a Discussion</a></li>
+<li><a href="#82-sending-a-chat-message">8.2 Sending a Chat Message</a></li>
+<li><a href="#83-creating-a-forum-post">8.3 Creating a Forum Post</a></li>
+<li><a href="#84-promoting-chat-to-forum">8.4 Promoting Chat to Forum</a></li>
+<li><a href="#85-upgrading-to-deliberation">8.5 Upgrading to Deliberation</a></li>
+</ul>
+</li>
+<li><a href="#9-file-reference">File Reference</a></li>
+</ol>
+<hr>
+<h2 id="1-global-system-design">1. Global System Design</h2>
+<h3 id="11-core-concepts">1.1 Core Concepts</h3>
+<p>The Discussion system is built around four key entities:</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Description</th>
+<th>Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discussion</strong></td>
+<td>Container for a topic-focused conversation space</td>
+<td><code>Discussion</code> table</td>
+</tr>
+<tr>
+<td><strong>Conversation</strong></td>
+<td>Low-level chat thread (1:1 with Discussion)</td>
+<td><code>Conversation</code> table</td>
+</tr>
+<tr>
+<td><strong>Message</strong></td>
+<td>Real-time chat message in a Conversation</td>
+<td><code>Message</code> table</td>
+</tr>
+<tr>
+<td><strong>ForumComment</strong></td>
+<td>Threaded forum post in a Discussion</td>
+<td><code>ForumComment</code> table</td>
+</tr>
+</tbody>
+</table>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                          DISCUSSION CONTAINER                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌───────────────────────────────┐   ┌───────────────────────────────┐     │
+│   │         CHAT MODE             │   │        FORUM MODE             │     │
+│   │                               │   │                               │     │
+│   │   ┌─────────────────────┐     │   │   ┌─────────────────────┐     │     │
+│   │   │     Conversation    │     │   │   │   ForumComment[]    │     │     │
+│   │   │     ───────────     │     │   │   │   ──────────────    │     │     │
+│   │   │   • Messages[]      │     │   │   │   • Threaded tree   │     │     │
+│   │   │   • Real-time       │     │   │   │   • Votes &amp; scoring │     │     │
+│   │   │   • Typing/presence │     │   │   │   • Parent/child    │     │     │
+│   │   │   • Sheaf facets    │     │   │   │   • Rich body JSON  │     │     │
+│   │   └─────────────────────┘     │   │   └─────────────────────┘     │     │
+│   │                               │   │                               │     │
+│   │   ┌─────────────────────┐     │   │                               │     │
+│   │   │      Drifts         │     │   │                               │     │
+│   │   │   (side threads)    │     │   │                               │     │
+│   │   └─────────────────────┘     │   │                               │     │
+│   │                               │   │                               │     │
+│   └───────────────────────────────┘   └───────────────────────────────┘     │
+│                                                                              │
+│                    ◄─────── Bridge APIs ───────►                             │
+│                    • Quote to Chat                                           │
+│                    • Promote to Forum                                        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="12-dual-mode-architecture">1.2 Dual-Mode Architecture</h3>
+<p>The system provides two interaction modes within a single Discussion:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Purpose</th>
+<th>Data Store</th>
+<th>UI Component</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Chat</strong></td>
+<td>Real-time messaging, quick exchanges</td>
+<td><code>Message</code> via <code>Conversation</code></td>
+<td><code>ChatRoom</code></td>
+</tr>
+<tr>
+<td><strong>Forum</strong></td>
+<td>Threaded discussion, structured posts</td>
+<td><code>ForumComment</code></td>
+<td><code>ForumPane</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Design Decisions:</strong></p>
+<ul>
+<li><strong>Separate data stores</strong>: Chat messages live in <code>Message</code>, forum posts in <code>ForumComment</code></li>
+<li><strong>Unified container</strong>: Both modes share the same <code>Discussion</code> entity</li>
+<li><strong>Mode switching</strong>: Users toggle via tabs in <code>DiscussionView</code></li>
+<li><strong>Cross-mode references</strong>: Chat messages can be promoted to forum; forum posts can quote chat</li>
+</ul>
+<h3 id="13-data-flow-overview">1.3 Data Flow Overview</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DATA FLOW OVERVIEW                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌─────────────┐         ┌─────────────────────────────────┐               │
+│   │   Browser   │         │         Next.js Server          │               │
+│   │   Client    │         │                                 │               │
+│   └──────┬──────┘         └────────────────┬────────────────┘               │
+│          │                                 │                                 │
+│          │    1. Page Load (SSR)           │                                 │
+│          │ ◄───────────────────────────────┤  • Prisma queries               │
+│          │    (initialMessages, discussion) │  • User auth check              │
+│          │                                 │                                 │
+│          │    2. Zustand Hydration         │                                 │
+│          ├─────────────────────────────────►  useChatStore.setMessages()    │
+│          │                                 │                                 │
+│          │    3. Real-time Subscribe       │                                 │
+│          │ ◄───────────────────────────────┤                                 │
+│          │    (Supabase channel)           │                                 │
+│          │                                 │                                 │
+│   ┌──────▼──────┐                          │                                 │
+│   │  Supabase   │                          │                                 │
+│   │  Realtime   │◄─────────────────────────┤  4. Message broadcast           │
+│   └──────┬──────┘                          │                                 │
+│          │                                 │                                 │
+│          │    5. useChatStore update       │                                 │
+│          ├─────────────────────────────────►                                 │
+│          │    (appendMessage)              │                                 │
+│          │                                 │                                 │
+│          │    6. API Calls                 │                                 │
+│          ├─────────────────────────────────►  /api/sheaf/messages            │
+│          │                                 │  /api/discussions/[id]/forum    │
+│          │                                 │                                 │
+└──────────┴─────────────────────────────────┴─────────────────────────────────┘
+</div></code></pre>
+<h3 id="14-progressive-deliberation">1.4 Progressive Deliberation</h3>
+<p>Discussions can be upgraded to formal Deliberations when structured argumentation is needed:</p>
+<pre class="hljs"><code><div>┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│  Discussion  │────────►│  Deliberation │────────►│   Agora      │
+│  (informal)  │ upgrade │  (formal)     │ access  │  (full UI)   │
+└──────────────┘         └──────────────┘         └──────────────┘
+       │                         │
+       │                         ├── Claims
+       ├── Chat messages         ├── Arguments
+       ├── Forum posts           ├── Dialogue moves
+       └── Participants          └── Schemes + CQs
+</div></code></pre>
+<p><strong>Trigger</strong>: <code>DeliberateButton</code> component calls <code>/api/deliberations/ensure</code></p>
+<hr>
+<h2 id="2-data-models-prisma">2. Data Models (Prisma)</h2>
+<h3 id="21-discussion-model">2.1 Discussion Model</h3>
+<pre class="hljs"><code><div>model Discussion {
+  id          String  @id @default(cuid())
+  slug        String? @unique
+  title       String
+  description String?
+  createdById String
+  visibility  String  @default(&quot;public&quot;) // &quot;public&quot; | &quot;private&quot; | &quot;unlisted&quot;
+
+  // Link to chat conversation (created on demand)
+  conversationId BigInt? @unique
+  conversation   Conversation? @relation(...)
+
+  // Polymorphic attachment to any object
+  attachedToType String? // &quot;article&quot; | &quot;comment&quot; | &quot;stack&quot; | &quot;claim&quot; | &quot;post&quot;
+  attachedToId   String?
+
+  // Relations
+  upgradedToDeliberation Deliberation?
+  messages               DiscussionMessage[]
+  participants           DiscussionParticipant[]
+  subscriptions          DiscussionSubscription[]
+  forumComments          ForumComment[]
+  deliberations          DiscussionDeliberation[]
+
+  // Counters
+  replyCount   Int      @default(0)
+  viewCount    Int      @default(0)
+  lastActiveAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+</div></code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li><code>conversationId</code> links to the underlying chat thread (1:1, created on demand)</li>
+<li><code>attachedToType</code> + <code>attachedToId</code> enable polymorphic attachment (e.g., discussion on an article)</li>
+<li><code>visibility</code> controls access: <code>public</code> | <code>private</code> | <code>unlisted</code></li>
+</ul>
+<h3 id="22-conversation-model">2.2 Conversation Model</h3>
+<pre class="hljs"><code><div>model Conversation {
+  id         BigInt   @id @default(autoincrement())
+  user1_id   BigInt?  // For DMs
+  user2_id   BigInt?  // For DMs
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  title      String?
+  is_group   Boolean  @default(false)
+
+  // Relations
+  user1        User?  @relation(&quot;ConversationUser1&quot;, ...)
+  user2        User?  @relation(&quot;ConversationUser2&quot;, ...)
+  messages     Message[]
+  participants ConversationParticipant[]
+  drifts       Drift[]
+  Discussion   Discussion?
+
+  @@unique([user1_id, user2_id])
+  @@map(&quot;conversations&quot;)
+}
+</div></code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li><code>Conversation</code> is the low-level chat container</li>
+<li>Can be a DM (<code>user1_id</code>, <code>user2_id</code>) or group (<code>is_group = true</code>)</li>
+<li>Links to <code>Discussion</code> via the inverse of <code>Discussion.conversationId</code></li>
+</ul>
+<h3 id="23-message-model">2.3 Message Model</h3>
+<pre class="hljs"><code><div>model Message {
+  id              BigInt   @id @default(autoincrement())
+  conversation_id BigInt
+  sender_id       BigInt
+  text            String?  // Plain text (deprecated in favor of facets)
+  created_at      DateTime @default(now())
+
+  // Moderation / lifecycle
+  is_redacted Boolean   @default(false)
+  edited_at   DateTime?
+  deleted_at  DateTime?
+  client_id   String?   @db.VarChar(64) // Idempotency key
+
+  // Drifts &amp; Threads
+  drift_id      BigInt?   // FK to Drift (side conversation)
+  reply_to      BigInt?   // Reply threading
+  reply_count   Int       @default(0)
+  last_reply_at DateTime?
+
+  // Misc
+  meta Json?
+
+  // Relations
+  conversation Conversation        @relation(...)
+  sender       User                @relation(...)
+  attachments  MessageAttachment[]
+  reactions    MessageReaction[]
+  SheafFacet   SheafFacet[]        // Sheaf ACL facets
+  drift        Drift?              @relation(&quot;DriftMessages&quot;, ...)
+  stars        MessageStar[]
+  bookmarks    Bookmark[]
+
+  @@unique([conversation_id, client_id])
+  @@map(&quot;messages&quot;)
+}
+</div></code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li><code>SheafFacet</code> relation enables multi-audience messaging (see Section 6)</li>
+<li><code>drift_id</code> allows messages to belong to side conversations (Drifts)</li>
+<li><code>client_id</code> provides idempotency for message creation</li>
+</ul>
+<h3 id="24-forumcomment-model">2.4 ForumComment Model</h3>
+<pre class="hljs"><code><div>model ForumComment {
+  id           BigInt     @id @default(autoincrement())
+  discussionId String
+  discussion   Discussion @relation(...)
+  parentId     BigInt?    // Threading
+  authorId     String
+
+  // Content
+  body     Json    // TipTap JSON
+  bodyText String? // Plain text for search/snippets
+
+  // Cross-post source (chat → forum)
+  sourceMessageId      Int? // Original chat message ID
+  sourceConversationId Int?
+
+  score     Int      @default(0)
+  isDeleted Boolean  @default(false)
+  isRemoved Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([discussionId, sourceMessageId]) // Prevent duplicate promotes
+  @@index([discussionId, parentId])
+}
+</div></code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li><code>parentId</code> enables threaded replies</li>
+<li><code>body</code> stores TipTap JSON for rich formatting</li>
+<li><code>sourceMessageId</code> tracks if this was promoted from chat (enables idempotency)</li>
+</ul>
+<h3 id="25-drift-model-threadsside-conversations">2.5 Drift Model (Threads/Side Conversations)</h3>
+<pre class="hljs"><code><div>enum DriftKind {
+  DRIFT    // Ad-hoc side conversation
+  THREAD   // Reply thread on a specific message
+  PROPOSAL // Proposal-focused discussion
+}
+
+model Drift {
+  id                BigInt    @id @default(autoincrement())
+  conversation_id   BigInt
+  created_by        BigInt
+  title             String
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  is_closed         Boolean   @default(false)
+  is_archived       Boolean   @default(false)
+  message_count     Int       @default(0)
+  last_message_at   DateTime?
+  anchor_message_id BigInt?   @unique  // For DRIFT kind
+  kind              DriftKind @default(DRIFT)
+  root_message_id   BigInt?   // For THREAD kind
+
+  // Relations
+  conversation   Conversation @relation(&quot;ConversationDrifts&quot;, ...)
+  anchor_message Message?     @relation(&quot;DriftAnchor&quot;, ...)
+  messages       Message[]    @relation(&quot;DriftMessages&quot;)
+  members        DriftMember[]
+
+  @@unique([conversation_id, root_message_id, kind])
+  @@map(&quot;drifts&quot;)
+}
+</div></code></pre>
+<p><strong>Key Points:</strong></p>
+<ul>
+<li>Drifts are side conversations within a chat</li>
+<li><code>DRIFT</code>: Ad-hoc, anchored to a message</li>
+<li><code>THREAD</code>: Reply thread on a specific message</li>
+<li><code>PROPOSAL</code>: Proposal-focused discussion</li>
+</ul>
+<h3 id="26-poll-models">2.6 Poll Models</h3>
+<pre class="hljs"><code><div>enum PollKind {
+  OPTIONS  // Multiple choice
+  TEMP     // Temperature check (1-5 scale)
+}
+
+model Poll {
+  id              BigInt    @id @default(autoincrement())
+  conversation_id BigInt
+  message_id      BigInt
+  created_by_id   BigInt
+  kind            PollKind
+  options         String[]  @default([])
+  max_options     Int       @default(1)
+  closes_at       DateTime?
+  anonymous       Boolean   @default(false)
+  created_at      DateTime  @default(now())
+
+  votes PollVote[]
+  @@map(&quot;polls&quot;)
+}
+
+model PollVote {
+  id         BigInt   @id @default(autoincrement())
+  poll_id    BigInt
+  user_id    BigInt
+  option_idx Int?     // For OPTIONS polls
+  value      Int?     // For TEMP polls (1-5)
+  created_at DateTime @default(now())
+
+  poll Poll @relation(...)
+  @@unique([poll_id, user_id])
+  @@map(&quot;poll_votes&quot;)
+}
+</div></code></pre>
+<h3 id="27-entity-relationship-diagram">2.7 Entity Relationship Diagram</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                       ENTITY RELATIONSHIP DIAGRAM                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌──────────────┐     1:1      ┌──────────────┐                            │
+│   │  Discussion  │─────────────►│ Conversation │                            │
+│   │              │              │              │                            │
+│   │  • id        │              │  • id        │                            │
+│   │  • title     │              │  • is_group  │                            │
+│   │  • visibility│              │  • title     │                            │
+│   └──────┬───────┘              └──────┬───────┘                            │
+│          │                             │                                     │
+│          │ 1:N                         │ 1:N                                 │
+│          ▼                             ▼                                     │
+│   ┌──────────────┐              ┌──────────────┐                            │
+│   │ ForumComment │              │   Message    │                            │
+│   │              │              │              │                            │
+│   │  • body      │◄─promote────│  • text      │                            │
+│   │  • parentId  │              │  • sender_id │                            │
+│   │  • score     │              │  • drift_id  │                            │
+│   └──────────────┘              └──────┬───────┘                            │
+│                                        │                                     │
+│                                        │ 1:N                                 │
+│                                        ▼                                     │
+│                                 ┌──────────────┐      ┌──────────────┐      │
+│                                 │  SheafFacet  │      │    Drift     │      │
+│                                 │              │      │              │      │
+│                                 │  • audience  │      │  • kind      │      │
+│                                 │  • body      │      │  • title     │      │
+│                                 │  • policy    │      │  • is_closed │      │
+│                                 └──────────────┘      └──────────────┘      │
+│                                                                              │
+│   ┌──────────────┐                                                          │
+│   │ Deliberation │◄─── upgrade ─── Discussion                               │
+│   │              │                                                          │
+│   │  • hostType  │                                                          │
+│   │  • hostId    │                                                          │
+│   └──────────────┘                                                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="3-component-architecture">3. Component Architecture</h2>
+<h3 id="31-discussion-components">3.1 Discussion Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DiscussionView</code></td>
+<td><code>components/discussion/DiscussionView.tsx</code></td>
+<td>Main container; renders Chat/Forum tabs</td>
+</tr>
+<tr>
+<td><code>ForumPane</code></td>
+<td><code>components/discussion/ForumPane.tsx</code></td>
+<td>Forum mode UI with threaded comments</td>
+</tr>
+<tr>
+<td><code>DeliberateButton</code></td>
+<td><code>components/discussion/DeliberateButton.tsx</code></td>
+<td>Upgrade discussion to deliberation</td>
+</tr>
+<tr>
+<td><code>NewDiscussionButton</code></td>
+<td><code>components/discussion/NewDiscussionButton.tsx</code></td>
+<td>Create new discussion</td>
+</tr>
+<tr>
+<td><code>SubscribeButton</code></td>
+<td><code>components/discussion/SubscribeButton.tsx</code></td>
+<td>Toggle subscription notifications</td>
+</tr>
+<tr>
+<td><code>DiscussionCard</code></td>
+<td><code>components/discussion/DiscussionCard.tsx</code></td>
+<td>Card for discussion list views</td>
+</tr>
+<tr>
+<td><code>DiscussionTitleEditor</code></td>
+<td><code>components/discussion/DiscussionTitleEditor.tsx</code></td>
+<td>Inline title editing</td>
+</tr>
+<tr>
+<td><code>DiscussionDescriptionEditor</code></td>
+<td><code>components/discussion/DiscussionDescriptionEditor.tsx</code></td>
+<td>Inline description editing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-chat-components">3.2 Chat Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ChatRoom</code></td>
+<td><code>components/chat/ChatRoom.tsx</code></td>
+<td>Main chat message list (~2200 lines)</td>
+</tr>
+<tr>
+<td><code>MessageComposer</code></td>
+<td><code>components/chat/MessageComposer.tsx</code></td>
+<td>Message input with attachments, polls</td>
+</tr>
+<tr>
+<td><code>ConversationView</code></td>
+<td><code>components/chat/ConversationView.tsx</code></td>
+<td>Standalone conversation wrapper</td>
+</tr>
+<tr>
+<td><code>ConversationList</code></td>
+<td><code>components/chat/ConversationList.tsx</code></td>
+<td>List of conversations (inbox)</td>
+</tr>
+<tr>
+<td><code>DriftPane</code></td>
+<td><code>components/chat/DriftPane.tsx</code></td>
+<td>Side conversation viewer</td>
+</tr>
+<tr>
+<td><code>DriftChip</code></td>
+<td><code>components/chat/DriftChip.tsx</code></td>
+<td>Inline drift indicator</td>
+</tr>
+<tr>
+<td><code>PollChip</code></td>
+<td><code>components/chat/PollChip.tsx</code></td>
+<td>Poll display and voting</td>
+</tr>
+<tr>
+<td><code>QuoteBlock</code></td>
+<td><code>components/chat/QuoteBlock.tsx</code></td>
+<td>Quoted message display</td>
+</tr>
+<tr>
+<td><code>LinkCard</code></td>
+<td><code>components/chat/LinkCard.tsx</code></td>
+<td>URL preview card</td>
+</tr>
+<tr>
+<td><code>StarToggle</code></td>
+<td><code>components/chat/StarToggle.tsx</code></td>
+<td>Star/bookmark message</td>
+</tr>
+<tr>
+<td><code>MessengerPane</code></td>
+<td><code>components/chat/MessengerPane.tsx</code></td>
+<td>Global messenger overlay</td>
+</tr>
+<tr>
+<td><code>PrivateChatDock</code></td>
+<td><code>components/chat/PrivateChatDock.tsx</code></td>
+<td>Floating private chat dock</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-sheaf-components">3.3 Sheaf Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SheafComposer</code></td>
+<td><code>components/sheaf/SheafComposer.tsx</code></td>
+<td>Multi-facet message composer</td>
+</tr>
+<tr>
+<td><code>SheafMessageBubble</code></td>
+<td><code>components/sheaf/SheafMessageBubble.tsx</code></td>
+<td>Facet-aware message display</td>
+</tr>
+<tr>
+<td><code>FacetEditorTabs</code></td>
+<td><code>components/sheaf/FacetEditorTabs.tsx</code></td>
+<td>Tabbed facet editing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-component-hierarchy-diagram">3.4 Component Hierarchy Diagram</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                       COMPONENT HIERARCHY                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   DiscussionView                                                             │
+│   ├── DiscussionTitleEditor                                                  │
+│   ├── DiscussionDescriptionEditor                                            │
+│   ├── SubscribeButton                                                        │
+│   ├── DeliberateButton                                                       │
+│   │                                                                          │
+│   ├── [Tab: &quot;chat&quot;]                                                          │
+│   │   └── ChatRoom                                                           │
+│   │       ├── MessageItem (memoized, per message)                            │
+│   │       │   ├── SheafMessageBubble (if faceted)                            │
+│   │       │   ├── QuoteBlock (if quoting)                                    │
+│   │       │   ├── LinkCard (if URL previews)                                 │
+│   │       │   ├── PollChip (if poll attached)                                │
+│   │       │   ├── DriftChip (if drift anchor)                                │
+│   │       │   └── StarToggle                                                 │
+│   │       ├── DriftPane (when drift open)                                    │
+│   │       └── MessageComposer                                                │
+│   │           ├── SheafComposer (optional)                                   │
+│   │           ├── QuickPollComposer (optional)                               │
+│   │           └── File upload UI                                             │
+│   │                                                                          │
+│   └── [Tab: &quot;forum&quot;]                                                         │
+│       └── ForumPane                                                          │
+│           ├── SortControl                                                    │
+│           └── ForumCommentItem (recursive)                                   │
+│               ├── VoteControls                                               │
+│               ├── Reply composer (inline)                                    │
+│               └── ForumCommentItem[] (children)                              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="4-state-management">4. State Management</h2>
+<h3 id="41-usechatstore-zustand">4.1 useChatStore (Zustand)</h3>
+<p>The chat system uses a Zustand store for client-side state management.</p>
+<p><strong>Location</strong>: <code>contexts/useChatStore.ts</code></p>
+<h3 id="42-state-shape">4.2 State Shape</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> ChatState {
+  <span class="hljs-comment">// Conversations</span>
+  conversations: Record&lt;<span class="hljs-built_in">string</span>, Conversation&gt;;
+  currentConversation?: <span class="hljs-built_in">string</span>;
+  
+  <span class="hljs-comment">// Messages by conversation ID</span>
+  messages: Record&lt;<span class="hljs-built_in">string</span>, Message[]&gt;;
+  
+  <span class="hljs-comment">// Polls by message ID</span>
+  pollsByMessageId: Record&lt;<span class="hljs-built_in">string</span>, PollUI&gt;;
+  
+  <span class="hljs-comment">// Reactions by message ID</span>
+  reactionsByMessageId: Record&lt;<span class="hljs-built_in">string</span>, ReactionAgg[]&gt;;
+  
+  <span class="hljs-comment">// Drifts (side conversations)</span>
+  driftsByAnchorId: Record&lt;<span class="hljs-built_in">string</span>, DriftUI&gt;;
+  driftsByRootMessageId: Record&lt;<span class="hljs-built_in">string</span>, DriftUI&gt;;
+  driftMessages: Record&lt;<span class="hljs-built_in">string</span>, Message[]&gt;;
+  
+  <span class="hljs-comment">// Quote drafts</span>
+  quoteDraftByConversationId: Record&lt;<span class="hljs-built_in">string</span>, QuoteRef&gt;;
+}
+</div></code></pre>
+<h3 id="43-key-actions">4.3 Key Actions</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>setMessages(id, msgs)</code></td>
+<td>Set messages for a conversation (SSR hydration)</td>
+</tr>
+<tr>
+<td><code>appendMessage(id, msg)</code></td>
+<td>Append a new message (real-time)</td>
+</tr>
+<tr>
+<td><code>setPolls(id, polls)</code></td>
+<td>Set polls for a conversation</td>
+</tr>
+<tr>
+<td><code>upsertPoll(poll, state, myVote)</code></td>
+<td>Update poll state</td>
+</tr>
+<tr>
+<td><code>setDrifts(items)</code></td>
+<td>Set drift list</td>
+</tr>
+<tr>
+<td><code>upsertDrift(item)</code></td>
+<td>Update a single drift</td>
+</tr>
+<tr>
+<td><code>setDriftMessages(id, rows)</code></td>
+<td>Set messages for a drift</td>
+</tr>
+<tr>
+<td><code>appendDriftMessage(id, msg)</code></td>
+<td>Append message to drift</td>
+</tr>
+<tr>
+<td><code>setReactions(id, items)</code></td>
+<td>Set reactions for a message</td>
+</tr>
+<tr>
+<td><code>applyReactionDelta(id, emoji, op, byMe)</code></td>
+<td>Optimistic reaction update</td>
+</tr>
+<tr>
+<td><code>setQuoteDraft(id, ref)</code></td>
+<td>Set quote for composer</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5-api-routes">5. API Routes</h2>
+<h3 id="51-discussion-apis">5.1 Discussion APIs</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/discussions</code></td>
+<td><code>POST</code></td>
+<td>Create new discussion</td>
+</tr>
+<tr>
+<td><code>/api/discussions/[id]</code></td>
+<td><code>GET</code></td>
+<td>Get discussion details</td>
+</tr>
+<tr>
+<td><code>/api/discussions/[id]</code></td>
+<td><code>PATCH</code></td>
+<td>Update title/description</td>
+</tr>
+<tr>
+<td><code>/api/discussions/[id]/forum</code></td>
+<td><code>GET</code></td>
+<td>Get forum comments (paginated, threaded)</td>
+</tr>
+<tr>
+<td><code>/api/discussions/[id]/forum</code></td>
+<td><code>POST</code></td>
+<td>Create forum comment</td>
+</tr>
+<tr>
+<td><code>/api/discussions/[id]/subscribe</code></td>
+<td><code>POST/DELETE</code></td>
+<td>Toggle subscription</td>
+</tr>
+<tr>
+<td><code>/api/discussions/[id]/deliberations</code></td>
+<td><code>POST</code></td>
+<td>Link deliberation to discussion</td>
+</tr>
+<tr>
+<td><code>/api/discussions/list</code></td>
+<td><code>GET</code></td>
+<td>List discussions (with filters)</td>
+</tr>
+<tr>
+<td><code>/api/discussions/explore</code></td>
+<td><code>GET</code></td>
+<td>Explore public discussions</td>
+</tr>
+<tr>
+<td><code>/api/discussions/subscribed</code></td>
+<td><code>GET</code></td>
+<td>Get subscribed discussions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-sheafmessage-apis">5.2 Sheaf/Message APIs</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/sheaf/messages</code></td>
+<td><code>GET</code></td>
+<td>Fetch messages (with facet visibility)</td>
+</tr>
+<tr>
+<td><code>/api/sheaf/messages</code></td>
+<td><code>POST</code></td>
+<td>Send message with facets</td>
+</tr>
+<tr>
+<td><code>/api/sheaf/upload</code></td>
+<td><code>POST</code></td>
+<td>Upload attachment</td>
+</tr>
+<tr>
+<td><code>/api/sheaf/forward-check</code></td>
+<td><code>POST</code></td>
+<td>Check forward permissions</td>
+</tr>
+<tr>
+<td><code>/api/sheaf/preview</code></td>
+<td><code>GET</code></td>
+<td>Get link preview</td>
+</tr>
+<tr>
+<td><code>/api/sheaf/participants</code></td>
+<td><code>GET</code></td>
+<td>Get conversation participants</td>
+</tr>
+<tr>
+<td><code>/api/sheaf/lists</code></td>
+<td><code>GET/POST</code></td>
+<td>Manage audience lists</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-conversation-apis">5.3 Conversation APIs</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/conversations/[id]</code></td>
+<td><code>GET</code></td>
+<td>Get conversation details</td>
+</tr>
+<tr>
+<td><code>/api/conversations/[id]/ensure-member</code></td>
+<td><code>POST</code></td>
+<td>Ensure user is a participant</td>
+</tr>
+<tr>
+<td><code>/api/conversations/group</code></td>
+<td><code>POST</code></td>
+<td>Create group conversation</td>
+</tr>
+<tr>
+<td><code>/api/conversations/list</code></td>
+<td><code>GET</code></td>
+<td>List user's conversations</td>
+</tr>
+</tbody>
+</table>
+<h3 id="54-bridge-apis">5.4 Bridge APIs</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/discussions/[id]/bridge/promote</code></td>
+<td><code>POST</code></td>
+<td>Promote chat message to forum</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6-sheaf-acl-package">6. Sheaf ACL Package</h2>
+<h3 id="61-overview">6.1 Overview</h3>
+<p>The Sheaf ACL package (<code>@app/sheaf-acl</code>) provides access control for multi-audience messaging.</p>
+<p><strong>Location</strong>: <code>packages/sheaf-acl/</code></p>
+<h3 id="62-audience-selectors">6.2 Audience Selectors</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> AudienceSelector =
+  | { kind: <span class="hljs-string">'EVERYONE'</span>; mode?: <span class="hljs-string">'DYNAMIC'</span> }
+  | { kind: <span class="hljs-string">'ROLE'</span>; role: <span class="hljs-built_in">string</span>; mode: <span class="hljs-string">'DYNAMIC'</span> }
+  | { kind: <span class="hljs-string">'LIST'</span>; listId: <span class="hljs-built_in">string</span>; mode: <span class="hljs-string">'DYNAMIC'</span> | <span class="hljs-string">'SNAPSHOT'</span>; ... }
+  | { kind: <span class="hljs-string">'USERS'</span>; userIds?: <span class="hljs-built_in">string</span>[]; mode: <span class="hljs-string">'DYNAMIC'</span> | <span class="hljs-string">'SNAPSHOT'</span>; ... };
+</div></code></pre>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EVERYONE</code></td>
+<td>Visible to all participants</td>
+</tr>
+<tr>
+<td><code>ROLE</code></td>
+<td>Visible to users with specific role</td>
+</tr>
+<tr>
+<td><code>LIST</code></td>
+<td>Visible to members of an audience list</td>
+</tr>
+<tr>
+<td><code>USERS</code></td>
+<td>Visible to explicit user IDs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mode:</strong></p>
+<ul>
+<li><code>DYNAMIC</code>: Membership evaluated at view time</li>
+<li><code>SNAPSHOT</code>: Membership frozen at send time</li>
+</ul>
+<h3 id="63-share-policies">6.3 Share Policies</h3>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALLOW</code></td>
+<td>Content can be forwarded/quoted</td>
+</tr>
+<tr>
+<td><code>REDACT</code></td>
+<td>Content redacted when forwarded</td>
+</tr>
+<tr>
+<td><code>FORBID</code></td>
+<td>Cannot be forwarded at all</td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-visibility-logic">6.4 Visibility Logic</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Core visibility check</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isUserInAudience</span>(<span class="hljs-params">user: UserContext, audience: AudienceSelector</span>): <span class="hljs-title">boolean</span>
+
+// <span class="hljs-title">Get</span> <span class="hljs-title">visible</span> <span class="hljs-title">facets</span> <span class="hljs-title">for</span> <span class="hljs-title">a</span> <span class="hljs-title">user</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">visibleFacetsFor</span>(<span class="hljs-params">user: UserContext, facets: MessageFacet[]</span>): <span class="hljs-title">MessageFacet</span>[]
+
+// <span class="hljs-title">Get</span> <span class="hljs-title">default</span> <span class="hljs-title">facet</span> (<span class="hljs-params">most <span class="hljs-keyword">private</span> visible</span>)
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">defaultFacetFor</span>(<span class="hljs-params">user: UserContext, facets: MessageFacet[]</span>): <span class="hljs-title">MessageFacet</span> | <span class="hljs-title">null</span>
+
+// <span class="hljs-title">Priority</span> <span class="hljs-title">ranking</span> (<span class="hljs-params">lower = more <span class="hljs-keyword">private</span></span>)
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">priorityRank</span>(<span class="hljs-params">audience: AudienceSelector</span>): <span class="hljs-title">number</span>
+// <span class="hljs-title">USERS</span>: 100, <span class="hljs-title">LIST</span>: 200, <span class="hljs-title">ROLE</span>: 300, <span class="hljs-title">EVERYONE</span>: 400
+</span></span></span></span></div></code></pre>
+<hr>
+<h2 id="7-real-time-system">7. Real-Time System</h2>
+<h3 id="71-supabase-channels">7.1 Supabase Channels</h3>
+<p>The system uses Supabase Realtime for live updates.</p>
+<p><strong>Hook</strong>: <code>hooks/useConversationRealtime.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> channel = supabase.channel(<span class="hljs-string">`conversation-<span class="hljs-subst">${conversationId}</span>`</span>, {
+  config: { presence: { key: currentUser.id } },
+});
+</div></code></pre>
+<h3 id="72-presence-tracking">7.2 Presence Tracking</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Join presence</span>
+channel.on(<span class="hljs-string">"presence"</span>, { event: <span class="hljs-string">"sync"</span> }, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+  <span class="hljs-keyword">const</span> state = channel.presenceState();
+  <span class="hljs-comment">// Update online users map</span>
+});
+
+channel.on(<span class="hljs-string">"presence"</span>, { event: <span class="hljs-string">"join"</span> }, <span class="hljs-function">(<span class="hljs-params">{ key, newPresences }</span>) =&gt;</span> {
+  <span class="hljs-comment">// Add user to online list</span>
+});
+
+channel.on(<span class="hljs-string">"presence"</span>, { event: <span class="hljs-string">"leave"</span> }, <span class="hljs-function">(<span class="hljs-params">{ key }</span>) =&gt;</span> {
+  <span class="hljs-comment">// Remove user from online list</span>
+});
+
+<span class="hljs-comment">// Track own presence</span>
+channel.subscribe(<span class="hljs-keyword">async</span> (status) =&gt; {
+  <span class="hljs-keyword">if</span> (status === <span class="hljs-string">"SUBSCRIBED"</span>) {
+    <span class="hljs-keyword">await</span> channel.track({ name: currentUser.name, image: currentUser.image });
+  }
+});
+</div></code></pre>
+<h3 id="73-typing-indicators">7.3 Typing Indicators</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Listen for typing broadcasts</span>
+channel.on(<span class="hljs-string">"broadcast"</span>, { event: <span class="hljs-string">"typing"</span> }, <span class="hljs-function">(<span class="hljs-params">{ payload }</span>) =&gt;</span> {
+  <span class="hljs-keyword">const</span> { userId, until, name } = payload;
+  <span class="hljs-comment">// Update typing state (expires after timeout)</span>
+});
+
+<span class="hljs-comment">// Send typing indicator (throttled)</span>
+<span class="hljs-keyword">const</span> sendTyping = useMemo(
+  <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> throttle(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    channel.send({
+      <span class="hljs-keyword">type</span>: <span class="hljs-string">"broadcast"</span>,
+      event: <span class="hljs-string">"typing"</span>,
+      payload: { userId, until: <span class="hljs-built_in">Date</span>.now() + <span class="hljs-number">3000</span>, name },
+    });
+  }, <span class="hljs-number">2000</span>),
+  [channel, userId]
+);
+</div></code></pre>
+<h3 id="74-message-broadcasting">7.4 Message Broadcasting</h3>
+<p>Messages are broadcast via Supabase's database changes subscription:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// In ChatRoom component</span>
+useEffect(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+  <span class="hljs-keyword">const</span> channel = supabase
+    .channel(<span class="hljs-string">`room:<span class="hljs-subst">${conversationId}</span>`</span>)
+    .on(<span class="hljs-string">'postgres_changes'</span>, 
+      { event: <span class="hljs-string">'INSERT'</span>, schema: <span class="hljs-string">'public'</span>, table: <span class="hljs-string">'messages'</span>, filter: <span class="hljs-string">`conversation_id=eq.<span class="hljs-subst">${conversationId}</span>`</span> },
+      <span class="hljs-function">(<span class="hljs-params">payload</span>) =&gt;</span> {
+        appendMessage(conversationId, normalizeMessage(payload.new));
+      }
+    )
+    .subscribe();
+  
+  <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> supabase.removeChannel(channel);
+}, [conversationId]);
+</div></code></pre>
+<hr>
+<h2 id="8-key-user-flows">8. Key User Flows</h2>
+<h3 id="81-creating-a-discussion">8.1 Creating a Discussion</h3>
+<pre class="hljs"><code><div>User clicks &quot;New Discussion&quot;
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ NewDiscussionButton                 │
+│ → navigates to /discussions/new     │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ POST /api/discussions               │
+│                                     │
+│ Body: { title, description?,        │
+│         attachedToType?, attachedToId? }│
+│                                     │
+│ Creates:                            │
+│ 1. Discussion record                │
+│ 2. Conversation (if createConversation=true) │
+│ 3. Initial participant              │
+└─────────────────────────────────────┘
+        │
+        ▼
+Redirect to /discussions/[id]
+</div></code></pre>
+<h3 id="82-sending-a-chat-message">8.2 Sending a Chat Message</h3>
+<pre class="hljs"><code><div>User types message in MessageComposer
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ MessageComposer.handleSubmit()      │
+│                                     │
+│ 1. Build payload (text/facets/attachments)│
+│ 2. POST /api/sheaf/messages         │
+│ 3. Optimistic update via appendMessage│
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ POST /api/sheaf/messages            │
+│                                     │
+│ Creates:                            │
+│ 1. Message record                   │
+│ 2. SheafFacet records (per audience)│
+│ 3. SheafAttachment records          │
+│ 4. MessageMention records           │
+│ 5. Link previews (async)            │
+│                                     │
+│ Broadcasts via Supabase             │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ Other clients receive via           │
+│ Supabase postgres_changes           │
+│                                     │
+│ → appendMessage() in useChatStore   │
+└─────────────────────────────────────┘
+</div></code></pre>
+<h3 id="83-creating-a-forum-post">8.3 Creating a Forum Post</h3>
+<pre class="hljs"><code><div>User clicks &quot;Reply&quot; or &quot;New Post&quot; in ForumPane
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ ForumPane inline composer           │
+│                                     │
+│ 1. TipTap editor for rich content   │
+│ 2. parentId (if reply)              │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ POST /api/discussions/[id]/forum    │
+│                                     │
+│ Body: { body: TipTapJSON,           │
+│         parentId?: BigInt }         │
+│                                     │
+│ Creates ForumComment record         │
+└─────────────────────────────────────┘
+        │
+        ▼
+SWR mutate() → UI updates
+</div></code></pre>
+<h3 id="84-promoting-chat-to-forum">8.4 Promoting Chat to Forum</h3>
+<pre class="hljs"><code><div>User clicks &quot;Promote to forum&quot; on message
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ PromoteToForumMenuItem              │
+│                                     │
+│ POST /api/discussions/[id]/bridge/promote │
+│ Body: { messageId }                 │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ Bridge API                          │
+│                                     │
+│ 1. Fetch original message via       │
+│    GET /api/sheaf/messages?messageId=...│
+│ 2. Create ForumComment with:        │
+│    - body: blockquote wrapping text │
+│    - sourceMessageId: original ID   │
+│ 3. Return created comment           │
+│                                     │
+│ Idempotency: unique(discussionId, sourceMessageId)│
+└─────────────────────────────────────┘
+</div></code></pre>
+<h3 id="85-upgrading-to-deliberation">8.5 Upgrading to Deliberation</h3>
+<pre class="hljs"><code><div>User clicks &quot;Deliberate&quot; button
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ DeliberateButton                    │
+│                                     │
+│ POST /api/deliberations/ensure      │
+│ Body: { hostType, hostId }          │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│ Ensure API                          │
+│                                     │
+│ 1. If hostType=&quot;discussion&quot;:        │
+│    - Ensure conversation exists     │
+│    - Map to hostType=&quot;inbox_thread&quot; │
+│                                     │
+│ 2. Find or create Deliberation      │
+│    with { hostType, hostId }        │
+│                                     │
+│ 3. Initialize Ludics baseline       │
+│                                     │
+│ 4. Emit event via emitBus()         │
+└─────────────────────────────────────┘
+        │
+        ▼
+Redirect to /deliberation/[id]
+</div></code></pre>
+<hr>
+<h2 id="9-file-reference">9. File Reference</h2>
+<h3 id="components">Components</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Lines</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>components/discussion/DiscussionView.tsx</code></td>
+<td>~210</td>
+<td>Main discussion container</td>
+</tr>
+<tr>
+<td><code>components/discussion/ForumPane.tsx</code></td>
+<td>~1310</td>
+<td>Forum comment list &amp; threading</td>
+</tr>
+<tr>
+<td><code>components/discussion/DeliberateButton.tsx</code></td>
+<td>~65</td>
+<td>Deliberation upgrade button</td>
+</tr>
+<tr>
+<td><code>components/chat/ChatRoom.tsx</code></td>
+<td>~2195</td>
+<td>Main chat message list</td>
+</tr>
+<tr>
+<td><code>components/chat/MessageComposer.tsx</code></td>
+<td>~720</td>
+<td>Message input with attachments</td>
+</tr>
+<tr>
+<td><code>components/chat/DriftPane.tsx</code></td>
+<td>~205</td>
+<td>Side conversation viewer</td>
+</tr>
+<tr>
+<td><code>components/sheaf/SheafComposer.tsx</code></td>
+<td>~335</td>
+<td>Multi-facet composer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="contexts--hooks">Contexts &amp; Hooks</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>contexts/useChatStore.ts</code></td>
+<td>Zustand store for chat state</td>
+</tr>
+<tr>
+<td><code>hooks/useConversationRealtime.ts</code></td>
+<td>Supabase presence &amp; typing</td>
+</tr>
+<tr>
+<td><code>hooks/useStars.ts</code></td>
+<td>Message starring</td>
+</tr>
+<tr>
+<td><code>hooks/useBookmarks.ts</code></td>
+<td>Message bookmarking</td>
+</tr>
+<tr>
+<td><code>hooks/useReceipts.ts</code></td>
+<td>Read receipts</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-routes">API Routes</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app/api/discussions/[id]/route.ts</code></td>
+<td>CRUD for discussions</td>
+</tr>
+<tr>
+<td><code>app/api/discussions/[id]/forum/route.ts</code></td>
+<td>Forum comments CRUD</td>
+</tr>
+<tr>
+<td><code>app/api/discussions/[id]/bridge/promote/route.ts</code></td>
+<td>Chat → Forum promotion</td>
+</tr>
+<tr>
+<td><code>app/api/sheaf/messages/route.ts</code></td>
+<td>Message fetching with ACL</td>
+</tr>
+<tr>
+<td><code>app/api/conversations/[id]/ensure-member/route.ts</code></td>
+<td>Ensure membership</td>
+</tr>
+<tr>
+<td><code>app/api/deliberations/ensure/route.ts</code></td>
+<td>Deliberation creation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="packages">Packages</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>packages/sheaf-acl/src/types.ts</code></td>
+<td>ACL type definitions</td>
+</tr>
+<tr>
+<td><code>packages/sheaf-acl/src/acl.ts</code></td>
+<td>ACL logic (visibility, subset checks)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="lib-helpers">Lib Helpers</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib/chat/roomKey.ts</code></td>
+<td>Generate room keys</td>
+</tr>
+<tr>
+<td><code>lib/chat/makePrivateRoomId.ts</code></td>
+<td>DM room ID generation</td>
+</tr>
+<tr>
+<td><code>lib/sheaf/resolveQuote.ts</code></td>
+<td>Quote resolution with ACL</td>
+</tr>
+<tr>
+<td><code>lib/sheaf/visibility.ts</code></td>
+<td>Facet visibility checks</td>
+</tr>
+<tr>
+<td><code>lib/text/mentions.ts</code></td>
+<td>Mention parsing</td>
+</tr>
+<tr>
+<td><code>lib/text/urls.ts</code></td>
+<td>URL extraction</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="appendix-key-type-definitions">Appendix: Key Type Definitions</h2>
+<h3 id="message-type-client">Message Type (Client)</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> Message {
+  id: <span class="hljs-built_in">string</span>;
+  text: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  createdAt: <span class="hljs-built_in">string</span>;
+  senderId: <span class="hljs-built_in">string</span>;
+  sender?: { name: <span class="hljs-built_in">string</span>; image: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span> };
+  attachments?: Attachment[];
+  facets?: {
+    id: <span class="hljs-built_in">string</span>;
+    audience: AudienceSelector;
+    sharePolicy: SharePolicy;
+    expiresAt: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+    body: <span class="hljs-built_in">any</span>;
+    attachments?: <span class="hljs-built_in">any</span>[];
+    priorityRank: <span class="hljs-built_in">number</span>;
+    createdAt: <span class="hljs-built_in">string</span>;
+  }[];
+  defaultFacetId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  isRedacted?: <span class="hljs-built_in">boolean</span>;
+  meta?: <span class="hljs-built_in">any</span>;
+  driftId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  mentionsMe?: <span class="hljs-built_in">boolean</span>;
+}
+</div></code></pre>
+<h3 id="driftui-type">DriftUI Type</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> DriftUI = {
+  drift: {
+    id: <span class="hljs-built_in">string</span>;
+    conversationId: <span class="hljs-built_in">string</span>;
+    title: <span class="hljs-built_in">string</span>;
+    isClosed: <span class="hljs-built_in">boolean</span>;
+    isArchived: <span class="hljs-built_in">boolean</span>;
+    messageCount: <span class="hljs-built_in">number</span>;
+    lastMessageAt: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+    anchorMessageId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+    kind?: <span class="hljs-string">"DRIFT"</span> | <span class="hljs-string">"THREAD"</span>;
+    rootMessageId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  };
+  my?: {
+    collapsed: <span class="hljs-built_in">boolean</span>;
+    pinned: <span class="hljs-built_in">boolean</span>;
+    muted: <span class="hljs-built_in">boolean</span>;
+    lastReadAt: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  };
+};
+</div></code></pre>
+<h3 id="forumcomment-type">ForumComment Type</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> ForumComment = {
+  id: <span class="hljs-built_in">string</span>;
+  discussionId: <span class="hljs-built_in">string</span>;
+  parentId: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  authorId: <span class="hljs-built_in">string</span> | <span class="hljs-built_in">number</span>;
+  body?: <span class="hljs-built_in">any</span>;          <span class="hljs-comment">// TipTap JSON</span>
+  bodyText?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  sourceMessageId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  score: <span class="hljs-built_in">number</span>;
+  createdAt: <span class="hljs-built_in">string</span>;
+  _children?: ForumComment[];
+};
+</div></code></pre>
+<hr>
+<p><em>Document Version: 1.0</em>
+<em>Last Updated: December 12, 2025</em></p>
+
+</body>
+</html>

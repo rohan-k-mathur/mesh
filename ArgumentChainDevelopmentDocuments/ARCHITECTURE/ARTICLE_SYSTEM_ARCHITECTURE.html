@@ -1,0 +1,3065 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ARTICLE_SYSTEM_ARCHITECTURE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="article-system-architecture--design">Article System Architecture &amp; Design</h1>
+<h2 id="mesh-platform---comprehensive-technical-specification">Mesh Platform - Comprehensive Technical Specification</h2>
+<p><strong>Version:</strong> 1.0<br>
+<strong>Last Updated:</strong> December 15, 2024<br>
+<strong>Document Type:</strong> End-to-End System Architecture</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-executive-summary">Executive Summary</a></li>
+<li><a href="#2-system-overview">System Overview</a></li>
+<li><a href="#3-architecture-diagrams">Architecture Diagrams</a></li>
+<li><a href="#4-data-models">Data Models</a></li>
+<li><a href="#5-component-architecture">Component Architecture</a></li>
+<li><a href="#6-api-specifications">API Specifications</a></li>
+<li><a href="#7-editor-system">Editor System</a></li>
+<li><a href="#8-reader-system">Reader System</a></li>
+<li><a href="#9-annotation-system">Annotation System</a></li>
+<li><a href="#10-social-feed-integration">Social Feed Integration</a></li>
+<li><a href="#11-deliberation-integration">Deliberation Integration</a></li>
+<li><a href="#12-security--authorization">Security &amp; Authorization</a></li>
+<li><a href="#13-performance-considerations">Performance Considerations</a></li>
+<li><a href="#14-appendices">Appendices</a></li>
+</ol>
+<hr>
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<h3 id="11-purpose">1.1 Purpose</h3>
+<p>The Mesh Article System is a sophisticated content creation and publishing platform that integrates seamlessly with the platform's deliberation and argumentation infrastructure. It enables users to create rich, magazine-quality articles that serve as hosts for structured discourse.</p>
+<h3 id="12-key-capabilities">1.2 Key Capabilities</h3>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rich Text Editing</strong></td>
+<td>TipTap-based WYSIWYG editor with typography controls, media embedding, LaTeX math, and custom blocks</td>
+</tr>
+<tr>
+<td><strong>Publishing Workflow</strong></td>
+<td>Draft → Edit → Autosave → Publish lifecycle with revision history</td>
+</tr>
+<tr>
+<td><strong>Text Annotations</strong></td>
+<td>DOM-anchored comment threads attached to text selections</td>
+</tr>
+<tr>
+<td><strong>Deliberation Hosting</strong></td>
+<td>Each article automatically hosts a deliberation space for structured discourse</td>
+</tr>
+<tr>
+<td><strong>Template System</strong></td>
+<td>Configurable visual layouts (&quot;standard&quot;, &quot;feature&quot;, etc.)</td>
+</tr>
+<tr>
+<td><strong>Dashboard Management</strong></td>
+<td>Full CRUD with search, filtering, trash/restore, pagination</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-technology-stack">1.3 Technology Stack</h3>
+<ul>
+<li><strong>Frontend:</strong> Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS</li>
+<li><strong>Editor:</strong> TipTap v2 (ProseMirror-based)</li>
+<li><strong>Backend:</strong> Next.js API Routes, Prisma ORM</li>
+<li><strong>Database:</strong> PostgreSQL</li>
+<li><strong>Storage:</strong> AWS S3 (via Supabase presigned URLs)</li>
+<li><strong>State Management:</strong> SWR, React State</li>
+</ul>
+<hr>
+<h2 id="2-system-overview">2. System Overview</h2>
+<h3 id="21-architectural-principles">2.1 Architectural Principles</h3>
+<ol>
+<li><strong>Separation of Concerns</strong> - Editor, Reader, and Dashboard are distinct components</li>
+<li><strong>Server-First Rendering</strong> - Articles rendered server-side for SEO and performance</li>
+<li><strong>Optimistic Updates</strong> - Dashboard actions feel instant with background sync</li>
+<li><strong>Portable Content</strong> - TipTap JSON AST enables cross-platform rendering</li>
+<li><strong>Deliberation-Native</strong> - Articles are first-class deliberation hosts</li>
+</ol>
+<h3 id="22-system-boundaries">2.2 System Boundaries</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              MESH ARTICLE SYSTEM                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────────┐ │
+│  │   Dashboard     │    │     Editor      │    │         Reader              │ │
+│  │                 │    │                 │    │                             │ │
+│  │ • List articles │    │ • TipTap core   │    │ • SSR HTML generation       │ │
+│  │ • Search/filter │    │ • Toolbar       │    │ • Annotation pins           │ │
+│  │ • CRUD actions  │    │ • Slash cmds    │    │ • Comment rail/modal        │ │
+│  │ • Pagination    │    │ • Autosave      │    │ • Deliberation panel        │ │
+│  │ • Bulk ops      │    │ • Hero images   │    │ • Template rendering        │ │
+│  └────────┬────────┘    └────────┬────────┘    └──────────────┬──────────────┘ │
+│           │                      │                             │                │
+│           └──────────────────────┼─────────────────────────────┘                │
+│                                  │                                              │
+│                                  ▼                                              │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                           API LAYER                                       │  │
+│  │                                                                           │  │
+│  │  /api/articles     /api/articles/[id]/draft    /api/articles/[id]/publish │  │
+│  │  /api/articles/[id]/threads                    /api/deliberations/spawn   │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+│                                  │                                              │
+│                                  ▼                                              │
+│  ┌──────────────────────────────────────────────────────────────────────────┐  │
+│  │                         DATA LAYER                                        │  │
+│  │                                                                           │  │
+│  │  Article ─────────────────────────────────────────────────────────────┐  │  │
+│  │     │                                                                  │  │  │
+│  │     ├─── Revision[]     (version snapshots)                           │  │  │
+│  │     ├─── CommentThread[] ─── Comment[]  (annotations)                 │  │  │
+│  │     └─── Deliberation (1:1 via hostType/hostId)                       │  │  │
+│  │              │                                                         │  │  │
+│  │              ├─── AgoraRoom                                           │  │  │
+│  │              └─── DebateSheet ─── Arguments, Claims, etc.             │  │  │
+│  └──────────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="23-user-journeys">2.3 User Journeys</h3>
+<h4 id="journey-1-article-creation--publishing">Journey 1: Article Creation &amp; Publishing</h4>
+<pre class="hljs"><code><div>User                    Dashboard                  API                    Database
+  │                         │                       │                         │
+  │── Click &quot;New&quot; ─────────▶│                       │                         │
+  │                         │─── POST /articles ───▶│                         │
+  │                         │                       │─── INSERT article ─────▶│
+  │                         │◀── { id } ────────────│                         │
+  │◀── Redirect /edit ──────│                       │                         │
+  │                         │                       │                         │
+  │── Edit content ────────────────────────────────────────────────────────────│
+  │                         │                       │                         │
+  │── (800ms debounce) ─────────────────────────────│                         │
+  │                         │── PATCH /draft ──────▶│                         │
+  │                         │                       │─── UPDATE astJson ─────▶│
+  │                         │                       │                         │
+  │── Click &quot;Publish&quot; ──────│                       │                         │
+  │                         │── POST /publish ─────▶│                         │
+  │                         │                       │─── UPDATE status ──────▶│
+  │                         │                       │─── INSERT revision ────▶│
+  │                         │                       │─── createFeedPost ─────▶│
+  │◀── Redirect /article/slug ─────────────────────│                         │
+</div></code></pre>
+<h4 id="journey-2-article-reading-with-deliberation">Journey 2: Article Reading with Deliberation</h4>
+<pre class="hljs"><code><div>User                    Article Page               API                  Deliberation
+  │                         │                       │                         │
+  │── GET /article/[slug] ─▶│                       │                         │
+  │                         │─── prisma.article ───▶│                         │
+  │                         │─── getOrCreateDelibId ────────────────────────▶│
+  │                         │◀── deliberationId ────────────────────────────│
+  │                         │─── generateHTML() ────│                         │
+  │◀── Rendered article ────│                       │                         │
+  │                         │                       │                         │
+  │── Select text ──────────│                       │                         │
+  │── Click &quot;+&quot; ────────────│                       │                         │
+  │── Submit comment ───────│                       │                         │
+  │                         │── POST /threads ─────▶│                         │
+  │                         │◀── thread ────────────│                         │
+  │◀── Pin appears ─────────│                       │                         │
+  │                         │                       │                         │
+  │── Click &quot;Discussion&quot; ───────────────────────────────────────────────────▶│
+  │                         │                       │       DeepDivePanel     │
+</div></code></pre>
+<hr>
+<h2 id="3-architecture-diagrams">3. Architecture Diagrams</h2>
+<h3 id="31-component-hierarchy">3.1 Component Hierarchy</h3>
+<pre class="hljs"><code><div>                              ArticleReaderWithPins
+                                       │
+                    ┌──────────────────┼──────────────────┐
+                    │                  │                  │
+              ArticleReader      Annotation Layer    DeepDivePanel
+                    │                  │                  │
+            ┌───────┴───────┐    ┌─────┴─────┐      ┌─────┴─────┐
+            │               │    │           │      │           │
+         HeroRenderer   HTML Content   CommentRail  RhetoricProvider
+                                 │           │           │
+                           SelectionBubble   │     DialogueTargetProvider
+                                 │           │           │
+                           CommentModal ─────┘     DeepDivePanelV2
+</div></code></pre>
+<h3 id="32-editor-component-hierarchy">3.2 Editor Component Hierarchy</h3>
+<pre class="hljs"><code><div>                              ArticleEditor
+                                    │
+         ┌────────────┬─────────────┼─────────────┬─────────────┐
+         │            │             │             │             │
+     Toolbar    TemplateSelector  EditorContent   Outline    HeroUpload
+         │                          │
+    ┌────┼────┐                     │
+    │    │    │                     │
+ Formatting Alignment Typography   TipTap Core
+ Buttons   Buttons   Selects            │
+                                   ┌────┴────┐
+                                   │         │
+                              Extensions  ProseMirror
+</div></code></pre>
+<h3 id="33-data-flow-autosave-pipeline">3.3 Data Flow: Autosave Pipeline</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                         AUTOSAVE PIPELINE                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐            │
+│  │  Editor  │──▶│ onChange │──▶│ Debounce │──▶│ makeHash │            │
+│  │  Update  │   │ Handler  │   │  800ms   │   │          │            │
+│  └──────────┘   └──────────┘   └──────────┘   └────┬─────┘            │
+│                                                      │                  │
+│                                               ┌──────▼──────┐          │
+│                                               │ Hash Changed?│          │
+│                                               └──────┬──────┘          │
+│                                                      │                  │
+│                                    ┌─────────────────┼─────────────────┐│
+│                                    │ YES             │ NO              ││
+│                                    ▼                 ▼                 ││
+│                            ┌──────────────┐  ┌──────────────┐         ││
+│                            │ Abort Inflight│  │    Skip      │         ││
+│                            └──────┬───────┘  └──────────────┘         ││
+│                                   │                                    ││
+│                                   ▼                                    ││
+│                            ┌──────────────┐                           ││
+│                            │ PATCH /draft │                           ││
+│                            └──────┬───────┘                           ││
+│                                   │                                    ││
+│                                   ▼                                    ││
+│                            ┌──────────────┐                           ││
+│                            │ Update Hash  │                           ││
+│                            │ localStorage │                           ││
+│                            └──────────────┘                           ││
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="34-annotation-system-flow">3.4 Annotation System Flow</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                      ANNOTATION CREATION FLOW                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  User Selects Text                                                       │
+│         │                                                                │
+│         ▼                                                                │
+│  ┌──────────────────┐                                                   │
+│  │ onMouseUpCapture │ ◀─────────────────────────────────────────┐      │
+│  └────────┬─────────┘                                            │      │
+│           │                                                      │      │
+│           ▼                                                      │      │
+│  ┌──────────────────────────┐                                   │      │
+│  │ window.getSelection()   │                                    │      │
+│  │ → Is collapsed?          │                                   │      │
+│  └────────┬─────────────────┘                                   │      │
+│           │                                                      │      │
+│      ┌────┴────┐                                                │      │
+│      │         │                                                │      │
+│    YES        NO                                                │      │
+│      │         │                                                │      │
+│      ▼         ▼                                                │      │
+│  ┌──────┐  ┌──────────────────────┐                            │      │
+│  │ Clear │  │ buildAnchorFromSel() │                            │      │
+│  │ Adder │  └────────┬─────────────┘                            │      │
+│  └──────┘            │                                          │      │
+│                      ▼                                          │      │
+│           ┌──────────────────────┐                             │      │
+│           │ normalizeToTextNodes │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ nodePathFromRoot()   │                             │      │
+│           │ for start + end      │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ setAdder({ anchor,   │                             │      │
+│           │   rect })            │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ Show &quot;+&quot; Button      │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ User clicks &quot;+&quot;      │                             │      │
+│           │ → setBubble()        │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ Show Composer        │                             │      │
+│           │ User enters comment  │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ POST /threads        │                             │      │
+│           │ { anchor, body }     │                             │      │
+│           └────────┬─────────────┘                             │      │
+│                    │                                            │      │
+│                    ▼                                            │      │
+│           ┌──────────────────────┐                             │      │
+│           │ setThreads(prev ⊕    │                             │      │
+│           │   newThread)         │──────────────────────────────┘      │
+│           └────────┬─────────────┘                                      │
+│                    │                                                    │
+│                    ▼                                                    │
+│           ┌──────────────────────┐                                     │
+│           │ Pin appears in       │                                     │
+│           │ left gutter + rail   │                                     │
+│           └──────────────────────┘                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="4-data-models">4. Data Models</h2>
+<h3 id="41-article-entity">4.1 Article Entity</h3>
+<pre class="hljs"><code><div>model Article {
+  // Identity
+  id           String        @id @default(uuid())
+  authorId     String        // Foreign key to User
+  slug         String        @unique
+  
+  // Content
+  title        String
+  heroImageKey String?       // S3 object key
+  template     String        @default(&quot;standard&quot;)
+  astJson      Json          // TipTap ProseMirror JSON
+  
+  // Publishing
+  status       ArticleStatus @default(DRAFT)
+  publishedAt  DateTime?
+  
+  // Derived
+  excerpt      String?       // First ~1200 chars
+  readingTime  Int?          // Estimated minutes
+  
+  // Metadata
+  analytics    Json?         // View counts, etc.
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?     // Soft delete
+  
+  // Settings
+  allowAnnotations Boolean   @default(true)
+  
+  // Relations
+  revisions    Revision[]
+  threads      CommentThread[]
+  roomId       String?       // Optional Agora room link
+  
+  @@index([authorId, deletedAt, updatedAt])
+  @@index([authorId, status, updatedAt])
+  @@map(&quot;articles&quot;)
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+</div></code></pre>
+<h3 id="42-revision-entity">4.2 Revision Entity</h3>
+<pre class="hljs"><code><div>model Revision {
+  id        String   @id @default(uuid())
+  articleId String
+  astJson   Json     // Snapshot of content at publish time
+  createdAt DateTime @default(now())
+  
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  
+  @@map(&quot;article_revisions&quot;)
+}
+</div></code></pre>
+<h3 id="43-comment-thread--comment">4.3 Comment Thread &amp; Comment</h3>
+<pre class="hljs"><code><div>model CommentThread {
+  id        String    @id @default(uuid())
+  articleId String
+  anchor    Json      // Anchor type (see below)
+  resolved  Boolean   @default(false)
+  createdBy String
+  createdAt DateTime  @default(now())
+  
+  comments  Comment[]
+  article   Article   @relation(fields: [articleId], references: [id])
+  
+  @@index([articleId])
+}
+
+model Comment {
+  id        String        @id @default(uuid())
+  threadId  String
+  body      String
+  createdBy String
+  createdAt DateTime      @default(now())
+  upvotes   Int           @default(0)
+  downvotes Int           @default(0)
+  
+  thread    CommentThread @relation(fields: [threadId], references: [id])
+  
+  @@index([threadId])
+}
+</div></code></pre>
+<h3 id="44-typescript-type-definitions">4.4 TypeScript Type Definitions</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// types/comments.ts</span>
+
+<span class="hljs-comment">/**
+ * Anchor represents a text selection within the article DOM.
+ * Uses path-based addressing for stability across re-renders.
+ */</span>
+<span class="hljs-keyword">interface</span> Anchor {
+  <span class="hljs-comment">/** Array of child indices from root to start text node */</span>
+  startPath: <span class="hljs-built_in">number</span>[];
+  <span class="hljs-comment">/** Character offset within start text node */</span>
+  startOffset: <span class="hljs-built_in">number</span>;
+  <span class="hljs-comment">/** Array of child indices from root to end text node */</span>
+  endPath: <span class="hljs-built_in">number</span>[];
+  <span class="hljs-comment">/** Character offset within end text node */</span>
+  endOffset: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">interface</span> Comment {
+  id: <span class="hljs-built_in">string</span>;
+  threadId: <span class="hljs-built_in">string</span>;
+  body: <span class="hljs-built_in">string</span>;
+  createdBy: <span class="hljs-built_in">string</span>;
+  createdAt: <span class="hljs-built_in">string</span>;    <span class="hljs-comment">// ISO string</span>
+  upvotes: <span class="hljs-built_in">number</span>;
+  downvotes: <span class="hljs-built_in">number</span>;
+}
+
+<span class="hljs-keyword">interface</span> CommentThread {
+  id: <span class="hljs-built_in">string</span>;
+  articleId: <span class="hljs-built_in">string</span>;
+  anchor: Anchor;
+  resolved: <span class="hljs-built_in">boolean</span>;
+  createdBy: <span class="hljs-built_in">string</span>;
+  createdAt: <span class="hljs-built_in">string</span>;    <span class="hljs-comment">// ISO string</span>
+  comments: Comment[];
+}
+
+<span class="hljs-comment">// Dashboard types</span>
+<span class="hljs-keyword">interface</span> ArticleItem {
+  id: <span class="hljs-built_in">string</span>;
+  title: <span class="hljs-built_in">string</span>;
+  slug: <span class="hljs-built_in">string</span>;
+  status: <span class="hljs-string">"DRAFT"</span> | <span class="hljs-string">"PUBLISHED"</span>;
+  createdAt: <span class="hljs-built_in">string</span>;
+  updatedAt: <span class="hljs-built_in">string</span>;
+  deletedAt?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  heroImageKey: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  template: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<h3 id="45-tiptap-ast-structure">4.5 TipTap AST Structure</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Example TipTap document JSON (astJson field)</span>
+<span class="hljs-keyword">interface</span> TipTapDocument {
+  <span class="hljs-keyword">type</span>: <span class="hljs-string">"doc"</span>;
+  content: TipTapNode[];
+}
+
+<span class="hljs-keyword">interface</span> TipTapNode {
+  <span class="hljs-keyword">type</span>: <span class="hljs-built_in">string</span>;           <span class="hljs-comment">// "paragraph", "heading", "bulletList", etc.</span>
+  attrs?: Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">any</span>&gt;;
+  content?: TipTapNode[];
+  marks?: TipTapMark[];
+  text?: <span class="hljs-built_in">string</span>;          <span class="hljs-comment">// For text nodes</span>
+}
+
+<span class="hljs-keyword">interface</span> TipTapMark {
+  <span class="hljs-keyword">type</span>: <span class="hljs-built_in">string</span>;           <span class="hljs-comment">// "bold", "italic", "textStyle", etc.</span>
+  attrs?: Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">any</span>&gt;;
+}
+
+<span class="hljs-comment">// Example document</span>
+<span class="hljs-keyword">const</span> exampleDoc: TipTapDocument = {
+  <span class="hljs-keyword">type</span>: <span class="hljs-string">"doc"</span>,
+  content: [
+    {
+      <span class="hljs-keyword">type</span>: <span class="hljs-string">"heading"</span>,
+      attrs: { level: <span class="hljs-number">1</span> },
+      content: [{ <span class="hljs-keyword">type</span>: <span class="hljs-string">"text"</span>, text: <span class="hljs-string">"Article Title"</span> }]
+    },
+    {
+      <span class="hljs-keyword">type</span>: <span class="hljs-string">"paragraph"</span>,
+      content: [
+        { <span class="hljs-keyword">type</span>: <span class="hljs-string">"text"</span>, text: <span class="hljs-string">"This is "</span> },
+        { 
+          <span class="hljs-keyword">type</span>: <span class="hljs-string">"text"</span>, 
+          text: <span class="hljs-string">"bold"</span>, 
+          marks: [{ <span class="hljs-keyword">type</span>: <span class="hljs-string">"bold"</span> }] 
+        },
+        { <span class="hljs-keyword">type</span>: <span class="hljs-string">"text"</span>, text: <span class="hljs-string">" text."</span> }
+      ]
+    },
+    {
+      <span class="hljs-keyword">type</span>: <span class="hljs-string">"mathBlock"</span>,
+      attrs: { latex: <span class="hljs-string">"E = mc^2"</span> }
+    }
+  ]
+};
+</div></code></pre>
+<hr>
+<h2 id="5-component-architecture">5. Component Architecture</h2>
+<h3 id="51-articleeditor-component">5.1 ArticleEditor Component</h3>
+<p><strong>Location:</strong> <code>components/article/ArticleEditor.tsx</code></p>
+<p><strong>Props:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> ArticleEditorProps {
+  articleId: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<p><strong>State:</strong></p>
+<table>
+<thead>
+<tr>
+<th>State Variable</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>template</code></td>
+<td>string</td>
+<td>Current template (&quot;standard&quot;, &quot;feature&quot;)</td>
+</tr>
+<tr>
+<td><code>heroImageKey</code></td>
+<td>string | null</td>
+<td>S3 key for hero image</td>
+</tr>
+<tr>
+<td><code>heroPreview</code></td>
+<td>string | null</td>
+<td>Local preview URL</td>
+</tr>
+<tr>
+<td><code>isDirty</code></td>
+<td>boolean</td>
+<td>Unsaved changes indicator</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>string</td>
+<td>Article title</td>
+</tr>
+<tr>
+<td><code>counter</code></td>
+<td>{words, chars}</td>
+<td>Character count</td>
+</tr>
+<tr>
+<td><code>initialJson</code></td>
+<td>any</td>
+<td>Loaded article content</td>
+</tr>
+<tr>
+<td><code>publishing</code></td>
+<td>boolean</td>
+<td>Publishing in progress</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Functions:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Payload construction</span>
+<span class="hljs-keyword">const</span> makePayload = <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> ({
+  astJson: editor.getJSON(),
+  template,
+  heroImageKey,
+  title: title?.trim() || <span class="hljs-literal">undefined</span>
+});
+
+<span class="hljs-comment">// Debounced save</span>
+<span class="hljs-keyword">const</span> saveDraft = <span class="hljs-keyword">async</span> () =&gt; {
+  <span class="hljs-keyword">const</span> payload = makePayload();
+  <span class="hljs-keyword">const</span> hash = <span class="hljs-built_in">JSON</span>.stringify(payload);
+  <span class="hljs-keyword">if</span> (hash === lastSentHash.current) <span class="hljs-keyword">return</span>;
+  
+  inflight.current?.abort();
+  inflight.current = <span class="hljs-keyword">new</span> AbortController();
+  
+  <span class="hljs-keyword">await</span> fetch(<span class="hljs-string">`/api/articles/<span class="hljs-subst">${articleId}</span>/draft`</span>, {
+    method: <span class="hljs-string">"PATCH"</span>,
+    body: <span class="hljs-built_in">JSON</span>.stringify(payload),
+    signal: inflight.current.signal
+  });
+  
+  lastSentHash.current = hash;
+};
+
+<span class="hljs-comment">// Publishing</span>
+<span class="hljs-keyword">const</span> publishArticle = <span class="hljs-keyword">async</span> () =&gt; {
+  <span class="hljs-keyword">await</span> saveDraftImmediate();
+  <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">await</span> fetch(<span class="hljs-string">`/api/articles/<span class="hljs-subst">${articleId}</span>/publish`</span>, {
+    method: <span class="hljs-string">"POST"</span>,
+    body: <span class="hljs-built_in">JSON</span>.stringify({
+      astJson: editor.getJSON(),
+      template,
+      heroImageKey,
+      title
+    })
+  });
+  <span class="hljs-keyword">const</span> { slug } = <span class="hljs-keyword">await</span> res.json();
+  router.replace(<span class="hljs-string">`/article/<span class="hljs-subst">${slug}</span>`</span>);
+};
+</div></code></pre>
+<h3 id="52-articlereaderwithpins-component">5.2 ArticleReaderWithPins Component</h3>
+<p><strong>Location:</strong> <code>components/article/ArticleReaderWithPins.tsx</code></p>
+<p><strong>Props:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> Props {
+  template: <span class="hljs-built_in">string</span>;
+  heroSrc?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  html: <span class="hljs-built_in">string</span>;                    <span class="hljs-comment">// Pre-rendered HTML</span>
+  threads: CommentThread[];
+  articleSlug: <span class="hljs-built_in">string</span>;
+  title?: <span class="hljs-built_in">string</span>;
+  currentUser?: unknown;
+  deliberationId?: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<p><strong>State:</strong></p>
+<table>
+<thead>
+<tr>
+<th>State Variable</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>threads</code></td>
+<td>CommentThread[]</td>
+<td>All comment threads</td>
+</tr>
+<tr>
+<td><code>openId</code></td>
+<td>string | null</td>
+<td>Currently highlighted thread</td>
+</tr>
+<tr>
+<td><code>activeThread</code></td>
+<td>CommentThread | null</td>
+<td>Thread open in modal</td>
+</tr>
+<tr>
+<td><code>bubble</code></td>
+<td>{anchor, rect, text} | null</td>
+<td>Comment composer state</td>
+</tr>
+<tr>
+<td><code>adder</code></td>
+<td>{anchor, rect} | null</td>
+<td>&quot;+&quot; button state</td>
+</tr>
+<tr>
+<td><code>hoverId</code></td>
+<td>string | null</td>
+<td>Hovered thread for highlight</td>
+</tr>
+<tr>
+<td><code>tick</code></td>
+<td>number</td>
+<td>Force re-render on scroll/resize</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Functions:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Build anchor from selection</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildAnchorFromSelection</span>(<span class="hljs-params">
+  root: HTMLElement,
+  sel: Selection
+</span>): </span>{ anchor: Anchor; rect: DOMRect } | <span class="hljs-literal">null</span>;
+
+<span class="hljs-comment">// Resolve anchor to DOM rects</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getAnchorRects</span>(<span class="hljs-params">
+  anchor: Anchor,
+  root: HTMLElement
+</span>): <span class="hljs-title">DOMRect</span>[]</span>;
+
+<span class="hljs-comment">// Create new comment thread</span>
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createThread</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">await</span> fetch(
+    <span class="hljs-string">`/api/articles/<span class="hljs-subst">${articleSlug}</span>/threads`</span>,
+    {
+      method: <span class="hljs-string">"POST"</span>,
+      body: <span class="hljs-built_in">JSON</span>.stringify({ anchor: bubble.anchor, body: draftBody })
+    }
+  );
+  <span class="hljs-keyword">const</span> created = <span class="hljs-keyword">await</span> res.json();
+  setThreads(<span class="hljs-function"><span class="hljs-params">prev</span> =&gt;</span> [created, ...prev]);
+  setOpenId(created.id);
+  setBubble(<span class="hljs-literal">null</span>);
+}
+
+<span class="hljs-comment">// Scroll to thread anchor</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">scrollToThread</span>(<span class="hljs-params">t: CommentThread</span>) </span>{
+  <span class="hljs-keyword">const</span> rects = getAnchorRects(t.anchor, containerRef.current);
+  <span class="hljs-keyword">const</span> y = <span class="hljs-built_in">window</span>.scrollY + rects[<span class="hljs-number">0</span>].top - <span class="hljs-number">350</span>;
+  <span class="hljs-built_in">window</span>.scrollTo({ top: y, behavior: <span class="hljs-string">"smooth"</span> });
+}
+</div></code></pre>
+<h3 id="53-articlesdashboard-component">5.3 ArticlesDashboard Component</h3>
+<p><strong>Location:</strong> <code>app/(root)/(standard)/profile/articles/ui/ArticlesDashboard.tsx</code></p>
+<p><strong>Props:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> Props {
+  initialItems: Item[];
+  initialNextCursor: { updatedAt: <span class="hljs-built_in">string</span>; id: <span class="hljs-built_in">string</span> } | <span class="hljs-literal">null</span>;
+  pageSize: <span class="hljs-built_in">number</span>;
+}
+</div></code></pre>
+<p><strong>SWR Infinite Configuration:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> getKey = <span class="hljs-function">(<span class="hljs-params">index: <span class="hljs-built_in">number</span>, prev: PageData | <span class="hljs-literal">null</span></span>) =&gt;</span> {
+  <span class="hljs-keyword">if</span> (prev &amp;&amp; (!prev.items || prev.items.length === <span class="hljs-number">0</span>)) <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+  
+  <span class="hljs-keyword">const</span> params = <span class="hljs-keyword">new</span> URLSearchParams({
+    page: <span class="hljs-built_in">String</span>(index + <span class="hljs-number">1</span>),
+    pageSize: <span class="hljs-built_in">String</span>(pageSize),
+    q,
+    view,
+    sort: <span class="hljs-string">"updatedAt:desc"</span>
+  });
+  
+  <span class="hljs-keyword">if</span> (status !== <span class="hljs-string">"ALL"</span>) params.set(<span class="hljs-string">"status"</span>, status);
+  <span class="hljs-keyword">if</span> (template !== <span class="hljs-string">"ALL"</span>) params.set(<span class="hljs-string">"template"</span>, template);
+  
+  <span class="hljs-keyword">return</span> <span class="hljs-string">`/api/articles?<span class="hljs-subst">${params.toString()}</span>`</span>;
+};
+
+<span class="hljs-keyword">const</span> { data, size, setSize, isValidating, mutate } = useSWRInfinite&lt;PageData&gt;(
+  getKey,
+  fetcher,
+  {
+    revalidateFirstPage: <span class="hljs-literal">true</span>,
+    persistSize: <span class="hljs-literal">true</span>,
+    parallel: <span class="hljs-literal">true</span>,
+    fallbackData: [{ items: initialItems }]
+  }
+);
+</div></code></pre>
+<p><strong>Optimistic Update Pattern:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">remove</span>(<span class="hljs-params">id: <span class="hljs-built_in">string</span></span>) </span>{
+  <span class="hljs-keyword">if</span> (!confirm(<span class="hljs-string">"Move to Trash?"</span>)) <span class="hljs-keyword">return</span>;
+  
+  <span class="hljs-comment">// Optimistic: remove from cache immediately</span>
+  mutate(
+    <span class="hljs-function"><span class="hljs-params">pages</span> =&gt;</span> pages?.map(<span class="hljs-function"><span class="hljs-params">p</span> =&gt;</span> ({
+      ...p,
+      items: p.items.filter(<span class="hljs-function"><span class="hljs-params">it</span> =&gt;</span> it.id !== id)
+    })),
+    { revalidate: <span class="hljs-literal">false</span> }
+  );
+  
+  toast.success(<span class="hljs-string">"Moved to Trash"</span>);
+  
+  <span class="hljs-comment">// Sync to server</span>
+  <span class="hljs-keyword">await</span> fetch(<span class="hljs-string">`/api/articles/<span class="hljs-subst">${id}</span>`</span>, { method: <span class="hljs-string">"DELETE"</span> })
+    .finally(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> mutate());  <span class="hljs-comment">// Revalidate on completion</span>
+}
+</div></code></pre>
+<hr>
+<h2 id="6-api-specifications">6. API Specifications</h2>
+<h3 id="61-articles-list--create">6.1 Articles List &amp; Create</h3>
+<h4 id="get-apiarticles"><code>GET /api/articles</code></h4>
+<p><strong>Purpose:</strong> List articles for current user</p>
+<p><strong>Authentication:</strong> Required (cookie-based)</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page</code></td>
+<td>number</td>
+<td>1</td>
+<td>Page number (1-indexed)</td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>number</td>
+<td>20</td>
+<td>Items per page (1-100)</td>
+</tr>
+<tr>
+<td><code>q</code></td>
+<td>string</td>
+<td>&quot;&quot;</td>
+<td>Search query (title/slug)</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>enum</td>
+<td>null</td>
+<td>DRAFT | PUBLISHED</td>
+</tr>
+<tr>
+<td><code>template</code></td>
+<td>string</td>
+<td>null</td>
+<td>Filter by template</td>
+</tr>
+<tr>
+<td><code>view</code></td>
+<td>string</td>
+<td>&quot;active&quot;</td>
+<td>&quot;active&quot; | &quot;trash&quot;</td>
+</tr>
+<tr>
+<td><code>sort</code></td>
+<td>string</td>
+<td>&quot;updatedAt:desc&quot;</td>
+<td>field:direction</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  items: {
+    id: <span class="hljs-built_in">string</span>;
+    title: <span class="hljs-built_in">string</span>;
+    slug: <span class="hljs-built_in">string</span>;
+    status: <span class="hljs-string">"DRAFT"</span> | <span class="hljs-string">"PUBLISHED"</span>;
+    createdAt: <span class="hljs-built_in">string</span>;
+    updatedAt: <span class="hljs-built_in">string</span>;
+    heroImageKey: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+    template: <span class="hljs-built_in">string</span>;
+  }[];
+  total: <span class="hljs-built_in">number</span>;
+  page: <span class="hljs-built_in">number</span>;
+  pageSize: <span class="hljs-built_in">number</span>;
+}
+</div></code></pre>
+<h4 id="post-apiarticles"><code>POST /api/articles</code></h4>
+<p><strong>Purpose:</strong> Create new article draft</p>
+<p><strong>Body (all optional):</strong></p>
+<pre class="hljs"><code><div>{
+  title?: <span class="hljs-built_in">string</span>;          <span class="hljs-comment">// Default: "Untitled"</span>
+  slug?: <span class="hljs-built_in">string</span>;           <span class="hljs-comment">// Default: nanoid()</span>
+  template?: <span class="hljs-built_in">string</span>;       <span class="hljs-comment">// Default: "standard"</span>
+  heroImageKey?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  astJson?: TipTapDocument; <span class="hljs-comment">// Default: empty doc</span>
+}
+</div></code></pre>
+<p><strong>Response:</strong> <code>{ id: string }</code> (201 Created)</p>
+<h3 id="62-article-crud">6.2 Article CRUD</h3>
+<h4 id="get-apiarticlesid"><code>GET /api/articles/[id]</code></h4>
+<p><strong>Purpose:</strong> Get single article by ID</p>
+<p><strong>Authorization:</strong> Owner only</p>
+<p><strong>Response:</strong> Full article object</p>
+<h4 id="patch-apiarticlesid"><code>PATCH /api/articles/[id]</code></h4>
+<p><strong>Purpose:</strong> Update article metadata</p>
+<p><strong>Body:</strong></p>
+<pre class="hljs"><code><div>{
+  title?: <span class="hljs-built_in">string</span>;
+  template?: <span class="hljs-built_in">string</span>;
+  heroImageKey?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+}
+</div></code></pre>
+<h4 id="delete-apiarticlesid"><code>DELETE /api/articles/[id]</code></h4>
+<p><strong>Purpose:</strong> Soft delete (or hard delete)</p>
+<p><strong>Query:</strong> <code>?hard=1</code> for permanent deletion</p>
+<h3 id="63-draft-save">6.3 Draft Save</h3>
+<h4 id="patch-apiarticlesiddraft"><code>PATCH /api/articles/[id]/draft</code></h4>
+<p><strong>Purpose:</strong> Autosave draft content</p>
+<p><strong>Body:</strong></p>
+<pre class="hljs"><code><div>{
+  astJson?: TipTapDocument;
+  template?: <span class="hljs-built_in">string</span>;
+  heroImageKey?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  title?: <span class="hljs-built_in">string</span>;
+}
+</div></code></pre>
+<p><strong>Response:</strong> <code>{ ok: true }</code></p>
+<h3 id="64-publishing">6.4 Publishing</h3>
+<h4 id="post-apiarticlesidpublish"><code>POST /api/articles/[id]/publish</code></h4>
+<p><strong>Purpose:</strong> Publish article</p>
+<p><strong>Processing Steps:</strong></p>
+<ol>
+<li>Validate ownership</li>
+<li>Resolve final title (body &gt; current &gt; AST-derived &gt; &quot;Untitled&quot;)</li>
+<li>Generate unique slug from title</li>
+<li>Compute excerpt and reading time</li>
+<li>Update article (status=PUBLISHED, publishedAt)</li>
+<li>Create revision snapshot</li>
+<li>Create feed post (optional)</li>
+</ol>
+<p><strong>Response:</strong> <code>{ slug: string, feedPostId?: string }</code></p>
+<h3 id="65-comment-threads">6.5 Comment Threads</h3>
+<h4 id="get-apiarticlesidthreads"><code>GET /api/articles/[id]/threads</code></h4>
+<p><strong>Purpose:</strong> List comment threads for article</p>
+<p><strong>Response:</strong></p>
+<pre class="hljs"><code><div>{
+  id: <span class="hljs-built_in">string</span>;
+  articleId: <span class="hljs-built_in">string</span>;
+  anchor: Anchor;
+  resolved: <span class="hljs-built_in">boolean</span>;
+  createdBy: <span class="hljs-built_in">string</span>;
+  createdAt: <span class="hljs-built_in">string</span>;
+  comments: Comment[];
+}[]
+</div></code></pre>
+<h4 id="post-apiarticlesidthreads"><code>POST /api/articles/[id]/threads</code></h4>
+<p><strong>Purpose:</strong> Create new comment thread</p>
+<p><strong>Body:</strong></p>
+<pre class="hljs"><code><div>{
+  anchor: Anchor;
+  body: <span class="hljs-built_in">string</span>;  <span class="hljs-comment">// Initial comment text</span>
+}
+</div></code></pre>
+<p><strong>Response:</strong> Created thread with comments</p>
+<hr>
+<h2 id="7-editor-system">7. Editor System</h2>
+<h3 id="71-tiptap-extension-architecture">7.1 TipTap Extension Architecture</h3>
+<p>The editor uses a layered extension system with shared base extensions:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Shared extensions (used by both editor and reader SSR)</span>
+<span class="hljs-comment">// lib/tiptap/extensions/shared.ts</span>
+<span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">tiptapSharedExtensions</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> [
+    StarterKit.configure({
+      bulletList: { keepMarks: <span class="hljs-literal">true</span>, keepAttributes: <span class="hljs-literal">true</span> },
+      orderedList: { keepMarks: <span class="hljs-literal">true</span>, keepAttributes: <span class="hljs-literal">true</span> },
+    }),
+    FancyTextStyle,      <span class="hljs-comment">// Extended TextStyle with typography tokens</span>
+    Color.configure({ types: [<span class="hljs-string">'textStyle'</span>] }),
+    Underline,
+    Highlight,
+    Link.configure({ openOnClick: <span class="hljs-literal">true</span>, autolink: <span class="hljs-literal">true</span> }),
+    SSRTextAlign.configure({ types: [<span class="hljs-string">'heading'</span>, <span class="hljs-string">'paragraph'</span>] }),
+    SectionBreak,
+  ];
+}
+</div></code></pre>
+<h3 id="72-custom-node-extensions">7.2 Custom Node Extensions</h3>
+<h4 id="pullquote">PullQuote</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> PullQuote = Node.create({
+  name: <span class="hljs-string">"pullQuote"</span>,
+  group: <span class="hljs-string">"block"</span>,
+  content: <span class="hljs-string">"inline*"</span>,
+  addAttributes() {
+    <span class="hljs-keyword">return</span> {
+      alignment: { <span class="hljs-keyword">default</span>: <span class="hljs-string">"left"</span> }
+    };
+  },
+  renderHTML({ HTMLAttributes }) {
+    <span class="hljs-keyword">return</span> [<span class="hljs-string">"blockquote"</span>, mergeAttributes(HTMLAttributes, {
+      <span class="hljs-keyword">class</span>: <span class="hljs-string">`pull-quote <span class="hljs-subst">${HTMLAttributes.alignment}</span>`</span>
+    }), <span class="hljs-number">0</span>];
+  }
+});
+</div></code></pre>
+<h4 id="callout">Callout</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> Callout = Node.create({
+  name: <span class="hljs-string">"callout"</span>,
+  group: <span class="hljs-string">"block"</span>,
+  content: <span class="hljs-string">"paragraph+"</span>,
+  addAttributes() {
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-keyword">type</span>: { <span class="hljs-keyword">default</span>: <span class="hljs-string">"info"</span> }  <span class="hljs-comment">// info, warning, tip, danger</span>
+    };
+  },
+  renderHTML({ HTMLAttributes }) {
+    <span class="hljs-keyword">return</span> [<span class="hljs-string">"div"</span>, mergeAttributes(HTMLAttributes, {
+      <span class="hljs-keyword">class</span>: <span class="hljs-string">`callout <span class="hljs-subst">${HTMLAttributes.<span class="hljs-keyword">type</span>}</span>`</span>
+    }), <span class="hljs-number">0</span>];
+  }
+});
+</div></code></pre>
+<h4 id="mathblock">MathBlock</h4>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> MathBlock = Node.create({
+  name: <span class="hljs-string">"mathBlock"</span>,
+  group: <span class="hljs-string">"block"</span>,
+  atom: <span class="hljs-literal">true</span>,
+  addAttributes() {
+    <span class="hljs-keyword">return</span> {
+      latex: { <span class="hljs-keyword">default</span>: <span class="hljs-string">""</span> }
+    };
+  },
+  addNodeView() {
+    <span class="hljs-keyword">return</span> ReactNodeViewRenderer(<span class="hljs-function">(<span class="hljs-params">{ node }</span>) =&gt;</span> (
+      &lt;div
+        className=<span class="hljs-string">"math-block"</span>
+        dangerouslySetInnerHTML={{
+          __html: katex.renderToString(node.attrs.latex, { throwOnError: <span class="hljs-literal">false</span> })
+        }}
+      /&gt;
+    ));
+  }
+});
+</div></code></pre>
+<h4 id="sectionbreak">SectionBreak</h4>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/tiptap/extensions/sectionBreak.ts</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> SectionBreak = Node.create({
+  name: <span class="hljs-string">'sectionBreak'</span>,
+  group: <span class="hljs-string">'block'</span>,
+  atom: <span class="hljs-literal">true</span>,
+  parseHTML() {
+    <span class="hljs-keyword">return</span> [{ tag: <span class="hljs-string">'hr[data-section-break]'</span> }];
+  },
+  renderHTML() {
+    <span class="hljs-keyword">return</span> [<span class="hljs-string">'hr'</span>, { <span class="hljs-string">'data-section-break'</span>: <span class="hljs-string">'1'</span> }];
+  }
+});
+</div></code></pre>
+<h3 id="73-typography-token-system">7.3 Typography Token System</h3>
+<p>The system uses data attributes for portable, semantic styling:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// FancyTextStyle extension attributes</span>
+{
+  fontFamily: { 
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-ff'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-ff'</span>: attrs.fontFamily })
+  },
+  fontSize: {
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-fs'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-fs'</span>: attrs.fontSize })
+  },
+  color: {
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-clr'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-clr'</span>: attrs.color })
+  },
+  fontWeight: {
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-fw'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-fw'</span>: attrs.fontWeight })
+  },
+  lineHeight: {
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-lh'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-lh'</span>: attrs.lineHeight })
+  },
+  letterSpacing: {
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-ls'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-ls'</span>: attrs.letterSpacing })
+  },
+  textTransform: {
+    parseHTML: <span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> el.getAttribute(<span class="hljs-string">'data-tt'</span>),
+    renderHTML: <span class="hljs-function"><span class="hljs-params">attrs</span> =&gt;</span> ({ <span class="hljs-string">'data-tt'</span>: attrs.textTransform })
+  }
+}
+</div></code></pre>
+<p><strong>CSS Token Resolution:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">/* type-tokens.css */</span>
+
+<span class="hljs-comment">/* Font Families */</span>
+<span class="hljs-selector-attr">[data-ff=<span class="hljs-string">"system"</span>]</span>   { <span class="hljs-attribute">font-family</span>: <span class="hljs-built_in">var</span>(--ff-system); }
+<span class="hljs-selector-attr">[data-ff=<span class="hljs-string">"founders"</span>]</span> { <span class="hljs-attribute">font-family</span>: <span class="hljs-built_in">var</span>(--ff-founders); }
+<span class="hljs-selector-attr">[data-ff=<span class="hljs-string">"bugrino"</span>]</span>  { <span class="hljs-attribute">font-family</span>: <span class="hljs-built_in">var</span>(--ff-bugrino); }
+<span class="hljs-selector-attr">[data-ff=<span class="hljs-string">"newedge"</span>]</span>  { <span class="hljs-attribute">font-family</span>: <span class="hljs-built_in">var</span>(--ff-newedge); }
+<span class="hljs-selector-attr">[data-ff=<span class="hljs-string">"kolonia"</span>]</span>  { <span class="hljs-attribute">font-family</span>: <span class="hljs-built_in">var</span>(--ff-kolonia); }
+
+<span class="hljs-comment">/* Font Sizes */</span>
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"12"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">12px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"14"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">14px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"16"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">16px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"18"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">18px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"20"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">20px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"24"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">24px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"32"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">32px</span>; }
+<span class="hljs-selector-attr">[data-fs=<span class="hljs-string">"48"</span>]</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">48px</span>; }
+
+<span class="hljs-comment">/* Colors */</span>
+<span class="hljs-selector-attr">[data-clr=<span class="hljs-string">"accent"</span>]</span> { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--clr-accent); }
+<span class="hljs-selector-attr">[data-clr=<span class="hljs-string">"muted"</span>]</span>  { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--clr-muted); }
+<span class="hljs-selector-attr">[data-clr=<span class="hljs-string">"red"</span>]</span>    { <span class="hljs-attribute">color</span>: <span class="hljs-built_in">var</span>(--clr-red); }
+
+<span class="hljs-comment">/* Font Weights */</span>
+<span class="hljs-selector-attr">[data-fw=<span class="hljs-string">"300"</span>]</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">300</span>; }
+<span class="hljs-selector-attr">[data-fw=<span class="hljs-string">"400"</span>]</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">400</span>; }
+<span class="hljs-selector-attr">[data-fw=<span class="hljs-string">"500"</span>]</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">500</span>; }
+<span class="hljs-selector-attr">[data-fw=<span class="hljs-string">"600"</span>]</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">600</span>; }
+<span class="hljs-selector-attr">[data-fw=<span class="hljs-string">"700"</span>]</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">700</span>; }
+<span class="hljs-selector-attr">[data-fw=<span class="hljs-string">"800"</span>]</span> { <span class="hljs-attribute">font-weight</span>: <span class="hljs-number">800</span>; }
+
+<span class="hljs-comment">/* Line Heights */</span>
+<span class="hljs-selector-attr">[data-lh=<span class="hljs-string">"tight"</span>]</span>  { <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.2</span>; }
+<span class="hljs-selector-attr">[data-lh=<span class="hljs-string">"normal"</span>]</span> { <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.5</span>; }
+<span class="hljs-selector-attr">[data-lh=<span class="hljs-string">"loose"</span>]</span>  { <span class="hljs-attribute">line-height</span>: <span class="hljs-number">1.8</span>; }
+
+<span class="hljs-comment">/* Letter Spacing */</span>
+<span class="hljs-selector-attr">[data-ls=<span class="hljs-string">"tight"</span>]</span>  { <span class="hljs-attribute">letter-spacing</span>: -<span class="hljs-number">0.02em</span>; }
+<span class="hljs-selector-attr">[data-ls=<span class="hljs-string">"normal"</span>]</span> { <span class="hljs-attribute">letter-spacing</span>: <span class="hljs-number">0</span>; }
+<span class="hljs-selector-attr">[data-ls=<span class="hljs-string">"wide"</span>]</span>   { <span class="hljs-attribute">letter-spacing</span>: <span class="hljs-number">0.05em</span>; }
+
+<span class="hljs-comment">/* Text Transform */</span>
+<span class="hljs-selector-attr">[data-tt=<span class="hljs-string">"upper"</span>]</span>     { <span class="hljs-attribute">text-transform</span>: uppercase; }
+<span class="hljs-selector-attr">[data-tt=<span class="hljs-string">"lower"</span>]</span>     { <span class="hljs-attribute">text-transform</span>: lowercase; }
+<span class="hljs-selector-attr">[data-tt=<span class="hljs-string">"caps"</span>]</span>      { <span class="hljs-attribute">text-transform</span>: capitalize; }
+<span class="hljs-selector-attr">[data-tt=<span class="hljs-string">"smallcaps"</span>]</span> { <span class="hljs-attribute">font-variant</span>: small-caps; }
+</div></code></pre>
+<h3 id="74-slash-command-system">7.4 Slash Command System</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// components/article/editor/SlashCommand.tsx</span>
+<span class="hljs-keyword">const</span> COMMANDS = [
+  {
+    title: <span class="hljs-string">"Image"</span>,
+    command: <span class="hljs-function">(<span class="hljs-params">editor</span>) =&gt;</span> editor.chain().focus().setImage({ src: <span class="hljs-string">""</span> }).run()
+  },
+  {
+    title: <span class="hljs-string">"Quote"</span>,
+    command: <span class="hljs-function">(<span class="hljs-params">editor</span>) =&gt;</span> editor.chain().focus().setNode(<span class="hljs-string">"pullQuote"</span>).run()
+  },
+  {
+    title: <span class="hljs-string">"Callout"</span>,
+    command: <span class="hljs-function">(<span class="hljs-params">editor</span>) =&gt;</span> editor.chain().focus().setNode(<span class="hljs-string">"callout"</span>).run()
+  },
+  {
+    title: <span class="hljs-string">"Latex"</span>,
+    command: <span class="hljs-function">(<span class="hljs-params">editor</span>) =&gt;</span> editor.chain().focus().setNode(<span class="hljs-string">"mathBlock"</span>).run()
+  }
+];
+
+<span class="hljs-keyword">const</span> SlashCommand = Extension.create({
+  name: <span class="hljs-string">"slash-command"</span>,
+  addProseMirrorPlugins() {
+    <span class="hljs-keyword">return</span> [
+      Suggestion({
+        editor: <span class="hljs-keyword">this</span>.editor,
+        char: <span class="hljs-string">"/"</span>,
+        items: <span class="hljs-function">(<span class="hljs-params">{ query }</span>) =&gt;</span>
+          COMMANDS.filter(<span class="hljs-function"><span class="hljs-params">item</span> =&gt;</span>
+            item.title.toLowerCase().startsWith(query.toLowerCase())
+          ),
+        command: <span class="hljs-function">(<span class="hljs-params">{ editor, range, props }</span>) =&gt;</span> {
+          props.command(editor);
+          editor.commands.deleteRange(range);
+        },
+        render: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> ({
+          onStart: <span class="hljs-function">(<span class="hljs-params">props</span>) =&gt;</span> { <span class="hljs-comment">/* tippy popup */</span> },
+          onUpdate: <span class="hljs-function">(<span class="hljs-params">props</span>) =&gt;</span> { <span class="hljs-comment">/* update popup */</span> },
+          onExit: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> { <span class="hljs-comment">/* destroy popup */</span> }
+        })
+      })
+    ];
+  }
+});
+</div></code></pre>
+<h3 id="75-paste-handling--sanitization">7.5 Paste Handling &amp; Sanitization</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Content sanitization for pasted HTML</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sanitizeAndNormalize</span>(<span class="hljs-params">html: <span class="hljs-built_in">string</span></span>) </span>{
+  <span class="hljs-comment">// 1. DOMPurify sanitization</span>
+  <span class="hljs-keyword">const</span> clean = DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: <span class="hljs-literal">true</span> },
+    ALLOWED_ATTR: [<span class="hljs-string">'href'</span>, <span class="hljs-string">'target'</span>, <span class="hljs-string">'rel'</span>, <span class="hljs-string">'class'</span>, <span class="hljs-string">'style'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'name'</span>]
+  });
+
+  <span class="hljs-keyword">const</span> doc = <span class="hljs-keyword">new</span> DOMParser().parseFromString(clean, <span class="hljs-string">'text/html'</span>);
+
+  <span class="hljs-comment">// 2. Convert inline styles to data tokens</span>
+  doc.querySelectorAll(<span class="hljs-string">'[style]'</span>).forEach(<span class="hljs-function"><span class="hljs-params">el</span> =&gt;</span> {
+    <span class="hljs-keyword">const</span> st = el.style;
+    
+    <span class="hljs-keyword">if</span> (st.color) {
+      el.setAttribute(<span class="hljs-string">'data-clr'</span>, colorToToken(st.color));
+      st.removeProperty(<span class="hljs-string">'color'</span>);
+    }
+    <span class="hljs-keyword">if</span> (st.fontSize) {
+      el.setAttribute(<span class="hljs-string">'data-fs'</span>, sizeToToken(st.fontSize));
+      st.removeProperty(<span class="hljs-string">'font-size'</span>);
+    }
+    <span class="hljs-comment">// ... weight, transform, etc.</span>
+  });
+
+  <span class="hljs-comment">// 3. Convert legacy &lt;a name="x"&gt; to id</span>
+  doc.querySelectorAll(<span class="hljs-string">'a[name]'</span>).forEach(<span class="hljs-function"><span class="hljs-params">a</span> =&gt;</span> {
+    <span class="hljs-keyword">if</span> (!a.id) a.id = a.getAttribute(<span class="hljs-string">'name'</span>);
+    a.removeAttribute(<span class="hljs-string">'name'</span>);
+  });
+
+  <span class="hljs-comment">// 4. Convert double empty paragraphs to section breaks</span>
+  <span class="hljs-keyword">const</span> ps = <span class="hljs-built_in">Array</span>.from(doc.querySelectorAll(<span class="hljs-string">'p'</span>));
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; ps.length - <span class="hljs-number">1</span>; i++) {
+    <span class="hljs-keyword">if</span> (isEmpty(ps[i]) &amp;&amp; isEmpty(ps[i+<span class="hljs-number">1</span>])) {
+      <span class="hljs-keyword">const</span> hr = doc.createElement(<span class="hljs-string">'hr'</span>);
+      hr.setAttribute(<span class="hljs-string">'data-section-break'</span>, <span class="hljs-string">'1'</span>);
+      ps[i].replaceWith(hr);
+      ps[i+<span class="hljs-number">1</span>].remove();
+    }
+  }
+
+  <span class="hljs-keyword">return</span> doc.body.innerHTML;
+}
+
+<span class="hljs-comment">// Editor configuration</span>
+<span class="hljs-keyword">const</span> editor = useEditor({
+  extensions,
+  editorProps: {
+    transformPastedHTML: <span class="hljs-function">(<span class="hljs-params">html</span>) =&gt;</span> sanitizeAndNormalize(html),
+    handlePaste: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-literal">false</span>  <span class="hljs-comment">// Use default insertion after transform</span>
+  }
+});
+</div></code></pre>
+<h3 id="76-toolbar-architecture">7.6 Toolbar Architecture</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// components/article/editor/Toolbar.tsx</span>
+
+<span class="hljs-keyword">const</span> Toolbar = <span class="hljs-function">(<span class="hljs-params">{ editor }: { editor: Editor | <span class="hljs-literal">null</span> }</span>) =&gt;</span> {
+  <span class="hljs-keyword">if</span> (!editor) <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+
+  <span class="hljs-comment">// Button helper</span>
+  <span class="hljs-keyword">const</span> btn = <span class="hljs-function">(<span class="hljs-params">icon, onClick, active = <span class="hljs-literal">false</span></span>) =&gt;</span> (
+    &lt;button
+      onClick={onClick}
+      className={<span class="hljs-string">`p-1.5 rounded <span class="hljs-subst">${active ? <span class="hljs-string">"bg-neutral-200"</span> : <span class="hljs-string">"hover:bg-neutral-100"</span>}</span>`</span>}
+    &gt;
+      {icon}
+    &lt;<span class="hljs-regexp">/button&gt;
+  );
+
+  return (
+    &lt;div className="toolbar"&gt;
+      {/</span>* Text Formatting *<span class="hljs-regexp">/}
+      {btn(&lt;Bold/</span>&gt;, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> editor.chain().focus().toggleBold().run(), 
+           editor.isActive(<span class="hljs-string">'bold'</span>))}
+      {btn(&lt;Italic/&gt;, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> editor.chain().focus().toggleItalic().run(),
+           editor.isActive(<span class="hljs-string">'italic'</span>))}
+      
+      {<span class="hljs-comment">/* Lists */</span>}
+      {btn(&lt;List/&gt;, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> editor.chain().focus().toggleBulletList().run(),
+           editor.isActive(<span class="hljs-string">'bulletList'</span>))}
+      {btn(&lt;ListOrdered/&gt;, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> editor.chain().focus().toggleOrderedList().run(),
+           editor.isActive(<span class="hljs-string">'orderedList'</span>))}
+      
+      {<span class="hljs-comment">/* Alignment */</span>}
+      {btn(&lt;AlignLeft/&gt;, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> editor.chain().focus().setTextAlign(<span class="hljs-string">'left'</span>).run())}
+      {btn(&lt;AlignCenter/&gt;, <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> editor.chain().focus().setTextAlign(<span class="hljs-string">'center'</span>).run())}
+      
+      {<span class="hljs-comment">/* Typography Dropdowns */</span>}
+      &lt;IconSelect 
+        title=<span class="hljs-string">"Font Family"</span> 
+        icon={&lt;Type/&gt;}
+        onChange={<span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> editor.chain().focus()
+          .setMark(<span class="hljs-string">'textStyle'</span>, { fontFamily: e.target.value }).run()}
+      &gt;
+        &lt;option value=<span class="hljs-string">"system"</span>&gt;System Sans&lt;<span class="hljs-regexp">/option&gt;
+        &lt;option value="founders"&gt;Founders&lt;/</span>option&gt;
+        &lt;option value=<span class="hljs-string">"bugrino"</span>&gt;Bugrino&lt;<span class="hljs-regexp">/option&gt;
+      &lt;/</span>IconSelect&gt;
+      
+      &lt;IconSelect 
+        title=<span class="hljs-string">"Font Size"</span> 
+        icon={&lt;ZoomIn/&gt;}
+        onChange={<span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> editor.chain().focus()
+          .setMark(<span class="hljs-string">'textStyle'</span>, { fontSize: e.target.value }).run()}
+      &gt;
+        {[<span class="hljs-string">"12"</span>, <span class="hljs-string">"14"</span>, <span class="hljs-string">"16"</span>, <span class="hljs-string">"18"</span>, <span class="hljs-string">"20"</span>, <span class="hljs-string">"24"</span>, <span class="hljs-string">"32"</span>, <span class="hljs-string">"48"</span>].map(<span class="hljs-function"><span class="hljs-params">s</span> =&gt;</span> (
+          &lt;option key={s} value={s}&gt;{s}px&lt;<span class="hljs-regexp">/option&gt;
+        ))}
+      &lt;/</span>IconSelect&gt;
+    &lt;<span class="hljs-regexp">/div&gt;
+  );
+};
+</span></div></code></pre>
+<hr>
+<h2 id="8-reader-system">8. Reader System</h2>
+<h3 id="81-server-side-rendering">8.1 Server-Side Rendering</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// app/article/(by-key)/[key]/page.tsx</span>
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ArticlePage</span>(<span class="hljs-params">{ params }: { params: { key: <span class="hljs-built_in">string</span> } }</span>) </span>{
+  <span class="hljs-comment">// 1. Fetch article (by UUID or slug)</span>
+  <span class="hljs-keyword">const</span> where = <span class="hljs-regexp">/^[0-9a-f-]{36}$/i</span>.test(params.key) 
+    ? { id: params.key } 
+    : { slug: params.key };
+  
+  <span class="hljs-keyword">const</span> article = <span class="hljs-keyword">await</span> prisma.article.findUnique({ where });
+  <span class="hljs-keyword">if</span> (!article) notFound();
+
+  <span class="hljs-comment">// 2. Get/create deliberation</span>
+  <span class="hljs-keyword">const</span> userId = <span class="hljs-keyword">await</span> getCurrentUserId().catch(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> <span class="hljs-literal">null</span>);
+  <span class="hljs-keyword">const</span> deliberationId = <span class="hljs-keyword">await</span> getOrCreateDeliberationId(
+    <span class="hljs-string">'article'</span>, article.id, article.roomId, userId ?? <span class="hljs-string">'system'</span>
+  );
+
+  <span class="hljs-comment">// 3. Fetch comment threads</span>
+  <span class="hljs-keyword">const</span> threads = <span class="hljs-keyword">await</span> prisma.commentThread.findMany({
+    where: { articleId: article.id },
+    include: { comments: { orderBy: { createdAt: <span class="hljs-string">"asc"</span> } } }
+  });
+
+  <span class="hljs-comment">// 4. Generate HTML from TipTap JSON</span>
+  <span class="hljs-keyword">const</span> lowlight = createLowlight();
+  lowlight.register(<span class="hljs-string">"js"</span>, javascript);
+  lowlight.register(<span class="hljs-string">"ts"</span>, typescript);
+  
+  <span class="hljs-keyword">const</span> html = generateHTML(article.astJson, [
+    ...tiptapSharedExtensions(),
+    CodeBlockLowlight.configure({ lowlight }),
+    TaskList, TaskItem,
+    CustomImage, PullQuote, Callout, MathBlock, MathInline,
+    Link, ParagraphKeepEmptySSR,
+    TextStyleTokens, BlockStyleTokens
+  ]);
+
+  <span class="hljs-comment">// 5. Render page</span>
+  <span class="hljs-keyword">return</span> (
+    &lt;&gt;
+      &lt;Link href={<span class="hljs-string">`/deliberation/<span class="hljs-subst">${deliberationId}</span>`</span>}&gt;
+        Discussion Page ↗
+      &lt;<span class="hljs-regexp">/Link&gt;
+      &lt;ArticleReaderWithPins
+        template={article.template}
+        heroSrc={article.heroImageKey}
+        html={html}
+        threads={threads}
+        articleSlug={params.key}
+        title={article.title}
+        deliberationId={deliberationId}
+      /</span>&gt;
+    &lt;<span class="hljs-regexp">/&gt;
+  );
+}
+</span></div></code></pre>
+<h3 id="82-template-system">8.2 Template System</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Article templates define visual layout</span>
+<span class="hljs-keyword">type</span> Template = <span class="hljs-string">"standard"</span> | <span class="hljs-string">"feature"</span> | <span class="hljs-string">"minimal"</span> | <span class="hljs-string">"magazine"</span>;
+
+<span class="hljs-comment">// ArticleReader component applies template class</span>
+<span class="hljs-keyword">const</span> ArticleReader = <span class="hljs-function">(<span class="hljs-params">{ template, heroSrc, title, children }</span>) =&gt;</span> (
+  &lt;article className={clsx(template, <span class="hljs-string">'w-full mx-auto'</span>)}&gt;
+    {title &amp;&amp; (
+      &lt;header className=<span class="hljs-string">"mb-4"</span>&gt;
+        &lt;h1 className=<span class="hljs-string">"text-4xl font-semibold text-center"</span>&gt;{title}&lt;<span class="hljs-regexp">/h1&gt;
+      &lt;/</span>header&gt;
+    )}
+    &lt;hr className=<span class="hljs-string">"border-slate-700/70"</span> /&gt;
+    {heroSrc &amp;&amp; (
+      &lt;img src={heroSrc} className=<span class="hljs-string">"mb-8 w-full rounded-lg object-cover"</span> /&gt;
+    )}
+    {children}
+  &lt;<span class="hljs-regexp">/article&gt;
+);
+</span></div></code></pre>
+<p><strong>Template CSS:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-comment">/* article.templates.css */</span>
+
+<span class="hljs-selector-class">.standard</span> {
+  <span class="hljs-attribute">max-width</span>: <span class="hljs-number">720px</span>;
+  <span class="hljs-attribute">padding</span>: <span class="hljs-number">0</span> <span class="hljs-number">1rem</span>;
+}
+
+<span class="hljs-selector-class">.feature</span> {
+  <span class="hljs-attribute">max-width</span>: <span class="hljs-number">960px</span>;
+}
+<span class="hljs-selector-class">.feature</span> <span class="hljs-selector-tag">h1</span> { <span class="hljs-attribute">font-size</span>: <span class="hljs-number">3rem</span>; }
+<span class="hljs-selector-class">.feature</span> <span class="hljs-selector-class">.hero</span> { <span class="hljs-attribute">height</span>: <span class="hljs-number">60vh</span>; <span class="hljs-attribute">object-fit</span>: cover; }
+
+<span class="hljs-selector-class">.magazine</span> {
+  <span class="hljs-attribute">max-width</span>: <span class="hljs-number">1200px</span>;
+  <span class="hljs-attribute">display</span>: grid;
+  <span class="hljs-attribute">grid-template-columns</span>: <span class="hljs-number">1</span>fr <span class="hljs-number">2</span>fr;
+}
+
+<span class="hljs-selector-class">.minimal</span> {
+  <span class="hljs-attribute">max-width</span>: <span class="hljs-number">600px</span>;
+  <span class="hljs-attribute">font-family</span>: <span class="hljs-built_in">var</span>(--ff-serif);
+}
+</div></code></pre>
+<h3 id="83-section-collapse-system">8.3 Section Collapse System</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/article/wrapSections.ts</span>
+<span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">wrapSections</span>(<span class="hljs-params">html: <span class="hljs-built_in">string</span></span>) </span>{
+  <span class="hljs-keyword">const</span> { <span class="hljs-built_in">document</span> } = parseHTML(<span class="hljs-string">`&lt;div id="x"&gt;<span class="hljs-subst">${html}</span>&lt;/div&gt;`</span>);
+  <span class="hljs-keyword">const</span> root = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'x'</span>);
+
+  <span class="hljs-comment">// Split content at section breaks</span>
+  <span class="hljs-keyword">const</span> kids = <span class="hljs-built_in">Array</span>.from(root.childNodes);
+  <span class="hljs-keyword">const</span> sections: Node[][] = [];
+  <span class="hljs-keyword">let</span> bucket: Node[] = [];
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> n of kids) {
+    <span class="hljs-keyword">if</span> (isSectionBreak(n)) {
+      <span class="hljs-keyword">if</span> (bucket.length) sections.push(bucket);
+      bucket = [];
+    } <span class="hljs-keyword">else</span> {
+      bucket.push(n);
+    }
+  }
+  <span class="hljs-keyword">if</span> (bucket.length) sections.push(bucket);
+
+  <span class="hljs-comment">// Wrap each section in &lt;details&gt;</span>
+  sections.forEach(<span class="hljs-function">(<span class="hljs-params">nodes, idx</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> details = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">'details'</span>);
+    details.className = <span class="hljs-string">'article-section'</span>;
+    details.setAttribute(<span class="hljs-string">'data-section-index'</span>, <span class="hljs-built_in">String</span>(idx));
+
+    <span class="hljs-keyword">const</span> summary = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">'summary'</span>);
+    summary.className = <span class="hljs-string">'article-section-summary'</span>;
+    summary.textContent = extractSummary(nodes);
+
+    details.appendChild(summary);
+    nodes.forEach(<span class="hljs-function"><span class="hljs-params">n</span> =&gt;</span> details.appendChild(n));
+    root.appendChild(details);
+  });
+
+  <span class="hljs-keyword">return</span> root.innerHTML;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isSectionBreak</span>(<span class="hljs-params">node</span>) </span>{
+  <span class="hljs-keyword">return</span> node?.matches?.(<span class="hljs-string">'hr[data-section-break]'</span>);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">extractSummary</span>(<span class="hljs-params">nodes</span>) </span>{
+  <span class="hljs-comment">// Use first heading or first paragraph text</span>
+  <span class="hljs-keyword">const</span> heading = nodes.find(<span class="hljs-function"><span class="hljs-params">n</span> =&gt;</span> /^H[<span class="hljs-number">1</span><span class="hljs-number">-4</span>]$/.test(n.tagName));
+  <span class="hljs-keyword">if</span> (heading) <span class="hljs-keyword">return</span> heading.textContent.trim().slice(<span class="hljs-number">0</span>, <span class="hljs-number">140</span>);
+  
+  <span class="hljs-keyword">const</span> p = nodes.find(<span class="hljs-function"><span class="hljs-params">n</span> =&gt;</span> n.tagName === <span class="hljs-string">'P'</span>);
+  <span class="hljs-keyword">return</span> (p?.textContent || <span class="hljs-string">'Section'</span>).trim().slice(<span class="hljs-number">0</span>, <span class="hljs-number">140</span>);
+}
+</div></code></pre>
+<hr>
+<h2 id="9-annotation-system">9. Annotation System</h2>
+<h3 id="91-anchor-data-structure">9.1 Anchor Data Structure</h3>
+<p>The anchor system uses DOM path-based addressing for stable text references:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> Anchor {
+  startPath: <span class="hljs-built_in">number</span>[];   <span class="hljs-comment">// [0, 2, 0] = root → 1st child → 3rd child → 1st child</span>
+  startOffset: <span class="hljs-built_in">number</span>;   <span class="hljs-comment">// Character position within text node</span>
+  endPath: <span class="hljs-built_in">number</span>[];     
+  endOffset: <span class="hljs-built_in">number</span>;
+}
+</div></code></pre>
+<p><strong>Example:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-tag">&lt;<span class="hljs-name">article</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"root"</span>&gt;</span>         <span class="hljs-comment">&lt;!-- path: [] --&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>                       <span class="hljs-comment">&lt;!-- path: [0] --&gt;</span>
+    Hello                   <span class="hljs-comment">&lt;!-- path: [0, 0] (text node) --&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">strong</span>&gt;</span>world<span class="hljs-tag">&lt;/<span class="hljs-name">strong</span>&gt;</span>  <span class="hljs-comment">&lt;!-- path: [0, 1] --&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">article</span>&gt;</span>
+</div></code></pre>
+<p>Selecting &quot;world&quot; would produce:</p>
+<pre class="hljs"><code><div>{
+  startPath: [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>],   <span class="hljs-comment">// p → strong → text</span>
+  startOffset: <span class="hljs-number">0</span>,
+  endPath: [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>],
+  endOffset: <span class="hljs-number">5</span>
+}
+</div></code></pre>
+<h3 id="92-building-anchors-from-selection">9.2 Building Anchors from Selection</h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildAnchorFromSelection</span>(<span class="hljs-params">
+  root: HTMLElement,
+  sel: Selection
+</span>): </span>{ anchor: Anchor; rect: DOMRect } | <span class="hljs-literal">null</span> {
+  <span class="hljs-keyword">if</span> (!sel.rangeCount) <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+  
+  <span class="hljs-keyword">const</span> range = sel.getRangeAt(<span class="hljs-number">0</span>);
+  <span class="hljs-keyword">if</span> (range.collapsed) <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+
+  <span class="hljs-comment">// Normalize to text nodes (selection might be on element boundaries)</span>
+  <span class="hljs-keyword">const</span> norm = normalizeRangeToTextNodes(root, range);
+  <span class="hljs-keyword">if</span> (!norm) <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+
+  <span class="hljs-keyword">const</span> { start, startOffset, end, endOffset } = norm;
+  
+  <span class="hljs-comment">// Compute paths from root to each text node</span>
+  <span class="hljs-keyword">const</span> startPath = nodePathFromRoot(root, start);
+  <span class="hljs-keyword">const</span> endPath = nodePathFromRoot(root, end);
+
+  <span class="hljs-comment">// Get visual rect for positioning</span>
+  <span class="hljs-keyword">const</span> rect = range.getBoundingClientRect();
+  <span class="hljs-keyword">const</span> base = root.getBoundingClientRect();
+  <span class="hljs-keyword">const</span> localRect = <span class="hljs-keyword">new</span> DOMRect(
+    rect.left - base.left,
+    rect.top - base.top,
+    rect.width,
+    rect.height
+  );
+
+  <span class="hljs-keyword">return</span> {
+    anchor: { startPath, startOffset, endPath, endOffset },
+    rect: localRect
+  };
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">nodePathFromRoot</span>(<span class="hljs-params">root: Node, target: Node</span>): <span class="hljs-title">number</span>[] </span>{
+  <span class="hljs-keyword">const</span> path: <span class="hljs-built_in">number</span>[] = [];
+  <span class="hljs-keyword">let</span> n: Node | <span class="hljs-literal">null</span> = target;
+  
+  <span class="hljs-keyword">while</span> (n &amp;&amp; n !== root) {
+    <span class="hljs-keyword">const</span> parent = n.parentNode;
+    <span class="hljs-keyword">if</span> (!parent) <span class="hljs-keyword">break</span>;
+    
+    <span class="hljs-keyword">const</span> idx = <span class="hljs-built_in">Array</span>.prototype.indexOf.call(parent.childNodes, n);
+    path.unshift(idx);
+    n = parent;
+  }
+  
+  <span class="hljs-keyword">return</span> path;
+}
+</div></code></pre>
+<h3 id="93-resolving-anchors-to-dom">9.3 Resolving Anchors to DOM</h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getAnchorRects</span>(<span class="hljs-params">anchor: Anchor, root: HTMLElement</span>): <span class="hljs-title">DOMRect</span>[] </span>{
+  <span class="hljs-comment">// Walk paths to find start node</span>
+  <span class="hljs-keyword">let</span> startNode: Node | <span class="hljs-literal">null</span> = root;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> idx of anchor.startPath) {
+    startNode = startNode?.childNodes[idx] ?? <span class="hljs-literal">null</span>;
+  }
+  
+  <span class="hljs-comment">// Walk paths to find end node</span>
+  <span class="hljs-keyword">let</span> endNode: Node | <span class="hljs-literal">null</span> = root;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> idx of anchor.endPath) {
+    endNode = endNode?.childNodes[idx] ?? <span class="hljs-literal">null</span>;
+  }
+  
+  <span class="hljs-keyword">if</span> (!startNode || !endNode) <span class="hljs-keyword">return</span> [];
+
+  <span class="hljs-comment">// Ensure we have text nodes</span>
+  <span class="hljs-keyword">const</span> start = startNode.nodeType === Node.TEXT_NODE 
+    ? startNode <span class="hljs-keyword">as</span> Text 
+    : firstTextNodeWithin(startNode);
+  <span class="hljs-keyword">const</span> end = endNode.nodeType === Node.TEXT_NODE
+    ? endNode <span class="hljs-keyword">as</span> Text
+    : firstTextNodeWithin(endNode, <span class="hljs-string">'backward'</span>);
+    
+  <span class="hljs-keyword">if</span> (!start || !end) <span class="hljs-keyword">return</span> [];
+
+  <span class="hljs-comment">// Create range and get rects</span>
+  <span class="hljs-keyword">const</span> range = <span class="hljs-built_in">document</span>.createRange();
+  range.setStart(start, anchor.startOffset);
+  range.setEnd(end, anchor.endOffset);
+
+  <span class="hljs-keyword">const</span> base = root.getBoundingClientRect();
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">Array</span>.from(range.getClientRects()).map(<span class="hljs-function"><span class="hljs-params">rect</span> =&gt;</span>
+    <span class="hljs-keyword">new</span> DOMRect(
+      rect.left - base.left,
+      rect.top - base.top,
+      rect.width,
+      rect.height
+    )
+  );
+}
+</div></code></pre>
+<h3 id="94-visual-components">9.4 Visual Components</h3>
+<h4 id="pin-layer-left-gutter">Pin Layer (Left Gutter)</h4>
+<pre class="hljs"><code><div>&lt;div className=&quot;absolute inset-y-0 left-[-40px] w-4&quot;&gt;
+  {clusters.map((cluster, i) =&gt; {
+    if (cluster.items.length &gt; 3 &amp;&amp; !expanded) {
+      // Collapsed cluster badge
+      return (
+        &lt;div style={{ top: cluster.top }}&gt;
+          &lt;button onClick={() =&gt; expand(cluster)}&gt;
+            {cluster.items.length}
+          &lt;/button&gt;
+        &lt;/div&gt;
+      );
+    }
+    
+    // Individual pins with collision avoidance
+    const positions = solveCollisions(cluster.items.map(id =&gt; ({
+      id,
+      top: positions[id]?.top ?? 0
+    })));
+    
+    return positions.map(pos =&gt; (
+      &lt;button
+        style={{ top: pos.top }}
+        onClick={() =&gt; scrollToThread(threads.find(t =&gt; t.id === pos.id))}
+        className={activeId === pos.id ? &quot;active&quot; : &quot;&quot;}
+      /&gt;
+    ));
+  })}
+&lt;/div&gt;
+</div></code></pre>
+<h4 id="comment-rail-right-side">Comment Rail (Right Side)</h4>
+<pre class="hljs"><code><div>&lt;div className=&quot;absolute right-0 w-[320px]&quot; style={{ height: railHeight }}&gt;
+  {threads.map(thread =&gt; {
+    const pos = positions[thread.id];
+    return (
+      &lt;button
+        style={{ top: pos?.top ?? 0 }}
+        onClick={() =&gt; {
+          setActiveThread(thread);
+          scrollToThread(thread);
+        }}
+        className={clsx(
+          &quot;absolute right-0 w-[170px] text-left px-2 py-1 rounded-md&quot;,
+          openId === thread.id &amp;&amp; &quot;ring-2 ring-indigo-400&quot;
+        )}
+      &gt;
+        {thread.comments[0]?.body.slice(0, 60)}
+      &lt;/button&gt;
+    );
+  })}
+&lt;/div&gt;
+</div></code></pre>
+<h4 id="selection-adder-bubble">Selection Adder Bubble</h4>
+<pre class="hljs"><code><div>{adder &amp;&amp; (
+  &lt;button
+    className=&quot;absolute z-30 bg-indigo-300 rounded-xl p-1.5&quot;
+    style={{
+      top: adder.rect.top + 6,
+      left: adder.rect.left + adder.rect.width / 2 - 12
+    }}
+    onMouseDown={(e) =&gt; e.preventDefault()}  // Keep selection
+    onClick={() =&gt; {
+      setBubble({
+        anchor: adder.anchor,
+        rect: adder.rect,
+        text: window.getSelection()?.toString().slice(0, 280) ?? &quot;&quot;
+      });
+      setAdder(null);
+    }}
+  &gt;
+    &lt;CommentIcon /&gt;
+  &lt;/button&gt;
+)}
+</div></code></pre>
+<h4 id="comment-composer">Comment Composer</h4>
+<pre class="hljs"><code><div>{bubble &amp;&amp; (
+  &lt;div
+    className=&quot;absolute z-30 w-80 bg-slate-100/30 backdrop-blur rounded-xl border-2&quot;
+    style={{
+      top: bubble.rect.top - 56,
+      left: bubble.rect.left + 100
+    }}
+  &gt;
+    &lt;div className=&quot;p-3 border-b text-xs text-neutral-600&quot;&gt;
+      {bubble.text}
+    &lt;/div&gt;
+    &lt;div className=&quot;p-2 space-y-2&quot;&gt;
+      &lt;textarea
+        value={draftBody}
+        onChange={(e) =&gt; setDraftBody(e.target.value)}
+        placeholder=&quot;Add a comment…&quot;
+        rows={3}
+      /&gt;
+      &lt;div className=&quot;flex justify-end gap-4&quot;&gt;
+        &lt;button onClick={() =&gt; setBubble(null)}&gt;Cancel&lt;/button&gt;
+        &lt;button onClick={createThread}&gt;Comment&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+)}
+</div></code></pre>
+<h3 id="95-collision-avoidance">9.5 Collision Avoidance</h3>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> PinPos = { id: <span class="hljs-built_in">string</span>; top: <span class="hljs-built_in">number</span>; left: <span class="hljs-built_in">number</span> };
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">solveCollisions</span>(<span class="hljs-params">items: PinPos[], minGap = 18</span>): <span class="hljs-title">PinPos</span>[] </span>{
+  <span class="hljs-comment">// Sort by vertical position</span>
+  <span class="hljs-keyword">const</span> sorted = [...items].sort(<span class="hljs-function">(<span class="hljs-params">a, b</span>) =&gt;</span> a.top - b.top);
+  
+  <span class="hljs-comment">// Push down overlapping items</span>
+  <span class="hljs-keyword">let</span> lastBottom = -<span class="hljs-literal">Infinity</span>;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> pin of sorted) {
+    <span class="hljs-keyword">if</span> (pin.top &lt; lastBottom + minGap) {
+      pin.top = lastBottom + minGap;
+    }
+    lastBottom = pin.top;
+  }
+  
+  <span class="hljs-keyword">return</span> sorted;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">clusterByTop</span>(<span class="hljs-params">
+  positions: Record&lt;<span class="hljs-built_in">string</span>, DOMRect | <span class="hljs-literal">undefined</span>&gt;,
+  threshold = 40
+</span>): <span class="hljs-title">Cluster</span>[] </span>{
+  <span class="hljs-keyword">const</span> entries = <span class="hljs-built_in">Object</span>.entries(positions)
+    .filter(<span class="hljs-function">(<span class="hljs-params">[, r]</span>) =&gt;</span> r)
+    .map(<span class="hljs-function">(<span class="hljs-params">[id, r]</span>) =&gt;</span> ({ id, top: r!.top }))
+    .sort(<span class="hljs-function">(<span class="hljs-params">a, b</span>) =&gt;</span> a.top - b.top);
+
+  <span class="hljs-keyword">const</span> clusters: Cluster[] = [];
+  
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> entry of entries) {
+    <span class="hljs-keyword">const</span> last = clusters[clusters.length - <span class="hljs-number">1</span>];
+    
+    <span class="hljs-keyword">if</span> (!last || <span class="hljs-built_in">Math</span>.abs(entry.top - last.top) &gt; threshold) {
+      <span class="hljs-comment">// New cluster</span>
+      clusters.push({ top: entry.top, items: [entry.id] });
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-comment">// Add to existing cluster</span>
+      last.items.push(entry.id);
+      <span class="hljs-comment">// Adjust centroid</span>
+      last.top = (last.top * (last.items.length - <span class="hljs-number">1</span>) + entry.top) / last.items.length;
+    }
+  }
+  
+  <span class="hljs-keyword">return</span> clusters;
+}
+</div></code></pre>
+<hr>
+<h2 id="10-social-feed-integration">10. Social Feed Integration</h2>
+<p>The article system integrates with Mesh's social-media-style feed to create a Substack/Bluesky discovery experience. When articles are published, they appear as discoverable posts in the home feed.</p>
+<h3 id="101-feed-integration-architecture">10.1 Feed Integration Architecture</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────────┐
+│                      ARTICLE → SOCIAL FEED PIPELINE                              │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌────────────────┐                                                             │
+│  │  Article       │                                                             │
+│  │  (Published)   │                                                             │
+│  └───────┬────────┘                                                             │
+│          │                                                                       │
+│          │ POST /api/articles/[id]/publish                                      │
+│          │                                                                       │
+│          ▼                                                                       │
+│  ┌────────────────────────────────────────────────────────────────────────┐    │
+│  │                        PUBLISH ROUTE                                    │    │
+│  │                                                                         │    │
+│  │  1. Update article (status=PUBLISHED)                                  │    │
+│  │  2. Create revision snapshot                                           │    │
+│  │  3. createFeedPost({ type: ARTICLE, content: ArticlePayload })  ──────┼────┤
+│  └────────────────────────────────────────────────────────────────────────┘    │
+│                                                                     │           │
+│                                                                     ▼           │
+│                                                    ┌─────────────────────┐     │
+│                                                    │     FeedPost        │     │
+│                                                    │                     │     │
+│                                                    │  type: ARTICLE      │     │
+│                                                    │  content: JSON      │     │
+│                                                    │  articleId: FK      │     │
+│                                                    │  author_id          │     │
+│                                                    └──────────┬──────────┘     │
+│                                                               │                 │
+│  ┌───────────────────────────────────────────────────────────┼────────────────┐│
+│  │                          HOME FEED                         │                ││
+│  │                                                            ▼                ││
+│  │  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────────┐    ││
+│  │  │  PostCard   │    │  PostCard   │    │  PostCard (type=ARTICLE)    │    ││
+│  │  │  (TEXT)     │    │  (IMAGE)    │    │                             │    ││
+│  │  │             │    │             │    │  ┌───────────────────────┐  │    ││
+│  │  │             │    │             │    │  │    ArticleCard        │  │    ││
+│  │  │             │    │             │    │  │                       │  │    ││
+│  │  │             │    │             │    │  │  • Hero Image         │  │    ││
+│  │  │             │    │             │    │  │  • Title              │  │    ││
+│  │  │             │    │             │    │  │  • Excerpt            │  │    ││
+│  │  │             │    │             │    │  │  • Preview Modal      │  │    ││
+│  │  │             │    │             │    │  │  • Read Link          │  │    ││
+│  │  │             │    │             │    │  └───────────────────────┘  │    ││
+│  │  └─────────────┘    └─────────────┘    └─────────────────────────────┘    ││
+│  └────────────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="102-article-feed-payload">10.2 Article Feed Payload</h3>
+<p>When an article is published, a structured JSON payload is created:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Payload stored in FeedPost.content for ARTICLE type</span>
+<span class="hljs-keyword">interface</span> ArticleFeedPayload {
+  kind: <span class="hljs-string">'article'</span>;              <span class="hljs-comment">// Type discriminator</span>
+  articleId: <span class="hljs-built_in">string</span>;            <span class="hljs-comment">// Article UUID</span>
+  slug: <span class="hljs-built_in">string</span>;                 <span class="hljs-comment">// URL-friendly identifier</span>
+  title: <span class="hljs-built_in">string</span>;                <span class="hljs-comment">// Article title</span>
+  heroImageKey: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;  <span class="hljs-comment">// S3 key for hero image</span>
+  excerpt: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;       <span class="hljs-comment">// First ~1200 chars</span>
+  readingTime: <span class="hljs-built_in">number</span> | <span class="hljs-literal">null</span>;   <span class="hljs-comment">// Estimated minutes</span>
+}
+
+<span class="hljs-comment">// Created in publish route</span>
+<span class="hljs-keyword">const</span> payload: ArticleFeedPayload = {
+  kind: <span class="hljs-string">'article'</span>,
+  articleId: updated.id,
+  slug: updated.slug,
+  title: updated.title,
+  heroImageKey: updated.heroImageKey ?? <span class="hljs-literal">null</span>,
+  excerpt: updated.excerpt ?? <span class="hljs-literal">null</span>,
+  readingTime: updated.readingTime ?? <span class="hljs-literal">null</span>
+};
+
+<span class="hljs-comment">// Stored via createFeedPost</span>
+<span class="hljs-keyword">await</span> createFeedPost({
+  postType: feed_post_type.ARTICLE,
+  caption: updated.title ?? <span class="hljs-string">'Untitled'</span>,
+  imageUrl: updated.heroImageKey ?? <span class="hljs-literal">undefined</span>,
+  content: <span class="hljs-built_in">JSON</span>.stringify(payload),
+  articleId: updated.id,
+});
+</div></code></pre>
+<h3 id="103-home-page-component">10.3 Home Page Component</h3>
+<p><strong>Location:</strong> <code>app/(root)/(standard)/page.tsx</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">Home</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-comment">// Fetch feed posts (includes articles)</span>
+  <span class="hljs-keyword">const</span> posts = <span class="hljs-keyword">await</span> fetchFeedPosts();
+  <span class="hljs-keyword">const</span> user = <span class="hljs-keyword">await</span> getUserFromCookies();
+  <span class="hljs-keyword">if</span> (!user) redirect(<span class="hljs-string">"/login"</span>);
+
+  <span class="hljs-keyword">return</span> (
+    &lt;div&gt;
+      &lt;Modal /&gt;
+      {posts.length === <span class="hljs-number">0</span> ? (
+        &lt;p className=<span class="hljs-string">"no-result"</span>&gt;Nothing found&lt;<span class="hljs-regexp">/p&gt;
+      ) : (
+        &lt;RealtimeFeed
+          initialPosts={posts}
+          initialIsNext={false}
+          roomId="global"
+          postTypes={[]}
+          currentUserId={user.userId}
+          animated={false}
+        /</span>&gt;
+      )}
+    &lt;<span class="hljs-regexp">/div&gt;
+  );
+}
+</span></div></code></pre>
+<h3 id="104-realtimefeed-component">10.4 RealtimeFeed Component</h3>
+<p><strong>Location:</strong> <code>components/shared/RealtimeFeed.tsx</code></p>
+<p>The RealtimeFeed handles infinite scroll loading and renders posts using PostCard:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> Props {
+  initialPosts: <span class="hljs-built_in">any</span>[];
+  initialIsNext: <span class="hljs-built_in">boolean</span>;
+  roomId?: <span class="hljs-built_in">string</span>;
+  postTypes?: realtime_post_type[];
+  currentUserId?: bigint;
+  animated?: <span class="hljs-built_in">boolean</span>;
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">RealtimeFeed</span>(<span class="hljs-params">{
+  initialPosts,
+  roomId,
+  postTypes,
+  currentUserId,
+  animated = <span class="hljs-literal">false</span>,
+}: Props</span>) </span>{
+  <span class="hljs-comment">// Configure fetch function based on room/type</span>
+  <span class="hljs-keyword">const</span> fetchPage = useMemo(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    <span class="hljs-keyword">if</span> (roomId &amp;&amp; postTypes &amp;&amp; postTypes.length &gt; <span class="hljs-number">0</span>) {
+      <span class="hljs-comment">// Room-specific realtime posts</span>
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">async</span> (page: <span class="hljs-built_in">number</span>) =&gt; {
+        <span class="hljs-keyword">const</span> params = <span class="hljs-keyword">new</span> URLSearchParams({
+          roomId,
+          page: page.toString(),
+          types: postTypes.join(<span class="hljs-string">","</span>),
+        });
+        <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">await</span> fetch(<span class="hljs-string">`/api/realtime-posts?<span class="hljs-subst">${params.toString()}</span>`</span>);
+        <span class="hljs-keyword">return</span> res.json();
+      };
+    }
+    <span class="hljs-comment">// Global feed (includes articles)</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">async</span> (_page: <span class="hljs-built_in">number</span>) =&gt; {
+      <span class="hljs-keyword">const</span> res = <span class="hljs-keyword">await</span> fetch(<span class="hljs-string">`/api/feed`</span>);
+      <span class="hljs-keyword">return</span> { posts: <span class="hljs-keyword">await</span> res.json(), isNext: <span class="hljs-literal">false</span> };
+    };
+  }, [roomId, postTypes]);
+
+  <span class="hljs-comment">// Infinite scroll hook</span>
+  <span class="hljs-keyword">const</span> { posts, loaderRef, loading } = useInfiniteRealtimePosts(
+    fetchPage, initialPosts, initialIsNext
+  );
+
+  <span class="hljs-comment">// Map database rows to UI props</span>
+  <span class="hljs-keyword">const</span> isRealtime = <span class="hljs-built_in">Boolean</span>(roomId &amp;&amp; postTypes?.length);
+  <span class="hljs-keyword">const</span> isFeed = roomId === <span class="hljs-string">"global"</span> &amp;&amp; (!postTypes || postTypes.length === <span class="hljs-number">0</span>);
+  <span class="hljs-keyword">const</span> mapper = isRealtime ? mapRealtimePost : mapFeedPost;
+
+  <span class="hljs-keyword">return</span> (
+    &lt;section className=<span class="hljs-string">"flex flex-col gap-8"</span>&gt;
+      {posts.map(<span class="hljs-function">(<span class="hljs-params">post</span>) =&gt;</span> {
+        <span class="hljs-keyword">const</span> mapped = mapper(post);
+        <span class="hljs-keyword">return</span> (
+          &lt;PostCard
+            key={post.id.toString()}
+            {...mapped}
+            currentUserId={currentUserId}
+            isRealtimePost={isRealtime}
+            isFeedPost={isFeed}
+          /&gt;
+        );
+      })}
+      &lt;div ref={loaderRef} className=<span class="hljs-string">"h-1"</span> /&gt;
+      {loading &amp;&amp; &lt;Spinner /&gt;}
+    &lt;<span class="hljs-regexp">/section&gt;
+  );
+}
+</span></div></code></pre>
+<h3 id="105-postcard-article-rendering">10.5 PostCard Article Rendering</h3>
+<p><strong>Location:</strong> <code>components/cards/PostCard.tsx</code></p>
+<p>PostCard is a polymorphic component that renders different post types. For articles:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Type guard for article payload</span>
+<span class="hljs-keyword">type</span> ArticleFeedPayload = {
+  kind: <span class="hljs-string">'article'</span>;
+  slug: <span class="hljs-built_in">string</span>;
+  title?: <span class="hljs-built_in">string</span>;
+  heroImageKey?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  excerpt?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  readingTime?: <span class="hljs-built_in">number</span> | <span class="hljs-literal">null</span>;
+  articleId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+};
+
+<span class="hljs-keyword">const</span> isArticleMeta = (v: <span class="hljs-built_in">any</span>): v is ArticleFeedPayload =&gt;
+  v &amp;&amp; <span class="hljs-keyword">typeof</span> v === <span class="hljs-string">'object'</span> &amp;&amp; v.kind === <span class="hljs-string">'article'</span> &amp;&amp; <span class="hljs-keyword">typeof</span> v.slug === <span class="hljs-string">'string'</span>;
+
+<span class="hljs-comment">// In PostCard component</span>
+{<span class="hljs-keyword">type</span> === <span class="hljs-string">"ARTICLE"</span> &amp;&amp; <span class="hljs-function">(<span class="hljs-params">(<span class="hljs-params"></span>) =&gt; {
+  <span class="hljs-keyword">const</span> meta = parseJson&lt;<span class="hljs-built_in">any</span>&gt;(<span class="hljs-params">content</span>);
+
+  <span class="hljs-comment">// New structured payload</span>
+  <span class="hljs-keyword">if</span> (<span class="hljs-params">isArticleMeta(<span class="hljs-params">meta</span>)</span>) {
+    <span class="hljs-keyword">return</span> (<span class="hljs-params">
+      &lt;div className="w-full flex px-8 flex-1 justify-center items-center"&gt;
+        &lt;ArticleCard
+          postId={id}
+          meta={{
+            articleId: meta.articleId ?? <span class="hljs-literal">null</span>,
+            slug: meta.slug,
+            title: meta.title ?? "Untitled",
+            heroImageKey: meta.heroImageKey ?? <span class="hljs-literal">null</span>,
+            excerpt: meta.excerpt ?? <span class="hljs-literal">null</span>,
+            readingTime: meta.readingTime ?? <span class="hljs-literal">null</span>,
+          }}
+        /&gt;
+      &lt;/div&gt;
+    </span>);
+  }
+
+  <span class="hljs-comment">// Legacy fallback: content === "/article/slug"</span>
+  <span class="hljs-keyword">if</span> (<span class="hljs-params"><span class="hljs-keyword">typeof</span> content === '<span class="hljs-built_in">string</span>' &amp;&amp; content.startsWith(<span class="hljs-params">'/article/'</span>)</span>) {
+    <span class="hljs-keyword">return</span> (<span class="hljs-params">
+      &lt;Link href={content}&gt;
+        &lt;button className="px-2 py-1 border rounded text-sm"&gt;View article&lt;/button&gt;
+      &lt;/Link&gt;
+    </span>);
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+}</span>)<span class="hljs-params">()</span>}
+</span></div></code></pre>
+<h3 id="106-articlecard-component">10.6 ArticleCard Component</h3>
+<p><strong>Location:</strong> <code>components/article/ArticleCard.tsx</code></p>
+<p>A rich card display for articles in the feed:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">type</span> ArticleMeta = {
+  articleId?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  slug: <span class="hljs-built_in">string</span>;
+  title: <span class="hljs-built_in">string</span>;
+  heroImageKey?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  excerpt?: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>;
+  readingTime?: <span class="hljs-built_in">number</span> | <span class="hljs-literal">null</span>;
+};
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ArticleCard</span>(<span class="hljs-params">{ 
+  meta, 
+  postId 
+}: { 
+  meta: ArticleMeta; 
+  postId: bigint;
+}</span>) </span>{
+  <span class="hljs-keyword">const</span> href = <span class="hljs-string">`/article/<span class="hljs-subst">${meta.slug}</span>`</span>;
+
+  <span class="hljs-keyword">return</span> (
+    &lt;div className=<span class="hljs-string">"flex flex-1 w-[500px] h-[500px] shadow-xl rounded-xl border border-amber-400"</span>&gt;
+      &lt;div className=<span class="hljs-string">"rounded-xl flex-1 border bg-white/70 overflow-y-auto w-full h-full"</span>&gt;
+        
+        {<span class="hljs-comment">/* Hero Image */</span>}
+        {meta.heroImageKey &amp;&amp; (
+          &lt;div className=<span class="hljs-string">"relative w-full"</span>&gt;
+            &lt;Image
+              src={meta.heroImageKey}
+              alt=<span class="hljs-string">""</span>
+              fill
+              className=<span class="hljs-string">"object-cover"</span>
+              sizes=<span class="hljs-string">"(max-width: 768px) 100vw, 50vw"</span>
+            /&gt;
+          &lt;<span class="hljs-regexp">/div&gt;
+        )}
+        
+        &lt;div className="py-4 px-5"&gt;
+          &lt;div className="flex"&gt;
+            {/</span>* Title <span class="hljs-keyword">with</span> link *<span class="hljs-regexp">/}
+            &lt;Link href={href} className="block"&gt;
+              &lt;h3 className="text-[1.32rem] tracking-wider font-semibold leading-snug line-clamp-2"&gt;
+                {meta.title}
+              &lt;/</span>h3&gt;
+            &lt;<span class="hljs-regexp">/Link&gt;
+            
+            {/</span>* Action buttons *<span class="hljs-regexp">/}
+            &lt;div className="flex w-full mb-2 justify-end items-end gap-2"&gt;
+              {/</span>* Preview Modal *<span class="hljs-regexp">/}
+              &lt;Dialog&gt;
+                &lt;DialogTrigger asChild&gt;
+                  &lt;button className="px-1 py-0 text-slate-600 border rounded text-[.7rem]"&gt;
+                    Preview
+                  &lt;/</span>button&gt;
+                &lt;<span class="hljs-regexp">/DialogTrigger&gt;
+                &lt;ArticlePostModal slug={meta.slug} /</span>&gt;
+              &lt;<span class="hljs-regexp">/Dialog&gt;
+              
+              {/</span>* Read Link *<span class="hljs-regexp">/}
+              &lt;Link href={href} className="px-1 py-0 border rounded text-[.7rem]"&gt;
+                Read
+              &lt;/</span>Link&gt;
+            &lt;<span class="hljs-regexp">/div&gt;
+          &lt;/</span>div&gt;
+          
+          &lt;hr /&gt;
+          
+          {<span class="hljs-comment">/* Excerpt */</span>}
+          {meta.excerpt &amp;&amp; (
+            &lt;p className=<span class="hljs-string">"mt-2 text-[.9rem] text-neutral-800 line-clamp-10"</span>&gt;
+              {meta.excerpt}
+            &lt;<span class="hljs-regexp">/p&gt;
+          )}
+        &lt;/</span>div&gt;
+      &lt;<span class="hljs-regexp">/div&gt;
+    &lt;/</span>div&gt;
+  );
+}
+</div></code></pre>
+<h3 id="107-feed-fetching">10.7 Feed Fetching</h3>
+<p><strong>Location:</strong> <code>lib/actions/feed.actions.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">fetchFeedPosts</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-comment">// Clean up expired posts</span>
+  <span class="hljs-keyword">await</span> archiveExpiredFeedPosts();
+
+  <span class="hljs-keyword">const</span> user = <span class="hljs-keyword">await</span> getUserFromCookies();
+  <span class="hljs-keyword">const</span> currentUserId = user?.userId ? BigInt(user.userId) : <span class="hljs-literal">null</span>;
+
+  <span class="hljs-keyword">const</span> rows = <span class="hljs-keyword">await</span> prisma.feedPost.findMany({
+    where: {
+      isPublic: <span class="hljs-literal">true</span>,
+      parent_id: <span class="hljs-literal">null</span>,  <span class="hljs-comment">// Top-level posts only</span>
+      OR: [
+        { expiration_date: <span class="hljs-literal">null</span> },
+        { expiration_date: { gt: <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>() } },
+      ],
+    },
+    orderBy: { created_at: <span class="hljs-string">"desc"</span> },
+    select: {
+      id: <span class="hljs-literal">true</span>,
+      <span class="hljs-keyword">type</span>: <span class="hljs-literal">true</span>,
+      content: <span class="hljs-literal">true</span>,          <span class="hljs-comment">// Contains article payload JSON</span>
+      library_post_id: <span class="hljs-literal">true</span>,
+      stack_id: <span class="hljs-literal">true</span>,
+      image_url: <span class="hljs-literal">true</span>,
+      portfolio: <span class="hljs-literal">true</span>,
+      video_url: <span class="hljs-literal">true</span>,
+      caption: <span class="hljs-literal">true</span>,
+      like_count: <span class="hljs-literal">true</span>,
+      _count: { select: { children: <span class="hljs-literal">true</span> } },
+      expiration_date: <span class="hljs-literal">true</span>,
+      created_at: <span class="hljs-literal">true</span>,
+      predictionMarket: { <span class="hljs-comment">/* ... */</span> },
+      productReview: { <span class="hljs-comment">/* ... */</span> },
+      author: {
+        select: { id: <span class="hljs-literal">true</span>, name: <span class="hljs-literal">true</span>, image: <span class="hljs-literal">true</span>, username: <span class="hljs-literal">true</span> }
+      },
+      <span class="hljs-comment">// Current user's like status</span>
+      likes: currentUserId ? {
+        where: { user_id: currentUserId },
+        take: <span class="hljs-number">1</span>
+      } : <span class="hljs-literal">false</span>,
+    },
+  });
+
+  <span class="hljs-keyword">return</span> rows.map(<span class="hljs-function"><span class="hljs-params">row</span> =&gt;</span> ({
+    ...row,
+    currentUserLike: row.likes?.[<span class="hljs-number">0</span>] ?? <span class="hljs-literal">null</span>,
+  }));
+}
+</div></code></pre>
+<h3 id="108-post-mapping">10.8 Post Mapping</h3>
+<p><strong>Location:</strong> <code>lib/transform/post.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> mapFeedPost = (dbRow: <span class="hljs-built_in">any</span>): <span class="hljs-function"><span class="hljs-params">BasePost</span> =&gt;</span> ({
+  id: dbRow.id,
+  canonicalId: dbRow.type === <span class="hljs-string">"PREDICTION"</span>
+    ? dbRow.id
+    : dbRow.postId ?? dbRow.id,
+  author: dbRow.author,
+  <span class="hljs-keyword">type</span>: dbRow.type,
+  content: dbRow.content ?? <span class="hljs-literal">null</span>,        <span class="hljs-comment">// Article payload JSON here</span>
+  roomPostContent: dbRow.roomPostContent ?? <span class="hljs-literal">null</span>,
+  image_url: dbRow.image_url ?? <span class="hljs-literal">null</span>,
+  portfolio: dbRow.portfolio ?? <span class="hljs-literal">null</span>,
+  productReview: dbRow.productReview ?? <span class="hljs-literal">null</span>,
+  video_url: dbRow.video_url ?? <span class="hljs-literal">null</span>,
+  caption: dbRow.caption ?? <span class="hljs-literal">null</span>,
+  likeCount: dbRow.like_count ?? <span class="hljs-number">0</span>,
+  commentCount: dbRow._count?.children ?? <span class="hljs-number">0</span>,
+  expirationDate: dbRow.expiration_date ?? <span class="hljs-literal">null</span>,
+  currentUserLike: dbRow.currentUserLike ?? <span class="hljs-literal">null</span>,
+  createdAt: dbRow.created_at
+    ? <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(dbRow.created_at).toISOString()
+    : <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>().toISOString(),
+});
+</div></code></pre>
+<h3 id="109-feed-post-types">10.9 Feed Post Types</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Prisma enum for post types</span>
+<span class="hljs-keyword">enum</span> feed_post_type {
+  TEXT
+  IMAGE
+  IMAGE_COMPUTE
+  VIDEO
+  MUSIC
+  GALLERY
+  DRAW
+  LIVECHAT
+  ENTROPY
+  PORTFOLIO
+  PRODUCT_REVIEW
+  PREDICTION
+  ROOM_CANVAS
+  LIBRARY
+  ARTICLE           <span class="hljs-comment">// &lt;-- Article post type</span>
+}
+</div></code></pre>
+<h3 id="1010-discovery-features-summary">10.10 Discovery Features Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Rich Article Cards</strong></td>
+<td><code>ArticleCard</code> with hero image, title, excerpt</td>
+</tr>
+<tr>
+<td><strong>Preview Modal</strong></td>
+<td><code>ArticlePostModal</code> for quick preview without navigation</td>
+</tr>
+<tr>
+<td><strong>Direct Read Link</strong></td>
+<td>Link to full article reader</td>
+</tr>
+<tr>
+<td><strong>Social Actions</strong></td>
+<td>Like, Share, Comment (inherited from PostCard)</td>
+</tr>
+<tr>
+<td><strong>Infinite Scroll</strong></td>
+<td><code>useInfiniteRealtimePosts</code> hook</td>
+</tr>
+<tr>
+<td><strong>Author Attribution</strong></td>
+<td>Profile image, name, timestamp</td>
+</tr>
+<tr>
+<td><strong>Reading Time</strong></td>
+<td>Displayed in card metadata</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="11-deliberation-integration">11. Deliberation Integration</h2>
+<h3 id="111-integration-architecture">11.1 Integration Architecture</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ARTICLE ↔ DELIBERATION INTEGRATION                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────┐                         ┌─────────────────────────────┐   │
+│  │   Article   │                         │        Deliberation         │   │
+│  │             │                         │                             │   │
+│  │  id         │◄─────────────────┐     │  id                         │   │
+│  │  title      │                  │     │  hostType = 'article'       │   │
+│  │  astJson    │                  └─────│  hostId = article.id        │   │
+│  │  roomId? ───┼───────────┐            │  createdById                │   │
+│  │             │           │            │  agoraRoomId ────────┐      │   │
+│  └─────────────┘           │            │  title               │      │   │
+│                            │            │  tags                │      │   │
+│                            │            └──────────────────────┼──────┘   │
+│                            │                                   │          │
+│                            ▼                                   ▼          │
+│                  ┌─────────────────┐              ┌─────────────────┐    │
+│                  │   AgoraRoom     │◄─────────────│  DebateSheet    │    │
+│                  │                 │              │                 │    │
+│                  │  id             │              │  id             │    │
+│                  │  slug           │              │  deliberationId │    │
+│                  │  title          │              │  roomId         │    │
+│                  │  representationRule            │  scope          │    │
+│                  └─────────────────┘              │  roles          │    │
+│                                                   └─────────────────┘    │
+│                                                                           │
+│  Navigation:                                                              │
+│    Article ──[Discussion Page ↗]──▶ Deliberation Page                    │
+│    Deliberation ──[← Return]──▶ Article                                  │
+│                                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="102-deliberation-creation">10.2 Deliberation Creation</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// lib/deepdive/upsert.ts</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getOrCreateDeliberationId</span>(<span class="hljs-params">
+  hostType: 'article' | 'post' | 'room_thread' | ...,
+  hostId: <span class="hljs-built_in">string</span>,
+  roomId: <span class="hljs-built_in">string</span> | <span class="hljs-literal">null</span>,
+  createdById: <span class="hljs-built_in">string</span>
+</span>): <span class="hljs-title">Promise</span>&lt;<span class="hljs-title">string</span>&gt; </span>{
+  <span class="hljs-comment">// Check for existing deliberation</span>
+  <span class="hljs-keyword">const</span> existing = <span class="hljs-keyword">await</span> prisma.deliberation.findFirst({
+    where: { hostType, hostId },
+    select: { id: <span class="hljs-literal">true</span> }
+  });
+  
+  <span class="hljs-keyword">if</span> (existing) <span class="hljs-keyword">return</span> existing.id;
+
+  <span class="hljs-comment">// Determine voting rule</span>
+  <span class="hljs-keyword">const</span> rule = roomId
+    ? (<span class="hljs-keyword">await</span> prisma.agoraRoom.findUnique({
+        where: { id: roomId },
+        select: { representationRule: <span class="hljs-literal">true</span> }
+      }))?.representationRule ?? <span class="hljs-string">'utilitarian'</span>
+    : <span class="hljs-string">'utilitarian'</span>;
+
+  <span class="hljs-comment">// Create new deliberation</span>
+  <span class="hljs-keyword">const</span> created = <span class="hljs-keyword">await</span> prisma.deliberation.create({
+    data: {
+      hostType,
+      hostId,
+      roomId: roomId ?? <span class="hljs-literal">undefined</span>,
+      createdById: <span class="hljs-built_in">String</span>(createdById),
+      rule
+    },
+    select: { id: <span class="hljs-literal">true</span> }
+  });
+  
+  <span class="hljs-keyword">return</span> created.id;
+}
+</div></code></pre>
+<h3 id="103-deliberation-spawn-full-chain">10.3 Deliberation Spawn (Full Chain)</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// app/api/deliberations/spawn/route.ts</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">POST</span>(<span class="hljs-params">req: NextRequest</span>) </span>{
+  <span class="hljs-keyword">const</span> userId = <span class="hljs-keyword">await</span> getCurrentUserId();
+  <span class="hljs-keyword">const</span> { hostType, hostId, tags, title } = <span class="hljs-keyword">await</span> req.json();
+
+  <span class="hljs-comment">// Step 1: Create AgoraRoom</span>
+  <span class="hljs-keyword">const</span> roomSlug = <span class="hljs-keyword">await</span> ensureUniqueSlug(
+    slugify(title?.slice(<span class="hljs-number">0</span>, <span class="hljs-number">30</span>) || <span class="hljs-string">`room-<span class="hljs-subst">${<span class="hljs-built_in">Date</span>.now()}</span>`</span>)
+  );
+  
+  <span class="hljs-keyword">const</span> room = <span class="hljs-keyword">await</span> prisma.agoraRoom.create({
+    data: {
+      slug: roomSlug,
+      title: title || <span class="hljs-string">`Room <span class="hljs-subst">${<span class="hljs-built_in">Date</span>.now()}</span>`</span>,
+      visibility: <span class="hljs-string">'public'</span>
+    }
+  });
+
+  <span class="hljs-comment">// Step 2: Create Deliberation</span>
+  <span class="hljs-keyword">const</span> deliberation = <span class="hljs-keyword">await</span> prisma.deliberation.create({
+    data: {
+      hostType,
+      hostId,
+      createdById: <span class="hljs-built_in">String</span>(userId),
+      agoraRoomId: room.id,
+      title,
+      tags: tags || []
+    }
+  });
+
+  <span class="hljs-comment">// Step 3: Create DebateSheet</span>
+  <span class="hljs-keyword">await</span> prisma.debateSheet.create({
+    data: {
+      id: <span class="hljs-string">`delib:<span class="hljs-subst">${deliberation.id}</span>`</span>,
+      title: title || <span class="hljs-string">`Delib <span class="hljs-subst">${deliberation.id.slice(<span class="hljs-number">0</span>, <span class="hljs-number">6</span>)}</span>`</span>,
+      scope: <span class="hljs-string">'deliberation'</span>,
+      roles: [<span class="hljs-string">'Proponent'</span>, <span class="hljs-string">'Opponent'</span>, <span class="hljs-string">'Curator'</span>],
+      deliberationId: deliberation.id,
+      roomId: room.id,
+      createdById: <span class="hljs-built_in">String</span>(userId)
+    }
+  });
+
+  emitBus(<span class="hljs-string">"deliberations:created"</span>, { id: deliberation.id });
+  
+  <span class="hljs-keyword">return</span> NextResponse.json({
+    ok: <span class="hljs-literal">true</span>,
+    id: deliberation.id,
+    redirect: <span class="hljs-string">`/deliberation/<span class="hljs-subst">${deliberation.id}</span>`</span>
+  });
+}
+</div></code></pre>
+<h3 id="104-embedded-deliberation-panel">10.4 Embedded Deliberation Panel</h3>
+<pre class="hljs"><code><div>// In ArticleReaderWithPins
+{deliberationId &amp;&amp; (
+  &lt;section className=&quot;relative mt-0&quot;&gt;
+    &lt;DeepDiveBackdrop attach=&quot;absolute&quot; /&gt;
+    
+    &lt;h2 className=&quot;text-4xl font-semibold text-center my-4&quot;&gt;
+      Discussion
+    &lt;/h2&gt;
+    
+    &lt;div className=&quot;border-b border-slate-700/70 w-[75%] mx-auto mb-2&quot; /&gt;
+    
+    &lt;div className=&quot;px-10&quot;&gt;
+      &lt;RhetoricProvider&gt;
+        &lt;DialogueTargetProvider&gt;
+          &lt;DeepDivePanel deliberationId={deliberationId} /&gt;
+        &lt;/DialogueTargetProvider&gt;
+      &lt;/RhetoricProvider&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+)}
+</div></code></pre>
+<h3 id="105-navigation-between-article-and-deliberation">10.5 Navigation Between Article and Deliberation</h3>
+<p><strong>Article → Deliberation:</strong></p>
+<pre class="hljs"><code><div>// In article reader header
+&lt;NextLink
+  href={`/deliberation/${deliberationId}`}
+  className=&quot;py-2 px-2 bg-white/20 rounded-xl&quot;
+  prefetch
+&gt;
+  Discussion Page ↗
+&lt;/NextLink&gt;
+</div></code></pre>
+<p><strong>Deliberation → Article:</strong></p>
+<pre class="hljs"><code><div>// app/deliberation/[id]/page.tsx
+const article = delib.hostType === &quot;article&quot;
+  ? await prisma.article.findUnique({
+      where: { id: delib.hostId },
+      select: { slug: true, title: true }
+    })
+  : null;
+
+// In render
+{article &amp;&amp; (
+  &lt;NextLink
+    href={`/article/${article.slug}`}
+    className=&quot;absolute left-0 top-0 text-xs font-semibold&quot;
+  &gt;
+    ← Return{article.title ? `: ${article.title}` : &quot;&quot;}
+  &lt;/NextLink&gt;
+)}
+</div></code></pre>
+<hr>
+<h2 id="12-security--authorization">12. Security &amp; Authorization</h2>
+<h3 id="111-authentication-flow">11.1 Authentication Flow</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// All API routes use cookie-based auth</span>
+<span class="hljs-keyword">import</span> { getUserFromCookies } <span class="hljs-keyword">from</span> <span class="hljs-string">'@/lib/serverutils'</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">handler</span>(<span class="hljs-params">req: Request</span>) </span>{
+  <span class="hljs-keyword">const</span> user = <span class="hljs-keyword">await</span> getUserFromCookies();
+  
+  <span class="hljs-keyword">if</span> (!user) {
+    <span class="hljs-keyword">return</span> NextResponse.json(
+      { error: <span class="hljs-string">'Unauthenticated'</span> },
+      { status: <span class="hljs-number">401</span> }
+    );
+  }
+  
+  <span class="hljs-comment">// Continue with authenticated request</span>
+  <span class="hljs-keyword">const</span> userId = user.userId.toString();
+}
+</div></code></pre>
+<h3 id="112-ownership-verification">11.2 Ownership Verification</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Pattern for all article mutations</span>
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">verifyOwnership</span>(<span class="hljs-params">articleId: <span class="hljs-built_in">string</span>, userId: <span class="hljs-built_in">string</span></span>) </span>{
+  <span class="hljs-keyword">const</span> article = <span class="hljs-keyword">await</span> prisma.article.findUnique({
+    where: { id: articleId }
+  });
+  
+  <span class="hljs-keyword">if</span> (!article || article.authorId !== userId) {
+    <span class="hljs-keyword">return</span> { error: <span class="hljs-string">'Not found'</span>, status: <span class="hljs-number">404</span> };
+  }
+  
+  <span class="hljs-keyword">return</span> { article };
+}
+
+<span class="hljs-comment">// Usage in API routes</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">PATCH</span>(<span class="hljs-params">req, { params }</span>) </span>{
+  <span class="hljs-keyword">const</span> user = <span class="hljs-keyword">await</span> getUserFromCookies();
+  <span class="hljs-keyword">if</span> (!user) <span class="hljs-keyword">return</span> unauthorized();
+  
+  <span class="hljs-keyword">const</span> { article, error, status } = <span class="hljs-keyword">await</span> verifyOwnership(
+    params.id,
+    user.userId.toString()
+  );
+  
+  <span class="hljs-keyword">if</span> (error) <span class="hljs-keyword">return</span> NextResponse.json({ error }, { status });
+  
+  <span class="hljs-comment">// Proceed with update</span>
+}
+</div></code></pre>
+<h3 id="113-content-sanitization">11.3 Content Sanitization</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// HTML sanitization for pasted content</span>
+<span class="hljs-keyword">import</span> DOMPurify <span class="hljs-keyword">from</span> <span class="hljs-string">'dompurify'</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">sanitizeHTML</span>(<span class="hljs-params">html: <span class="hljs-built_in">string</span></span>): <span class="hljs-title">string</span> </span>{
+  <span class="hljs-keyword">return</span> DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: <span class="hljs-literal">true</span> },
+    ALLOWED_ATTR: [<span class="hljs-string">'href'</span>, <span class="hljs-string">'target'</span>, <span class="hljs-string">'rel'</span>, <span class="hljs-string">'class'</span>, <span class="hljs-string">'style'</span>, <span class="hljs-string">'id'</span>, <span class="hljs-string">'name'</span>]
+  });
+}
+</div></code></pre>
+<h3 id="114-input-validation">11.4 Input Validation</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Zod schemas for API inputs</span>
+<span class="hljs-keyword">import</span> { z } <span class="hljs-keyword">from</span> <span class="hljs-string">'zod'</span>;
+
+<span class="hljs-keyword">const</span> CreateArticleSchema = z.object({
+  title: z.string().min(<span class="hljs-number">1</span>).max(<span class="hljs-number">200</span>).optional(),
+  slug: z.string().optional(),
+  template: z.string().optional(),
+  heroImageKey: z.string().nullable().optional(),
+  astJson: z.unknown().optional()
+});
+
+<span class="hljs-keyword">const</span> PatchDraftSchema = z.object({
+  astJson: z.any().optional(),
+  template: z.string().optional(),
+  heroImageKey: z.string().nullable().optional(),
+  title: z.string().min(<span class="hljs-number">1</span>).max(<span class="hljs-number">200</span>).optional()
+});
+</div></code></pre>
+<h3 id="115-annotation-access-control">11.5 Annotation Access Control</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Check if annotations are allowed</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">GET</span>(<span class="hljs-params">req, { params }</span>) </span>{
+  <span class="hljs-keyword">const</span> article = <span class="hljs-keyword">await</span> prisma.article.findUnique({
+    where: { id: params.id }
+  });
+  
+  <span class="hljs-keyword">if</span> (!article) <span class="hljs-keyword">return</span> notFound();
+  
+  <span class="hljs-comment">// Respect article setting</span>
+  <span class="hljs-keyword">if</span> (article.allowAnnotations === <span class="hljs-literal">false</span>) {
+    <span class="hljs-keyword">return</span> NextResponse.json([], { status: <span class="hljs-number">200</span> });
+    <span class="hljs-comment">// Or return 403 if you want to block completely</span>
+  }
+  
+  <span class="hljs-comment">// Return threads</span>
+}
+</div></code></pre>
+<hr>
+<h2 id="13-performance-considerations">13. Performance Considerations</h2>
+<h3 id="121-server-side-rendering">12.1 Server-Side Rendering</h3>
+<ul>
+<li>Articles are rendered server-side for fast initial load</li>
+<li>TipTap <code>generateHTML</code> produces static HTML</li>
+<li>No hydration required for article content (static HTML)</li>
+<li>Interactive elements (annotations) hydrate on client</li>
+</ul>
+<h3 id="122-autosave-optimization">12.2 Autosave Optimization</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Debouncing</span>
+<span class="hljs-keyword">const</span> debouncedSave = useDebouncedCallback(saveDraft, <span class="hljs-number">800</span>);
+
+<span class="hljs-comment">// Deduplication</span>
+<span class="hljs-keyword">if</span> (<span class="hljs-built_in">JSON</span>.stringify(payload) === lastSentHash.current) <span class="hljs-keyword">return</span>;
+
+<span class="hljs-comment">// Abort-on-change</span>
+inflight.current?.abort();
+<span class="hljs-keyword">const</span> ac = <span class="hljs-keyword">new</span> AbortController();
+inflight.current = ac;
+
+<span class="hljs-keyword">await</span> fetch(url, { signal: ac.signal });
+</div></code></pre>
+<h3 id="123-swr-infinite-scroll">12.3 SWR Infinite Scroll</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Parallel fetching for better UX</span>
+useSWRInfinite(getKey, fetcher, {
+  parallel: <span class="hljs-literal">true</span>,           <span class="hljs-comment">// Fetch pages in parallel</span>
+  persistSize: <span class="hljs-literal">true</span>,        <span class="hljs-comment">// Keep size across re-mounts</span>
+  revalidateFirstPage: <span class="hljs-literal">true</span> <span class="hljs-comment">// Always fresh first page</span>
+});
+
+<span class="hljs-comment">// Optimistic updates</span>
+mutate(<span class="hljs-function"><span class="hljs-params">pages</span> =&gt;</span> <span class="hljs-comment">/* transform */</span>, { revalidate: <span class="hljs-literal">false</span> });
+</div></code></pre>
+<h3 id="124-annotation-performance">12.4 Annotation Performance</h3>
+<ul>
+<li>Positions computed in <code>useMemo</code> with dependencies on <code>[threads, html, tick]</code></li>
+<li>Scroll/resize events debounced via <code>tick</code> counter</li>
+<li>ResizeObserver for efficient container monitoring</li>
+<li>Collision solving is O(n log n) due to sorting</li>
+</ul>
+<h3 id="125-database-indexes">12.5 Database Indexes</h3>
+<pre class="hljs"><code><div>model Article {
+  @@index([authorId, deletedAt, updatedAt])
+  @@index([authorId, status, updatedAt])
+}
+
+model CommentThread {
+  @@index([articleId])
+}
+
+model Comment {
+  @@index([threadId])
+}
+</div></code></pre>
+<hr>
+<h2 id="14-appendices">14. Appendices</h2>
+<h3 id="appendix-a-file-reference">Appendix A: File Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>components/article/ArticleEditor.tsx</code></td>
+<td>Main editor component</td>
+</tr>
+<tr>
+<td><code>components/article/ArticleReader.tsx</code></td>
+<td>Base reader wrapper</td>
+</tr>
+<tr>
+<td><code>components/article/ArticleReaderWithPins.tsx</code></td>
+<td>Full reader with annotations</td>
+</tr>
+<tr>
+<td><code>components/article/ArticleCard.tsx</code></td>
+<td>Article display card for social feed</td>
+</tr>
+<tr>
+<td><code>components/article/CommentModal.tsx</code></td>
+<td>Comment thread modal</td>
+</tr>
+<tr>
+<td><code>components/article/editor/Toolbar.tsx</code></td>
+<td>Editor toolbar</td>
+</tr>
+<tr>
+<td><code>components/article/editor/SlashCommand.tsx</code></td>
+<td>Slash command extension</td>
+</tr>
+<tr>
+<td><code>components/cards/PostCard.tsx</code></td>
+<td>Universal post card (handles ARTICLE type)</td>
+</tr>
+<tr>
+<td><code>components/shared/RealtimeFeed.tsx</code></td>
+<td>Infinite scroll feed component</td>
+</tr>
+<tr>
+<td><code>app/(editor)/article/new/page.tsx</code></td>
+<td>Create new article</td>
+</tr>
+<tr>
+<td><code>app/(editor)/article/by-id/[id]/edit/page.tsx</code></td>
+<td>Edit article</td>
+</tr>
+<tr>
+<td><code>app/article/(by-key)/[key]/page.tsx</code></td>
+<td>View article</td>
+</tr>
+<tr>
+<td><code>app/(root)/(standard)/page.tsx</code></td>
+<td>Home page feed</td>
+</tr>
+<tr>
+<td><code>app/(root)/(standard)/profile/articles/</code></td>
+<td>Dashboard</td>
+</tr>
+<tr>
+<td><code>app/api/articles/</code></td>
+<td>API routes</td>
+</tr>
+<tr>
+<td><code>app/api/feed/route.ts</code></td>
+<td>Feed API endpoint</td>
+</tr>
+<tr>
+<td><code>lib/tiptap/extensions/shared.ts</code></td>
+<td>Shared TipTap extensions</td>
+</tr>
+<tr>
+<td><code>lib/deepdive/upsert.ts</code></td>
+<td>Deliberation creation</td>
+</tr>
+<tr>
+<td><code>lib/article/text.ts</code></td>
+<td>Text extraction utilities</td>
+</tr>
+<tr>
+<td><code>lib/article/wrapSections.ts</code></td>
+<td>Section processing</td>
+</tr>
+<tr>
+<td><code>lib/actions/feed.actions.ts</code></td>
+<td>Feed fetching actions</td>
+</tr>
+<tr>
+<td><code>lib/actions/feedpost.actions.ts</code></td>
+<td>Feed post creation</td>
+</tr>
+<tr>
+<td><code>lib/transform/post.ts</code></td>
+<td>Post data mappers</td>
+</tr>
+<tr>
+<td><code>types/comments.ts</code></td>
+<td>TypeScript types</td>
+</tr>
+</tbody>
+</table>
+<h3 id="appendix-b-environment-variables">Appendix B: Environment Variables</h3>
+<pre class="hljs"><code><div># Required for article system
+DATABASE_URL=          # PostgreSQL connection
+SUPABASE_URL=          # For presigned URLs
+SUPABASE_ANON_KEY=     # Supabase auth
+</div></code></pre>
+<h3 id="appendix-c-api-quick-reference">Appendix C: API Quick Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/articles</code></td>
+<td>GET</td>
+<td>List user's articles</td>
+</tr>
+<tr>
+<td><code>/api/articles</code></td>
+<td>POST</td>
+<td>Create new draft</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]</code></td>
+<td>GET</td>
+<td>Get article by ID</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]</code></td>
+<td>PATCH</td>
+<td>Update metadata</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]</code></td>
+<td>DELETE</td>
+<td>Soft delete</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]/draft</code></td>
+<td>PATCH</td>
+<td>Save draft content</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]/publish</code></td>
+<td>POST</td>
+<td>Publish article</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]/restore</code></td>
+<td>POST</td>
+<td>Restore from trash</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]/threads</code></td>
+<td>GET</td>
+<td>List comment threads</td>
+</tr>
+<tr>
+<td><code>/api/articles/[id]/threads</code></td>
+<td>POST</td>
+<td>Create comment thread</td>
+</tr>
+<tr>
+<td><code>/api/deliberations/spawn</code></td>
+<td>POST</td>
+<td>Create deliberation chain</td>
+</tr>
+</tbody>
+</table>
+<h3 id="appendix-d-glossary">Appendix D: Glossary</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AST</strong></td>
+<td>Abstract Syntax Tree - TipTap document JSON structure</td>
+</tr>
+<tr>
+<td><strong>Anchor</strong></td>
+<td>DOM path-based reference to a text selection</td>
+</tr>
+<tr>
+<td><strong>Thread</strong></td>
+<td>Comment thread attached to an anchor</td>
+</tr>
+<tr>
+<td><strong>Deliberation</strong></td>
+<td>Structured discourse space linked to content</td>
+</tr>
+<tr>
+<td><strong>Template</strong></td>
+<td>Visual layout preset for articles</td>
+</tr>
+<tr>
+<td><strong>Pin</strong></td>
+<td>Visual marker for a comment thread in the gutter</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="document-changelog">Document Changelog</h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2024-12-15</td>
+<td>Initial comprehensive documentation</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><em>This document is part of the Mesh Platform Architecture Documentation Suite.</em>
+<em>For questions or updates, consult the ArgumentChainDevelopmentDocuments folder.</em></p>
+
+</body>
+</html>

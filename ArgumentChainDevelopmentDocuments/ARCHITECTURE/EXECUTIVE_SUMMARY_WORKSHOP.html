@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EXECUTIVE_SUMMARY_WORKSHOP.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="executive-summary-workshop">Executive Summary Workshop</h1>
+<h2 id="purpose">Purpose</h2>
+<p>This document is a workspace for brainstorming, iterating, and refining executive summaries, introductions, and explanatory prose for the Mesh/Agora platform. The goal is to develop compelling, clear, and audience-appropriate ways to communicate what the platform does and why it matters.</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-current-state-analysis">Current State Analysis</a></li>
+<li><a href="#2-audience-segmentation">Audience Segmentation</a></li>
+<li><a href="#3-core-messaging-frameworks">Core Messaging Frameworks</a></li>
+<li><a href="#4-draft-summaries-by-length">Draft Summaries by Length</a></li>
+<li><a href="#5-draft-summaries-by-angle">Draft Summaries by Angle</a></li>
+<li><a href="#6-draft-summaries-by-audience">Draft Summaries by Audience</a></li>
+<li><a href="#7-key-phrases--vocabulary">Key Phrases &amp; Vocabulary</a></li>
+<li><a href="#8-anti-patterns-to-avoid">Anti-Patterns to Avoid</a></li>
+<li><a href="#9-iteration-notes">Iteration Notes</a></li>
+</ol>
+<hr>
+<h2 id="1-current-state-analysis">1. Current State Analysis</h2>
+<h3 id="11-what-the-current-summaries-do-well">1.1 What the Current Summaries Do Well</h3>
+<p>The existing executive summaries (from <code>AGORA_DELIBERATION_SYSTEM_ARCHITECTURE.md</code> and <code>AGORA_ARCHITECTURE_V2.md</code>) have several strengths:</p>
+<table>
+<thead>
+<tr>
+<th>Strength</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clear problem framing</strong></td>
+<td>&quot;The Crisis of Collective Reasoning&quot; — establishes urgency and stakes</td>
+</tr>
+<tr>
+<td><strong>Infrastructure lens</strong></td>
+<td>&quot;This is not a content moderation problem. It is an infrastructure problem.&quot;</td>
+</tr>
+<tr>
+<td><strong>Concrete capabilities</strong></td>
+<td>Bullet list of what the platform provides</td>
+</tr>
+<tr>
+<td><strong>Three-layer architecture</strong></td>
+<td>Clean table showing Claims/Arguments/Outputs layers</td>
+</tr>
+<tr>
+<td><strong>Academic grounding</strong></td>
+<td>AIF, Walton schemes, ASPIC+ references lend credibility</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-potential-issues-with-current-approach">1.2 Potential Issues with Current Approach</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Observation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Academic/technical tone</strong></td>
+<td>May alienate non-technical stakeholders; feels like a research paper</td>
+</tr>
+<tr>
+<td><strong>Problem-first framing</strong></td>
+<td>Leads with crisis/breakdown, which can feel heavy or off-putting</td>
+</tr>
+<tr>
+<td><strong>Jargon density</strong></td>
+<td>Terms like &quot;Walton schemes,&quot; &quot;AIF ontology,&quot; &quot;commitment stores&quot; require explanation</td>
+</tr>
+<tr>
+<td><strong>Missing the &quot;aha&quot; moment</strong></td>
+<td>Hard to visualize what using the platform actually <em>feels</em> like</td>
+</tr>
+<tr>
+<td><strong>Length</strong></td>
+<td>Current summaries are multi-paragraph; may lose attention</td>
+</tr>
+<tr>
+<td><strong>Passive use cases</strong></td>
+<td>&quot;Deliberations produce thesis documents&quot; — who is using this? For what?</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-key-questions-to-resolve">1.3 Key Questions to Resolve</h3>
+<ul>
+<li><strong>What is the primary metaphor?</strong> (Infrastructure? Canvas? Workspace? Arena? Laboratory?)</li>
+<li><strong>Lead with problem or solution?</strong> (Pain-first vs. possibility-first)</li>
+<li><strong>Technical or accessible?</strong> (Different versions for different audiences?)</li>
+<li><strong>Emphasize theory or practice?</strong> (Academic credibility vs. practical utility)</li>
+<li><strong>Singular pitch or modular?</strong> (One canonical summary vs. audience-specific variations)</li>
+</ul>
+<hr>
+<h2 id="2-audience-segmentation">2. Audience Segmentation</h2>
+<h3 id="21-primary-audiences">2.1 Primary Audiences</h3>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>What They Care About</th>
+<th>What They Fear</th>
+<th>Jargon Tolerance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Executives/Funders</strong></td>
+<td>ROI, scale, defensibility, vision</td>
+<td>Wasted resources, complexity, niche product</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Policy/Governance Professionals</strong></td>
+<td>Legitimacy, transparency, audit trails</td>
+<td>Public backlash, legal liability</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Researchers/Academics</strong></td>
+<td>Rigor, methodology, novel contribution</td>
+<td>Superficiality, reinventing the wheel</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Developers/Engineers</strong></td>
+<td>Architecture, APIs, extensibility</td>
+<td>Technical debt, vendor lock-in</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Community Organizers</strong></td>
+<td>Accessibility, engagement, actionable outcomes</td>
+<td>Elitism, tech-solutionism</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>End Users (General)</strong></td>
+<td>Ease of use, value, trust</td>
+<td>Complexity, time investment</td>
+<td>Very Low</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-secondary-audiences">2.2 Secondary Audiences</h3>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>Key Consideration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Journalists/Media</strong></td>
+<td>Need a clear story, quotable lines</td>
+</tr>
+<tr>
+<td><strong>Partner Organizations</strong></td>
+<td>Need to see integration potential</td>
+</tr>
+<tr>
+<td><strong>Competitors/Evaluators</strong></td>
+<td>Need to see differentiation</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-core-messaging-frameworks">3. Core Messaging Frameworks</h2>
+<h3 id="31-framework-a-%22reasoning-infrastructure%22">3.1 Framework A: &quot;Reasoning Infrastructure&quot;</h3>
+<p><strong>Core Metaphor</strong>: Roads and utilities for thought</p>
+<p><strong>Positioning</strong>: &quot;Mesh provides the infrastructure for collective reasoning — the same way cities need roads and pipes, democracies need systems for connecting evidence to claims, claims to arguments, and arguments to decisions.&quot;</p>
+<p><strong>Strengths</strong>: Emphasizes foundational, non-partisan utility
+<strong>Weaknesses</strong>: Abstract; may feel removed from user experience</p>
+<hr>
+<h3 id="32-framework-b-%22structured-dialogue%22">3.2 Framework B: &quot;Structured Dialogue&quot;</h3>
+<p><strong>Core Metaphor</strong>: A better conversation</p>
+<p><strong>Positioning</strong>: &quot;Mesh transforms unstructured discussion into structured dialogue — every claim is traceable, every argument is visible, every disagreement leads somewhere productive.&quot;</p>
+<p><strong>Strengths</strong>: Intuitive; connects to familiar frustrations
+<strong>Weaknesses</strong>: May sound like &quot;just another chat app&quot;</p>
+<hr>
+<h3 id="33-framework-c-%22argument-as-artifact%22">3.3 Framework C: &quot;Argument as Artifact&quot;</h3>
+<p><strong>Core Metaphor</strong>: Reasoning that persists and compounds</p>
+<p><strong>Positioning</strong>: &quot;Mesh turns reasoning into durable artifacts — instead of conversations that disappear, you get knowledge graphs that grow, documents that cite their sources, and decisions that can be audited and revised.&quot;</p>
+<p><strong>Strengths</strong>: Emphasizes unique value (persistence, composability)
+<strong>Weaknesses</strong>: May feel abstract without examples</p>
+<hr>
+<h3 id="34-framework-d-%22the-digital-agora%22">3.4 Framework D: &quot;The Digital Agora&quot;</h3>
+<p><strong>Core Metaphor</strong>: The ancient public square, upgraded</p>
+<p><strong>Positioning</strong>: &quot;The agora was where citizens gathered to reason together. Mesh is the digital agora — a space where communities deliberate with the rigor of a courtroom and the accessibility of a town hall.&quot;</p>
+<p><strong>Strengths</strong>: Evocative, historically resonant
+<strong>Weaknesses</strong>: May feel pretentious; requires classical knowledge</p>
+<hr>
+<h3 id="35-framework-e-%22argumentation-science-applied%22">3.5 Framework E: &quot;Argumentation Science Applied&quot;</h3>
+<p><strong>Core Metaphor</strong>: Turning research into practice</p>
+<p><strong>Positioning</strong>: &quot;Decades of research in argumentation theory, dialogue logic, and knowledge representation have produced powerful tools that remain locked in academia. Mesh brings these tools to practitioners — scheme-based arguments, formal dialogue protocols, and semantic reasoning, all in a usable interface.&quot;</p>
+<p><strong>Strengths</strong>: Appeals to research-oriented audiences
+<strong>Weaknesses</strong>: May alienate general audiences</p>
+<hr>
+<h3 id="36-framework-f-%22from-noise-to-signal%22">3.6 Framework F: &quot;From Noise to Signal&quot;</h3>
+<p><strong>Core Metaphor</strong>: Filtering and amplifying</p>
+<p><strong>Positioning</strong>: &quot;In a world drowning in opinions, Mesh amplifies signal — it surfaces the strongest arguments, tracks the contested claims, and makes reasoning visible so communities can move from noise to insight.&quot;</p>
+<p><strong>Strengths</strong>: Clear value proposition; addresses attention crisis
+<strong>Weaknesses</strong>: May sound like content moderation/filtering</p>
+<hr>
+<h2 id="4-draft-summaries-by-length">4. Draft Summaries by Length</h2>
+<h3 id="41-one-liner-10-15-words">4.1 One-Liner (10-15 words)</h3>
+<p><strong>Option A</strong>: &quot;Mesh is infrastructure for collective reasoning — structured arguments that persist and compound.&quot;</p>
+<p><strong>Option B</strong>: &quot;A platform where communities reason together with traceable claims and visible arguments.&quot;</p>
+<p><strong>Option C</strong>: &quot;Turn discussions into durable knowledge graphs with formal argumentation built in.&quot;</p>
+<p><strong>Option D</strong>: &quot;The operating system for deliberation — from informal chat to formal argument chains.&quot;</p>
+<p><strong>Option E</strong>: &quot;Mesh: Where evidence meets argument meets decision.&quot;</p>
+<hr>
+<h3 id="42-elevator-pitch-30-seconds--75-words">4.2 Elevator Pitch (30 seconds / 75 words)</h3>
+<p><strong>Option A — Problem-First</strong>:</p>
+<blockquote>
+<p>When organizations need to reason together — about policy, strategy, or complex decisions — they use tools designed for chat, not deliberation. Ideas get lost, evidence gets disconnected, and disagreements go in circles. Mesh changes this. It provides structured reasoning infrastructure: traceable claims, visible argument chains, and dialogue that produces durable artifacts you can cite, audit, and build upon.</p>
+</blockquote>
+<p><strong>Option B — Possibility-First</strong>:</p>
+<blockquote>
+<p>Imagine if every important discussion produced more than a chat log — what if it produced a knowledge graph? Mesh makes reasoning visible. Every claim is connected to its evidence. Every argument shows its structure. Every disagreement has a path to resolution. The result isn't just a conversation — it's institutional memory you can search, cite, and extend.</p>
+</blockquote>
+<p><strong>Option C — Metaphor-Led</strong>:</p>
+<blockquote>
+<p>Think of Mesh as the Wikipedia for arguments. When communities deliberate — about policy, governance, or any complex question — Mesh captures not just what was decided, but the full reasoning: the claims, the evidence, the attacks and defenses, and how the argument evolved. The result is a living document that future teams can reference, challenge, and build upon.</p>
+</blockquote>
+<hr>
+<h3 id="43-landing-page-summary-150-words">4.3 Landing Page Summary (150 words)</h3>
+<p><strong>Option A — Infrastructure Angle</strong>:</p>
+<blockquote>
+<p><strong>Reasoning shouldn't disappear after the meeting ends.</strong></p>
+<p>When teams tackle complex questions — policy decisions, strategic choices, governance issues — the reasoning that leads to conclusions is often more valuable than the conclusions themselves. But current tools don't preserve it. Discussions happen in chat threads that scroll away. Evidence lives in attachments that no one reads. Disagreements become rhetorical battles instead of structured analysis.</p>
+<p>Mesh is reasoning infrastructure. It provides:</p>
+<ul>
+<li><strong>Traceable claims</strong> with stable identifiers and evidence links</li>
+<li><strong>Visible arguments</strong> structured with established reasoning patterns</li>
+<li><strong>Dialogue that produces artifacts</strong> — knowledge graphs, thesis documents, and audit trails</li>
+</ul>
+<p>Whether you're a policy team, a research group, or a community organization, Mesh transforms your discussions into durable knowledge you can cite, challenge, and build upon.</p>
+</blockquote>
+<p><strong>Option B — User-Centric Angle</strong>:</p>
+<blockquote>
+<p><strong>Your best thinking deserves better tools.</strong></p>
+<p>You've had the experience: a brilliant discussion that went nowhere because no one captured the structure. Claims that were made but never connected to evidence. Disagreements that looped endlessly because there was no clear way to track what had been conceded and what was still contested.</p>
+<p>Mesh solves this by making reasoning visible. When you make a claim, it becomes a persistent object with relationships to other claims. When you build an argument, the structure is explicit — premises, conclusions, and the scheme that connects them. When you disagree, the system tracks the attack and helps you respond systematically.</p>
+<p>The result: discussions that compound rather than dissipate.</p>
+</blockquote>
+<hr>
+<h3 id="44-executive-brief-300-words">4.4 Executive Brief (300 words)</h3>
+<p><strong>Option A — For Funders/Strategists</strong>:</p>
+<blockquote>
+<p><strong>The Problem</strong></p>
+<p>Democratic institutions and organizations face a shared challenge: the ability to reason well together has atrophied. Not because people lack intelligence, but because the infrastructure doesn't exist. Digital platforms optimize for engagement metrics, not deliberation quality. The predictable result: polarization accelerates, trust erodes, and decisions become harder to justify.</p>
+<p><strong>Our Approach</strong></p>
+<p>Mesh treats reasoning as infrastructure. We provide a deliberation platform where structure emerges on-demand — casual discussions remain lightweight, while complex policy deliberations can upgrade to full formal reasoning with scheme-based arguments, attack tracking, and commitment stores.</p>
+<p>The platform implements a <strong>progressive formalization architecture</strong> built on established argumentation theory (AIF, Walton schemes, ASPIC+). This means:</p>
+<ul>
+<li><strong>Interoperability</strong>: Reasoning graphs can be exported, analyzed, and verified independently</li>
+<li><strong>Academic credibility</strong>: Built on decades of research in formal argumentation</li>
+<li><strong>Practical utility</strong>: Designed for real practitioners, not just researchers</li>
+</ul>
+<p><strong>What We Produce</strong></p>
+<p>Unlike chat tools that produce logs, Mesh produces <strong>artifacts</strong>:</p>
+<ul>
+<li>Thesis documents with cited reasoning</li>
+<li>Knowledge base pages that persist as institutional memory</li>
+<li>Exportable argument graphs in standard formats</li>
+<li>Audit trails for governance and accountability</li>
+</ul>
+<p><strong>Market Position</strong></p>
+<p>We sit at the intersection of collaboration tools (Notion, Miro), knowledge management (Roam, Obsidian), and civic tech (Pol.is, Loomio). Our differentiation: formal argumentation grounding, not just freeform linking.</p>
+<p><strong>Current State</strong></p>
+<p>The platform is functional with active development. Key subsystems include dialogue management, scheme-based argument construction, claim tracking, and output generation. We seek partners interested in piloting deliberation infrastructure for policy, governance, or research contexts.</p>
+</blockquote>
+<hr>
+<h2 id="5-draft-summaries-by-angle">5. Draft Summaries by Angle</h2>
+<h3 id="51-the-%22accountability%22-angle">5.1 The &quot;Accountability&quot; Angle</h3>
+<blockquote>
+<p>Every important decision rests on reasoning — premises, evidence, inferences. But that reasoning is usually invisible, buried in meeting notes or lost in chat history. When decisions are questioned later, there's no trail to audit.</p>
+<p>Mesh makes reasoning auditable. Every claim links to its evidence. Every argument shows its structure. Every conclusion traces back to the dialogue that produced it. For organizations that need to justify their decisions — to boards, regulators, or the public — Mesh provides the accountability infrastructure that's been missing.</p>
+</blockquote>
+<hr>
+<h3 id="52-the-%22collaboration%22-angle">5.2 The &quot;Collaboration&quot; Angle</h3>
+<blockquote>
+<p>Great ideas emerge from collision — but only if the collision is productive. Too often, collaborative discussions devolve into parallel monologues, with participants talking past each other because there's no shared structure.</p>
+<p>Mesh provides that structure. When one person makes a claim, others can support it, challenge it, or request evidence — and the system tracks all of it. Disagreements become visible as attack/defense relationships, not buried in thread replies. The result: collaboration that converges rather than diverges.</p>
+</blockquote>
+<hr>
+<h3 id="53-the-%22knowledge-preservation%22-angle">5.3 The &quot;Knowledge Preservation&quot; Angle</h3>
+<blockquote>
+<p>Your organization's most valuable asset isn't its conclusions — it's the reasoning that produced them. But that reasoning typically lives in people's heads or scattered documents. When people leave, the reasoning leaves too.</p>
+<p>Mesh captures reasoning as structured data. Claims, arguments, evidence, and the relationships between them — all persisted in a queryable graph. When a new team faces a similar question, they don't start from scratch. They build on what came before.</p>
+</blockquote>
+<hr>
+<h3 id="54-the-%22rigor-without-friction%22-angle">5.4 The &quot;Rigor Without Friction&quot; Angle</h3>
+<blockquote>
+<p>Formal argumentation is powerful but intimidating. Walton schemes, ASPIC+ semantics, Dung acceptability — these tools offer real analytical leverage, but learning them requires graduate-level study.</p>
+<p>Mesh packages formal argumentation in usable interfaces. You get the benefits — structured arguments, critical questions, attack taxonomies — without the learning curve. Progressive formalization means you only encounter complexity when you need it.</p>
+</blockquote>
+<hr>
+<h3 id="55-the-%22anti-polarization%22-angle">5.5 The &quot;Anti-Polarization&quot; Angle</h3>
+<blockquote>
+<p>Polarization isn't caused by disagreement — it's caused by disagreement without structure. When people can't see each other's reasoning, they assume the worst. When challenges feel like attacks on identity rather than specific claims, defenses become tribal.</p>
+<p>Mesh depolarizes by making reasoning visible. When you see exactly which premise someone is challenging, you can respond to that — not to a caricature. When disagreements are typed (undercut, rebut, undermine), they become technical problems rather than tribal battles.</p>
+</blockquote>
+<hr>
+<h3 id="56-the-%22institutional-memory%22-angle">5.6 The &quot;Institutional Memory&quot; Angle</h3>
+<blockquote>
+<p>Institutions forget. The policy debate from 2019 influenced current decisions, but no one remembers the counter-arguments that were raised and addressed. The strategic analysis from last quarter informed the pivot, but the reasoning is locked in someone's slides.</p>
+<p>Mesh creates institutional memory for reasoning. Deliberations produce persistent artifacts — knowledge base pages, argument graphs, thesis documents — that remain searchable and citable. Future teams can see not just what was decided, but the full structure of why.</p>
+</blockquote>
+<hr>
+<h2 id="6-draft-summaries-by-audience">6. Draft Summaries by Audience</h2>
+<h3 id="61-for-executives--funders">6.1 For Executives &amp; Funders</h3>
+<blockquote>
+<p><strong>Mesh: Deliberation Infrastructure for the AI Age</strong></p>
+<p>As organizations face increasingly complex decisions — and increasingly demand accountability for those decisions — the tools for collective reasoning remain stuck in the chat era. Mesh provides the upgrade.</p>
+<p>We've built a platform that transforms unstructured discussion into structured deliberation. Every claim is traceable. Every argument is visible. Every decision produces an artifact that can be cited, audited, and extended.</p>
+<p>Built on established argumentation theory (we implement academic standards like AIF and ASPIC+), but designed for practitioners. Early pilots in [policy/research/governance] contexts. Seeking strategic partners for deployment.</p>
+</blockquote>
+<hr>
+<h3 id="62-for-researchers--academics">6.2 For Researchers &amp; Academics</h3>
+<blockquote>
+<p><strong>Mesh: Argumentation Theory in Practice</strong></p>
+<p>The gap between argumentation research and practical deliberation tools has persisted for decades. Argument mining, scheme-based reasoning, dialogue protocols, and formal acceptability semantics exist in papers — but not in usable platforms.</p>
+<p>Mesh bridges this gap. We implement AIF-compliant argument graphs, Walton scheme recognition, ASPIC+ preference ordering, and dialogue move tracking — all in a production web platform. The result: a living laboratory for argumentation research that also serves real deliberation needs.</p>
+<p>We're building for interoperability. Argument graphs export to standard formats. APIs enable integration with analysis tools. We seek collaborators interested in applied argumentation.</p>
+</blockquote>
+<hr>
+<h3 id="63-for-policy--governance-professionals">6.3 For Policy &amp; Governance Professionals</h3>
+<blockquote>
+<p><strong>Mesh: Deliberation with Receipts</strong></p>
+<p>Policy decisions face a twin challenge: they need to be defensible (grounded in evidence and reasoning) and they need to be explicable (the reasoning needs to be visible to stakeholders).</p>
+<p>Mesh addresses both. When your team deliberates on Mesh, the reasoning is captured structurally — not as meeting notes, but as a graph of claims, evidence, arguments, and their relationships. When you publish the decision, you can link directly to the supporting reasoning. When stakeholders challenge, you can point to the specific argument and the specific evidence.</p>
+<p>We call this &quot;deliberation with receipts.&quot; It's governance infrastructure for an era that demands transparency.</p>
+</blockquote>
+<hr>
+<h3 id="64-for-developers--technical-teams">6.4 For Developers &amp; Technical Teams</h3>
+<blockquote>
+<p><strong>Mesh: The Argumentation Layer</strong></p>
+<p>Most collaboration tools treat content as unstructured text. Mesh treats it as structured argumentation — claims with types, arguments with schemes, relationships with semantics (supports, attacks, undercuts).</p>
+<p>Under the hood: Next.js 14 frontend, Prisma/Postgres backend, AIF-compliant data model, real-time sync via Supabase. Key abstractions include Claims (canonical assertions), Arguments (premise-conclusion structures with scheme annotations), Chains (argument networks), and DialogueMoves (commitment-tracking protocol).</p>
+<p>We expose APIs for everything. Argument graphs are exportable. The system is designed for integration with analysis, visualization, and AI augmentation tools.</p>
+</blockquote>
+<hr>
+<h3 id="65-for-community-organizers">6.5 For Community Organizers</h3>
+<blockquote>
+<p><strong>Mesh: Discussions That Build</strong></p>
+<p>Community discussions often feel like they go in circles. The same points get made meeting after meeting. Good ideas surface but never connect. Disagreements repeat without progress.</p>
+<p>Mesh changes this by giving structure to discussion. When someone makes a point, it becomes a claim that others can support or question. When an argument is made, its structure is visible — so everyone sees what premises lead to what conclusions. When there's disagreement, it's tracked — so the community can see what's contested and what's settled.</p>
+<p>Over time, your discussions build a knowledge base. New members can see the history. Future meetings can reference past reasoning. The community's collective intelligence compounds.</p>
+</blockquote>
+<hr>
+<h2 id="7-key-phrases--vocabulary">7. Key Phrases &amp; Vocabulary</h2>
+<h3 id="71-phrases-to-use">7.1 Phrases to Use</h3>
+<table>
+<thead>
+<tr>
+<th>Phrase</th>
+<th>Why It Works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;Reasoning as infrastructure&quot;</td>
+<td>Positions the platform as fundamental, not optional</td>
+</tr>
+<tr>
+<td>&quot;Structure on demand&quot;</td>
+<td>Captures progressive formalization without jargon</td>
+</tr>
+<tr>
+<td>&quot;Discussions that produce artifacts&quot;</td>
+<td>Emphasizes tangible output</td>
+</tr>
+<tr>
+<td>&quot;Traceable claims&quot;</td>
+<td>Concrete, auditable</td>
+</tr>
+<tr>
+<td>&quot;Visible arguments&quot;</td>
+<td>Clear value, no jargon</td>
+</tr>
+<tr>
+<td>&quot;Audit trail for reasoning&quot;</td>
+<td>Appeals to governance/accountability</td>
+</tr>
+<tr>
+<td>&quot;Build on prior work&quot;</td>
+<td>Compounds value over time</td>
+</tr>
+<tr>
+<td>&quot;Disagreement with structure&quot;</td>
+<td>Reframes conflict as productive</td>
+</tr>
+<tr>
+<td>&quot;Institutional memory for reasoning&quot;</td>
+<td>Captures persistence value</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-phrases-to-reconsider">7.2 Phrases to Reconsider</h3>
+<table>
+<thead>
+<tr>
+<th>Phrase</th>
+<th>Issue</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;Commitment stores&quot;</td>
+<td>Jargon</td>
+<td>&quot;Track what's been agreed&quot;</td>
+</tr>
+<tr>
+<td>&quot;Walton schemes&quot;</td>
+<td>Requires background</td>
+<td>&quot;Established reasoning patterns&quot;</td>
+</tr>
+<tr>
+<td>&quot;AIF ontology&quot;</td>
+<td>Very technical</td>
+<td>&quot;Standard format for argument exchange&quot;</td>
+</tr>
+<tr>
+<td>&quot;Progressive formalization&quot;</td>
+<td>Academic</td>
+<td>&quot;Structure on demand&quot; or &quot;complexity when you need it&quot;</td>
+</tr>
+<tr>
+<td>&quot;Undercuts/rebuts/undermines&quot;</td>
+<td>Attack taxonomy jargon</td>
+<td>&quot;Types of challenge&quot; or just &quot;challenges&quot;</td>
+</tr>
+<tr>
+<td>&quot;Crisis of collective reasoning&quot;</td>
+<td>Heavy/dramatic</td>
+<td>Test alternatives</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-metaphor-vocabulary">7.3 Metaphor Vocabulary</h3>
+<table>
+<thead>
+<tr>
+<th>Metaphor Domain</th>
+<th>Example Phrases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>Roads for thought, pipes for reasoning, utilities for deliberation</td>
+</tr>
+<tr>
+<td><strong>Construction</strong></td>
+<td>Build arguments, construct chains, assemble knowledge</td>
+</tr>
+<tr>
+<td><strong>Gardening</strong></td>
+<td>Cultivate ideas, prune dead ends, grow understanding</td>
+</tr>
+<tr>
+<td><strong>Cartography</strong></td>
+<td>Map the reasoning, navigate disagreements, chart positions</td>
+</tr>
+<tr>
+<td><strong>Legal/Forensic</strong></td>
+<td>Audit trail, evidence linking, defensible decisions</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="8-anti-patterns-to-avoid">8. Anti-Patterns to Avoid</h2>
+<h3 id="81-tone-anti-patterns">8.1 Tone Anti-Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Anti-Pattern</th>
+<th>Example</th>
+<th>Why It's Bad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Doom-leading</strong></td>
+<td>&quot;Democracy is failing because...&quot;</td>
+<td>Heavy, may repel rather than attract</td>
+</tr>
+<tr>
+<td><strong>Jargon-flexing</strong></td>
+<td>&quot;Implements ASPIC+ preference ordering over Dung acceptability extensions&quot;</td>
+<td>Excludes most readers</td>
+</tr>
+<tr>
+<td><strong>Vague claims</strong></td>
+<td>&quot;Mesh makes discussions better&quot;</td>
+<td>No specificity, not credible</td>
+</tr>
+<tr>
+<td><strong>Feature laundry</strong></td>
+<td>&quot;Supports X, Y, Z, A, B, C...&quot;</td>
+<td>Overwhelming, no hierarchy</td>
+</tr>
+<tr>
+<td><strong>Competitor bashing</strong></td>
+<td>&quot;Unlike Slack, which is terrible at...&quot;</td>
+<td>Defensive, unprofessional</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82-structure-anti-patterns">8.2 Structure Anti-Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Anti-Pattern</th>
+<th>Example</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Wall of text</strong></td>
+<td>500-word paragraph</td>
+<td>Break into scannable sections</td>
+</tr>
+<tr>
+<td><strong>Buried lede</strong></td>
+<td>Key value in paragraph 3</td>
+<td>Lead with core value</td>
+</tr>
+<tr>
+<td><strong>Missing examples</strong></td>
+<td>All abstract description</td>
+<td>Add &quot;for example&quot; moments</td>
+</tr>
+<tr>
+<td><strong>No call to action</strong></td>
+<td>Ends with description</td>
+<td>End with next step</td>
+</tr>
+</tbody>
+</table>
+<h3 id="83-positioning-anti-patterns">8.3 Positioning Anti-Patterns</h3>
+<table>
+<thead>
+<tr>
+<th>Anti-Pattern</th>
+<th>Why It's Bad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>&quot;We're like X but better&quot;</strong></td>
+<td>Invites comparison; defines you by competitor</td>
+</tr>
+<tr>
+<td><strong>&quot;For everyone&quot;</strong></td>
+<td>Too broad; signals nothing</td>
+</tr>
+<tr>
+<td><strong>Overpromising</strong></td>
+<td>&quot;Solves polarization&quot; — sets up for disappointment</td>
+</tr>
+<tr>
+<td><strong>Underselling</strong></td>
+<td>&quot;A tool for organizing discussions&quot; — sounds commodity</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="9-iteration-notes">9. Iteration Notes</h2>
+<h3 id="91-questions-to-answer-through-testing">9.1 Questions to Answer Through Testing</h3>
+<ul>
+<li><input type="checkbox" id="checkbox0"><label for="checkbox0">Does &quot;reasoning infrastructure&quot; resonate or feel abstract?</label></li>
+<li><input type="checkbox" id="checkbox1"><label for="checkbox1">Is &quot;Digital Agora&quot; evocative or pretentious?</label></li>
+<li><input type="checkbox" id="checkbox2"><label for="checkbox2">How much academic grounding do different audiences want?</label></li>
+<li><input type="checkbox" id="checkbox3"><label for="checkbox3">Is problem-first or possibility-first more compelling?</label></li>
+<li><input type="checkbox" id="checkbox4"><label for="checkbox4">Which metaphor domain (infrastructure, construction, gardening, etc.) lands best?</label></li>
+</ul>
+<h3 id="92-ab-test-candidates">9.2 A/B Test Candidates</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Option A</th>
+<th>Option B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Opening</strong></td>
+<td>&quot;The Crisis of Collective Reasoning&quot;</td>
+<td>&quot;Imagine if discussions produced knowledge graphs&quot;</td>
+</tr>
+<tr>
+<td><strong>Core metaphor</strong></td>
+<td>&quot;Infrastructure for reasoning&quot;</td>
+<td>&quot;The Wikipedia for arguments&quot;</td>
+</tr>
+<tr>
+<td><strong>Technical credibility</strong></td>
+<td>&quot;Built on AIF, Walton, ASPIC+&quot;</td>
+<td>&quot;Grounded in argumentation science&quot;</td>
+</tr>
+<tr>
+<td><strong>Call to action</strong></td>
+<td>&quot;Request a demo&quot;</td>
+<td>&quot;Try the sandbox&quot;</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-feedback-log">9.3 Feedback Log</h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Source</th>
+<th>Feedback</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Add entries as you gather feedback</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="94-version-history">9.4 Version History</h3>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>Dec 2024</td>
+<td>Initial brainstorm document</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="next-steps">Next Steps</h2>
+<ol>
+<li><strong>Select 2-3 draft summaries</strong> for each audience/length to refine</li>
+<li><strong>Test with target audiences</strong> — which phrases resonate? Which confuse?</li>
+<li><strong>Develop visual companion</strong> — diagram that captures the platform at a glance</li>
+<li><strong>Create modular components</strong> — sentences that can be mixed/matched</li>
+<li><strong>Establish canonical versions</strong> — one &quot;official&quot; summary per audience/use case</li>
+</ol>
+<hr>
+<p><em>This is a working document. Add notes, variations, and feedback as the messaging evolves.</em></p>
+<hr>
+<h2 id="10-gestalt-reframing-new-lenses-on-the-whole">10. Gestalt Reframing: New Lenses on the Whole</h2>
+<p>This section steps outside existing framings to explore fundamentally different ways of seeing what Mesh is and does. Instead of starting from &quot;what we built,&quot; we start from &quot;what patterns emerge when you look at all the pieces together?&quot;</p>
+<h3 id="101-systems-inventory-what-we-actually-have">10.1 Systems Inventory (What We Actually Have)</h3>
+<p>Before reframing, let's inventory the actual capabilities without the usual framing:</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>What It Actually Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Claims</strong></td>
+<td>Creates stable, addressable units of assertion that can be linked, versioned, and related</td>
+</tr>
+<tr>
+<td><strong>Arguments</strong></td>
+<td>Connects claims in structured premise-conclusion relationships with typed schemes</td>
+</tr>
+<tr>
+<td><strong>Chains</strong></td>
+<td>Composes arguments into larger networks (serial, convergent, divergent, linked)</td>
+</tr>
+<tr>
+<td><strong>Dialogue Moves</strong></td>
+<td>Records every speech act with actor, target, and type (assert, challenge, concede, retract)</td>
+</tr>
+<tr>
+<td><strong>Commitment Stores</strong></td>
+<td>Tracks what each participant is publicly committed to at any point</td>
+</tr>
+<tr>
+<td><strong>Attack/Defense</strong></td>
+<td>Models disagreement as typed relationships (rebut, undercut, undermine)</td>
+</tr>
+<tr>
+<td><strong>Critical Questions</strong></td>
+<td>Auto-generates challenges appropriate to each argument scheme</td>
+</tr>
+<tr>
+<td><strong>Schemes</strong></td>
+<td>Provides 60+ recognized patterns for reasoning with structure</td>
+</tr>
+<tr>
+<td><strong>Evidence Linking</strong></td>
+<td>Connects claims to external sources with typed relationships</td>
+</tr>
+<tr>
+<td><strong>ASPIC+ Theory</strong></td>
+<td>Formalizes arguments as defeasible rules with preferences</td>
+</tr>
+<tr>
+<td><strong>Ludics</strong></td>
+<td>Models reasoning as game-theoretic interaction with positions and commitments</td>
+</tr>
+<tr>
+<td><strong>Propositions</strong></td>
+<td>Enables informal discussion, voting, and endorsement</td>
+</tr>
+<tr>
+<td><strong>Issues</strong></td>
+<td>Tracks open questions, clarification requests, and community flags</td>
+</tr>
+<tr>
+<td><strong>Non-Canonical Moves</strong></td>
+<td>Allows community contributions with author approval workflow</td>
+</tr>
+<tr>
+<td><strong>Thesis/Output</strong></td>
+<td>Composes reasoning into publishable documents with citation</td>
+</tr>
+<tr>
+<td><strong>Scopes</strong></td>
+<td>Partitions arguments by epistemic status (hypothetical, counterfactual, etc.)</td>
+</tr>
+<tr>
+<td><strong>Graphs/Visualization</strong></td>
+<td>Renders reasoning as navigable visual networks</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="102-radical-reframings">10.2 Radical Reframings</h3>
+<h4 id="reframe-a-%22a-programming-language-for-thought%22">Reframe A: &quot;A Programming Language for Thought&quot;</h4>
+<p>What if Mesh isn't a platform but a <strong>language</strong>?</p>
+<p>Programming languages don't just store code — they provide primitives (variables, functions, types) and composition rules (how primitives combine). Mesh provides primitives for reasoning (claims, arguments, attacks) and composition rules (how they combine into chains, dialogues, theories).</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Users aren't &quot;discussing&quot; — they're &quot;programming&quot; a reasoning structure</li>
+<li>The output isn't a document — it's an executable specification of thought</li>
+<li>Errors aren't disagreements — they're type mismatches or logical faults</li>
+<li>Learning Mesh is like learning to code, not learning to use an app</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a programming language for collective reasoning. Instead of variables and functions, you work with claims and arguments. Instead of compiling to machine code, you compile to defensible decisions.&quot;</p>
+<hr>
+<h4 id="reframe-b-%22a-forensic-laboratory-for-ideas%22">Reframe B: &quot;A Forensic Laboratory for Ideas&quot;</h4>
+<p>What if Mesh is fundamentally about <strong>investigation</strong> rather than discussion?</p>
+<p>Forensic labs don't create evidence — they analyze it, trace its provenance, test its reliability, and establish chains of custody. Mesh does the same for ideas: every claim has provenance, every argument can be stress-tested, every conclusion has a traceable chain.</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>The platform is for <em>interrogating</em> ideas, not just sharing them</li>
+<li>Critical questions become forensic tests</li>
+<li>Attack types are diagnostic categories</li>
+<li>The output is an investigation report, not a summary</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a forensic laboratory for ideas. When reasoning matters — in policy, in law, in governance — you need to trace every claim to its source, test every inference, and document the chain of evidence. That's what we do.&quot;</p>
+<hr>
+<h4 id="reframe-c-%22a-constitution-writing-system%22">Reframe C: &quot;A Constitution-Writing System&quot;</h4>
+<p>What if Mesh is about creating <strong>binding agreements</strong> rather than just understanding?</p>
+<p>Constitutions aren't just documents — they're negotiated structures that bind future action. They require: explicit statement of principles (claims), justification for those principles (arguments), acknowledged areas of disagreement (attack relations), and mechanisms for amendment (dialogue moves).</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Deliberations produce <em>constitutional</em> artifacts — binding, citable, amendable</li>
+<li>Commitment stores become <em>signatories</em> — who has agreed to what</li>
+<li>The platform is for groups that need to commit, not just converse</li>
+<li>Output isn't a thesis — it's a charter</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a system for writing constitutions — not just national ones, but any binding agreement that needs to be justified, debated, and ratified. From organizational charters to community guidelines to policy frameworks.&quot;</p>
+<hr>
+<h4 id="reframe-d-%22a-collaborative-proof-assistant%22">Reframe D: &quot;A Collaborative Proof Assistant&quot;</h4>
+<p>What if Mesh is <strong>mathematical</strong> rather than rhetorical?</p>
+<p>Proof assistants (Coq, Lean, Isabelle) help mathematicians verify that proofs are correct. Mesh helps groups verify that arguments are sound. The difference: math proofs are about abstract objects; Mesh proofs are about claims in the world.</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Arguments are <em>proofs</em> subject to verification</li>
+<li>Critical questions are <em>proof obligations</em> that must be discharged</li>
+<li>ASPIC+ theory is the <em>type system</em> for reasoning</li>
+<li>Acceptability semantics are <em>proof checkers</em></li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a proof assistant for real-world reasoning. Just as mathematicians use Coq to verify proofs, organizations use Mesh to verify arguments. Every claim, every inference, every conclusion — checked for soundness.&quot;</p>
+<hr>
+<h4 id="reframe-e-%22a-version-control-system-for-belief%22">Reframe E: &quot;A Version Control System for Belief&quot;</h4>
+<p>What if Mesh is <strong>Git for ideas</strong>?</p>
+<p>Version control doesn't just store code — it tracks changes, manages branches, handles conflicts, and enables collaboration at scale. Mesh does the same for reasoning: commits (dialogue moves), branches (scopes), conflicts (attacks), merges (resolutions).</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Every dialogue move is a <em>commit</em> to a reasoning repository</li>
+<li>Scopes are <em>branches</em> — alternative lines of reasoning</li>
+<li>Attacks are <em>merge conflicts</em> — incompatible changes that need resolution</li>
+<li>Thesis output is a <em>release</em> — a stable, tagged version of understanding</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is Git for belief. Track every change to your collective understanding. Branch into hypotheticals. Resolve conflicts when reasoning collides. Tag stable releases. Never lose the history of how you got here.&quot;</p>
+<hr>
+<h4 id="reframe-f-%22a-court-system-for-epistemic-disputes%22">Reframe F: &quot;A Court System for Epistemic Disputes&quot;</h4>
+<p>What if Mesh is a <strong>legal system</strong> rather than a discussion platform?</p>
+<p>Courts don't just host arguments — they provide procedures, roles, standards of evidence, and binding judgments. Mesh provides dialogue protocols (procedures), participant roles (proponent/opponent), evidence standards (source linking), and resolution mechanisms (acceptability).</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Dialogue moves are <em>pleadings</em> and <em>motions</em></li>
+<li>Schemes are <em>legal standards</em> — established patterns for what counts as proof</li>
+<li>Critical questions are <em>cross-examination</em></li>
+<li>ASPIC+ acceptability is <em>judgment</em> — what stands after challenge</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a court system for epistemic disputes. When groups need to settle contested questions — not by authority or vote, but by reasoned argument — they need procedures, standards, and judgments. That's what we provide.&quot;</p>
+<hr>
+<h4 id="reframe-g-%22an-immune-system-for-organizations%22">Reframe G: &quot;An Immune System for Organizations&quot;</h4>
+<p>What if Mesh is about <strong>organizational health</strong> rather than decision-making?</p>
+<p>Immune systems detect threats, mount responses, and remember past pathogens. Organizations face epistemic threats: bad reasoning, unsupported claims, circular arguments. Mesh detects (contradiction detection), responds (attack mechanisms), and remembers (institutional memory).</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Critical questions are <em>antibodies</em> — targeted responses to weak arguments</li>
+<li>Attack types are <em>immune responses</em> — specific to the threat type</li>
+<li>Commitment stores are <em>immune memory</em> — what the organization &quot;knows&quot;</li>
+<li>The platform is preventive medicine for institutional reasoning</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is an immune system for organizations. Bad reasoning is a pathogen — it spreads, causes damage, weakens institutions. We provide the detection, response, and memory systems that keep organizational reasoning healthy.&quot;</p>
+<hr>
+<h4 id="reframe-h-%22a-slow-media-platform%22">Reframe H: &quot;A Slow Media Platform&quot;</h4>
+<p>What if Mesh is the opposite of social media — <strong>anti-viral by design</strong>?</p>
+<p>Social media optimizes for speed, emotion, and sharing. Mesh optimizes for depth, reflection, and resolution. Virality is a failure mode, not a success metric. The goal is not reach but rigor.</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>&quot;Engagement&quot; means depth of reasoning, not clicks</li>
+<li>Success is resolution, not reaction</li>
+<li>Content that spreads is content that survives challenge</li>
+<li>The platform is a refuge from the attention economy</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is slow media. In a world optimized for outrage and virality, we optimize for depth and resolution. No infinite scroll. No engagement metrics. Just structured reasoning that takes as long as it takes.&quot;</p>
+<hr>
+<h4 id="reframe-i-%22a-scoring-system-for-ideas%22">Reframe I: &quot;A Scoring System for Ideas&quot;</h4>
+<p>What if Mesh is fundamentally about <strong>evaluation</strong> rather than discussion?</p>
+<p>Sports have scoring systems. Science has peer review. Markets have prices. What's the scoring system for ideas? Mesh provides it: ideas are scored by how well they survive challenge, how much evidence supports them, how many critical questions they've answered.</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Every claim has a <em>score</em> based on support/attack balance</li>
+<li>Arguments are <em>rated</em> by scheme appropriateness and premise strength</li>
+<li>Participants have <em>ratings</em> based on commitment consistency</li>
+<li>The platform is a meritocracy for reasoning</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a scoring system for ideas. In sports, the best team wins. In markets, the best price wins. In Mesh, the best argument wins — objectively scored by evidence, structure, and survival under challenge.&quot;</p>
+<hr>
+<h4 id="reframe-j-%22a-collective-exocortex%22">Reframe J: &quot;A Collective Exocortex&quot;</h4>
+<p>What if Mesh is a <strong>cognitive prosthetic</strong> for groups?</p>
+<p>Individuals have brains that remember, reason, and revise. Groups don't — they have meetings, which are forgotten; documents, which are static; and cultures, which are slow. Mesh gives groups the cognitive capabilities individuals have.</p>
+<p><strong>Implications</strong>:</p>
+<ul>
+<li>Commitment stores are <em>group memory</em></li>
+<li>Dialogue is <em>group reasoning</em> made visible</li>
+<li>Resolution mechanisms are <em>group revision</em> of belief</li>
+<li>The platform is a brain for collectives</li>
+</ul>
+<p><strong>Pitch</strong>: &quot;Mesh is a collective exocortex — an external brain for groups. Individuals remember; groups forget. Individuals reason; groups argue. Individuals revise; groups repeat. Mesh gives groups the cognitive capabilities individuals take for granted.&quot;</p>
+<hr>
+<h3 id="103-cross-cutting-themes">10.3 Cross-Cutting Themes</h3>
+<p>Looking across all reframings, some themes emerge:</p>
+<table>
+<thead>
+<tr>
+<th>Theme</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Addressability</strong></td>
+<td>Things have stable identifiers and can be pointed to</td>
+</tr>
+<tr>
+<td><strong>Composability</strong></td>
+<td>Small pieces combine into larger structures</td>
+</tr>
+<tr>
+<td><strong>Traceability</strong></td>
+<td>Every state connects to the actions that produced it</td>
+</tr>
+<tr>
+<td><strong>Adversariality</strong></td>
+<td>Challenge is built in, not bolted on</td>
+</tr>
+<tr>
+<td><strong>Durability</strong></td>
+<td>Structures persist beyond the conversation</td>
+</tr>
+<tr>
+<td><strong>Formalism</strong></td>
+<td>Structure is explicit, not implicit</td>
+</tr>
+</tbody>
+</table>
+<p>These might be more fundamental than any single metaphor.</p>
+<hr>
+<h3 id="104-provocative-questions">10.4 Provocative Questions</h3>
+<p>Questions that might unlock new perspectives:</p>
+<ol>
+<li>
+<p><strong>What if the primary output isn't text but <em>relationships</em>?</strong></p>
+<ul>
+<li>The graph of claim-argument-attack relations might be the real product</li>
+<li>Documents are just one rendering of that graph</li>
+</ul>
+</li>
+<li>
+<p><strong>What if Mesh is primarily a <em>memory</em> system?</strong></p>
+<ul>
+<li>Not for making decisions but for remembering how decisions were made</li>
+<li>The platform is a historian, not a facilitator</li>
+</ul>
+</li>
+<li>
+<p><strong>What if the value is in the <em>structure</em>, not the content?</strong></p>
+<ul>
+<li>The scheme annotations, attack types, and chain patterns are the value</li>
+<li>Content could be placeholder; structure is the asset</li>
+</ul>
+</li>
+<li>
+<p><strong>What if Mesh is a <em>calibration</em> tool?</strong></p>
+<ul>
+<li>Not for reaching conclusions but for discovering where you actually disagree</li>
+<li>The platform reveals the precise points of divergence</li>
+</ul>
+</li>
+<li>
+<p><strong>What if users are <em>co-authors of a formal system</em>?</strong></p>
+<ul>
+<li>Each deliberation creates a local formal language for that topic</li>
+<li>The claims become the vocabulary; the arguments become the grammar</li>
+</ul>
+</li>
+<li>
+<p><strong>What if Mesh is infrastructure for <em>human-AI hybrid reasoning</em>?</strong></p>
+<ul>
+<li>AI can generate arguments; humans can evaluate them</li>
+<li>AI can suggest attacks; humans can judge acceptability</li>
+<li>The platform is a collaboration medium between human and machine reasoning</li>
+</ul>
+</li>
+<li>
+<p><strong>What if the &quot;dialogue&quot; is with <em>future selves</em>?</strong></p>
+<ul>
+<li>The primary audience for a deliberation is the same group in 6 months</li>
+<li>The platform is a message to the future</li>
+</ul>
+</li>
+<li>
+<p><strong>What if Mesh is a <em>speculation</em> platform?</strong></p>
+<ul>
+<li>Not for reaching truth but for exploring possibility space</li>
+<li>Scopes become parallel universes of assumption</li>
+<li>The platform is a multiverse simulator for ideas</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="105-hybrid-framings">10.5 Hybrid Framings</h3>
+<p>Some combinations that might be generative:</p>
+<table>
+<thead>
+<tr>
+<th>Hybrid</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Forensic Proof Assistant</strong></td>
+<td>Investigate ideas with mathematical rigor</td>
+</tr>
+<tr>
+<td><strong>Constitutional Git</strong></td>
+<td>Version-controlled binding agreements</td>
+</tr>
+<tr>
+<td><strong>Legal Immune System</strong></td>
+<td>Procedural responses to epistemic threats</td>
+</tr>
+<tr>
+<td><strong>Slow Exocortex</strong></td>
+<td>Deep collective cognition, not fast reaction</td>
+</tr>
+<tr>
+<td><strong>Scored Court</strong></td>
+<td>Judicial process with transparent metrics</td>
+</tr>
+<tr>
+<td><strong>Programming Language for Constitutions</strong></td>
+<td>Formal specification of governance</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="106-wild-cards-completely-different-angles">10.6 Wild Cards: Completely Different Angles</h3>
+<h4 id="%22mesh-as-archaeology%22">&quot;Mesh as Archaeology&quot;</h4>
+<p>The platform doesn't create knowledge — it <em>excavates</em> it. Claims are artifacts. Arguments are strata. Deliberations are dig sites. The work is careful extraction and cataloging.</p>
+<h4 id="%22mesh-as-gardening%22">&quot;Mesh as Gardening&quot;</h4>
+<p>Ideas are plants. Some need to be pruned (attacked). Some need support (arguments). The gardener's job is cultivation over time, not construction.</p>
+<h4 id="%22mesh-as-cuisine%22">&quot;Mesh as Cuisine&quot;</h4>
+<p>Claims are ingredients. Arguments are recipes. Chains are meals. Schemes are cooking techniques. The output is something people can consume and be nourished by.</p>
+<h4 id="%22mesh-as-cartography%22">&quot;Mesh as Cartography&quot;</h4>
+<p>The platform doesn't create territory — it maps it. The territory is the space of possible beliefs. Deliberation is surveying. Output is a map others can use to navigate.</p>
+<h4 id="%22mesh-as-therapy%22">&quot;Mesh as Therapy&quot;</h4>
+<p>The platform helps groups process disagreement. Attack/defense isn't combat — it's working through. Resolution isn't winning — it's healing. The facilitator role is therapeutic.</p>
+<h4 id="%22mesh-as-journalism%22">&quot;Mesh as Journalism&quot;</h4>
+<p>Every claim needs sourcing. Every argument needs fact-checking. The platform is a newsroom for ideas, with editorial standards and verification processes.</p>
+<hr>
+<h3 id="107-implications-for-messaging">10.7 Implications for Messaging</h3>
+<p>Different framings suggest different:</p>
+<table>
+<thead>
+<tr>
+<th>Framing</th>
+<th>Primary Verb</th>
+<th>Success Metric</th>
+<th>Failure Mode</th>
+<th>User Identity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Programming Language</td>
+<td>Compile</td>
+<td>Runs without errors</td>
+<td>Syntax error</td>
+<td>Developer</td>
+</tr>
+<tr>
+<td>Forensic Lab</td>
+<td>Investigate</td>
+<td>Evidence holds up</td>
+<td>Contamination</td>
+<td>Investigator</td>
+</tr>
+<tr>
+<td>Constitution</td>
+<td>Ratify</td>
+<td>Binding agreement</td>
+<td>Rejection</td>
+<td>Delegate</td>
+</tr>
+<tr>
+<td>Proof Assistant</td>
+<td>Verify</td>
+<td>Proof complete</td>
+<td>Unproven</td>
+<td>Mathematician</td>
+</tr>
+<tr>
+<td>Version Control</td>
+<td>Commit</td>
+<td>Clean merge</td>
+<td>Conflict</td>
+<td>Collaborator</td>
+</tr>
+<tr>
+<td>Court System</td>
+<td>Adjudicate</td>
+<td>Judgment rendered</td>
+<td>Mistrial</td>
+<td>Jurist</td>
+</tr>
+<tr>
+<td>Immune System</td>
+<td>Protect</td>
+<td>Health maintained</td>
+<td>Infection</td>
+<td>Caretaker</td>
+</tr>
+<tr>
+<td>Slow Media</td>
+<td>Reflect</td>
+<td>Resolution reached</td>
+<td>Noise</td>
+<td>Thinker</td>
+</tr>
+<tr>
+<td>Scoring System</td>
+<td>Evaluate</td>
+<td>Best wins</td>
+<td>Rigged game</td>
+<td>Judge</td>
+</tr>
+<tr>
+<td>Exocortex</td>
+<td>Remember</td>
+<td>Knowledge persists</td>
+<td>Amnesia</td>
+<td>Collective</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="108-underexplored-system-synergies">10.8 Underexplored System Synergies</h3>
+<p>Looking at how systems combine in non-obvious ways:</p>
+<h4 id="scopes-%C3%97-commitments--%22conditional-agreements%22">Scopes × Commitments = &quot;Conditional Agreements&quot;</h4>
+<p>What if scopes aren't just for organizing arguments but for organizing <em>agreements</em>? &quot;Under assumption X, we commit to Y.&quot; Conditional treaties.</p>
+<h4 id="critical-questions-%C3%97-issues--%22structured-due-diligence%22">Critical Questions × Issues = &quot;Structured Due Diligence&quot;</h4>
+<p>What if the CQ system automatically generates the issues that due diligence requires? Every argument scheme comes with its audit checklist.</p>
+<h4 id="chains-%C3%97-dialogue-moves--%22choreographed-debate%22">Chains × Dialogue Moves = &quot;Choreographed Debate&quot;</h4>
+<p>What if argument chains aren't just structures but <em>scripts</em> for dialogue? The chain defines the moves that need to happen for the argument to be complete.</p>
+<h4 id="attack-types-%C3%97-analytics--%22vulnerability-assessment%22">Attack Types × Analytics = &quot;Vulnerability Assessment&quot;</h4>
+<p>What if tracking attack patterns reveals organizational blind spots? &quot;Your arguments are frequently undercut at the evidence level — strengthen sourcing.&quot;</p>
+<h4 id="aspic-%C3%97-output--%22formally-verified-documents%22">ASPIC+ × Output = &quot;Formally Verified Documents&quot;</h4>
+<p>What if thesis documents could carry formal certificates? &quot;This document's central argument has been checked for acceptability under the Dung grounded extension.&quot;</p>
+<h4 id="ludics-%C3%97-propositions--%22game-theoretic-voting%22">Ludics × Propositions = &quot;Game-Theoretic Voting&quot;</h4>
+<p>What if voting was informed by game-theoretic analysis? &quot;Warning: this vote would commit you to positions you've previously attacked.&quot;</p>
+<hr>
+<h3 id="109-%22accidental%22-use-cases">10.9 &quot;Accidental&quot; Use Cases</h3>
+<p>What if the platform gets used in ways we didn't design for?</p>
+<table>
+<thead>
+<tr>
+<th>Accidental Use</th>
+<th>How It Would Work</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Philosophical Inquiry</strong></td>
+<td>Use schemes and CQs as a structured method for doing philosophy</td>
+</tr>
+<tr>
+<td><strong>Jury Deliberation Support</strong></td>
+<td>Track juror commitments, map the argument, identify contested facts</td>
+</tr>
+<tr>
+<td><strong>Scientific Peer Review</strong></td>
+<td>Structure reviews as attacks, track responses, generate revision requirements</td>
+</tr>
+<tr>
+<td><strong>Treaty Negotiation</strong></td>
+<td>Map positions, identify zones of agreement, generate treaty text from resolved claims</td>
+</tr>
+<tr>
+<td><strong>Classroom Debate Training</strong></td>
+<td>Students practice structured argumentation with real-time scheme identification</td>
+</tr>
+<tr>
+<td><strong>AI Alignment Research</strong></td>
+<td>Use the platform to map alignment arguments and track open problems</td>
+</tr>
+<tr>
+<td><strong>Legal Brief Drafting</strong></td>
+<td>Compose briefs by selecting arguments from pre-structured pools</td>
+</tr>
+<tr>
+<td><strong>Investigative Journalism</strong></td>
+<td>Map claims, sources, and evidence chains for complex stories</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="1010-the-%22one-weird-trick%22-framing">10.10 The &quot;One Weird Trick&quot; Framing</h3>
+<p>What's the single most surprising or counterintuitive thing about Mesh?</p>
+<p><strong>Candidates</strong>:</p>
+<ol>
+<li>
+<p><strong>&quot;Disagreement is a feature, not a bug.&quot;</strong>
+We build attack/defense into the core model. Most tools try to minimize conflict; we formalize it.</p>
+</li>
+<li>
+<p><strong>&quot;We make you commit.&quot;</strong>
+Commitment stores track what you've publicly asserted. You can't just argue — you're accountable.</p>
+</li>
+<li>
+<p><strong>&quot;Arguments have types.&quot;</strong>
+Not all arguments are the same. Schemes make the structure explicit — and expose the weaknesses.</p>
+</li>
+<li>
+<p><strong>&quot;The conversation is the document.&quot;</strong>
+Dialogue moves directly compose into publishable artifacts. No separate write-up phase.</p>
+</li>
+<li>
+<p><strong>&quot;We slow you down on purpose.&quot;</strong>
+Progressive formalization adds friction. That's intentional — rigor requires effort.</p>
+</li>
+<li>
+<p><strong>&quot;Your arguments can be graded.&quot;</strong>
+ASPIC+ acceptability semantics give objective ratings. Arguments that survive challenge win.</p>
+</li>
+</ol>
+<hr>
+<h3 id="1011-workshop-exercise-gestalt-synthesis">10.11 Workshop Exercise: Gestalt Synthesis</h3>
+<p><strong>Exercise</strong>: Pick 2-3 reframings that resonate. For each:</p>
+<ol>
+<li>Write a one-sentence summary using that frame</li>
+<li>Identify what this framing makes visible that others hide</li>
+<li>Identify what this framing hides that might matter</li>
+<li>Name one user story that this framing illuminates</li>
+</ol>
+<p><strong>Space for notes</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Reframing</th>
+<th>One-Sentence</th>
+<th>Makes Visible</th>
+<th>Hides</th>
+<th>User Story</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><em>This is a working document. Add notes, variations, and feedback as the messaging evolves.</em></p>
+
+</body>
+</html>

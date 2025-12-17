@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CATEGORICAL_FOUNDATIONS_ARCHITECTURE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<link rel="stylesheet" href="print-styles.css" media="print">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="categorical-foundations-architecture-deep-dive">Categorical Foundations Architecture: Deep Dive</h1>
+<p><strong>Version:</strong> 1.0<br>
+<strong>Date:</strong> December 12, 2025<br>
+<strong>Scope:</strong> Category Theory, Evidential Semantics, Cross-Deliberation Transport, Confidence Measures<br>
+<strong>Prerequisite Reading:</strong> AGORA_DELIBERATION_SYSTEM_ARCHITECTURE.md, AGORA_SUBSYSTEMS_ARCHITECTURE.md</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-executive-summary">Executive Summary</a></li>
+<li><a href="#2-theoretical-foundations">Theoretical Foundations: Ambler's Evidential Closed Category</a></li>
+<li><a href="#3-category-to-implementation-mapping">Category-to-Implementation Mapping</a></li>
+<li><a href="#4-the-deliberation-as-category">The Deliberation as Category</a></li>
+<li><a href="#5-morphisms-and-hom-sets">Morphisms and Hom-Sets</a></li>
+<li><a href="#6-confidence-measures">Confidence Measures</a></li>
+<li><a href="#7-plexus-category-of-categories">Plexus: Category of Categories</a></li>
+<li><a href="#8-transport-functors">Transport Functors</a></li>
+<li><a href="#9-argument-neighborhoods">Argument Neighborhoods</a></li>
+<li><a href="#10-debate-sheets-and-graph-views">Debate Sheets and Graph Views</a></li>
+<li><a href="#11-ds-mode-and-belief-mass">DS Mode and Belief Mass</a></li>
+<li><a href="#12-assumptions-and-belief-revision">Assumptions and Belief Revision</a></li>
+<li><a href="#13-implementation-status-matrix">Implementation Status Matrix</a></li>
+</ol>
+<hr>
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<p>The Mesh/Agora system implements a sophisticated <strong>categorical semantics for argumentation</strong> based on Simon Ambler's work on &quot;Evidential Closed Categories&quot; (ECCs). This architecture provides:</p>
+<ul>
+<li><strong>Formal rigor</strong>: Arguments as morphisms, claims as objects, with well-defined composition and aggregation</li>
+<li><strong>Quantified uncertainty</strong>: Confidence measures that map to Dempster-Shafer belief theory</li>
+<li><strong>Cross-room intelligence</strong>: Transport functors for importing arguments between deliberations</li>
+<li><strong>Multi-scale visualization</strong>: From atomic Toulmin diagrams to molecular Plexus networks</li>
+</ul>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                     CATEGORICAL HIERARCHY                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  L2: PLEXUS (Category of Categories)                                │    │
+│  │  • Objects = Deliberations (each an ECC)                            │    │
+│  │  • Morphisms = Transport Functors (RoomFunctor)                     │    │
+│  │  • Edges = {xref, overlap, stack_ref, imports, shared_author}       │    │
+│  └────────────────────────────────┬────────────────────────────────────┘    │
+│                                   │                                          │
+│                      ┌────────────┴────────────┐                            │
+│                      ▼                         ▼                            │
+│  ┌─────────────────────────────┐   ┌─────────────────────────────┐         │
+│  │  L1: DELIBERATION (ECC)     │   │  L1: DELIBERATION (ECC)     │         │
+│  │  • Objects = Claims         │   │  • Objects = Claims         │         │
+│  │  • Morphisms = Arguments    │   │  • Morphisms = Arguments    │         │
+│  │  • Hom-sets = SLat-enriched │   │  • Hom-sets = SLat-enriched │         │
+│  └────────────────┬────────────┘   └────────────────┬────────────┘         │
+│                   │                                  │                       │
+│          ┌────────┴────────┐                ┌───────┴────────┐              │
+│          ▼                 ▼                ▼                ▼              │
+│  ┌─────────────┐   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
+│  │ L0: ARGUMENT│   │ L0: ARGUMENT│  │ L0: ARGUMENT│  │ L0: ARGUMENT│       │
+│  │ (Toulmin)   │   │ (Toulmin)   │  │ (Toulmin)   │  │ (Toulmin)   │       │
+│  │ • Premises  │   │ • Premises  │  │ • Premises  │  │ • Premises  │       │
+│  │ • Inference │   │ • Inference │  │ • Inference │  │ • Inference │       │
+│  │ • Conclusion│   │ • Conclusion│  │ • Conclusion│  │ • Conclusion│       │
+│  └─────────────┘   └─────────────┘  └─────────────┘  └─────────────┘       │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="2-theoretical-foundations">2. Theoretical Foundations</h2>
+<h3 id="21-amblers-evidential-closed-category-ecc">2.1 Ambler's Evidential Closed Category (ECC)</h3>
+<p>The system is grounded in Ambler's categorical approach to argumentation semantics:</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Mathematical Structure</th>
+<th>Mesh Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Objects</strong></td>
+<td>Propositions</td>
+<td><code>Claim</code> model</td>
+</tr>
+<tr>
+<td><strong>Morphisms (Arrows)</strong></td>
+<td>Sets of λ-terms (arguments)</td>
+<td><code>Argument</code> + <code>ArgumentSupport</code></td>
+</tr>
+<tr>
+<td><strong>Hom-sets</strong></td>
+<td>Join semilattices (SLat)</td>
+<td>Union of arguments supporting A→B</td>
+</tr>
+<tr>
+<td><strong>Zero morphism</strong></td>
+<td>Empty set ∅</td>
+<td>No arguments from A to B</td>
+</tr>
+<tr>
+<td><strong>Join (∨)</strong></td>
+<td>Set union</td>
+<td>Accrual of multiple supports</td>
+</tr>
+<tr>
+<td><strong>Composition</strong></td>
+<td>Sequential chaining</td>
+<td>Premise → Inference → Conclusion</td>
+</tr>
+<tr>
+<td><strong>Tensor (⊗)</strong></td>
+<td>Conjunction of premises</td>
+<td><code>ArgumentPremise</code> collection</td>
+</tr>
+<tr>
+<td><strong>Internal hom [A,B]</strong></td>
+<td>Implication (warrant)</td>
+<td><code>Inference</code> with attackable warrant</td>
+</tr>
+<tr>
+<td><strong>Comonoid (Δ, t)</strong></td>
+<td>Copy/discard premises</td>
+<td>Premise reuse across inferences</td>
+</tr>
+<tr>
+<td><strong>Confidence measure</strong></td>
+<td>Morphism → Monoid</td>
+<td><code>ArgumentSupport.base</code> + mode</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-key-categorical-properties">2.2 Key Categorical Properties</h3>
+<pre class="hljs"><code><div>┌────────────────────────────────────────────────────────────────────────┐
+│                     CATEGORICAL LAWS SATISFIED                          │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. IDENTITY: For every claim A, id_A ∈ Hom(A, A)                      │
+│     → A claim trivially supports itself (reflexivity)                   │
+│                                                                         │
+│  2. COMPOSITION: Given f: A→B, g: B→C, there exists g∘f: A→C           │
+│     → Premise chains compose (transitive support)                       │
+│                                                                         │
+│  3. ASSOCIATIVITY: (h∘g)∘f = h∘(g∘f)                                   │
+│     → Order of chaining doesn't affect result                           │
+│                                                                         │
+│  4. SLAT-ENRICHMENT: Hom(A,B) is a join-semilattice                    │
+│     → Multiple arguments aggregate via ∨ (union)                        │
+│     → ∀f,g: f∨f=f, f∨g=g∨f, (f∨g)∨h=f∨(g∨h)                           │
+│                                                                         │
+│  5. DISTRIBUTIVITY: h∘(f∨g) = (h∘f)∨(h∘g)                              │
+│     → Composition distributes over aggregation                          │
+│                                                                         │
+│  6. CLOSURE: [X,Y] exists for all X,Y (internal hom)                   │
+│     → Warrants are first-class objects that can be attacked            │
+│                                                                         │
+└────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="23-theoretical-source-documents">2.3 Theoretical Source Documents</h3>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Location</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CategoryTheoryRoadmap.txt</td>
+<td><code>Agora_Reference_Documents/</code></td>
+<td>Primary implementation guide</td>
+</tr>
+<tr>
+<td>CategoryTheoryDevRoadmap.txt</td>
+<td><code>Agora_Reference_Documents/</code></td>
+<td>Development checklist</td>
+</tr>
+<tr>
+<td>Ambler1996.pdf</td>
+<td>External reference</td>
+<td>Original ECC theory</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-category-to-implementation-mapping">3. Category-to-Implementation Mapping</h2>
+<h3 id="31-objects-%E2%86%92-claims">3.1 Objects → Claims</h3>
+<pre class="hljs"><code><div>model Claim {
+  id                String   @id @default(cuid())
+  deliberationId    String
+  text              String
+  canonicalClaimId  String?  // For cross-room identity
+  // ... additional fields
+}
+</div></code></pre>
+<p><strong>Categorical Interpretation:</strong></p>
+<ul>
+<li>Each <code>Claim</code> is an <strong>object</strong> in the deliberation category</li>
+<li><code>canonicalClaimId</code> provides <strong>identity across categories</strong> (deliberations)</li>
+<li>Claims form the &quot;nodes&quot; in the categorical graph</li>
+</ul>
+<h3 id="32-morphisms-%E2%86%92-arguments-sets-of-derivations">3.2 Morphisms → Arguments (Sets of Derivations)</h3>
+<pre class="hljs"><code><div>model Argument {
+  id              String   @id @default(cuid())
+  deliberationId  String
+  claimId         String?  // Conclusion (target object)
+  text            String
+  schemeId        String?  // Links to ArgumentScheme
+  // ...
+}
+
+model ArgumentSupport {
+  id             String  @id @default(cuid())
+  deliberationId String
+  claimId        String  // Target claim (φ)
+  argumentId     String  // Contributing argument
+  base           Float?  // Confidence value [0,1]
+  composed       Boolean @default(false)  // Is this from chaining?
+  provenanceJson Json?   // Import tracking
+  // ...
+}
+</div></code></pre>
+<p><strong>Categorical Interpretation:</strong></p>
+<ul>
+<li>Each <code>Argument</code> is a <strong>derivation</strong> (single λ-term)</li>
+<li><code>ArgumentSupport</code> materializes <strong>hom-set membership</strong> (argument a ∈ Hom(I, φ))</li>
+<li>Multiple <code>ArgumentSupport</code> rows for same <code>claimId</code> = hom-set with |Hom| &gt; 1</li>
+<li><code>base</code> field = confidence measure c(f) for this morphism</li>
+</ul>
+<h3 id="33-composition-%E2%86%92-premise-chains">3.3 Composition → Premise Chains</h3>
+<pre class="hljs"><code><div>model ArgumentEdge {
+  id              String   @id @default(cuid())
+  deliberationId  String
+  fromArgumentId  String   // Source morphism
+  toArgumentId    String   // Target morphism
+  type            EdgeType // support, rebut, undercut, concede
+  // ...
+}
+
+model ArgumentPremise {
+  id         String  @id @default(cuid())
+  argumentId String
+  claimId    String  // Premise claim
+  isImplicit Boolean @default(false)
+  // ...
+}
+</div></code></pre>
+<p><strong>Categorical Interpretation:</strong></p>
+<ul>
+<li><code>ArgumentEdge(type=support)</code> models <strong>morphism composition</strong> (f ; g = f composed with g)</li>
+<li><code>ArgumentPremise</code> models the <strong>tensor product</strong> (A ⊗ B)</li>
+<li>Premises are &quot;inputs&quot; to the inference morphism</li>
+</ul>
+<h3 id="34-visualization-category-structure">3.4 Visualization: Category Structure</h3>
+<pre><code class="language-mermaid"><div class="mermaid">graph LR
+    subgraph "Deliberation Category (ECC)"
+        C1["Claim A<br/>(Object)"]
+        C2["Claim B<br/>(Object)"]
+        C3["Claim C<br/>(Object)"]
+        
+        A1["Argument 1"]
+        A2["Argument 2"]
+        A3["Argument 3"]
+        
+        C1 -->|"Hom(A,B)"| C2
+        C2 -->|"Hom(B,C)"| C3
+        C1 -->|"Composition"| C3
+        
+        A1 -.->|"∈"| C2
+        A2 -.->|"∈"| C2
+        A3 -.->|"∈"| C3
+    end
+    
+    style C1 fill:#e0f2fe
+    style C2 fill:#e0f2fe
+    style C3 fill:#e0f2fe
+    style A1 fill:#fef3c7
+    style A2 fill:#fef3c7
+    style A3 fill:#fef3c7
+</div></code></pre>
+<hr>
+<h2 id="4-the-deliberation-as-category">4. The Deliberation as Category</h2>
+<h3 id="41-core-structure">4.1 Core Structure</h3>
+<p>Each <code>Deliberation</code> is modeled as a small <strong>Evidential Closed Category</strong>:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────┐
+│                     DELIBERATION 𝒟                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Objects:    Ob(𝒟) = { Claims in this deliberation }           │
+│  Morphisms:  Mor(𝒟) = { Arguments supporting claims }          │
+│  Hom-sets:   𝒟(A,B) = { args deriving B from A }  (join-SLat)  │
+│  Terminal:   I = &quot;ground truth&quot; (no premises needed)            │
+│  Tensor:     A ⊗ B = conjunction of claims                      │
+│  Internal:   [A,B] = warrant (attackable implication)           │
+│  Conf:       c: Mor → [0,1] (confidence measure)                │
+└─────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="42-the-evidential-api">4.2 The Evidential API</h3>
+<p><strong>File:</strong> <code>app/api/deliberations/[id]/evidential/route.ts</code></p>
+<p>This API exposes the categorical structure:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Response shape</span>
+{
+  ok: <span class="hljs-literal">true</span>,
+  deliberationId: <span class="hljs-built_in">string</span>,
+  mode: <span class="hljs-string">"product"</span> | <span class="hljs-string">"min"</span> | <span class="hljs-string">"ds"</span>,
+  support: { [claimId: <span class="hljs-built_in">string</span>]: <span class="hljs-built_in">number</span> },      <span class="hljs-comment">// S(φ) = sup c(I→φ)</span>
+  dsSupport?: { [claimId: <span class="hljs-built_in">string</span>]: { bel: <span class="hljs-built_in">number</span>; pl: <span class="hljs-built_in">number</span> } },
+  hom: { [pair: <span class="hljs-built_in">string</span>]: { args: <span class="hljs-built_in">string</span>[] } }, <span class="hljs-comment">// Hom-set membership</span>
+  nodes: EvNode[],                             <span class="hljs-comment">// Claims with scores</span>
+  <span class="hljs-built_in">arguments</span>: ArgumentMeta[],                    <span class="hljs-comment">// Morphism metadata</span>
+  meta: { claims, supports, edges, conclusions }
+}
+</div></code></pre>
+<p><strong>Key Operations Implemented:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Mathematical</th>
+<th>Code Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>compose(xs, mode)</code></td>
+<td>Chain confidence (∘)</td>
+<td>Line 12</td>
+</tr>
+<tr>
+<td><code>join(xs, mode)</code></td>
+<td>Aggregate supports (∨)</td>
+<td>Line 13</td>
+</tr>
+<tr>
+<td>Support S(φ)</td>
+<td>sup{c(f) : f ∈ Hom(I,φ)}</td>
+<td>Lines 200-237</td>
+</tr>
+<tr>
+<td>Hom-set extraction</td>
+<td>𝒟(I, φ)</td>
+<td>Lines 240-241</td>
+</tr>
+</tbody>
+</table>
+<pre class="hljs"><code><div><span class="hljs-comment">// Composition (sequential chaining)</span>
+<span class="hljs-keyword">const</span> compose = <span class="hljs-function">(<span class="hljs-params">xs: <span class="hljs-built_in">number</span>[], mode: Mode</span>) =&gt;</span> 
+  !xs.length ? <span class="hljs-number">0</span> : <span class="hljs-function">(<span class="hljs-params">mode === 'min' ? <span class="hljs-built_in">Math</span>.min(<span class="hljs-params">...xs</span>) : xs.reduce(<span class="hljs-params">(<span class="hljs-params">a,b</span>) =&gt; a*b, 1</span>)</span>);
+
+// <span class="hljs-params">Join</span> (<span class="hljs-params">parallel aggregation via noisy-OR</span>)
+<span class="hljs-params">const</span> <span class="hljs-params">join</span> = (<span class="hljs-params">xs: <span class="hljs-built_in">number</span>[], mode: Mode</span>) =&gt;</span> 
+  !xs.length ? <span class="hljs-number">0</span> : <span class="hljs-function">(<span class="hljs-params">mode === 'min' ? <span class="hljs-built_in">Math</span>.max(<span class="hljs-params">...xs</span>) : 1 - xs.reduce(<span class="hljs-params">(<span class="hljs-params">a,s</span>) =&gt; a*(<span class="hljs-params">1-s</span>), 1</span>)</span>);
+</span></div></code></pre>
+<hr>
+<h2 id="5-morphisms-and-hom-sets">5. Morphisms and Hom-Sets</h2>
+<h3 id="51-hom-set-structure">5.1 Hom-Set Structure</h3>
+<p>In categorical terms, <strong>Hom(A, B)</strong> is the set of all morphisms from A to B. In Mesh:</p>
+<pre class="hljs"><code><div>Hom(A, B) = { arguments supporting claim B given claim A }
+</div></code></pre>
+<p>For the special case of support from &quot;nothing&quot;:</p>
+<pre class="hljs"><code><div>Hom(I, φ) = { arguments for claim φ with no premises }
+       ≈ { all arguments concluding φ }
+</div></code></pre>
+<h3 id="52-argumentsupport-model">5.2 ArgumentSupport Model</h3>
+<p><strong>File:</strong> <code>lib/models/schema.prisma</code> (lines 6039-6061)</p>
+<pre class="hljs"><code><div>model ArgumentSupport {
+  id             String  @id @default(cuid())
+  deliberationId String
+  claimId        String  // The claim being supported (φ)
+  argumentId     String  // The supporting argument
+
+  mode      String  @default(&quot;product&quot;)  // Scoring mode snapshot
+  strength  Float   @default(0.6)        // Computed confidence [0,1]
+  composed  Boolean @default(false)      // Derived via composition?
+  base      Float?                       // Raw confidence value
+
+  provenanceJson Json?  // For imported arguments: {kind, fingerprint, from...}
+
+  @@unique([claimId, argumentId, mode])
+  @@index([deliberationId, claimId])
+  @@index([argumentId])
+}
+</div></code></pre>
+<p><strong>Categorical Interpretation:</strong></p>
+<ul>
+<li>Each row = one element of a hom-set</li>
+<li><code>claimId</code> = target object B</li>
+<li><code>argumentId</code> = the morphism f: I → B</li>
+<li><code>base</code> = confidence c(f)</li>
+<li><code>composed</code> = true if f = g ∘ h (derived via transitivity)</li>
+</ul>
+<h3 id="53-homsetconfidencepanel-component">5.3 HomSetConfidencePanel Component</h3>
+<p><strong>File:</strong> <code>components/agora/HomSetConfidencePanel.tsx</code></p>
+<p>This UI component displays hom-set analysis:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">interface</span> HomSetConfidenceResult {
+  homSetSize: <span class="hljs-built_in">number</span>;           <span class="hljs-comment">// |Hom(A, B)|</span>
+  aggregateConfidence: <span class="hljs-built_in">number</span>;  <span class="hljs-comment">// Weighted average</span>
+  minConfidence: <span class="hljs-built_in">number</span>;        <span class="hljs-comment">// min{c(f) : f ∈ Hom}</span>
+  maxConfidence: <span class="hljs-built_in">number</span>;        <span class="hljs-comment">// max{c(f) : f ∈ Hom}</span>
+  uncertainty: <span class="hljs-built_in">number</span>;          <span class="hljs-comment">// Variance-based</span>
+  weightedConfidence: <span class="hljs-built_in">number</span>;   <span class="hljs-comment">// Edge-type weighted</span>
+  compositionalPaths?: CompositionalPath[];
+  edgeTypeDistribution: Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">number</span>&gt;;
+}
+</div></code></pre>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Individual morphism (edge) confidences</li>
+<li>Aggregate hom-set metrics</li>
+<li>Uncertainty visualization</li>
+<li>Compositional path breakdown</li>
+</ul>
+<h3 id="54-morphismcard-component">5.4 MorphismCard Component</h3>
+<p><strong>File:</strong> <code>components/agora/MorphismCard.tsx</code></p>
+<p>Displays single morphisms with edge-type styling:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> edgeStyles: Record&lt;<span class="hljs-built_in">string</span>, { Icon, color, label }&gt; = {
+  support:  { Icon: Shield,    color: <span class="hljs-string">"green"</span>,  label: <span class="hljs-string">"Support"</span> },
+  rebut:    { Icon: Slash,     color: <span class="hljs-string">"red"</span>,    label: <span class="hljs-string">"Rebut"</span> },
+  undercut: { Icon: ThumbsDown, color: <span class="hljs-string">"orange"</span>, label: <span class="hljs-string">"Undercut"</span> },
+  concede:  { Icon: Handshake, color: <span class="hljs-string">"sky"</span>,    label: <span class="hljs-string">"Concede"</span> },
+};
+</div></code></pre>
+<hr>
+<h2 id="6-confidence-measures">6. Confidence Measures</h2>
+<h3 id="61-mathematical-definition">6.1 Mathematical Definition</h3>
+<p>A <strong>confidence measure</strong> c is a morphism:</p>
+<pre class="hljs"><code><div>c: Hom(A, B) → ℳ
+</div></code></pre>
+<p>where ℳ is a commutative monoid with:</p>
+<ul>
+<li>Identity T (maximum confidence)</li>
+<li>Binary operation • (combination)</li>
+</ul>
+<p>Properties:</p>
+<ul>
+<li>c is a semilattice homomorphism: c(f ∨ g) = c(f) ⊕ c(g)</li>
+<li>c(id_A) = T (identities have max confidence)</li>
+<li>c(g ∘ f) ≥ c(g) • c(f) (composition is submultiplicative)</li>
+</ul>
+<h3 id="62-implemented-modes">6.2 Implemented Modes</h3>
+<p><strong>File:</strong> <code>app/api/deliberations/[id]/evidential/route.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Composition</th>
+<th>Join</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>min</strong></td>
+<td>min(xs)</td>
+<td>max(xs)</td>
+<td>Skeptical/cautious (weakest link)</td>
+</tr>
+<tr>
+<td><strong>product</strong></td>
+<td>Π(xs)</td>
+<td>1 - Π(1-xs)</td>
+<td>Probabilistic/independent</td>
+</tr>
+<tr>
+<td><strong>ds</strong></td>
+<td>DS rule</td>
+<td>Orthogonal sum</td>
+<td>Dempster-Shafer intervals</td>
+</tr>
+</tbody>
+</table>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> Mode = <span class="hljs-string">'product'</span> | <span class="hljs-string">'min'</span> | <span class="hljs-string">'ds'</span>;
+
+<span class="hljs-comment">// Composition: sequential chaining (premise → inference → conclusion)</span>
+<span class="hljs-keyword">const</span> compose = <span class="hljs-function">(<span class="hljs-params">xs: <span class="hljs-built_in">number</span>[], mode: Mode</span>) =&gt;</span> 
+  !xs.length ? <span class="hljs-number">0</span> : 
+  <span class="hljs-function">(<span class="hljs-params">mode === 'min' ? <span class="hljs-built_in">Math</span>.min(<span class="hljs-params">...xs</span>) : xs.reduce(<span class="hljs-params">(<span class="hljs-params">a, b</span>) =&gt; a * b, 1</span>)</span>);
+
+// <span class="hljs-params">Join</span>: <span class="hljs-params">parallel</span> <span class="hljs-params">aggregation</span> (<span class="hljs-params">multiple <span class="hljs-built_in">arguments</span> <span class="hljs-keyword">for</span> same claim</span>)
+<span class="hljs-params">const</span> <span class="hljs-params">join</span> = (<span class="hljs-params">xs: <span class="hljs-built_in">number</span>[], mode: Mode</span>) =&gt;</span> 
+  !xs.length ? <span class="hljs-number">0</span> : 
+  <span class="hljs-function">(<span class="hljs-params">mode === 'min' ? <span class="hljs-built_in">Math</span>.max(<span class="hljs-params">...xs</span>) : 1 - xs.reduce(<span class="hljs-params">(<span class="hljs-params">a, s</span>) =&gt; a * (<span class="hljs-params">1 - s</span>), 1</span>)</span>);
+</span></div></code></pre>
+<h3 id="63-edge-type-weights">6.3 Edge-Type Weights</h3>
+<p><strong>File:</strong> <code>lib/agora/homSetConfidence.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> EDGE_TYPE_WEIGHTS: Partial&lt;Record&lt;EdgeType, <span class="hljs-built_in">number</span>&gt;&gt; = {
+  support:  <span class="hljs-number">1.0</span>,   <span class="hljs-comment">// Full weight</span>
+  rebut:    <span class="hljs-number">0.9</span>,   <span class="hljs-comment">// Slightly less (attacks conclusion)</span>
+  undercut: <span class="hljs-number">0.85</span>,  <span class="hljs-comment">// Less (attacks inference)</span>
+  concede:  <span class="hljs-number">0.7</span>,   <span class="hljs-comment">// Lower (partial agreement)</span>
+};
+</div></code></pre>
+<h3 id="64-visualization-confidence-propagation">6.4 Visualization: Confidence Propagation</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                     CONFIDENCE FLOW                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Premise A (0.8) ──┐                                                   │
+│                     ├──▶ Inference (0.9) ──▶ Conclusion C               │
+│   Premise B (0.7) ──┘                                                   │
+│                                                                          │
+│   Product mode:  c(C) = 0.8 × 0.7 × 0.9 = 0.504                        │
+│   Min mode:      c(C) = min(0.8, 0.7, 0.9) = 0.7                        │
+│                                                                          │
+│   If another argument also supports C with c = 0.6:                     │
+│   Product join: S(C) = 1 - (1-0.504)(1-0.6) = 0.802                    │
+│   Min join:     S(C) = max(0.7, 0.6) = 0.7                              │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="7-plexus-category-of-categories">7. Plexus: Category of Categories</h2>
+<h3 id="71-meta-level-structure">7.1 Meta-Level Structure</h3>
+<p>The <strong>Plexus</strong> is the &quot;category of deliberation categories&quot;:</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                     PLEXUS (2-CATEGORY)                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Objects:     Deliberations (each an ECC)                                │
+│  1-Morphisms: Transport Functors (RoomFunctor)                          │
+│  2-Morphisms: Natural transformations (future)                          │
+│  Edges:       Meta-relationships {xref, overlap, stack_ref,             │
+│               imports, shared_author}                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h3 id="72-network-api">7.2 Network API</h3>
+<p><strong>File:</strong> <code>app/api/agora/network/route.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Edge kinds representing inter-category relationships</span>
+<span class="hljs-keyword">type</span> EdgeKind = <span class="hljs-string">'xref'</span> | <span class="hljs-string">'overlap'</span> | <span class="hljs-string">'stack_ref'</span> | <span class="hljs-string">'imports'</span> | <span class="hljs-string">'shared_author'</span>;
+
+<span class="hljs-comment">// Response structure</span>
+{
+  scope: <span class="hljs-string">'public'</span> | <span class="hljs-string">'following'</span>,
+  version: <span class="hljs-built_in">number</span>,
+  rooms: RoomNode[],
+  edges: MetaEdge[]  <span class="hljs-comment">// { from, to, kind, weight }</span>
+}
+</div></code></pre>
+<h3 id="73-five-edge-types">7.3 Five Edge Types</h3>
+<table>
+<thead>
+<tr>
+<th>Edge Kind</th>
+<th>Model/Source</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>xref</strong></td>
+<td><code>XRef</code> table</td>
+<td>Explicit cross-reference between rooms</td>
+</tr>
+<tr>
+<td><strong>overlap</strong></td>
+<td><code>Claim.canonicalClaimId</code></td>
+<td>Same canonical claim in multiple rooms</td>
+</tr>
+<tr>
+<td><strong>stack_ref</strong></td>
+<td><code>StackReference</code></td>
+<td>Knowledge stack reference</td>
+</tr>
+<tr>
+<td><strong>imports</strong></td>
+<td><code>ArgumentImport</code></td>
+<td>Argument transported from another room</td>
+</tr>
+<tr>
+<td><strong>shared_author</strong></td>
+<td><code>SharedAuthorRoomEdge</code></td>
+<td>Common contributors</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-plexus-components">7.4 Plexus Components</h3>
+<p><strong>File:</strong> <code>components/agora/Plexus.tsx</code> (~1000 lines)</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Edge colors in UI</span>
+<span class="hljs-keyword">const</span> EDGE_COLORS: Record&lt;EdgeKind, <span class="hljs-built_in">string</span>&gt; = {
+  xref:          <span class="hljs-string">'#6366f1'</span>,  <span class="hljs-comment">// Indigo</span>
+  overlap:       <span class="hljs-string">'#ef4444'</span>,  <span class="hljs-comment">// Red</span>
+  stack_ref:     <span class="hljs-string">'#f59e0b'</span>,  <span class="hljs-comment">// Amber</span>
+  imports:       <span class="hljs-string">'#14b8a6'</span>,  <span class="hljs-comment">// Teal</span>
+  shared_author: <span class="hljs-string">'#64748b'</span>,  <span class="hljs-comment">// Slate</span>
+};
+</div></code></pre>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Force-directed graph layout</li>
+<li>Zoom/pan with minimap</li>
+<li>Room hover cards with metrics</li>
+<li>Link sketch mode for creating edges</li>
+<li>Tag-based filtering</li>
+<li>Confidence gating (τ threshold)</li>
+</ul>
+<p><strong>File:</strong> <code>components/agora/PlexusBoard.tsx</code> (~960 lines)</p>
+<p>Alternative board-style view with:</p>
+<ul>
+<li>Grid layout</li>
+<li>Donut charts for acceptance distribution</li>
+<li>Drag-and-drop link creation</li>
+<li>Context menus</li>
+</ul>
+<h3 id="75-visualization-plexus-network">7.5 Visualization: Plexus Network</h3>
+<pre><code class="language-mermaid"><div class="mermaid">graph TB
+    subgraph "Plexus Network"
+        R1["Deliberation A<br/>45 args, 23 edges"]
+        R2["Deliberation B<br/>32 args, 18 edges"]
+        R3["Deliberation C<br/>67 args, 41 edges"]
+        R4["Deliberation D<br/>28 args, 15 edges"]
+        
+        R1 -->|"imports (5)"| R2
+        R1 -->|"overlap (3)"| R3
+        R2 -->|"xref (2)"| R3
+        R3 -->|"stack_ref"| R4
+        R1 -.->|"shared_author"| R4
+    end
+    
+    style R1 fill:#dbeafe
+    style R2 fill:#dcfce7
+    style R3 fill:#fef3c7
+    style R4 fill:#fce7f3
+</div></code></pre>
+<hr>
+<h2 id="8-transport-functors">8. Transport Functors</h2>
+<h3 id="81-mathematical-foundation">8.1 Mathematical Foundation</h3>
+<p>A <strong>functor</strong> F: 𝒞 → 𝒟 between categories must:</p>
+<ul>
+<li>Map objects: F(A) ∈ Ob(𝒟) for each A ∈ Ob(𝒞)</li>
+<li>Map morphisms: F(f) ∈ Hom_𝒟(F(A), F(B)) for each f ∈ Hom_𝒞(A, B)</li>
+<li>Preserve identity: F(id_A) = id_{F(A)}</li>
+<li>Preserve composition: F(g ∘ f) = F(g) ∘ F(f)</li>
+</ul>
+<p>In Mesh, <strong>Transport Functors</strong> map between deliberation categories:</p>
+<pre class="hljs"><code><div>F: Deliberation_A → Deliberation_B
+   F(Claim_A)     → Claim_B           (via claimMap)
+   F(Argument_A)  → Argument_B        (via ArgumentImport)
+</div></code></pre>
+<h3 id="82-roomfunctor-model">8.2 RoomFunctor Model</h3>
+<p><strong>File:</strong> <code>lib/models/schema.prisma</code> (lines 6133-6144)</p>
+<pre class="hljs"><code><div>model RoomFunctor {
+  id           String   @id @default(cuid())
+  fromRoomId   String   // Source deliberation
+  toRoomId     String   // Target deliberation
+  claimMapJson Json     // { &quot;&lt;fromClaimId&gt;&quot;: &quot;&lt;toClaimId&gt;&quot;, ... }
+  notes        String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  @@unique([fromRoomId, toRoomId])
+  @@index([fromRoomId, toRoomId])
+}
+</div></code></pre>
+<p><strong>Key Property:</strong> <code>claimMapJson</code> defines the <strong>object-level mapping</strong> (which claims in A correspond to which claims in B).</p>
+<h3 id="83-transport-api-endpoints">8.3 Transport API Endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/room-functor/map</code></td>
+<td>GET</td>
+<td>Fetch existing claim mapping</td>
+</tr>
+<tr>
+<td><code>/api/room-functor/transport</code></td>
+<td>POST</td>
+<td>Save/update claim mapping</td>
+</tr>
+<tr>
+<td><code>/api/room-functor/claims</code></td>
+<td>GET</td>
+<td>List claims for mapping UI</td>
+</tr>
+<tr>
+<td><code>/api/room-functor/preview</code></td>
+<td>POST</td>
+<td>Generate import proposals</td>
+</tr>
+<tr>
+<td><code>/api/room-functor/apply</code></td>
+<td>POST</td>
+<td>Materialize imports</td>
+</tr>
+</tbody>
+</table>
+<h3 id="84-preview-api">8.4 Preview API</h3>
+<p><strong>File:</strong> <code>app/api/room-functor/preview/route.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Request</span>
+{
+  fromId: <span class="hljs-built_in">string</span>,           <span class="hljs-comment">// Source deliberation</span>
+  toId: <span class="hljs-built_in">string</span>,             <span class="hljs-comment">// Target deliberation</span>
+  claimMap?: Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span>&gt;,  <span class="hljs-comment">// Optional explicit mapping</span>
+  topK?: <span class="hljs-built_in">number</span>,            <span class="hljs-comment">// Max proposals per claim (default 5)</span>
+  depth?: <span class="hljs-built_in">number</span>            <span class="hljs-comment">// Premise recursion (1-3)</span>
+}
+
+<span class="hljs-comment">// Response</span>
+{
+  ok: <span class="hljs-literal">true</span>,
+  proposals: [{
+    fingerprint: <span class="hljs-built_in">string</span>,     <span class="hljs-comment">// SHA-1 hash for idempotent import</span>
+    fromArgumentId: <span class="hljs-built_in">string</span>,
+    fromClaimId: <span class="hljs-built_in">string</span>,
+    toClaimId: <span class="hljs-built_in">string</span>,
+    base: <span class="hljs-built_in">number</span>,            <span class="hljs-comment">// Confidence to import</span>
+    previewText: <span class="hljs-built_in">string</span>,
+    premiseCount?: <span class="hljs-built_in">number</span>,   <span class="hljs-comment">// If depth &gt; 1</span>
+    premiseChain?: <span class="hljs-built_in">string</span>[]
+  }],
+  depth: <span class="hljs-built_in">number</span>
+}
+</div></code></pre>
+<p><strong>Fingerprint Computation:</strong></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">const</span> fingerprint = crypto.createHash(<span class="hljs-string">"sha1"</span>)
+  .update(<span class="hljs-string">`<span class="hljs-subst">${fromId}</span>|<span class="hljs-subst">${toId}</span>|<span class="hljs-subst">${fromClaimId}</span>|<span class="hljs-subst">${toClaimId}</span>|<span class="hljs-subst">${item.argumentId}</span>`</span>)
+  .digest(<span class="hljs-string">"hex"</span>);
+</div></code></pre>
+<h3 id="85-apply-api-materialization">8.5 Apply API (Materialization)</h3>
+<p><strong>File:</strong> <code>app/api/room-functor/apply/route.ts</code></p>
+<p>This endpoint <strong>materializes</strong> virtual imports:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// For each proposal, in a transaction:</span>
+<span class="hljs-number">1.</span> Check <span class="hljs-keyword">if</span> fingerprint exists (idempotent)
+<span class="hljs-number">2.</span> If exists <span class="hljs-keyword">with</span> toArgumentId → skip (already materialized)
+<span class="hljs-number">3.</span> If exists without toArgumentId → materialize virtual <span class="hljs-keyword">import</span>
+<span class="hljs-number">4.</span> Otherwise → create <span class="hljs-keyword">new</span> ArgumentImport + Argument + ArgumentSupport
+
+<span class="hljs-comment">// Transaction ensures atomicity</span>
+<span class="hljs-keyword">await</span> prisma.$transaction(<span class="hljs-keyword">async</span> (tx) =&gt; {
+  <span class="hljs-keyword">const</span> toArg = <span class="hljs-keyword">await</span> tx.argument.create({ ... });
+  <span class="hljs-keyword">await</span> tx.argumentSupport.create({ 
+    provenanceJson: {
+      kind: <span class="hljs-string">'import'</span>,
+      fingerprint,
+      fromDeliberationId,
+      fromArgumentId,
+      fromClaimId
+    }
+  });
+  <span class="hljs-keyword">await</span> tx.argumentImport.update({ toArgumentId: toArg.id });
+});
+</div></code></pre>
+<h3 id="86-argumentimport-model">8.6 ArgumentImport Model</h3>
+<p><strong>File:</strong> <code>lib/models/schema.prisma</code> (lines 5856-5917)</p>
+<pre class="hljs"><code><div>model ArgumentImport {
+  id                 String  @id @default(cuid())
+  fromDeliberationId String
+  toDeliberationId   String
+  fromArgumentId     String?
+  toArgumentId       String?  // NULL = virtual import
+  kind               String?  // 'import' | 'restatement' | 'quote'
+
+  fromClaimId  String?  // Snapshot at import time
+  toClaimId    String?
+  baseAtImport Float?   // Confidence snapshot
+
+  fingerprint String @unique  // SHA-1 for idempotency
+
+  // Relations with cascade semantics
+  fromDeliberation Deliberation @relation(onDelete: Cascade)
+  toDeliberation   Deliberation @relation(onDelete: Cascade)
+  fromArgument     Argument?    @relation(onDelete: SetNull)
+  toArgument       Argument?    @relation(onDelete: SetNull)
+
+  @@index([fromDeliberationId, toDeliberationId])
+}
+</div></code></pre>
+<h3 id="87-import-modes-in-evidential-api">8.7 Import Modes in Evidential API</h3>
+<p>The evidential API supports four import modes:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Description</th>
+<th>Virtual IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>off</strong></td>
+<td>Local arguments only</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>materialized</strong></td>
+<td>Include copied arguments</td>
+<td>Real IDs</td>
+</tr>
+<tr>
+<td><strong>virtual</strong></td>
+<td>Read-only references</td>
+<td><code>virt:{fingerprint}</code></td>
+</tr>
+<tr>
+<td><strong>all</strong></td>
+<td>Both materialized + virtual</td>
+<td>Mixed</td>
+</tr>
+</tbody>
+</table>
+<pre class="hljs"><code><div><span class="hljs-comment">// Virtual import handling</span>
+<span class="hljs-keyword">if</span> (imports === <span class="hljs-string">'virtual'</span> || imports === <span class="hljs-string">'all'</span>) {
+  <span class="hljs-keyword">const</span> imps = <span class="hljs-keyword">await</span> prisma.argumentImport.findMany({
+    where: { toDeliberationId, toClaimId: { <span class="hljs-keyword">in</span>: claimIds } }
+  });
+  virtualAdds = imps
+    .filter(<span class="hljs-function"><span class="hljs-params">i</span> =&gt;</span> !i.toArgumentId)  <span class="hljs-comment">// Not yet materialized</span>
+    .map(<span class="hljs-function"><span class="hljs-params">i</span> =&gt;</span> ({
+      claimId: i.toClaimId!,
+      argumentId: <span class="hljs-string">`virt:<span class="hljs-subst">${i.fingerprint}</span>`</span>,  <span class="hljs-comment">// Synthetic ID</span>
+      base: clamp01(i.baseAtImport ?? <span class="hljs-number">0.55</span>),
+    }));
+}
+</div></code></pre>
+<h3 id="88-transport-ui-components">8.8 Transport UI Components</h3>
+<p><strong>File:</strong> <code>components/kb/TransportComposer.tsx</code></p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">TransportComposer</span>(<span class="hljs-params">{ open, onClose, onCreate }</span>) </span>{
+  <span class="hljs-keyword">const</span> [a, setA] = React.useState&lt;<span class="hljs-built_in">string</span>|<span class="hljs-literal">null</span>&gt;(<span class="hljs-literal">null</span>);  <span class="hljs-comment">// From room</span>
+  <span class="hljs-keyword">const</span> [b, setB] = React.useState&lt;<span class="hljs-built_in">string</span>|<span class="hljs-literal">null</span>&gt;(<span class="hljs-literal">null</span>);  <span class="hljs-comment">// To room</span>
+  <span class="hljs-comment">// ... EntityPicker for room selection</span>
+}
+</div></code></pre>
+<hr>
+<h2 id="9-argument-neighborhoods">9. Argument Neighborhoods</h2>
+<h3 id="91-aif-neighborhood-expansion">9.1 AIF Neighborhood Expansion</h3>
+<p><strong>File:</strong> <code>lib/arguments/diagram-neighborhoods.ts</code></p>
+<p>The <strong>neighborhood</strong> of an argument is its local categorical context:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">buildAifNeighborhood</span>(<span class="hljs-params">
+  argumentId: <span class="hljs-built_in">string</span>,
+  depth: <span class="hljs-built_in">number</span> = 2,
+  options: {
+    includeSupporting?: <span class="hljs-built_in">boolean</span>;   <span class="hljs-comment">// Include support morphisms</span>
+    includeOpposing?: <span class="hljs-built_in">boolean</span>;     <span class="hljs-comment">// Include attack morphisms</span>
+    includePreferences?: <span class="hljs-built_in">boolean</span>;  <span class="hljs-comment">// Include preference relations</span>
+    maxNodes?: <span class="hljs-built_in">number</span>;             <span class="hljs-comment">// Stop at limit</span>
+  }
+</span>): <span class="hljs-title">Promise</span>&lt;<span class="hljs-title">AifSubgraph</span> | <span class="hljs-title">null</span>&gt;
+</span></div></code></pre>
+<h3 id="92-aif-node-types">9.2 AIF Node Types</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Helper ID generators</span>
+<span class="hljs-keyword">const</span> I = <span class="hljs-function">(<span class="hljs-params">claimId: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-string">`I:<span class="hljs-subst">${claimId}</span>`</span>;    <span class="hljs-comment">// Information node</span>
+<span class="hljs-keyword">const</span> RA = <span class="hljs-function">(<span class="hljs-params">argId: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-string">`RA:<span class="hljs-subst">${argId}</span>`</span>;       <span class="hljs-comment">// Rule of Argument</span>
+<span class="hljs-keyword">const</span> CA = <span class="hljs-function">(<span class="hljs-params">caId: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-string">`CA:<span class="hljs-subst">${caId}</span>`</span>;         <span class="hljs-comment">// Conflict Application</span>
+<span class="hljs-keyword">const</span> PA = <span class="hljs-function">(<span class="hljs-params">paId: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-string">`PA:<span class="hljs-subst">${paId}</span>`</span>;         <span class="hljs-comment">// Preference Application</span>
+</div></code></pre>
+<table>
+<thead>
+<tr>
+<th>Node Type</th>
+<th>Prefix</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>I-node</strong></td>
+<td><code>I:</code></td>
+<td>Information (Claim)</td>
+</tr>
+<tr>
+<td><strong>RA-node</strong></td>
+<td><code>RA:</code></td>
+<td>Rule Application (Argument)</td>
+</tr>
+<tr>
+<td><strong>CA-node</strong></td>
+<td><code>CA:</code></td>
+<td>Conflict Application</td>
+</tr>
+<tr>
+<td><strong>PA-node</strong></td>
+<td><code>PA:</code></td>
+<td>Preference Application</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-neighborhood-api">9.3 Neighborhood API</h3>
+<p><strong>File:</strong> <code>app/api/arguments/[id]/aif-neighborhood/route.ts</code></p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Query parameters</span>
+depth: <span class="hljs-built_in">number</span>;           <span class="hljs-comment">// 0-5 hops</span>
+summaryOnly?: <span class="hljs-built_in">boolean</span>;   <span class="hljs-comment">// Just counts, not full graph</span>
+includeSupporting?: <span class="hljs-built_in">boolean</span>;
+includeOpposing?: <span class="hljs-built_in">boolean</span>;
+includePreferences?: <span class="hljs-built_in">boolean</span>;
+
+<span class="hljs-comment">// Response</span>
+{
+  ok: <span class="hljs-literal">true</span>,
+  aif: AifSubgraph | <span class="hljs-literal">null</span>,
+  summary?: NeighborhoodSummary
+}
+</div></code></pre>
+<h3 id="94-visualization-neighborhood-graph">9.4 Visualization: Neighborhood Graph</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                     ARGUMENT NEIGHBORHOOD (depth=2)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│                    ┌──────────────┐                                     │
+│                    │  I:claim_1   │                                     │
+│                    │  (Premise A) │                                     │
+│                    └──────┬───────┘                                     │
+│                           │ premise                                      │
+│                           ▼                                              │
+│   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐               │
+│   │  I:claim_2   │   │  RA:arg_1   │◀──│  CA:confl_1  │               │
+│   │  (Premise B) │──▶│  (ARGUMENT) │   │  (Conflict)  │               │
+│   └──────────────┘   └──────┬───────┘   └──────────────┘               │
+│                           │ conclusion                                   │
+│                           ▼                                              │
+│                    ┌──────────────┐                                     │
+│                    │  I:claim_3   │                                     │
+│                    │ (Conclusion) │                                     │
+│                    └──────────────┘                                     │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="10-debate-sheets-and-graph-views">10. Debate Sheets and Graph Views</h2>
+<h3 id="101-two-level-diagram-architecture">10.1 Two-Level Diagram Architecture</h3>
+<p>From the theoretical foundation:</p>
+<blockquote>
+<p>&quot;A debate must be represented on two levels: a <strong>debate graph</strong> (nodes are whole arguments, edges are support/objection) and <strong>argument diagrams</strong> (internal premise-conclusion structure), with a 'pop-out' or 'expand/collapse' interaction between them.&quot;</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>View Type</th>
+<th>Nodes</th>
+<th>Edges</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Molecular</strong></td>
+<td>Debate Sheet</td>
+<td>Arguments (as cards)</td>
+<td>supports, rebuts, objects</td>
+</tr>
+<tr>
+<td><strong>Atomic</strong></td>
+<td>Toulmin Diagram</td>
+<td>Statements</td>
+<td>Inferences</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102-debatesheetreader-component">10.2 DebateSheetReader Component</h3>
+<p><strong>File:</strong> <code>components/agora/DebateSheetReader.tsx</code> (~532 lines)</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">DebateSheetReader</span>(<span class="hljs-params">{ 
+  sheetId,        <span class="hljs-comment">// Legacy: "delib:xxx" synthetic sheets</span>
+  deliberationId  <span class="hljs-comment">// Direct deliberation ID</span>
+}</span>)
+</span></div></code></pre>
+<p><strong>Key Features:</strong></p>
+<ul>
+<li>Unified data fetching (AIF + evidential)</li>
+<li>Import mode selector (<code>off</code>, <code>materialized</code>, <code>virtual</code>, <code>all</code>)</li>
+<li>Pagination (15 items/page)</li>
+<li>Filters: scheme, open CQs, attacked arguments</li>
+<li>AIF neighborhood preview modal</li>
+<li>Support bars per claim</li>
+</ul>
+<h3 id="103-claimspane-component">10.3 ClaimsPane Component</h3>
+<p><strong>File:</strong> <code>components/agora/DebateSheetReader.tsx</code> (lines 52-89)</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">export</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ClaimsPane</span>(<span class="hljs-params">{ 
+  deliberationId, 
+  claims 
+}: { 
+  deliberationId: <span class="hljs-built_in">string</span>; 
+  claims: { id: <span class="hljs-built_in">string</span>; text: <span class="hljs-built_in">string</span> }[] 
+}</span>) </span>{
+  <span class="hljs-keyword">const</span> { mode, tau } = useConfidence();
+  <span class="hljs-keyword">const</span> { data: scores } = useSWR(
+    <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> claims?.length 
+      ? [<span class="hljs-string">'scores'</span>, deliberationId, mode, tau, claims.map(<span class="hljs-function"><span class="hljs-params">c</span>=&gt;</span>c.id).join(<span class="hljs-string">','</span>)] 
+      : <span class="hljs-literal">null</span>,
+    <span class="hljs-keyword">async</span> () =&gt; fetchClaimScores({ deliberationId, mode, tau, claimIds: ... }),
+  );
+  <span class="hljs-comment">// Sort by score, render with support bars</span>
+}
+</div></code></pre>
+<h3 id="104-debate-sheet-data-model">10.4 Debate Sheet Data Model</h3>
+<pre class="hljs"><code><div>model DebateSheet {
+  id             String       @id @default(cuid())
+  deliberationId String
+  title          String?
+  nodes          Json         // DebateNode[] 
+  edges          Json         // DebateEdge[]
+  acceptance     Json?        // { semantics, labels }
+  unresolved     Json?        // Unresolved issues
+  loci           Json?        // Positions/stances
+
+  deliberation   Deliberation @relation(onDelete: Cascade)
+  room           AgoraRoom?   @relation(&quot;RoomSheets&quot;)
+}
+</div></code></pre>
+<p><strong>Synthetic Sheets:</strong> Many rooms use <code>sheetId = &quot;delib:${deliberationId}&quot;</code> which synthesizes the sheet from argument data dynamically.</p>
+<hr>
+<h2 id="11-ds-mode-and-belief-mass">11. DS Mode and Belief Mass</h2>
+<h3 id="111-dempster-shafer-theory-connection">11.1 Dempster-Shafer Theory Connection</h3>
+<p>The <strong>ds</strong> (Dempster-Shafer) mode implements belief intervals:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Definition</th>
+<th>Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bel(φ)</strong></td>
+<td>Belief (confirmed support)</td>
+<td>[0, 1]</td>
+</tr>
+<tr>
+<td><strong>Pl(φ)</strong></td>
+<td>Plausibility (max possible support)</td>
+<td>[0, 1]</td>
+</tr>
+<tr>
+<td><strong>Uncertainty</strong></td>
+<td>Pl(φ) - Bel(φ)</td>
+<td>[0, 1]</td>
+</tr>
+</tbody>
+</table>
+<p>Invariant: <code>Bel(φ) ≤ Pl(φ)</code> always.</p>
+<h3 id="112-implementation">11.2 Implementation</h3>
+<p><strong>File:</strong> <code>app/api/deliberations/[id]/evidential/route.ts</code> (lines 200-230)</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">if</span> (mode === <span class="hljs-string">"ds"</span>) {
+  <span class="hljs-keyword">const</span> bel = support[c.id];
+  <span class="hljs-keyword">let</span> conflictMass = <span class="hljs-number">0</span>;
+  
+  <span class="hljs-comment">// Find negated claims via NegationMap</span>
+  <span class="hljs-keyword">const</span> negatedIds = negationMappings.get(c.id) ?? [];
+  <span class="hljs-keyword">if</span> (negatedIds.length &gt; <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">const</span> negContribs: <span class="hljs-built_in">number</span>[] = [];
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> negId of negatedIds) {
+      <span class="hljs-keyword">const</span> negSupports = contributionsByClaim.get(negId) ?? [];
+      <span class="hljs-keyword">const</span> negScore = join(negSupports.map(<span class="hljs-function"><span class="hljs-params">x</span> =&gt;</span> x.score), mode);
+      negContribs.push(negScore);
+    }
+    <span class="hljs-comment">// Conflict mass = join of all negation supports</span>
+    conflictMass = join(negContribs, mode);
+  }
+  
+  <span class="hljs-comment">// Uncertainty mass (uncommitted belief)</span>
+  <span class="hljs-keyword">const</span> uncertaintyMass = <span class="hljs-built_in">Math</span>.max(<span class="hljs-number">0</span>, <span class="hljs-number">1</span> - bel - conflictMass);
+  
+  <span class="hljs-comment">// Plausibility = bel + uncertainty</span>
+  <span class="hljs-keyword">const</span> pl = <span class="hljs-built_in">Math</span>.min(<span class="hljs-number">1</span>, bel + uncertaintyMass);
+  
+  dsSupport[c.id] = { bel: +bel.toFixed(<span class="hljs-number">4</span>), pl: +pl.toFixed(<span class="hljs-number">4</span>) };
+}
+</div></code></pre>
+<h3 id="113-negationmap-model">11.3 NegationMap Model</h3>
+<p><strong>File:</strong> <code>lib/models/schema.prisma</code> (lines 5977-6018)</p>
+<pre class="hljs"><code><div>/// Required for Dempster-Shafer conflict mass computation
+model NegationMap {
+  id             String @id @default(cuid())
+  deliberationId String
+  claimId        String      // The positive claim φ
+  negatedClaimId String      // The negated claim ¬φ
+  confidence     Float?      // Optional: strength of negation relationship
+  metaJson       Json?
+
+  @@unique([claimId, negatedClaimId, deliberationId])
+}
+</div></code></pre>
+<h3 id="114-ds-visualization">11.4 DS Visualization</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                     DS BELIEF INTERVAL                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Claim: &quot;Universal Basic Income is viable&quot;                              │
+│                                                                          │
+│  Support for φ:     0.65 (from 3 arguments)                             │
+│  Support for ¬φ:    0.20 (from 1 counter-argument)                      │
+│  Uncommitted:       0.15                                                 │
+│                                                                          │
+│  Bel(φ) = 0.65                                                          │
+│  Pl(φ)  = 0.65 + 0.15 = 0.80                                           │
+│  Uncertainty = 0.15                                                      │
+│                                                                          │
+│  [================|=====|    ]                                          │
+│   0        Bel    │     Pl   1                                          │
+│                   └─ Uncertainty                                         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="12-assumptions-and-belief-revision">12. Assumptions and Belief Revision</h2>
+<h3 id="121-theoretical-basis">12.1 Theoretical Basis</h3>
+<p>In Ambler's framework:</p>
+<ul>
+<li><strong>Closed λ-terms</strong> = proofs (max confidence, indefeasible)</li>
+<li><strong>Open λ-terms</strong> = arguments with assumptions (defeasible)</li>
+</ul>
+<p>Assumptions are the &quot;free variables&quot; that make an argument defeasible. <strong>Belief revision</strong> = retracting assumptions to eliminate unwanted conclusions.</p>
+<h3 id="122-assumptionuse-model">12.2 AssumptionUse Model</h3>
+<p><strong>File:</strong> <code>lib/models/schema.prisma</code> (lines 6063-6098)</p>
+<pre class="hljs"><code><div>model AssumptionUse {
+  id                String @id @default(cuid())
+  deliberationId    String
+  argumentId        String?             // Optional: standalone assumptions
+  assumptionClaimId String?             // FK to Claim.id
+  assumptionText    String?             // Or freeform text
+
+  role       String @default(&quot;premise&quot;)  // 'premise'|'warrant'|'value'
+  weight     Float?                      // Confidence in assumption [0,1]
+  confidence Float?
+
+  status          AssumptionStatus @default(PROPOSED)
+  statusChangedAt DateTime         @default(now())
+  statusChangedBy String?
+  challengeReason String?          @db.Text
+}
+
+enum AssumptionStatus {
+  PROPOSED    // Initial state
+  ACCEPTED    // Valid assumption
+  RETRACTED   // Withdrawn
+  CHALLENGED  // Under dispute
+}
+</div></code></pre>
+<h3 id="123-derivationassumption-model-per-derivation-tracking">12.3 DerivationAssumption Model (Per-Derivation Tracking)</h3>
+<p><strong>File:</strong> <code>lib/models/schema.prisma</code> (lines 6100-6118)</p>
+<pre class="hljs"><code><div>model DerivationAssumption {
+  id           String @id @default(cuid())
+  derivationId String  // FK to ArgumentSupport.id
+  assumptionId String  // FK to AssumptionUse.id
+
+  weight       Float  @default(1.0)  // Contribution multiplier [0,1]
+  inferredFrom String?               // Parent derivation (for compose())
+
+  @@unique([derivationId, assumptionId])
+  @@index([inferredFrom])  // Fast transitive queries
+}
+</div></code></pre>
+<h3 id="124-assumption-handling-in-evidential-api">12.4 Assumption Handling in Evidential API</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// Per-derivation assumption tracking:</span>
+<span class="hljs-keyword">const</span> derivIds = derivByArg.get(s.argumentId) ?? [];
+<span class="hljs-keyword">const</span> derivAssumps: <span class="hljs-built_in">number</span>[] = [];
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> dId of derivIds) {
+  <span class="hljs-keyword">const</span> weights = assumpByDeriv.get(dId) ?? [];
+  <span class="hljs-keyword">if</span> (weights.length) derivAssumps.push(...weights);
+}
+
+<span class="hljs-comment">// Fallback to legacy argument-level if no per-derivation data</span>
+aBases = derivAssumps.length ? derivAssumps : (legacyAssump.get(s.argumentId) ?? []);
+
+<span class="hljs-keyword">const</span> assumpFactor = aBases.length ? compose(aBases, mode) : <span class="hljs-number">1</span>;
+<span class="hljs-keyword">const</span> score = clamp01(compose([b, premFactor], mode) * assumpFactor);
+</div></code></pre>
+<h3 id="125-belief-revision-flow">12.5 Belief Revision Flow</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────┐
+│                     BELIEF REVISION WORKFLOW                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. Claim φ is marked OUT (rejected) or fails WHY challenge             │
+│                                                                          │
+│  2. System finds strongest arguments for φ:                              │
+│     Hom(I, φ) = {arg_1, arg_2, ...}                                     │
+│                                                                          │
+│  3. For each argument, extract culprit sets:                            │
+│     CulpritSet(arg_i) = {assumptions used by arg_i}                     │
+│                                                                          │
+│  4. Rank culprit sets by:                                                │
+│     a) How many bad conclusions they explain                            │
+│     b) Minimal retraction cost (prefer small sets)                      │
+│                                                                          │
+│  5. Suggest retraction:                                                  │
+│     RETRACT assumption_j → recompute all affected derivations           │
+│                                                                          │
+│  6. UI emits EnthymemeNudge for missing warrants                        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="13-implementation-status-matrix">13. Implementation Status Matrix</h2>
+<h3 id="131-core-categorical-infrastructure">13.1 Core Categorical Infrastructure</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+<th>Location</th>
+<th>Grade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claims as Objects</td>
+<td>✅ Complete</td>
+<td><code>Claim</code> model</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Arguments as Morphisms</td>
+<td>✅ Complete</td>
+<td><code>Argument</code> + <code>ArgumentSupport</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Hom-set Materialization</td>
+<td>✅ Complete</td>
+<td><code>ArgumentSupport</code> table</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Composition (g∘f)</td>
+<td>✅ Complete</td>
+<td>Premise chains, <code>composed</code> flag</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Join (f∨g)</td>
+<td>✅ Complete</td>
+<td><code>join()</code> function</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Zero Morphism (∅)</td>
+<td>✅ Complete</td>
+<td>Empty hom-set</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Internal Hom [A,B]</td>
+<td>✅ Complete</td>
+<td><code>Inference</code> + undercut attacks</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Tensor Product (⊗)</td>
+<td>✅ Complete</td>
+<td><code>ArgumentPremise</code> collection</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Comonoid (Δ, t)</td>
+<td>⚠️ Implicit</td>
+<td>Premise reuse allowed</td>
+<td>B+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="132-confidence-measures">13.2 Confidence Measures</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+<th>Location</th>
+<th>Grade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Min mode (weakest link)</td>
+<td>✅ Complete</td>
+<td><code>compose()</code>, <code>join()</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Product mode (probabilistic)</td>
+<td>✅ Complete</td>
+<td><code>compose()</code>, <code>join()</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>DS mode (intervals)</td>
+<td>✅ Complete</td>
+<td><code>dsSupport</code> computation</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Edge-type weights</td>
+<td>✅ Complete</td>
+<td><code>EDGE_TYPE_WEIGHTS</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Per-derivation tracking</td>
+<td>✅ Complete</td>
+<td><code>DerivationAssumption</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Lazy recomputation</td>
+<td>✅ Complete</td>
+<td><code>batchLazyRecompute()</code></td>
+<td>A</td>
+</tr>
+</tbody>
+</table>
+<h3 id="133-cross-deliberation-plexus">13.3 Cross-Deliberation (Plexus)</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+<th>Location</th>
+<th>Grade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RoomFunctor model</td>
+<td>✅ Complete</td>
+<td>Schema, CRUD APIs</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Claim mapping</td>
+<td>✅ Complete</td>
+<td><code>claimMapJson</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Preview proposals</td>
+<td>✅ Complete</td>
+<td><code>/preview</code> endpoint</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Materialized imports</td>
+<td>✅ Complete</td>
+<td><code>/apply</code> endpoint</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Virtual imports</td>
+<td>✅ Complete</td>
+<td><code>virt:{fingerprint}</code> IDs</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Fingerprint idempotency</td>
+<td>✅ Complete</td>
+<td>SHA-1 hash</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Provenance tracking</td>
+<td>✅ Complete</td>
+<td><code>provenanceJson</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Plexus 5-edge network</td>
+<td>✅ Complete</td>
+<td>Network API</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Edge visualization</td>
+<td>✅ Complete</td>
+<td>Colored arrows</td>
+<td>A</td>
+</tr>
+<tr>
+<td>Transport UI</td>
+<td>✅ Complete</td>
+<td><code>TransportComposer</code></td>
+<td>B+</td>
+</tr>
+<tr>
+<td>Functor composition (A→B→C)</td>
+<td>❌ Missing</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="134-neighborhoods-and-views">13.4 Neighborhoods and Views</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+<th>Location</th>
+<th>Grade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AIF neighborhood expansion</td>
+<td>✅ Complete</td>
+<td><code>buildAifNeighborhood()</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Depth-limited traversal</td>
+<td>✅ Complete</td>
+<td><code>depth</code> parameter</td>
+<td>A</td>
+</tr>
+<tr>
+<td>I/RA/CA/PA node types</td>
+<td>✅ Complete</td>
+<td>AIF node prefixes</td>
+<td>A</td>
+</tr>
+<tr>
+<td>DebateSheet reader</td>
+<td>✅ Complete</td>
+<td><code>DebateSheetReader</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Synthetic sheets</td>
+<td>✅ Complete</td>
+<td><code>delib:</code> prefix</td>
+<td>A</td>
+</tr>
+<tr>
+<td>HomSet confidence panel</td>
+<td>✅ Complete</td>
+<td><code>HomSetConfidencePanel</code></td>
+<td>A</td>
+</tr>
+<tr>
+<td>Morphism cards</td>
+<td>✅ Complete</td>
+<td><code>MorphismCard</code></td>
+<td>A</td>
+</tr>
+</tbody>
+</table>
+<h3 id="135-gaps-and-future-work">13.5 Gaps and Future Work</h3>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Priority</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Functor composition</td>
+<td>Medium</td>
+<td>Chain A→B→C mappings</td>
+</tr>
+<tr>
+<td>Semantic identity resolution</td>
+<td>Medium</td>
+<td>Beyond fingerprint matching</td>
+</tr>
+<tr>
+<td>Plexus evolution timeline</td>
+<td>Low</td>
+<td>Track edge appearance over time</td>
+</tr>
+<tr>
+<td>Visual import distinction</td>
+<td>Medium</td>
+<td>Badge imported args in UI</td>
+</tr>
+<tr>
+<td>Provenance in ArgumentPopout</td>
+<td>Medium</td>
+<td>Show source deliberation</td>
+</tr>
+<tr>
+<td>AF projection overlay</td>
+<td>Low</td>
+<td>Skeptical/credulous labels on DebateSheet</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="appendix-a-file-location-quick-reference">Appendix A: File Location Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Schema</strong></td>
+<td><code>lib/models/schema.prisma</code></td>
+</tr>
+<tr>
+<td><strong>Evidential API</strong></td>
+<td><code>app/api/deliberations/[id]/evidential/route.ts</code></td>
+</tr>
+<tr>
+<td><strong>Network API</strong></td>
+<td><code>app/api/agora/network/route.ts</code></td>
+</tr>
+<tr>
+<td><strong>Transport APIs</strong></td>
+<td><code>app/api/room-functor/*.ts</code></td>
+</tr>
+<tr>
+<td><strong>Neighborhood Builder</strong></td>
+<td><code>lib/arguments/diagram-neighborhoods.ts</code></td>
+</tr>
+<tr>
+<td><strong>HomSet Confidence</strong></td>
+<td><code>lib/agora/homSetConfidence.ts</code></td>
+</tr>
+<tr>
+<td><strong>Plexus UI</strong></td>
+<td><code>components/agora/Plexus.tsx</code></td>
+</tr>
+<tr>
+<td><strong>PlexusBoard UI</strong></td>
+<td><code>components/agora/PlexusBoard.tsx</code></td>
+</tr>
+<tr>
+<td><strong>DebateSheet UI</strong></td>
+<td><code>components/agora/DebateSheetReader.tsx</code></td>
+</tr>
+<tr>
+<td><strong>HomSet Panel</strong></td>
+<td><code>components/agora/HomSetConfidencePanel.tsx</code></td>
+</tr>
+<tr>
+<td><strong>Morphism Card</strong></td>
+<td><code>components/agora/MorphismCard.tsx</code></td>
+</tr>
+<tr>
+<td><strong>Transport Composer</strong></td>
+<td><code>components/kb/TransportComposer.tsx</code></td>
+</tr>
+<tr>
+<td><strong>Category Theory Docs</strong></td>
+<td><code>Agora_Reference_Documents/CategoryTheoryRoadmap.txt</code></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="appendix-b-categorical-glossary">Appendix B: Categorical Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Mesh Equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Object</strong></td>
+<td>Element of a category</td>
+<td><code>Claim</code></td>
+</tr>
+<tr>
+<td><strong>Morphism</strong></td>
+<td>Arrow between objects</td>
+<td><code>Argument</code> + <code>ArgumentSupport</code></td>
+</tr>
+<tr>
+<td><strong>Hom-set</strong></td>
+<td>Collection of morphisms A→B</td>
+<td>ArgumentSupport rows for claimId</td>
+</tr>
+<tr>
+<td><strong>Composition</strong></td>
+<td>Sequential chaining (g∘f)</td>
+<td>Premise chain, <code>composed=true</code></td>
+</tr>
+<tr>
+<td><strong>Join (∨)</strong></td>
+<td>Aggregation of parallel morphisms</td>
+<td><code>join()</code> function</td>
+</tr>
+<tr>
+<td><strong>Identity</strong></td>
+<td>id_A: A→A</td>
+<td>Trivial self-support</td>
+</tr>
+<tr>
+<td><strong>Terminal</strong></td>
+<td>Object I with unique morphism from all</td>
+<td>&quot;Ground truth&quot; (no premises)</td>
+</tr>
+<tr>
+<td><strong>Tensor (⊗)</strong></td>
+<td>Monoidal product</td>
+<td><code>ArgumentPremise</code> conjunction</td>
+</tr>
+<tr>
+<td><strong>Internal hom [A,B]</strong></td>
+<td>Implication object</td>
+<td><code>Inference</code> (attackable warrant)</td>
+</tr>
+<tr>
+<td><strong>Comonoid</strong></td>
+<td>Copy/discard structure</td>
+<td>Premise reuse</td>
+</tr>
+<tr>
+<td><strong>Functor</strong></td>
+<td>Structure-preserving map</td>
+<td><code>RoomFunctor</code></td>
+</tr>
+<tr>
+<td><strong>Natural transformation</strong></td>
+<td>Morphism between functors</td>
+<td>(Future work)</td>
+</tr>
+<tr>
+<td><strong>Enrichment</strong></td>
+<td>Hom-sets with extra structure</td>
+<td>SLat (join-semilattice)</td>
+</tr>
+<tr>
+<td><strong>Confidence measure</strong></td>
+<td>Morphism → Monoid</td>
+<td><code>base</code> field + mode</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="appendix-c-mermaid-diagrams-summary">Appendix C: Mermaid Diagrams Summary</h2>
+<h3 id="c1-category-hierarchy">C.1 Category Hierarchy</h3>
+<pre><code class="language-mermaid"><div class="mermaid">graph TB
+    P["Plexus<br/>(2-Category)"]
+    D1["Deliberation A<br/>(ECC)"]
+    D2["Deliberation B<br/>(ECC)"]
+    D3["Deliberation C<br/>(ECC)"]
+    
+    P --> D1
+    P --> D2
+    P --> D3
+    
+    D1 -->|"RoomFunctor"| D2
+    D2 -->|"RoomFunctor"| D3
+    
+    style P fill:#fef3c7
+    style D1 fill:#dbeafe
+    style D2 fill:#dcfce7
+    style D3 fill:#fce7f3
+</div></code></pre>
+<h3 id="c2-import-flow">C.2 Import Flow</h3>
+<pre><code class="language-mermaid"><div class="mermaid">sequenceDiagram
+    participant U as User
+    participant P as Plexus UI
+    participant T as Transport API
+    participant DB as Database
+    
+    U->>P: Select rooms A, B
+    P->>T: POST /room-functor/claims
+    T-->>P: Claims from A and B
+    
+    U->>P: Map claims A→B
+    P->>T: POST /room-functor/transport
+    T->>DB: Upsert RoomFunctor
+    
+    U->>P: Request preview
+    P->>T: POST /room-functor/preview
+    T->>DB: Find top arguments
+    T-->>P: Proposals with fingerprints
+    
+    U->>P: Confirm import
+    P->>T: POST /room-functor/apply
+    T->>DB: $transaction {
+    Note over DB: Create Argument
+    Note over DB: Create ArgumentSupport
+    Note over DB: Update ArgumentImport
+    DB-->>T: Commit
+    T-->>P: {applied: N}
+</div></code></pre>
+<h3 id="c3-confidence-computation">C.3 Confidence Computation</h3>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart LR
+    subgraph "Input"
+        P1["Premise 1<br/>c=0.8"]
+        P2["Premise 2<br/>c=0.7"]
+    end
+    
+    subgraph "Composition"
+        I["Inference<br/>c=0.9"]
+    end
+    
+    subgraph "Output"
+        C["Conclusion"]
+    end
+    
+    P1 -->|"⊗"| I
+    P2 -->|"⊗"| I
+    I -->|"c(chain)"| C
+    
+    subgraph "Modes"
+        M1["min: c = min(0.8,0.7,0.9) = 0.7"]
+        M2["product: c = 0.8×0.7×0.9 = 0.504"]
+    end
+</div></code></pre>
+<hr>
+<p><em>Document generated by GitHub Copilot on December 12, 2025</em></p>
+
+</body>
+</html>
