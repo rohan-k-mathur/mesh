@@ -4,7 +4,7 @@ Ambler’s “evidential closed category” gives you a clean, formal substrate 
 
 
 1) The “room as category” contract
-Objects: Claim (or canonicalized propositions). Morphisms: sets of arguments from A→B. In your DB that’s the set of Argument instances and/or ClaimEdge + the supporting ArgumentEdge chains that establish A ⇒ B.
+Objects: Claim (or canonicalized propositions).Morphisms: sets of arguments from A→B. In your DB that’s the set of Argument instances and/or ClaimEdge + the supporting ArgumentEdge chains that establish A ⇒ B.
 	•	Join (∨): aggregation of lines of support. In practice: union of argument IDs (no duplicates).
 	•	Zero morphism (0): empty set (no known arguments A→B yet).
 	•	Monoidal product (⊗): “use A and B together” — you already model this as premises inside ArgumentDiagram.inferences.
@@ -140,16 +140,16 @@ If you want, I can package #1–#3 into a single PR‑sized set of routes/types 
 
 
 —Arguments as arrows, not (single) proofs.
- In Ambler’s semantics, objects are propositions and arrows are sets of proofs (finite sets of λ‑terms). That change lets the hom‑sets ⟨A,B⟩ carry an algebra for accruing evidence (join).
+In Ambler’s semantics, objects are propositions and arrows are sets of proofs (finite sets of λ‑terms). That change lets the hom‑sets ⟨A,B⟩ carry an algebra for accruing evidence (join).
 
 SLat‑enrichment (“accrual inside the semantics”).
- Each hom(A,B) is a join semilattice with a neutral 0 (empty set) and a commutative, associative ∨ (union) so you can say “f ∨ g” is a new argument that contains both lines of reasoning. Composition distributes over joins.
+Each hom(A,B) is a join semilattice with a neutral 0 (empty set) and a commutative, associative ∨ (union) so you can say “f ∨ g” is a new argument that contains both lines of reasoning. Composition distributes over joins.
 
 Conjunction and implication stay categorical.
- Conjunction is a symmetric monoidal tensor ⊗ (with comonoid structure per object for copy/discard), and implication is the right adjoint [X,–] to (–)⊗X (i.e., an internal hom). This yields an evidential closed category (ECC): the CCC laws you want, but enriched over joins.
+Conjunction is a symmetric monoidal tensor ⊗ (with comonoid structure per object for copy/discard), and implication is the right adjoint [X,–] to (–)⊗X (i.e., an internal hom). This yields an evidential closed category (ECC): the CCC laws you want, but enriched over joins.
 
 Logical maps vs. defeasible arguments.
- “Logical maps” are arrows built only from structural/identity morphisms—i.e., closed proofs—so they always have max confidence; ordinary arrows can carry free assumptions (uncertainty). Clear separation of strict vs defeasible support.
+“Logical maps” are arrows built only from structural/identity morphisms—i.e., closed proofs—so they always have max confidence; ordinary arrows can carry free assumptions (uncertainty). Clear separation of strict vs defeasible support.
 
 Confidence measures live on arrows.
 
@@ -187,7 +187,7 @@ Three useful presets (all lawful for ECC):
 	•	join = max (best line of reasoning)
 	•	compose = min
 	•	Probabilistic independence (optimistic):
-	•	assign each assumption a failure‑prob q = 1 − w  q=1-w  q=1−w
+	•	assign each assumption a failure‑prob q=1−wq=1-wq=1−w
 	•	derivation = Π w_i (independent success)
 	•	join = 1 - Π(1 - x_i) (noisy‑OR across lines)
 	•	compose = x * y

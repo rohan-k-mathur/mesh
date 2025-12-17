@@ -98,7 +98,7 @@ Sign
 Owner 3's
 Private Key
 4. Proof-of-Work
-To implement a distributed timestamp server on a peer-to-peer basis, we will need to use a proofof-work system similar to Adam Back's Hashcash [6], rather than newspaper or Usenet posts.
+To implement a distributed timestamp server on a peer-to-peer basis, we will need to use a proof-of-work system similar to Adam Back's Hashcash [6], rather than newspaper or Usenet posts.
 The proof-of-work involves scanning for a value that when hashed, such as with SHA-256, the
 hash begins with a number of zero bits. The average work required is exponential in the number
 of zero bits required and can be verified by executing a single hash.

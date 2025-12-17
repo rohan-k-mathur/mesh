@@ -8,7 +8,7 @@ Every organization faces the same challenge: important conversations happen, goo
 
 Mesh changes this by making reasoning *visible* and *durable*.
 
-When you make a claim on Mesh, it becomes a persistent object with relationships to other claims. When you build an argument, its structure is explicit — premises, conclusion, and the pattern that connects them. When you disagree, the system tracks the challenge and helps you respond systematically. Over time, your discussions build a knowledge graph that compounds rather than dissipates.
+When you make a claim on Mesh, it becomes a persistent object with relationships to other claims. When you build an argument, its structure is explicit — premises, conclusion, and the justification pattern that connects them. When you disagree, the system tracks the challenge and helps you respond systematically. Over time, your discussions build a knowledge graph that compounds rather than dissipates.
 
 **Mesh is reasoning infrastructure — traceable claims, visible arguments, discussions that produce artifacts you can search, cite, and build upon.**
 

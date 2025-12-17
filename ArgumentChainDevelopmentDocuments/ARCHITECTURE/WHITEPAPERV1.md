@@ -1,4 +1,4 @@
-# Mesh: A Platform for Structured Online Discourse
+# Mesh: A Platform for Productive Online Discourse
 
 **An Architecture for Structured Discourse and Durable Knowledge Production through Publishing, Deliberation, and Curation** 
 ---

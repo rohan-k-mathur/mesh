@@ -157,7 +157,7 @@ export function ArgumentsTab({
                 {(authorId || currentUserId) ? (
                   <AIFArgumentWithSchemeComposer
                     deliberationId={deliberationId}
-                    authorId={authorId || currentUserId}
+                    authorId={(authorId || currentUserId)!}
                     conclusionClaim={null}
                     onCreated={(argumentId) => {
                       console.log("[ArgumentsTab] Argument created:", argumentId);
