@@ -1,0 +1,1376 @@
+WILFRID SELLARS’ THEORY OF PROBABILITY
+Joseph C. Pitt
+December 17, 1975
+B-6
+445
+Abstract:
+Wilfrid Sellars attempts to deflect traditional objections
+to the straight rule of inductive acceptance by embedding it
+in a complicated system of levels. This system rests on a
+theory of probability in which the meaning of "probable" is
+reconstructed in the context of Sellars' general theory of
+practical reason. To say a statement is probable means, according to Sellars, that there is good reason for accepting
+the statement as true. In this paper I examine Sellars'
+attempt to resuscitate the straight rule and conclude that
+not only does he fail, but his account of "probable" is circular .
+446
+B-7
+Wilfrid Sellars' Theory of Probability
+Justification, Probability and Acceptance
+Why and in what circumstances
+statements derivable from some g
+ises? There is no problem where
+concerned. Given a sound dérivât
+conclusion of the argument is ju
+ance of the rules governing dedutb
+should we accept as true
+fven set of acceptable premdeductive derivations are
+ion, our acceptance of the
+^tified by our prior accepttive arguments.
+For what reasons do we accept the conclusions of arguments
+which are probabilistic? Sellars suggests that we start by
+seriously adopting the common sense meaning of 'probable' as
+'there are good reasons'. He develops this theme by considering different types of good reasons, resulting in a proliferation of distinctions. There turn out to be at least
+three different modes of probability.
+respect to any given probability
+different types of 'outcomes'
+Furthermore, with
+argument there are three
+]3ut despite the complexity
+of the theory two major points stand out: (a) Sellars' inductive rule of acceptance for empirical generalizations is
+the straight rule; (b) the claim that we should use a straight
+rule of inductive acceptance in probability arguments becomes
+a premise in a practical argument with the conclusion that we
+should in fact accept that-p, where 'that-p' constitutes the
+conclusion proper of a probability argument.
+The crucial problem with this
+the reasons for using the straig
+lars' argument is that the policy
+descriptions which are 'probable
+condition to obtain frameworks w!
+the obtaining of such frameworks
+inquiry. Having such frameworks
+by we can "give nontrivial expia:
+laws. " 1 ('Laws' here refers to
+We accept statements which are p
+ing so will lead to a framework
+tions, explanations and predicti
+W. Sellars, "Induction as Vin
+1964, p. 198. Hereafter all ref|e
+work.
+account arises in terms of
+ht rule. The drift of Selof continued acceptance of
+puts us in the best possible
+hich are 'probable', and that
+is the objective of scientific
+puts us in the position wherenatory accounts of established
+empirical generalizations.)
+robable on the hope that dowhich produces good descripons.
+dication", Philosophy of Science,
+rences to Sellars are to this
+447
+B-8
+Between the stages of adopting theories and generalizations
+lies a point at which we adopt rules of inference. Sellars
+deems it reasonable to espouse a principle of inference if no
+evidence indicates its espousal will produce falsehoods. Postulating an order of dependence among the different modes of
+probability, Sellars argues that the probability of theories
+depends on the probability of rules of inference, what he
+calls 'nomological probability.' He makes a number of interesting points about the relation between evidence and statements.
+First, claiming a given proposition is probable is not to assert that it stands in a given relation to a certain body of
+evidence. It is, rather, to report that the statement has
+good reasons for being adopted. In this sense, then a probability claim is an appraisal. Second, we accept rules of
+inference, not empirical claims, when we adopt the conclusion
+of a nomological probability argument. That is, we do not
+adopt the conclusions of the probability argument and then
+proceed to make predictions and offer explanations using it.
+Rather we use the conclusion of probability arguments in the
+postulation of rules of inference.
+To rationally accept the conclusion of an argument requires
+a rule of acceptance. Sellars does not believe that there are
+any rules of acceptance for non-deductive arguments. In Sellers' account of logic, to call a method of reasoning a logic
+means that there is a criterion of soundness for those arguments. Thus, if an argument is sound there is no reason not
+to accept its conclusion, since it is true. Implicit here is
+the idea that the only viable rule of acceptance is one that
+says we ought to accept true statements. To the extent that
+arguments cannot be guaranteed to produce true conclusions,
+given true premises, their conclusions should not be accepted
+as true. If we weaken the requirement that the conclusion be
+true to require merely that it have a high probability, then
+the problem arises as to how high a probability is sufficient.
+And, because we can show that any number less than one on a
+probability scale is insufficient to warrant the acceptability
+of the argument, we are forced to abandon the idea that the
+conclusion per se of a probability argument is acceptable.
+To avoid this type of problem Sellars claims that we do
+not accept the conclusions of probability arguments. Rather,
+we use them to formulate rules of inference. The rule of inference notes that given that a certain state of affairs occurs under a given set of circumstances x per cent of the
+time, we ought to infer that the probability that there is an
+x chance of that state of affairs occurring the next time
+that set of circumstances obtains. Taking this line does not
+lead us to such problems as the lottery paradox.
+In his discussion of nomological probability Sellars also
+answers the question as to which material rules of inference
+448
+B-9
+we should accept. We should accept those which represent
+the facts. That is, we ought to accept those rules which
+have worked in the past. This amounts to claiming that our
+ordinary day to day inferences can be vindicated if on the
+basis of these inferences we come to develop laws and theories which do not permit us to make unsound inferences.
+This, in turn, says that what works is what we have and if
+we have it then it's justified, all of which in turn sounds
+very much like it begs the issue of justification.
+A theory of justification tells us what we ought to do in
+order to give good reasons for accepting or rejecting theories,
+laws, etc. But to say that "you ought to act in accordance
+with the facts" seems to miss the point, since, to paraphrase
+Goodman, the facts are where you find them, depending on the
+tools, i.e., theories, you are using. It is, at best, only
+a necessary and not a sufficient condition for accepting a
+rule of inference that the world has in the past in fact
+looked the way the rule says it should. To put this in
+slightly different terms, Sellars does not manage to counter
+Hume and Goodman's classic observation that even if things
+have appeared ever so regular in the past we cannot assume
+they will continue to be so regular in the future. This is
+a strong claim and needs to be defended. In what follows I
+attempt to demonstrate that Sellars' solution to the justification problem fails.
+The Meaning of "Probable"
+In the basic non-metrical sense of "probable" (in
+relation which all other senses are to be understood), to say of a statement or proposition that
+it is probable is, in first approximation, to say
+that it is worthy of credence, that is, to put it
+in a way which points toward a finer grained analysis, it is to say that relevant things considered
+there is good reason to accept it. (p. 198)
+In the finer grained analysis to which Sellars alludes he
+distinguishes two different types of arguments and three
+different outcomes of these arguments. The state of accepting the proposition in question constitutes the 'terminal
+outcome.' The remaining two outcomes, the proximate and the
+practical, are the respective proper conclusions of a probability argument and a practical argument.
+Statements are probable. But there are different kinds of
+statements, e.g. laws and theories (which in this context
+Sellars views as a conjunction of the principles of a theory).
+With respect to each of these kinds there corresponds a mode
+of probability. There is a different set of good reasons,
+B-10
+449
+or a different type of reasoning by which the good reasons
+are supplied, for accepting different types of statements.
+A probability statement is the conclusion of a probability
+argument; and "there are clearly such things as "probability
+arguments" where this simply means an argument of which the
+conclusion is a probability statement, i.e., a statement to
+the effect that a certain other statement or proposition is
+probable".(p. 199) At this point, however, we must be careful. The mere recognition of probability arguments does not
+commit Sellars to treating probability in anything like a
+traditional manner. And he takes pains to offer a warning on
+just this point. To admit probability arguments, "involves
+no commitment concerning either the form of the argument or
+the form of the conclusion." (p. 199) A similar warning
+emerges when he first introduces his three outcomes:
+I distinguish between the "proximate," the "practical"
+and the "terminal" outcomes of what I shall call firstorder probability arguments. My reason for using the
+expression 'outcome' rather than 'conclusion' (which
+might seem a more appropriate way of characterizing
+the terminus ad quern of an argument or inference) is
+that although the whole point of a first order probability argument is to generate a terminal outcome,
+the relation between a terminal outcome, and the
+premises of the argument is radically different from
+that which obtains between what we ordinarily call
+the conclusion of an argument and its premises.
+(p. 199)
+A practical outcome constitutes the terminus ad quern of a
+practical argument and a proximate outcome the terminus ad
+quern of a probability argument. The relation between these
+two types of argument is complicated, but essential to Sellars'
+entire program.
+15. That there must be a practical outcome of a first
+order probability argument is an immediate consequence of our tentative analysis of probability
+statements. For if
+it is probable that-p
+has anything like the sense of
+relevant things considered, it is reasonable
+to accept that-p
+then it tells us that
+there is a good argument which takes relevant
+450
+B - l l
+things into account and has as its conclusion shall accept that-p
+that is to say, it points toward an argument which
+can be schematically represented as
+therefore, I shall accept that-p
+16. Reflection on the above makes it clear that on
+the view I am proposing there are at least two
+arguments in the logical neighborhood of every
+probability statement.
+(a) the first order probability reasoning,
+yet to be explored, which can be schematized
+therefore, it is probable that-£
+(b) the practical reasoning schematized
+above as
+therefore, I shall accept that-p
+the important thing to note is that of these two
+reasonings, the former, although it is what I
+am calling a first order probability argument,
+stands to the latter, roughly, as meta-argument
+to object-argument. More accurately, the conclusion of the former asserts that the premises are
+available for a good and valid argument of one
+or other of a number of patterns of which the
+conclusion is the conclusion of the reasoning
+schematized in (b). (p. 2 0 1 )
+A probability argument stands to the practical argument as
+meta-argument to object-argument. Thus, some of the premises
+used in the probability argument can be used in the practical
+argument. But there is more involved here than meets the eye.
+The practical argument is itself suggested by the conclusion
+of the probability argument (hence, indirectly by the entire
+argument) because the conclusion, being a probability statement, says there is such a practical argument which can be
+constructed. But such a view leads to problems. Specifically,
+the use of a practical argument leading to the conclusion
+B-12
+451
+therefore, I shall accept that-p
+is unnecessary. To see this consider just this one point;
+where there is a probability argument there is a practical
+argument in its logical neighborhood leading to the conclusion that the conclusion of the probability argument should
+be accepted as true. This seems to be the case for any probability argument. If so, why bother with all the complications of logical neighborhoods? Let us merely institute an
+urban renewal project and sweep away the slums leaving simple
+probability arguments. Since we now all know the meaning of
+"probable" is "there are good reasons to accept," then whenever we can produce a probability argument we can accept its
+conclusion. Thus we can accept anything at all since we can
+always produce an argument giving a certain conclusion some
+probability or other.
+At this point it is not enough to counter that Sellars
+claims not merely that there is an argument with a practical
+outcome, but there are good reasons for accepting the conclusion. For this merely begs the issue. Since the very purpose
+of science is supposedly to produce better explanations and
+that you need to be guided not by a vague notion of "good"
+reasons which reasons could change as the direction of wind
+does as in a Jamesian Pragmatism, but by some specific end
+in view.
+Sellars is sensitive to this point for he argues that it is
+not possible to construct a practical argument on the basis of
+a probability argument in all cases. The constructability of
+a practical argument is not obvious from the schematic account
+of a first order probability argument because it is incomplete
+. . . the real reason why
+it is probable that-p
+is "incomplete" is that it points to a practical argument
+which it doesn't enable one to construct. Moreover,
+the reason why what I shall call the 'second order probability statement'
+e-Rj (that-p, e) implies that it is probable that-p,
+the reason is, that it enables the construction of
+certain crucial features of the practical argument
+in question. Thus it enables construction of practical
+arguments of the following form
+452
+B-13
+a
+(that-p, that-q)
+therefore, I shall accept that-p. (p. 203)
+The second order probability statement, therefore, is complete because it allows us to construct key features of the
+corresponding practical argument, features we are unable to
+produce for the case of first order probability arguments.
+These key features are (1) the evidence for the claim that-£,
+and (2 ) the relation that obtains between that-p and its evidence. In the example given '£' denotes the evidence, ’that-p'
+the statement asserting the evidence, and 'RL ' the logical relation claimed to hold between q and that-p.—
+In the schematic version of a second order probability
+statement noted above, 'e' refers to the total relevant
+evidence. Sellars provides no criterion of relevancy, but
+it is not a crucial point for this discussion. Needless to
+say, spelling out the relevance requirement raises a troublesome issue wherever it appears. Speaking to the total relevant
+evidence question in a footnote, Sellars notes:
+In these formulations from now on I shall leave implicit the requirement that e be the total relevant
+evidence or grounds on which that-£ is probable. I
+shall absorb this requirement into the symbol 'R '
+in the sense that (a) I shall limit my discus- —
+sion to pure cases of the different modes of probability, there being only one R. in each pure case;
+(b) I shall assume that each —pure case RL obtains
+between that-£ and all the evidence (or, — more
+generally, grounds) appropriate to the particular
+example of that pure mode. (p. 203)
+Thus, while there is a logical relation between the evidence
+and the statement in question, 'probable' does not name that
+relation. This does not entail that 'probable' does not name
+any logical relation. In the context of 'it is probable that-£'
+'probable' means, "there is a good argument of one or other of
+certain patterns for accepting that-£. " (p. 202) The distinction between different levels of probability arguments at this
+point serves as a way of marking out those probability arguments which are complete from probability statements where the
+concept occurs in the non-metrical sense originally noted.
+But if we look a little closer we can see that there is not
+really an argument here defending the claim that a first order
+probability argument is essentially incomplete and that it is
+B-14
+453
+reasonable to continue to support the levels view of probability. It rests on the claim that the second order probability argument supplies the key ingredient permitting the
+construction of a practical argument leading to the acceptance of that-£. This item if 'R^'. That is, a second order
+probability argument is complete— because it mentions the
+logical relationship holding between e and that-p. Mention
+of this relation permits constructing a practical argument
+leading to the conclusion
+I shall accept that-p
+because, given it, we know what the major premise of the practical argument must be:
+Accept conclusions of those arguments establishing
+between that-q and that-p.
+Now since no such item as 'R^' appears in a first order probability argument we can't construct a practical argument leading to the acceptance of its conclusion. This leaves us to
+conclude either that first order probability arguments aren't
+really probability arguments or that Sellars has no legitimate
+way out of concluding that we can accept the conclusion of any
+first order probability argument we can construct.
+If we take Sellars' account of 'probable' seriously we are
+forced to conclude that not all probability arguments are probability arguments. To claim that a statement is probable is
+to claim there are good reasons for accepting it. Since for
+first order probability arguments there are no good reasons
+available for accepting their conclusions we seem compelled
+to conclude that they must be probability arguments. But, it
+might be argued, there is a difference between claiming that
+there are good reasons for accepting a conclusion and that
+there is an argument with the conclusion that you should accept a certain conclusion. Indeed there is such a difference,
+but it doesn't help Sellars here. For by asserting that a
+first order probability argument is essentially incomplete he
+is effectively claiming that no practical argument leading to
+the conclusion that the outcome of the probability argument
+should be accepted can be constructed, i.e. there are no good
+reasons for accepting that-p. If that is so then how can
+it is probable that-p
+be a meaningful claim?
+On the other hand, Sellars is forced to admit that we can
+accept the conclusion of any first order probability argument since by definition there are good reasons for accepting
+C-l
+454
+the conclusion, even though we can't provide them. It is
+apparent that this too is an unacceptable conclusion.
+'Probable' versus the Ground-Consequence Relation
+Rephrasing the results of the previous section: Sellars
+wants to view probability not as a relation but as an appraisal.
+In a sense, however, this is too strong. While claiming there
+are good reasons to accept a claim is to appraise it, when we
+say of a statement that it is probable we also recognize a
+relation between that statement and something else. According
+to Sellars, the 'something else' denotes the practical argument which results in accepting that-p and not the evidence
+for the statement.
+Sellars' argument for considering probability as a special
+relation consists of three parts. First, he suggests that
+like 'father,' not every relation notion need mention that
+which it relates. This observation serves as the basis for
+his discussion of why probability should not be characterized
+as a logical relation between a statement and its evidence.
+Armed with these preliminaries, and his prior analysis of the
+meaning of 'probable,' Sellars continues to the central point
+of his theory, that probability arguments are not inductive
+arguments simply put. This can be rephrased in a Sellarsian
+fashion by saying that the relationship between the premises
+and the conclusion in an inductive argument differs from
+and should not be confused with, the relationship which obtains between a probability argument and its conclusion. The
+conclusion of an inductive arugment is a statement which may
+or may not be true. The outcome of a probability argument,
+properly conceived, is the actual acceptance of the claim
+that-|>, hence, different in kind. All of this, however, does
+not mitigate the conclusion that Sellars cannot specify why
+we should use 'probable' as a relation in first order probability arguments since there is no practical argument to
+which it points.
+Turning to the possibility that probability might be a
+relation, we are confronted by a truly first class piece of
+Sellarsian dialectical reasoning. Starting from his claim
+that statements are probable, Sellars notes this assertion
+might lead someone to interpret him as making probability an
+intrinsic property of statements. He denies he intends this.
+Proceeding then on the course which an imaginary critic might
+take: if probability is not an intrinsic quality of some statement, then it must be a relation. And now we are on the dialectical road.
+Sellars first calls this last move a non-sequitur, if what
+the critic means by 'relation' amounts to something like simple
+C-2
+455
+two-placed predicates.
+If we put the above by saying that probability is a
+'property of propositions,' we run the danger of being interpreted to mean that probability is an "intrensic" characteristic of propositions, something
+they could have regardless of what else was the case.
+Since the latter is obviously absurd, the conclusion
+is often drawn that probability must be a relation.
+That this is a non-sequitur appears immediately one
+takes into account the existence of generalized relational properties. Thus compare
+(1) Tom begot John
+(2) (Ex) Tom begot x
+(3) Tom is a father
+It would be an egregious blunder to say that 'father'
+in (3) is a relation word, a two-place predicate.
+Yet is would be equally mistaken to infer from this
+that Tom's being a father is logically independent
+of the existence of someting to which Tom stands in
+the relation expressed by '. . . begot . . .' or
+'. . .is the father of . . .'. But more of this
+later when we attempt to determine just what kind of
+relational property probability is. (pp. 198-199)
+Probability is a relation of some kind; now to determine the
+nature of this relational property.
+Sellars claims we can deny probability is an intrinsic
+property of propositions and still not be forced to characterize it as a relation. But he has not thereby countered the
+claim that probability is nothing more than a relation. A
+probability statement here becomes merely a shorthand account
+of a statement which specifies the evidence for the claim
+and the relation in which the claim stands in that evidence.
+Insisting that a full explication of 'probable' requires
+articulating the evidence, e, for a claim, £, and the relation between e and p, leads, he says, to a vicious circularity.
+If 'p is probable' specifies a relation between £ and its
+evidence, then the evidence implies £ to a certain degree.
+And if we ask what 'implies means in this context, that is,
+if we ask for the logic of inductive inference, all we get is:
+"stands in a given relation to . . .".
+It is sometimes said that the fact that probability is
+relative to evidence requires that the conclusion of
+a probability argument have the form
+it is probable that-p in relation to total evidence
+456
+C-5
+e such that Rl (that-p, e)
+and that
+it is probable that-p
+makes sense only as an "elliptical" formulation of the
+more complicated statement.This is obviously false if
+intended to mean that a well formed probability statement must mention specific evidence and specify the
+logical relation in which the proposition in question
+stands to the evidence. On the other hand, it is indeed true that 'it is probable that-p' is in some sense
+elliptical for a statement making a general reference
+to the evidence and its relation to the proposition
+that-p. But not, and this is the crucial point, for a
+statement of the form
+some state of affairs obtains such that is probable
+that-p in relation to it
+For if we ask "what is meant by 'in relation to'?" the
+answer, if our analysis if correct, must be implies, so
+that the above is equivalent to
+some state of affairs obtains which implies that it
+is probable that-p
+and the expression of which the "ellipticality" was in
+question recurs. (p. 2 0 2 )
+But Sellars has already said probability is a relational property. If it does not establish this specific relation, to
+what type of relation does it pertain? Let us recall that
+Sellars calls 'father,' as it occurs in (3), a generalized
+relational property. 'Probable' also stands for a general
+relational property. This general property refers generally
+to evidence and its relation to the statement in question.
+It does this task of general referring not by mentioning
+specific evidence but by implying there exists an argument
+which has as its conclusion,
+I shall accept that-p.
+It entails there are good reasons, i.e. an argument for
+accepting that-p, without specifying what those reasons are.
+Thus
+the solution of the puzzle emerges from our account of
+it is probable that-p
+457
+as equivalent to
+there is a good argument of one or other of
+certain patterns for accepting that-£
+According to this analysis a probability statement
+is "elliptical: for a statement making a general
+reference both to evidence and the relation to the
+proposition that-£; but the statement for which a
+probability statement is thus "elliptical" is not,
+itself, a "non-elliptical" statement involving the
+predicate 'probable' in two-place glory, but simply
+its analysis. (p. 2 0 2 )
+But, if the conclusion of a probability argument does not refer
+to its factual evidence, but to the 'practical evidence',
+i.e. the practical argument, for its acceptance, then how are
+we to read the conclusion of probability arguments? For
+one thing, Sellars argues, we are not to read them as conclusions of inductive arguments, where we would determine the
+argument valid in accordance with the rules of an inductive
+logic.
+If my thesis, positively put, urges a distinction between two reasonings in the neighborhood of a probability statement (each of which, we shall see, is
+deductive when made fully explicit), then it can also
+be negatively put by urging that the approach to probability through the concept of non-demonstrative inferences— 'valid after their own kind'— of the form
+e
+therefore h
+or perhaps
+e-RL (h, e)
+therefore h
+or even
+e-RL (h, e)
+therefore probably, h
+is, as I see it, to confuse the relation between the
+terminal outcome of an argument pertaining to prob458
+C-5
+ability and its premises with the ground-consequence
+relation. (pp. 2 0 1 -2 0 2 )
+Probability reasoning is not a special form of inductive
+reasoning. That p is probable does not mean we have a certain amount of factual evidence which we can relate to p by
+the rules of some non-deductive logic. Rather, "p is
+probable" means there is a good argument for accepting what
+p says as true, except, as we have seen, in the case of first
+order probability arguments.
+Sellars does not intend this to imply there is no such
+thing as inductive reasoning. Rather he objects to using the
+probability calculus to reason from inductively obtained data
+to a fast and firm conclusion in_ one fell swoop. Probability
+reasoning entitles one to conclude that-p is true, or ought
+to be believed to be true, or accepted as true. No one set
+of rules entitles you to go directly from inductively obtained
+data to the acceptance of p. The acceptance of p remains a
+psychological phenomenon, the terminal, i.e. final, outcome
+of the use of probability. But the acceptance of that-p, to
+be rational, must be reasoned. Sellars locates reasoning
+which licenses acceping p in a practical argument with the
+conclusion
+I shall accept that-p.
+This constitutes the practical outcome of the probability
+reasoning. It follows deductively from a set of premises just
+as the proximate outcome, i.e. the conclusion, of the probability argument does. The analysis of the conclusion of the
+probability argument comes to: there are good reasons to
+accept the conclusion of this argument, which reasons are to
+be found in another argument, one which has as its conclusion
+that
+I shall accept that-p.
+The Purpose of Probability Arguments
+Simply put, the creation of an explanatory framework constitutes the goal of all scientific and probability reasoning.
+The conceptual ability to draw inferences constitutes a logically necessary condition of being in an explanatory framework, Fp. This requires rules of inference. But, while
+rules of inference are a logical prerequisite to theoretical
+explanation, Sellars insists the form of probability reasoning
+stands out clearest with respect to the probability of theories.
+Even though the structure of probability stands out clearest
+with respect to theories, the probability of theories rests
+C-6
+459
+on nomological probability. Nomological probability, in turn,^
+rests on the form of reasoning to which it is logically prior,
+namely the form of statistical probability involved in the compiling of data on the basis of sampling population samples.
+In short, "there is a logical order of dependence among the
+various modes of probability." (p. 2 2 0 )
+We use the mode of probability relating to theories to put
+us in a position where, with the appropriate practical argument, we can accept the theory in question. With respect to
+the mode of probability resulting in the acceptance of rules
+of inference, i.e. nomological probability, its use puts us
+in a position to argue for a given theoretical account.
+For the end-in-view in nomological induction(which
+must not be confused with the mode of induction involved in the statistical or proportional syllogism
+to be examined in a moment) is not the possession of
+empirical truth, but the realizing of a logically
+necessary condition of being in the very framework of
+explanation and prediction, i.e. being able to draw
+inferences concerning the unknown and give explanatory
+accounts of the known. (p. 219)
+When one argues on the basis of a rule of inference resulting
+from a probability argument one operates within F . A rule of
+inference, the product of a complicated process is not an empirical claim. This process involves a practical argument
+leading to the conclusion that one should accept the rule of
+inference given the results of a logically prior probability
+argument, the conclusion of which is an empirical claim, i.e.
+the result of an argument of the statistical or proportional
+mode of probability. We therefore formulate the rules of inference on the basis of inadequate data, i.e. less than complete. Thus the possibility exists that the rule of inference
+resulting from these prior calculations and patterns of reasoning may be false. A false rule of inference is one we assume
+to be true and yet leads one to false conclusions. Sellars'
+argument at this point sheds a bit more light on the difference
+between inductive reasoning and probability arguments.
+A principle of inference, whether a logical principle
+in the narrower sense or a physical principle of inference
+(P-implication), is known to be false if an argument 2
+2
+It is logically prior in order of justification, not in the
+order of creation. The twist here is that Sellars is talking
+about these relations as if they were comparable, when, in
+fact, they belong to different contexts. The notion of logical
+priority is, in this case, an issue concerning the reconstructed
+finished theory.
+460
+C-7
+made in accordance with it is known to have a true prem~
+ise but a false conclusion. Suppose, now, that at a
+time _t, when 3/4 of the observed cases of A have been
+found to be B, I reason myself into accepting the
+principle of inference
+that AK1 is a finite unexamined class of As P
+implies that approximately 3/4 aK^ is B
+and then proceed, for a specified AK, AK^, to infer
+(1) AK^ is a finite unexamined class of As
+therefore approximately 3/4 AK^ is B
+Suppose, however, it turns out, subsequently, at t',
+that only J AK- is B. Then, of course, the premise of
+(1) was true, but the conclusion false. Consequently
+my inductive reasoning led me to espouse a false principle of inference. But, and this is a logical principle, inductive reasoning as we have analyzed it, can
+never lead me to espouse a principle which I know to
+be false at the time of espousal. For until AK^ is
+examined, the principle is not known to be false, and
+after aK^ is examined the principle no longer applies
+to AK-^. The inductive reasoning which is (at t ' )
+relevant will lead me to espouse a modified principle.
+This principle, in turn, may turn out to be false,
+but this fact in no way impugns the rationality of the
+inductive enterprise. (pp. 218-219)
+We do not impugn the rationality of the inductive enterprise
+since it proceeds on the basis of true premises, e.g. that as
+a matter of fact at the time, t ', the sample was in fact such
+and such. If the new sample examined at _t ' ' differs proportionally from the sample examined at t ', that still does not
+falsify the truth of the claim made at t/ . Thus, it is rational to infer that the future will be like the past,if in
+fact what you know about the past happens to be true. As it
+stands this hardly seems reasonable, as Goodman has pointed out.
+Inductive reasoning, according to Sellars, is a perfectly
+good method of reasoning provided it uses true premises. Moreover, both true premises and rules of inference remain the objective of using probability arguments. We formulate empirical
+claims, on the grounds of a given amount of information. Then,
+on the basis of these empirical claims, we argue probabilistically for rules of inference using a higher mode of reasoning.
+The conjunction of a given set of these rules form the basis
+of Fg , the test of which is whether or not we can make correct
+inductive inferences concerning unknown phenomena. For Sellars,
+our ability to make correct inductive inferences at the level
+C-8
+461
+of proportional or statistical probability, within an F based
+on inductive reasoning in the first place, vindicates tne
+policy to use inductive generalization in this way.
+Probability arguments are to provide us with the framework
+to make the inductive inferences which are predictions and to
+offer explanations. These arguments clearly differ from inductive inferences in a plebian sense. The conclusion proper
+of a full probability argument, according to Sellars, is the
+acceptance of a claim as true, while an empirical claim results from normal inductive inferences. When we test inductively generated empirical claims we are testing the rule
+of inference which permitted the proposing of the claim in
+the first place. This provides another check on our policy
+to use induction.
+Practical Reasoning
+Given Sellars' version of the meaning of "probable," however inadequate it turns out to be, we can at least understand
+the claim that "at the heart of the concept of probability is
+the concept of a form of practical reasoning." (p. 204) If
+"probable" means anything like "there are good reasons to
+accept," and if, as Sellars reasons, the giving of good reasons
+occurs in a practical argument, then we are led naturally to
+the notion of practical reasoning.
+I intend to only outline some of the more salient features
+of Sellars' theory of practical reason. In particular, only
+those parts essential to his theory of probability are considered since I am not here concerned with the concept of
+practical reasoning per se. What follows is first a succinct
+statement by Sellars of the key features of his theory. The
+logic of the theory is then discussed, followed by a distinction between the types of inference.
+(1) Let us say that utterances of the kind illustrated by 'I shall do A' and 'It shall be the case
+that-p' express INTENTIONS, as utterances of the
+kind illustrated by 'it is raining' express statements of propositions. Note that the intention
+expressed by 'Tom shall make amends' is not Tom's
+intention, but the intention of the speaker. 2
+(2) One particularly important variety of intention
+is the conditional contention, thus
+(i) I shall do A, if p
+(ii) Tom shall make amends, if he is guilty.
+462
+C-9
+Note that the condition 'if p' is intrinsic to
+the intention. This can be brought out by reformulating these intentions as
+(iii) Shall (my doing A, if £)
+(iv) Shall (Tom making amends if he is guilty)
+(3) A particularly important variety of conditional
+intention for our purposes is the general conditional intention
+(v) I shall do A whenever X obtains.
+A GENERAL conditional intention can be called a
+policy. (p. 204)
+The following simple logical principle governs the
+application of these ideas: if
+If (...) implies (--- )
+then
+[shall (...)] implies [shall (--- )].
+To explicate both 'implies' and the above mentioned distinction between different types of inferences, consider again
+Sellars' own statement.
+Complications arise only when we take into account, as
+we must, the difference between primary and dependent
+implication. Let me explain.
+(a) By 'implication' I mean a relation (between
+propositions or intentions) which authorizes
+inference.
+(b) By calling the implication between P and Q
+a dependent implication. I mean that it
+presupposes the truth of an unmentioned proposition R (which is, however, identified
+in one way or another by the context) and
+which is such that the less dependent implication
+P-R implies Q
+obtains
+(c) If we represent an independent implication
+by
+a • 3 _-* <|>
+463
+C-10
+then the dependent implication which holds between a and ()>, presupposing the truth of 3 , can
+be represented
+a % $
+It was pointed out above that
+P implies Q
+presupposes the truth of P and correspondingly
+implies the truth of Q. The same situation obtains with respect to dependent implication, thus
+the dependent arrow statement pictured above presupposes the truth of the contextually identifibale
+3, and consequently implies the truth of <|>. (p. 205)
+The theory of practical reason which emerges from these
+points helps clarify the reasoning surrounding Sellars' concept of probability. Given the following typical practical
+argument :
+I shall accept a proposition if it satisfies condition
+Ç
+h satisfies condition C
+Therefore I shall accept h
+We can write it as a non-dependent implication:
+'I shall accept a proposition if it satisfies C and h
+satisfies C' implies 'I shall accept h'
+We can also diagram the argument.
+h satisfies C
+I shall accept a proposition if it
+satisfies C
+---------------> 'I shall accept h'
+The diagram exhibits the dependent implication between 'h
+satisfies C' and 'I shall accept h,' and the presupposition
+concerning acceptance of a proposition embedded in the major
+premise. Probability arguments and practical reasoning share
+a structural feature. Both
+h is probable
+and 'I shall accept h ' are consequents of dependent implications. To see this fully requires an analysis of probability
+reasoning in probability arguments per se. That is the subject of the next section. For present purposes a brief account nevertheless is still possible.
+464
+C - l l
+. . . 'makes,' in this context is equivalent to 'implies. ' Here again we have a dependent implication;
+only this time, the implication is the principle of
+a dependently valid probability argument as contrasted with the dependently valid practical argument discussed above. What, then is the valid argument, with e and R^ (h, e) as premises, which has 'h
+is probable' as — its conclusion? The answer is not
+far to seek, it must be something like
+a proposition is probable., if it stands in RT to
+a fact (h, e) — —
+e is the — case
+h is probable^
+The desired dependent implication is
+e-RL (h, e)
+a proposition is probable^
+if it stands in R^ to a — fact
+------ ^ h is probable^' (p. 206)
+The underlining of the phrase on the left hand side of the
+arrow, the antecedent of the dependent conditional, indicates
+that it is posited as true.
+With the form of the probability argument outlined we come
+to the crucial point. The principle of the dependent argument is: "A proposition is probableM is it satisfies condition C." To say a proposition or — statement is probable
+means there are good reasons for accepting it. This amounts
+to: "there is a good argument of kind M for accepting a proposition if it satisfies condition C." (p. 207) That is, provided that the proposition in question meets certain conditions,
+we can construct an argument providing the reasons for accepting the proposition. As Sellars notes, "there is a good argument of kind M which has as its conclusion 'I shall accept a
+proposition, if it satisfies condition C.'" (p. 207) There
+are two further items required to clarify the rest of Sellars'
+discussion. First, the condition C is not an arbitrary limit
+set on the argument. The condition is designed with respect
+to a given goal, the purpose behind using the argument in the
+first place. We pursue a given policy in the active attempt
+to achieve this goal. A policy is a general conditional intention. Thus to complete the argument we need some statement
+of the policy which legitimizes the formulation of condition
+C. Second, the statement of policy forms the major premise
+in the complete practical argument. It is also crucial to
+our discussion of the modes of probability because, according
+to Sellars, we use different policies within the different
+modes of probability arguments.
+C-12
+465
+In short, the major premise of the first order probability^ argument tells us that the practical reasoning — which culminates in
+I shall accept h
+(where this acceptance is bound up with probability^)
+has the form —
+I shall bring about E
+(but bringing about E implies accepting a proposition, if it satisfies condition C)
+So, I shall accept a proposition, if it satisfies
+condition C
+h satisfies condition C
+so, I shall accept h. (pp. 207-208)
+Now to locate the position of the probability argument within
+the general practical argument.
+Let us first reconsider the similarity in question between
+I shall accept h
+and
+h is probable^.
+They are both consequents of dependent implications. As such
+they point to the principles which make their respective arguments valid. In the practical argument, the principle in
+question is
+I shall accept h if it meets condition C.
+In the probability argument, the principle is
+A proposition is probable^ if it stands in R. to the
+relevant facts. — —
+The probability argument culminating in "h is probable^" constitutes the reason for saying "h satisfies condition C.This
+statement is one of the premises in the argument culminating
+in "I shall accept h." Thus, the probability argument occurs
+in the context of saying that h is a matter of fact does meet
+condition C.
+We have already emphasized that a first level probability^ statement is a statement to the effect that
+there — is available a good piece of practical reasoning of a certain kind which has as its conclusion 'I
+shall accept h.' It should now be clear that a first
+level probability argument . . . is a meta-practical
+argument which establishes the availability of this
+piece of practical reasoning. It does so by deriving
+466
+C-13
+the existence of a good argument for accepting the
+specific hypothesis in question from the existence
+of a good argument for accepting any hypothesis which
+satisfies the condition which the given hypothesis is
+known to satisfy. (p. 207)
+Now, however, the initial plausibility of Sellars' claim
+that "probable" means "there are good reasons" fades. Take
+the following as a concise statement of the analysis of "probable" :
+Thus
+h is probable^
+where the subscript indicates a specific mode of probability, asserts the availability of a good argument
+for 'I shall accept h', the ultimate major of which
+is the intention of achieving a certain end, and the
+proximate major is the appropriate intention to follow
+a certain policy with respect to accepting propositions.
+(p. 208)
+This is surely misleading if it entails that the practical
+argument in question will not be available unless, as a matter
+of fact, the policy which permits its formulation is operative.
+For now we would have to weaken Sellars' analysis of 'probable'
+as there are good reasons. We could only conclude that iî_
+there is a policy which urges accepting statements meeting
+conditions of kind C, then
+h is probable
+suggests that a practical argument leading to the conclusion
+that
+I should accept h
+can be constructed.
+This objection, however, fails. The policy we claim is not
+necessarily present is indeed present. Recall the purpose behind probability arguments: to provide the necessary logical
+equipment for F . In Fg we can explain phenomena by telling
+what they are and how they behave. We accomplish this
+by using rules of inference. Fg remains our goal. Pursuant
+to that objective we implement , subsidiary policies we believe
+will bring us there. Such a subsidiary policy is the premise
+in the complete practical argument cited above. This premise
+Sellars calls the proximate major:
+I shall accept a proposition, if it satisfies condition C.
+C-14
+467
+Note that, according to Sellars, the general conditional intention that-(I shall bring about E ), the ultimate major,
+entails this subpolicy.
+Let us also recall that the modes of probability stand in
+an order of logical dependence. This too will have an important bearing on the sense in which
+h is probable^
+does indeed have a practical argument in its logical neighborhood. But this order of dependence in which modes of probability stand creates its own problems. For the fact remains
+that if you introduce levels to bring order out of chaos you
+cannot ignore them when they prove difficult. Specifically,
+difficulty arises because there are severe problems with
+Sellars' account of 'probable' for first order probability
+arguments. If the general conditional policy entails subpolicies why does this process of entailment not extend down to
+the level of first order probability arguments? Perhaps the
+answer lies in the recognition that to do so is extremely
+difficult, in fact impossible, if one wants to avoid the lottery paradox. For the condition C that a first order probability claim must meet seems to be a high enough probability
+to merit acceptance on no other grounds. Awareness of this
+requirement might be the reason why Sellars claims that the
+conclusion of a first order probability argument is non-metric.
+That way he avoids the lottery paradox by ignoring it.
+But that gambit won't work either. For the first order
+probability argument conclusion acts as a promissory note for
+a practical argument which cannot be completed, but which is
+a logical consequence of the general policy behind the use
+of probability in the first place. Thus we are forced to
+conclude either that there is no good reason for accepting
+the conclusion of a first order probability argument or that
+the reason for accepting it is the result of a series of
+implied policies stemming from a general policy, which policy
+in turn is a result of the basic non-metric sense of 'probable'. This last approach is clearly circular.
+Modes of Probability
+Sellars not only believes that the practical reasoning lies
+at the heart of probability, he also remains convinced of two
+other points about probability, both of which have a bearing
+on the structure of arguments leading to the conclusion
+h is probable.
+468 D-l
+First, depending on the nature of h, the mode of probability
+varies, h can be either a theory, a rule of inference or a
+statistical empirical claim. For Sellars there are different
+modes of probability; the mod$ of probability is a function of
+the character of h.
+We have already taken note
+ability arguments: first and
+that the conclusion of a seco
+allows us to reconstruct cert&
+responding practical argument
+ity argument is incomplete in
+it,
+of two different types of probsecond order. They differ in
+i(id order probability argument
+in key features of its corwhile the first order probabilthis respect. As Sellars puts
+the first order probability statement
+It is probable^ that-p
+where the subscript 'M' i
+of probability, serves as
+zation of
+I shall accept that-p.
+pdicates a specific mode
+a promissory note authori-
+(pp. 206-207)
+It remains a promissory note because the argument it points
+to cannot be complete; we lack the relevant information. A
+second order probability statement does provide the relevant
+information. A second order probability statement permits
+the reconstruction of the rel
+cause it mentions the reasons
+yzing this type of statement
+ble' and 'I shall accept h' a
+plications becomes clear.
+e • (h, e) makes h prob
+evant practical argument befor 'h is probable.' In analthe sense in which 'h is probare consequents of dependent imable
+1 order of dependence among the
+y. The availability of a concluSecondly, there is a logica
+different modes of probabilit
+sion
+h is probable
+where h is a theory, depends
+conclusions of which 'h' is a
+turn depends on the prior ava
+derived from arguments of the
+These, as it turns out, depenjd on a prior use of inductive
+reasoning. In this section I] follow Sellars' procedure and
+concentrate on that mode of probability appropriate to theories. But, as becomes increasingly apparent, while the
+structure of probability arguments with respect to theories
+on the prior availability of
+rule of inference. This in
+liability of statistical claims
+appropriate mode of probability,
+D-2 469
+may stand out most clearly, the interesting issues lie in the
+mode of probability which produces statistical claims. For
+at this level we first encounter the concept of probability
+in metrical guise. And the immediate problem then is to
+see why Sellars' use of the straight rule should not lead
+him into all the problems traditionally associated with this
+approach to metrical probability, e.g., Goodman's grue problems. The answer lies in Sellars' use of the straight rule
+to produce only empirical claims. The use of those empirical
+claims requires rules of inference, the adoption of which is
+not an empirical matter at all, but a practical one. But
+since this rests on the first order probability argument, it
+appears that we can't get off the ground.
+35. The mode or probability in connection with
+which the relevant factors stand out most
+clearly is that of the probability of theories— in spite of the fact that the latter
+logically involves all the other forms of
+probability. Consider the following piece
+of reasoning, there 'T' is a surrogate for
+the sentence which expresses the conjunctive
+proposition the conjuncts of which are the
+principles of a certain theory.
+T is the simplest available framework
+which generates acceptable approximations of nomologically probable lawlike statements and generates no falsified
+law-like statements [from now on, the
+statement that T has this complex property,
+will be represented by '<|>(T)']
+Therefore, I shall accept T.
+36. Notice that this is (a) a practical argument;
+(b) an enthymene. Its principle is, therefore,
+a dependent implication and, indeed
+1 shall accept frameworks which are <j>
+'HT)' 'I shall accept T'
+To this implication there corresponds the probability^ statement
+T is probable^.
+i.e., the meta-practical statement
+there is something which is the case which
+dependently implies 'I shall accept T'
+470
+D-3
+and correspondingly to this the meta-probability^
+statement —
+<f>(T) makes it probable*. that T is true
+i. e . ,
+4>(T) there is something which
+*-------) dependently implies 'I
+shall accept T' (p. 208)
+But as it stands this account is incomplete. For, recalling
+the discussion of the previous section, the practical argument
+culminating in the conclusion
+I shall accept T
+has two major premises, the proximate and the ultimate. The
+proximate major here is
+I shall accept frameworks which are <J>.
+The ultimate major is
+I shall bring about E.
+The sense in which the ultimate major entails the proximate
+major constitutes one of the most interesting facets of Sellars' theory. Why should I accept the policy contained in
+the statement of the proximate major? According to Sellars,
+it is analytically implied by the ultimate major of the practical argument implied by the conclusion to the probability
+argument,
+T is probable*..
+The whole purpose behind using probability arguments is to
+be able to produce explanations; to give explanations one
+must be in possession of the means to offer explanations, i.e..
+one must be in an explanatory framework, a theory. Now using
+probability arguments one ends up with conclusions whose analysis says you can formulate a practical argument incorporating the results of your use of the probability reasoning,
+with the conclusion,
+I shall accept that-p<
+The existence of such an argument is entailed by using probability
+arguments in the first place, otherwise why would you have
+D-4
+471
+sought a conclusion of the type that results from such reason
+ing? By using probability arguments you already commit yourself to the existence of the practical argument. By committing yourself to the practical argument you commit yourself
+to the purpose behind the practical reasoning, which constitutes the basis for your having used the probability arguments in the first place. Thus you are committed to some
+general goal, which goal entails a policy toward accepting
+the results or probability arguments. If this isn't a circular argument then perhaps there is nothing wrong with
+Sellars' account But consider:
+1. Accepting a non-metric sense of 'probable' entails
+accepting the purpose behind probability arguments .
+2. Accepting the purpose behind probability arguments
+entails accepting the general policy E.
+3. Accepting E entails accepting the subpolicies
+entailed by E.
+4. Accepting both E and its subpolicies entails accepting the use of practical reasoning.
+But, 5. Accepting the use of practical reasoning means
+recognizing that the availability of a probability
+argument entails there are good reasons to accept the conclusion of probability arguments
+since this is entailed by the meaning of 'probable. '
+To place this all in the context of the reasoning surround
+ing the acceptance of a theory means that we use probability
+arguments because we wish to arrive at a conclusion concerning the logical relation which obtains between an hypothesis
+and some data. But we want that information in the first
+place to help us achieve some goal, E. Thus probabilistic
+reasoning is goal oriented. The specific goal in mind here
+is that of being in an explanatory framework.
+But why should one accept the policy? By what end
+is it analytically implied? Surely the state of
+being in possession of such frameworks logically
+implies accepting such frameworks if one does not
+already have them. And that this state is in the end
+in question is supported by the fact that it simply
+unpacks the concept of being able to give nontrivial explanatory accounts of established laws.
+(p. 2 1 0 )
+The purpose of using probability arguments of mode T is to
+obtain an explanatory framework. This entails accepting Fg
+if one doesn't already have one. It also entails rejecting
+472 D-5
+the explanatory framework we are using if it is not identical
+with the one mentioned by the conclusion of the practical
+argument. And all this seems reasonable and correct.
+This leaves us in the position of saying that we are justified in accepting a theory if it succeeds in bringing us
+closer to our goal of being able to give explanations. Does
+this, however, require that some final theory, FT, be obtainable? I think not.
+The justification given above for accepting a theory is
+that it brings us closer to giving explanations, we can go
+right on rejecting theories that are inadequate if we can
+also construct theories that at least tell us more about what
+there is than old theories have been able to do.
+Furthermore Sellars does not claim and it does not seem
+reasonable to insist that for our acceptance of T to be
+justified T be true. If we could show that T were true we
+would be validating T. But the validation of theories is
+a different problem than the justification of a policy concerning the acceptance of theories. The validation of T
+entails conclusively verifying T. It has been well argued
+that we can never completely verify an empirical theory. One
+simple reason concerns the fact that verification involves
+showing that all possible evidence for the theory favours the
+theory. Since the future remains indeterminate, the future
+evidence is unavailable, hence the body of evidence is incomplete .
+But that argument does not rule out the possibility of
+justifying a policy toward the acceptance of theories. Rather
+than concern himself with the problems of verifying or validating theories, Sellars directs his attention to vindicating
+his policy to adopt theories constituting more complete explanatory frameworks. If following the policy produces the
+desired results, we are justified in following the policy.
+If we do not obtain the desired reaults then we were not justified using that policy. The ends justify the means.
+But even if following a given policy does produce the goal
+how can we justifiably claim that continued use of that policy
+will produce continued good results? We can't. Vindication
+remains a very weak form of justification.
+But to look at the problem of justification in this light
+is to place the burden on the construction of a theory without
+fully appreciating the role of a theory: explanation. Thus
+it would be more appropriate to say that the vindication of
+inductive policies is the explanations we can offer using
+the theory the policy helped develop. In this way we put the
+473
+D-6
+burden of the justification job on the explanatory function
+of the theory.
+If we now recall that different modes of probability are
+said to stand in a logical order of dependence, with the
+probability of theories resting on nomological probability,
+we can begin to understand the full import of the following
+claim.
+For the end-in-view in nomological induction (which
+must not be confused with the mode of induction involved in the statistical or proportional syllogism
+to be explained in a moment) is not the possession
+of empirical truth, but the realizing of a logically
+necessary condition of being in the very framework
+of explanation and prediction i.e., being able to
+draw inferences concerning the unknown and explanatory
+accounts of the known, (p. 219)
+If as a matter of fact we can make true inferences from the
+known to the unknown and give explanations, i.e., tell what
+the thing in question is, then, for Sellars, we are vindicated in our use of the policy which says: accept those theories which are <j>. And despite the various problems in Sellars' account of 'probable', this is worth saving.
+To develop this point in more detail let us consider the
+mode of probability called "nomological". Lawlike statements,
+for Sellars, are rules of inference. They are not to be confused with universally quantified material implications or
+statistical claims. A law is not an empirical claim. The
+point,of nomological induction, the form of induction located
+in the probability argument leading to the conclusion
+h is probablen
+is to arrive at the terminal outcome:
+the acceptance of h.
+The purpose of nomological induction is the espousal of rules
+of inference which are lawlike statements.
+Now the inductive move does not occur within the probability
+reasoning itself. Nor can we locate it in the practical argument. It is manifested in the shift from the claim that there
+is a logical relation between the hypothesis in question and
+a body of evidence,
+Rl (h, e)
+474
+D-7
+to the claim
+h is probable.^
+That this constitutes the inductive move must be the case
+for two reasons. First, nothing else could count as induction
+as opposed to probabilistic inference in the strictest readings of those concepts. Sellars correctly cautions from the
+start concerning the difference between probability reasoning
+and inductive reasoning. As a matter of fact he goes so far
+as to claim that it is a mistake to approach induction through
+the notion of probability, where we suppose he means that such
+a program attempts to reduce induction to nothing more than
+probability. Secondly, his argument against Carnap's logical
+theory of probability, which cautions against reducing the
+ground of probability to probability itself, can only be interpreted to mean that the strictly logical relation does
+not entail
+h is probable.
+Consider what he has to say about Carnap.
+63. What is the relation of my account to Carnap's?
+A fundamental similarity is that on neither
+account is there such a thing as an inductive
+argument of which the conclusion is the hypothesis characterized as probable. In this
+sense there is no "rule of detachment." On
+the other hand we differ in that on my view
+the assertion of the hypothesis is the 'terminal outcome' of a rational sequence of events
+the occurring of which is the whole point of
+the inductive enterprise.
+64. We agree that the fact that the evidence
+makes the hypothesis probable is, given that
+the evidence obtains, a matter of logic rather
+than of empirical fact— though I would emphasize the presupposition of a major
+practical premise. On the other hand, his
+account of inductive argument never reaches
+the practical reasoning which is its core,
+but remains at the level of second order
+probability statements and arguments. From
+my point of view, he fails to see that h
+is probable on e [because (h, e)] is a
+second level probability — statement of
+the form
+475
+D-8
+I shall bring about E .
+Rl (h, e)
+e ^ It is probable that h
+the ultimate inferential cash value (practical
+outcome) of which is the reasoning
+e
+therefore I shall accept h.
+Still, the ultimate cash value (terminal outcome) is the state of accepting h which results from carrying out this reasoned intention. Now given that Carnap overlooked this
+practical dimension there was, as I see it,
+nothing to prevent him from making the serious
+mistake of reducing
+h is probable on e [because RT (h, e)]
+to -
+Rl (h, e)
+and thus identifying a ground of probability
+with probability itself. By doing so he turns
+the analytic connection between probability
+and the intention to accept a hypothesis into
+a puzzling synthetic connection between a
+logical fact
+Rl (h, e)
+and the reasonableness of accepting h. This
+leads him into attempts to explain the reasonableness of accepting h in terms of the
+reasonableness of a policy of action, e.g.,
+betting, whereas the truth of the matter, as
+I see it, is that the reasonableness of
+policies of action is to be explained in
+terms of the reasonableness of accepting
+hypotheses about the outcomes of actions.
+(pp. 219-220)
+If I am right, the second order probability statement Sellars
+refers to incorporates the crucial inductive move at issue.
+The ground of probability remains the logical relation. Probability itself involves the assertion of the reasonableness
+of accepting h, a function of the logical relation but not
+the relation itself. Once the move has been made from the
+logical relation to the claim that
+476
+D-9
+h is probable,
+then the practical dimension is implied by virtue of the meaning of "probable." In that case, to conclude that h is probable, and hence reasonable to accept, on the basis of a purely
+logical relation is to make an inductive inference. From the
+knowledge that a certain logical relation obtains, we infer
+that something can be asserted on the basis of an argument
+implying that knowledge.
+But now let us return to the explication of nomological
+probability. Working backward from the conclusion of the
+practical argument resulting in
+I shall accept 'LL1
+(where 'LL' is the abbreviation for some lawlike statement).
+Sellars eventually states the goal of nomological induction.
+Let us follow his steps.
+51. Clearly the practical argument for which we
+are looking culminates in something like
+n/m examined As and B therefore
+I shall accept 'that K is an unexamined class of As implies that
+approximately n/m K is B'
+and this points to premise which expresses
+a general conditional intention, thus roughly,
+I shall accept 'that K is an un^
+examined finite class of Xs implies that approximately n/m Ks
+are Y, ' if n/m of the examined
+Xs are Y
+or, to represent this premise in a way which
+explicitly mentions something which is (partially) shown by the above formulation,
+I shall accept a P-implication
+if it accords with the observed facts
+Needless to say, this highlights the question
+'What is it for a P-implication to accord
+with observed facts?' The answer to this
+question is implied by the answer to the
+question 'What is the end-in-view with respect to which this policy is the logically
+necessary means?' For on our general account
+Û-10 477
+of probability, the practical reasoning
+for which we are looking must have something like the following structure
+I shall being about E
+But bringing about E logically
+implies accepting a P-implication if it accords with observed
+facts
+So I shall accept a P-implication if it accords with observed
+facts
+'That K is an unobserved finite
+class of As implies that approximately n/m K is B' accords with the observed facts
+Therefore I shall accept this
+P-implication
+52. What then is E and how does it explain what
+is meant by saying that a law-like statement
+accords with the observational evidence? The
+answer is surprisingly simple. E is the state
+of being able to draw inferences concerning
+the composition with respect to a given property Y of unexamined finite samples (AK) of
+a kind, X, in a way which also provides an
+explanatory account of the composition with
+respect to Y of the total examined sample, K,
+of X. (p. 215)
+Thus, the sense in which the probability of theories depends on nomological probability is the sense in which having
+rules of inference is a prerequisite for accepting a theory
+wherein we can reason from the known to the unknown. With
+this in mind we can understand how the policy to accept theories which are $ can be vindicated. The policy can be vindicated if indeed we can make those inferences and offer those
+explanations for which having a theory is logically necessary. The policy is vindicated if by following the policy
+we end up accepting a theory in which sound inductive inferences are possible.
+Returning to the different modes of probability, only a few
+comments need to be added. The question: "Which rules of inference should we accept?" remains unanswered. The decision
+to espouse a rule of inference occurs in the context of attempting to realize being in Fg . Hence, we accept only those
+rules of inference which contribute to that end. We are
+justified in acting of following that policy does in fact put
+us in F .
+e
+D - l l
+478
+As can be easily noted from the long quote above giving
+Sellars' reasoning concerning the practical argument appropriate to nomological probability, there is also another dimension to the acceptance of rules of inference. We accept
+rules not just to be in any F , but to be in a framework appropriate to phenomena of a given kind.
+Rules of inference mention certain empirical claims. The
+formulation of those empirical claims remains a function of
+another mode of probability, the proximate conclusion of which
+is the claim that a certain empirical regularity is in a
+given degree. This mode of probability is a logical prerequisite to nomological probability insofar as these claims
+are a part of law-like statements. But, with respect to our
+interests, Sellars' discussion of this aspect of his theory
+would carry us far afield. A more important point for our
+purposes is that a metric analysis of probability, supposedly
+enters at the level of formulating empirical claims. Sellars
+explains the relation between this metric notion and the basic
+sense of "probable" at work up to this point in the following
+way.
+68. The fundamental rationale of this connection
+is bound up with the fact that although
+prob (h, e) = 1/4
+doesn't warrant
+I shall accept h
+it is, on the other hand, true that where
+prob (h,, e) = 1/4
+prob (hg, e) = 1/2
+then
+prob (h^v hg, e) = 3/4
+and this does warrant
+I shall accept 'h-^v hg '
+69. Thus the meaning of the metrical functor is
+logically tied to the basic concept of probability as 'reasonable-to-accept-ness.' Over
+and above the tie between
+prob (h, e) < 1/2
+D-12
+479
+and
+e makes it probable that-h
+and hence between the former and
+it is probable that-h
+as well as
+I shall accept h
+the apparatus of statistical and proportional
+probability is largely the logic and mathematics
+of combinations, and the chief philosophical
+interest concerns the ends-in-view and entailed
+policies which support the apparatus. (p. 221)
+The crucial claim here is that the meaning of metric functor
+is tied to the basic notion in such a way that a probability
+of over .5 automatically warrants the conclusion that one
+shall accept a conclusion which has the probability. This
+has led Hilpinen to characterize Sellars as a user of the rule
+of high probability.^ But since, as we have seen, Sellars
+denies that there is a rule of detachment at work in his theoty, we must at least try to uncover the secret to understanding what is^ going on there.
+An explication of the sense in which the non-metric and the
+metric senses of "probable" are tied together is the best we
+can do. Let us read Sellars' claim that
+prob (h, e) <1/2
+is required before it follows that
+I shall accept that-h
+in the following way. We use probability reasoning to a certain end. The attempt to achieve that end is implicit in the
+appeal to probability theory. As such, the policies which
+are a logical consequent of pursuing that goal influence our
+actions in what we might call the explanatory probabilitycontext. The policy to accept a given statement on certain
+conditions is therefore implicit in arguing that only an
+hypothesis which stands in a relation to its evidence such
+that the probability of the hypothesis on the evidence is 3
+3
+R. Hilpinen, Rules of Acceptence and Inductive Logic, Acta
+Philosophica Fennica, Rase. XXII (Amsterdam: North-Holland,
+1968).
+480 D-13
+greater than .5 can lead to the conclusion that
+I shall accept h.
+Thus, we are to read "probable',' strictly. If a given
+statement is probable then there exists a practical argument
+in its logical neighborhood which has as its terminus ad quern
+I shall accept h.
+In reconstructing the practical argument we must pay particular
+attention to the proximate major. For there we find stated
+the conditions, C, under which h is to be accepted. Incorporated in C we find the requirement that more than fifty
+percent of the logical relation established between the hypothesis and its evidence be greater than fifty percent. We
+should only accept those empirical claims for which there
+exists a good chance of reasoning correctly about the remainder
+of their data, which remainder remains unexamined. We desire
+to be in a position where we can infer on the basis of what
+we know to what is as yet unknown.
+prob (h, e) < 1/2
+constitutes the minimal condition under which this objective
+can be accomplished.
+But, that this really does amount to a minimal condition
+is demonstrable only if accepting the policy does indeed produce F . And even then that such a policy helped produce one
+Fg hardly justifies our belief that it will continue to do
+so if used in similar endeavors. That is, we have no rule of
+detachment which asserts that if the probability of h on e is
+greater than .5, accept it as true. Instead we have a policy
+that ways we should accept hypotheses with that degree of probability because they represent the minimal empirical condition which we can use to produce F . Of course we don't know
+that we can produce F0 by following this policy, but if we can
+then the policy will be vindicated.
+Effectively this amounts to stacking our policies. If we
+vindicate the policy that ends up putting us in F , we vindicate the policies which we used in leading up to that situation. But once again, that still does not warrant continued
+use of those policies.
+Conclusion
+The problem with this theory is there are too many unacceptable conditions involved. If you accept the meaning of
+D-14
+481
+'probable' Sellars advocates, you are compelled to use the
+straight rule even when there is no constructible practical
+argument for accepting the conclusions of first order probability arguments. But, we were told that taking the basic
+meaning of 'probable' entails there are such practical arguments. Thus we are left in the position of concluding that
+probability arguments entail practical arguments for accepting conclusions of probability arguments even when no such
+practical argument can be constructed, ie.e in the case of
+first order probability arguments which are incomplete in
+principle. Paradoxical conclusions of this sort detract
+from whatever merits viewing the end in view of induction as
+explanation may have.
+Joseph C. Pitt
+Virginia Polytechnic Institute
+and State University
+Department of Philosophy and Religion
+Blacksburg, Virginia 24061
+482
+E-l
