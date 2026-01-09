@@ -13,8 +13,8 @@ This roadmap executes the improvements outlined in the Stacks Improvement Brains
 
 | Phase | Focus | Duration | Outcome |
 |-------|-------|----------|---------|
-| **Phase 1** | Are.na Parity | 4-5 weeks | Multi-stack connections, block types, visibility modes |
 | **Phase 2** | Evidence UX | 3-4 weeks | Citation anchors, lift carries citations, evidence intent |
+| **Phase 1** | Are.na Parity | 4-5 weeks | Multi-stack connections, block types, visibility modes |
 | **Phase 3** | Unique Moat | 4-5 weeks | Verification, health metrics, knowledge graph |
 
 **Total Estimated Duration**: 11-14 weeks (Q1 2026)

@@ -504,3 +504,4 @@ For Essay 11, reread the sequence:
 ---
 
 Whenever you’re ready, we can move to **Part IV** (Science and the Mind) in the same two‑essay rhythm.
+
