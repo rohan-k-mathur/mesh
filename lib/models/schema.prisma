@@ -72,6 +72,7 @@ model User {
   Auction                   Auction[]
   StackCollaborator         StackCollaborator[]
   StackSubscription         StackSubscription[]
+  stackItemsAdded           StackItem[]               // Blocks/stacks this user added to stacks
   SheafAudienceList         SheafAudienceList[]
   roles                     UserRole[]
   reactions                 MessageReaction[]
@@ -1533,23 +1534,98 @@ enum ArticleStatus {
   PUBLISHED
 }
 
+// ============================================================
+// Block Type Enums (Phase 1.2)
+// ============================================================
+
+enum BlockType {
+  pdf
+  link
+  text
+  image
+  video
+  dataset
+  embed     // Future: embedded content (tweets, etc.)
+}
+
+enum BlockProcessingStatus {
+  pending     // Awaiting processing
+  processing  // Currently being processed
+  completed   // Successfully processed
+  failed      // Processing failed
+  skipped     // No processing needed
+}
+
 model LibraryPost {
   id          String   @id @default(cuid())
   uploader_id BigInt
-  stack_id    String?
+  stack_id    String?  // DEPRECATED: Use stackConnections via StackItem for multi-stack support
   title       String?
-  page_count  Int
-  file_url    String
+  page_count  Int      @default(0)
+  file_url    String?  // Made nullable for non-PDF blocks
   thumb_urls  String[]
   created_at  DateTime @default(now()) @db.Timestamptz(6)
+  
+  // ─────────────────────────────────────────────────────────
+  // Block type discriminator (Phase 1.2)
+  // ─────────────────────────────────────────────────────────
+  blockType   BlockType @default(pdf)
+  
+  // ─────────────────────────────────────────────────────────
+  // Link block fields
+  // ─────────────────────────────────────────────────────────
+  linkUrl         String?   // Original URL
+  linkCanonical   String?   // Resolved canonical URL
+  linkTitle       String?   // OG title / page title
+  linkDescription String?   // OG description / meta description
+  linkImage       String?   // OG image URL
+  linkFavicon     String?   // Site favicon
+  linkSiteName    String?   // OG site_name
+  linkReadableText String?  // Extracted readable content (for search)
+  linkScreenshot  String?   // Screenshot URL (stored in CDN)
+  
+  // ─────────────────────────────────────────────────────────
+  // Text block fields
+  // ─────────────────────────────────────────────────────────
+  textContent     String?   // Markdown content
+  textPlain       String?   // Plain text version (for search)
+  
+  // ─────────────────────────────────────────────────────────
+  // Image block fields
+  // ─────────────────────────────────────────────────────────
+  imageUrl        String?   // Image file URL
+  imageAlt        String?   // Alt text
+  imageWidth      Int?
+  imageHeight     Int?
+  
+  // ─────────────────────────────────────────────────────────
+  // Video block fields
+  // ─────────────────────────────────────────────────────────
+  videoUrl        String?   // Video URL (YouTube, Vimeo, etc.)
+  videoProvider   String?   // 'youtube' | 'vimeo' | 'direct'
+  videoEmbedId    String?   // Provider-specific ID
+  videoDuration   Int?      // Duration in seconds
+  videoThumb      String?   // Thumbnail URL
+  
+  // ─────────────────────────────────────────────────────────
+  // Processing status
+  // ─────────────────────────────────────────────────────────
+  processingStatus BlockProcessingStatus @default(completed)
+  processingError  String?
+  processedAt      DateTime?
 
-  annotations Annotation[]
-  stack       Stack?       @relation(fields: [stack_id], references: [id])
-  uploader    User         @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
-  feedPosts   FeedPost[]
+  annotations      Annotation[]
+  stack            Stack?       @relation(fields: [stack_id], references: [id])
+  uploader         User         @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
+  feedPosts        FeedPost[]
+  
+  // NEW: All stacks this block is connected to (via StackItem join table)
+  stackConnections StackItem[]  @relation("BlockConnections")
 
   @@index([uploader_id, created_at])
   @@index([stack_id])
+  @@index([blockType])
+  @@index([processingStatus])
   @@map("library_posts")
 }
 
@@ -1559,7 +1635,7 @@ model Stack {
   name           String
   description    String?
   is_public      Boolean             @default(false)
-  order          String[]
+  order          String[]            // DEPRECATED: Will be removed after StackItem migration complete
   created_at     DateTime            @default(now()) @db.Timestamptz(6)
   parent_id      String?
   slug           String?             @unique
@@ -1571,6 +1647,10 @@ model Stack {
   collaborators  StackCollaborator[]
   subscribers    StackSubscription[]
   StackReference StackReference[]
+  
+  // NEW: StackItem relations for multi-stack connections
+  items          StackItem[]         @relation("StackItems")
+  embeddedIn     StackItem[]         @relation("EmbeddedIn")
 
   @@unique([owner_id, name])
   @@map("stacks")
@@ -1609,6 +1689,46 @@ model StackSubscription {
   @@index([user_id])
   @@index([stack_id])
   @@map("stack_subscriptions")
+}
+
+// ============================================================
+// StackItem: Join table enabling many-to-many Stack ↔ Block relationships
+// Phase 1.1 of Stacks Improvement Roadmap
+// ============================================================
+
+enum StackItemKind {
+  block       // LibraryPost reference
+  stack_embed // Embedded stack reference
+}
+
+model StackItem {
+  id           String        @id @default(cuid())
+  stackId      String
+  
+  // Polymorphic reference: either a block OR an embedded stack
+  blockId      String?       // LibraryPost.id (null if kind=stack_embed)
+  embedStackId String?       // Stack.id for embedded stacks (null if kind=block)
+  
+  kind         StackItemKind @default(block)
+  position     Float         // Float enables cheap insertion (avg of neighbors)
+  addedById    BigInt        // Who connected this
+  note         String?       // Optional "why I added this" annotation
+  createdAt    DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  stack        Stack         @relation("StackItems", fields: [stackId], references: [id], onDelete: Cascade)
+  block        LibraryPost?  @relation("BlockConnections", fields: [blockId], references: [id], onDelete: Cascade)
+  embedStack   Stack?        @relation("EmbeddedIn", fields: [embedStackId], references: [id], onDelete: Cascade)
+  addedBy      User          @relation(fields: [addedById], references: [id])
+
+  @@unique([stackId, blockId])           // One block can only appear once per stack
+  @@unique([stackId, embedStackId])      // One embedded stack only once per parent
+  @@index([stackId, position])           // Fast ordered retrieval
+  @@index([blockId])                     // Fast "contexts" lookup
+  @@index([embedStackId])
+  @@index([addedById])
+  @@map("stack_items")
 }
 
 model Source {

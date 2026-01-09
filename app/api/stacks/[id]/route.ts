@@ -1,18 +1,40 @@
 import { prisma } from '@/lib/prismaclient';
 import { NextResponse } from 'next/server';
 import { getUserFromCookies } from '@/lib/serverutils';
+import { z } from 'zod';
+
+const PatchSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().nullable().optional(),
+  is_public: z.boolean().optional(),
+});
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
   if (!user || user.userId == null) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const name = typeof body?.name === 'string' ? body.name.trim() : '';
-  if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 });
+  const parsed = PatchSchema.safeParse(body);
+  
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+  }
+  
+  const { name, description, is_public } = parsed.data;
+  
+  // Build update data only with provided fields
+  const updateData: any = {};
+  if (name !== undefined) updateData.name = name.trim();
+  if (description !== undefined) updateData.description = description;
+  if (is_public !== undefined) updateData.is_public = is_public;
+  
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+  }
 
   await prisma.stack.update({
     where: { id: params.id, owner_id: BigInt(user.userId) } as any,
-    data: { name },
+    data: updateData,
   });
 
   return NextResponse.json({ ok: true });

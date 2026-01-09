@@ -79,8 +79,8 @@ export async function POST(req: Request) {
       name, slug, is_public, description,
       // order: [] // optional; fill if you have a default
     },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
 
-  return NextResponse.json({ id: stack.id }, { status: 201 });
+  return NextResponse.json({ id: stack.id, slug: stack.slug }, { status: 201 });
 }

@@ -22,6 +22,17 @@ export async function GET(req: Request) {
 
   let fileUrl = post.file_url;
 
+  // Handle non-PDF blocks that don't have file_url
+  if (!fileUrl) {
+    return NextResponse.json({
+      id: post.id,
+      title: post.title,
+      fileUrl: null,
+      pageCount: post.page_count,
+      thumbUrls: post.thumb_urls,
+    });
+  }
+
   // If you ever switch back to a private bucket, sign the URL here.
   const isAlreadyPublic = fileUrl.includes("/storage/v1/object/public/");
   const looksLikeSupabasePath = fileUrl.startsWith("pdfs/") || fileUrl.startsWith("private/");

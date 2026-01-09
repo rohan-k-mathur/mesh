@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
+import CreateStackModal from "@/components/stack/CreateStackModal";
 
 type Item = {
   id: string;
@@ -19,6 +20,7 @@ const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then(r => r.j
 
 export default function StacksDashboard({ initialItems }: { initialItems: Item[] }) {
   const router = useRouter();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // filters that exist on Stack
   const [q, setQ] = useState("");
@@ -54,9 +56,13 @@ export default function StacksDashboard({ initialItems }: { initialItems: Item[]
   useEffect(() => { if (page > size) setSize(page); }, [page, size, setSize]);
   useEffect(() => { setPage(1); }, [q, vis]);
 
-  function createNew() { router.push("/stack/new"); }
-  function viewStack(i: Item) { router.push(`/stack/${i.slug}`); }
-  function edit(i: Item) { router.push(`/stack/by-id/${i.id}/edit`); }
+  function handleCreateSuccess(stack: { id: string; slug?: string }) {
+    mutate(); // refresh the list
+    router.push(`/stacks/${stack.id}`);
+  }
+  
+  function viewStack(i: Item) { router.push(`/stacks/${i.slug || i.id}`); }
+  function edit(i: Item) { router.push(`/stacks/${i.slug || i.id}`); } // Navigate to stack page for editing
   function copyLink(i: Item) {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     navigator.clipboard.writeText(`${origin}/stack/${i.slug}`);
@@ -85,10 +91,16 @@ export default function StacksDashboard({ initialItems }: { initialItems: Item[]
     <div className="mx-auto max-w-5xl p-4 space-y-6 mt-[-3rem] custom-scrollbar">
       <div className="flex items-center px-4 justify-between gap-3 ">
         <div className="text-[1.8rem] text-slate-800 font-semibold">Your Stacks</div>
-        <button onClick={createNew} className="px-3 py-1.5 rounded-xl bg-amber-300 lockbutton text-black text-sm">
+        <button onClick={() => setCreateModalOpen(true)} className="px-3 py-1.5 rounded-xl bg-amber-300 lockbutton text-black text-sm">
           New stack
         </button>
       </div>
+
+      <CreateStackModal 
+        open={createModalOpen} 
+        onOpenChange={setCreateModalOpen}
+        onSuccess={handleCreateSuccess}
+      />
 
       <div className="flex flex-wrap gap-3 items-center px-2">
         <input

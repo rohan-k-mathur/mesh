@@ -18,9 +18,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-
 import PdfLightbox from "@/components/modals/PdfLightbox";
+import { LinkBlockCard } from "@/components/blocks/LinkBlockCard";
+import { TextBlockCard } from "@/components/blocks/TextBlockCard";
+import { VideoBlockCard } from "@/components/blocks/VideoBlockCard";
+import { ConnectButton } from "@/components/stack/ConnectButton";
+import { ContextsPanel } from "@/components/stack/ContextsPanel";
 import { removeFromStack, setStackOrder } from "@/lib/actions/stack.actions";
+import { Link2Icon } from "lucide-react";
 
 const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 function deriveThumbFromPdfUrl(fileUrl?: string|null) {
@@ -29,12 +34,41 @@ function deriveThumbFromPdfUrl(fileUrl?: string|null) {
   return m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
 }
 
-/** Minimal shape we need for tiles */
+// Block type enum (matches Prisma schema)
+type BlockType = "pdf" | "link" | "text" | "image" | "video" | "dataset" | "embed";
+
+/** Extended tile shape supporting all block types */
 export type StackPostTile = {
   id: string;
   title?: string | null;
-  file_url: string;
+  file_url?: string | null;  // Optional for non-PDF blocks
   thumb_urls?: string[] | null;
+  blockType?: BlockType | null;
+  processingStatus?: string | null;
+  
+  // Link fields
+  linkUrl?: string | null;
+  linkTitle?: string | null;
+  linkDescription?: string | null;
+  linkImage?: string | null;
+  linkFavicon?: string | null;
+  linkSiteName?: string | null;
+  linkScreenshot?: string | null;
+  
+  // Text fields
+  textContent?: string | null;
+  textFormat?: string | null;
+  
+  // Video fields
+  videoUrl?: string | null;
+  videoProvider?: string | null;
+  videoEmbedCode?: string | null;
+  videoThumbnail?: string | null;
+  videoDuration?: number | null;
+  
+  // Connection metadata (Phase 1.3)
+  connectedStacksCount?: number;
+  connectedStackIds?: string[];
 };
 
 type Props = {
@@ -133,11 +167,75 @@ function SortableTile({
     boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,.12)" : undefined,
   };
 
- const coverCandidate =
-   tile.thumb_urls?.[0] ?? deriveThumbFromPdfUrl(tile.file_url) ?? "/assets/PDF.svg";
- const [imgSrc, setImgSrc] = React.useState(coverCandidate);
- React.useEffect(() => setImgSrc(coverCandidate), [coverCandidate]);
-  const title = tile.title || "PDF";
+  const blockType = tile.blockType || "pdf"; // Default to PDF for legacy posts
+  const title = tile.title || (blockType === "pdf" ? "PDF" : "Untitled");
+
+  // Render the appropriate block content based on type
+  const renderBlockContent = () => {
+    switch (blockType) {
+      case "link":
+        return (
+          <LinkBlockCard
+            block={{
+              id: tile.id,
+              linkUrl: tile.linkUrl || null,
+              linkTitle: tile.linkTitle || null,
+              linkDescription: tile.linkDescription || null,
+              linkImage: tile.linkImage || null,
+              linkFavicon: tile.linkFavicon || null,
+              linkSiteName: tile.linkSiteName || null,
+              linkScreenshot: tile.linkScreenshot || null,
+              processingStatus: tile.processingStatus || "complete",
+              title: tile.title || null,
+            }}
+            compact
+          />
+        );
+
+      case "text":
+        return (
+          <TextBlockCard
+            block={{
+              id: tile.id,
+              textContent: tile.textContent || null,
+              textFormat: tile.textFormat || null,
+              title: tile.title || null,
+            }}
+            compact
+          />
+        );
+
+      case "video":
+        return (
+          <VideoBlockCard
+            block={{
+              id: tile.id,
+              videoUrl: tile.videoUrl || null,
+              videoProvider: tile.videoProvider || null,
+              videoEmbedCode: tile.videoEmbedCode || null,
+              videoThumbnail: tile.videoThumbnail || null,
+              videoDuration: tile.videoDuration || null,
+              processingStatus: tile.processingStatus || "complete",
+              title: tile.title || null,
+            }}
+            compact
+          />
+        );
+
+      case "pdf":
+      default:
+        // PDF with lightbox
+        const coverCandidate =
+          tile.thumb_urls?.[0] ?? deriveThumbFromPdfUrl(tile.file_url) ?? "/assets/PDF.svg";
+        return (
+          <PdfTileContent
+            tile={tile}
+            coverCandidate={coverCandidate}
+            title={title}
+          />
+        );
+    }
+  };
 
   return (
     <div
@@ -145,32 +243,12 @@ function SortableTile({
       style={style}
       className="group relative rounded-lg border overflow-hidden bg-white"
     >
-      <PdfLightbox
-        trigger={
-          <img
-            src={imgSrc}
-            alt={title}
-            className="w-full aspect-[4/3] object-cover cursor-pointer select-none"
-            draggable={false}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            onError={() => {
-              if (imgSrc !== "/assets/PDF.svg") setImgSrc("/assets/PDF.svg");
-            }}
-          />
-        }
-       // Let the lightbox fetch fresh (signed) info by postId:
-       postId={tile.id}
-       title={title}
-        // fileUrl={tile.file_url}
-        // title={title}
-      />
+      {renderBlockContent()}
 
       {/* Drag handle */}
       {editable && (
         <button
-          className="absolute top-2 left-2 p-1 rounded bg-white/90 border opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing"
+          className="absolute top-2 left-2 p-1 rounded bg-white/90 border opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing z-10"
           aria-label="Drag to reorder"
           {...attributes}
           {...listeners}
@@ -187,16 +265,37 @@ function SortableTile({
         </button>
       )}
 
-      {/* Cite popover */}
-      {editable && (
-        <div className="absolute bottom-2 left-2">
+      {/* Cite popover - only for PDFs and links */}
+      {editable && (blockType === "pdf" || blockType === "link") && (
+        <div className="absolute bottom-2 left-2 z-10">
           <CiteButton libraryPostId={tile.id} />
+        </div>
+      )}
+
+      {/* Connect button - allows adding to other stacks */}
+      {editable && (
+        <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition">
+          <ConnectButton
+            blockId={tile.id}
+            blockTitle={title}
+            currentStackIds={tile.connectedStackIds || [stackId]}
+            variant="icon"
+            className="bg-white/90 border"
+          />
+        </div>
+      )}
+
+      {/* Connection count indicator - shows if block is in multiple stacks */}
+      {(tile.connectedStacksCount ?? 0) > 1 && (
+        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs">
+          <Link2Icon className="h-3 w-3" />
+          {tile.connectedStacksCount}
         </div>
       )}
 
       {/* Remove button on hover */}
       {editable && (
-        <form action={removeFromStack}  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
+        <form action={removeFromStack} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
           <input type="hidden" name="stackId" value={stackId} />
           <input type="hidden" name="postId" value={tile.id} />
           <button
@@ -208,6 +307,41 @@ function SortableTile({
         </form>
       )}
     </div>
+  );
+}
+
+/** PDF tile content with lightbox */
+function PdfTileContent({
+  tile,
+  coverCandidate,
+  title,
+}: {
+  tile: StackPostTile;
+  coverCandidate: string;
+  title: string;
+}) {
+  const [imgSrc, setImgSrc] = React.useState(coverCandidate);
+  React.useEffect(() => setImgSrc(coverCandidate), [coverCandidate]);
+
+  return (
+    <PdfLightbox
+      trigger={
+        <img
+          src={imgSrc}
+          alt={title}
+          className="w-full aspect-[4/3] object-cover cursor-pointer select-none"
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            if (imgSrc !== "/assets/PDF.svg") setImgSrc("/assets/PDF.svg");
+          }}
+        />
+      }
+      postId={tile.id}
+      title={title}
+    />
   );
 }
 

@@ -94,6 +94,7 @@ export default async function StackDiscussion({
 
       {/* List */}
       <div className="space-y-4">
+        <hr className="border-slate-500/50 mt-2 mb-2" />
         {comments.map((c) => {
           if (!c.content) return null;
          const titleForDiscussion = `Thread for: ${commentSnippet(c.content, 96)}`;
@@ -132,7 +133,7 @@ export default async function StackDiscussion({
                         href={x.source.url ?? "#"}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] px-1.5 py-0.5 rounded border bg-white hover:bg-slate-50"
+                        className="text-[11px] px-1.5 py-0.5 rounded-md border border-indigo-300 bg-white/50 hover:bg-slate-50"
                         title={
                           x.quote ||
                           x.note ||
@@ -146,14 +147,15 @@ export default async function StackDiscussion({
                     ))}
                   </div>
                 )}
-                  <LiftToDebateButton  commentId={c.id.toString()} hostType="stack" hostId={root.stack_id!} />
+                {/* do not need these buttons under every comment -- only one set of these action buttons per stack  */}
+                  {/* <LiftToDebateButton  commentId={c.id.toString()} hostType="stack" hostId={root.stack_id!} />
                   <OpenInDiscussionsButton
   attachedToType="comment"
   attachedToId={String(c.id)}
     title={titleForDiscussion}   // ✅ exact comment text, truncated
 
   selectExisting
-/>
+/> */}
               </div>
             </div>
           );

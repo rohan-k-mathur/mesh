@@ -4,7 +4,6 @@ import {
   toggleStackSubscription,
   reorderStack,
   removeFromStack,
-  addCollaborator,
 } from "@/lib/actions/stack.actions";
 import StackAddModal from "@/components/modals/StackAddModal";
 import PdfLightbox from "@/components/modals/PdfLightbox";
@@ -12,6 +11,9 @@ import { prisma } from "@/lib/prismaclient";
 import StackDiscussion from "@/components/stack/StackDiscussion";
 import Image from "next/image";
 import SortablePdfGrid from "@/components/stack/SortablePdfGrid";
+import AddCollaboratorForm from "@/components/stack/AddCollaboratorForm";
+import StackComposer from "@/components/stack/StackComposer";
+import StackSettingsModal from "@/components/stack/StackSettingsModal";
 
 export default async function StackPage({ params }: { params: { slugOrId: string } }) {
   const { slugOrId } = params;
@@ -39,7 +41,7 @@ export default async function StackPage({ params }: { params: { slugOrId: string
             <div className="mt-1 text-xs text-slate-400">Slug: /stacks/{stack.slug}</div>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <form action={toggleStackSubscription}>
             <input type="hidden" name="stackId" value={stack.id} />
             <input
@@ -52,34 +54,26 @@ export default async function StackPage({ params }: { params: { slugOrId: string
             </button>
           </form>
           {viewer.editable && <StackAddModal stackId={stack.id} />}
+          {viewer.isOwner && (
+            <StackSettingsModal
+              stackId={stack.id}
+              initialName={stack.name}
+              initialDescription={stack.description}
+              initialIsPublic={stack.is_public}
+              initialSlug={stack.slug}
+            />
+          )}
         </div>
       </div>
       {viewer.isOwner && (
-        <div className="mt-6 rounded-xl  bg-white/30 px-3 py-4">
-          <div className="text-[1.0rem] mb-2 tracking-wide">Collaborators</div>
-          <form action={addCollaborator} className="flex items-center gap-2">
-            <input type="hidden" name="stackId" value={stack.id} />
-            <div className="flex gap-4 ">
-            <input
-              name="userId"
-              placeholder="User ID"
-              className="bg-white/70 commentfield  rounded-xl px-4 py-1 text-sm"
-            />
-            <input
-              name="username"
-              placeholder="Username"
-              className="bg-white/70 commentfield rounded-xl px-3 py-1 text-sm"
-            />
-            <select name="role" className="border-none rounded-xl px-3 py-1 bg-white/70 text-sm text-start focus:border-none sendbutton">
-              <option value="EDITOR">Editor</option>
-              <option value="VIEWER">Viewer</option>
-            </select>
-            <button className="px-3 py-1 bg-white/50 sendbutton text-center text-sm rounded-xl ">Add</button>
-            </div>
-          </form>
-         
+        <div className="mt-4 rounded-xl  bg-white/30 px-3 py-4">
+          <div className="text-md font-medium mb-2 tracking-wide">Collaborators</div>
+          <AddCollaboratorForm stackId={stack.id} />
         </div>
       )}
+<div className="mt-2 ml-2">
+                {viewer.editable && <StackComposer stackId={stack.id} />}
+</div>
 
       {/* <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3">
         {posts.map((p: any) => {
@@ -131,10 +125,10 @@ export default async function StackPage({ params }: { params: { slugOrId: string
         editable={viewer.editable}
         posts={posts}
       />
-              <hr className="mt-5 border-slate-500"></hr>
+              <hr className="mt-6 border-slate-500/50"></hr>
 
 
-      <div className="mt-10">
+      <div className="mt-2 mb-4">
         <h2 className="text-[1.5rem] px-1 tracking-wider font-semibold py-1 ">Comments</h2>
         <StackDiscussion feedPostId={discussionPostId} />
       </div>

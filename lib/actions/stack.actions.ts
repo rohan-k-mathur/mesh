@@ -64,35 +64,96 @@ function canView(stack: any, viewer: Viewer) {
     return thread.id;
   }
   
-export async function getStackPageData(stackId: string) {
+export async function getStackPageData(stackId: string, useStackItems: boolean = true) {
   const sb = createSupabaseServerClient();
-
-  
 
   const u = await getUserFromCookies();
     
   const viewerId = u?.userId ? BigInt(u.userId) : null;
-       const include: any = {
-           owner: { select: { id: true, name: true, image: true } },
-           collaborators: true,
-           posts: {
-             orderBy: { created_at: "asc" },
-             select: {
-               id: true,
-               title: true,
-               file_url: true,
-               thumb_urls: true,
-               page_count: true,
-               uploader_id: true,
-               created_at: true,
-             },
-           },
-         };
-         if (viewerId) {
-           include.subscribers = { where: { user_id: viewerId }, select: { user_id: true } };
-         }
-       
-         const stack = await prisma.stack.findUnique({ where: { id: stackId }, include });
+
+  // Include StackItems for new ordering system
+  const include: any = {
+    owner: { select: { id: true, name: true, image: true } },
+    collaborators: true,
+    // Legacy: keep posts for backward compatibility
+    posts: {
+      orderBy: { created_at: "asc" },
+      select: {
+        id: true,
+        title: true,
+        file_url: true,
+        thumb_urls: true,
+        page_count: true,
+        uploader_id: true,
+        created_at: true,
+        blockType: true,
+        // Link fields
+        linkUrl: true,
+        linkTitle: true,
+        linkDescription: true,
+        linkImage: true,
+        linkFavicon: true,
+        linkSiteName: true,
+        linkScreenshot: true,
+        // Text fields
+        textContent: true,
+        textPlain: true,
+        // Video fields
+        videoUrl: true,
+        videoProvider: true,
+        videoThumb: true,
+        videoDuration: true,
+        videoEmbedId: true,
+        processingStatus: true,
+      },
+    },
+    // NEW: Include StackItems for multi-stack ordering
+    items: {
+      where: { kind: "block" },
+      orderBy: { position: "asc" },
+      include: {
+        block: {
+          select: {
+            id: true,
+            title: true,
+            file_url: true,
+            thumb_urls: true,
+            page_count: true,
+            uploader_id: true,
+            created_at: true,
+            // Block type fields
+            blockType: true,
+            // Link fields
+            linkUrl: true,
+            linkTitle: true,
+            linkDescription: true,
+            linkImage: true,
+            linkFavicon: true,
+            linkSiteName: true,
+            linkScreenshot: true,
+            // Text fields
+            textContent: true,
+            textPlain: true,
+            // Video fields
+            videoUrl: true,
+            videoProvider: true,
+            videoThumb: true,
+            videoDuration: true,
+            videoEmbedId: true,
+            processingStatus: true,
+            // NEW: Count of stacks this block is connected to
+            stackConnections: { select: { stackId: true } },
+          },
+        },
+        addedBy: { select: { id: true, name: true, username: true, image: true } },
+      },
+    },
+  };
+  if (viewerId) {
+    include.subscribers = { where: { user_id: viewerId }, select: { user_id: true } };
+  }
+
+  const stack = await prisma.stack.findUnique({ where: { id: stackId }, include });
   if (!stack) return { notFound: true } as const;
 
   // const posts = await Promise.all(
@@ -129,20 +190,98 @@ const tryDerivedThumb = async (fileUrl?: string|null) => {
   return error ? null : (data?.signedUrl ?? null);
 };
 
-// apply order first (as you already do)
-const raw = stack.posts as Array<any>;
-const order = stack.order ?? [];
-const ordered = order.map(id => raw.find(p => p.id === id)).filter(Boolean) as any[];
-const missing = raw.filter(p => !order.includes(p.id));
-const seq = order.length ? [...ordered, ...missing] : raw;
-
 const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const posts = seq.map(p => {
-  if (p.thumb_urls?.length) return p;
-  const m = p.file_url?.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
-  const derived = m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
-  return { ...p, thumb_urls: derived ? [derived] : [] };
-});
+
+// NEW: Use StackItems for ordering if available, fallback to legacy order array
+const stackItems = (stack as any).items as Array<any> | undefined;
+const legacyPosts = stack.posts as Array<any>;
+let posts: Array<any>;
+
+if (useStackItems && stackItems && stackItems.length > 0) {
+  // Get block IDs that have StackItems
+  const stackItemBlockIds = new Set(
+    stackItems
+      .filter((item: any) => item.block !== null)
+      .map((item: any) => item.block.id)
+  );
+  
+  // Use StackItem-based ordering (new system)
+  const stackItemPosts = stackItems
+    .filter((item: any) => item.block !== null)
+    .map((item: any) => {
+      const p = item.block;
+      let thumb_urls = p.thumb_urls;
+      if (!thumb_urls?.length && p.file_url) {
+        const m = p.file_url?.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+        const derived = m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
+        thumb_urls = derived ? [derived] : [];
+      }
+      // Extract stack IDs from connections
+      const connectedStackIds = (p.stackConnections || []).map((c: any) => c.stackId);
+      return {
+        ...p,
+        thumb_urls,
+        // Map DB field names to UI field names
+        videoThumbnail: p.videoThumb || null,
+        videoEmbedCode: null, // Not stored in DB, built dynamically in UI
+        textFormat: p.textContent ? "markdown" : null, // Assume markdown if content exists
+        // NEW: Include connection metadata
+        connectionNote: item.note,
+        addedBy: item.addedBy,
+        addedAt: item.createdAt,
+        connectedStacksCount: connectedStackIds.length || 1,
+        connectedStackIds,
+      };
+    });
+    
+  // Also include legacy posts that don't have StackItems yet
+  const legacyOnlyPosts = legacyPosts
+    .filter((p: any) => !stackItemBlockIds.has(p.id))
+    .map((p: any) => {
+      let thumb_urls = p.thumb_urls;
+      if (!thumb_urls?.length && p.file_url) {
+        const m = p.file_url?.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+        const derived = m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
+        thumb_urls = derived ? [derived] : [];
+      }
+      return {
+        ...p,
+        thumb_urls,
+        // Map DB field names to UI field names
+        videoThumbnail: p.videoThumb || null,
+        videoEmbedCode: null, // Not stored in DB, built dynamically in UI
+        textFormat: p.textContent ? "markdown" : null, // Assume markdown if content exists
+      };
+    });
+  
+  // Combine: StackItem blocks first (in order), then legacy posts
+  posts = [...stackItemPosts, ...legacyOnlyPosts];
+} else {
+  // Legacy ordering via Stack.order array (fallback during migration)
+  const raw = stack.posts as Array<any>;
+  const order = stack.order ?? [];
+  const ordered = order.map((id: string) => raw.find(p => p.id === id)).filter(Boolean) as any[];
+  const missing = raw.filter(p => !order.includes(p.id));
+  const seq = order.length ? [...ordered, ...missing] : raw;
+
+  posts = seq.map(p => {
+    let thumb_urls = p.thumb_urls;
+    if (!thumb_urls?.length && p.file_url) {
+      const m = p.file_url?.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+      const derived = m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
+      thumb_urls = derived ? [derived] : [];
+    }
+    return {
+      ...p,
+      thumb_urls,
+      // Map DB field names to UI field names
+      videoThumbnail: p.videoThumb || null,
+      videoEmbedCode: null, // Not stored in DB, built dynamically in UI
+      textFormat: p.textContent ? "markdown" : null, // Assume markdown if content exists
+    };
+  });
+}
+
 function deriveThumbKeyFromFile(fileUrl?: string|null) {
   if (!fileUrl) return null;
   const m = fileUrl.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
@@ -257,33 +396,54 @@ export async function toggleStackSubscription(formData: FormData) {
   revalidatePath(`/stacks/${stackId}`);
 }
 
+export type AddCollaboratorResult = 
+  | { success: true; userId: string }
+  | { success: false; error: string };
 
-export async function addCollaborator(formData: FormData) {
+export async function addCollaborator(formData: FormData): Promise<AddCollaboratorResult> {
   const u = await getUserFromCookies();
-  if (!u) throw new Error("Unauthenticated");
+  if (!u) return { success: false, error: "Unauthenticated" };
   const ownerId = BigInt(u.userId ?? 0);
 
   const stackId = String(formData.get("stackId") || "");
   const role = String(formData.get("role") || "EDITOR") as "EDITOR" | "VIEWER";
-  const rawUserId = String(formData.get("userId") || "");
-  const username = String(formData.get("username") || "");
+  const rawUserId = String(formData.get("userId") || "").trim();
+  const username = String(formData.get("username") || "").trim();
+
+  if (!rawUserId && !username) {
+    return { success: false, error: "Please enter a User ID or Username" };
+  }
 
   const stack = await prisma.stack.findUnique({ where: { id: stackId } });
-  if (!stack || stack.owner_id !== ownerId) throw new Error("Forbidden");
+  if (!stack || stack.owner_id !== ownerId) {
+    return { success: false, error: "You don't have permission to add collaborators" };
+  }
 
   let target: { id: bigint } | null = null;
   if (rawUserId) {
-    target = await prisma.user.findUnique({
-      where: { id: BigInt(rawUserId) },
-      select: { id: true },
-    });
+    try {
+      target = await prisma.user.findUnique({
+        where: { id: BigInt(rawUserId) },
+        select: { id: true },
+      });
+    } catch {
+      return { success: false, error: "Invalid User ID format" };
+    }
   } else if (username) {
     target = await prisma.user.findFirst({
-      where: { username },
+      where: { username: { equals: username, mode: "insensitive" } },
       select: { id: true },
     });
   }
-  if (!target) throw new Error("User not found");
+  
+  if (!target) {
+    return { 
+      success: false, 
+      error: rawUserId 
+        ? `No user found with ID "${rawUserId}"` 
+        : `No user found with username "${username}"`
+    };
+  }
 
   await prisma.stackCollaborator.upsert({
     where: { stack_id_user_id: { stack_id: stackId, user_id: target.id } },
@@ -292,6 +452,7 @@ export async function addCollaborator(formData: FormData) {
   });
 
   revalidatePath(`/stacks/${stackId}`);
+  return { success: true, userId: target.id.toString() };
 }
 
 export async function removeCollaborator(formData: FormData) {

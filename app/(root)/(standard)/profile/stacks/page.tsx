@@ -8,7 +8,7 @@ const PAGE_SIZE = 15;
 
 export default async function StacksPage() {
   const user = await getUserFromCookies();
-  if (!user) redirect('/login');
+  if (!user || user.userId === null) redirect('/login');
 
   const ownerId = BigInt(user.userId);
 
