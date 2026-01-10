@@ -159,6 +159,7 @@ function SortableTile({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: tile.id });
+  const [contextsOpen, setContextsOpen] = React.useState(false);
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -285,13 +286,25 @@ function SortableTile({
         </div>
       )}
 
-      {/* Connection count indicator - shows if block is in multiple stacks */}
-      {(tile.connectedStacksCount ?? 0) > 1 && (
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs">
+      {/* Connection count indicator - clickable to show contexts panel */}
+      {(tile.connectedStacksCount ?? 0) > 1 && !editable && (
+        <button
+          onClick={() => setContextsOpen(true)}
+          className="absolute bottom-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs hover:bg-indigo-200 transition-colors"
+          title="View all connections"
+        >
           <Link2Icon className="h-3 w-3" />
           {tile.connectedStacksCount}
-        </div>
+        </button>
       )}
+
+      {/* Contexts panel - shows all stacks this block appears in */}
+      <ContextsPanel
+        open={contextsOpen}
+        onClose={() => setContextsOpen(false)}
+        blockId={tile.id}
+        blockTitle={title}
+      />
 
       {/* Remove button on hover */}
       {editable && (
