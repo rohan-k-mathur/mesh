@@ -47,7 +47,7 @@ export async function GET(
     });
 
     // Transform to include source fields at top level for consistency
-    const formattedCitations = citations.map((citation) => ({
+    const formattedCitations = citations.map((citation: any) => ({
       id: citation.id,
       url: citation.source?.url || null,
       title: citation.source?.title || citation.source?.url || "Untitled",
@@ -60,6 +60,14 @@ export async function GET(
       note: citation.note || null,
       relevance: citation.relevance || null,
       createdAt: citation.createdAt,
+      // Phase 2.1: Anchor fields
+      anchorType: citation.anchorType || null,
+      anchorId: citation.anchorId || null,
+      anchorData: citation.anchorData || null,
+      // Phase 2.3: Intent
+      intent: citation.intent || null,
+      // Include source object for CitationWithSource compatibility
+      source: citation.source,
     }));
 
     return NextResponse.json({

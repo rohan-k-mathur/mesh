@@ -1666,6 +1666,27 @@ enum StackVisibility {
   unlisted       // Link access only; not in search/discovery
 }
 
+// Citation anchor types (Phase 2.1)
+enum CitationAnchorType {
+  annotation     // PDF highlight → links to Annotation record
+  text_range     // Web capture text selection → anchorData has range
+  timestamp      // Video/audio → anchorData has {start, end} seconds
+  page           // Page-level reference (no specific selection)
+  coordinates    // Image region → anchorData has {x, y, width, height}
+}
+
+// Citation intent types (Phase 2.3) - semantic relationship to target
+enum CitationIntent {
+  supports      // Evidence in favor of the claim
+  refutes       // Evidence against the claim
+  context       // Background/contextual information
+  defines       // Defines a key term
+  method        // Describes methodology
+  background    // General background reading
+  acknowledges  // Acknowledges opposing view without refuting
+  example       // Provides an example/case study
+}
+
 enum StackRole {
   OWNER
   EDITOR
@@ -1780,9 +1801,20 @@ model Citation {
   createdById String
   createdAt   DateTime @default(now())
 
-  source Source @relation(fields: [sourceId], references: [id])
+  // Anchor fields for executable references (Phase 2.1)
+  anchorType  CitationAnchorType?
+  anchorId    String?   // Reference to Annotation.id or other anchor entity
+  anchorData  Json?     // Flexible anchor data (coordinates, ranges, etc.)
+
+  // Semantic intent (Phase 2.3) - optional, null means unspecified
+  intent      CitationIntent?
+
+  source     Source      @relation(fields: [sourceId], references: [id])
+  annotation Annotation? @relation(fields: [anchorId], references: [id], onDelete: SetNull)
 
   @@unique([targetType, targetId, sourceId, locator]) // prevents dup cites
+  @@index([anchorId])
+  @@index([intent])
 }
 
 model SourceRating {
@@ -1810,8 +1842,9 @@ model Annotation {
   author_id  BigInt
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
-  post   LibraryPost @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  author User        @relation(fields: [author_id], references: [id])
+  post      LibraryPost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  author    User        @relation(fields: [author_id], references: [id])
+  citations Citation[]  // Citations that reference this annotation (Phase 2.1)
 
   @@index([post_id])
   @@map("annotations")

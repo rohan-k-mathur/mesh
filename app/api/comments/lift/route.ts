@@ -76,13 +76,75 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
 
+    // ─────────────────────────────────────────────────────────────
+    // Phase 2.2: Copy citations from comment to claim
+    // ─────────────────────────────────────────────────────────────
+    const commentCitations = await prisma.citation.findMany({
+      where: {
+        targetType: "comment",
+        targetId: String(commentId),
+      },
+      select: {
+        id: true,
+        sourceId: true,
+        locator: true,
+        quote: true,
+        note: true,
+        relevance: true,
+        anchorType: true,
+        anchorId: true,
+        anchorData: true,
+        createdById: true,
+      },
+    });
+
+    const copiedCitations = [];
+    for (const citation of commentCitations) {
+      try {
+        const newCitation = await prisma.citation.create({
+          data: {
+            targetType: "claim",
+            targetId: claim.id,
+            sourceId: citation.sourceId,
+            locator: citation.locator,
+            quote: citation.quote,
+            note: citation.note,
+            relevance: citation.relevance,
+            anchorType: citation.anchorType,
+            anchorId: citation.anchorId,
+            anchorData: citation.anchorData ?? undefined,
+            createdById: String(userId), // Lifter becomes creator of new citation
+          },
+          select: { id: true, sourceId: true },
+        });
+        copiedCitations.push(newCitation);
+      } catch (copyErr) {
+        // Skip duplicates (unique constraint) but continue
+        console.warn("Citation copy skipped (likely duplicate):", copyErr);
+      }
+    }
+
     // if you've added the XRef model, you can safely enable this:
     // await prisma.xRef.create({ data: { fromType: "comment", fromId: String(commentId), toType: "claim", toId: claim.id, relation: "originates-from" } });
 
     emitBus("deliberations:created", { id: d.id, deliberationId: d.id, hostType: hostTypeEnum, hostId: hostIdStr, source: "lift" });
     emitBus("dialogue:moves:refresh", { moveId: move.id, deliberationId: d.id, kind: "ASSERT" });
 
-    return NextResponse.json({ deliberationId: d.id, claimId: claim.id });
+    // Phase 2.2: Emit event for lifted citations
+    if (copiedCitations.length > 0) {
+      emitBus("citations:lifted", {
+        claimId: claim.id,
+        citationCount: copiedCitations.length,
+        fromCommentId: String(commentId),
+        deliberationId: d.id,
+      });
+    }
+
+    return NextResponse.json({ 
+      deliberationId: d.id, 
+      claimId: claim.id,
+      citationsCopied: copiedCitations.length,
+    });
   } catch (e) {
     console.error("lift error", e);
     return NextResponse.json({ error: "Lift failed" }, { status: 500 });

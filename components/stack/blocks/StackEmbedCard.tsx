@@ -47,7 +47,7 @@ export function StackEmbedCard({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "group block rounded-lg border-2 border-dashed bg-gradient-to-br from-indigo-50/50 to-purple-50/50",
+        "group block h-full rounded-lg border-2 border-dashed bg-gradient-to-br from-indigo-50/70 to-purple-50/70",
         "hover:border-primary/50 hover:from-indigo-50 hover:to-purple-50 transition-all",
         "p-4",
         className

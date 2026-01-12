@@ -73,6 +73,10 @@ export default function CommentComposer({ rootId }: { rootId: bigint | number | 
       const quote: string | undefined = d.quote;
       const note: string | undefined = d.note;
       const relevance: number | undefined = d.relevance;
+      // Phase 2.1: Anchor data for executable citations
+      const anchorType: string | undefined = d.anchorType;
+      const anchorId: string | undefined = d.anchorId;
+      const anchorData: Record<string, unknown> | undefined = d.anchorData;
 
       const targetId = await ensureTargetComment();
 
@@ -89,7 +93,19 @@ export default function CommentComposer({ rootId }: { rootId: bigint | number | 
           await fetch("/api/citations/attach", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ targetType: "comment", targetId, sourceId, locator, quote, note, relevance }),
+            body: JSON.stringify({ 
+              targetType: "comment", 
+              targetId, 
+              sourceId, 
+              locator, 
+              quote, 
+              note, 
+              relevance,
+              // Phase 2.1: Include anchor data
+              anchorType,
+              anchorId,
+              anchorData,
+            }),
           }).catch(() => {});
           window.dispatchEvent(new CustomEvent("citations:changed", { detail: { targetType: "comment", targetId, sourceId, locator } }));
           router.refresh();
@@ -103,6 +119,10 @@ export default function CommentComposer({ rootId }: { rootId: bigint | number | 
           initialLocator: locator,
           initialQuote: quote,
           initialNote: note,
+          // Phase 2.1: Pass anchor data to modal
+          anchorType: anchorType as any,
+          anchorId,
+          anchorData,
           // initialUrl/DOI optional; leave empty to search in picker
         });
         setModalOpen(true);

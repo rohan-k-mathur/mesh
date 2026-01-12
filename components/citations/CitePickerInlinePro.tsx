@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import LibrarySearchModal from "@/components/citations/LibrarySearchModal";
+import { IntentSelector, CitationIntentType } from "@/components/citations/IntentSelector";
 
 /** Resolve/create a Source row */
 async function resolveSource(payload: any) {
@@ -25,6 +26,12 @@ async function attachCitation(args: {
   quote?: string;
   note?: string;
   relevance?: number;
+  // Phase 2.1: Anchor fields
+  anchorType?: string;
+  anchorId?: string;
+  anchorData?: Record<string, unknown>;
+  // Phase 2.3: Citation intent
+  intent?: CitationIntentType | null;
 }) {
   const r = await fetch("/api/citations/attach", {
     method: "POST",
@@ -47,6 +54,14 @@ type Props = {
   initialLocator?: string;
   initialQuote?: string;
   initialNote?: string;
+
+  /** Phase 2.1: Anchor data for executable citations */
+  anchorType?: "annotation" | "text_range" | "timestamp" | "page" | "coordinates";
+  anchorId?: string;
+  anchorData?: Record<string, unknown>;
+
+  /** Phase 2.3: Optional initial intent */
+  initialIntent?: CitationIntentType | null;
 };
 
 export default function CitePickerInlinePro({
@@ -58,6 +73,10 @@ export default function CitePickerInlinePro({
   initialLocator,
   initialQuote,
   initialNote,
+  anchorType,
+  anchorId,
+  anchorData,
+  initialIntent,
 }: Props) {
   const [tab, setTab] = React.useState<"url" | "doi" | "library">(
     initialDOI ? "doi" : initialUrl ? "url" : "library"
@@ -75,6 +94,9 @@ export default function CitePickerInlinePro({
   const [locator, setLocator] = React.useState(initialLocator ?? "");
   const [quote, setQuote] = React.useState(initialQuote ?? "");
   const [note, setNote] = React.useState(initialNote ?? "");
+
+  // Phase 2.3: Citation intent (optional)
+  const [intent, setIntent] = React.useState<CitationIntentType | null>(initialIntent ?? null);
 
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
@@ -110,6 +132,12 @@ export default function CitePickerInlinePro({
         locator: locator || undefined,
         quote: quote || undefined,
         note: note || undefined,
+        // Phase 2.1: Pass anchor data
+        anchorType: anchorType || undefined,
+        anchorId: anchorId || undefined,
+        anchorData: anchorData || undefined,
+        // Phase 2.3: Pass intent
+        intent: intent || undefined,
       });
 
       // fan-out to live listeners (optional; SSE also covers this when your route emits)
@@ -242,10 +270,23 @@ export default function CitePickerInlinePro({
         onChange={(e) => setQuote(e.target.value)}
       />
 
+      {/* Phase 2.3: Intent selector */}
+      <div className="mt-0">
+        {/* <label className="text-[11px] text-slate-500 mb-1 block">
+         Add note
+        </label> */}
+        <IntentSelector
+          value={intent}
+          onChange={setIntent}
+          compact
+          clearable
+        />
+      </div>
+
       {/* Actions */}
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-2">
         <button
-          className="text-xs px-2 py-1 rounded bg-emerald-600 text-white disabled:opacity-50"
+          className="text-xs px-3 py-1.5 rounded-lg btnv2--ghost bg-emerald-600 text-white disabled:opacity-50"
           onClick={doAttach}
           disabled={busy}
           title="Attach citation to the current target"

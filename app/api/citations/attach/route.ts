@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prismaclient";
 import { z } from "zod";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
+import { CitationAnchorType, CitationIntent } from "@prisma/client";
 
 const Attach = z.object({
   targetType: z.enum(["argument", "claim", "card", "comment", "move", "proposition"]),
@@ -12,6 +13,12 @@ const Attach = z.object({
   quote: z.string().max(280).optional(),
   note: z.string().max(500).optional(),
   relevance: z.number().min(1).max(5).optional(),
+  // Phase 2.1: Anchor fields for executable references
+  anchorType: z.enum(["annotation", "text_range", "timestamp", "page", "coordinates"]).optional(),
+  anchorId: z.string().optional(),
+  anchorData: z.record(z.unknown()).optional(),
+  // Phase 2.3: Citation intent (optional - users can add later)
+  intent: z.enum(["supports", "refutes", "context", "defines", "method", "background", "acknowledges", "example"]).optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -23,6 +30,27 @@ export async function POST(req: NextRequest) {
   const d = parsed.data;
 
   try {
+    // Phase 2.1: If anchorType is annotation, verify and auto-fill from annotation
+    let finalLocator = d.locator ?? null;
+    let finalQuote = d.quote ?? null;
+    let finalAnchorData = d.anchorData ?? null;
+
+    if (d.anchorType === "annotation" && d.anchorId) {
+      const annotation = await prisma.annotation.findUnique({
+        where: { id: d.anchorId },
+        select: { id: true, page: true, rect: true, text: true },
+      });
+
+      if (!annotation) {
+        return NextResponse.json({ error: "Annotation not found" }, { status: 404 });
+      }
+
+      // Auto-fill locator and quote from annotation if not provided
+      finalLocator = d.locator || `p. ${annotation.page}`;
+      finalQuote = d.quote || annotation.text?.slice(0, 280);
+      finalAnchorData = { page: annotation.page, rect: annotation.rect };
+    }
+
     // Create (or fetch existing) + include source so we can enrich the bus event
     const row = await prisma.citation
       .create({
@@ -30,13 +58,19 @@ export async function POST(req: NextRequest) {
           targetType: d.targetType,
           targetId: d.targetId,
           sourceId: d.sourceId,
-          locator: d.locator ?? null,
-          quote: d.quote ?? null,
+          locator: finalLocator,
+          quote: finalQuote,
           note: d.note ?? null,
           relevance: d.relevance ?? null,
           createdById: String(userId),
+          // Phase 2.1: Anchor fields
+          anchorType: d.anchorType ? (d.anchorType as CitationAnchorType) : null,
+          anchorId: d.anchorId ?? null,
+          anchorData: finalAnchorData,
+          // Phase 2.3: Citation intent (optional)
+          intent: d.intent ? (d.intent as CitationIntent) : null,
         },
-        include: { source: true },
+        include: { source: true, annotation: true },
       })
       .catch(async (e: any) => {
         if (e?.code === "P2002") {
@@ -45,9 +79,9 @@ export async function POST(req: NextRequest) {
               targetType: d.targetType,
               targetId: d.targetId,
               sourceId: d.sourceId,
-              locator: d.locator ?? null,
+              locator: finalLocator,
             },
-            include: { source: true },
+            include: { source: true, annotation: true },
           });
         }
         throw e;
@@ -134,7 +168,13 @@ if (d.targetType === "claim") {
       platform,
       locator: row.locator ?? null,
       quote: row.quote ?? null,
-      note:       row.note    ?? null,   // 👈 add this
+      note: row.note ?? null,
+      // Phase 2.1: Anchor fields
+      anchorType: row.anchorType ?? null,
+      anchorId: row.anchorId ?? null,
+      anchorData: row.anchorData ?? null,
+      // Phase 2.3: Citation intent
+      intent: row.intent ?? null,
 
       targetPreview,
     });

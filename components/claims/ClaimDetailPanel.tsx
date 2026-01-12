@@ -9,6 +9,7 @@ import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
 import { mutate } from "swr";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { current } from "immer";
+import { GroupedCitationList, EvidenceBalanceBar } from "@/components/citations/GroupedCitationList";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -382,26 +383,20 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             </div>
           )}
 
-          {/* Citations */}
+          {/* Citations - Phase 2.3: Grouped by intent */}
           {citations.length > 0 && (
             <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
               <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-2">
                 <LinkIcon className="w-3.5 h-3.5" />
-                Citations ({citations.length})
+                Evidence ({citations.length})
               </div>
-              <div className="space-y-1.5">
-                {citations.map((citation: any) => (
-                  <a
-                    key={citation.id}
-                    href={citation.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-xs text-slate-600 hover:text-indigo-600 hover:underline truncate"
-                  >
-                    {citation.title || citation.url}
-                  </a>
-                ))}
-              </div>
+              <EvidenceBalanceBar citations={citations} className="mb-3" />
+              <GroupedCitationList
+                citations={citations}
+                showGroups={citations.length > 1}
+                showMissingEvidencePrompt
+                compact
+              />
             </div>
           )}
 
