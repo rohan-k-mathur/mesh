@@ -14,6 +14,7 @@ import SortablePdfGrid from "@/components/stack/SortablePdfGrid";
 import AddCollaboratorForm from "@/components/stack/AddCollaboratorForm";
 import StackComposer from "@/components/stack/StackComposer";
 import StackSettingsModal from "@/components/stack/StackSettingsModal";
+import ExportButton from "@/components/stack/ExportButton";
 
 export default async function StackPage({ params }: { params: { slugOrId: string } }) {
   const { slugOrId } = params;
@@ -42,6 +43,7 @@ export default async function StackPage({ params }: { params: { slugOrId: string
           )}
         </div>
         <div className="flex items-center gap-3">
+          <ExportButton stackId={stack.id} stackName={stack.name} />
           <form action={toggleStackSubscription}>
             <input type="hidden" name="stackId" value={stack.id} />
             <input
