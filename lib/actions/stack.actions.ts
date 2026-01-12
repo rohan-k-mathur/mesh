@@ -109,7 +109,6 @@ export async function getStackPageData(stackId: string, useStackItems: boolean =
     },
     // NEW: Include StackItems for multi-stack ordering
     items: {
-      where: { kind: "block" },
       orderBy: { position: "asc" },
       include: {
         block: {
@@ -143,6 +142,18 @@ export async function getStackPageData(stackId: string, useStackItems: boolean =
             processingStatus: true,
             // NEW: Count of stacks this block is connected to
             stackConnections: { select: { stackId: true } },
+          },
+        },
+        // NEW: Include embedded stack data
+        embedStack: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            is_public: true,
+            owner: { select: { id: true, name: true, username: true, image: true } },
+            _count: { select: { posts: true, items: true } },
           },
         },
         addedBy: { select: { id: true, name: true, username: true, image: true } },
@@ -201,14 +212,35 @@ if (useStackItems && stackItems && stackItems.length > 0) {
   // Get block IDs that have StackItems
   const stackItemBlockIds = new Set(
     stackItems
-      .filter((item: any) => item.block !== null)
+      .filter((item: any) => item.kind === "block" && item.block !== null)
       .map((item: any) => item.block.id)
   );
   
-  // Use StackItem-based ordering (new system)
+  // Use StackItem-based ordering (new system) - handle both blocks and embeds
   const stackItemPosts = stackItems
-    .filter((item: any) => item.block !== null)
+    .filter((item: any) => (item.kind === "block" && item.block !== null) || (item.kind === "stack_embed" && item.embedStack !== null))
     .map((item: any) => {
+      // Handle stack embeds
+      if (item.kind === "stack_embed" && item.embedStack) {
+        return {
+          id: item.id, // Use StackItem ID for embeds
+          kind: "stack_embed" as const,
+          embedStack: {
+            id: item.embedStack.id,
+            name: item.embedStack.name,
+            slug: item.embedStack.slug,
+            description: item.embedStack.description,
+            is_public: item.embedStack.is_public,
+            owner: item.embedStack.owner,
+            _count: item.embedStack._count,
+          },
+          note: item.note,
+          addedBy: item.addedBy,
+          addedAt: item.createdAt,
+        };
+      }
+      
+      // Handle regular blocks
       const p = item.block;
       let thumb_urls = p.thumb_urls;
       if (!thumb_urls?.length && p.file_url) {
@@ -220,6 +252,7 @@ if (useStackItems && stackItems && stackItems.length > 0) {
       const connectedStackIds = (p.stackConnections || []).map((c: any) => c.stackId);
       return {
         ...p,
+        kind: "block" as const,
         thumb_urls,
         // Map DB field names to UI field names
         videoThumbnail: p.videoThumb || null,
@@ -227,6 +260,7 @@ if (useStackItems && stackItems && stackItems.length > 0) {
         textFormat: p.textContent ? "markdown" : null, // Assume markdown if content exists
         // NEW: Include connection metadata
         connectionNote: item.note,
+        note: item.note,
         addedBy: item.addedBy,
         addedAt: item.createdAt,
         connectedStacksCount: connectedStackIds.length || 1,
@@ -343,6 +377,7 @@ function deriveThumbKeyFromFile(fileUrl?: string|null) {
       name: stack.name,
       description: stack.description,
       is_public: stack.is_public,
+      visibility: (stack as any).visibility ?? (stack.is_public ? "public_closed" : "private"),
       owner_id: stack.owner_id,
       slug: stack.slug ?? null,
     },
@@ -629,33 +664,62 @@ export async function removeFromStack(formData: FormData) {
 
   const stackId = String(formData.get("stackId") || "");
   const postId  = String(formData.get("postId")  || "");
+  const kind    = String(formData.get("kind")    || "block");
 
-  const [stack, post] = await prisma.$transaction([
-    prisma.stack.findUnique({ where: { id: stackId }, include: { collaborators: true } }),
-    prisma.libraryPost.findUnique({ where: { id: postId }, select: { stack_id: true } }),
-  ]);
+  const stack = await prisma.stack.findUnique({ 
+    where: { id: stackId }, 
+    include: { collaborators: true } 
+  });
   if (!stack) throw new Error("Stack not found");
   if (!canEdit(stack, { id: userId })) throw new Error("Forbidden");
 
-  // If already detached or belongs elsewhere, just prune order and exit
-  if (!post || post.stack_id !== stackId) {
-    await prisma.stack.update({
-      where: { id: stackId },
-      data: { order: (stack.order ?? []).filter((id) => id !== postId) },
+  // Handle stack_embed removal via StackItem
+  if (kind === "stack_embed") {
+    await prisma.stackItem.deleteMany({
+      where: {
+        stackId,
+        embedStackId: postId,
+        kind: "stack_embed",
+      },
     });
+    emitBus("stacks:changed", { stackId, op: "remove", embedStackId: postId });
+    revalidatePath(`/stacks/${stackId}`);
+    return;
+  }
+
+  // Handle block removal (legacy path + StackItem cleanup)
+  const post = await prisma.libraryPost.findUnique({ 
+    where: { id: postId }, 
+    select: { stack_id: true } 
+  });
+
+  // If already detached or belongs elsewhere, just prune order and StackItem
+  if (!post || post.stack_id !== stackId) {
+    await prisma.$transaction([
+      prisma.stack.update({
+        where: { id: stackId },
+        data: { order: (stack.order ?? []).filter((id) => id !== postId) },
+      }),
+      prisma.stackItem.deleteMany({
+        where: { stackId, blockId: postId },
+      }),
+    ]);
     emitBus("stacks:changed", { stackId, op: "remove", postId });
     revalidatePath(`/stacks/${stackId}`);
     return;
   }
 
-  // Normal detach + prune
-  await prisma.$transaction(async (tx) => {
-    await tx.libraryPost.update({ where: { id: postId }, data: { stack_id: null } });
-    await tx.stack.update({
+  // Normal detach: clear stack_id, prune order, remove StackItem
+  await prisma.$transaction([
+    prisma.libraryPost.update({ where: { id: postId }, data: { stack_id: null } }),
+    prisma.stack.update({
       where: { id: stackId },
       data: { order: (stack.order ?? []).filter((id) => id !== postId) },
-    });
-  });
+    }),
+    prisma.stackItem.deleteMany({
+      where: { stackId, blockId: postId },
+    }),
+  ]);
   emitBus("stacks:changed", { stackId, op: "remove", postId });
   revalidatePath(`/stacks/${stackId}`);
 }

@@ -24,7 +24,8 @@ import {
   FileIcon,
   XIcon,
   Loader2Icon,
-  PlusCircle
+  PlusCircle,
+  LayersIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -45,6 +46,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { EmbedStackModal } from "@/components/stack/modals/EmbedStackModal";
 
 interface StackComposerProps {
   stackId: string;
@@ -52,7 +54,7 @@ interface StackComposerProps {
   className?: string;
 }
 
-type ComposerMode = null | "link" | "text" | "video" | "image";
+type ComposerMode = null | "link" | "text" | "video" | "image" | "embed";
 
 export function StackComposer({ stackId, onBlockAdded, className }: StackComposerProps) {
   const router = useRouter();
@@ -292,6 +294,13 @@ export function StackComposer({ stackId, onBlockAdded, className }: StackCompose
             Image
             <span className="ml-auto text-xs text-muted-foreground">Soon</span>
           </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem onClick={() => setMode("embed")}>
+            <LayersIcon className="h-4 w-4 mr-2" />
+            Embed Stack
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       
@@ -471,6 +480,17 @@ export function StackComposer({ stackId, onBlockAdded, className }: StackCompose
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Embed Stack Modal */}
+      <EmbedStackModal
+        open={mode === "embed"}
+        onClose={resetForm}
+        parentStackId={stackId}
+        onSuccess={() => {
+          resetForm();
+          router.refresh();
+        }}
+      />
     </>
   );
 }

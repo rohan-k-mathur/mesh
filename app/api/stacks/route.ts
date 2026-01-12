@@ -56,6 +56,7 @@ const CreateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   slug: z.string().optional(),
   is_public: z.boolean().optional(),
+  visibility: z.enum(["public_open", "public_closed", "private", "unlisted"]).optional(),
   description: z.string().nullable().optional(),
 });
 
@@ -70,14 +71,21 @@ export async function POST(req: Request) {
     name = 'Untitled Stack',
     slug = nanoid(),
     is_public = false,
+    visibility = "private",
     description = null,
   } = parsed.success ? parsed.data : {};
+
+  // Derive is_public from visibility for backward compatibility
+  const computedIsPublic = visibility === "public_open" || visibility === "public_closed" || visibility === "unlisted";
 
   const stack = await prisma.stack.create({
     data: {
       owner_id: BigInt(user.userId),
-      name, slug, is_public, description,
-      // order: [] // optional; fill if you have a default
+      name, 
+      slug, 
+      is_public: computedIsPublic,
+      visibility,
+      description,
     },
     select: { id: true, slug: true },
   });

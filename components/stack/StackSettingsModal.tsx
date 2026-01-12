@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { VisibilitySelector, Visibility } from "@/components/stack/VisibilitySelector";
 
 interface StackSettingsModalProps {
   stackId: string;
   initialName: string;
   initialDescription: string | null;
-  initialIsPublic: boolean;
+  initialVisibility: Visibility;
   initialSlug: string | null;
 }
 
@@ -29,7 +29,7 @@ export function StackSettingsModal({
   stackId, 
   initialName, 
   initialDescription, 
-  initialIsPublic,
+  initialVisibility,
   initialSlug 
 }: StackSettingsModalProps) {
   const router = useRouter();
@@ -40,18 +40,18 @@ export function StackSettingsModal({
   
   const [name, setName] = React.useState(initialName);
   const [description, setDescription] = React.useState(initialDescription || "");
-  const [isPublic, setIsPublic] = React.useState(initialIsPublic);
+  const [visibility, setVisibility] = React.useState<Visibility>(initialVisibility);
 
   // Reset form when modal opens
   React.useEffect(() => {
     if (open) {
       setName(initialName);
       setDescription(initialDescription || "");
-      setIsPublic(initialIsPublic);
+      setVisibility(initialVisibility);
       setError(null);
       setSuccess(false);
     }
-  }, [open, initialName, initialDescription, initialIsPublic]);
+  }, [open, initialName, initialDescription, initialVisibility]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +72,7 @@ export function StackSettingsModal({
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || null,
-          is_public: isPublic,
+          visibility,
         }),
       });
       
@@ -131,17 +131,11 @@ export function StackSettingsModal({
             />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="edit-stack-public">Public</Label>
-              <p className="text-xs text-muted-foreground">
-                Anyone can view this stack
-              </p>
-            </div>
-            <Switch
-              id="edit-stack-public"
-              checked={isPublic}
-              onCheckedChange={setIsPublic}
+          <div className="space-y-2">
+            <Label>Visibility</Label>
+            <VisibilitySelector
+              value={visibility}
+              onChange={setVisibility}
               disabled={isSubmitting}
             />
           </div>

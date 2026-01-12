@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { VisibilitySelector, Visibility } from "@/components/stack/VisibilitySelector";
 
 interface CreateStackModalProps {
   open: boolean;
@@ -29,12 +29,12 @@ export function CreateStackModal({ open, onOpenChange, onSuccess }: CreateStackM
   
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [isPublic, setIsPublic] = React.useState(false);
+  const [visibility, setVisibility] = React.useState<Visibility>("private");
 
   const resetForm = () => {
     setName("");
     setDescription("");
-    setIsPublic(false);
+    setVisibility("private");
     setError(null);
   };
 
@@ -61,7 +61,7 @@ export function CreateStackModal({ open, onOpenChange, onSuccess }: CreateStackM
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || null,
-          is_public: isPublic,
+          visibility,
         }),
       });
       
@@ -120,17 +120,11 @@ export function CreateStackModal({ open, onOpenChange, onSuccess }: CreateStackM
             />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="stack-public">Public</Label>
-              <p className="text-xs text-muted-foreground">
-                Anyone can view this stack
-              </p>
-            </div>
-            <Switch
-              id="stack-public"
-              checked={isPublic}
-              onCheckedChange={setIsPublic}
+          <div className="space-y-2">
+            <Label>Visibility</Label>
+            <VisibilitySelector
+              value={visibility}
+              onChange={setVisibility}
               disabled={isSubmitting}
             />
           </div>

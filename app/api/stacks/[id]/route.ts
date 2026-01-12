@@ -7,6 +7,7 @@ const PatchSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().nullable().optional(),
   is_public: z.boolean().optional(),
+  visibility: z.enum(["public_open", "public_closed", "private", "unlisted"]).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -20,13 +21,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
   
-  const { name, description, is_public } = parsed.data;
+  const { name, description, is_public, visibility } = parsed.data;
   
   // Build update data only with provided fields
   const updateData: any = {};
   if (name !== undefined) updateData.name = name.trim();
   if (description !== undefined) updateData.description = description;
   if (is_public !== undefined) updateData.is_public = is_public;
+  if (visibility !== undefined) {
+    updateData.visibility = visibility;
+    // Sync is_public for backward compatibility
+    updateData.is_public = visibility === "public_open" || visibility === "public_closed" || visibility === "unlisted";
+  }
   
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 });

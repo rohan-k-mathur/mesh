@@ -1634,7 +1634,8 @@ model Stack {
   owner_id       BigInt
   name           String
   description    String?
-  is_public      Boolean             @default(false)
+  is_public      Boolean             @default(false) // DEPRECATED: Use visibility instead
+  visibility     StackVisibility     @default(public_closed)
   order          String[]            // DEPRECATED: Will be removed after StackItem migration complete
   created_at     DateTime            @default(now()) @db.Timestamptz(6)
   parent_id      String?
@@ -1653,7 +1654,16 @@ model Stack {
   embeddedIn     StackItem[]         @relation("EmbeddedIn")
 
   @@unique([owner_id, name])
+  @@index([visibility])
   @@map("stacks")
+}
+
+// Stack visibility modes (Phase 1.5)
+enum StackVisibility {
+  public_open    // Anyone can view + add blocks
+  public_closed  // Anyone can view; only owner/collaborators can add
+  private        // Only owner/collaborators can view and add
+  unlisted       // Link access only; not in search/discovery
 }
 
 enum StackRole {

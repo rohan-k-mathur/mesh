@@ -22,6 +22,7 @@ import PdfLightbox from "@/components/modals/PdfLightbox";
 import { LinkBlockCard } from "@/components/blocks/LinkBlockCard";
 import { TextBlockCard } from "@/components/blocks/TextBlockCard";
 import { VideoBlockCard } from "@/components/blocks/VideoBlockCard";
+import { StackEmbedCard, EmbeddedStackData } from "@/components/stack/blocks/StackEmbedCard";
 import { ConnectButton } from "@/components/stack/ConnectButton";
 import { ContextsPanel } from "@/components/stack/ContextsPanel";
 import { removeFromStack, setStackOrder } from "@/lib/actions/stack.actions";
@@ -37,9 +38,13 @@ function deriveThumbFromPdfUrl(fileUrl?: string|null) {
 // Block type enum (matches Prisma schema)
 type BlockType = "pdf" | "link" | "text" | "image" | "video" | "dataset" | "embed";
 
-/** Extended tile shape supporting all block types */
+// StackItem kind enum
+type StackItemKind = "block" | "stack_embed";
+
+/** Extended tile shape supporting all block types and stack embeds */
 export type StackPostTile = {
-  id: string;
+  id: string;  // StackItem.id for embeds, LibraryPost.id for blocks
+  kind?: StackItemKind;  // "block" (default) or "stack_embed"
   title?: string | null;
   file_url?: string | null;  // Optional for non-PDF blocks
   thumb_urls?: string[] | null;
@@ -69,6 +74,12 @@ export type StackPostTile = {
   // Connection metadata (Phase 1.3)
   connectedStacksCount?: number;
   connectedStackIds?: string[];
+  
+  // Stack embed fields (Phase 1.4)
+  embedStack?: EmbeddedStackData | null;
+  note?: string | null;
+  addedBy?: { id: string; name: string } | null;
+  addedAt?: string | null;
 };
 
 type Props = {
@@ -168,8 +179,64 @@ function SortableTile({
     boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,.12)" : undefined,
   };
 
+  const isStackEmbed = tile.kind === "stack_embed";
   const blockType = tile.blockType || "pdf"; // Default to PDF for legacy posts
-  const title = tile.title || (blockType === "pdf" ? "PDF" : "Untitled");
+  const title = isStackEmbed 
+    ? (tile.embedStack?.name || "Embedded Stack")
+    : (tile.title || (blockType === "pdf" ? "PDF" : "Untitled"));
+
+  // Render stack embed
+  if (isStackEmbed && tile.embedStack) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="group relative"
+      >
+        <StackEmbedCard
+          stack={tile.embedStack}
+          note={tile.note}
+          addedBy={tile.addedBy}
+          addedAt={tile.addedAt}
+          compact
+        />
+
+        {/* Drag handle for embeds */}
+        {editable && (
+          <button
+            className="absolute top-2 left-2 p-1 rounded bg-white/90 border opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing z-10"
+            aria-label="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="3" cy="3" r="1.5" />
+              <circle cx="8" cy="3" r="1.5" />
+              <circle cx="13" cy="3" r="1.5" />
+              <circle cx="3" cy="8" r="1.5" />
+              <circle cx="8" cy="8" r="1.5" />
+              <circle cx="13" cy="8" r="1.5" />
+            </svg>
+          </button>
+        )}
+
+        {/* Remove button for embeds */}
+        {editable && (
+          <form action={removeFromStack} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10">
+            <input type="hidden" name="stackId" value={stackId} />
+            <input type="hidden" name="postId" value={tile.id} />
+            <input type="hidden" name="kind" value="stack_embed" />
+            <button
+              className="px-2 py-1 text-xs rounded bg-white/90 border"
+              type="submit"
+            >
+              ⌫
+            </button>
+          </form>
+        )}
+      </div>
+    );
+  }
 
   // Render the appropriate block content based on type
   const renderBlockContent = () => {

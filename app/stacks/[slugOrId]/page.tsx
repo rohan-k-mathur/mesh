@@ -59,7 +59,7 @@ export default async function StackPage({ params }: { params: { slugOrId: string
               stackId={stack.id}
               initialName={stack.name}
               initialDescription={stack.description}
-              initialIsPublic={stack.is_public}
+              initialVisibility={stack.visibility || (stack.is_public ? "public_closed" : "private")}
               initialSlug={stack.slug}
             />
           )}
