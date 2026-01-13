@@ -265,7 +265,7 @@ export function EvidencePanel({
         ) : (
           <div className="space-y-2">
             {citations.map((c) => (
-              <CitationCard key={c.id} citation={c} compact={compact} />
+              <CitationCard key={c.id} citation={c} compact={compact} showTrustBadges={true} />
             ))}
           </div>
         )

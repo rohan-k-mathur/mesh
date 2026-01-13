@@ -2,6 +2,9 @@
 import * as React from "react";
 import useSWR from "swr";
 import { ExternalLink, Users, FileText, TrendingUp, Star } from "lucide-react";
+import { SourceTrustBadges } from "@/components/sources/SourceTrustBadges";
+import type { SourceVerificationStatus } from "@/components/sources/VerificationBadge";
+import type { ArchiveStatus } from "@/components/sources/ArchiveBadge";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -22,6 +25,13 @@ type EvidenceSource = {
   lastUsed: string;
   averageRating: number | null;
   ratingCount: number;
+  // Phase 3.1: Trust fields
+  verificationStatus?: SourceVerificationStatus;
+  lastCheckedAt?: string | null;
+  canonicalUrl?: string | null;
+  archiveStatus?: ArchiveStatus;
+  archiveUrl?: string | null;
+  archivedAt?: string | null;
 };
 
 type EvidenceListProps = {
@@ -180,6 +190,21 @@ export function EvidenceList({ deliberationId }: EvidenceListProps) {
                   {source.publicationTitle && (
                     <span className="text-slate-500"> · {source.publicationTitle}</span>
                   )}
+                </div>
+                {/* Phase 3.1: Trust Badges */}
+                <div className="mt-1.5">
+                  <SourceTrustBadges
+                    source={{
+                      id: source.sourceId,
+                      verificationStatus: source.verificationStatus || "unverified",
+                      lastCheckedAt: source.lastCheckedAt,
+                      canonicalUrl: source.canonicalUrl,
+                      archiveStatus: source.archiveStatus || "none",
+                      archiveUrl: source.archiveUrl,
+                      archivedAt: source.archivedAt,
+                    }}
+                    compact={true}
+                  />
                 </div>
               </div>
             </div>

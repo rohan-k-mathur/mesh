@@ -4,6 +4,7 @@
  * CitationCard Component
  * 
  * Phase 2.1 of Stacks Improvement Roadmap
+ * Phase 3.1: Added source trust badges (verification + archive status)
  * 
  * Displays a citation with click-to-navigate functionality.
  * Clicking navigates to the exact location in the source.
@@ -23,12 +24,32 @@ import {
   CitationWithSource,
 } from "@/lib/citations/navigation";
 import { IntentBadge, CitationIntentType } from "./IntentSelector";
+import { SourceTrustBadges, SourceTrustData } from "@/components/sources/SourceTrustBadges";
+import { SourceVerificationStatus } from "@/components/sources/VerificationBadge";
+import { ArchiveStatus } from "@/components/sources/ArchiveBadge";
+
+// Extended source type with trust fields
+interface SourceWithTrust {
+  id: string;
+  title?: string | null;
+  url?: string | null;
+  verificationStatus?: SourceVerificationStatus;
+  lastCheckedAt?: Date | string | null;
+  canonicalUrl?: string | null;
+  archiveStatus?: ArchiveStatus;
+  archiveUrl?: string | null;
+  archivedAt?: Date | string | null;
+}
 
 interface CitationCardProps {
-  citation: CitationWithSource & { intent?: CitationIntentType | null };
+  citation: CitationWithSource & { 
+    intent?: CitationIntentType | null;
+    source: SourceWithTrust;
+  };
   compact?: boolean;
   className?: string;
   showIntent?: boolean;
+  showTrustBadges?: boolean;
   onNavigate?: () => void;
 }
 
@@ -37,9 +58,21 @@ export function CitationCard({
   compact = false, 
   className,
   showIntent = true,
+  showTrustBadges = false,
   onNavigate,
 }: CitationCardProps) {
   const navTarget = getCitationNavigationTarget(citation);
+
+  // Build source trust data if trust badges are enabled
+  const sourceTrustData: SourceTrustData | null = showTrustBadges && citation.source.verificationStatus ? {
+    id: citation.source.id,
+    verificationStatus: citation.source.verificationStatus,
+    lastCheckedAt: citation.source.lastCheckedAt,
+    canonicalUrl: citation.source.canonicalUrl,
+    archiveStatus: citation.source.archiveStatus || "none",
+    archiveUrl: citation.source.archiveUrl,
+    archivedAt: citation.source.archivedAt,
+  } : null;
 
   const handleClick = () => {
     if (!navTarget) return;
@@ -103,6 +136,15 @@ export function CitationCard({
             <span className="font-medium text-sm line-clamp-1 flex-1 min-w-0">
               {citation.source.title || "Untitled Source"}
             </span>
+            {/* Phase 3.1: Inline trust badges */}
+            {sourceTrustData && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <SourceTrustBadges 
+                  source={sourceTrustData} 
+                  compact={true}
+                />
+              </div>
+            )}
             {showIntent && citation.intent && (
               <IntentBadge intent={citation.intent} showLabel={!compact} />
             )}

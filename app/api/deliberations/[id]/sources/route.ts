@@ -167,6 +167,13 @@ export async function GET(
         // Quality ratings
         averageRating,
         ratingCount,
+        // Phase 3.1: Trust fields
+        verificationStatus: data.source.verificationStatus || "unverified",
+        lastCheckedAt: data.source.lastCheckedAt?.toISOString() || null,
+        canonicalUrl: data.source.canonicalUrl || null,
+        archiveStatus: data.source.archiveStatus || "none",
+        archiveUrl: data.source.archiveUrl || null,
+        archivedAt: data.source.archivedAt?.toISOString() || null,
       };
     });
 

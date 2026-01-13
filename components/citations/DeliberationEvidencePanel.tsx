@@ -192,11 +192,11 @@ export function DeliberationEvidencePanel({
 
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
-          <div className="flex items-center border rounded-md">
+          <div className="flex items-center  rounded-md">
             <Button
               variant={viewMode === "grouped" ? "secondary" : "ghost"}
               size="sm"
-              className="h-7 px-2 rounded-r-none"
+              className="h-7 px-2 rounded-lg rounded-r-none"
               onClick={() => setViewMode("grouped")}
             >
               <LayoutGridIcon className="h-3.5 w-3.5" />
@@ -204,7 +204,7 @@ export function DeliberationEvidencePanel({
             <Button
               variant={viewMode === "list" ? "secondary" : "ghost"}
               size="sm"
-              className="h-7 px-2 rounded-l-none"
+              className="h-7 px-2 rounded-lg rounded-l-none"
               onClick={() => setViewMode("list")}
             >
               <ListIcon className="h-3.5 w-3.5" />
@@ -213,7 +213,7 @@ export function DeliberationEvidencePanel({
 
           <Button
             variant="ghost"
-            size="sm"
+          className="rounded-lg"
             onClick={fetchCitations}
             disabled={loading}
           >

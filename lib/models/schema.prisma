@@ -106,6 +106,9 @@ model User {
   // Source rating relations
   sourceRatings SourceRating[]
 
+  // Phase 3.1: Source alert notifications
+  sourceAlertNotifications SourceAlertNotification[]
+
   // ASPIC+ Explicit Contraries - Phase D-1
   claimContraries ClaimContrary[]
 
@@ -1687,6 +1690,58 @@ enum CitationIntent {
   example       // Provides an example/case study
 }
 
+// ─────────────────────────────────────────────────────────
+// Phase 3.1: Source Trust Infrastructure Enums
+// ─────────────────────────────────────────────────────────
+
+enum SourceVerificationStatus {
+  unverified    // Never checked
+  verified      // URL resolves, content accessible
+  redirected    // URL redirects (canonicalUrl differs)
+  unavailable   // Temporarily unavailable (4xx/5xx)
+  broken        // Permanently broken (multiple failures)
+  paywalled     // Accessible but behind paywall
+}
+
+enum EnrichmentStatus {
+  pending       // Not yet enriched
+  enriched      // Successfully enriched from external DB
+  partial       // Some fields enriched
+  not_found     // Not found in external DBs
+  failed        // Enrichment failed
+}
+
+enum ArchiveStatus {
+  none          // No archive requested
+  pending       // Archive request submitted
+  in_progress   // Archiving in progress
+  archived      // Successfully archived
+  failed        // Archive failed
+  exists        // Already archived (found existing)
+}
+
+enum RetractionStatus {
+  none                    // No retraction
+  retracted               // Fully retracted
+  expression_of_concern   // Expression of concern issued
+  partial_retraction      // Partial retraction
+}
+
+enum CorrectionStatus {
+  none              // No corrections
+  minor_correction  // Minor correction (typos, formatting)
+  major_correction  // Major correction (data, methodology)
+  erratum           // Formal erratum published
+}
+
+enum SourceAlertType {
+  retraction
+  expression_of_concern
+  major_correction
+  link_broken
+  content_changed
+}
+
 enum StackRole {
   OWNER
   EDITOR
@@ -1785,8 +1840,55 @@ model Source {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // ─────────────────────────────────────────────────────────
+  // Phase 3.1: Verification Fields
+  // ─────────────────────────────────────────────────────────
+  verificationStatus SourceVerificationStatus @default(unverified)
+  verifiedAt         DateTime?
+  lastCheckedAt      DateTime?
+  canonicalUrl       String?   // Final URL after redirects
+  httpStatus         Int?      // Last HTTP status code
+  httpStatusHistory  Json?     // [{status, checkedAt}, ...]
+  contentHash        String?   // Hash of page content/PDF for change detection
+  contentChangedAt   DateTime?
+
+  // Metadata enrichment status
+  enrichmentStatus   EnrichmentStatus @default(pending)
+  enrichedAt         DateTime?
+  enrichmentSource   String?   // "crossref", "semantic_scholar", "openalex"
+
+  // ─────────────────────────────────────────────────────────
+  // Phase 3.1: Archiving Fields
+  // ─────────────────────────────────────────────────────────
+  archiveStatus       ArchiveStatus @default(none)
+  archiveRequestedAt  DateTime?
+  archivedAt          DateTime?
+  archiveError        String?
+  localArchivePath    String?   // S3 path to captured PDF
+  localArchiveSize    Int?      // File size in bytes
+
+  // ─────────────────────────────────────────────────────────
+  // Phase 3.1: Retraction/Correction Tracking
+  // ─────────────────────────────────────────────────────────
+  retractionStatus    RetractionStatus @default(none)
+  retractionCheckedAt DateTime?
+  retractionNoticeUrl String?
+  retractionReason    String?
+  retractionDate      DateTime?
+
+  correctionStatus    CorrectionStatus @default(none)
+  correctionUrl       String?
+  correctionDate      DateTime?
+  correctionSummary   String?
+
   citations Citation[]
   ratings   SourceRating[]
+  alerts    SourceAlert[]
+
+  @@index([verificationStatus])
+  @@index([lastCheckedAt])
+  @@index([archiveStatus])
+  @@index([retractionStatus])
 }
 
 model Citation {
@@ -1830,6 +1932,40 @@ model SourceRating {
 
   @@unique([sourceId, userId]) // One rating per user per source
   @@index([sourceId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 3.1: Source Alerts (retraction, broken links, etc.)
+// ─────────────────────────────────────────────────────────
+
+model SourceAlert {
+  id          String          @id @default(cuid())
+  sourceId    String
+  alertType   SourceAlertType
+  message     String
+  metadata    Json?           // Additional alert-specific data
+  createdAt   DateTime        @default(now())
+
+  source        Source                    @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  notifications SourceAlertNotification[]
+
+  @@index([sourceId])
+  @@index([alertType])
+}
+
+model SourceAlertNotification {
+  id          String    @id @default(cuid())
+  alertId     String
+  userId      BigInt
+  seenAt      DateTime?
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  alert SourceAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([alertId, userId])
   @@index([userId])
 }
 
