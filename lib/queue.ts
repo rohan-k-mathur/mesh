@@ -20,6 +20,10 @@ export const reembedQueue       = new Queue('reembed',       { connection });
 export const tasteVectorQueue   = new Queue('taste-vector',   { connection });
 export const candidateBuilderQueue = new Queue('candidate-builder', { connection });
 export const userKnnQueue       = new Queue('user-knn',      { connection });
+
+// Phase 3.1: Source Trust Infrastructure queues
+export const sourceVerificationQueue = new Queue('source-verification', { connection });
+export const sourceArchivingQueue = new Queue('source-archiving', { connection });
 // export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 

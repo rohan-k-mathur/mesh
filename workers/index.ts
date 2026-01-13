@@ -12,5 +12,9 @@ import "@/workers/sectionHeat";
 import "@/workers/decayConfidenceJob";
 import "@/workers/computeSharedAuthorEdges";
 
+// Phase 3.1: Source Trust Infrastructure workers
+import "@/workers/sourceVerification";
+import "@/workers/sourceArchiving";
+
 
 console.log('All workers bootstrapped');
