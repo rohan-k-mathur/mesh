@@ -63,6 +63,7 @@ export async function POST(req: Request) {
     const moid = mintClaimMoid(text);
     const existing = await prisma.claim.findUnique({ where: { moid } });
     if (existing) {
+      console.log('[claims/create] Found existing claim with same moid:', { id: existing.id, text: text.substring(0, 50) });
             // If promoting an argument, back-link argument to existing claim
       if (input.target?.type === 'argument') {
         await prisma.argument.update({
@@ -145,6 +146,7 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log('[claims/create] Successfully created claim:', { id: claim.id, text: text.substring(0, 50), deliberationId });
     return NextResponse.json({ claim, created: true });
   } catch (err: any) {
     console.error('[claims/create] failed', err);

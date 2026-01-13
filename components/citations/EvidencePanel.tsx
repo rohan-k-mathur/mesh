@@ -43,6 +43,7 @@ export function EvidencePanel({
   className,
   onAddCitation,
 }: EvidencePanelProps) {
+  const [mounted, setMounted] = useState(false);
   const [citations, setCitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,9 +106,16 @@ export function EvidencePanel({
     }
   }, [targetType, targetId, filters, pagination.page, pagination.limit]);
 
+  // Set mounted to avoid hydration mismatch
   useEffect(() => {
-    fetchCitations();
-  }, [fetchCitations]);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchCitations();
+    }
+  }, [fetchCitations, mounted]);
 
   // Listen for citation changes
   useEffect(() => {
@@ -126,6 +134,17 @@ export function EvidencePanel({
   const goToPage = (page: number) => {
     setPagination((p) => ({ ...p, page }));
   };
+
+  // Show skeleton on initial render to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <div className={cn("space-y-4", className)}>
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-4", className)}>

@@ -67,6 +67,7 @@ import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
 import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPanel";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
 import { EvidenceList } from "@/components/evidence/EvidenceList";
+import { DeliberationEvidencePanel } from "@/components/citations/DeliberationEvidencePanel";
 import { DiscourseDashboard } from "@/components/discourse/DiscourseDashboard";
 import { CommitmentStorePanel } from "@/components/aif/CommitmentStorePanel";
 import { CommitmentAnalyticsDashboard } from "@/components/aif/CommitmentAnalyticsDashboard";
@@ -1752,8 +1753,21 @@ const {
 
           {/* Sources TAB */}
           <TabsContent value="sources" className="w-full min-w-0 mt-4 space-y-4">
+            {/* Browse Citations - Phase 2.4 */}
             <SectionCard
-              title="Evidence & Sources"
+              title="Browse Citations"
+              action={
+                <div className="text-xs text-neutral-500">
+                  Filter and search all citations by intent, source type, or content
+                </div>
+              }
+            >
+              <DeliberationEvidencePanel deliberationId={deliberationId} />
+            </SectionCard>
+
+            {/* Aggregated Sources View */}
+            <SectionCard
+              title="Source Quality Ratings"
               action={
                 <div className="text-xs text-neutral-500">
                   Community-evaluated sources used across arguments and claims
@@ -1761,7 +1775,7 @@ const {
               }
             >
               <div className="text-sm text-neutral-600 mb-4">
-                All citations and sources referenced in this deliberation. Rate sources to help the community evaluate evidence quality.
+                All sources referenced in this deliberation. Rate sources to help the community evaluate evidence quality.
               </div>
               <EvidenceList deliberationId={deliberationId} />
             </SectionCard>

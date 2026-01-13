@@ -204,13 +204,25 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
 
   await validateSlotsAgainstScheme({ tx: prisma, schemeId, slots });
 
+  // Debug: Log the claim IDs we're about to look up
+  console.log('[POST /api/arguments] Looking up claims:', {
+    conclusionClaimId,
+    premiseClaimIds,
+  });
 
   const created = await prisma.$transaction(async (tx) => {
     // Optional: assert the claims exist to avoid foreign key errors
-    await tx.claim.findUniqueOrThrow({ where: { id: conclusionClaimId }, select: { id:true } });
+    const conclusionClaim = await tx.claim.findUnique({ where: { id: conclusionClaimId }, select: { id: true } });
+    if (!conclusionClaim) {
+      console.error('[POST /api/arguments] Conclusion claim not found:', conclusionClaimId);
+      throw new Error(`Conclusion claim not found: ${conclusionClaimId}`);
+    }
     const prems = await tx.claim.findMany({ where: { id: { in: premiseClaimIds } }, select: { id: true } });
     if (prems.length !== premiseClaimIds.length) {
-      throw new Error('One or more premiseClaimIds not found');
+      const foundIds = prems.map(p => p.id);
+      const missingIds = premiseClaimIds.filter((id: string) => !foundIds.includes(id));
+      console.error('[POST /api/arguments] Missing premise claims:', missingIds);
+      throw new Error(`One or more premiseClaimIds not found: ${missingIds.join(', ')}`);
     }
 
     const a = await tx.argument.create({

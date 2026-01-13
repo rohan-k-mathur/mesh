@@ -1437,40 +1437,57 @@ export function ArgumentCardV2({
             />
             {expandedSections.assumptions && (
               <div className="p-4 space-y-2 bg-slate-50/50">
-                {citations.map((citation: any) => (
-                  <a
-                    key={citation.id}
-                    href={citation.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-2 p-3 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 transition-all group"
-                  >
-                    <LinkIcon className="w-4 h-4 text-slate-400 mt-0.5 shrink-0 group-hover:text-indigo-600" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 group-hover:text-indigo-700 leading-tight">
-                        {citation.title}
-                      </p>
-                      {citation.authors && (
-                        <p className="text-xs text-slate-600 mt-0.5">
-                          {Array.isArray(citation.authors) 
-                            ? citation.authors.map((a: any) => a.family || a.literal).join(", ")
-                            : citation.authors
-                          }
+                {citations.map((citation: any) => {
+                  const hasUrl = !!citation.url;
+                  const CardWrapper = hasUrl ? "a" : "div";
+                  const linkProps = hasUrl ? {
+                    href: citation.url,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                  } : {};
+                  
+                  return (
+                    <CardWrapper
+                      key={citation.id}
+                      {...linkProps}
+                      className={`flex items-start gap-2 p-3 rounded-lg bg-white border border-slate-200 transition-all group ${
+                        hasUrl 
+                          ? "hover:border-indigo-300 hover:bg-indigo-50/30 cursor-pointer" 
+                          : "opacity-90"
+                      }`}
+                    >
+                      <LinkIcon className={`w-4 h-4 mt-0.5 shrink-0 ${hasUrl ? "text-slate-400 group-hover:text-indigo-600" : "text-slate-300"}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium leading-tight ${hasUrl ? "text-slate-900 group-hover:text-indigo-700" : "text-slate-700"}`}>
+                          {citation.title}
                         </p>
-                      )}
-                      {citation.text && (
-                        <p className="text-xs text-slate-500 mt-1 italic border-l-2 border-slate-300 pl-2">
-                          &ldquo;{citation.text}&rdquo;
-                        </p>
-                      )}
-                      {citation.locator && (
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          {citation.locator}
-                        </p>
-                      )}
-                    </div>
-                  </a>
-                ))}
+                        {citation.authors && (
+                          <p className="text-xs text-slate-600 mt-0.5">
+                            {Array.isArray(citation.authors) 
+                              ? citation.authors.map((a: any) => a.family || a.literal).join(", ")
+                              : citation.authors
+                            }
+                          </p>
+                        )}
+                        {citation.text && (
+                          <p className="text-xs text-slate-500 mt-1 italic border-l-2 border-slate-300 pl-2">
+                            &ldquo;{citation.text}&rdquo;
+                          </p>
+                        )}
+                        {citation.locator && (
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            {citation.locator}
+                          </p>
+                        )}
+                        {!hasUrl && (
+                          <p className="text-[10px] text-amber-600 mt-1">
+                            No link available
+                          </p>
+                        )}
+                      </div>
+                    </CardWrapper>
+                  );
+                })}
               </div>
             )}
           </div>

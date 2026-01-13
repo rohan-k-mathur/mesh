@@ -1502,9 +1502,25 @@ export function AIFArgumentWithSchemeComposer({
           </DialogHeader>
           <PropositionComposerPro
             deliberationId={deliberationId}
-            onCreated={(prop) => {
+            onCreated={async (prop) => {
+              // PropositionComposerPro creates a Proposition, but we need a Claim for arguments.
+              // Check if it has a promotedClaimId, otherwise create a new Claim from the text.
+              let claimId = prop.promotedClaimId;
+              if (!claimId && prop.text) {
+                try {
+                  claimId = await createClaim({ deliberationId, authorId, text: prop.text });
+                } catch (e) {
+                  console.error("Failed to create claim from proposition:", e);
+                  // Fall back to just using the text without an ID
+                  setConclusionDraft(prop.text);
+                  setConclusion({ text: prop.text });
+                  setExpandedConclusionEditor(false);
+                  setEditingConclusion(false);
+                  return;
+                }
+              }
               setConclusionDraft(prop.text);
-              setConclusion({ id: prop.id, text: prop.text });
+              setConclusion({ id: claimId ?? undefined, text: prop.text });
               setExpandedConclusionEditor(false);
               setEditingConclusion(false);
               window.dispatchEvent(
@@ -1525,8 +1541,22 @@ export function AIFArgumentWithSchemeComposer({
           </DialogHeader>
           <PropositionComposerPro
             deliberationId={deliberationId}
-            onCreated={(prop) => {
-              setPremises((ps) => [...ps, { id: prop.id, text: prop.text }]);
+            onCreated={async (prop) => {
+              // PropositionComposerPro creates a Proposition, but we need a Claim for arguments.
+              // Check if it has a promotedClaimId, otherwise create a new Claim from the text.
+              let claimId = prop.promotedClaimId;
+              if (!claimId && prop.text) {
+                try {
+                  claimId = await createClaim({ deliberationId, authorId, text: prop.text });
+                } catch (e) {
+                  console.error("Failed to create claim from proposition:", e);
+                  setErr("Failed to create premise claim");
+                  return;
+                }
+              }
+              if (claimId) {
+                setPremises((ps) => [...ps, { id: claimId!, text: prop.text }]);
+              }
               setPremDraft("");
               setExpandedPremiseEditor(false);
               window.dispatchEvent(

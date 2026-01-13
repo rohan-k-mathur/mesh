@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import useSWR from "swr";
-import { Activity, Link as LinkIcon, Tag, Swords, ChevronDown, Users } from "lucide-react";
+import { Activity, Link as LinkIcon, Tag, Swords, ChevronDown, Users, Maximize2 } from "lucide-react";
 import { InlineCommitmentCount } from "@/components/aif/CommitmentBadge";
 import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
 import { AttackCreationModal } from "@/components/aspic/AttackCreationModal";
@@ -10,6 +10,7 @@ import { mutate } from "swr";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { current } from "immer";
 import { GroupedCitationList, EvidenceBalanceBar } from "@/components/citations/GroupedCitationList";
+import { EvidencePanel } from "@/components/citations/EvidencePanel";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -45,6 +46,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
   const [showAttackModal, setShowAttackModal] = React.useState(false); // Phase F: Attack creation modal
   const [cqOpenFor, setCqOpenFor] = React.useState<string | null>(null); // CQ modal state
   const [loadingSchemes, setLoadingSchemes] = React.useState(false); // Loading state for ensure-schemes
+  const [showEvidencePanel, setShowEvidencePanel] = React.useState(false); // Phase 2.4: Full evidence panel
 
   // Handler to ensure schemes before opening CQ modal
   const handleOpenCQ = React.useCallback(async (claimId: string) => {
@@ -386,9 +388,18 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
           {/* Citations - Phase 2.3: Grouped by intent */}
           {citations.length > 0 && (
             <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                <LinkIcon className="w-3.5 h-3.5" />
-                Evidence ({citations.length})
+              <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  Evidence ({citations.length})
+                </span>
+                <button
+                  onClick={() => setShowEvidencePanel(true)}
+                  className="text-[10px] px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center gap-1 transition-colors"
+                >
+                  <Maximize2 className="w-3 h-3" />
+                  Manage
+                </button>
               </div>
               <EvidenceBalanceBar citations={citations} className="mb-3" />
               <GroupedCitationList
@@ -448,6 +459,29 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             mutate((key) => typeof key === 'string' && key.includes('/api/'));
           }}
         />
+      )}
+      {/* Phase 2.4: Full Evidence Panel Modal */}
+      {showEvidencePanel && (
+        <Dialog open onOpenChange={(o) => { if (!o) setShowEvidencePanel(false); }}>
+          <DialogContent 
+            className="!z-[60] bg-white rounded-xl max-w-[95vw] w-full sm:max-w-[900px] max-h-[85vh] overflow-y-auto shadow-2xl"
+            overlayClassName="!z-[60]"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                Evidence Management
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-2">
+              <EvidencePanel
+                targetType="claim"
+                targetId={claimId}
+                canEdit={true}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
