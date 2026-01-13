@@ -109,6 +109,9 @@ model User {
   // Phase 3.1: Source alert notifications
   sourceAlertNotifications SourceAlertNotification[]
 
+  // Phase 3.2: Reference manager connections
+  referenceManagerConnections ReferenceManagerConnection[]
+
   // ASPIC+ Explicit Contraries - Phase D-1
   claimContraries ClaimContrary[]
 
@@ -116,6 +119,9 @@ model User {
   createdArgumentChains     ArgumentChain[]     @relation
   addedChainNodes           ArgumentChainNode[]
   createdArgumentScopes     ArgumentScope[]
+
+  // Phase 3.2.4: Public API keys
+  apiKeys                   ApiKey[]
 
   @@map("users")
 }
@@ -1656,6 +1662,9 @@ model Stack {
   items          StackItem[]         @relation("StackItems")
   embeddedIn     StackItem[]         @relation("EmbeddedIn")
 
+  // Phase 3.2: Reference manager default target
+  refManagerDefaults ReferenceManagerConnection[]
+
   @@unique([owner_id, name])
   @@index([visibility])
   @@map("stacks")
@@ -1881,9 +1890,10 @@ model Source {
   correctionDate      DateTime?
   correctionSummary   String?
 
-  citations Citation[]
-  ratings   SourceRating[]
-  alerts    SourceAlert[]
+  citations       Citation[]
+  ratings         SourceRating[]
+  alerts          SourceAlert[]
+  refManagerItems ReferenceManagerItem[]
 
   @@index([verificationStatus])
   @@index([lastCheckedAt])
@@ -1967,6 +1977,106 @@ model SourceAlertNotification {
 
   @@unique([alertId, userId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 3.2: Reference Manager Integration
+// ─────────────────────────────────────────────────────────
+
+enum ReferenceManagerProvider {
+  zotero
+  mendeley
+}
+
+enum SyncDirection {
+  import_only  // Only import from reference manager to Mesh
+  export_only  // Only export from Mesh to reference manager
+  bidirectional // Two-way sync
+}
+
+enum SyncStatus {
+  pending
+  syncing
+  synced
+  error
+}
+
+model ReferenceManagerConnection {
+  id               String                    @id @default(cuid())
+  userId           BigInt
+  provider         ReferenceManagerProvider
+  
+  // OAuth / API credentials (encrypted)
+  accessToken      String?
+  refreshToken     String?
+  tokenExpiresAt   DateTime?
+  apiKey           String?                   // For Zotero API key auth
+  
+  // User identifier in external system
+  externalUserId   String?
+  externalUsername String?
+  
+  // Sync configuration
+  syncDirection    SyncDirection             @default(bidirectional)
+  autoSync         Boolean                   @default(false)
+  syncIntervalMins Int                       @default(60)
+  
+  // Library/collection targeting
+  libraryType      String?                   // "user" or "group"
+  libraryId        String?                   // Zotero library ID
+  collectionId     String?                   // Optional: sync specific collection only
+  
+  // Default target for imported items
+  defaultStackId   String?
+  
+  // Sync state
+  lastSyncAt       DateTime?
+  lastSyncStatus   SyncStatus                @default(pending)
+  lastSyncError    String?
+  lastLibraryVersion Int?                    // Zotero library version for incremental sync
+  
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultStack Stack?                   @relation(fields: [defaultStackId], references: [id], onDelete: SetNull)
+  items        ReferenceManagerItem[]
+
+  @@unique([userId, provider])
+  @@index([provider])
+}
+
+model ReferenceManagerItem {
+  id              String    @id @default(cuid())
+  connectionId    String
+  sourceId        String
+  
+  // External reference
+  externalId      String    // Item key in reference manager
+  externalVersion Int?      // Version number for conflict detection
+  externalParentId String?  // Parent item key (for attachments, notes)
+  
+  // Sync tracking
+  lastSyncedAt    DateTime?
+  localModifiedAt DateTime? // When local copy was modified
+  remoteModifiedAt DateTime? // When remote copy was modified
+  syncStatus      SyncStatus @default(pending)
+  syncError       String?
+  
+  // Conflict resolution
+  hasConflict     Boolean   @default(false)
+  conflictData    Json?     // Store both versions for manual resolution
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  connection ReferenceManagerConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  source     Source                     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalId])
+  @@unique([connectionId, sourceId])
+  @@index([sourceId])
+  @@index([syncStatus])
 }
 
 model Annotation {
@@ -7284,4 +7394,51 @@ model ArgumentChainEdge {
   
   @@unique([chainId, sourceNodeId, targetNodeId])
   @@index([chainId])
+}
+
+// ============================================================================
+// Phase 3.2.4: Public Evidence API
+// ============================================================================
+
+enum ApiKeyTier {
+  free       // 100 requests/hour
+  pro        // 1000 requests/hour
+  partner    // 10000 requests/hour
+  unlimited  // No limit
+}
+
+model ApiKey {
+  id              String      @id @default(cuid())
+  userId          BigInt
+  name            String      // Human-readable name for the key
+  
+  // Security
+  keyHash         String      @unique  // SHA-256 hash of the key
+  keyPrefix       String      // First 12 chars for identification (e.g., "mesh_pk_xxxx")
+  
+  // Permissions
+  scopes          String[]    @default(["read:sources", "read:stacks"])
+  
+  // Rate limiting
+  tier            ApiKeyTier  @default(free)
+  rateLimitOverride Int?      // Custom rate limit (requests/hour)
+  
+  // Usage tracking
+  lastUsedAt      DateTime?
+  requestCount    Int         @default(0)
+  
+  // Status
+  isActive        Boolean     @default(true)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedReason   String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([keyHash])
+  @@index([userId])
 }
