@@ -234,8 +234,9 @@ export default function CitationCollector({
                 <LibrarySearchModal
                   open={libOpen}
                   onOpenChange={setLibOpen}
-                  onPick={(id) => {
+                  onPick={(id, item) => {
                     setLibraryId(id);
+                    setLibraryTitle(item?.title || item?.linkUrl || item?.file_url || "");
                     setLibOpen(false);
                   }}
                   trigger={
@@ -250,7 +251,9 @@ export default function CitationCollector({
                 />
               </div>
               {!!libraryId && (
-                <div className="mt-1 text-[11px] text-slate-600">Selected: {libraryId}</div>
+                <div className="mt-1 text-[11px] text-slate-600 truncate">
+                  Selected: {libraryTitle || libraryId}
+                </div>
               )}
             </div>
           )}

@@ -225,10 +225,10 @@ export default function CitePickerInlinePro({
             <LibrarySearchModal
               open={libOpen}
               onOpenChange={setLibOpen}
-              onPick={(id) => {
+              onPick={(id, item) => {
                 setLibraryId(id);
-                // Optional: store title for better Source
-                setLibraryTitle(undefined); // you can return title from modal via onPick signature if you like
+                // Store title from the selected item for display
+                setLibraryTitle(item?.title || item?.linkUrl || item?.file_url || undefined);
               }}
               trigger={
                 <button
@@ -242,7 +242,9 @@ export default function CitePickerInlinePro({
             />
           </div>
           {!!libraryId && (
-            <div className="mt-1 text-[11px] text-slate-600">Selected: {libraryId}</div>
+            <div className="mt-1 text-[11px] text-slate-600 truncate">
+              Selected: {libraryTitle || libraryId}
+            </div>
           )}
         </div>
       )}
