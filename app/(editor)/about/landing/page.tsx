@@ -53,9 +53,11 @@ export default function AboutPage() {
         <ProblemSection />
         <CivicRequirementsSection />
         <InstitutionalRequirementsSection />
+        <AdvancedCapabilitiesSection />
 
         <JourneyOverview />
         <JourneySteps expandedSteps={expandedSteps} toggleStep={toggleStep} />
+        <UseCasesSection />
         <StatusSection />
         <AlphaSection />
         <FoundationsSection />
@@ -162,7 +164,7 @@ function HeroSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
         >
-          Digital Agora: Infrastructure for Public Reasoning
+          Digital Agora: Infrastructure for Collective Reasoning
         </motion.h1>
         
         <motion.p
@@ -171,7 +173,7 @@ function HeroSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-8 text-lg leading-relaxed text-slate-700"
         >
-          Enabling the collective deliberation a functioning democracy requires.
+          A platform where evidence, arguments, and decisions become structured, composable, and durable—not ephemeral conversation.
         </motion.p>
         
         <motion.div
@@ -181,11 +183,11 @@ function HeroSection() {
           className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
         >
           <p>
-            Digital Agora is a platform for structured public discourse. The platform implements protocols that enable sustained deliberation where arguments can be examined, challenged, and developed.
+            When groups reason together—policy teams, research communities, civic organizations—the structure of their thinking matters as much as the conclusions. But current tools treat reasoning as disposable: ideas scatter across threads, evidence disconnects from claims, and past conclusions cannot be cited or audited. <strong className="text-slate-900">Agora changes this.</strong>
           </p>
           
           <p>
-            Each claim receives a stable identifier and links to source material. Challenges target premises, inferences, or evidence and create tracked obligations. Argumentation schemes generate critical questions automatically based on argument type. Questions require answers, concessions, or explicit deferrals. Arguments persist as verifiable graphs showing accepted, contested, and rejected positions.
+            Every assertion becomes an addressable object with a stable identifier. Every relationship is typed—support, attack, equivalence. Every argument follows recognized patterns (60+ schemes) that surface the questions any rigorous thinker would ask. The result is reasoning that persists, compounds, and transfers across contexts.
           </p>
         </motion.div>
         
@@ -197,38 +199,40 @@ function HeroSection() {
         >
           <div className='bg-transparent'>
             <div className="mb-4 font-semibold text-[15px] text-slate-900">
-              Core System Capabilities
+              Three Layers of Structured Reasoning
             </div>
             <div className="space-y-3 text-sm leading-relaxed text-slate-700">
               <div className="flex items-start gap-3">
-                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span className="text-indigo-600 font-medium flex-shrink-0">1.</span>
                 <span>
-                  <strong className="text-slate-900">Evidence verification:</strong> Claims link to specific passages in source material. When evidence updates or gets challenged, dependent conclusions become visible.
+                  <strong className="text-slate-900">Claims & Evidence:</strong> Transform informal ideas into canonical assertions with stable identifiers. Link claims to source material with character-level precision. Track what depends on what.
                 </span>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span className="text-indigo-600 font-medium flex-shrink-0">2.</span>
                 <span>
-                  <strong className="text-slate-900">Protocol enforcement:</strong> Questions require answers or explicit deferrals. Unanswered challenges remain visible in the record. The system permits no implicit consensus.
+                  <strong className="text-slate-900">Arguments & Dialogue:</strong> Structure reasoning with premises, conclusions, and recognized inference patterns. Track every move—assert, challenge, respond, concede. Apply ASPIC+ defeasible logic to compute which arguments survive challenge.
                 </span>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span className="text-indigo-600 font-medium flex-shrink-0">3.</span>
                 <span>
-                  <strong className="text-slate-900">Systematic testing:</strong> Argumentation schemes generate critical questions automatically. Expert testimony triggers credential questions. Analogies trigger relevance questions.
+                  <strong className="text-slate-900">Outputs & Artifacts:</strong> Compose reasoning into publishable documents, knowledge base pages, and exportable graphs. Produce citable artifacts in standard formats (AIF, JSON-LD) that integrate with institutional systems.
                 </span>
               </div>
-              <div className="flex items-start gap-3">
-                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
-                <span>
-                  <strong className="text-slate-900">Cumulative reasoning:</strong> Import argument structures between deliberations. Fork analyses to adapt them to different contexts while preserving provenance.
-                </span>
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-200/50 space-y-2 text-sm leading-relaxed text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600">✓</span>
+                <span>Import arguments across deliberations with full provenance</span>
               </div>
-              <div className="flex items-start gap-3">
-                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
-                <span>
-                  <strong className="text-slate-900">Standard formats:</strong> Deliberations produce citable artifacts in standard formats (AIF, JSON-LD) that integrate with institutional systems.
-                </span>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600">✓</span>
+                <span>Fork analyses to adapt to different contexts</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-600">✓</span>
+                <span>Challenges cannot be silently ignored—protocol enforces response</span>
               </div>
             </div>
           </div>
@@ -240,7 +244,7 @@ function HeroSection() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="about-alert about-alert--info mb-8"
         >
-          A healthy society requires that people can reason together about complex questions. Agora provides the infrastructure needed for this work.
+          <strong>For researchers:</strong> Turn papers into composable claim graphs where ideas can be challenged, refined, and built upon. <strong>For institutions:</strong> Capture reasoning that transfers across teams and survives personnel changes. <strong>For communities:</strong> Move from circular debate to cumulative knowledge that future participants can inherit.
         </motion.div>
         
         <motion.div
@@ -909,6 +913,200 @@ function InstitutionalRequirement({
         {content}
       </div>
     </motion.div>
+  )
+}
+
+/* ======================== ADVANCED CAPABILITIES ======================== */
+function AdvancedCapabilitiesSection() {
+  return (
+    <section className="border-b border-violet-100/50 bg-gradient-to-br from-violet-50/20 to-indigo-50/20 about-backdrop-blur">
+      <div className="mx-auto max-w-5xl px-8 py-16">
+        
+        <motion.h2
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-4 text-2xl font-medium text-slate-900"
+        >
+          Advanced Capabilities
+        </motion.h2>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-10 text-sm leading-relaxed text-slate-700"
+        >
+          Beyond basic discussion, Agora implements formal systems from argumentation theory and provides infrastructure for evidence management and cross-context reasoning.
+        </motion.p>
+        
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* ASPIC+ Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="about-glass-card-code rounded-xl p-6 panel-edge postcard"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-violet-100/70">
+                <GitBranch className="h-5 w-5 text-violet-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900">ASPIC+ Defeasible Reasoning</h3>
+            </div>
+            
+            <p className="text-sm text-slate-700 mb-4">
+              Full implementation of the ASPIC+ framework for defeasible argumentation, computing which arguments survive challenge under formal semantics.
+            </p>
+            
+            <div className="space-y-2 text-xs text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-violet-500 mt-0.5">◆</span>
+                <span><strong>Strict & Defeasible Rules:</strong> Distinguish certain inferences from presumptive ones</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-violet-500 mt-0.5">◆</span>
+                <span><strong>Attack Types:</strong> Rebut (challenge conclusion), Undercut (challenge inference), Undermine (challenge premise)</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-violet-500 mt-0.5">◆</span>
+                <span><strong>Preference Orderings:</strong> Resolve conflicts when multiple rules apply</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-violet-500 mt-0.5">◆</span>
+                <span><strong>Grounded Extension:</strong> Compute which arguments are ultimately defensible</span>
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Stacks/Library Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="about-glass-card-code rounded-xl p-6 panel-edge postcard"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-amber-100/70">
+                <BookOpen className="h-5 w-5 text-amber-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900">Stacks & Evidence Library</h3>
+            </div>
+            
+            <p className="text-sm text-slate-700 mb-4">
+              Document management infrastructure for curating sources, with deep integration into the deliberation engine for evidence-based argumentation.
+            </p>
+            
+            <div className="space-y-2 text-xs text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">◆</span>
+                <span><strong>PDF Management:</strong> Upload, organize, and annotate documents in curated stacks</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">◆</span>
+                <span><strong>Citation Pipeline:</strong> DOI resolution, quote linking with page/paragraph specificity</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">◆</span>
+                <span><strong>Source Quality:</strong> Track usage and quality ratings across deliberations</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">◆</span>
+                <span><strong>Deliberation Hosting:</strong> Stacks can host their own structured deliberations</span>
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Plexus Network Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="about-glass-card-code rounded-xl p-6 panel-edge postcard"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-teal-100/70">
+                <Network className="h-5 w-5 text-teal-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900">Plexus Cross-Room Network</h3>
+            </div>
+            
+            <p className="text-sm text-slate-700 mb-4">
+              Meta-level visualization showing how deliberations connect—shared claims, imported arguments, and cross-references form a graph-of-graphs.
+            </p>
+            
+            <div className="space-y-2 text-xs text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-teal-500 mt-0.5">◆</span>
+                <span><strong>Transport Functors:</strong> Import arguments between rooms with full provenance</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-teal-500 mt-0.5">◆</span>
+                <span><strong>Edge Types:</strong> Cross-references, overlaps, stack references, shared authors</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-teal-500 mt-0.5">◆</span>
+                <span><strong>Institutional Memory:</strong> See how reasoning spreads and evolves across contexts</span>
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Argumentation Schemes Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="about-glass-card-code rounded-xl p-6 panel-edge postcard"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-rose-100/70">
+                <Lightbulb className="h-5 w-5 text-rose-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900">60+ Argumentation Schemes</h3>
+            </div>
+            
+            <p className="text-sm text-slate-700 mb-4">
+              Recognized patterns of reasoning from Walton's taxonomy, each with auto-generated critical questions that surface vulnerabilities.
+            </p>
+            
+            <div className="space-y-2 text-xs text-slate-600">
+              <div className="flex items-start gap-2">
+                <span className="text-rose-500 mt-0.5">◆</span>
+                <span><strong>Expert Opinion:</strong> "Is the expert credible? Within their domain? Any bias?"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-rose-500 mt-0.5">◆</span>
+                <span><strong>Analogy:</strong> "Are the cases relevantly similar? What differences matter?"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-rose-500 mt-0.5">◆</span>
+                <span><strong>Cause to Effect:</strong> "Is the causal claim established? Other factors?"</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-rose-500 mt-0.5">◆</span>
+                <span><strong>And 57+ more...</strong> Each with tailored critical questions</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="about-alert about-alert--info mt-10"
+        >
+          <strong>Mathematical Foundations:</strong> Built on categorical semantics (Ambler's Evidential Closed Categories) with support for Dempster-Shafer uncertainty intervals and temporal confidence decay. This is not aspirational theory—it's implemented infrastructure.
+        </motion.div>
+      </div>
+    </section>
   )
 }
 
@@ -1616,6 +1814,273 @@ function Step11Content() {
   )
 }
 
+/* ======================== USE CASES SECTION ======================== */
+function UseCasesSection() {
+  const [activeTab, setActiveTab] = useState<'academic' | 'institutional' | 'community'>('academic')
+  
+  return (
+    <section className="border-b border-cyan-100/50 bg-gradient-to-br from-cyan-50/20 to-blue-50/20 about-backdrop-blur">
+      <div className="mx-auto max-w-5xl px-8 py-16">
+        
+        <motion.h2
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-4 text-2xl font-medium text-slate-900"
+        >
+          Who This Is For
+        </motion.h2>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8 text-sm leading-relaxed text-slate-700"
+        >
+          The same infrastructure serves different needs. Select your context to see relevant capabilities.
+        </motion.p>
+        
+        {/* Tab Navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-wrap gap-2 mb-8"
+        >
+          <button
+            onClick={() => setActiveTab('academic')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'academic'
+                ? 'bg-cyan-600 text-white shadow-md'
+                : 'bg-white/60 text-slate-600 hover:bg-white/80 border border-slate-200'
+            }`}
+          >
+            Academic Research
+          </button>
+          <button
+            onClick={() => setActiveTab('institutional')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'institutional'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-white/60 text-slate-600 hover:bg-white/80 border border-slate-200'
+            }`}
+          >
+            Institutional & Policy
+          </button>
+          <button
+            onClick={() => setActiveTab('community')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'community'
+                ? 'bg-violet-600 text-white shadow-md'
+                : 'bg-white/60 text-slate-600 hover:bg-white/80 border border-slate-200'
+            }`}
+          >
+            Community Deliberation
+          </button>
+        </motion.div>
+        
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'academic' && (
+            <motion.div
+              key="academic"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="about-glass-card-code rounded-xl p-6 panel-edge postcard">
+                <h3 className="font-semibold text-lg text-slate-900 mb-2">
+                  From Papers-as-PDFs to Papers-as-Debatable Claim Graphs
+                </h3>
+                <p className="text-sm text-slate-700 mb-4">
+                  The unit of scholarly networking has shrunk from people → papers → metadata objects—but has not yet reached <strong>claims and arguments</strong>. Agora fills this gap.
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="font-medium text-cyan-700 mb-2">Claim-Level Engagement</div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-cyan-500">→</span>
+                      <span>Extract claims from papers with AI assistance</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-cyan-500">→</span>
+                      <span>Classify claims: thesis, interpretive, historical, normative, methodological</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-cyan-500">→</span>
+                      <span>Semantic search across claims, not just paper titles</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="font-medium text-cyan-700 mb-2">GitHub for Scholarship</div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-cyan-500">→</span>
+                      <span>Fork deliberations to explore alternative assumptions</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-cyan-500">→</span>
+                      <span>Pull requests for arguments with downstream impact visibility</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-cyan-500">→</span>
+                      <span>Argument CI: checks for missing citations, unaddressed CQs</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-slate-200/50">
+                  <div className="font-medium text-cyan-700 mb-2 text-sm">Templates</div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 rounded bg-cyan-100 text-cyan-700">Journal Club Mode</span>
+                    <span className="px-2 py-1 rounded bg-cyan-100 text-cyan-700">Seminar Mode</span>
+                    <span className="px-2 py-1 rounded bg-cyan-100 text-cyan-700">Conference Mode</span>
+                    <span className="px-2 py-1 rounded bg-cyan-100 text-cyan-700">Dissertation Defense</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {activeTab === 'institutional' && (
+            <motion.div
+              key="institutional"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="about-glass-card-code rounded-xl p-6 panel-edge postcard">
+                <h3 className="font-semibold text-lg text-slate-900 mb-2">
+                  Transparent, Auditable Reasoning That Transfers
+                </h3>
+                <p className="text-sm text-slate-700 mb-4">
+                  When the FDA evaluates drug safety, when a standards body develops specifications—these produce reasoning chains other institutions need. But that reasoning exists only as prose in PDFs. <strong>Agora makes it structured, importable, and auditable.</strong>
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="font-medium text-emerald-700 mb-2">Cross-Institutional Transfer</div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-emerald-500">→</span>
+                      <span>Import complete reasoning chains from other organizations</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-emerald-500">→</span>
+                      <span>Adopt what survives scrutiny, fork what doesn't</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-emerald-500">→</span>
+                      <span>Visible provenance: see exactly where analyses diverge</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="font-medium text-emerald-700 mb-2">Audit & Accountability</div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-emerald-500">→</span>
+                      <span>Every claim traceable to author, evidence, and context</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-emerald-500">→</span>
+                      <span>Challenges cannot be silently ignored—protocol enforces response</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-emerald-500">→</span>
+                      <span>Export to standard formats (AIF, JSON-LD) for external review</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-slate-200/50">
+                  <div className="font-medium text-emerald-700 mb-2 text-sm">Use Cases</div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">Policy Analysis</span>
+                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">Regulatory Review</span>
+                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">Standards Development</span>
+                    <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700">Risk Assessment</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {activeTab === 'community' && (
+            <motion.div
+              key="community"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="about-glass-card-code rounded-xl p-6 panel-edge postcard">
+                <h3 className="font-semibold text-lg text-slate-900 mb-2">
+                  Democratic Discourse with Rigor
+                </h3>
+                <p className="text-sm text-slate-700 mb-4">
+                  Complex questions—climate policy, public health, technology governance—require collective intelligence that current platforms actively undermine. <strong>Agora provides the structure for sustained, productive deliberation.</strong>
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
+                    <div className="font-medium text-violet-700 mb-2">Structured Participation</div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-violet-500">→</span>
+                      <span>Start informal, formalize when complexity warrants</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-violet-500">→</span>
+                      <span>See how conclusions emerge from argument structure</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-violet-500">→</span>
+                      <span>Navigate complexity: zoom from overview to specific claims</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="font-medium text-violet-700 mb-2">Accumulated Knowledge</div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-violet-500">→</span>
+                      <span>Past reasoning persists as reusable resource</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-violet-500">→</span>
+                      <span>Build on established conclusions rather than starting fresh</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <span className="text-violet-500">→</span>
+                      <span>Publish knowledge base pages that others can cite and extend</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-slate-200/50">
+                  <div className="font-medium text-violet-700 mb-2 text-sm">Use Cases</div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2 py-1 rounded bg-violet-100 text-violet-700">Civic Deliberation</span>
+                    <span className="px-2 py-1 rounded bg-violet-100 text-violet-700">Participatory Budgeting</span>
+                    <span className="px-2 py-1 rounded bg-violet-100 text-violet-700">Community Planning</span>
+                    <span className="px-2 py-1 rounded bg-violet-100 text-violet-700">Issue Analysis</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </section>
+  )
+}
+
 /* ======================== STATUS, ALPHA, FOUNDATIONS, ACCESS, CLOSING ======================== */
 
 function StatusSection() {
@@ -1638,10 +2103,11 @@ function StatusSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mb-6 space-y-3 text-sm text-slate-700"
         >
-          <p><strong className="text-slate-900">Deployment:</strong> Closed alpha with ~20 active deliberations, ~500 claims, ~200 arguments, ~50 theory works.</p>
-          <p><strong className="text-slate-900">Data model:</strong> Stable. Prisma schema, PostgreSQL backend.</p>
-          <p><strong className="text-slate-900">API:</strong> Versioned contracts. OpenAPI 3.0 specification available.</p>
-          <p><strong className="text-slate-900">Frontend:</strong> Implements all core workflows—proposition workshop, claim graph, argument composer, scheme selector, dialogue interface, debate sheet, KB editor.</p>
+          <p><strong className="text-slate-900">Deployment:</strong> Closed alpha with active deliberations, growing claim/argument base, and published theory works.</p>
+          <p><strong className="text-slate-900">Core Systems:</strong> Claims & Evidence, Arguments & Dialogue, ASPIC+ Defeasible Reasoning, Stacks/Library, Plexus Network, Knowledge Base.</p>
+          <p><strong className="text-slate-900">Data model:</strong> Stable. Prisma schema, PostgreSQL backend with full AIF ontology support.</p>
+          <p><strong className="text-slate-900">Argumentation:</strong> 60+ Walton schemes with auto-generated critical questions. ASPIC+ grounded extension computation.</p>
+          <p><strong className="text-slate-900">Frontend:</strong> All core workflows—proposition workshop, claim graph, argument composer, scheme selector, dialogue interface, debate sheet, KB editor, Plexus network view.</p>
           <p><strong className="text-slate-900">Export formats:</strong> AIF 2.0, AIF+, JSON-LD, PDF.</p>
         </motion.div>
         <motion.div 
@@ -1653,10 +2119,10 @@ function StatusSection() {
         >
           <h3 className="mb-3 font-mono text-xs font-medium">Known Limitations</h3>
           <ul className="space-y-1.5">
-            <li>• Semantic labeling: grounded semantics only</li>
-            <li>• Cross-room import UI incomplete (API functional)</li>
+            <li>• Semantic labeling: grounded semantics implemented; preferred/stable in development</li>
+            <li>• Cross-room import: API functional, UI in progress</li>
             <li>• Ludics proof-game interface: prototype quality</li>
-            <li>• No mobile-optimized UI</li>
+            <li>• Mobile UI: functional but not optimized</li>
           </ul>
         </motion.div>
       </div>
@@ -1926,12 +2392,15 @@ function ClosingSection() {
           transition={{ duration: 0.6 }}
           className="about-glass-elevated p-10 text-center"
         >
-          <p className="text-sm leading-relaxed text-slate-700">
+          <p className="text-base font-medium leading-relaxed text-slate-800 mb-4">
             This is not marketing material. It is technical specification.
           </p>
           <div className="about-divider my-6" />
-          <p className="text-sm leading-relaxed text-slate-700">
-            The system described here exists and is deployable. The question for potential participants is not "would this be nice to have" but "does this solve a problem we currently face, and are we willing to adopt its constraints to gain its benefits."
+          <p className="text-sm leading-relaxed text-slate-700 mb-4">
+            The system described here exists and is deployable. Every capability listed—claims with stable identifiers, typed argument relationships, scheme-based critical questions, composable outputs—is implemented and in use. This is infrastructure for reasoning, available to any group that needs to think together seriously.
+          </p>
+          <p className="text-sm leading-relaxed text-slate-600">
+            The question is not "would this be nice to have" but: <strong className="text-slate-800">does this solve a problem you currently face?</strong> If your research community needs claim-level engagement—if your organization's reasoning needs to outlive project teams—if your deliberations need more than threads and votes—Agora provides the substrate.
           </p>
         </motion.div>
       </div>

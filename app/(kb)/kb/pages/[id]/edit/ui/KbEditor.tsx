@@ -120,9 +120,9 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
             e.target.value = '';
           }}
           defaultValue=""
-          className="px-2 py-1 menuv2--lite tracking-wide text-sm "
+          className="px-2 py-1 menuv2--lite tracking-wide text-xs "
         >
-          <option value="" disabled>+ block</option>
+          <option value="" disabled>Add Block</option>
           <option value="text">Text</option>
           <option value="image">Image</option>
           <option value="link">Link</option>
@@ -172,13 +172,11 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
           }}/>
         )}
 
-        <div className="text-slate-600 text-xs">
-          Tip: inside a Text block press <kbd>Ctrl/Cmd</kbd> + <kbd>/</kbd> for inserts.
-        </div>
+       
 
-        <a className="ml-auto text-xs btnv2 px-4 bg-white/80 font-medium text-slate-900 "
+        <a className="ml-auto text-xs btnv2 rounded-full px-4 bg-white/80 font-medium text-slate-900 "
            href={`/api/kb/pages/${pageId}/export?as=md`} target="_blank" rel="noopener noreferrer">
-          Export MD
+          Export
         </a>
       </div>
 

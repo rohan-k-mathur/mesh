@@ -15,7 +15,7 @@ export default function EditorLayout({
   return (
     <html lang="en">
       {/* Tailwind 'h-screen' makes the editor fill the viewport */}
-      <body className="h-full w-full overflow-auto bg-slate-300">
+      <body className="h-full w-full overflow-auto bg-slate-300 mt-8">
         {children}
       </body>
     </html>

@@ -179,7 +179,7 @@ export async function GET(
             scopeType: true,
             assumption: true,
             color: true,
-            parentId: true,
+            parentScopeId: true,
             createdBy: true,
             createdAt: true,
           },

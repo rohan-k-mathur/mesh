@@ -41,7 +41,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
           placeholder="Title…"
           className="text-lg font-medium border-none rounded-lg tracking-wide px-4 py-1 articlesearchfield bg-white/80 w-full"
         />
-        <a href={`/kb/pages/${pageId}/view`} target="_blank" className="flex text-sm btnv2 px-4 bg-white/80 font-medium text-slate-900 "><span className="whitespace-nowrap flex">View Page</span></a>
+        <a href={`/kb/pages/${pageId}/view`} target="_blank" className="flex text-xs rounded-full btnv2 px-4 bg-white/80 font-medium text-slate-900 "><span className="whitespace-nowrap flex">View Page</span></a>
       </div>
 
       {/* The whole editor lives here now */}

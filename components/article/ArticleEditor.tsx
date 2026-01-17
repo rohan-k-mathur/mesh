@@ -921,7 +921,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   return (
     <div className="flex justify-center items-center ">
       {/* bottom-left tab button */}
-      <div className="absolute flex left-8 top-8 tracking-wide z-10 rounded-xl bg-white/50  px-3 py-2 likebutton">
+      <div className="absolute flex left-8 top-8 tracking-wide z-10 rounded-xl bg-transparent  px-3 py-2 ">
         <HomeButton />
       </div>
       {/* <button

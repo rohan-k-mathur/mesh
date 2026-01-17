@@ -37,7 +37,7 @@ export default function ArticlePostModal({ slug, articleId }: Props) {
   }, [slug, articleId])
 
   return (
-    <DialogContent className="max-w-[920px]">
+    <DialogContent className="max-w-[920px] bg-white max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{data?.title ?? 'Article'}</DialogTitle>
       </DialogHeader>
