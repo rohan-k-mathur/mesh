@@ -1,6 +1,6 @@
 # Digital Agora: Infrastructure for Collective Reasoning
 
-**Project Overview for Technical Peers**  
+**Project Overview**  
 *January 2026*
 
 ---
@@ -245,15 +245,6 @@ We have sophisticated tools for code (Git, GitHub, CI/CD), for documents (Notion
 Groups that need to think together rigorously are forced to use tools designed for chat or prose. The result: reasoning that scatters, conclusions that can't be audited, knowledge that doesn't accumulate.
 
 Agora is an attempt to fill this gap. Not as a social platform, not as a note-taking tool, but as **infrastructure**—the substrate on which structured deliberation becomes possible.
-
----
-
-## Want to Learn More?
-
-- **Architecture doc:** `AGORA_DELIBERATION_SYSTEM_ARCHITECTURE.md`
-- **Gestalt framings:** `GESTALT_REFRAMING_V2.md`
-- **Academic roadmap:** `ACADEMIC_AGORA_DEVELOPMENT_ROADMAP.md`
-- **Live deployment:** Request access via the landing page
 
 ---
 
