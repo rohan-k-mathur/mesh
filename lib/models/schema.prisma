@@ -1103,6 +1103,34 @@ enum PredictionState {
   RESOLVED
 }
 
+// ─────────────────────────────────────────────────────────
+// Phase 1.1: Academic Claims - Claim Types
+// ─────────────────────────────────────────────────────────
+enum AcademicClaimType {
+  THESIS        // The central argument or main claim of a work
+  INTERPRETIVE  // A reading or interpretation of text, event, or phenomenon
+  HISTORICAL    // A factual claim about past events or conditions
+  CONCEPTUAL    // A definition, analysis, or clarification of a concept
+  NORMATIVE     // An evaluative or prescriptive claim (what ought to be)
+  METHODOLOGICAL // A claim about how to study or analyze something
+  COMPARATIVE   // A claim relating or comparing two or more things
+  CAUSAL        // A claim about causation or causal mechanisms
+  META          // A claim about the field, debate, or scholarship itself
+  EMPIRICAL     // A claim based on data, observations, or experiments
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 1.1: Academic Sources - Identifier Types
+// ─────────────────────────────────────────────────────────
+enum SourceIdentifierType {
+  DOI
+  ISBN
+  ARXIV
+  PMID
+  URL
+  MANUAL
+}
+
 enum MarketOutcome {
   YES
   NO
@@ -1890,15 +1918,29 @@ model Source {
   correctionDate      DateTime?
   correctionSummary   String?
 
+  // ─────────────────────────────────────────────────────────
+  // Phase 1.1: Academic Paper-to-Claim Pipeline Fields
+  // ─────────────────────────────────────────────────────────
+  identifierType  SourceIdentifierType?   // DOI, ISBN, ARXIV, etc.
+  openAlexId      String?                 // OpenAlex work ID for enrichment
+  authorOrcids    String[]                // ORCID IDs for authors
+  abstractText    String?   @db.Text      // Full abstract text
+  keywords        String[]                // Subject keywords
+  pdfUrl          String?                 // Direct PDF URL if available
+  pdfHash         String?                 // SHA256 hash for deduplication
+
+  // Relations
   citations       Citation[]
   ratings         SourceRating[]
   alerts          SourceAlert[]
   refManagerItems ReferenceManagerItem[]
+  claims          Claim[]                 // Phase 1.1: Claims extracted from this source
 
   @@index([verificationStatus])
   @@index([lastCheckedAt])
   @@index([archiveStatus])
   @@index([retractionStatus])
+  @@index([openAlexId])
 }
 
 model Citation {
@@ -3775,6 +3817,23 @@ model Claim {
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
+  // ─────────────────────────────────────────────────────────
+  // Phase 1.1: Academic Paper-to-Claim Pipeline Fields
+  // ─────────────────────────────────────────────────────────
+  sourceId          String?               // Link to academic source
+  source            Source?               @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  academicClaimType AcademicClaimType?    // Thesis, Empirical, Causal, etc.
+  pageNumber        Int?                  // Page number in source
+  sectionName       String?               // Section name (Introduction, Methods, etc.)
+  paragraphIndex    Int?                  // Paragraph index within section
+  supportingQuote   String?   @db.Text    // Exact quote from source
+  quoteLocator      String?               // "p.42, para.3"
+  extractedByAI     Boolean   @default(false) // Was this claim AI-extracted?
+  aiConfidence      Float?                // AI confidence score 0.0-1.0
+  humanVerified     Boolean   @default(false) // Has a human verified this claim?
+  verifiedById      String?               // Who verified it
+  verifiedAt        DateTime?             // When it was verified
+
   // Dialogue Visualization System - Phase 1.1
   // Tracks which DialogueMove introduced this claim into the deliberation
   introducedByMoveId String?
@@ -3831,6 +3890,8 @@ model Claim {
   @@index([negatesClaimId])
   @@index([deliberationId])
   @@index([deliberationId, createdById, createdAt])
+  @@index([sourceId])                                    // Phase 1.1: Index for source lookups
+  @@index([academicClaimType])                           // Phase 1.1: Index for claim type filtering
 }
 
 model ClaimEdge {
