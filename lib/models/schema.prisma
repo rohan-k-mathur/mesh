@@ -4514,9 +4514,68 @@ model Deliberation {
   // ArgumentChain relations
   argumentChains ArgumentChain[]
 
+  // Phase 2.1: Debate Releases & Versioned Memory
+  releases          DebateRelease[]
+  latestReleaseId   String?
+
+  // Phase 2.2: Fork/Branch/Merge
+  forkedFromId      String?
+  forkedFrom        Deliberation?  @relation("DeliberationForks", fields: [forkedFromId], references: [id], onDelete: SetNull)
+  forks             Deliberation[] @relation("DeliberationForks")
+  forkReason        String?        @db.Text
+
   @@index([agoraRoomID])
   @@index([hostType, hostId])
   @@index([roomId])
+  @@index([forkedFromId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 2.1: Debate Releases & Versioned Memory
+// ─────────────────────────────────────────────────────────
+
+model DebateRelease {
+  id                    String   @id @default(cuid())
+  deliberationId        String
+  deliberation          Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  // Version info (semantic versioning)
+  version               String   // "1.0.0", "1.1.0", etc.
+  major                 Int      // For easy querying
+  minor                 Int
+  patch                 Int
+  
+  // Content
+  title                 String
+  summary               String?  @db.Text
+  releaseNotes          String?  @db.Text
+  
+  // Snapshots (JSON for flexibility)
+  claimSnapshot         Json     // Full claim state at release
+  argumentSnapshot      Json     // Full argument state at release
+  statsSnapshot         Json     // Summary statistics
+  
+  // Changelog
+  changelogFromPrevious Json?    // Diff from previous version
+  changelogText         String?  @db.Text  // Human-readable changelog
+  previousReleaseId     String?
+  previousRelease       DebateRelease? @relation("ReleaseChain", fields: [previousReleaseId], references: [id], onDelete: SetNull)
+  nextReleases          DebateRelease[] @relation("ReleaseChain")
+  
+  // Citation
+  citationUri           String?  @unique  // Stable URI for citation
+  doi                   String?  @unique  // Optional DOI
+  bibtex                String?  @db.Text  // Pre-generated BibTeX
+  
+  // Metadata
+  releasedById          String
+  releasedAt            DateTime @default(now())
+  isLatest              Boolean  @default(true)
+  
+  @@unique([deliberationId, version])
+  @@index([deliberationId])
+  @@index([releasedAt])
+  @@index([isLatest])
 }
 
 model DeliberationAnchor {

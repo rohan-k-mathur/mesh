@@ -249,3 +249,94 @@ Agora is an attempt to fill this gap. Not as a social platform, not as a note-ta
 ---
 
 *This document is intended for technical peers evaluating the project. For user-facing materials, see the landing page. For deep implementation details, see the architecture documentation.*
+
+----
+
+Digital Agora: Infrastructure for Collective Reasoning
+January 2026
+
+The Core Claim
+Reasoning has structure. When people deliberate—weighing evidence, challenging inferences, resolving disagreements—they produce something with a shape: claims that depend on other claims, arguments that can be attacked at specific steps, conclusions that follow (or fail to follow) from premises.
+Current tools destroy this structure. Chat produces sequences. Documents produce prose. Neither preserves the graph.
+The result is predictable. Six months after a decision, no one can reconstruct why it was made. The premises that seemed compelling, the alternatives that were rejected, the objections that were raised and addressed—all of it has scattered across threads, docs, and memory. New team members start over. Prior work cannot be cited. Knowledge fails to accumulate.
+Agora treats reasoning as a first-class data structure. Claims become addressable objects. Arguments follow typed patterns. Disagreements are explicit and trackable. The goal: make group reasoning composable, auditable, and durable—in the way version control made code collaboration tractable.
+
+How It Works
+Layer 1: Claims and Evidence
+Informal discussion produces propositions—things people say. When a proposition matters, it gets promoted to a claim: a canonical assertion with a stable URI, typed relationships to other claims, and explicit links to supporting evidence.
+
+
+Proposition: "I think we should use Postgres"
+     ↓ promote
+Claim #247: "PostgreSQL is the appropriate database choice"
+     ├── supports: Claim #201 (system requirements)
+     ├── attacks: Claim #198 (MongoDB proposal)
+     └── evidence: [benchmark doc, cost analysis]
+Every claim carries provenance (who, when, where) and maintains its relationships as the deliberation evolves.
+Layer 2: Arguments and Dialogue
+Claims connect into arguments—premise-conclusion structures annotated with reasoning patterns. We implement sixty-plus schemes from Walton's taxonomy: argument from expert opinion, argument from analogy, argument from cause to effect, and so on.
+Each scheme comes with critical questions—the challenges any rigorous interlocutor would raise:
+
+
+Scheme: Argument from Expert Opinion
+
+  Premise: Dr. Smith asserts X
+  Premise: Dr. Smith is expert in domain D
+  Conclusion: X is likely true
+
+  Critical Questions:
+  ├── Is Dr. Smith credible?
+  ├── Does X fall within D?
+  ├── Does Dr. Smith have conflicts of interest?
+  └── Do other experts disagree?
+Arguments compose into chains (serial, convergent, linked, divergent) and participate in dialogues with formally tracked moves: assert, challenge, concede, retract. Commitment stores track what each participant has committed to. Challenges cannot be silently ignored.
+Layer 3: Outputs
+Deliberations produce durable artifacts: thesis documents, knowledge base pages, exportable debate sheets. These artifacts cite back to the deliberation. Future work can reference specific claims, inspect their status, and trace their grounds.
+
+The Technical Core
+Most "argument mapping" tools are boxes and arrows—visual aids without computational semantics. Agora is different. It implements ASPIC+, a formal framework for defeasible reasoning:
+Strict vs. defeasible rules. Some inferences are certain; others hold only absent contrary evidence. The system distinguishes them.
+Typed attacks. Rebuttals challenge conclusions. Undercuts challenge inference steps. Undermines challenge premises. Each requires different responses.
+Preference orderings. When multiple rules conflict, explicit preferences resolve the contradiction.
+Computable acceptability. Given an argument graph with attacks and preferences, the system computes which arguments survive—not as opinion, but as a function of structure.
+This matters because it means the system can answer questions like: "If we accept this new evidence, which of our conclusions still hold?" That's not a feature most collaboration tools offer.
+
+Why Version Control Is the Right Analogy
+Before Git, code collaboration was painful. Developers emailed patches, maintained conflicting copies, and lost work to merge disasters. Git introduced a data model—content-addressable trees, a directed acyclic graph of commits—that made collaboration tractable at scale.
+Code (Git)	Reasoning (Agora)
+Files → commits → branches	Claims → arguments → deliberations
+Diffs show exactly what changed	Attacks target specific premises
+Merge conflicts are explicit	Disagreements are typed and trackable
+History is preserved	Provenance is preserved
+Fork and extend	Import and adapt
+The analogy isn't perfect, but the structural point holds: certain kinds of collaboration only become tractable once you have the right data model. For code, that was commits and branches. For reasoning, it's claims, arguments, and typed attacks.
+
+What This Enables
+Accumulation. When one team completes an analysis, another team facing a similar question can import the argument structure—adopting what survives scrutiny, forking what doesn't. Knowledge compounds instead of starting fresh.
+Auditability. Deliberation records show what evidence was considered, what alternatives were evaluated, what objections were raised, and how they were addressed. This is transparency as infrastructure, not as PR.
+Interoperability. Agora exports to the Argument Interchange Format (AIF), the academic standard. Arguments can move between systems. Analysis can be performed externally.
+Institutional memory that doesn't walk out the door. The structure of past decisions persists independent of the people who made them.
+
+Current State
+Deployed: Closed alpha with active deliberations.
+Complete:
+* Claims and evidence layer
+* Arguments and dialogue layer
+* ASPIC+ with grounded extension computation
+* 60+ Walton schemes with critical questions
+* Document management with PDF annotation, DOI/ISBN resolution
+* Cross-room visualization (Plexus)
+* Knowledge base and thesis output
+* AIF export (2.0, AIF+, JSON-LD)
+In progress:
+* Preferred/stable semantics (beyond grounded)
+* Cross-room import UI (API functional)
+* Mobile optimization
+Stack: Next.js 14, React 18, TypeScript, PostgreSQL/Prisma, Redis, Pinecone, AWS.
+
+The Bet
+We have sophisticated infrastructure for code: version control, CI/CD, code review. We have capable tools for documents and communication. But for the structure of reasoning itself—the claims, the inferences, the challenges, the resolutions—we have essentially nothing.
+The bet is that this gap matters. That organizations trying to think together rigorously deserve better than chat threads and Google Docs. That reasoning infrastructure is systematically underbuilt, and that building it will make certain kinds of collaboration possible that currently aren't.
+Agora is that infrastructure.
+
+For user-facing materials, see the landing page. For implementation details, see the architecture documentation.
