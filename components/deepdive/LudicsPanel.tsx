@@ -207,6 +207,7 @@ function GameViewPanel({
   const posDesign = designs.find((d: any) => d.participantId === "Proponent") || designs[0];
   const negDesign = designs.find((d: any) => d.participantId === "Opponent") || designs[1] || designs[0];
   const posDesignId = posDesign?.id || "";
+
   const negDesignId = negDesign?.id || "";
   
   // Arena state - created on-demand from designs
@@ -214,6 +215,8 @@ function GameViewPanel({
   const [arenaLoading, setArenaLoading] = React.useState(false);
   const [arenaError, setArenaError] = React.useState<string | null>(null);
   const [arenaAttempted, setArenaAttempted] = React.useState(false);
+
+
   
   // Create arena from designs - using client-side construction to avoid DB issues
   const createArena = React.useCallback(async () => {
