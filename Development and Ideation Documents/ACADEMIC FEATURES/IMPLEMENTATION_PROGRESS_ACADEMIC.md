@@ -1,7 +1,7 @@
 # Academic Features Implementation Progress
 
-> **Last Updated:** January 26, 2026  
-> **Status:** Phase 2.1 Part 2 Complete
+> **Last Updated:** January 27, 2026  
+> **Status:** Phase 2.2 Complete ✅ | Phase 2.3 In Progress
 
 ---
 
@@ -62,7 +62,7 @@ getChallenges(claimId)            // Get counter-claims
 
 ## Phase 2: Versioning & Memory
 
-### Phase 2.1: Debate Releases & Versioned Memory 🔄 In Progress
+### Phase 2.1: Debate Releases & Versioned Memory ✅ Complete
 
 **Goal:** Create citable, versioned snapshots of deliberation state.
 
@@ -150,28 +150,117 @@ GET /api/deliberations/{id}/releases/compare?from=1.0.0&to=1.2.0
 GET /api/deliberations/{id}/releases/latest
 ```
 
-#### Part 3: UI Components ⏳ Not Started
+#### Part 3: UI Components ✅ Complete
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| ReleaseListPanel | ⏳ | List releases with version badges |
-| VersionBadge | ⏳ | Display version number with status colors |
-| CreateReleaseModal | ⏳ | Form to create new release |
-| ChangelogViewer | ⏳ | Display formatted changelog |
-| ReleaseDiffView | ⏳ | Side-by-side comparison of releases |
+| VersionBadge | ✅ | Display version number with status colors |
+| VersionDiff | ✅ | Show version transition (1.0.0 → 1.1.0) |
+| ReleaseListItem | ✅ | Single release row with stats |
+| ReleaseListPanel | ✅ | List releases with SWR data fetching |
+| CreateReleaseModal | ✅ | Form to create new release with version type |
+| ChangelogViewer | ✅ | Display formatted changelog with sections |
+| ReleaseDetailPanel | ✅ | Tabbed panel (Overview/Changelog/Citation) |
+
+**UI Components Location:**
+```
+components/releases/
+├── index.ts              # Barrel exports
+├── VersionBadge.tsx      # Version display + VersionDiff
+├── ReleaseListItem.tsx   # Single release row + skeleton
+├── ReleaseListPanel.tsx  # Full list with SWR
+├── CreateReleaseModal.tsx # Create release form
+├── ChangelogViewer.tsx   # Changelog display
+└── ReleaseDetailPanel.tsx # Full details panel
+```
 
 ---
 
-## Phase 2.2: Forking & Branching ⏳ Not Started
+## Phase 2.2: Fork/Branch/Merge ✅ Complete
 
-**Goal:** Allow deliberations to be forked for alternative explorations.
+**Goal:** Allow deliberations to be forked for alternative explorations, then merge insights back.
+
+#### Chunk 1: Schema & Fork Service ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| Fork schema enums | ✅ | `lib/models/schema.prisma` (ForkType, SyncStatus, MergeStatus) |
+| ImportedClaim/Argument models | ✅ | `lib/models/schema.prisma` |
+| MergeRequest/Comment models | ✅ | `lib/models/schema.prisma` |
+| Fork type definitions | ✅ | `lib/forks/types.ts` |
+| Fork service | ✅ | `lib/forks/forkService.ts` |
+
+**Fork Types:**
+- ASSUMPTION_VARIANT, METHODOLOGICAL, SCOPE_EXTENSION
+- ADVERSARIAL, EDUCATIONAL, ARCHIVAL
+
+#### Chunk 2: Merge Service & API Routes ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| Merge service | ✅ | `lib/forks/mergeService.ts` |
+| Fork API routes | ✅ | `app/api/deliberations/[id]/fork/route.ts` |
+| Merge API routes | ✅ | `app/api/deliberations/[id]/merges/route.ts` |
+| Merge detail routes | ✅ | `app/api/deliberations/[id]/merges/[mergeId]/route.ts` |
+| Barrel exports | ✅ | `lib/forks/index.ts` |
+
+**Merge Strategies:** ADD_NEW, REPLACE, LINK_SUPPORT, LINK_CHALLENGE, SKIP
+
+**API Endpoints:**
+```
+POST/GET   /api/deliberations/{id}/fork           # Create/list forks
+POST       /api/deliberations/{id}/merges         # Create merge request
+POST       /api/deliberations/{id}/merges?analyze # Analyze merge (dry-run)
+GET        /api/deliberations/{id}/merges         # List merge requests
+GET/PATCH  /api/deliberations/{id}/merges/{id}    # Get/update merge
+POST       /api/deliberations/{id}/merges/{id}?action=execute  # Execute merge
+POST       /api/deliberations/{id}/merges/{id}?action=comment  # Add comment
+```
+
+#### Chunk 3: UI Components ✅ Complete
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| ForkBadge | ✅ | Display fork type with icon/color |
+| ForkTypePicker | ✅ | Select fork type with descriptions |
+| CreateForkModal | ✅ | Two-step modal: type → details |
+| ForkListItem | ✅ | Single fork row with stats |
+| ForkListPanel | ✅ | List forks with SWR |
+| ForkTreeView | ✅ | Hierarchical tree of forks |
+| MergeStatusBadge | ✅ | Display merge request status |
+| MergeRequestCard | ✅ | Single merge request card |
+| MergeRequestListPanel | ✅ | Tabs: incoming/outgoing |
+| MergeClaimSelector | ✅ | Select claims with strategies |
+| MergeConflictViewer | ✅ | Display/resolve conflicts |
+| CreateMergeRequestModal | ✅ | Three-step: claims → analysis → details |
+
+**UI Components Location:**
+```
+components/forks/
+├── index.ts                    # Barrel exports
+├── ForkBadge.tsx              # Fork type display + picker
+├── CreateForkModal.tsx        # Create fork workflow
+├── ForkListPanel.tsx          # Fork list + tree views
+├── MergeRequestPanel.tsx      # Merge request list
+├── MergeWorkflow.tsx          # Claim selection + conflict UI
+└── CreateMergeRequestModal.tsx # Create merge request workflow
+```
+
+---
+
+## Phase 2.3: Quote Nodes & Quality Gates 🔄 In Progress
+
+**Goal:** Make textual quotes first-class addressable objects, implement argument quality checks.
 
 | Component | Status |
 |-----------|--------|
-| Fork schema fields | ⏳ (Added to Deliberation) |
-| Fork service | ⏳ |
-| Fork API | ⏳ |
-| Fork UI | ⏳ |
+| QuoteNode schema | ⏳ |
+| QuoteInterpretation schema | ⏳ |
+| Quote service | ⏳ |
+| Interpretation service | ⏳ |
+| Argument linting rules | ⏳ |
+| Linting API | ⏳ |
+| Quote UI components | ⏳ |
 
 ---
 
@@ -216,14 +305,38 @@ app/api/deliberations/[id]/releases/
 └── latest/route.ts       # GET latest release
 ```
 
+### Phase 2.2 Files
+```
+lib/forks/
+├── index.ts              # Barrel exports
+├── types.ts              # Fork/merge type definitions
+├── forkService.ts        # Fork CRUD operations
+└── mergeService.ts       # Merge request operations
+
+app/api/deliberations/[id]/
+├── fork/route.ts         # POST/GET fork endpoints
+└── merges/
+    ├── route.ts          # POST/GET merge requests
+    └── [mergeId]/route.ts # GET/PATCH/POST individual merge
+
+components/forks/
+├── index.ts              # Barrel exports
+├── ForkBadge.tsx         # Fork type display + picker
+├── CreateForkModal.tsx   # Create fork workflow
+├── ForkListPanel.tsx     # Fork list + tree views
+├── MergeRequestPanel.tsx # Merge request list
+├── MergeWorkflow.tsx     # Claim selection + conflict UI
+└── CreateMergeRequestModal.tsx # Create merge request workflow
+```
+
 ---
 
 ## Next Steps
 
-1. **Phase 2.1 Part 3** - UI components for release management
-2. **Database Migration** - Run `npx prisma db push` to add DebateRelease table
-3. **Phase 2.2** - Forking system for deliberation branches
-4. **Testing** - Add unit tests for release services
+1. **Phase 2.3** - Quote nodes and argument quality gates (in progress)
+2. **Database Migration** - Run `npx prisma db push` after schema changes
+3. **Phase 3** - External integration (DOI/citations, export formats)
+4. **Testing** - Add unit tests for services
 
 ---
 

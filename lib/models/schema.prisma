@@ -1935,6 +1935,7 @@ model Source {
   alerts          SourceAlert[]
   refManagerItems ReferenceManagerItem[]
   claims          Claim[]                 // Phase 1.1: Claims extracted from this source
+  quotes          QuoteNode[]             // Phase 2.3: Quote nodes from this source
 
   @@index([verificationStatus])
   @@index([lastCheckedAt])
@@ -2019,6 +2020,158 @@ model SourceAlertNotification {
 
   @@unique([alertId, userId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 2.3: Quote Nodes & Interpretations
+// First-class addressable quote objects for HSS scholarly work
+// ─────────────────────────────────────────────────────────
+
+enum LocatorType {
+  PAGE          // p. 42
+  SECTION       // §3.2
+  CHAPTER       // Ch. 5
+  VERSE         // 3:16
+  TIMESTAMP     // 01:23:45
+  LINE          // line 123
+  PARAGRAPH     // ¶12
+  CUSTOM        // User-defined
+}
+
+enum QuoteUsageType {
+  EVIDENCE      // Quote supports the claim/argument
+  COUNTER       // Quote challenges the claim/argument
+  CONTEXT       // Quote provides background
+  DEFINITION    // Quote defines a key term
+  METHODOLOGY   // Quote describes method
+}
+
+model QuoteNode {
+  id              String      @id @default(cuid())
+  
+  // Source reference
+  sourceId        String
+  source          Source      @relation(fields: [sourceId], references: [id])
+  
+  // Quote content
+  text            String      @db.Text
+  locator         String?     // Page number, section, timestamp, verse
+  locatorType     LocatorType @default(PAGE)
+  context         String?     @db.Text  // Surrounding text for context
+  
+  // Metadata
+  language        String?     @default("en")
+  isTranslation   Boolean     @default(false)
+  originalQuoteId String?     // Link to original language quote
+  originalQuote   QuoteNode?  @relation("QuoteTranslations", fields: [originalQuoteId], references: [id])
+  translations    QuoteNode[] @relation("QuoteTranslations")
+  
+  // Interpretations
+  interpretations QuoteInterpretation[]
+  
+  // Usage tracking
+  usedInClaims    ClaimQuote[]
+  usedInArguments ArgumentQuote[]
+  
+  // Mini-deliberation for discussing the quote
+  deliberationId  String?     @unique
+  deliberation    Deliberation? @relation("QuoteDeliberation", fields: [deliberationId], references: [id])
+  
+  // Ownership
+  createdById     String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([sourceId])
+  @@index([createdById])
+  @@fulltext([text])
+}
+
+model QuoteInterpretation {
+  id              String      @id @default(cuid())
+  quoteId         String
+  quote           QuoteNode   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  
+  // The interpretation
+  interpretation  String      @db.Text  // "This passage means..."
+  framework       String?     // Theoretical framework (e.g., "Marxist", "Poststructuralist")
+  methodology     String?     // Interpretive method used
+  
+  // Community engagement
+  votes           InterpretationVote[]
+  voteScore       Int         @default(0)
+  
+  // Relations to other interpretations
+  supportsId      String?
+  supports        QuoteInterpretation? @relation("InterpretationSupport", fields: [supportsId], references: [id])
+  supportedBy     QuoteInterpretation[] @relation("InterpretationSupport")
+  
+  challengesId    String?
+  challenges      QuoteInterpretation? @relation("InterpretationChallenge", fields: [challengesId], references: [id])
+  challengedBy    QuoteInterpretation[] @relation("InterpretationChallenge")
+  
+  // Authorship
+  authorId        String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([quoteId])
+  @@index([authorId])
+  @@index([voteScore])
+}
+
+model InterpretationVote {
+  id                  String              @id @default(cuid())
+  interpretationId    String
+  interpretation      QuoteInterpretation @relation(fields: [interpretationId], references: [id], onDelete: Cascade)
+  
+  userId              String
+  vote                Int                 // +1 or -1
+  createdAt           DateTime            @default(now())
+  
+  @@unique([interpretationId, userId])
+  @@index([userId])
+}
+
+// Junction table: Quote usage in Claims
+model ClaimQuote {
+  id              String          @id @default(cuid())
+  claimId         String
+  claim           Claim           @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  
+  quoteId         String
+  quote           QuoteNode       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  
+  usageType       QuoteUsageType  @default(EVIDENCE)
+  usageNote       String?         @db.Text  // Why this quote is being used
+  
+  addedById       String
+  addedAt         DateTime        @default(now())
+  
+  @@unique([claimId, quoteId])
+  @@index([claimId])
+  @@index([quoteId])
+}
+
+// Junction table: Quote usage in Arguments
+model ArgumentQuote {
+  id              String          @id @default(cuid())
+  argumentId      String
+  argument        Argument        @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  
+  quoteId         String
+  quote           QuoteNode       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  
+  usageType       QuoteUsageType  @default(EVIDENCE)
+  premiseIndex    Int?            // Which premise this supports (0-indexed)
+  usageNote       String?         @db.Text
+  
+  addedById       String
+  addedAt         DateTime        @default(now())
+  
+  @@unique([argumentId, quoteId])
+  @@index([argumentId])
+  @@index([quoteId])
 }
 
 // ─────────────────────────────────────────────────────────
@@ -2790,6 +2943,13 @@ model Argument {
 
   // ArgumentChain relations
   chainNodes ArgumentChainNode[]
+
+  // Phase 2.2: Fork/Branch/Merge - Import tracking
+  importedFromArgs ImportedArgument[] @relation("ArgumentImports")
+  importedAsArgs   ImportedArgument[] @relation("ImportedAsArg")
+
+  // Phase 2.3: Quote nodes linked to this argument
+  linkedQuotes ArgumentQuote[]
 
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
@@ -3884,6 +4044,13 @@ model Claim {
   contraries   ClaimContrary[] @relation("ClaimContraries")
   contraryOf   ClaimContrary[] @relation("ContraryOf")
 
+  // Phase 2.2: Fork/Branch/Merge - Import tracking
+  importedFromClaims ImportedClaim[] @relation("ClaimImports")
+  importedAsClaims   ImportedClaim[] @relation("ImportedAs")
+
+  // Phase 2.3: Quote nodes linked to this claim
+  linkedQuotes ClaimQuote[]
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -4523,6 +4690,19 @@ model Deliberation {
   forkedFrom        Deliberation?  @relation("DeliberationForks", fields: [forkedFromId], references: [id], onDelete: SetNull)
   forks             Deliberation[] @relation("DeliberationForks")
   forkReason        String?        @db.Text
+  forkType          ForkType?
+  forkedAtReleaseId String?
+  
+  // Phase 2.2: Imported content tracking
+  importedClaims    ImportedClaim[]
+  importedArguments ImportedArgument[]
+  
+  // Phase 2.2: Merge requests
+  mergeRequests     MergeRequest[] @relation("MergeTarget")
+  outgoingMerges    MergeRequest[] @relation("MergeSource")
+
+  // Phase 2.3: Quote discussion deliberation (back-relation)
+  quoteBeingDiscussed QuoteNode? @relation("QuoteDeliberation")
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -7561,4 +7741,128 @@ model ApiKey {
   
   @@index([keyHash])
   @@index([userId])
+}
+
+// ============================================================================
+// Phase 2.2: Fork/Branch/Merge for Deliberations
+// ============================================================================
+
+enum ForkType {
+  ASSUMPTION_VARIANT   // Testing different assumptions
+  METHODOLOGICAL       // Different analytical approach
+  SCOPE_EXTENSION      // Extending to new domain
+  ADVERSARIAL          // Devil's advocate exploration
+  EDUCATIONAL          // Teaching/learning fork
+  ARCHIVAL             // Preserving a branch
+}
+
+enum SyncStatus {
+  SYNCED               // Matches original
+  DIVERGED             // Local modifications made
+  ORIGINAL_UPDATED     // Original changed, needs review
+  DETACHED             // No longer tracking original
+}
+
+enum MergeStatus {
+  OPEN
+  IN_REVIEW
+  APPROVED
+  MERGED
+  CLOSED
+  CONFLICT
+}
+
+model ImportedClaim {
+  id                  String       @id @default(cuid())
+  deliberationId      String
+  deliberation        Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  originalClaimId     String
+  originalClaim       Claim        @relation("ClaimImports", fields: [originalClaimId], references: [id], onDelete: Cascade)
+  
+  localClaimId        String       @unique
+  localClaim          Claim        @relation("ImportedAs", fields: [localClaimId], references: [id], onDelete: Cascade)
+  
+  importedAt          DateTime     @default(now())
+  importedById        String
+  syncStatus          SyncStatus   @default(SYNCED)
+  lastSyncedAt        DateTime?
+  
+  @@unique([deliberationId, originalClaimId])
+  @@index([deliberationId])
+  @@index([originalClaimId])
+  @@index([localClaimId])
+}
+
+model ImportedArgument {
+  id                  String       @id @default(cuid())
+  deliberationId      String
+  deliberation        Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  originalArgumentId  String
+  originalArgument    Argument     @relation("ArgumentImports", fields: [originalArgumentId], references: [id], onDelete: Cascade)
+  
+  localArgumentId     String       @unique
+  localArgument       Argument     @relation("ImportedAsArg", fields: [localArgumentId], references: [id], onDelete: Cascade)
+  
+  importedAt          DateTime     @default(now())
+  importedById        String
+  syncStatus          SyncStatus   @default(SYNCED)
+  
+  @@unique([deliberationId, originalArgumentId])
+  @@index([deliberationId])
+  @@index([originalArgumentId])
+}
+
+model MergeRequest {
+  id                   String       @id @default(cuid())
+  
+  // Source (the fork)
+  sourceDeliberationId String
+  sourceDeliberation   Deliberation @relation("MergeSource", fields: [sourceDeliberationId], references: [id], onDelete: Cascade)
+  
+  // Target (usually the parent)
+  targetDeliberationId String
+  targetDeliberation   Deliberation @relation("MergeTarget", fields: [targetDeliberationId], references: [id], onDelete: Cascade)
+  
+  title                String
+  description          String?      @db.Text
+  
+  // Content to merge (JSON arrays of IDs with strategies)
+  claimsToMerge        Json         // Array of { claimId, strategy, targetClaimId? }
+  argumentsToMerge     Json         // Array of { argumentId, includeWithClaims }
+  
+  // Review
+  status               MergeStatus  @default(OPEN)
+  reviewComments       MergeComment[]
+  
+  // Author
+  authorId             String
+  
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  mergedAt             DateTime?
+  mergedById           String?
+  closedAt             DateTime?
+  
+  @@index([sourceDeliberationId])
+  @@index([targetDeliberationId])
+  @@index([status])
+}
+
+model MergeComment {
+  id                  String       @id @default(cuid())
+  mergeRequestId      String
+  mergeRequest        MergeRequest @relation(fields: [mergeRequestId], references: [id], onDelete: Cascade)
+  
+  content             String       @db.Text
+  authorId            String
+  
+  // Optional: comment on specific claim/argument
+  targetClaimId       String?
+  targetArgumentId    String?
+  
+  createdAt           DateTime     @default(now())
+  
+  @@index([mergeRequestId])
 }
