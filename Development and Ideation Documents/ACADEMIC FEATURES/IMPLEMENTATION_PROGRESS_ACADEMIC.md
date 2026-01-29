@@ -1,7 +1,7 @@
 # Academic Features Implementation Progress
 
-> **Last Updated:** January 27, 2026  
-> **Status:** Phase 2.2 Complete ✅ | Phase 2.3 In Progress
+> **Last Updated:** January 28, 2026  
+> **Status:** Phase 2.3 Complete ✅ | Phase 3 Not Started
 
 ---
 
@@ -248,19 +248,147 @@ components/forks/
 
 ---
 
-## Phase 2.3: Quote Nodes & Quality Gates 🔄 In Progress
+## Phase 2.3: Quote Nodes & Quality Gates ✅ Complete
 
-**Goal:** Make textual quotes first-class addressable objects, implement argument quality checks.
+**Goal:** Make textual quotes first-class addressable objects for HSS scholars, enable multiple interpretations with voting.
 
-| Component | Status |
-|-----------|--------|
-| QuoteNode schema | ⏳ |
-| QuoteInterpretation schema | ⏳ |
-| Quote service | ⏳ |
-| Interpretation service | ⏳ |
-| Argument linting rules | ⏳ |
-| Linting API | ⏳ |
-| Quote UI components | ⏳ |
+#### Chunk 1: Schema & Services ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| QuoteNode schema | ✅ | `lib/models/schema.prisma` |
+| QuoteInterpretation schema | ✅ | `lib/models/schema.prisma` |
+| InterpretationVote schema | ✅ | `lib/models/schema.prisma` |
+| ClaimQuote/ArgumentQuote | ✅ | `lib/models/schema.prisma` |
+| Quote types | ✅ | `lib/quotes/types.ts` |
+| Quote service | ✅ | `lib/quotes/quoteService.ts` |
+| Interpretation service | ✅ | `lib/quotes/interpretationService.ts` |
+| Barrel exports | ✅ | `lib/quotes/index.ts` |
+
+**Schema Additions:**
+```prisma
+enum LocatorType {
+  PAGE, SECTION, CHAPTER, VERSE, TIMESTAMP, LINE, PARAGRAPH, CUSTOM
+}
+
+enum QuoteUsageType {
+  EVIDENCE, COUNTER, CONTEXT, DEFINITION, METHODOLOGY
+}
+
+model QuoteNode {
+  id              String   @id @default(cuid())
+  sourceId        String
+  text            String   @db.Text
+  locator         String?
+  locatorType     LocatorType @default(PAGE)
+  context         String?  @db.Text
+  language        String?  @default("en")
+  isTranslation   Boolean  @default(false)
+  originalQuoteId String?
+  deliberationId  String?  @unique  // Mini-deliberation for discussion
+  createdById     String
+  interpretations QuoteInterpretation[]
+  usedInClaims    ClaimQuote[]
+  usedInArguments ArgumentQuote[]
+}
+
+model QuoteInterpretation {
+  id           String   @id @default(cuid())
+  quoteId      String
+  content      String   @db.Text
+  framework    String?  // e.g., "Marxist", "Phenomenological"
+  authorId     String
+  voteScore    Int      @default(0)
+  supportsInterpretationId   String?  // Supports another interpretation
+  challengesInterpretationId String?  // Challenges another interpretation
+  votes        InterpretationVote[]
+}
+
+model InterpretationVote {
+  id               String   @id @default(cuid())
+  interpretationId String
+  userId           String
+  vote             Int      // +1 or -1
+  @@unique([interpretationId, userId])
+}
+```
+
+**Key Services:**
+```typescript
+// Quote Operations
+createQuote(options)              // Create quote from source
+getQuote(quoteId, userId?)        // Get with interpretations & user vote
+searchQuotes(filters, limit, offset)  // Search by source, author, framework
+linkQuoteToClaim(quoteId, claimId, usageType, userId, annotation?)
+linkQuoteToArgument(quoteId, argumentId, usageType, userId, annotation?)
+createQuoteDeliberation(quoteId, userId)  // Mini-deliberation for quote
+
+// Interpretation Operations
+createInterpretation(options)     // Create with optional framework
+getInterpretations(quoteId, userId?, framework?, sortBy?)
+voteOnInterpretation(id, userId, value)  // +1/-1 voting
+updateInterpretation(id, updates)
+deleteInterpretation(id)
+getFrameworksInUse(deliberationId)
+```
+
+#### Chunk 2: API Routes ✅ Complete
+
+| Route | Methods | Purpose |
+|-------|---------|----------|
+| `/api/quotes` | POST, GET | Create quote, search quotes |
+| `/api/quotes/[quoteId]` | GET, PATCH, DELETE, POST | Quote CRUD, create deliberation |
+| `/api/quotes/[quoteId]/interpretations` | POST, GET | Create/list interpretations |
+| `/api/quotes/[quoteId]/interpretations/[id]` | GET, PATCH, DELETE, POST | Interpretation CRUD, voting |
+| `/api/quotes/[quoteId]/link` | POST, DELETE | Link/unlink to claims/arguments |
+
+**API Examples:**
+```bash
+# Create a quote
+POST /api/quotes
+Body: { "text": "...", "sourceId": "...", "locatorType": "PAGE", "locator": "42" }
+
+# Search quotes
+GET /api/quotes?sourceId=...&framework=Marxist&hasInterpretations=true
+
+# Create interpretation
+POST /api/quotes/{id}/interpretations
+Body: { "content": "...", "framework": "Phenomenological" }
+
+# Vote on interpretation
+POST /api/quotes/{id}/interpretations/{intId}?action=vote
+Body: { "value": 1 }
+
+# Link quote to claim
+POST /api/quotes/{id}/link
+Body: { "type": "claim", "claimId": "...", "usageType": "EVIDENCE" }
+```
+
+#### Chunk 3: UI Components ✅ Complete
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| QuoteCard | ✅ | Full quote display with source, locator, usage badge |
+| QuoteCardCompact | ✅ | Inline quote with tooltip |
+| QuoteCardSkeleton | ✅ | Loading state |
+| QuoteList | ✅ | List with selection, empty state |
+| InterpretationCard | ✅ | Full interpretation with +1/-1 voting, framework badge |
+| InterpretationCardCompact | ✅ | Minimal for nested relations |
+| InterpretationList | ✅ | List with owner detection |
+| InterpretationsPanel | ✅ | Side panel with filtering by framework |
+| CreateQuoteModal | ✅ | Create quote with locator type selection |
+| QuoteLinkModal | ✅ | Link to claim/argument with usage type |
+| CreateInterpretationModal | ✅ | Add interpretation with support/challenge |
+
+**UI Components Location:**
+```
+components/quotes/
+├── index.ts                    # Barrel exports
+├── QuoteCard.tsx               # QuoteCard, QuoteCardCompact, QuoteList
+├── InterpretationCard.tsx      # InterpretationCard, InterpretationList
+├── InterpretationsPanel.tsx    # Full panel with SWR
+└── QuoteModals.tsx             # Create/Link/Interpretation modals
+```
 
 ---
 
@@ -329,14 +457,39 @@ components/forks/
 └── CreateMergeRequestModal.tsx # Create merge request workflow
 ```
 
+### Phase 2.3 Files
+```
+lib/quotes/
+├── index.ts                # Barrel exports
+├── types.ts                # LocatorType, QuoteUsageType, helpers
+├── quoteService.ts         # Quote CRUD, linking, deliberation
+└── interpretationService.ts # Interpretation CRUD, voting
+
+app/api/quotes/
+├── route.ts                # POST/GET collection
+└── [quoteId]/
+    ├── route.ts            # GET/PATCH/DELETE + create-deliberation
+    ├── interpretations/
+    │   ├── route.ts        # POST/GET interpretations
+    │   └── [interpretationId]/route.ts  # CRUD + voting
+    └── link/route.ts       # POST/DELETE linking
+
+components/quotes/
+├── index.ts                # Barrel exports
+├── QuoteCard.tsx           # QuoteCard, QuoteCardCompact, QuoteList
+├── InterpretationCard.tsx  # InterpretationCard, InterpretationList
+├── InterpretationsPanel.tsx # Panel with filtering
+└── QuoteModals.tsx         # Create/Link/Interpretation modals
+```
+
 ---
 
 ## Next Steps
 
-1. **Phase 2.3** - Quote nodes and argument quality gates (in progress)
-2. **Database Migration** - Run `npx prisma db push` after schema changes
+1. **Database Migration** - Run `npx prisma db push` to apply Phase 2.3 schema changes
+2. **Testing** - Verify all Phase 1-2 services and API routes work correctly
 3. **Phase 3** - External integration (DOI/citations, export formats)
-4. **Testing** - Add unit tests for services
+4. **Argument Linting** - Consider adding "Argument CI" quality gates as Phase 2.4
 
 ---
 

@@ -7,7 +7,7 @@
  * to provide different readings of the same textual passage.
  */
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prismaclient";
 import {
   CreateInterpretationOptions,
   InterpretationWithVotes,

@@ -2084,7 +2084,7 @@ model QuoteNode {
   
   @@index([sourceId])
   @@index([createdById])
-  @@fulltext([text])
+  // Note: PostgreSQL doesn't support @@fulltext, use raw SQL for text search
 }
 
 model QuoteInterpretation {
@@ -7756,7 +7756,7 @@ enum ForkType {
   ARCHIVAL             // Preserving a branch
 }
 
-enum SyncStatus {
+enum ForkSyncStatus {
   SYNCED               // Matches original
   DIVERGED             // Local modifications made
   ORIGINAL_UPDATED     // Original changed, needs review
@@ -7785,7 +7785,7 @@ model ImportedClaim {
   
   importedAt          DateTime     @default(now())
   importedById        String
-  syncStatus          SyncStatus   @default(SYNCED)
+  syncStatus          ForkSyncStatus   @default(SYNCED)
   lastSyncedAt        DateTime?
   
   @@unique([deliberationId, originalClaimId])
@@ -7807,7 +7807,7 @@ model ImportedArgument {
   
   importedAt          DateTime     @default(now())
   importedById        String
-  syncStatus          SyncStatus   @default(SYNCED)
+  syncStatus          ForkSyncStatus   @default(SYNCED)
   
   @@unique([deliberationId, originalArgumentId])
   @@index([deliberationId])

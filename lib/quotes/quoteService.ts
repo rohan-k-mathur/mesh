@@ -7,7 +7,7 @@
  * for HSS scholarly work.
  */
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prismaclient";
 import {
   CreateQuoteOptions,
   QuoteNodeSummary,
