@@ -2950,6 +2950,10 @@ model Argument {
 
   // Phase 2.3: Quote nodes linked to this argument
   linkedQuotes ArgumentQuote[]
+  
+  // Phase 3.1: Claim Provenance - Attack/Defense tracking
+  attacksAsAttacker  ClaimAttack[]   @relation("AttackingArgument")
+  defensesAsDefender ClaimDefense[]  @relation("DefendingArgument")
 
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
@@ -4051,6 +4055,36 @@ model Claim {
   // Phase 2.3: Quote nodes linked to this claim
   linkedQuotes ClaimQuote[]
 
+  // ─────────────────────────────────────────────────────────
+  // Phase 3.1: Claim Provenance Tracking
+  // ─────────────────────────────────────────────────────────
+  
+  // Origin tracking - when/where claim was first made
+  originDate        DateTime?             // When first asserted
+  originAuthorId    String?               // Who first made this claim (auth_id)
+  
+  // Version tracking
+  versions          ClaimVersion[]
+  currentVersionId  String?               @unique
+  currentVersion    ClaimVersion?         @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  
+  // Challenge tracking (aggregated counts for performance)
+  challengeCount    Int                   @default(0)
+  openChallenges    Int                   @default(0)
+  defendedCount     Int                   @default(0)
+  concededCount     Int                   @default(0)
+  
+  // Consensus status
+  consensusStatus   ConsensusStatus       @default(UNDETERMINED)
+  consensusUpdatedAt DateTime?
+  
+  // Relations to attacks and defenses
+  attacksReceived   ClaimAttack[]         @relation("AttackedClaim")
+  defensesFor       ClaimDefense[]        @relation("DefendedClaim")
+  
+  // Canonical claim instances (for cross-deliberation tracking)
+  claimInstances    ClaimInstance[]
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -4059,6 +4093,7 @@ model Claim {
   @@index([deliberationId, createdById, createdAt])
   @@index([sourceId])                                    // Phase 1.1: Index for source lookups
   @@index([academicClaimType])                           // Phase 1.1: Index for claim type filtering
+  @@index([consensusStatus])                             // Phase 3.1: Consensus status filtering
 }
 
 model ClaimEdge {
@@ -4147,6 +4182,29 @@ model CanonicalClaim {
   createdAt DateTime @default(now())
 
   claims Claim[]
+  
+  // ─────────────────────────────────────────────────────────
+  // Phase 3.1: Enhanced Canonical Claim for Cross-Deliberation Identity
+  // ─────────────────────────────────────────────────────────
+  
+  // Representative text (from most authoritative instance)
+  representativeText String?  @db.Text
+  
+  // Instances across deliberations
+  instances         ClaimInstance[]
+  
+  // Global metrics
+  totalInstances    Int      @default(1)
+  totalChallenges   Int      @default(0)
+  globalStatus      ConsensusStatus @default(UNDETERMINED)
+  
+  // Discovery metadata
+  lastActivityAt    DateTime @default(now())
+  
+  // Semantic fingerprint for matching (hash of normalized text)
+  semanticHash      String?
+  
+  @@index([globalStatus])
 }
 
 model ClaimEvidence {
@@ -4703,6 +4761,9 @@ model Deliberation {
 
   // Phase 2.3: Quote discussion deliberation (back-relation)
   quoteBeingDiscussed QuoteNode? @relation("QuoteDeliberation")
+  
+  // Phase 3.1: Claim provenance - cross-deliberation identity tracking
+  claimInstances      ClaimInstance[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -7865,4 +7926,210 @@ model MergeComment {
   createdAt           DateTime     @default(now())
   
   @@index([mergeRequestId])
+}
+
+// =====================================================================
+// Phase 3.1: Claim Provenance Tracking
+// Tracks claim lifecycle, versions, challenges, and cross-deliberation identity
+// =====================================================================
+
+// ─────────────────────────────────────────────────────────
+// Enums for Claim Provenance
+// ─────────────────────────────────────────────────────────
+
+enum VersionChangeType {
+  CREATED           // Initial version
+  REFINED           // Wording improved
+  STRENGTHENED      // Scope narrowed for precision
+  WEAKENED          // Scope broadened or qualified
+  CORRECTED         // Error fixed
+  MERGED            // Combined with another claim
+  SPLIT             // Split from larger claim
+  IMPORTED          // Brought from another deliberation
+}
+
+enum ConsensusStatus {
+  UNDETERMINED      // Not enough engagement
+  EMERGING          // Building support
+  ACCEPTED          // Broad acceptance
+  CONTESTED         // Active disagreement
+  REJECTED          // Broadly rejected
+  SUPERSEDED        // Replaced by refined version
+}
+
+enum ClaimAttackStatus {
+  OPEN              // Not yet addressed
+  UNDER_REVIEW      // Being evaluated
+  DEFENDED          // Successfully defended
+  PARTIALLY_DEFENDED // Partially addressed
+  CONCEDED          // Attacker's point accepted
+  WITHDRAWN         // Attack withdrawn by attacker
+  STALEMATE         // Unresolved disagreement
+}
+
+enum ClaimDefenseType {
+  DIRECT_REBUTTAL   // Directly counter the attack
+  DISTINCTION       // Show attack misunderstands the claim
+  CONCESSION_LIMIT  // Partially concede but limit scope
+  EVIDENCE          // Provide additional supporting evidence
+  AUTHORITY         // Appeal to expert consensus
+}
+
+enum ClaimDefenseOutcome {
+  SUCCESSFUL        // Defense accepted
+  PARTIAL           // Partially successful
+  UNSUCCESSFUL      // Defense rejected
+  PENDING           // Awaiting evaluation
+}
+
+enum ClaimInstanceType {
+  ORIGINAL          // First occurrence
+  EQUIVALENT        // Marked as equivalent
+  IMPORTED          // Explicitly imported
+  FORKED            // Created via fork
+  DERIVED           // Derived/refined from original
+}
+
+// ─────────────────────────────────────────────────────────
+// Claim Version Tracking
+// ─────────────────────────────────────────────────────────
+
+model ClaimVersion {
+  id                String   @id @default(cuid())
+  claimId           String
+  claim             Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  
+  // Content at this version
+  text              String   @db.Text
+  claimType         String?  // "Agent" | "Assertion" | "Domain" | ...
+  
+  // Version metadata
+  versionNumber     Int
+  changeType        VersionChangeType
+  changeReason      String?  @db.Text
+  changedFields     Json?    // Which fields changed { text: true, type: false, ... }
+  
+  // Authorship
+  authorId          String   // auth_id of user who made change
+  createdAt         DateTime @default(now())
+  
+  // Previous version link (for version chain traversal)
+  previousVersionId String?
+  previousVersion   ClaimVersion? @relation("VersionChain", fields: [previousVersionId], references: [id])
+  nextVersions      ClaimVersion[] @relation("VersionChain")
+  
+  // Current version back-reference
+  currentFor        Claim?   @relation("CurrentVersion")
+  
+  // Release association (if versioned via release)
+  releaseId         String?
+  
+  @@unique([claimId, versionNumber])
+  @@index([claimId])
+  @@index([authorId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Attack Tracking (Challenges to Claims)
+// ─────────────────────────────────────────────────────────
+
+model ClaimAttack {
+  id                String   @id @default(cuid())
+  
+  // What is being attacked
+  targetClaimId     String
+  targetClaim       Claim    @relation("AttackedClaim", fields: [targetClaimId], references: [id], onDelete: Cascade)
+  
+  // The attacking argument
+  attackingArgumentId String
+  attackingArgument Argument @relation("AttackingArgument", fields: [attackingArgumentId], references: [id], onDelete: Cascade)
+  
+  // Attack classification (uses existing AttackType enum)
+  attackType        AttackType   // REBUTS | UNDERCUTS | UNDERMINES
+  attackSubtype     String?      // More specific classification
+  
+  // Status tracking
+  status            ClaimAttackStatus @default(OPEN)
+  
+  // Defense tracking
+  defenses          ClaimDefense[]
+  
+  // Resolution
+  resolvedAt        DateTime?
+  resolvedById      String?
+  resolutionNote    String?  @db.Text
+  
+  createdAt         DateTime @default(now())
+  createdById       String   // auth_id of user who created attack
+  
+  @@index([targetClaimId])
+  @@index([attackingArgumentId])
+  @@index([status])
+  @@index([createdById])
+}
+
+// ─────────────────────────────────────────────────────────
+// Defense Tracking (Responses to Attacks)
+// ─────────────────────────────────────────────────────────
+
+model ClaimDefense {
+  id                String   @id @default(cuid())
+  
+  // What is being defended
+  claimId           String
+  claim             Claim    @relation("DefendedClaim", fields: [claimId], references: [id], onDelete: Cascade)
+  
+  // Against which attack
+  attackId          String
+  attack            ClaimAttack   @relation(fields: [attackId], references: [id], onDelete: Cascade)
+  
+  // The defending argument
+  defendingArgumentId String
+  defendingArgument Argument @relation("DefendingArgument", fields: [defendingArgumentId], references: [id])
+  
+  // Defense type
+  defenseType       ClaimDefenseType
+  
+  // Outcome
+  outcome           ClaimDefenseOutcome?
+  outcomeNote       String?  @db.Text
+  
+  createdAt         DateTime @default(now())
+  createdById       String   // auth_id of user who created defense
+  
+  @@index([attackId])
+  @@index([claimId])
+  @@index([defendingArgumentId])
+  @@index([createdById])
+}
+
+// ─────────────────────────────────────────────────────────
+// Claim Instance (Cross-Deliberation Identity Tracking)
+// ─────────────────────────────────────────────────────────
+
+model ClaimInstance {
+  id                String   @id @default(cuid())
+  
+  canonicalClaimId  String
+  canonicalClaim    CanonicalClaim @relation(fields: [canonicalClaimId], references: [id], onDelete: Cascade)
+  
+  claimId           String
+  claim             Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  
+  deliberationId    String
+  deliberation      Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  // Instance relationship type
+  instanceType      ClaimInstanceType @default(ORIGINAL)
+  
+  // Local status in this deliberation
+  localStatus       ConsensusStatus @default(UNDETERMINED)
+  
+  linkedAt          DateTime @default(now())
+  linkedById        String   // auth_id of user who linked
+  
+  @@unique([canonicalClaimId, claimId])
+  @@index([deliberationId])
+  @@index([claimId])
+  @@index([canonicalClaimId])
 }
