@@ -1104,6 +1104,33 @@ enum PredictionState {
 }
 
 // ─────────────────────────────────────────────────────────
+// Claim Prediction System - Enums
+// ─────────────────────────────────────────────────────────
+
+enum ClaimPredictionStatus {
+  PENDING     // Active, awaiting outcome
+  RESOLVED    // Outcome determined
+  WITHDRAWN   // Retracted by creator
+  EXPIRED     // Target date passed without resolution
+}
+
+enum PredictionResolution {
+  CONFIRMED       // Prediction came true
+  DISCONFIRMED    // Prediction was wrong
+  PARTIALLY_TRUE  // Partially accurate
+  INDETERMINATE   // Cannot be determined
+}
+
+enum EvidenceType {
+  OBSERVATION     // Direct observation
+  MEASUREMENT     // Quantitative data
+  ANNOUNCEMENT    // Official announcement
+  NEWS_REPORT     // News coverage
+  STUDY           // Research study
+  OTHER           // Other type
+}
+
+// ─────────────────────────────────────────────────────────
 // Phase 1.1: Academic Claims - Claim Types
 // ─────────────────────────────────────────────────────────
 enum AcademicClaimType {
@@ -4084,6 +4111,14 @@ model Claim {
   
   // Canonical claim instances (for cross-deliberation tracking)
   claimInstances    ClaimInstance[]
+  
+  // Claim Prediction System
+  predictions       ClaimPrediction[]
+  hasPredictions    Boolean               @default(false)
+  predictionCount   Int                   @default(0)
+  confirmedCount    Int                   @default(0)
+  disconfirmedCount Int                   @default(0)
+  pendingCount      Int                   @default(0)
 
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
@@ -4764,6 +4799,9 @@ model Deliberation {
   
   // Phase 3.1: Claim provenance - cross-deliberation identity tracking
   claimInstances      ClaimInstance[]
+  
+  // Claim Prediction System
+  claimPredictions    ClaimPrediction[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -8132,4 +8170,80 @@ model ClaimInstance {
   @@index([deliberationId])
   @@index([claimId])
   @@index([canonicalClaimId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Claim Prediction System - Models
+// ─────────────────────────────────────────────────────────
+
+model ClaimPrediction {
+  id              String                @id @default(cuid())
+  
+  // What claim is this prediction about?
+  claimId         String
+  claim           Claim                 @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  
+  // Which deliberation context?
+  deliberationId  String
+  deliberation    Deliberation          @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  // The prediction itself
+  predictionText  String                @db.Text    // "I predict this claim will be confirmed within 2 years"
+  
+  // Optional target date for resolution
+  targetDate      DateTime?             @db.Timestamptz(6)
+  
+  // Confidence level (0.0 to 1.0)
+  confidence      Float                 @default(0.5)
+  
+  // Status tracking
+  status          ClaimPredictionStatus @default(PENDING)
+  
+  // Resolution
+  resolution      PredictionResolution?
+  resolutionNote  String?               @db.Text
+  resolvedAt      DateTime?             @db.Timestamptz(6)
+  resolvedById    String?               // auth_id of user who resolved
+  
+  // Creator info
+  createdById     String                // auth_id of user who made prediction
+  createdAt       DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime              @default(now()) @updatedAt @db.Timestamptz(6)
+  
+  // Related outcomes (evidence/observations)
+  outcomes        PredictionOutcome[]
+  
+  @@index([claimId])
+  @@index([deliberationId])
+  @@index([status])
+  @@index([createdById])
+  @@index([deliberationId, status])
+  @@index([claimId, status])
+}
+
+model PredictionOutcome {
+  id              String                @id @default(cuid())
+  
+  // Which prediction does this evidence relate to?
+  predictionId    String
+  prediction      ClaimPrediction       @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  
+  // Evidence description
+  description     String                @db.Text
+  
+  // Evidence type
+  evidenceType    EvidenceType          @default(OBSERVATION)
+  
+  // Optional URL to evidence
+  evidenceUrl     String?
+  
+  // When was this outcome observed?
+  observedAt      DateTime              @default(now()) @db.Timestamptz(6)
+  
+  // Who recorded this outcome?
+  recordedById    String                // auth_id
+  recordedAt      DateTime              @default(now()) @db.Timestamptz(6)
+  
+  @@index([predictionId])
+  @@index([recordedById])
 }

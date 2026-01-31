@@ -15,13 +15,15 @@ Mesh exposes multiple surfaces that share a common foundation. Publishing provid
 
 ### Architecture at a Glance
 
-The system organizes reasoning into three layers:
+The system organizes reasoning into five conceptual layers:
 
-| Layer                    | Purpose                                                                    | Key Artifacts                                         |
-|--------------------------|----------------------------------------------------------------------------|-------------------------------------------------------|
-| **Claims & Evidence**    | Transform informal ideas into canonical, evidence-linked assertions        | Propositions, Claims, ClaimEdges, Evidence            |
-| **Arguments & Dialogue** | Structure reasoning with premises, conclusions, schemes, and tracked moves | Arguments, ArgumentChains, DialogueMoves, Commitments |
-| **Outputs & Artifacts**  | Compose reasoning into publishable, citable documents                      | Thesis, TheoryWorks, KbPages, DebateSheets            |
+| Layer                      | Purpose                                                                    | Key Artifacts                                            |
+|----------------------------|----------------------------------------------------------------------------|----------------------------------------------------------|
+| **Claims & Evidence**      | Transform informal ideas into canonical, evidence-linked assertions        | Propositions, Claims, ClaimEdges, Evidence, QuoteNodes   |
+| **Arguments & Dialogue**   | Structure reasoning with premises, conclusions, schemes, and tracked moves | Arguments, ArgumentChains, DialogueMoves, Commitments    |
+| **Outputs & Artifacts**    | Compose reasoning into publishable, citable documents                      | Thesis, TheoryWorks, KbPages, DebateSheets               |
+| **Academic Infrastructure**| Support scholarly workflows with paper-to-claim pipelines                  | ClaimSource, ClaimTypes, DebateReleases, Forks, Merges   |
+| **Knowledge Graph**        | Enable cross-deliberation intelligence and versioned memory                | RoomFunctor, TransportFunctor, ClaimProvenance, Releases |
 
 All structures conform to the **Argument Interchange Format (AIF)** ontology, enabling interoperability with academic argumentation tools and ensuring that reasoning graphs can be exported, analyzed, and verified independently.
 
@@ -36,7 +38,7 @@ This document serves as both conceptual orientation and implementation reference
 1. [Global System Design](#1-global-system-design)
    - [1.1 The Problem We Solve](#11-the-problem-we-solve)
    - [1.2 Core Design Philosophy](#12-core-design-philosophy)
-   - [1.3 The Three Conceptual Layers](#13-the-three-conceptual-layers)
+   - [1.3 The Five Conceptual Layers](#13-the-five-conceptual-layers)
    - [1.4 The User Journey (Actual Flow)](#14-the-user-journey-actual-flow)
    - [1.5 The DeepDivePanelV2 Hub](#15-the-deepdivepanelv2-hub)
    - [1.6 Key Subsystems Overview](#16-key-subsystems-overview)
@@ -52,17 +54,31 @@ This document serves as both conceptual orientation and implementation reference
    - [5.5 Ludics Subsystem](#55-ludics-subsystem)
    - [5.6 Chains Subsystem (Comprehensive)](#56-chains-subsystem-comprehensive)
    - [5.7 ASPIC Subsystem](#57-aspic-subsystem)
+   - [5.8 Commitment System (Dual-Layer)](#58-commitment-system-dual-layer)
+   - [5.9 Academic Infrastructure Subsystem](#59-academic-infrastructure-subsystem)
+   - [5.10 Releases & Versioning Subsystem](#510-releases--versioning-subsystem)
+   - [5.11 Stacks & Library Subsystem](#511-stacks--library-subsystem)
+   - [5.12 Fork/Merge & Quotes Subsystem](#512-forkmerge--quotes-subsystem)
+   - [5.13 Article System Subsystem](#513-article-system-subsystem)
+   - [5.14 Room Architecture (AgoraRoom)](#514-room-architecture-agoraroom)
+   - [5.15 DebateSheet Subsystem](#515-debatesheet-subsystem)
 6. [Data Flow Diagrams](#6-data-flow-diagrams)
 7. [Component Hierarchy](#7-component-hierarchy)
 8. [API Architecture](#8-api-architecture)
 9. [Theoretical Foundations](#9-theoretical-foundations)
+   - [9.1 Formal Argumentation Theory](#91-formal-argumentation-theory)
+   - [9.2 PPD Protocol Rules](#92-ppd-protocol-rules)
+   - [9.3 Categorical Foundations (ECC)](#93-categorical-foundations-ecc)
 10. [Whiteboard Diagrams](#10-whiteboard-diagrams)
+11. [Academic Agora: Scholarly Discourse Infrastructure](#11-academic-agora-scholarly-discourse-infrastructure)
+12. [Appendix A: File Location Quick Reference](#appendix-a-file-location-quick-reference)
+13. [Appendix B: Glossary](#appendix-b-glossary)
 
 ---
 
 ## 1. Global System Design
 
-This section presents the big-picture architecture—the conceptual framework that explains *why* the system is structured the way it is, before diving into implementation details. This section reflects the **current implemented state** of the platform as of December 2024.
+This section presents the big-picture architecture—the conceptual framework that explains *why* the system is structured the way it is, before diving into implementation details. This section reflects the **current implemented state** of the platform as of January 2026.
 
 ### 1.1 The Problem We Solve
 
@@ -185,17 +201,33 @@ Real-world reasoning involves uncertainty. Premises may be likely rather than ce
 
 This allows the system to distinguish between strongly-supported conclusions and tentative hypotheses, and to surface when previously confident conclusions have become stale due to lack of recent validation.
 
-### 1.3 The Three Conceptual Layers
+### 1.3 The Five Conceptual Layers
 
-The platform organizes reasoning into three distinct but connected layers. Each layer builds on the one below, adding structure and formalization as needed. A deliberation might use only Layer 1 (informal discussion with workshopping). A policy analysis might span all three, culminating in published thesis documents that cite structured arguments grounded in canonical claims.
+The platform organizes reasoning into five distinct but connected layers. The original three layers (Claims & Evidence, Arguments & Dialogue, Outputs & Artifacts) now have two additional layers that emerged from academic infrastructure needs and cross-deliberation intelligence requirements. Each layer builds on the one below, adding structure and formalization as needed.
 
-This layered architecture reflects how reasoning actually works: ideas start informal, get refined through dialogue, connect into argument structures, and eventually crystallize into outputs that persist beyond the conversation.
+This layered architecture reflects how reasoning actually works: ideas start informal, get refined through dialogue, connect into argument structures, crystallize into outputs, get versioned for scholarly citation, and connect across deliberation boundaries for institutional knowledge.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         THREE CONCEPTUAL LAYERS                             │
+│                         FIVE CONCEPTUAL LAYERS                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 5: KNOWLEDGE GRAPH (Cross-Deliberation Intelligence)         │    │
+│  │  RoomFunctor • TransportFunctor • ClaimProvenance • Plexus          │    │
+│  │  ─────────────────────────────────────────────────────────────────  │    │
+│  │  Connect claims and arguments across deliberations, track evolution │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                              ▲                                              │
+│                              │ enables                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  LAYER 4: ACADEMIC INFRASTRUCTURE                                   │    │
+│  │  DebateReleases • Forks • Merges • QuoteNodes • ClaimSource         │    │
+│  │  ─────────────────────────────────────────────────────────────────  │    │
+│  │  Versioned memory, scholarly citations, paper-to-claim pipelines    │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                              ▲                                              │
+│                              │ versions                                     │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  LAYER 3: OUTPUTS & ARTIFACTS                                       │    │
 │  │  Thesis • TheoryWorks • DebateSheets • KbPages • Briefs             │    │
@@ -302,9 +334,69 @@ These artifacts don't just reference the underlying reasoning—they link to it.
 - `BriefCompiler`: AI-assisted brief generation
 - `DefinitionSheet`: Deliberation glossary management
 
+#### Layer 4: Academic Infrastructure (Implemented January 2026)
+
+**Purpose**: Enable scholarly workflows with versioned releases, paper-to-claim pipelines, and formal citation support.
+
+Academic discourse requires capabilities beyond general deliberation: the ability to cite specific versions of a debate state, to fork deliberations for alternative explorations, to extract claims from published papers, and to track quotes with multiple interpretations. Layer 4 provides this scholarly infrastructure.
+
+The **DebateRelease** system creates point-in-time snapshots of deliberation state—complete with claim statuses, argument acceptability, and generated changelogs. These releases have semantic version numbers (major.minor.patch) and are independently citable with BibTeX export. The **fork/merge** system allows deliberations to branch (for assumption variants, methodological exploration, or adversarial analysis) and then merge insights back to the parent.
+
+**QuoteNodes** make textual quotes first-class objects that can have multiple interpretations (each with voting), link to claims as evidence, and spawn their own mini-deliberations for interpretive disputes. This is particularly valuable for humanities and social science scholarship where textual interpretation is central.
+
+| Component                | Model                                               | Key Features                                        |
+|--------------------------|-----------------------------------------------------|-----------------------------------------------------|
+| **Releases**             | `DebateRelease`                                     | Versioned snapshots, BibTeX, changelogs             |
+| **Forks**                | `Deliberation.parentId`, `ImportedClaim`            | Assumption variants, methodological branches        |
+| **Merges**               | `MergeRequest`, `MergeConflict`                     | Multi-strategy merge with conflict resolution       |
+| **Quotes**               | `QuoteNode`, `QuoteInterpretation`, `ClaimQuote`    | First-class quotes with interpretations and voting  |
+| **Source Enrichment**    | `ClaimSource`, `Source.openAlexId`                  | DOI resolution, ORCID linking, metadata extraction  |
+| **Claim Types**          | `ClaimType` enum                                    | THESIS, INTERPRETIVE, HISTORICAL, NORMATIVE, etc.   |
+
+**Key Components**:
+- `ReleaseListPanel` / `CreateReleaseModal`: Version management UI
+- `ChangelogViewer` / `ReleaseDetailPanel`: Version comparison and citation
+- `ForkListPanel` / `CreateForkModal`: Fork creation and tree visualization
+- `MergeRequestListPanel` / `CreateMergeRequestModal`: Merge workflow UI
+- `QuoteCard` / `InterpretationsPanel`: Quote display with interpretation voting
+- `ClaimExtractionPanel`: AI-assisted claim extraction from papers
+
+**Key Services**:
+- `lib/releases/`: `snapshotService`, `changelogService`, `releaseService`
+- `lib/forks/`: `forkService`, `mergeService`
+- `lib/quotes/`: `quoteService`, `interpretationService`
+- `lib/papers/`: `pdfExtractor`, `claimExtractor`
+
+#### Layer 5: Knowledge Graph (Categorical Foundations)
+
+**Purpose**: Enable cross-deliberation intelligence, claim provenance tracking, and formal semantics for argument transport.
+
+Layer 5 represents the *network of deliberations* as a higher-level structure—what the theoretical documents call the **Plexus** (category of categories). Individual deliberations are modeled as **Evidential Closed Categories (ECC)** following Simon Ambler's categorical semantics, where claims are objects, arguments are morphisms, and hom-sets form join-semilattices for argument aggregation.
+
+The **RoomFunctor** system enables arguments and claims to be *transported* between deliberations with provenance preserved. When a claim has been defended in one context, that defense status can inform evaluation in a related context. Cross-deliberation references, overlapping claims, shared sources, and imported arguments create an explicit graph of relationships that accumulates institutional memory at the network level.
+
+**Confidence measures** map argument strength to a monoid structure (product mode or min mode), enabling formal composition of confidence through argument chains. The **Dempster-Shafer mode** provides interval-valued belief masses for deeper uncertainty quantification.
+
+| Concept                  | Implementation                                 | Purpose                                            |
+|--------------------------|------------------------------------------------|----------------------------------------------------|
+| **Deliberation = ECC**   | Categorical semantics in `/api/evidential`     | Formal grounding for argument composition          |
+| **Claims = Objects**     | `Claim` with `canonicalClaimId`                | Cross-context identity for same claim              |
+| **Arguments = Morphisms**| `Argument` → `ArgumentSupport`                 | Hom-set membership with confidence                 |
+| **RoomFunctor**          | Transport between deliberations                | Import arguments with provenance                   |
+| **Plexus**               | Network of deliberations                       | Cross-reference, overlap, shared sources           |
+| **Confidence Mode**      | `DeliberationState.confMode` (product/min)     | Aggregation semantics for argument chains          |
+| **DS Mode**              | `Deliberation.dsMode`                          | Dempster-Shafer belief mass intervals              |
+| **Claim Provenance**     | Origin tracking, version history               | First assertion source/date, evolution over time   |
+
+**Key API Endpoints**:
+- `/api/deliberations/[id]/evidential`: Categorical evaluation with hom-sets
+- `/api/deliberations/[id]/releases/compare`: Version comparison
+- `/api/claims/[id]/contexts`: Cross-deliberation presence
+- `/api/search/claims`: Semantic search with cross-reference discovery
+
 ### 1.4 The User Journey (Actual Flow)
 
-The three-layer architecture translates into a concrete user journey. A participant might enter at any point—joining an existing deliberation, creating a new proposition, or composing an argument against an existing claim. But the canonical path from scratch illustrates how the layers connect.
+The five-layer architecture translates into a concrete user journey. A participant might enter at any point—joining an existing deliberation, creating a new proposition, or composing an argument against an existing claim. But the canonical path from scratch illustrates how the layers connect.
 
 The journey below represents the **currently implemented** flow. Every step has working UI components and backend support. This is not a roadmap—it's a description of what the platform does today.
 
@@ -452,28 +544,49 @@ The diagram below shows how subsystems relate. The general flow moves from infor
 │  │   DIALOGUE    │◀──▶│   ARGUMENTS   │───▶│    CHAINS     │                │
 │  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │                │
 │  └───────────────┘    └───────────────┘    └───────────────┘                │
-│         │                    │                                              │
-│         ▼                    ▼                                              │
+│         │                    │                    │                         │
+│         ▼                    ▼                    │                         │
 │  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐                │
 │  │    LUDICS     │    │    SCHEMES    │    │     ASPIC     │                │
+│  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │                │
+│  └───────────────┘    └───────────────┘    └───────────────┘                │
+│                                                                             │
+│  ─────────────────────────── NEW (2026) ───────────────────────────────     │
+│                                                                             │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐                │
+│  │   ACADEMIC    │◀──▶│   RELEASES    │◀──▶│    QUOTES     │                │
+│  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │                │
+│  └───────────────┘    └───────────────┘    └───────────────┘                │
+│         │                    │                    │                         │
+│         ▼                    ▼                    ▼                         │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐                │
+│  │  STACKS/LIB   │    │  FORKS/MERGE  │    │  CATEGORICAL  │                │
 │  │   SUBSYSTEM   │    │   SUBSYSTEM   │    │   SUBSYSTEM   │                │
 │  └───────────────┘    └───────────────┘    └───────────────┘                │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Subsystem        | Primary Purpose             | Key Models                                            | Key Components                                |
-|------------------|-----------------------------|-------------------------------------------------------|-----------------------------------------------|
-| **Discussion**   | Forum/chat conversations    | `Discussion`, `ForumComment`, `Conversation`          | `DiscussionView`, `ForumPane`                 |
-| **Claims**       | Canonical atomic assertions | `Claim`, `ClaimEdge`, `ClaimEvidence`                 | `ClaimMiniMap`, `ClaimDetailPanel`            |
-| **Arguments**    | Structured reasoning        | `Argument`, `ArgumentPremise`, `ArgumentEdge`         | `AIFArgumentsListPro`, `ArgumentActionsSheet` |
-| **Dialogue**     | Move-based discourse        | `DialogueMove`, `Commitment`                          | `DialogueInspector`, `CommitmentStorePanel`   |
-| **Schemes**      | Argumentation patterns      | `ArgumentScheme`, `CriticalQuestion`                  | `SchemeNavigator`, `SchemeSuggester`          |
-| **Chains**       | Threaded argument flows     | `ArgumentChain`, `ArgumentChainNode`, `ArgumentScope` | `ArgumentChainCanvas`, `ChainsTab`            |
-| **Ludics**       | Game-theoretic analysis     | `LudicDesign`, `LudicAct`                             | `LudicsPanel`, `BehaviourInspectorCard`       |
-| **ASPIC**        | Defeasible reasoning        | `ClaimContrary`, extension computation                | `AspicTheoryPanel`, `GroundedExtensionPanel`  |
-| **Thesis**       | Structured documents        | `Thesis`, `ThesisProng`                               | `ThesisComposer`, `ThesisRenderer`            |
-| **Deliberation** | Core orchestration          | `Deliberation`, `AifNode`, `AifEdge`                  | `DeepDivePanelV2`, `DebateTab`                |
+| Subsystem        | Primary Purpose                  | Key Models                                            | Key Components                                |
+|------------------|----------------------------------|-------------------------------------------------------|-----------------------------------------------|
+| **Discussion**   | Forum/chat conversations         | `Discussion`, `ForumComment`, `Conversation`          | `DiscussionView`, `ForumPane`                 |
+| **Claims**       | Canonical atomic assertions      | `Claim`, `ClaimEdge`, `ClaimEvidence`                 | `ClaimMiniMap`, `ClaimDetailPanel`            |
+| **Arguments**    | Structured reasoning             | `Argument`, `ArgumentPremise`, `ArgumentEdge`         | `AIFArgumentsListPro`, `ArgumentActionsSheet` |
+| **Dialogue**     | Move-based discourse             | `DialogueMove`, `Commitment`                          | `DialogueInspector`, `CommitmentStorePanel`   |
+| **Schemes**      | Argumentation patterns           | `ArgumentScheme`, `CriticalQuestion`                  | `SchemeNavigator`, `SchemeSuggester`          |
+| **Chains**       | Threaded argument flows          | `ArgumentChain`, `ArgumentChainNode`, `ArgumentScope` | `ArgumentChainCanvas`, `ChainsTab`            |
+| **Ludics**       | Game-theoretic analysis          | `LudicDesign`, `LudicAct`                             | `LudicsPanel`, `BehaviourInspectorCard`       |
+| **ASPIC**        | Defeasible reasoning             | `ClaimContrary`, extension computation                | `AspicTheoryPanel`, `GroundedExtensionPanel`  |
+| **Thesis**       | Structured documents             | `Thesis`, `ThesisProng`                               | `ThesisComposer`, `ThesisRenderer`            |
+| **Deliberation** | Core orchestration               | `Deliberation`, `AifNode`, `AifEdge`                  | `DeepDivePanelV2`, `DebateTab`                |
+| **Academic** *(new)*    | Scholarly workflows        | `ClaimSource`, `ClaimType` enum                       | `ClaimExtractionPanel`, `ClaimTypeSelector`   |
+| **Releases** *(new)*    | Versioned snapshots        | `DebateRelease`, `claimSnapshot`, `changelog`         | `ReleaseListPanel`, `ChangelogViewer`         |
+| **Quotes** *(new)*      | First-class textual quotes | `QuoteNode`, `QuoteInterpretation`                    | `QuoteCard`, `InterpretationsPanel`           |
+| **Forks/Merge** *(new)* | Branch/merge deliberations | `ImportedClaim`, `MergeRequest`                       | `ForkListPanel`, `MergeWorkflow`              |
+| **Stacks** *(stable)*   | Evidence curation          | `Stack`, `LibraryPost`, `StackItem`                   | `StackComposer`, `SortablePdfGrid`            |
+| **Categorical** *(new)* | Cross-room transport       | ECC semantics, RoomFunctor                            | `/api/evidential`, confidence modes           |
+| **Articles** *(stable)* | Rich content publishing    | `Article`, `Revision`, `CommentThread`                | `ArticleEditor`, `ArticleReader`              |
+| **AgoraRoom** *(stable)*| Deliberation workspace     | `AgoraRoom`, `DebateSheet`, `DebateNode`              | `DebateSheetPanel`, Plexus view               |
 
 ### 1.7 Design Principles (Implemented)
 
@@ -491,6 +604,12 @@ These principles emerged from the theoretical foundations discussed in Section 9
 | **Attack Taxonomy**           | Rebut/Undercut/Undermine distinguished    | `ArgumentEdge.attackType`, `ArgumentAttackSubtype`         |
 | **Confidence Quantification** | Uncertainty modeled explicitly            | Per-argument confidence, DS mode, temporal decay           |
 | **Composable Outputs**        | Artifacts build on each other             | Thesis references claims/arguments, KB cites deliberations |
+| **Semantic Versioning** *(new)* | Deliberations are versioned with snapshots | `DebateRelease` with major.minor.patch, changelogs       |
+| **Quote-Level Evidence** *(new)* | Quotes are first-class citable objects   | `QuoteNode`, `QuoteInterpretation`, voting system        |
+| **Fork/Merge Patterns** *(new)* | Deliberations can branch and merge       | `ForkType`, `MergeRequest`, conflict resolution strategies |
+| **Claim Type Classification** *(new)* | Claims have scholarly types        | `ClaimType` enum: THESIS, INTERPRETIVE, NORMATIVE, etc.   |
+| **Categorical Semantics** *(new)* | Formal grounding via ECC               | Evidential Closed Categories, transport functors, Plexus   |
+| **Cross-Deliberation Identity** *(new)* | Same claim tracked across contexts | `canonicalClaimId`, `ClaimProvenance`, cross-references   |
 
 ---
 
@@ -2111,11 +2230,784 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
 - `components/aspic/ConflictResolutionPanel.tsx`
 - `components/aspic/GroundedExtensionPanel.tsx`
 
+### 5.8 Commitment System (Dual-Layer)
+
+**Purpose**: Track participant commitments through both dialogue-level and proof-theoretic (Ludics) layers.
+
+The Commitment System implements a **dual-layer architecture** that separates concerns between public debate tracking (Dialogue Commitments) and formal proof obligations (Ludics Commitments). This design enables both accessible commitment stores for general users and rigorous game-theoretic semantics for formal analysis.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DUAL COMMITMENT ARCHITECTURE                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────┐       ┌─────────────────────────────────┐  │
+│  │   DIALOGUE COMMITMENTS      │       │    LUDICS COMMITMENTS           │  │
+│  │                             │       │                                 │  │
+│  │  • Track public claims      │       │  • Track proof obligations      │  │
+│  │  • Per-participant stores   │ ───▶  │  • Game-theoretic semantics     │  │
+│  │  • Simple flat structure    │       │  • Polarity-based (pos/neg)     │  │
+│  │  • Derived from moves       │       │  • Locus-scoped inference       │  │
+│  │                             │       │                                 │  │
+│  └─────────────────────────────┘       └─────────────────────────────────┘  │
+│                                                                             │
+│                    CommitmentLudicMapping (Bridge)                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Dialogue Layer Models**:
+
+| Model | Purpose | Key Fields |
+|-------|---------|------------|
+| `Commitment` | Track assertions in formal dialogue | `participantId`, `proposition`, `isRetracted` |
+| `DialogueMove` | Source of commitment events | `kind` (ASSERT/CONCEDE/RETRACT), `actorId` |
+
+**Ludics Layer Models**:
+
+| Model | Purpose | Key Fields |
+|-------|---------|------------|
+| `LudicCommitmentElement` | Individual proof obligations | `ownerId`, `basePolarity`, `entitled` |
+| `LudicCommitmentState` | Aggregate state container | `ownerId`, `elements[]` |
+| `CommitmentLudicMapping` | Bridge from dialogue to ludics | `commitmentId`, `ludicElementId` |
+
+**Commitment-Relevant Move Effects**:
+
+| Move Kind | Commitment Effect |
+|-----------|-------------------|
+| `ASSERT` | Adds claim to speaker's commitment store |
+| `CONCEDE` | Adds opponent's claim to own commitment store |
+| `RETRACT` | Marks commitment as retracted |
+| `THEREFORE` | Adds conclusion to commitment store |
+| `GROUNDS` | Provides justification (may create supporting commitments) |
+
+**Key Components**:
+- `CommitmentStorePanel`: Per-participant tabs with active/retracted views
+- `CommitmentsPanel` (Ludics): Add facts/rules, forward-chaining inference
+- `CommitmentAnalyticsDashboard`: Agreement matrices and commitment statistics
+
+**Key Files**:
+- `components/aif/CommitmentStorePanel.tsx`
+- `lib/aif/graph-builder.ts` (getCommitmentStores)
+- `app/api/deliberations/[id]/commitments/route.ts`
+- `app/api/ludics/commitments/*`
+
+### 5.9 Academic Infrastructure Subsystem
+
+**Purpose**: Support scholarly workflows with paper-to-claim pipelines, claim typing, and source enrichment.
+
+The Academic Infrastructure subsystem transforms Mesh from a general deliberation platform into scholarly infrastructure. It provides the paper-to-claim pipeline that extracts canonical claims from academic papers, classifies claims by type (THESIS, INTERPRETIVE, HISTORICAL, NORMATIVE, etc.), and enriches sources with DOI resolution and ORCID linking.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ACADEMIC INFRASTRUCTURE                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  PAPER-TO-CLAIM PIPELINE                                            │    │
+│  │                                                                     │    │
+│  │  PDF Upload → Text Extraction → AI Claim Extraction → Human Review  │    │
+│  │                     │                    │                          │    │
+│  │                     ▼                    ▼                          │    │
+│  │              ClaimSource           Claim (with ClaimType)           │    │
+│  │              (page/section)        (THESIS, NORMATIVE, etc.)        │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  SOURCE ENRICHMENT                                                  │    │
+│  │                                                                     │    │
+│  │  • DOI auto-resolution via Crossref/OpenAlex                        │    │
+│  │  • ISBN/arXiv identifier support                                    │    │
+│  │  • ORCID author linking                                             │    │
+│  │  • Abstract extraction for semantic search                          │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  CLAIM TYPES (For HSS Scholarship)                                  │    │
+│  │                                                                     │    │
+│  │  THESIS | INTERPRETIVE | HISTORICAL | CONCEPTUAL | NORMATIVE        │    │
+│  │  METHODOLOGICAL | COMPARATIVE | CAUSAL | META | EMPIRICAL           │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Schema Additions**:
+
+```prisma
+enum ClaimType {
+  THESIS        // Central argument of a work
+  INTERPRETIVE  // Reading of text/event
+  HISTORICAL    // Factual claim about past
+  CONCEPTUAL    // Definition/analysis
+  NORMATIVE     // Evaluative/prescriptive
+  METHODOLOGICAL // How to study X
+  COMPARATIVE   // Relating two things
+  CAUSAL        // Causation claim
+  META          // Claim about field/debate
+  EMPIRICAL     // Data-based claim
+}
+
+model ClaimSource {
+  id            String   @id @default(cuid())
+  claimId       String
+  sourceId      String
+  locator       String?  // Page/section reference
+  quote         String?  // Supporting quote
+}
+
+model Source {
+  // Extended fields for academic use:
+  identifierType  String?  // "doi" | "isbn" | "arxiv" | "url"
+  openAlexId      String?  // OpenAlex work ID
+  authorOrcids    String[] // ORCID IDs for authors
+  abstractText    String?  // For semantic search
+}
+```
+
+**Key Services**:
+- `lib/papers/pdfExtractor.ts`: Extract text from uploaded PDFs
+- `lib/papers/claimExtractor.ts`: AI-powered claim extraction
+- `lib/search/claimSearch.ts`: PostgreSQL ILIKE search (vector search deferred)
+
+**Key Components**:
+- `ClaimExtractionPanel`: AI suggestions + manual claim creation
+- `ClaimTypeSelector`: Dropdown for claim type classification
+- `RelatedArgumentsPanel`: Similar claims, supporting/challenging arguments
+
+**Key Files**:
+- `app/api/papers/upload/route.ts`
+- `app/api/claims/extract/route.ts`
+- `lib/papers/*`, `lib/search/*`
+
+### 5.10 Releases & Versioning Subsystem
+
+**Purpose**: Create citable, versioned snapshots of deliberation state with changelogs and citation export.
+
+The Releases subsystem implements **scholarly versioning** for deliberations. Each release captures a point-in-time snapshot of all claims (with their statuses), arguments (with acceptability labels), and the attack graph structure. Releases use semantic versioning (major.minor.patch) and generate human-readable changelogs. BibTeX export enables academic citation.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    RELEASES & VERSIONING                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  SNAPSHOT GENERATION                                                │    │
+│  │                                                                     │    │
+│  │  generateClaimSnapshot(deliberationId)                              │    │
+│  │    → All claims with computed statuses (DEFENDED/CONTESTED/UNRESOLVED)  │    │
+│  │                                                                     │    │
+│  │  generateArgumentSnapshot(deliberationId)                           │    │
+│  │    → All arguments with ASPIC+ acceptability                        │    │
+│  │                                                                     │    │
+│  │  buildAttackGraph(deliberationId)                                   │    │
+│  │    → Complete attack/support edge graph                             │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  VERSION CONTROL                                                    │    │
+│  │                                                                     │    │
+│  │  v1.0.0 ──▶ v1.0.1 (patch) ──▶ v1.1.0 (minor) ──▶ v2.0.0 (major)   │    │
+│  │    │           │                  │                  │              │    │
+│  │    └───────────┴──────────────────┴──────────────────┘              │    │
+│  │                        Changelog diffs                              │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  CITATION SUPPORT                                                   │    │
+│  │                                                                     │    │
+│  │  • Stable citationUri per release                                   │    │
+│  │  • BibTeX generation                                                │    │
+│  │  • Cross-release comparison                                         │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Schema**:
+
+```prisma
+model DebateRelease {
+  id              String   @id @default(cuid())
+  deliberationId  String
+  versionMajor    Int
+  versionMinor    Int
+  versionPatch    Int
+  title           String?
+  description     String?
+  claimSnapshot   Json     // Point-in-time claim state
+  argumentSnapshot Json    // Point-in-time argument state
+  statsSnapshot   Json?
+  changelog       Json?
+  changelogText   String?  // Markdown changelog
+  citationUri     String   // Stable URI for citation
+  bibtex          String?  // BibTeX entry
+  createdById     String
+  createdAt       DateTime @default(now())
+}
+```
+
+**API Endpoints**:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/deliberations/[id]/releases` | POST | Create new release |
+| `/api/deliberations/[id]/releases` | GET | List all releases |
+| `/api/deliberations/[id]/releases/[releaseId]` | GET | Get by ID or version |
+| `/api/deliberations/[id]/releases/compare` | GET | Compare two releases |
+| `/api/deliberations/[id]/releases/latest` | GET | Get most recent release |
+
+**Key Components**:
+- `VersionBadge`: Display version number with status colors
+- `ReleaseListPanel`: List releases with SWR data fetching
+- `CreateReleaseModal`: Form with version type selection
+- `ChangelogViewer`: Display formatted changelog with sections
+- `ReleaseDetailPanel`: Tabbed (Overview/Changelog/Citation)
+
+**Key Files**:
+- `lib/releases/snapshotService.ts`
+- `lib/releases/changelogService.ts`
+- `lib/releases/releaseService.ts`
+- `components/releases/*`
+- `app/api/deliberations/[id]/releases/*`
+
+### 5.11 Stacks & Library Subsystem
+
+**Status**: Stable core with planned Are.na-parity improvements  
+**Document Reference**: [STACKS_LIBRARY_SYSTEM_ARCHITECTURE.md](STACKS_LIBRARY_SYSTEM_ARCHITECTURE.md), [STACKS_IMPROVEMENT_DEV_ROADMAP_OUTLINE.md](Stacks%20Feature%20Improvement%20Documents/STACKS_IMPROVEMENT_DEV_ROADMAP_OUTLINE.md)
+
+**Overview**: The Stacks/Library system provides document management and knowledge organization infrastructure. It enables users to curate collections of PDFs and other documents, with deep integration into the deliberation engine for evidence-based argumentation through a sophisticated citation pipeline.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       STACKS/LIBRARY ARCHITECTURE                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│    User ──owns──▶ Stack ──contains──▶ LibraryPost ──resolves──▶ Source     │
+│      │              │                       │                      │        │
+│   subscribes     hosts                  annotated              cited-by     │
+│      │              │                       │                      │        │
+│      ▼              ▼                       ▼                      ▼        │
+│  Subscription   Deliberation           Annotation              Citation    │
+│                     │                                              │        │
+│                  contains                                       targets     │
+│                     │                                              ▼        │
+│                     ▼                                  Claims + Arguments   │
+│             Claims + Arguments ◀───────────────────────────────────┘        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Core Capabilities**:
+| Capability | Description |
+|------------|-------------|
+| **Document Management** | Upload, organize, and preview PDFs in curated stacks |
+| **Citation Infrastructure** | Attach sources (URL, DOI, Library items) to arguments and claims |
+| **Deliberation Hosting** | Stacks can host deliberations via `library_stack` host type |
+| **Discussion Threads** | FeedPost-based comment system with citation support |
+| **Evidence Aggregation** | Track source usage and quality ratings across deliberations |
+| **Collaborative Editing** | RBAC with owner/editor/viewer roles |
+
+**Current Schema**:
+
+```prisma
+model Stack {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  slug           String?  @unique
+  userId         String
+  visibility     Visibility @default(private)
+  order          String[] // LibraryPost IDs in display order
+  featuredPostId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  posts          LibraryPost[]
+  subscriptions  StackSubscription[]
+  collaborators  StackCollaborator[]
+}
+
+model LibraryPost {
+  id            String   @id @default(cuid())
+  title         String
+  stack_id      String?
+  user_id       String
+  source_url    String?
+  doi           String?
+  fingerprint   String?  // SHA1 for deduplication
+  storage_path  String?  // Supabase storage path
+  thumb_path    String?  // Thumbnail path
+  pageCount     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  stack         Stack?   @relation(fields: [stack_id], references: [id])
+  citations     Citation[]
+  annotations   Annotation[]
+}
+```
+
+**Planned Are.na-Parity Improvements** (Q1 2026):
+
+| Phase | Focus | Key Features |
+|-------|-------|--------------|
+| **Phase 1** | Are.na Parity | StackItem join table, multi-stack connections, block types (link/text/image) |
+| **Phase 2** | Evidence UX | Citation anchors, lift carries citations, evidence intent modeling |
+| **Phase 3** | Unique Moat | Verification workflows, health metrics, knowledge graph discovery |
+
+**StackItem Join Table** (planned):
+
+```prisma
+// Enables blocks in multiple stacks, connection notes
+model StackItem {
+  id        String   @id @default(cuid())
+  stackId   String
+  blockId   String   // LibraryPost.id
+  kind      StackItemKind @default(block)
+  position  Float    // Float for cheap insertion
+  addedById String
+  note      String?  // Optional connection note
+  createdAt DateTime @default(now())
+
+  stack     Stack    @relation(fields: [stackId], references: [id])
+  block     LibraryPost @relation(fields: [blockId], references: [id])
+
+  @@unique([stackId, blockId])
+}
+
+enum StackItemKind {
+  block
+  stack_embed  // Stacks containing stacks
+}
+```
+
+**Key Components**:
+- `SortablePdfGrid`: Drag-and-drop PDF organization
+- `PdfLightbox`: Full PDF viewer with annotations
+- `StackComposer`: Upload and add content
+- `StackDiscussion`: FeedPost-based comments
+- `CitationPicker`: URL/DOI/Library tabs for citation attachment
+- `ContextsPanel`: (planned) "This block appears in X stacks"
+
+**Key Files**:
+- `app/library/[stackSlug]/page.tsx`
+- `components/library/SortablePdfGrid.tsx`
+- `components/library/PdfLightbox.tsx`
+- `lib/actions/stack.actions.ts`
+- `app/api/library/*`
+
+### 5.12 Fork/Merge & Quotes Subsystem
+
+**Purpose**: Enable deliberation branching/merging and first-class quote handling with interpretive voting.
+
+This subsystem provides two major capabilities:
+
+1. **Fork/Merge**: Deliberations can be forked (for assumption variants, methodological exploration, adversarial analysis, or archival) and later merged back with conflict resolution.
+
+2. **Quote Nodes**: Textual quotes become first-class addressable objects with multiple interpretations, voting, and the ability to spawn mini-deliberations for interpretive disputes.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FORK/MERGE WORKFLOW                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│       Parent Deliberation                                                   │
+│              │                                                              │
+│     ┌────────┼────────┐                                                     │
+│     ▼        ▼        ▼                                                     │
+│  ┌──────┐ ┌──────┐ ┌──────┐     Fork Types:                                 │
+│  │ Fork │ │ Fork │ │ Fork │     • ASSUMPTION_VARIANT                        │
+│  │  A   │ │  B   │ │  C   │     • METHODOLOGICAL                            │
+│  └──┬───┘ └──┬───┘ └──┬───┘     • SCOPE_EXTENSION                           │
+│     │        │        │         • ADVERSARIAL                               │
+│     │        │        │         • EDUCATIONAL                               │
+│     │   Merge Request │         • ARCHIVAL                                  │
+│     │        │        │                                                     │
+│     └────────┼────────┘                                                     │
+│              ▼                                                              │
+│       Merge Strategies:                                                     │
+│       ADD_NEW | REPLACE | LINK_SUPPORT | LINK_CHALLENGE | SKIP              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    QUOTE NODE SYSTEM                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │  QuoteNode                                                           │   │
+│  │  • text: "The unexamined life is not worth living"                   │   │
+│  │  • source: Plato, Apology                                            │   │
+│  │  • locator: "38a" (locatorType: SECTION)                             │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                           │                                                 │
+│           ┌───────────────┼───────────────┐                                 │
+│           ▼               ▼               ▼                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                          │
+│  │Interpretation│ │Interpretation│ │Interpretation│                         │
+│  │ (Socratic)  │  │ (Stoic)      │  │ (Existential)│                        │
+│  │ framework   │  │ framework    │  │ framework    │                        │
+│  │ +7 votes    │  │ +3 votes     │  │ +12 votes    │                        │
+│  └─────────────┘  └─────────────┘  └─────────────┘                          │
+│                                                                             │
+│  Usage Types: EVIDENCE | COUNTER | CONTEXT | DEFINITION | METHODOLOGY       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Fork/Merge Schema**:
+
+```prisma
+enum ForkType {
+  ASSUMPTION_VARIANT
+  METHODOLOGICAL
+  SCOPE_EXTENSION
+  ADVERSARIAL
+  EDUCATIONAL
+  ARCHIVAL
+}
+
+model MergeRequest {
+  id              String   @id @default(cuid())
+  sourceId        String   // Fork deliberation
+  targetId        String   // Parent deliberation
+  status          MergeStatus
+  claimMappings   Json     // Per-claim merge strategies
+  conflicts       Json?    // Detected conflicts
+  executedAt      DateTime?
+}
+```
+
+**Quote Schema**:
+
+```prisma
+enum LocatorType {
+  PAGE, SECTION, CHAPTER, VERSE, TIMESTAMP, LINE, PARAGRAPH, CUSTOM
+}
+
+enum QuoteUsageType {
+  EVIDENCE, COUNTER, CONTEXT, DEFINITION, METHODOLOGY
+}
+
+model QuoteNode {
+  id              String   @id @default(cuid())
+  sourceId        String
+  text            String   @db.Text
+  locator         String?
+  locatorType     LocatorType @default(PAGE)
+  context         String?  @db.Text
+  deliberationId  String?  // Mini-deliberation for discussion
+  interpretations QuoteInterpretation[]
+  usedInClaims    ClaimQuote[]
+  usedInArguments ArgumentQuote[]
+}
+
+model QuoteInterpretation {
+  id           String   @id @default(cuid())
+  quoteId      String
+  content      String   @db.Text
+  framework    String?  // e.g., "Marxist", "Phenomenological"
+  voteScore    Int      @default(0)
+  votes        InterpretationVote[]
+}
+```
+
+**Key Components**:
+- `ForkListPanel` / `ForkTreeView`: View fork hierarchy
+- `CreateForkModal`: Two-step fork creation
+- `MergeRequestListPanel`: Tabs for incoming/outgoing merges
+- `MergeClaimSelector` / `MergeConflictViewer`: Merge workflow UI
+- `QuoteCard` / `QuoteCardCompact`: Quote display
+- `InterpretationsPanel`: Filter by framework, vote on interpretations
+- `CreateQuoteModal` / `QuoteLinkModal`: Quote creation and linking
+
+**Key Files**:
+- `lib/forks/forkService.ts`, `lib/forks/mergeService.ts`
+- `lib/quotes/quoteService.ts`, `lib/quotes/interpretationService.ts`
+- `components/forks/*`, `components/quotes/*`
+- `app/api/deliberations/[id]/fork/*`, `app/api/deliberations/[id]/merges/*`
+- `app/api/quotes/*`
+
+### 5.13 Article System Subsystem
+
+**Status**: Production  
+**Document Reference**: [ARTICLE_SYSTEM_ARCHITECTURE.md](ARTICLE_SYSTEM_ARCHITECTURE.md)
+
+**Overview**: The Article System is a sophisticated content creation and publishing platform that integrates seamlessly with the deliberation and argumentation infrastructure. Articles serve as first-class deliberation hosts, enabling users to create rich, magazine-quality content that becomes a locus for structured discourse.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ARTICLE SYSTEM ARCHITECTURE                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐ │
+│  │   Dashboard     │    │     Editor      │    │         Reader          │ │
+│  │                 │    │                 │    │                         │ │
+│  │ • List articles │    │ • TipTap core   │    │ • SSR HTML generation   │ │
+│  │ • Search/filter │    │ • Toolbar       │    │ • Annotation pins       │ │
+│  │ • CRUD actions  │    │ • Slash cmds    │    │ • Comment rail/modal    │ │
+│  │ • Pagination    │    │ • Autosave      │    │ • Deliberation panel    │ │
+│  └────────┬────────┘    └────────┬────────┘    └──────────────┬──────────┘ │
+│           │                      │                             │            │
+│           └──────────────────────┼─────────────────────────────┘            │
+│                                  ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │                           API LAYER                                    │ │
+│  │  /api/articles  →  /api/articles/[id]/draft  →  /api/articles/[id]/publish │
+│  │  /api/articles/[id]/threads              →      /api/deliberations/spawn   │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                  │                                          │
+│                                  ▼                                          │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  Article ─┬── Revision[] (version snapshots)                          │ │
+│  │           ├── CommentThread[] ─── Comment[] (text annotations)        │ │
+│  │           └── Deliberation (1:1 via hostType/hostId)                  │ │
+│  │                    └── AgoraRoom → DebateSheet → Arguments, Claims    │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Capabilities**:
+
+| Capability | Description |
+|------------|-------------|
+| **Rich Text Editing** | TipTap-based WYSIWYG editor with typography controls, media embedding, LaTeX math, custom blocks |
+| **Publishing Workflow** | Draft → Edit → Autosave → Publish lifecycle with revision history |
+| **Text Annotations** | DOM-anchored comment threads attached to text selections |
+| **Deliberation Hosting** | Each article automatically hosts a deliberation space for structured discourse |
+| **Template System** | Configurable visual layouts ("standard", "feature", etc.) |
+
+**Article Schema**:
+
+```prisma
+model Article {
+  id           String        @id @default(uuid())
+  authorId     String
+  slug         String        @unique
+  title        String
+  heroImageKey String?       // S3 object key
+  template     String        @default("standard")
+  astJson      Json          // TipTap ProseMirror JSON AST
+  status       ArticleStatus @default(DRAFT)
+  publishedAt  DateTime?
+  excerpt      String?       // First ~1200 chars
+  readingTime  Int?          // Estimated minutes
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  revisions    Revision[]
+  threads      CommentThread[]
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  TRASHED
+}
+```
+
+**Autosave Pipeline**:
+```
+Editor Update → onChange Handler → Debounce (800ms) → Hash Check
+                                                         ↓
+                                        ┌────────────────┴───────────────┐
+                                        │ Hash Changed?                  │
+                                        ├─────────┬──────────────────────┤
+                                        │ YES     │ NO                   │
+                                        ↓         ↓                      │
+                                   Abort Inflight  Skip                  │
+                                        │                                │
+                                        ↓                                │
+                                   PATCH /draft → Update localStorage    │
+```
+
+**Deliberation Integration**: Articles use `hostType: "article"` with `hostId: article.id`. The deliberation is spawned on first access via `/api/deliberations/spawn` and linked 1:1.
+
+**Key Components**:
+- `ArticleEditor`: TipTap-based WYSIWYG with toolbar, slash commands
+- `ArticleReader` / `ArticleReaderWithPins`: SSR rendering with annotation layer
+- `CommentRail` / `CommentModal`: Annotation display and interaction
+- `SelectionBubble`: Text selection → comment creation UI
+- `ArticleDashboard`: List, search, filter, CRUD management
+
+**Key Files**:
+- `app/articles/[slug]/page.tsx` (Reader)
+- `app/articles/[slug]/edit/page.tsx` (Editor)
+- `components/articles/ArticleEditor.tsx`
+- `components/articles/ArticleReader.tsx`
+- `app/api/articles/*`
+
+### 5.14 Room Architecture (AgoraRoom)
+
+**Status**: Production (Phase 4+)  
+**Document Reference**: [ROOM_ARCHITECTURE_CLARIFICATION.md](../../ROOM_ARCHITECTURE_CLARIFICATION.md)
+
+**Overview**: AgoraRoom is the argumentation workspace container that groups related deliberations and debate sheets. It provides stable URLs for debate topics and enables cross-deliberation referencing.
+
+> **Important Distinction**: AgoraRoom (argumentation workspace) is completely separate from RealtimeRoom (legacy social canvas for posts/collages).
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          ROOM ARCHITECTURE                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────────┐                                │
+│  │              AgoraRoom                   │                                │
+│  │  • slug: "climate-policy-2026"          │                                │
+│  │  • title: "Climate Policy Deliberation" │                                │
+│  │  • visibility: "public"                 │                                │
+│  └────────────────┬────────────────────────┘                                │
+│                   │                                                          │
+│        ┌──────────┴──────────┐                                              │
+│        ▼                     ▼                                              │
+│  ┌──────────────┐     ┌──────────────┐                                      │
+│  │ Deliberation │     │ DebateSheet  │                                      │
+│  │ (full args)  │     │ (curated)    │                                      │
+│  │ ┌──────────┐ │     │ ┌──────────┐ │                                      │
+│  │ │Arguments │ │     │ │DebateNode│ │──────▶ References same Arguments    │
+│  │ │Claims    │ │     │ │DebateEdge│ │                                      │
+│  │ │Dialogue  │ │     │ └──────────┘ │                                      │
+│  │ └──────────┘ │     └──────────────┘                                      │
+│  └──────────────┘                                                            │
+│                                                                              │
+│  Routes:                                                                     │
+│  • /agora (Plexus view - all rooms)                                         │
+│  • /agora/[slug] (Room detail)                                              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**AgoraRoom Schema**:
+
+```prisma
+model AgoraRoom {
+  id            String        @id @default(cuid())
+  slug          String        @unique      // URL-friendly identifier
+  title         String                     // Display name
+  summary       String?                    // Description
+  visibility    String        @default("public")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  sheets        DebateSheet[] @relation("RoomSheets")
+  deliberations Deliberation[]
+}
+```
+
+**Room vs Legacy Comparison**:
+
+| Feature | AgoraRoom | RealtimeRoom (Legacy) |
+|---------|-----------|----------------------|
+| **Purpose** | Argumentation workspace | Social canvas for posts |
+| **Contains** | Deliberations, DebateSheets | Posts, edges, collages |
+| **Positioning** | No spatial layout | x/y canvas coordinates |
+| **Membership** | Visibility-based access | UserRealtimeRoom join table |
+| **Routes** | `/agora`, `/agora/[slug]` | `/room/[id]` |
+| **Status** | Active (Phase 4+) | Legacy social feature |
+
+**Key Files**:
+- `app/api/agora/rooms/route.ts`
+- `app/api/agora/rooms/[id]/deliberations/route.ts`
+- `scripts/backfill-agora-debate-chain.ts`
+
+### 5.15 DebateSheet Subsystem
+
+**Status**: Production (Phase 4)  
+**Document Reference**: [ROOM_ARCHITECTURE_CLARIFICATION.md](../../ROOM_ARCHITECTURE_CLARIFICATION.md)
+
+**Overview**: DebateSheets are **curated views** of arguments from deliberations. They don't store arguments separately—they reference the same `Argument` entities via `DebateNode` bridge records. This enables focused visualization of argument subsets, custom layouts, and role-based debate structures.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       DEBATESHEET ARCHITECTURE                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Deliberation (Ground Truth)              DebateSheet (Curated View)        │
+│  ┌────────────────────────────┐          ┌────────────────────────────┐    │
+│  │ Arguments[] ───────────────┼──────────▶ DebateNode[]              │    │
+│  │   • Argument A             │          │   • node → Argument A      │    │
+│  │   • Argument B             │          │   • node → Argument C      │    │
+│  │   • Argument C             │          │   (Argument B excluded)    │    │
+│  │   • Argument D             │          │                            │    │
+│  │                            │          │ DebateEdge[]              │    │
+│  │ Claims[]                   │          │   • attack/support links   │    │
+│  │ Dialogue moves[]           │          │                            │    │
+│  └────────────────────────────┘          │ roles: ["Proponent",      │    │
+│                                          │         "Opponent"]        │    │
+│         Same Arguments                   │ scope: "custom"            │    │
+│         Different Presentation           └────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Insight**: Arguments are stored **once** in the `Argument` table with a `deliberationId`. DebateSheets reference them via DebateNode, enabling:
+- Multiple sheets showing different argument subsets
+- Custom layouts and role assignments
+- Focused debate views without data duplication
+
+**DebateSheet Schema**:
+
+```prisma
+model DebateSheet {
+  id             String        @id @default(cuid())
+  title          String
+  scope          String?       // 'deliberation' | 'claim' | 'custom'
+  roles          String[]      @default([])  // 'Proponent' | 'Opponent' | 'Curator'
+  rulesetJson    Json?         // Debate rules
+  
+  deliberationId String?       // Optional link to source deliberation
+  deliberation   Deliberation? @relation(...)
+  roomId         String?       // Optional link to AgoraRoom
+  room           AgoraRoom?    @relation("RoomSheets", ...)
+  
+  nodes          DebateNode[]  // References arguments
+  edges          DebateEdge[]  // Represents relations
+}
+
+model DebateNode {
+  id         String      @id @default(cuid())
+  sheetId    String
+  sheet      DebateSheet @relation(...)
+  argumentId String?     // POINTS TO Argument.id
+  argument   Argument?   @relation("ArgumentDebateNodes", ...)
+  claimId    String?     // Optional claim reference
+  posX       Float?      // Custom positioning
+  posY       Float?
+}
+
+model DebateEdge {
+  id         String      @id @default(cuid())
+  sheetId    String
+  sheet      DebateSheet @relation(...)
+  sourceId   String      // DebateNode.id
+  targetId   String      // DebateNode.id
+  edgeType   String      // 'attack' | 'support' | 'rebuttal'
+}
+```
+
+**Scope Types**:
+- `deliberation`: Shows all arguments from linked deliberation
+- `claim`: Focused view on arguments related to a specific claim
+- `custom`: Manually curated selection of arguments
+
+**Key Components**:
+- `DebateSheetPanel`: Main visualization container
+- `DebateNodeCard`: Individual argument display in sheet context
+- `DebateEdgeRenderer`: Visual lines showing attack/support relations
+- `SheetRoleSelector`: Assign arguments to Proponent/Opponent roles
+
+**Key Files**:
+- `components/debate/DebateSheetPanel.tsx`
+- `components/debate/DebateNodeCard.tsx`
+- `lib/debate/sheetService.ts`
+- `app/api/debate/sheets/*`
+
 ---
 
 ## 6. Data Flow Diagrams
 
-### 5.1 Dialogue Move Flow
+### 6.1 Dialogue Move Flow
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -2151,7 +3043,7 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
        │                   │                   │
 ```
 
-### 5.2 Argument Creation Flow
+### 6.2 Argument Creation Flow
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -2182,7 +3074,7 @@ npx ts-node -P tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-tes
        │                   │                   │
 ```
 
-### 5.3 Commitment Tracking Flow
+### 6.3 Commitment Tracking Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -2416,11 +3308,11 @@ interface AIFEdge {
 
 ## 9. Theoretical Foundations
 
-### 8.1 Formal Argumentation Theory
+### 9.1 Formal Argumentation Theory
 
 The system implements several formal frameworks:
 
-#### 8.1.1 Abstract Argumentation (Dung)
+#### 9.1.1 Abstract Argumentation (Dung)
 ```
 An Abstract Argumentation Framework (AF) is a pair ⟨A, R⟩ where:
 - A is a set of arguments
@@ -2432,7 +3324,7 @@ Semantics:
 - Grounded: Unique minimal complete extension
 ```
 
-#### 8.1.2 ASPIC+ Framework
+#### 9.1.2 ASPIC+ Framework
 ```
 ASPIC+ extends AF with:
 - Strict rules: X₁, ..., Xₙ → Y (deductive)
@@ -2446,7 +3338,7 @@ Attack types:
 - Undercutting: Argument attacks applicability of defeasible rule
 ```
 
-#### 8.1.3 Argument Interchange Format (AIF)
+#### 9.1.3 Argument Interchange Format (AIF)
 ```
 AIF Ontology:
 - I-nodes: Information nodes (claims, data)
@@ -2462,7 +3354,7 @@ Edge types:
 - Preference relations
 ```
 
-#### 8.1.4 Ludics (Girard)
+#### 9.1.4 Ludics (Girard)
 ```
 Key concepts:
 - Locus (α): Address in interaction space
@@ -2476,7 +3368,7 @@ Interaction:
 - Divergent: Blocked (disagreement)
 ```
 
-### 8.2 PPD Protocol Rules
+### 9.2 PPD Protocol Rules
 
 ```
 Move Kinds and Forces:
@@ -2500,11 +3392,87 @@ Key Invariants:
 - R7: Cannot concede directly if WHY was answered by GROUNDS
 ```
 
+### 9.3 Categorical Foundations (ECC)
+
+The system implements **Evidential Closed Categories (ECC)** based on Simon Ambler's categorical semantics for argumentation. This provides formal grounding for argument composition, aggregation, and cross-deliberation transport.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EVIDENTIAL CLOSED CATEGORY (ECC)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Each Deliberation is modeled as a small ECC:                               │
+│                                                                             │
+│  Objects:    Ob(𝒟) = { Claims in this deliberation }                       │
+│  Morphisms:  Mor(𝒟) = { Arguments supporting claims }                      │
+│  Hom-sets:   𝒟(A,B) = { args deriving B from A }  (join-SLat)               │
+│  Terminal:   I = "ground truth" (no premises needed)                        │
+│  Tensor:     A ⊗ B = conjunction of claims                                  │
+│  Internal:   [A,B] = warrant (attackable implication)                       │
+│  Conf:       c: Mor → [0,1] (confidence measure)                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Category-to-Implementation Mapping**:
+
+| Categorical Concept | Mathematical Structure | Mesh Implementation |
+|---------------------|----------------------|---------------------|
+| **Objects** | Propositions | `Claim` model |
+| **Morphisms** | Sets of λ-terms (arguments) | `Argument` + `ArgumentSupport` |
+| **Hom-sets** | Join semilattices (SLat) | Union of arguments A→B |
+| **Zero morphism** | Empty set ∅ | No arguments from A to B |
+| **Join (∨)** | Set union | Accrual of multiple supports |
+| **Composition** | Sequential chaining | Premise → Inference → Conclusion |
+| **Tensor (⊗)** | Conjunction of premises | `ArgumentPremise` collection |
+| **Confidence measure** | Morphism → Monoid | `ArgumentSupport.base` + mode |
+
+**Categorical Laws Satisfied**:
+
+1. **Identity**: For every claim A, id_A ∈ Hom(A, A) — a claim trivially supports itself
+2. **Composition**: Given f: A→B, g: B→C, there exists g∘f: A→C — premise chains compose
+3. **Associativity**: (h∘g)∘f = h∘(g∘f) — order of chaining doesn't affect result
+4. **SLat-Enrichment**: Hom(A,B) is a join-semilattice — multiple arguments aggregate
+5. **Distributivity**: h∘(f∨g) = (h∘f)∨(h∘g) — composition distributes over aggregation
+6. **Closure**: [X,Y] exists for all X,Y — warrants are first-class attackable objects
+
+**Plexus (Category of Categories)**:
+
+At a higher level, the network of deliberations forms the **Plexus**—a category where objects are deliberations (each an ECC) and morphisms are **RoomFunctors** that transport arguments between rooms.
+
+```
+L2: PLEXUS (Category of Categories)
+  • Objects = Deliberations (each an ECC)
+  • Morphisms = Transport Functors (RoomFunctor)
+  • Edges = {xref, overlap, stack_ref, imports, shared_author}
+
+L1: DELIBERATION (ECC)
+  • Objects = Claims
+  • Morphisms = Arguments
+  • Hom-sets = SLat-enriched
+
+L0: ARGUMENT (Toulmin)
+  • Premises, Inference, Conclusion
+```
+
+**Confidence Modes**:
+
+| Mode | Composition | Aggregation | Use Case |
+|------|-------------|-------------|----------|
+| `product` | c(g∘f) = c(g) × c(f) | Noisy-OR | Weakest-link chains |
+| `min` | c(g∘f) = min(c(g), c(f)) | max | Pessimistic evaluation |
+| `ds` | Dempster-Shafer | Belief function | Interval uncertainty |
+
+**Key Implementation**:
+- `/api/deliberations/[id]/evidential` — Categorical evaluation endpoint
+- `compose(xs, mode)` — Chain confidence through morphism composition
+- `join(xs, mode)` — Aggregate parallel supports via noisy-OR or max
+
 ---
 
 ## 10. Whiteboard Diagrams
 
-### 9.1 System Overview (Simple)
+### 10.1 System Overview (Simple)
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
@@ -2534,7 +3502,7 @@ Key Invariants:
 └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 9.2 Dialogue Flow (Whiteboard)
+### 10.2 Dialogue Flow (Whiteboard)
 
 ```
                     ╔═══════════════════╗
@@ -2571,7 +3539,7 @@ Key Invariants:
    (more challenges)   (SURRENDER)         (SURRENDER)
 ```
 
-### 9.3 AIF Node Structure (Whiteboard)
+### 10.3 AIF Node Structure (Whiteboard)
 
 ```
         I-NODE                    I-NODE                    I-NODE
@@ -2616,7 +3584,7 @@ Key Invariants:
                     └──────────────┘
 ```
 
-### 9.4 Tab Structure (Whiteboard Reference)
+### 10.4 Tab Structure (Whiteboard Reference)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -2667,6 +3635,190 @@ Key Invariants:
 
 ---
 
+## 11. Academic Agora: Scholarly Discourse Infrastructure
+
+Academic Agora represents the application of Mesh's deliberation infrastructure to scholarly discourse. This section documents the vision, implemented features, and roadmap for transforming academic discussion from papers-as-PDFs to papers-as-debatable, composable claim graphs.
+
+### 11.1 The Academic Discourse Gap
+
+The academic world lacks infrastructure for sustained, structured public discourse about research:
+
+| Current State | Problem | Mesh Solution |
+|---------------|---------|---------------|
+| Paper-level engagement | Can only cite whole papers | Claim-level addressability |
+| Ephemeral discussion | Twitter threads, blog posts disappear | Persistent, versioned deliberations |
+| Unstructured commentary | PubPeer comments lack threading | Typed dialogue moves |
+| Private peer review | Critique hidden from community | Transparent argumentation |
+| Siloed discussions | No cross-paper synthesis | Cross-deliberation claim mapping |
+
+**Core Insight**: The unit of scholarly networking has shrunk from people → papers → metadata objects, but has not yet reached **claims and arguments**. Academic Agora fills this gap.
+
+### 11.2 Implementation Status (January 2026)
+
+| Phase | Status | Key Deliverables |
+|-------|--------|------------------|
+| **Phase 1: Foundation** | ✅ Complete | Paper-to-claim pipeline, claim types, source enrichment |
+| **Phase 2: Versioning** | ✅ Complete | DebateReleases, fork/merge, quote nodes |
+| **Phase 3: Knowledge Graph** | 🔄 In Progress | Claim provenance, argument-level citations |
+| **Phase 4: Open Review** | ⏳ Planned | Living peer review, reputation system |
+
+### 11.3 Phase 1: Paper-to-Claim Pipeline (Complete)
+
+Enables scholars to extract, classify, and engage with claims from academic papers.
+
+**Paper Upload & Extraction**:
+```
+PDF Upload → Text Extraction → AI Claim Extraction → Human Review → Canonical Claims
+```
+
+**Claim Type Classification** (for HSS scholarship):
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `THESIS` | Central argument of a work | "Democratic deliberation requires economic equality" |
+| `INTERPRETIVE` | Reading of text/event | "Rawls's veil of ignorance is best understood as..." |
+| `HISTORICAL` | Factual claim about past | "The French Revolution began with fiscal crisis" |
+| `NORMATIVE` | Evaluative/prescriptive | "States ought to guarantee basic income" |
+| `METHODOLOGICAL` | How to study X | "Oral history should triangulate with archives" |
+| `EMPIRICAL` | Data-based claim | "Survey shows 60% support for policy X" |
+
+**Source Enrichment**:
+- DOI auto-resolution via Crossref/OpenAlex
+- ORCID author linking
+- Abstract extraction for semantic search
+- Page/section locators for precise citation
+
+### 11.4 Phase 2: Versioning & Memory (Complete)
+
+Enables scholarly citation of deliberation states and exploration of alternative arguments.
+
+**DebateReleases** — Versioned Snapshots:
+
+```
+v1.0.0 (Initial release)
+    │
+    ├─▶ v1.0.1 (patch: typo fixes)
+    ├─▶ v1.1.0 (minor: new supporting argument)
+    └─▶ v2.0.0 (major: key claim conceded)
+```
+
+Each release captures:
+- All claims with computed statuses (DEFENDED, CONTESTED, UNRESOLVED)
+- All arguments with ASPIC+ acceptability labels
+- Complete attack graph
+- Generated changelog (diff from previous version)
+- BibTeX citation entry
+
+**Fork/Merge** — Alternative Exploration:
+
+| Fork Type | Use Case |
+|-----------|----------|
+| `ASSUMPTION_VARIANT` | "What if we assume X instead of Y?" |
+| `METHODOLOGICAL` | "Let's try different analytical approach" |
+| `ADVERSARIAL` | "Steel-man the opposing view" |
+| `SCOPE_EXTENSION` | "Extend analysis to new domain" |
+
+Merge strategies: ADD_NEW, REPLACE, LINK_SUPPORT, LINK_CHALLENGE, SKIP
+
+**Quote Nodes** — First-Class Textual Evidence:
+
+Quotes become addressable objects with:
+- Multiple interpretations (each with framework label)
+- Community voting on interpretations
+- Usage type classification (EVIDENCE, COUNTER, CONTEXT, DEFINITION)
+- Optional mini-deliberations for interpretive disputes
+
+### 11.5 Phase 3: Knowledge Graph (In Progress)
+
+**Target**: Q1 2026
+
+**Phase 3.1: Claim Provenance Tracking** (Weeks 1-4):
+- Track claim evolution over time (version history)
+- Record first assertion source/author/date
+- Cross-context claim identification via `canonicalClaimId`
+- Challenge aggregation (open/defended/conceded)
+- Automated consensus status calculation
+
+**Phase 3.2: Argument-Level Citations** (Weeks 5-8):
+- Stable citable URIs for individual arguments
+- Typed argument links (SUPPORTS, EXTENDS, REFINES, RESPONDS)
+- BibTeX/RIS export for arguments
+- Cross-paper argument references
+
+**Phase 3.3: Cross-Deliberation Mapping** (Weeks 9-12):
+- Detect similar claims across deliberations
+- Federated claim registry for global status
+- Field-level claim views (e.g., "all claims in political philosophy")
+- Import/reference claims from other deliberations
+
+### 11.6 Phase 4: Open Review & Credit (Planned)
+
+**Target**: Q2 2026
+
+**Living Peer Review**:
+- Review deliberation templates with structured phases
+- Reviewer commitment tracking
+- Author response workflow
+- Post-publication ongoing review
+
+**Reputation System**:
+- Contribution metrics (claims curated, arguments made, defenses)
+- Defense rate tracking
+- Reviewer recognition for constructive critique
+- Quality signal badges
+
+**Credit Integration**:
+- ORCID sync for contributions
+- CV/JSON export for tenure committees
+- Institutional reporting support
+
+### 11.7 Academic Workflow Integration
+
+| Workflow Stage | How Mesh Participates |
+|----------------|----------------------|
+| **Reading a paper** | Extract claims; see existing discussion; add to it |
+| **Identifying gaps** | Issues system tracks open questions |
+| **Building on work** | Chain arguments from paper claims to new conclusions |
+| **Challenging claims** | Structured attack with specific type |
+| **Defending work** | Respond to attacks with appropriate moves |
+| **Synthesizing literature** | Build argument chains across papers |
+| **Preparing a paper** | Generate thesis from resolved deliberations |
+| **Peer review** | Structured evaluation using schemes and CQs |
+| **Post-publication** | Ongoing discussion, updates, corrections |
+
+### 11.8 Target Communities
+
+| Community | Use Case | Key Features |
+|-----------|----------|--------------|
+| **Journal Clubs** | Structured paper discussion | Deliberation templates, phase transitions |
+| **Research Groups** | Internal debate on methodology | Fork for alternatives, merge consensus |
+| **Open Review** | Transparent preprint evaluation | Quote-level engagement, versioned responses |
+| **Interdisciplinary** | Cross-field claim mapping | Concept equivalence, translation deliberations |
+
+### 11.9 Academic API Reference
+
+**Paper & Claim Pipeline**:
+- `POST /api/papers/upload` — Upload PDF, extract text
+- `POST /api/claims/extract` — AI claim extraction
+- `GET /api/search/claims` — Semantic claim search
+
+**Releases**:
+- `POST /api/deliberations/[id]/releases` — Create release
+- `GET /api/deliberations/[id]/releases/compare` — Compare versions
+- `GET /api/deliberations/[id]/releases/[v]/bibtex` — Citation export
+
+**Forks & Merges**:
+- `POST /api/deliberations/[id]/fork` — Create fork
+- `POST /api/deliberations/[id]/merges` — Create merge request
+- `POST /api/deliberations/[id]/merges/[id]?action=execute` — Execute merge
+
+**Quotes**:
+- `POST /api/quotes` — Create quote node
+- `POST /api/quotes/[id]/interpretations` — Add interpretation
+- `POST /api/quotes/[id]/interpretations/[id]?action=vote` — Vote
+
+---
+
 ## Appendix A: File Location Quick Reference
 
 ### Core Panel
@@ -2706,6 +3858,74 @@ Key Invariants:
 - `components/aspic/AspicTheoryPanel.tsx`
 - `components/aspic/ConflictResolutionPanel.tsx`
 
+### Releases & Versioning (New - January 2026)
+- `lib/releases/snapshotService.ts` - Claim/argument snapshot generation
+- `lib/releases/changelogService.ts` - Diff generation & formatting
+- `lib/releases/releaseService.ts` - Main CRUD operations
+- `lib/releases/types.ts` - Type definitions & version utils
+- `components/releases/ReleaseListPanel.tsx` - List with SWR
+- `components/releases/CreateReleaseModal.tsx` - Release creation form
+- `components/releases/ChangelogViewer.tsx` - Changelog display
+- `components/releases/ReleaseDetailPanel.tsx` - Full details panel
+- `app/api/deliberations/[id]/releases/route.ts` - POST/GET releases
+- `app/api/deliberations/[id]/releases/compare/route.ts` - Version comparison
+
+### Forks & Merges (New - January 2026)
+- `lib/forks/forkService.ts` - Fork CRUD operations
+- `lib/forks/mergeService.ts` - Merge request operations
+- `lib/forks/types.ts` - Fork/merge type definitions
+- `components/forks/ForkListPanel.tsx` - Fork list & tree views
+- `components/forks/CreateForkModal.tsx` - Fork creation workflow
+- `components/forks/MergeRequestPanel.tsx` - Merge request list
+- `components/forks/MergeWorkflow.tsx` - Claim selection & conflict UI
+- `components/forks/CreateMergeRequestModal.tsx` - Merge workflow
+- `app/api/deliberations/[id]/fork/route.ts` - Fork endpoints
+- `app/api/deliberations/[id]/merges/route.ts` - Merge request endpoints
+
+### Quotes & Interpretations (New - January 2026)
+- `lib/quotes/quoteService.ts` - Quote CRUD, linking, deliberation
+- `lib/quotes/interpretationService.ts` - Interpretation CRUD, voting
+- `lib/quotes/types.ts` - LocatorType, QuoteUsageType
+- `components/quotes/QuoteCard.tsx` - QuoteCard, QuoteCardCompact, QuoteList
+- `components/quotes/InterpretationCard.tsx` - InterpretationCard, voting
+- `components/quotes/InterpretationsPanel.tsx` - Panel with framework filtering
+- `components/quotes/QuoteModals.tsx` - Create/Link/Interpretation modals
+- `app/api/quotes/route.ts` - POST/GET quotes
+- `app/api/quotes/[quoteId]/interpretations/route.ts` - Interpretations
+
+### Academic Infrastructure (New - January 2026)
+- `lib/papers/pdfExtractor.ts` - PDF text extraction
+- `lib/papers/claimExtractor.ts` - AI-powered claim extraction
+- `lib/search/claimSearch.ts` - PostgreSQL text search
+- `lib/search/claimEmbeddings.ts` - Vector search stubs (deferred)
+- `lib/search/claimIndexing.ts` - Lifecycle hooks
+- `app/api/papers/upload/route.ts` - Paper upload
+- `app/api/claims/extract/route.ts` - AI extraction endpoint
+
+### Article System
+- `app/articles/[slug]/page.tsx` - Article reader page
+- `app/articles/[slug]/edit/page.tsx` - Article editor page
+- `components/articles/ArticleEditor.tsx` - TipTap-based WYSIWYG editor
+- `components/articles/ArticleReader.tsx` - SSR HTML rendering
+- `components/articles/ArticleReaderWithPins.tsx` - Reader with annotation layer
+- `components/articles/CommentRail.tsx` - Annotation rail display
+- `components/articles/SelectionBubble.tsx` - Text selection comment UI
+- `components/articles/ArticleDashboard.tsx` - List/CRUD management
+- `app/api/articles/route.ts` - Article CRUD
+- `app/api/articles/[id]/draft/route.ts` - Autosave endpoint
+- `app/api/articles/[id]/publish/route.ts` - Publish workflow
+- `app/api/articles/[id]/threads/route.ts` - Comment threads
+
+### AgoraRoom & DebateSheet
+- `app/api/agora/rooms/route.ts` - List all agora rooms
+- `app/api/agora/rooms/[id]/deliberations/route.ts` - Deliberations in room
+- `components/debate/DebateSheetPanel.tsx` - Sheet visualization container
+- `components/debate/DebateNodeCard.tsx` - Node display in sheet context
+- `components/debate/DebateEdgeRenderer.tsx` - Visual attack/support lines
+- `lib/debate/sheetService.ts` - DebateSheet CRUD operations
+- `app/api/debate/sheets/route.ts` - Sheet endpoints
+- `scripts/backfill-agora-debate-chain.ts` - Phase 4 backfill script
+
 ### Libraries
 - `lib/dialogue/types.ts`
 - `lib/dialogue/legalMoves.ts`
@@ -2735,5 +3955,23 @@ Key Invariants:
 | **PPD**                | Protocol for Persuasion Dialogues                                 |
 | **RA-node**            | Rule Application node (inference relationship)                    |
 | **Scheme**             | Argumentation pattern (e.g., Argument from Expert)                |
+| **DebateRelease** *(new)* | Versioned snapshot of deliberation state with changelog        |
+| **ECC** *(new)*        | Evidential Closed Category - categorical semantics for arguments  |
+| **Fork** *(new)*       | Branch of a deliberation for alternative exploration              |
+| **Hom-set** *(new)*    | Set of morphisms (arguments) between two objects (claims)         |
+| **Interpretation** *(new)* | Scholarly reading of a quote with framework label             |
+| **Merge Request** *(new)* | Request to incorporate fork changes back to parent              |
+| **Plexus** *(new)*     | Category of categories - network of deliberations                 |
+| **QuoteNode** *(new)*  | First-class textual quote with interpretations and voting         |
+| **RoomFunctor** *(new)* | Transport functor between deliberation categories               |
+| **Semantic Versioning** *(new)* | major.minor.patch versioning for deliberations            |
+| **Transport** *(new)*  | Moving claims/arguments between deliberations with provenance     |
+| **AgoraRoom** *(new)*  | Argumentation workspace container grouping deliberations          |
+| **Article** *(new)*    | Rich text content that hosts deliberations via TipTap editor      |
+| **DebateSheet** *(new)* | Curated view of arguments via DebateNode references              |
+| **DebateNode** *(new)* | Bridge record linking DebateSheet to Argument entities            |
+| **Host Type** *(new)*  | Deliberation host: article, library_stack, or standalone          |
+| **RealtimeRoom** *(legacy)* | Legacy social canvas for posts and collages                  |
+| **TipTap** *(new)*     | ProseMirror-based WYSIWYG editor used for articles                |
 
 ---
