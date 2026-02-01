@@ -1,0 +1,2865 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>academic-agora-thesis-brief.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="thesis-brief-in-defense-of-academic-agora">In Defense of the Academic Agora Platform by Mesh</h1>
+<h2 id="meta-documentation">Meta-Documentation</h2>
+<p><strong>Document Type</strong>: Thesis (Legal-Style Brief)<br>
+<strong>Deliberation</strong>: Platform Self-Justification — Academic Use Case<br>
+<strong>Release Version</strong>: v1.0.0<br>
+<strong>Status</strong>: DEFENDED (subject to challenge)<br>
+<strong>Author</strong>: Platform Development Team<br>
+<strong>Date</strong>: January 2026</p>
+<hr>
+<h2 id="central-thesis">Central Thesis</h2>
+<p><strong>THESIS-001</strong>: <em>Academic Agora should exist and be developed as infrastructure for scholarly discourse—transforming academic debate from papers-as-PDFs to papers-as-debatable, composable claim graphs.</em></p>
+<p><strong>Thesis Type</strong>: Practical (action-guiding)<br>
+<strong>Status</strong>: IN (grounded extension)</p>
+<p>This thesis is supported by six primary prongs, each of which is itself a defended claim supported by structured arguments.</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#prong-i-the-scholarly-discourse-deficit">Prong I: The Scholarly Discourse Deficit</a></li>
+<li><a href="#prong-ii-infrastructure-adequacy">Prong II: Infrastructure Adequacy</a></li>
+<li><a href="#prong-iii-natural-disciplinary-fit">Prong III: Natural Disciplinary Fit</a></li>
+<li><a href="#prong-iv-theory-of-change">Prong IV: Theory of Change</a></li>
+<li><a href="#prong-v-risk-assessment">Prong V: Risk Assessment</a></li>
+<li><a href="#prong-vi-alternative-comparison">Prong VI: Alternative Comparison</a></li>
+<li><a href="#commitment-store">Commitment Store</a></li>
+<li><a href="#attack-register">Attack Register</a></li>
+<li><a href="#synthesis--conclusion">Synthesis &amp; Conclusion</a></li>
+</ol>
+<hr>
+<h2 id="prong-i-the-scholarly-discourse-deficit">Prong I: The Scholarly Discourse Deficit</h2>
+<h3 id="claim-c-101">Claim C-101</h3>
+<blockquote>
+<p><strong>Academic discourse lacks infrastructure for sustained, structured public engagement with research.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-101<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.90<br>
+<strong>Type</strong>: Empirical/Descriptive</p>
+<hr>
+<h3 id="argument-a-101-argument-from-sign-infrastructure-absence">Argument A-101: Argument from Sign (Infrastructure Absence)</h3>
+<p><strong>Scheme</strong>: Argument from Sign (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-101                                                      │
+│ Scheme: Argument from Sign                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Sustained scholarly discourse requires:                         │
+│     (a) Claim-level engagement (not just paper-level)               │
+│     (b) Typed dialogue moves (not just comments)                    │
+│     (c) Persistent record (not ephemeral threads)                   │
+│     (d) Attribution and accountability                              │
+│     (e) Cross-paper synthesis                                       │
+│     (f) Generative (not just reactive) discussion                   │
+│     [Evidence: E-101a - derived from scholarly communication        │
+│      literature; Borgman, Scholarly Communication (2007)]           │
+│                                                                     │
+│ P2: Current platforms provide:                                      │
+│     - PubPeer: Paper-level comments, reactive/critical focus        │
+│     - Hypothesis: Scattered annotations, no threading               │
+│     - OpenReview: Conference-bounded, time-limited                  │
+│     - Twitter/X: Ephemeral, unstructured, toxic dynamics            │
+│     - ResearchGate: Gamified, noisy, not structured                 │
+│     - Email: Private, high friction, no public record               │
+│     [Evidence: E-101b - Platform documentation and analysis]        │
+│                                                                     │
+│ P3: The absence of (a)-(f) in available platforms is a reliable     │
+│     sign that infrastructure for scholarly discourse is missing     │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Infrastructure for sustained scholarly discourse is absent       │
+│                                                                     │
+│ RA-Node: Inference via Sign                                         │
+│ Confidence: 0.90                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-101">Critical Questions for A-101</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>What is the strength of the correlation?</td>
+<td>ANSWERED</td>
+<td>Requirements derived from scholarly communication research; platforms demonstrably lack features</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there other explanations?</td>
+<td>ANSWERED</td>
+<td>Gap exists because no one has built for sustained intellectual exchange; not technical impossibility</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is there counter-evidence?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-101</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-101-peer-review-counter-example">Attack ATK-101: Peer Review Counter-Example</h3>
+<p><strong>Attack Type</strong>: REBUT (presents contrary evidence)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-101                                                      │
+│ Type: REBUT                                                         │
+│ Target: C-101 (conclusion)                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ Peer review already provides structured engagement with research.   │
+│ Journals facilitate expert evaluation and dialogue (via revisions   │
+│ and responses). Traditional academic discourse infrastructure       │
+│ exists—it's called the publishing system.                           │
+│                                                                     │
+│ CA-Node: Conflict Application (rebut)                               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-101-peer-review-limitations">Defense D-101: Peer Review Limitations</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-101                                                       │
+│ Type: GROUNDS (response to REBUT)                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. Peer review provides evaluation, not discourse:                  │
+│    - Private (not public record)                                    │
+│    - One-shot (typically 2-3 reviews, then done)                    │
+│    - Pre-publication only (no ongoing engagement)                   │
+│    - Gatekeeping function, not dialogue function                    │
+│    [Evidence: E-D101a - Fyfe et al., &quot;History of Peer Review&quot;       │
+│     (2017)]                                                         │
+│                                                                     │
+│ 2. Peer review operates at paper-level, not claim-level:            │
+│    - Cannot engage with specific assertions                         │
+│    - Cannot build on prior reviews                                  │
+│    - No structured argument types                                   │
+│                                                                     │
+│ 3. Published responses are rare and slow:                           │
+│    - &quot;Comments&quot; and &quot;Replies&quot; take months/years                     │
+│    - High bar for publication                                       │
+│    - No synthesis or accumulation                                   │
+│                                                                     │
+│ 4. C-101 should be clarified: peer review exists but is NOT         │
+│    infrastructure for sustained PUBLIC discourse.                   │
+│                                                                     │
+│ ATTACK FORCE: Reduced; peer review serves different function        │
+│ REVISED CONFIDENCE: 0.90 (maintained with clarification)            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="claim-c-102">Claim C-102</h3>
+<blockquote>
+<p><strong>The discourse deficit has measurable consequences for scholarly knowledge production.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-102<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Empirical/Causal</p>
+<hr>
+<h3 id="argument-a-102-argument-from-cause-to-effect">Argument A-102: Argument from Cause to Effect</h3>
+<p><strong>Scheme</strong>: Argument from Cause to Effect (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-102                                                      │
+│ Scheme: Argument from Cause to Effect                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Without structured public discourse, debates repeat across      │
+│     decades without resolution or synthesis                         │
+│     [Evidence: E-102a - Recurrence of &quot;same debates&quot; in HSS         │
+│      documented by disciplinary historians]                         │
+│                                                                     │
+│ P2: Without claim-level engagement, scholars talk past each other   │
+│     and misrepresent positions                                      │
+│     [Evidence: E-102b - Citation analysis showing frequent          │
+│      misattribution; straw-man prevalence in philosophy]            │
+│                                                                     │
+│ P3: Without persistent record, intellectual labor is lost:          │
+│     - Conference Q&amp;A evaporates                                     │
+│     - Email exchanges remain private                                │
+│     - Blog posts scatter and decay                                  │
+│     [Evidence: E-102c - Knowledge attrition studies]                │
+│                                                                     │
+│ P4: Without cross-paper synthesis, literature reviews are           │
+│     heroic individual efforts rather than cumulative resources      │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: The discourse deficit causes knowledge production inefficiency   │
+│    and intellectual labor waste                                     │
+│                                                                     │
+│ RA-Node: Causal inference                                           │
+│ Confidence: 0.85                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-102">Critical Questions for A-102</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is there a causal mechanism?</td>
+<td>ANSWERED</td>
+<td>Mechanism: absent infrastructure → impossible behaviors → negative outcomes</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is the cause sufficient?</td>
+<td>QUALIFIED</td>
+<td>Infrastructure is contributing cause; other factors (incentives, time) also matter</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are there intervening factors?</td>
+<td>ANSWERED</td>
+<td>Yes (academic incentives, time constraints), but infrastructure is independent contributor</td>
+</tr>
+<tr>
+<td>CQ4</td>
+<td>Is there counter-evidence?</td>
+<td>OPEN</td>
+<td>No direct challenge registered</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="claim-c-103">Claim C-103</h3>
+<blockquote>
+<p><strong>Historical analysis reveals a missing layer in scholarly infrastructure evolution.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-103<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.80<br>
+<strong>Type</strong>: Historical/Theoretical</p>
+<hr>
+<h3 id="argument-a-103-argument-from-historical-pattern">Argument A-103: Argument from Historical Pattern</h3>
+<p><strong>Scheme</strong>: Argument from Precedent (Walton) — applied to infrastructure evolution</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-103                                                      │
+│ Scheme: Argument from Precedent (Infrastructure Evolution)          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Scholarly communication infrastructure has evolved through      │
+│     identifiable layers:                                            │
+│                                                                     │
+│     1800s-1900s: Learned societies, correspondence, journals        │
+│                  → Publication as unit of record                    │
+│                                                                     │
+│     1900s-2000s: Peer review, conferences, indexing                 │
+│                  → Evaluation and discovery                         │
+│                                                                     │
+│     2000s-2020s: Preprints, OA, social media, annotation            │
+│                  → Speed, access, informal commentary               │
+│                                                                     │
+│     [Evidence: E-103a - Shuttleworth (2016) on science periodicals; │
+│      Royal Society historical work; BOAI declaration]               │
+│                                                                     │
+│ P2: Each layer addressed a scaling/coordination problem:            │
+│     - Journal explosion → periodicals and disciplinary venues       │
+│     - Information overload → citation indexing                      │
+│     - Web era → repositories and identifiers (DOI/ORCID)            │
+│     - Open science → data/workflow standards (FAIR)                 │
+│     [Evidence: E-103b - Clarivate history; DOI handbook]            │
+│                                                                     │
+│ P3: The current problem—debates repeating, reasoning not            │
+│     persisting, claims not addressable—has no layer addressing it   │
+│                                                                     │
+│ P4: By precedent, a new layer should emerge to address this gap     │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: A &quot;claims/arguments as native first-class objects&quot; layer is      │
+│    the missing infrastructure that the evolutionary pattern         │
+│    predicts                                                         │
+│                                                                     │
+│ RA-Node: Precedent-based inference                                  │
+│ Confidence: 0.80                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-103">Critical Questions for A-103</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is the precedent genuinely similar?</td>
+<td>ANSWERED</td>
+<td>Each layer addressed coordination failure; current situation is coordination failure</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there relevant differences?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-103</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is there a counter-precedent?</td>
+<td>OPEN</td>
+<td>No counter-precedent registered</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-103-disanalogy-market-forces">Attack ATK-103: Disanalogy (Market Forces)</h3>
+<p><strong>Attack Type</strong>: UNDERCUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-103                                                      │
+│ Type: UNDERCUT                                                      │
+│ Target: A-103 (analogy validity)                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ Previous infrastructure layers (journals, DOIs, preprint servers)   │
+│ emerged because they had clear business models or institutional     │
+│ support. The &quot;argument layer&quot; has no obvious economic driver.       │
+│ The historical pattern doesn't predict what will be BUILT, only     │
+│ what is NEEDED. The analogy from need to emergence fails.           │
+│                                                                     │
+│ CA-Node: Conflict Application (undercut on analogy)                 │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-103-need-establishes-warrant">Defense D-103: Need Establishes Warrant</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-103                                                       │
+│ Type: GROUNDS                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. The attack correctly identifies that need ≠ automatic emergence. │
+│                                                                     │
+│ 2. However, the thesis is not &quot;the layer will inevitably emerge&quot;    │
+│    but &quot;Academic Agora SHOULD be built&quot; (action-guiding).           │
+│                                                                     │
+│ 3. The historical pattern establishes:                              │
+│    - The gap is real (need exists)                                  │
+│    - Solutions to such gaps have historically succeeded             │
+│    - The type of intervention (infrastructure layer) is appropriate │
+│                                                                     │
+│ 4. Business model concerns are addressed in Prong V (Risk).         │
+│    Grant funding, institutional subscriptions, and federation       │
+│    models have supported similar infrastructure (arXiv, ORCID).     │
+│                                                                     │
+│ ATTACK FORCE: Reduced; establishes warrant, not prediction          │
+│ CONFIDENCE: Maintained at 0.80                                      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="prong-i-summary">Prong I Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ PRONG I: THE SCHOLARLY DISCOURSE DEFICIT                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Claims Established:                                                 │
+│                                                                     │
+│ C-101: Infrastructure for sustained discourse is absent      [IN]   │
+│        └── A-101 (Argument from Sign)               Conf: 0.90      │
+│            └── ATK-101 (Peer review exists)         [DEFENDED]      │
+│                                                                     │
+│ C-102: Deficit causes knowledge production inefficiency      [IN]   │
+│        └── A-102 (Cause to Effect)                  Conf: 0.85      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ C-103: Historical pattern predicts missing layer             [IN]   │
+│        └── A-103 (Argument from Precedent)          Conf: 0.80      │
+│            └── ATK-103 (Business model concern)     [DEFENDED]      │
+│                                                                     │
+│ PRONG CONCLUSION: Scholarly discourse deficit exists and     [IN]   │
+│ a new infrastructure layer is warranted                             │
+│                                                                     │
+│ Aggregate Confidence: 0.85                                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="prong-ii-infrastructure-adequacy">Prong II: Infrastructure Adequacy</h2>
+<h3 id="claim-c-201">Claim C-201</h3>
+<blockquote>
+<p><strong>Academic Agora provides the architectural features necessary for structured scholarly discourse.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-201<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.90<br>
+<strong>Type</strong>: Technical/Descriptive</p>
+<hr>
+<h3 id="argument-a-201-argument-from-classification">Argument A-201: Argument from Classification</h3>
+<p><strong>Scheme</strong>: Argument from Classification (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-201                                                      │
+│ Scheme: Argument from Classification                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Scholarly discourse infrastructure requires:                    │
+│     (a) Claim-level addressability with stable URIs                 │
+│     (b) Typed dialogue moves (ASSERT, CHALLENGE, DEFEND, EXTEND)    │
+│     (c) Evidence linking with source specificity                    │
+│     (d) Argumentation scheme support                                │
+│     (e) Critical question generation                                │
+│     (f) Commitment tracking                                         │
+│     (g) Attack typing (REBUT, UNDERCUT, UNDERMINE)                  │
+│     (h) Cross-paper/cross-deliberation synthesis                    │
+│     (i) Versioned releases for citation                             │
+│     [Evidence: E-201a - derived from C-101 requirements]            │
+│                                                                     │
+│ P2: Academic Agora implements:                                      │
+│     (a) Canonical Claims with UUIDs via Claim model                 │
+│     (b) PPD protocol with DialogueMove types                        │
+│     (c) Evidence model with locators and DOI integration            │
+│     (d) 60+ Walton schemes in ArgumentScheme system                 │
+│     (e) Auto-generated CQs per scheme                               │
+│     (f) CommitmentStore tracking per participant                    │
+│     (g) CA-nodes with typed attack relations                        │
+│     (h) Plexus architecture for cross-deliberation transport        │
+│     (i) DebateRelease versioning with BibTeX export                 │
+│     [Evidence: E-201b - System Architecture Document]               │
+│                                                                     │
+│ P3: Systems implementing (a)-(i) are instances of scholarly         │
+│     discourse infrastructure                                        │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora is an instance of scholarly discourse             │
+│    infrastructure                                                   │
+│                                                                     │
+│ RA-Node: Classification inference                                   │
+│ Confidence: 0.90                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-201">Critical Questions for A-201</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Does Academic Agora actually have the properties?</td>
+<td>ANSWERED</td>
+<td>E-201b provides implementation evidence; properties verifiable in codebase</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is the classification appropriate?</td>
+<td>ANSWERED</td>
+<td>Classification derived from established requirements (P1)</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are there exceptions?</td>
+<td>OPEN</td>
+<td>Real-world scholarly adoption testing pending</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="claim-c-202">Claim C-202</h3>
+<blockquote>
+<p><strong>The platform implements theoretically sound argumentation frameworks validated by decades of research.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-202<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.90<br>
+<strong>Type</strong>: Theoretical/Technical</p>
+<hr>
+<h3 id="argument-a-202-argument-from-expert-consensus">Argument A-202: Argument from Expert Consensus</h3>
+<p><strong>Scheme</strong>: Argument from Expert Opinion (applied to academic consensus)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-202                                                      │
+│ Scheme: Argument from Expert Opinion (Academic Consensus)           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: The computational argumentation research community has          │
+│     developed formal frameworks for representing arguments          │
+│     [Evidence: E-202a - COMMA conference series (2006-present);     │
+│      Argument &amp; Computation journal; 40+ years of research]         │
+│                                                                     │
+│ P2: Walton's argumentation schemes are the standard taxonomy        │
+│     for argument patterns in informal logic                         │
+│     [Evidence: E-202b - Walton, Reed &amp; Macagno, Argumentation       │
+│      Schemes (2008); 10,000+ citations]                             │
+│                                                                     │
+│ P3: AIF (Argument Interchange Format) is the standard ontology      │
+│     for argument representation                                     │
+│     [Evidence: E-202c - Chesñevar et al. (2006); Reed et al.        │
+│      (2010); AIFdb international adoption]                          │
+│                                                                     │
+│ P4: ASPIC+ is the leading structured argumentation framework        │
+│     [Evidence: E-202d - Prakken (2010); Modgil &amp; Prakken (2018)]    │
+│                                                                     │
+│ P5: Academic Agora implements Walton schemes, AIF, and ASPIC+       │
+│     [Evidence: E-202e - System Architecture Document]               │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora's argumentation foundations are theoretically     │
+│    sound and validated                                              │
+│                                                                     │
+│ RA-Node: Inference from academic consensus                          │
+│ Confidence: 0.90                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-202">Critical Questions for A-202</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is there genuine expert consensus?</td>
+<td>ANSWERED</td>
+<td>AIF, ASPIC+, and Walton schemes are standard references with no competing paradigm</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is implementation faithful to theory?</td>
+<td>ANSWERED</td>
+<td>Architecture document shows direct mappings; AIF compliance verified</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Does theoretical soundness imply practical utility?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-202</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-202-formal-methods-adoption-failure">Attack ATK-202: Formal Methods Adoption Failure</h3>
+<p><strong>Attack Type</strong>: UNDERCUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-202                                                      │
+│ Type: UNDERCUT                                                      │
+│ Target: A-202 (inference from theory to utility)                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ Formal argumentation theory has existed for decades but has NOT     │
+│ been adopted by working scholars. Academics don't use argument      │
+│ mapping software, don't learn formal schemes, and find such         │
+│ tools cumbersome. Theoretical soundness doesn't translate to        │
+│ practical adoption. The field's own track record undermines         │
+│ the inference.                                                      │
+│                                                                     │
+│ CA-Node: Conflict Application (undercut)                            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-202-progressive-formalization--hss-fit">Defense D-202: Progressive Formalization + HSS Fit</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-202                                                       │
+│ Type: GROUNDS                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. The attack correctly identifies historical adoption failure.     │
+│                                                                     │
+│ 2. However, previous tools required users to learn formalism        │
+│    BEFORE contributing. Academic Agora inverts this:                │
+│                                                                     │
+│    - Progressive formalization: start informal, add structure       │
+│      incrementally as complexity warrants                           │
+│    - Formal infrastructure underlies system but is not required     │
+│      for basic participation                                        │
+│    - Schemes generate critical questions automatically—users        │
+│      benefit without mastering formal theory                        │
+│                                                                     │
+│ 3. HSS disciplines (see Prong III) are ALREADY argumentation-       │
+│    based. The platform maps to existing practice rather than        │
+│    imposing foreign formalism.                                      │
+│                                                                     │
+│ 4. Prior tools were standalone; Academic Agora integrates with      │
+│    existing scholarly workflow (DOI linking, ORCID, reference       │
+│    managers, PDF annotation).                                       │
+│                                                                     │
+│ ATTACK FORCE: Reduced; design addresses historical failure modes    │
+│ CONFIDENCE: Maintained at 0.90                                      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="claim-c-203">Claim C-203</h3>
+<blockquote>
+<p><strong>Academic-specific features address the unique requirements of scholarly discourse.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-203<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Technical/Descriptive</p>
+<hr>
+<h3 id="argument-a-203-argument-from-properties-academic-features">Argument A-203: Argument from Properties (Academic Features)</h3>
+<p><strong>Scheme</strong>: Argument from Properties (specialized)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-203                                                      │
+│ Scheme: Argument from Properties                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Scholarly discourse has unique requirements beyond general      │
+│     deliberation:                                                   │
+│     (a) Paper-to-claim extraction pipeline                          │
+│     (b) DOI/ORCID integration for attribution                       │
+│     (c) Quote nodes as first-class objects with interpretations     │
+│     (d) Claim type classification (THESIS, INTERPRETIVE,            │
+│         HISTORICAL, NORMATIVE, METHODOLOGICAL, EMPIRICAL)           │
+│     (e) Fork/merge for exploring alternative readings               │
+│     (f) BibTeX/RIS export for argument-level citation               │
+│     (g) Release versioning for citable snapshots                    │
+│                                                                     │
+│ P2: Academic Agora implements all of (a)-(g):                       │
+│     (a) PDF extraction + AI claim extraction pipeline               │
+│     (b) Crossref/OpenAlex/ORCID integration                         │
+│     (c) QuoteNode model with interpretation voting                  │
+│     (d) ClaimType enum with HSS-specific categories                 │
+│     (e) Fork/Merge system with typed fork purposes                  │
+│     (f) BibTeX export for arguments and releases                    │
+│     (g) DebateRelease versioning with semantic versioning           │
+│     [Evidence: E-203 - System Architecture Document, Phase 2]       │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora addresses unique scholarly requirements           │
+│                                                                     │
+│ RA-Node: Properties inference                                       │
+│ Confidence: 0.85                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-203">Critical Questions for A-203</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Are the properties actually implemented?</td>
+<td>ANSWERED</td>
+<td>Phase 2 complete per development roadmap</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are these the right properties?</td>
+<td>ANSWERED</td>
+<td>Derived from user research and disciplinary analysis</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are there missing properties?</td>
+<td>OPEN</td>
+<td>Ongoing development; Phase 3-4 adds more</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="prong-ii-summary">Prong II Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ PRONG II: INFRASTRUCTURE ADEQUACY                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Claims Established:                                                 │
+│                                                                     │
+│ C-201: Platform provides necessary architectural features    [IN]   │
+│        └── A-201 (Classification)                   Conf: 0.90      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ C-202: Formal foundations are theoretically sound            [IN]   │
+│        └── A-202 (Expert Consensus)                 Conf: 0.90      │
+│            └── ATK-202 (Adoption failure history)   [DEFENDED]      │
+│                                                                     │
+│ C-203: Academic-specific features address unique needs       [IN]   │
+│        └── A-203 (Properties)                       Conf: 0.85      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ PRONG CONCLUSION: Academic Agora is adequate infrastructure  [IN]   │
+│ for scholarly discourse                                             │
+│                                                                     │
+│ Aggregate Confidence: 0.88                                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="prong-iii-natural-disciplinary-fit">Prong III: Natural Disciplinary Fit</h2>
+<h3 id="claim-c-301">Claim C-301</h3>
+<blockquote>
+<p><strong>Humanities and Social Sciences scholarship is already argumentation-based, making Academic Agora a natural fit.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-301<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.90<br>
+<strong>Type</strong>: Descriptive/Disciplinary</p>
+<hr>
+<h3 id="argument-a-301-argument-from-analogy-practice-mapping">Argument A-301: Argument from Analogy (Practice Mapping)</h3>
+<p><strong>Scheme</strong>: Argument from Analogy (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-301                                                      │
+│ Scheme: Argument from Analogy                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: HSS scholarship core activities are:                            │
+│     - Making interpretive claims about texts/events                 │
+│     - Marshaling evidence (textual, archival, ethnographic)         │
+│     - Responding to other scholars' interpretations                 │
+│     - Defending positions against critique                          │
+│     [Evidence: E-301a - Disciplinary self-descriptions;             │
+│      graduate training curricula]                                   │
+│                                                                     │
+│ P2: Academic Agora core activities are:                             │
+│     - Making claims with evidence linking                           │
+│     - Constructing arguments using schemes                          │
+│     - Responding via typed dialogue moves                           │
+│     - Defending via GROUNDS moves against attacks                   │
+│                                                                     │
+│ P3: P1 and P2 describe the same activities with different           │
+│     vocabulary                                                      │
+│                                                                     │
+│ P4: Tools that map directly to existing practice have lower         │
+│     adoption barriers                                               │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora maps directly to HSS practice, making it a        │
+│    natural fit with low adoption barriers                           │
+│                                                                     │
+│ RA-Node: Analogical inference                                       │
+│ Confidence: 0.90                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-301">Critical Questions for A-301</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Are the similarities relevant?</td>
+<td>ANSWERED</td>
+<td>Core scholarly activities directly mapped</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there relevant differences?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-301</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is the same relationship plausible?</td>
+<td>ANSWERED</td>
+<td>Platform vocabulary is scholarly vocabulary formalized</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-301-stem-exclusion">Attack ATK-301: STEM Exclusion</h3>
+<p><strong>Attack Type</strong>: UNDERMINE</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-301                                                      │
+│ Type: UNDERMINE                                                     │
+│ Target: P1 (HSS focus undermines generality)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ By focusing on HSS, the argument concedes that STEM disciplines     │
+│ (with data, replication, quantitative methods) are NOT a natural    │
+│ fit. This limits the platform to a minority of scholarship and      │
+│ undermines claims of general scholarly infrastructure.              │
+│                                                                     │
+│ CA-Node: Conflict Application (undermine premise P1 scope)          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-301-hss-first-not-hss-only">Defense D-301: HSS First, Not HSS Only</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-301                                                       │
+│ Type: GROUNDS                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. The attack correctly identifies HSS-first strategy.              │
+│                                                                     │
+│ 2. HSS-first is a SEQUENCING choice, not a limitation:              │
+│    - HSS has lower barriers (no data/replication infrastructure     │
+│      required)                                                      │
+│    - HSS practices map more directly to argumentation               │
+│    - Success in HSS validates core infrastructure                   │
+│                                                                     │
+│ 3. STEM expansion is planned (Year 4+) after HSS validation:        │
+│    - Add schemes for statistical inference, replication             │
+│    - Integrate with data repositories                               │
+│    - Support empirical claim verification                           │
+│                                                                     │
+│ 4. Even within STEM, theoretical/methodological debates are         │
+│    argumentation-based (philosophy of science, methods disputes).   │
+│                                                                     │
+│ 5. C-301 should be scoped: &quot;natural fit for HSS, with planned       │
+│    expansion to STEM.&quot;                                              │
+│                                                                     │
+│ ATTACK FORCE: Reduced to scope clarification                        │
+│ CONFIDENCE: Maintained at 0.90 for HSS fit specifically             │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="claim-c-302">Claim C-302</h3>
+<blockquote>
+<p><strong>HSS scholars have documented frustrations that the platform directly addresses.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-302<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Empirical/Descriptive</p>
+<hr>
+<h3 id="argument-a-302-argument-from-evidence-user-research">Argument A-302: Argument from Evidence (User Research)</h3>
+<p><strong>Scheme</strong>: Argument from Evidence to Hypothesis (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-302                                                      │
+│ Scheme: Argument from Evidence to Hypothesis                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: HSS scholars report specific frustrations:                      │
+│                                                                     │
+│     F1: &quot;Slow publication cycles—years between submission and       │
+│          response&quot;                                                  │
+│     F2: &quot;Limited space for debate—journals rarely publish           │
+│          responses&quot;                                                 │
+│     F3: &quot;Scattered discussion—blog posts, Twitter threads,          │
+│          conference Q&amp;A&quot;                                            │
+│     F4: &quot;No synthesis—same debates recur across decades without     │
+│          resolution&quot;                                                │
+│     F5: &quot;Invisible reasoning—published work shows conclusions,      │
+│          not the path&quot;                                              │
+│     [Evidence: E-302a - User interviews; disciplinary commentary;   │
+│      Crooked Timber meta-discussions]                               │
+│                                                                     │
+│ P2: Academic Agora addresses each frustration:                      │
+│                                                                     │
+│     F1 → Immediate engagement, no publication delay                 │
+│     F2 → Unlimited space for structured dialogue                    │
+│     F3 → Centralized, persistent, searchable record                 │
+│     F4 → Versioned releases track resolution progress               │
+│     F5 → Argument chains make reasoning visible                     │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora addresses documented HSS scholar frustrations     │
+│                                                                     │
+│ RA-Node: Evidence-hypothesis inference                              │
+│ Confidence: 0.85                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-302">Critical Questions for A-302</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is the evidence representative?</td>
+<td>QUALIFIED</td>
+<td>Based on available user research; larger studies needed</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there alternative solutions?</td>
+<td>ANSWERED</td>
+<td>Alternatives address subsets; platform addresses all five</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Will addressing frustrations drive adoption?</td>
+<td>OPEN</td>
+<td>Empirical validation pending</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="claim-c-303">Claim C-303</h3>
+<blockquote>
+<p><strong>Interpretive pluralism in HSS makes structured dialogue more valuable, not less.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-303<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.80<br>
+<strong>Type</strong>: Theoretical</p>
+<hr>
+<h3 id="argument-a-303-argument-from-consequences-interpretive-pluralism">Argument A-303: Argument from Consequences (Interpretive Pluralism)</h3>
+<p><strong>Scheme</strong>: Argument from Consequences (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-303                                                      │
+│ Scheme: Argument from Consequences                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: HSS disciplines accept interpretive pluralism: multiple valid   │
+│     readings of texts, events, and social phenomena can coexist     │
+│     [Evidence: E-303a - Disciplinary norms; hermeneutic tradition]  │
+│                                                                     │
+│ P2: In contexts of interpretive pluralism, unstructured discourse   │
+│     produces:                                                       │
+│     - Talking past each other                                       │
+│     - Misrepresentation of positions                                │
+│     - Inability to locate genuine disagreement vs. mere difference  │
+│                                                                     │
+│ P3: Structured discourse with:                                      │
+│     - Explicit claim formulation                                    │
+│     - Quote nodes with competing interpretations                    │
+│     - Fork/merge for alternative readings                           │
+│     - Commitment tracking                                           │
+│     produces:                                                       │
+│     - Clear articulation of different positions                     │
+│     - Precise identification of where readings diverge              │
+│     - Productive disagreement rather than miscommunication          │
+│                                                                     │
+│ P4: Producing P3 outcomes rather than P2 outcomes is beneficial     │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Structured discourse is especially valuable in contexts of       │
+│    interpretive pluralism like HSS                                  │
+│                                                                     │
+│ RA-Node: Consequentialist inference                                 │
+│ Confidence: 0.80                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-303">Critical Questions for A-303</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Are the consequences accurately described?</td>
+<td>ANSWERED</td>
+<td>Derived from communication theory and disciplinary observation</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there negative consequences?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-303</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are the consequences sufficient to justify the action?</td>
+<td>ANSWERED</td>
+<td>Enabling productive disagreement is substantial benefit</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-303-formalization-constrains-interpretation">Attack ATK-303: Formalization Constrains Interpretation</h3>
+<p><strong>Attack Type</strong>: REBUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-303                                                      │
+│ Type: REBUT                                                         │
+│ Target: C-303 (conclusion)                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ Formalizing discourse may CONSTRAIN interpretive freedom. The       │
+│ requirement to structure arguments into schemes, formulate          │
+│ explicit claims, and respond to critical questions may exclude      │
+│ modes of interpretation that resist formalization (poetic,          │
+│ performative, deconstructive). HSS values cannot be captured in     │
+│ formal structures.                                                  │
+│                                                                     │
+│ CA-Node: Conflict Application (rebut)                               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-303-optional-formalization--multiple-modes">Defense D-303: Optional Formalization + Multiple Modes</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-303                                                       │
+│ Type: GROUNDS                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. The attack identifies a genuine tension.                         │
+│                                                                     │
+│ 2. However, the platform is designed for OPTIONAL formalization:    │
+│    - Informal discussion remains available indefinitely             │
+│    - Formalization is a choice, not a requirement                   │
+│    - Structure emerges when participants find it valuable           │
+│                                                                     │
+│ 3. Multiple contribution modes are supported:                       │
+│    - Formal arguments via schemes                                   │
+│    - Informal commentary via discussion threads                     │
+│    - Quote interpretation voting                                    │
+│    - Narrative/testimonial contributions                            │
+│                                                                     │
+│ 4. The platform claims to be valuable for SOME interpretive work,   │
+│    not ALL. Deconstructive practice that resists formalization      │
+│    can coexist outside the platform.                                │
+│                                                                     │
+│ 5. Many HSS scholars DO want structured engagement—the platform     │
+│    serves them without forcing others.                              │
+│                                                                     │
+│ ATTACK FORCE: Reduced; formalization is optional, not mandatory     │
+│ CONFIDENCE: Maintained at 0.80                                      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="prong-iii-summary">Prong III Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ PRONG III: NATURAL DISCIPLINARY FIT                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Claims Established:                                                 │
+│                                                                     │
+│ C-301: Platform maps directly to HSS practice               [IN]    │
+│        └── A-301 (Analogy: Practice Mapping)        Conf: 0.90      │
+│            └── ATK-301 (STEM exclusion)             [DEFENDED]      │
+│                                                                     │
+│ C-302: Platform addresses documented HSS frustrations       [IN]    │
+│        └── A-302 (Evidence: User Research)          Conf: 0.85      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ C-303: Structured discourse especially valuable for HSS     [IN]    │
+│        └── A-303 (Consequences)                     Conf: 0.80      │
+│            └── ATK-303 (Formalization constrains)   [DEFENDED]      │
+│                                                                     │
+│ PRONG CONCLUSION: HSS is natural fit for platform           [IN]    │
+│                                                                     │
+│ Aggregate Confidence: 0.85                                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="prong-iv-theory-of-change">Prong IV: Theory of Change</h2>
+<h3 id="claim-c-401">Claim C-401</h3>
+<blockquote>
+<p><strong>Making claims the atomic unit of discourse can transform scholarly knowledge production.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-401<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.75<br>
+<strong>Type</strong>: Theoretical/Causal</p>
+<hr>
+<h3 id="argument-a-401-argument-from-analogy-citation-networks">Argument A-401: Argument from Analogy (Citation Networks)</h3>
+<p><strong>Scheme</strong>: Argument from Analogy (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-401                                                      │
+│ Scheme: Argument from Analogy                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Citation networks transformed scholarly discovery:              │
+│     - Before citation indexing: discovery via bibliography chains,  │
+│       expert recommendation                                         │
+│     - After citation indexing (1955-1964): discovery via forward/   │
+│       backward citation traversal, impact measurement               │
+│     [Evidence: E-401a - Garfield on citation indexing history;      │
+│      Clarivate ISI history]                                         │
+│                                                                     │
+│ P2: The transformation occurred because citation made PAPERS        │
+│     the networked unit: addressable, linkable, traversable          │
+│                                                                     │
+│ P3: Currently, claims/arguments are NOT the networked unit:         │
+│     - Not addressable (no stable URIs)                              │
+│     - Not linkable (embedded in prose)                              │
+│     - Not traversable (no cross-paper argument graph)               │
+│                                                                     │
+│ P4: If papers-as-networked-unit transformed discovery, then         │
+│     claims-as-networked-unit could transform discourse              │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Making claims the atomic unit can transform scholarly discourse  │
+│    (by analogy to citation networks)                                │
+│                                                                     │
+│ RA-Node: Analogical inference                                       │
+│ Confidence: 0.75                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-401">Critical Questions for A-401</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Are the cases genuinely similar?</td>
+<td>ANSWERED</td>
+<td>Both involve making scholarly objects addressable/linkable</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there relevant differences?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-401</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is the transformation beneficial?</td>
+<td>ANSWERED</td>
+<td>Discovery transformation was beneficial; discourse transformation would be analogously beneficial</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-401-claims-are-not-as-stable-as-papers">Attack ATK-401: Claims Are Not As Stable As Papers</h3>
+<p><strong>Attack Type</strong>: UNDERCUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-401                                                      │
+│ Type: UNDERCUT                                                      │
+│ Target: A-401 (analogy validity)                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ Papers are stable, citable objects with clear boundaries. Claims    │
+│ are fuzzy—they can be reformulated, interpreted differently,        │
+│ paraphrased. Citation networks work because papers don't change.    │
+│ Claim networks would be unstable, with boundary disputes and        │
+│ reformulation problems. The analogy fails on a crucial dimension.   │
+│                                                                     │
+│ CA-Node: Conflict Application (undercut on disanalogy)              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-401-canonical-claims--versioning">Defense D-401: Canonical Claims + Versioning</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-401                                                       │
+│ Type: GROUNDS                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. The attack identifies a real difference: claims are more fluid   │
+│    than papers.                                                     │
+│                                                                     │
+│ 2. The platform addresses this through:                             │
+│                                                                     │
+│    - CANONICAL CLAIMS: Once formulated, a claim has a stable UUID.  │
+│      The claim text is fixed; new formulations create new claims.   │
+│                                                                     │
+│    - VERSIONING: Claims can be versioned. Modifications create      │
+│      new versions with tracked changes and provenance.              │
+│                                                                     │
+│    - CLAIM EQUIVALENCE: Phase 3 includes detection of &quot;same claim   │
+│      differently formulated&quot; with cross-linking.                    │
+│                                                                     │
+│    - QUOTE ANCHORING: Claims can be anchored to specific passages,  │
+│      reducing ambiguity about what's being asserted.                │
+│                                                                     │
+│ 3. Papers also have boundary problems (which claims in a paper      │
+│    does a citation endorse?). Citation networks work despite this.  │
+│                                                                     │
+│ ATTACK FORCE: Reduced; design addresses stability concern           │
+│ CONFIDENCE: Maintained at 0.75 (still uncertain)                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="claim-c-402">Claim C-402</h3>
+<blockquote>
+<p><strong>Versioned releases enable cumulative knowledge production rather than repetitive debate.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-402<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.80<br>
+<strong>Type</strong>: Functional/Descriptive</p>
+<hr>
+<h3 id="argument-a-402-argument-from-mechanism-accumulation">Argument A-402: Argument from Mechanism (Accumulation)</h3>
+<p><strong>Scheme</strong>: Argument from Cause to Effect (Mechanism)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-402                                                      │
+│ Scheme: Argument from Cause to Effect (Mechanism)                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Debates repeat because prior state is not preserved:            │
+│     - Conference discussions evaporate                              │
+│     - Blog posts scatter and decay                                  │
+│     - No &quot;state of the debate&quot; document exists                      │
+│     [Evidence: E-402a - Repeated debates in HSS; disciplinary       │
+│      self-commentary on amnesia]                                    │
+│                                                                     │
+│ P2: DebateRelease versioning creates:                               │
+│     - Stable snapshots (v1.0, v1.1, v2.0)                           │
+│     - DEFENDED/CONTESTED/UNRESOLVED status per claim                │
+│     - Changelogs showing what shifted between versions              │
+│     - BibTeX citations for referencing specific states              │
+│     [Evidence: E-402b - System Architecture Document]               │
+│                                                                     │
+│ P3: With versioned snapshots:                                       │
+│     - New entrants can start from current state, not scratch        │
+│     - Progress is visible (what was resolved since v1.0?)           │
+│     - Regression is visible (what became contested again?)          │
+│     - Citation creates accountability                               │
+│                                                                     │
+│ P4: This mechanism enables accumulation over repetition             │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Versioned releases enable cumulative rather than repetitive      │
+│    knowledge production                                             │
+│                                                                     │
+│ RA-Node: Mechanism inference                                        │
+│ Confidence: 0.80                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-402">Critical Questions for A-402</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is the mechanism plausible?</td>
+<td>ANSWERED</td>
+<td>Directly addresses identified cause of repetition</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there countervailing factors?</td>
+<td>ANSWERED</td>
+<td>Incentives may still favor novelty over synthesis; platform can't change incentives directly</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>What is the expected effect size?</td>
+<td>OPEN</td>
+<td>Empirical validation pending</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="claim-c-403">Claim C-403</h3>
+<blockquote>
+<p><strong>Credit for argumentation contributions can shift scholarly incentives toward engagement.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-403<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.70<br>
+<strong>Type</strong>: Causal/Predictive</p>
+<hr>
+<h3 id="argument-a-403-argument-from-consequences-incentive-redesign">Argument A-403: Argument from Consequences (Incentive Redesign)</h3>
+<p><strong>Scheme</strong>: Argument from Consequences (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-403                                                      │
+│ Scheme: Argument from Consequences                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Current academic incentives reward publication, not engagement: │
+│     - Authorship credit for papers                                  │
+│     - No credit for challenging others' claims                      │
+│     - No credit for defending under critique                        │
+│     - No credit for synthesizing debates                            │
+│     [Evidence: E-403a - Academic incentive literature;              │
+│      Edwards &amp; Roy (2017) on perverse incentives]                   │
+│                                                                     │
+│ P2: Academic Agora enables credit for argumentation contributions:  │
+│     - Contribution metrics (claims curated, arguments made)         │
+│     - Defense rate tracking                                         │
+│     - Reviewer recognition for constructive critique                │
+│     - ORCID integration for credit export                           │
+│     - CV export for tenure committees                               │
+│     [Evidence: E-403b - Phase 4 roadmap]                            │
+│                                                                     │
+│ P3: If engagement becomes creditable, scholars have incentive       │
+│     to engage                                                       │
+│                                                                     │
+│ P4: Increased engagement improves discourse quality                 │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Crediting argumentation contributions can shift incentives       │
+│    toward engagement                                                │
+│                                                                     │
+│ RA-Node: Consequentialist inference                                 │
+│ Confidence: 0.70 (depends on institutional adoption)                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-403">Critical Questions for A-403</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Will institutions actually credit platform contributions?</td>
+<td>OPEN</td>
+<td>Unknown; requires institutional partnership development</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Could new metrics create new gaming?</td>
+<td>ANSWERED</td>
+<td>Risk acknowledged; quality signals designed to resist gaming</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is the causal chain reliable?</td>
+<td>QUALIFIED</td>
+<td>Depends on external factors (institutional adoption)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="prong-iv-summary">Prong IV Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ PRONG IV: THEORY OF CHANGE                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Claims Established:                                                 │
+│                                                                     │
+│ C-401: Claims as atomic unit can transform discourse         [IN]   │
+│        └── A-401 (Analogy: Citation Networks)       Conf: 0.75      │
+│            └── ATK-401 (Claims not stable)          [DEFENDED]      │
+│                                                                     │
+│ C-402: Versioned releases enable accumulation                [IN]   │
+│        └── A-402 (Mechanism: Accumulation)          Conf: 0.80      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ C-403: Credit redesign can shift incentives                  [IN]   │
+│        └── A-403 (Consequences: Incentives)         Conf: 0.70      │
+│            └── No undefended attacks (but CQ1 open)                 │
+│                                                                     │
+│ PRONG CONCLUSION: Theory of change is plausible but          [IN]   │
+│ depends on external factors (institutional adoption)                │
+│                                                                     │
+│ Aggregate Confidence: 0.75                                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="prong-v-risk-assessment">Prong V: Risk Assessment</h2>
+<h3 id="claim-c-501">Claim C-501</h3>
+<blockquote>
+<p><strong>The risks of building Academic Agora are manageable and do not outweigh potential benefits.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-501<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.80<br>
+<strong>Type</strong>: Practical/Evaluative</p>
+<hr>
+<h3 id="argument-a-501-practical-reasoning-risk-benefit">Argument A-501: Practical Reasoning (Risk-Benefit)</h3>
+<p><strong>Scheme</strong>: Practical Reasoning (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-501                                                      │
+│ Scheme: Practical Reasoning (Means-End)                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Goal is to improve scholarly discourse infrastructure (G)       │
+│                                                                     │
+│ P2: Building Academic Agora is a means to realize G                 │
+│     [Established in Prongs I-IV]                                    │
+│                                                                     │
+│ P3: The identified risks are:                                       │
+│     R1: Adoption friction (scholars won't use it)                   │
+│     R2: Junior scholar vulnerability (retaliation risk)             │
+│     R3: Gaming metrics (new metrics, new gaming)                    │
+│     R4: Platform power (control over discourse)                     │
+│     R5: Sustainability (funding/business model uncertainty)         │
+│     R6: Scale performance (technical limitations)                   │
+│                                                                     │
+│ P4: Each risk has identified mitigations (see register below)       │
+│                                                                     │
+│ P5: Potential benefits (improved discourse, cumulative knowledge,   │
+│     credit for engagement) outweigh residual risks                  │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Building Academic Agora is a reasonable means to pursue G        │
+│                                                                     │
+│ RA-Node: Practical reasoning inference                              │
+│ Confidence: 0.80                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="risk-register-with-mitigations">Risk Register with Mitigations</h3>
+<table>
+<thead>
+<tr>
+<th>Risk ID</th>
+<th>Risk Description</th>
+<th>Severity</th>
+<th>Likelihood</th>
+<th>Mitigation</th>
+<th>Residual</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R1</td>
+<td><strong>Adoption friction</strong>: Scholars accustomed to existing workflows won't adopt</td>
+<td>High</td>
+<td>Medium</td>
+<td>Progressive formalization; templates matching existing workflows (journal clubs); champion seeding; graduate student cultivation</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>R2</td>
+<td><strong>Junior scholar vulnerability</strong>: Graduate students/ECRs face retaliation for challenging senior scholars</td>
+<td>High</td>
+<td>Medium</td>
+<td>Anonymous/pseudonymous option for sensitive challenges; moderation; community norms; graduated visibility</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>R3</td>
+<td><strong>Gaming metrics</strong>: New contribution metrics create new gaming behaviors</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Quality signals (defense rate vs. raw count); expert review; resistance to quantity-only metrics</td>
+<td>Low-Medium</td>
+</tr>
+<tr>
+<td>R4</td>
+<td><strong>Platform power</strong>: Centralized control over scholarly discourse</td>
+<td>Medium</td>
+<td>Low</td>
+<td>Open source; federation roadmap; governance transparency; self-hosted option (2027)</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>R5</td>
+<td><strong>Sustainability</strong>: No clear business model</td>
+<td>High</td>
+<td>Medium</td>
+<td>Grant funding (NEH/NSF); institutional subscriptions; federation reduces central costs</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>R6</td>
+<td><strong>Scale performance</strong>: System slows with large deliberations</td>
+<td>Medium</td>
+<td>Low</td>
+<td>Performance optimization; caching; incremental loading</td>
+<td>Low</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-501-junior-scholar-vulnerability-is-unacceptable">Attack ATK-501: Junior Scholar Vulnerability Is Unacceptable</h3>
+<p><strong>Attack Type</strong>: REBUT (on risk acceptability)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ATTACK ATK-501                                                      │
+│ Type: REBUT                                                         │
+│ Target: C-501 (risks are acceptable)                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ ATTACKING CLAIM:                                                    │
+│                                                                     │
+│ Risk R2 (junior scholar vulnerability) is unacceptable. Academic    │
+│ power dynamics are severe; junior scholars who publicly challenge   │
+│ senior scholars face real career consequences. Even with            │
+│ mitigations, the platform could harm vulnerable community members.  │
+│ This risk should be disqualifying.                                  │
+│                                                                     │
+│ CA-Node: Conflict Application (rebut on acceptability)              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="defense-d-501-mitigations--current-state-comparison">Defense D-501: Mitigations + Current State Comparison</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ DEFENSE D-501                                                       │
+│ Type: GROUNDS                                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ 1. The attack identifies a genuine and serious risk.                │
+│                                                                     │
+│ 2. However, mitigations are specifically designed for this:         │
+│    - Anonymous/pseudonymous challenges available                    │
+│    - Graduated visibility (not all engagement must be public)       │
+│    - Moderation and community norms enforced                        │
+│    - Exit surveys to detect negative consequences                   │
+│                                                                     │
+│ 3. Comparison to status quo matters:                                │
+│    - Twitter/X is MORE dangerous (public, unmoderated, hostile)     │
+│    - Email is private but still trackable                           │
+│    - Conference Q&amp;A is public and ephemeral                         │
+│    - Academic Agora with mitigations is NOT worse than current      │
+│      state                                                          │
+│                                                                     │
+│ 4. The platform can be a SAFER venue for structured critique than   │
+│    alternatives precisely because of moderation and norms.          │
+│                                                                     │
+│ 5. We commit to monitoring and responding if harms emerge.          │
+│                                                                     │
+│ ATTACK FORCE: Reduced; risk serious but mitigated and compared      │
+│ CONFIDENCE: Maintained at 0.80                                      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="prong-v-summary">Prong V Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ PRONG V: RISK ASSESSMENT                                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Claims Established:                                                 │
+│                                                                     │
+│ C-501: Risks are manageable and don't outweigh benefits      [IN]   │
+│        └── A-501 (Practical Reasoning)              Conf: 0.80      │
+│            └── ATK-501 (Junior vulnerability)       [DEFENDED]      │
+│                                                                     │
+│ Risk Register: 6 risks identified, mitigations documented           │
+│ Residual Risk: Low to Medium overall                                │
+│                                                                     │
+│ PRONG CONCLUSION: Risk profile is acceptable                 [IN]   │
+│                                                                     │
+│ Aggregate Confidence: 0.80                                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="prong-vi-alternative-comparison">Prong VI: Alternative Comparison</h2>
+<h3 id="claim-c-601">Claim C-601</h3>
+<blockquote>
+<p><strong>Academic Agora is superior to available alternatives for structured scholarly discourse.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-601<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Comparative/Evaluative</p>
+<hr>
+<h3 id="argument-a-601-argument-from-comparison">Argument A-601: Argument from Comparison</h3>
+<p><strong>Scheme</strong>: Argument from Comparison (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-601                                                      │
+│ Scheme: Argument from Comparison                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Available platforms for academic discourse include:             │
+│     - PubPeer (post-publication commentary)                         │
+│     - Hypothesis (web annotation)                                   │
+│     - OpenReview (conference review)                                │
+│     - ResearchGate (academic social network)                        │
+│     - Twitter/X (informal discussion)                               │
+│     - PhilPapers comments (philosophy-specific)                     │
+│                                                                     │
+│ P2: Evaluation criteria (from C-101 requirements):                  │
+│     - Claim-level engagement                                        │
+│     - Typed dialogue moves                                          │
+│     - Argument structure                                            │
+│     - Evidence linking                                              │
+│     - Cross-paper synthesis                                         │
+│     - Versioned releases                                            │
+│     - Persistence                                                   │
+│     - Accessibility                                                 │
+│                                                                     │
+│ P3: Comparative assessment (see matrix below)                       │
+│                                                                     │
+│ P4: Academic Agora scores highest on weighted criteria              │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora is superior for structured scholarly discourse    │
+│                                                                     │
+│ RA-Node: Comparative inference                                      │
+│ Confidence: 0.85                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="comparative-matrix">Comparative Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Claims</th>
+<th>Dialogue</th>
+<th>Arguments</th>
+<th>Evidence</th>
+<th>Synthesis</th>
+<th>Versioning</th>
+<th>Persistence</th>
+<th>Access</th>
+<th>TOTAL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PubPeer</strong></td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+<td>4</td>
+<td>4</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>Hypothesis</strong></td>
+<td>3</td>
+<td>1</td>
+<td>1</td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+<td>3</td>
+<td>4</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>OpenReview</strong></td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>3</td>
+<td>1</td>
+<td>1</td>
+<td>3</td>
+<td>3</td>
+<td>17</td>
+</tr>
+<tr>
+<td><strong>ResearchGate</strong></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+<td>3</td>
+<td>5</td>
+<td>15</td>
+</tr>
+<tr>
+<td><strong>Twitter/X</strong></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>5</td>
+<td>12</td>
+</tr>
+<tr>
+<td><strong>PhilPapers</strong></td>
+<td>2</td>
+<td>2</td>
+<td>1</td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+<td>4</td>
+<td>3</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>Academic Agora</strong></td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>3</td>
+<td>38</td>
+</tr>
+</tbody>
+</table>
+<p><em>Scale: 1 (absent) to 5 (excellent)</em></p>
+<p><strong>Note</strong>: Academic Agora scores lower on accessibility than simple social tools; this is addressed by progressive formalization and facilitated entry.</p>
+<hr>
+<h3 id="claim-c-602">Claim C-602</h3>
+<blockquote>
+<p><strong>Academic Agora provides capabilities that cannot be retrofitted onto existing platforms.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-602<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Technical</p>
+<hr>
+<h3 id="argument-a-602-argument-from-properties-architectural-requirements">Argument A-602: Argument from Properties (Architectural Requirements)</h3>
+<p><strong>Scheme</strong>: Argument from Properties</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ ARGUMENT A-602                                                      │
+│ Scheme: Argument from Properties                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ PREMISES:                                                           │
+│                                                                     │
+│ P1: Academic Agora capabilities requiring purpose-built             │
+│     architecture:                                                   │
+│                                                                     │
+│     (a) Canonical claims with ASPIC+ acceptability semantics        │
+│         → Requires formal attack graph, extension computation       │
+│                                                                     │
+│     (b) Typed attack relations (rebut/undercut/undermine)           │
+│         → Requires AIF ontology compliance                          │
+│                                                                     │
+│     (c) Commitment tracking across dialogue                         │
+│         → Requires PPD protocol implementation                      │
+│                                                                     │
+│     (d) Cross-deliberation claim transport with provenance          │
+│         → Requires Plexus categorical structure                     │
+│                                                                     │
+│     (e) Versioned releases with computed claim status               │
+│         → Requires snapshot and diff infrastructure                 │
+│                                                                     │
+│ P2: These capabilities require the platform to be architected       │
+│     around them from the start; they cannot be added as features    │
+│     to comment systems or social networks                           │
+│                                                                     │
+│ ───────────────────────────────────────────────────────────────     │
+│                                                                     │
+│ CONCLUSION:                                                         │
+│                                                                     │
+│ C: Academic Agora provides capabilities that cannot be retrofitted  │
+│    onto existing platforms                                          │
+│                                                                     │
+│ RA-Node: Properties inference                                       │
+│ Confidence: 0.85                                                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<h4 id="critical-questions-for-a-602">Critical Questions for A-602</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Could existing platforms add these features?</td>
+<td>ANSWERED</td>
+<td>Not without fundamental re-architecture; data model must be argumentation-native</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are these features actually valuable?</td>
+<td>ANSWERED</td>
+<td>Established in Prong II</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is there a simpler solution?</td>
+<td>OPEN</td>
+<td>No simpler solution identified that provides equivalent capabilities</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="prong-vi-summary">Prong VI Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
+│ PRONG VI: ALTERNATIVE COMPARISON                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│ Claims Established:                                                 │
+│                                                                     │
+│ C-601: Platform is superior for structured discourse         [IN]   │
+│        └── A-601 (Comparison)                       Conf: 0.85      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ C-602: Capabilities cannot be retrofitted onto alternatives  [IN]   │
+│        └── A-602 (Properties: Architecture)         Conf: 0.85      │
+│            └── No undefended attacks                                │
+│                                                                     │
+│ PRONG CONCLUSION: Platform offers unique, irreplaceable      [IN]   │
+│ value vs. alternatives                                              │
+│                                                                     │
+│ Aggregate Confidence: 0.85                                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="commitment-store">Commitment Store</h2>
+<h3 id="proponent-commitments-platform-advocates">Proponent Commitments (Platform Advocates)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Commitment</th>
+<th>Status</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CM-P01</td>
+<td>Infrastructure for sustained scholarly discourse is absent</td>
+<td>ACTIVE</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>CM-P02</td>
+<td>Discourse deficit causes knowledge production inefficiency</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P03</td>
+<td>Historical pattern predicts missing argument layer</td>
+<td>ACTIVE</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>CM-P04</td>
+<td>Platform provides necessary architectural features</td>
+<td>ACTIVE</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>CM-P05</td>
+<td>Formal foundations are theoretically sound</td>
+<td>ACTIVE</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>CM-P06</td>
+<td>Academic-specific features address unique needs</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P07</td>
+<td>HSS is natural fit for platform</td>
+<td>ACTIVE</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>CM-P08</td>
+<td>Platform addresses documented HSS frustrations</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P09</td>
+<td>Structured discourse especially valuable for interpretive work</td>
+<td>ACTIVE</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>CM-P10</td>
+<td>Claims as atomic unit can transform discourse</td>
+<td>ACTIVE</td>
+<td>0.75</td>
+</tr>
+<tr>
+<td>CM-P11</td>
+<td>Versioned releases enable accumulation</td>
+<td>ACTIVE</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>CM-P12</td>
+<td>Credit redesign can shift incentives</td>
+<td>ACTIVE</td>
+<td>0.70</td>
+</tr>
+<tr>
+<td>CM-P13</td>
+<td>Risks are manageable</td>
+<td>ACTIVE</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>CM-P14</td>
+<td>Platform is superior to alternatives</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P15</td>
+<td>Capabilities cannot be retrofitted</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P16</td>
+<td><strong>THESIS</strong>: Academic Agora should exist and be developed</td>
+<td>ACTIVE</td>
+<td>0.83</td>
+</tr>
+</tbody>
+</table>
+<h3 id="opponent-challenges-addressed">Opponent Challenges Addressed</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Challenge</th>
+<th>Resolution</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CH-01</td>
+<td>Peer review is infrastructure</td>
+<td>Peer review is evaluation, not discourse; different function</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-02</td>
+<td>Business model concern</td>
+<td>Grant funding + subscriptions; warrant established, not prediction</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-03</td>
+<td>Formal methods adoption failure</td>
+<td>Progressive formalization inverts barrier; design addresses failure</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-04</td>
+<td>STEM exclusion</td>
+<td>HSS-first is sequencing, not limitation; expansion planned</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-05</td>
+<td>Formalization constrains interpretation</td>
+<td>Optional formalization; multiple modes supported</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-06</td>
+<td>Claims not as stable as papers</td>
+<td>Canonical claims + versioning address stability</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-07</td>
+<td>Junior scholar vulnerability</td>
+<td>Mitigations + better than status quo comparison</td>
+<td>CLOSED</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="attack-register">Attack Register</h2>
+<h3 id="all-registered-attacks">All Registered Attacks</h3>
+<table>
+<thead>
+<tr>
+<th>Attack ID</th>
+<th>Type</th>
+<th>Target</th>
+<th>Status</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ATK-101</td>
+<td>REBUT</td>
+<td>C-101</td>
+<td>DEFENDED</td>
+<td>Peer review is evaluation, not discourse</td>
+</tr>
+<tr>
+<td>ATK-103</td>
+<td>UNDERCUT</td>
+<td>A-103</td>
+<td>DEFENDED</td>
+<td>Establishes warrant, not prediction</td>
+</tr>
+<tr>
+<td>ATK-202</td>
+<td>UNDERCUT</td>
+<td>A-202</td>
+<td>DEFENDED</td>
+<td>Progressive formalization addresses failure</td>
+</tr>
+<tr>
+<td>ATK-301</td>
+<td>UNDERMINE</td>
+<td>A-301:P1</td>
+<td>DEFENDED</td>
+<td>HSS-first is sequencing strategy</td>
+</tr>
+<tr>
+<td>ATK-303</td>
+<td>REBUT</td>
+<td>C-303</td>
+<td>DEFENDED</td>
+<td>Optional formalization, multiple modes</td>
+</tr>
+<tr>
+<td>ATK-401</td>
+<td>UNDERCUT</td>
+<td>A-401</td>
+<td>DEFENDED</td>
+<td>Canonical claims + versioning</td>
+</tr>
+<tr>
+<td>ATK-501</td>
+<td>REBUT</td>
+<td>C-501</td>
+<td>DEFENDED</td>
+<td>Mitigations + status quo comparison</td>
+</tr>
+</tbody>
+</table>
+<h3 id="undefended-attacks">Undefended Attacks</h3>
+<p>None. All registered attacks have been addressed.</p>
+<h3 id="open-critical-questions">Open Critical Questions</h3>
+<table>
+<thead>
+<tr>
+<th>CQ ID</th>
+<th>Question</th>
+<th>Status</th>
+<th>Impact if Answered Negatively</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A-201:CQ3</td>
+<td>Real-world scholarly adoption?</td>
+<td>OPEN</td>
+<td>Requires pilot validation</td>
+</tr>
+<tr>
+<td>A-302:CQ3</td>
+<td>Will addressing frustrations drive adoption?</td>
+<td>OPEN</td>
+<td>Empirical validation needed</td>
+</tr>
+<tr>
+<td>A-402:CQ3</td>
+<td>What is expected effect size of versioning?</td>
+<td>OPEN</td>
+<td>Would affect expectations</td>
+</tr>
+<tr>
+<td>A-403:CQ1</td>
+<td>Will institutions credit contributions?</td>
+<td>OPEN</td>
+<td>Critical for incentive shift</td>
+</tr>
+<tr>
+<td>A-602:CQ3</td>
+<td>Is there a simpler solution?</td>
+<td>OPEN</td>
+<td>Would affect build decision</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="synthesis--conclusion">Synthesis &amp; Conclusion</h2>
+<h3 id="argument-chain-complete-structure">Argument Chain: Complete Structure</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                        THESIS ARGUMENT CHAIN                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│                            THESIS-001                                       │
+│                 &quot;Academic Agora should exist and                            │
+│                    be developed&quot; [IN: 0.83]                                 │
+│                              ▲                                              │
+│                              │                                              │
+│        ┌─────────────────────┼─────────────────────┐                        │
+│        │           │         │         │           │                        │
+│    PRONG I     PRONG II  PRONG III  PRONG IV   PRONG V                      │
+│   Discourse   Infra-    Disciplinary Theory of   Risk                       │
+│    Deficit    structure    Fit        Change   Assessment                   │
+│    [0.85]     [0.88]     [0.85]      [0.75]     [0.80]                      │
+│       │          │          │           │          │                        │
+│  ┌────┴────┐ ┌───┴───┐ ┌────┴────┐ ┌────┴────┐    │                        │
+│  │    │    │ │   │   │ │    │    │ │    │    │    │                        │
+│ C-101│C-102│ │C-201│  │ │C-301│   │ │C-401│   │    │                        │
+│ C-103│     │ │C-202│  │ │C-302│   │ │C-402│   │    │                        │
+│      │     │ │C-203│  │ │C-303│   │ │C-403│   │  C-501                      │
+│                                                                             │
+│                              │                                              │
+│                          PRONG VI                                           │
+│                         Alternatives                                        │
+│                           [0.85]                                            │
+│                              │                                              │
+│                        ┌─────┴─────┐                                        │
+│                       C-601       C-602                                     │
+│                                                                             │
+│  ═══════════════════════════════════════════════════════════════════════   │
+│                                                                             │
+│  AGGREGATE THESIS CONFIDENCE:                                               │
+│  Geometric mean: (0.85 × 0.88 × 0.85 × 0.75 × 0.80 × 0.85)^(1/6) = 0.83    │
+│                                                                             │
+│  STATUS: IN (grounded extension)                                            │
+│  QUALIFICATION: Theory of change depends on institutional adoption          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h3 id="thesis-statement-final-form">Thesis Statement: Final Form</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│                         THESIS-001 (FINAL)                                  │
+│                                                                             │
+│  Academic Agora should exist and be developed as infrastructure for         │
+│  scholarly discourse—transforming academic debate from papers-as-PDFs       │
+│  to papers-as-debatable, composable claim graphs.                           │
+│                                                                             │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  This thesis is SUPPORTED by:                                               │
+│                                                                             │
+│  1. PRONG I establishes that infrastructure for sustained scholarly         │
+│     discourse is absent, with measurable consequences for knowledge         │
+│     production, and historical analysis reveals a missing layer in          │
+│     the evolution of scholarly infrastructure.                              │
+│                                                                             │
+│  2. PRONG II establishes that Academic Agora provides the necessary         │
+│     architectural features (claim addressability, typed dialogue,           │
+│     argument structure, evidence linking, versioned releases) on            │
+│     theoretically sound foundations (Walton schemes, AIF, ASPIC+),          │
+│     with academic-specific features (DOI/ORCID integration, quote           │
+│     nodes, fork/merge, BibTeX export).                                      │
+│                                                                             │
+│  3. PRONG III establishes that Humanities and Social Sciences are a         │
+│     natural fit because HSS scholarship is already argumentation-           │
+│     based, the platform addresses documented HSS frustrations, and          │
+│     structured discourse is especially valuable for interpretive            │
+│     pluralism.                                                              │
+│                                                                             │
+│  4. PRONG IV establishes a plausible theory of change: making claims        │
+│     the atomic unit can transform discourse (by analogy to citation         │
+│     networks), versioned releases enable cumulative rather than             │
+│     repetitive knowledge production, and credit for argumentation           │
+│     contributions can shift scholarly incentives.                           │
+│                                                                             │
+│  5. PRONG V establishes that identified risks (adoption friction,           │
+│     junior vulnerability, gaming, platform power, sustainability,           │
+│     scale) have documented mitigations and do not outweigh benefits.        │
+│                                                                             │
+│  6. PRONG VI establishes that Academic Agora is superior to available       │
+│     alternatives for structured scholarly discourse and provides            │
+│     capabilities that cannot be retrofitted onto existing platforms.        │
+│                                                                             │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  This thesis is QUALIFIED by:                                               │
+│                                                                             │
+│  • Theory of change (Prong IV) depends on external factors: will            │
+│    institutions credit platform contributions? This is open.                │
+│                                                                             │
+│  • HSS-first is a sequencing strategy; STEM expansion planned but           │
+│    not yet implemented.                                                     │
+│                                                                             │
+│  • Real-world scholarly adoption requires pilot validation (open CQ).       │
+│                                                                             │
+│  • Sustainability depends on grant funding and institutional                │
+│    partnerships that are not yet secured.                                   │
+│                                                                             │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  STATUS: IN (defensible in grounded extension)                              │
+│  CONFIDENCE: 0.83                                                           │
+│  CHALLENGES ADDRESSED: 7 of 7                                               │
+│  OPEN QUESTIONS: 5 (requiring empirical/institutional validation)           │
+│                                                                             │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│                                                                             │
+│  RECOMMENDED ACTION: Proceed with development, focusing on:                 │
+│  1. HSS pilot communities (philosophy of mind, political theory)            │
+│  2. Graduate student cultivation as early adopters                          │
+│  3. Champion scholar recruitment                                            │
+│  4. Grant applications (NEH/NSF) for sustainability                         │
+│  5. Measurement framework for validating theory of change                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+</div></code></pre>
+<hr>
+<h2 id="appendix-evidence-registry">Appendix: Evidence Registry</h2>
+<table>
+<thead>
+<tr>
+<th>Evidence ID</th>
+<th>Description</th>
+<th>Source</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E-101a</td>
+<td>Scholarly communication requirements</td>
+<td>Borgman, Scholarly Communication (2007)</td>
+<td>Theoretical</td>
+</tr>
+<tr>
+<td>E-101b</td>
+<td>Platform documentation analysis</td>
+<td>PubPeer, Hypothesis, OpenReview documentation</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-D101a</td>
+<td>Peer review history</td>
+<td>Fyfe et al., &quot;History of Peer Review&quot; (2017)</td>
+<td>Historical</td>
+</tr>
+<tr>
+<td>E-102a</td>
+<td>Repeated debates in HSS</td>
+<td>Disciplinary self-commentary</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-102b</td>
+<td>Citation misattribution</td>
+<td>Citation analysis literature</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-102c</td>
+<td>Knowledge attrition</td>
+<td>Knowledge management literature</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-103a</td>
+<td>Scholarly infrastructure history</td>
+<td>Shuttleworth (2016); Royal Society</td>
+<td>Historical</td>
+</tr>
+<tr>
+<td>E-103b</td>
+<td>Citation indexing history</td>
+<td>Clarivate history; DOI handbook</td>
+<td>Historical</td>
+</tr>
+<tr>
+<td>E-201a</td>
+<td>Infrastructure requirements</td>
+<td>Derived from C-101</td>
+<td>Theoretical</td>
+</tr>
+<tr>
+<td>E-201b</td>
+<td>System Architecture Document</td>
+<td>Platform documentation</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-202a</td>
+<td>Computational argumentation field</td>
+<td>COMMA proceedings; A&amp;C journal</td>
+<td>Academic</td>
+</tr>
+<tr>
+<td>E-202b</td>
+<td>Walton schemes</td>
+<td>Walton, Reed &amp; Macagno (2008)</td>
+<td>Academic</td>
+</tr>
+<tr>
+<td>E-202c</td>
+<td>AIF standard</td>
+<td>Chesñevar et al. (2006); Reed et al. (2010)</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-202d</td>
+<td>ASPIC+ framework</td>
+<td>Prakken (2010); Modgil &amp; Prakken (2018)</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-202e</td>
+<td>Implementation</td>
+<td>System Architecture Document</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-203</td>
+<td>Academic features</td>
+<td>Phase 2 development roadmap</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-301a</td>
+<td>HSS disciplinary practices</td>
+<td>Graduate curricula; disciplinary self-descriptions</td>
+<td>Descriptive</td>
+</tr>
+<tr>
+<td>E-302a</td>
+<td>HSS scholar frustrations</td>
+<td>User interviews; Crooked Timber</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-303a</td>
+<td>Interpretive pluralism norms</td>
+<td>Hermeneutic tradition</td>
+<td>Theoretical</td>
+</tr>
+<tr>
+<td>E-401a</td>
+<td>Citation indexing transformation</td>
+<td>Garfield; Clarivate history</td>
+<td>Historical</td>
+</tr>
+<tr>
+<td>E-402a</td>
+<td>Repeated debates</td>
+<td>Disciplinary self-commentary</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-402b</td>
+<td>DebateRelease versioning</td>
+<td>System Architecture Document</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-403a</td>
+<td>Academic incentives</td>
+<td>Edwards &amp; Roy (2017)</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-403b</td>
+<td>Credit system roadmap</td>
+<td>Phase 4 development roadmap</td>
+<td>Technical</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="document-metadata">Document Metadata</h2>
+<p><strong>Release</strong>: v1.0.0<br>
+<strong>Generated</strong>: January 2026<br>
+<strong>ASPIC+ Evaluation</strong>: Grounded extension computed<br>
+<strong>Thesis Status</strong>: IN<br>
+<strong>Aggregate Confidence</strong>: 0.83</p>
+<p><strong>Changelog from v0 (implicit prior state)</strong>:</p>
+<ul>
+<li>Initial thesis formulation</li>
+<li>Six prongs established</li>
+<li>Seven attacks registered and addressed</li>
+<li>Commitment store populated</li>
+<li>Evidence registry compiled</li>
+</ul>
+<hr>
+<p><em>This document demonstrates the platform's thesis generation capability applied to the academic use case. The thesis is subject to further challenge and refinement through ongoing deliberation.</em></p>
+
+</body>
+</html>

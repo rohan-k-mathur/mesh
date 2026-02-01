@@ -1,59 +1,410 @@
-# In Defense of the Civic Agora Developed by MEsh
+<!DOCTYPE html>
+<html>
+<head>
+<title>civic-agora-thesis-brief.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
 
-## Meta-Documentation
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 
-**Document Type**: Thesis (Legal-Style Brief)  
-**Deliberation**: Platform Self-Justification  
-**Release Version**: v1.0.0  
-**Status**: DEFENDED (subject to challenge)  
-**Author**: Platform Development Team  
-**Date**: January 2026
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
 
----
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
 
-## Central Thesis
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
 
-**THESIS-001**: *Civic Agora should exist and be developed as infrastructure for democratic reasoning.*
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
 
-**Thesis Type**: Practical (action-guiding)  
-**Status**: IN (grounded extension)
+body.showEditorSelection .code-line {
+	position: relative;
+}
 
-This thesis is supported by five primary prongs, each of which is itself a defended claim supported by structured arguments.
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
 
----
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
 
-## Table of Contents
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
 
-1. [Prong I: The Democratic Deficit](#prong-i-the-democratic-deficit)
-2. [Prong II: Infrastructure Adequacy](#prong-ii-infrastructure-adequacy)
-3. [Prong III: Theory of Change](#prong-iii-theory-of-change)
-4. [Prong IV: Risk Assessment](#prong-iv-risk-assessment)
-5. [Prong V: Alternative Comparison](#prong-v-alternative-comparison)
-6. [Commitment Store](#commitment-store)
-7. [Attack Register](#attack-register)
-8. [Synthesis & Conclusion](#synthesis--conclusion)
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
 
----
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
 
-## Prong I: The Democratic Deficit
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
 
-### Claim C-101
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
 
-> **Democratic legitimacy requires public reasoning infrastructure, not merely voting.**
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
 
-**Claim ID**: C-101  
-**Status**: IN  
-**Confidence**: 0.85  
-**Type**: Normative/Theoretical
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
 
----
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
 
-### Argument A-101: Argument from Authority (Habermas)
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
 
-**Scheme**: Argument from Expert Opinion (Walton)
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="in-defense-of-the-civic-agora-developed-by-mesh">In Defense of the Civic Agora Developed by MEsh</h1>
+<h2 id="meta-documentation">Meta-Documentation</h2>
+<p><strong>Document Type</strong>: Thesis (Legal-Style Brief)<br>
+<strong>Deliberation</strong>: Platform Self-Justification<br>
+<strong>Release Version</strong>: v1.0.0<br>
+<strong>Status</strong>: DEFENDED (subject to challenge)<br>
+<strong>Author</strong>: Platform Development Team<br>
+<strong>Date</strong>: January 2026</p>
+<hr>
+<h2 id="central-thesis">Central Thesis</h2>
+<p><strong>THESIS-001</strong>: <em>Civic Agora should exist and be developed as infrastructure for democratic reasoning.</em></p>
+<p><strong>Thesis Type</strong>: Practical (action-guiding)<br>
+<strong>Status</strong>: IN (grounded extension)</p>
+<p>This thesis is supported by five primary prongs, each of which is itself a defended claim supported by structured arguments.</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#prong-i-the-democratic-deficit">Prong I: The Democratic Deficit</a></li>
+<li><a href="#prong-ii-infrastructure-adequacy">Prong II: Infrastructure Adequacy</a></li>
+<li><a href="#prong-iii-theory-of-change">Prong III: Theory of Change</a></li>
+<li><a href="#prong-iv-risk-assessment">Prong IV: Risk Assessment</a></li>
+<li><a href="#prong-v-alternative-comparison">Prong V: Alternative Comparison</a></li>
+<li><a href="#commitment-store">Commitment Store</a></li>
+<li><a href="#attack-register">Attack Register</a></li>
+<li><a href="#synthesis--conclusion">Synthesis &amp; Conclusion</a></li>
+</ol>
+<hr>
+<h2 id="prong-i-the-democratic-deficit">Prong I: The Democratic Deficit</h2>
+<h3 id="claim-c-101">Claim C-101</h3>
+<blockquote>
+<p><strong>Democratic legitimacy requires public reasoning infrastructure, not merely voting.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-101<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Normative/Theoretical</p>
+<hr>
+<h3 id="argument-a-101-argument-from-authority-habermas">Argument A-101: Argument from Authority (Habermas)</h3>
+<p><strong>Scheme</strong>: Argument from Expert Opinion (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-101                                                      │
 │ Scheme: Argument from Expert Opinion                                │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -84,27 +435,60 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.80                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-101
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | How credible is Habermas as an expert? | ANSWERED | E-101a establishes 50+ years of peer-reviewed scholarship, global influence, direct engagement with democratic institutions |
-| CQ2 | Is Habermas an expert in the specific domain? | ANSWERED | Democratic theory is his primary field; Between Facts and Norms directly addresses democratic legitimacy |
-| CQ3 | What did Habermas actually assert? | ANSWERED | E-101b provides direct citation with page numbers |
-| CQ4 | Is Habermas reliable (trustworthy)? | ANSWERED | No known conflicts of interest; scholarship subject to extensive peer critique |
-| CQ5 | Is the claim consistent with other experts? | CHALLENGED | See Attack ATK-101 |
-| CQ6 | Is the claim based on evidence? | ANSWERED | Habermas synthesizes historical, sociological, and philosophical evidence |
-
----
-
-### Attack ATK-101: Expert Disagreement (Mouffe)
-
-**Attack Type**: UNDERCUT (challenges the inference, not the conclusion)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-101">Critical Questions for A-101</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>How credible is Habermas as an expert?</td>
+<td>ANSWERED</td>
+<td>E-101a establishes 50+ years of peer-reviewed scholarship, global influence, direct engagement with democratic institutions</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is Habermas an expert in the specific domain?</td>
+<td>ANSWERED</td>
+<td>Democratic theory is his primary field; Between Facts and Norms directly addresses democratic legitimacy</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>What did Habermas actually assert?</td>
+<td>ANSWERED</td>
+<td>E-101b provides direct citation with page numbers</td>
+</tr>
+<tr>
+<td>CQ4</td>
+<td>Is Habermas reliable (trustworthy)?</td>
+<td>ANSWERED</td>
+<td>No known conflicts of interest; scholarship subject to extensive peer critique</td>
+</tr>
+<tr>
+<td>CQ5</td>
+<td>Is the claim consistent with other experts?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-101</td>
+</tr>
+<tr>
+<td>CQ6</td>
+<td>Is the claim based on evidence?</td>
+<td>ANSWERED</td>
+<td>Habermas synthesizes historical, sociological, and philosophical evidence</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-101-expert-disagreement-mouffe">Attack ATK-101: Expert Disagreement (Mouffe)</h3>
+<p><strong>Attack Type</strong>: UNDERCUT (challenges the inference, not the conclusion)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-101                                                      │
 │ Type: UNDERCUT                                                      │
 │ Target: A-101 (inference step)                                      │
@@ -123,15 +507,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CA-Node: Conflict Application (undercut)                            │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-101: Synthesis Response
-
-**Move Type**: GROUNDS  
-**Status**: DEFENDED
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-101-synthesis-response">Defense D-101: Synthesis Response</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-101                                                       │
 │ Type: GROUNDS (response to UNDERCUT)                                │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -142,8 +522,8 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │    democratic legitimacy—she disputes whether it produces           │
 │    rational consensus.                                              │
 │                                                                     │
-│ 2. C-101 claims legitimacy requires "public reasoning              │
-│    infrastructure"—not that reasoning produces consensus.           │
+│ 2. C-101 claims legitimacy requires &quot;public reasoning              │
+│    infrastructure&quot;—not that reasoning produces consensus.           │
 │                                                                     │
 │ 3. Even agonistic democracy requires participants to articulate     │
 │    and defend positions—this is reasoning, even if conflictual.     │
@@ -154,27 +534,20 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ REVISED CONFIDENCE: 0.85 (strengthened by synthesis)                │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Claim C-102
-
-> **Current digital infrastructure systematically prevents public reasoning.**
-
-**Claim ID**: C-102  
-**Status**: IN  
-**Confidence**: 0.90  
-**Type**: Empirical/Descriptive
-
----
-
-### Argument A-102: Argument from Sign
-
-**Scheme**: Argument from Sign (Walton)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="claim-c-102">Claim C-102</h3>
+<blockquote>
+<p><strong>Current digital infrastructure systematically prevents public reasoning.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-102<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.90<br>
+<strong>Type</strong>: Empirical/Descriptive</p>
+<hr>
+<h3 id="argument-a-102-argument-from-sign">Argument A-102: Argument from Sign</h3>
+<p><strong>Scheme</strong>: Argument from Sign (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-102                                                      │
 │ Scheme: Argument from Sign                                          │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -207,24 +580,42 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.90                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-102
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | What is the strength of the correlation between sign and signified? | ANSWERED | Logical derivation: if X requires conditions A-D, and infrastructure lacks A-D, then infrastructure cannot support X |
-| CQ2 | Are there other explanations for the sign? | ANSWERED | The architectural features are documented in platform design; they're not accidental but intentional design choices serving engagement metrics |
-| CQ3 | Is there counter-evidence? | CHALLENGED | See Attack ATK-102 |
-
----
-
-### Attack ATK-102: Wikipedia Counter-Example
-
-**Attack Type**: REBUT (presents contrary evidence)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-102">Critical Questions for A-102</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>What is the strength of the correlation between sign and signified?</td>
+<td>ANSWERED</td>
+<td>Logical derivation: if X requires conditions A-D, and infrastructure lacks A-D, then infrastructure cannot support X</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there other explanations for the sign?</td>
+<td>ANSWERED</td>
+<td>The architectural features are documented in platform design; they're not accidental but intentional design choices serving engagement metrics</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is there counter-evidence?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-102</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-102-wikipedia-counter-example">Attack ATK-102: Wikipedia Counter-Example</h3>
+<p><strong>Attack Type</strong>: REBUT (presents contrary evidence)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-102                                                      │
 │ Type: REBUT                                                         │
 │ Target: C-102 (conclusion)                                          │
@@ -239,15 +630,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CA-Node: Conflict Application (rebut)                               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-102: Scope Clarification
-
-**Move Type**: GROUNDS  
-**Status**: DEFENDED
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-102-scope-clarification">Defense D-102: Scope Clarification</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-102                                                       │
 │ Type: GROUNDS (response to REBUT)                                   │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -262,7 +649,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ 3. Wikipedia's Talk pages are notably inadequate for structured     │
 │    argument—they are closer to forum threads than deliberation.     │
 │                                                                     │
-│ 4. C-102 should be scoped: "dominant general-purpose platforms"     │
+│ 4. C-102 should be scoped: &quot;dominant general-purpose platforms&quot;     │
 │    lack deliberation infrastructure. Purpose-built exceptions       │
 │    (Wikipedia, specialist platforms) prove the rule.                │
 │                                                                     │
@@ -272,27 +659,20 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CONFIDENCE: 0.90 (maintained with scope refinement)                 │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Claim C-103
-
-> **The infrastructure deficit has measurable democratic consequences.**
-
-**Claim ID**: C-103  
-**Status**: IN  
-**Confidence**: 0.75  
-**Type**: Empirical/Causal
-
----
-
-### Argument A-103: Argument from Cause to Effect
-
-**Scheme**: Argument from Cause to Effect (Walton)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="claim-c-103">Claim C-103</h3>
+<blockquote>
+<p><strong>The infrastructure deficit has measurable democratic consequences.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-103<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.75<br>
+<strong>Type</strong>: Empirical/Causal</p>
+<hr>
+<h3 id="argument-a-103-argument-from-cause-to-effect">Argument A-103: Argument from Cause to Effect</h3>
+<p><strong>Scheme</strong>: Argument from Cause to Effect (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-103                                                      │
 │ Scheme: Argument from Cause to Effect                               │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -306,7 +686,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ P2: Citizens unable to evaluate justifications disengage from       │
 │     political participation or rely on heuristics (party,           │
 │     identity, elite cues)                                           │
-│     [Evidence: E-103b - Achen & Bartels, Democracy for Realists     │
+│     [Evidence: E-103b - Achen &amp; Bartels, Democracy for Realists     │
 │      (2016); declining civic engagement metrics]                    │
 │                                                                     │
 │ P3: Disengagement and heuristic-reliance degrade democratic         │
@@ -324,23 +704,47 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.75 (causal claims inherently uncertain)               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-103
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Is there a causal mechanism? | ANSWERED | Yes: infrastructure shapes affordances → affordances shape behavior → behavior shapes political outcomes |
-| CQ2 | Is the cause sufficient for the effect? | QUALIFIED | Infrastructure deficit is a contributing cause, not sole cause. Multiple factors affect democratic health. |
-| CQ3 | Are there intervening factors? | ANSWERED | Yes (economic inequality, education, institutional design), but infrastructure is independent contributor |
-| CQ4 | Is there counter-evidence? | OPEN | No direct challenge registered |
-
----
-
-### Prong I Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-103">Critical Questions for A-103</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is there a causal mechanism?</td>
+<td>ANSWERED</td>
+<td>Yes: infrastructure shapes affordances → affordances shape behavior → behavior shapes political outcomes</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is the cause sufficient for the effect?</td>
+<td>QUALIFIED</td>
+<td>Infrastructure deficit is a contributing cause, not sole cause. Multiple factors affect democratic health.</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are there intervening factors?</td>
+<td>ANSWERED</td>
+<td>Yes (economic inequality, education, institutional design), but infrastructure is independent contributor</td>
+</tr>
+<tr>
+<td>CQ4</td>
+<td>Is there counter-evidence?</td>
+<td>OPEN</td>
+<td>No direct challenge registered</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="prong-i-summary">Prong I Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ PRONG I: THE DEMOCRATIC DEFICIT                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
@@ -365,29 +769,21 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Aggregate Confidence: 0.83                                          │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Prong II: Infrastructure Adequacy
-
-### Claim C-201
-
-> **Civic Agora provides the architectural features necessary for public reasoning.**
-
-**Claim ID**: C-201  
-**Status**: IN  
-**Confidence**: 0.90  
-**Type**: Technical/Descriptive
-
----
-
-### Argument A-201: Argument from Properties
-
-**Scheme**: Argument from Classification (Walton)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h2 id="prong-ii-infrastructure-adequacy">Prong II: Infrastructure Adequacy</h2>
+<h3 id="claim-c-201">Claim C-201</h3>
+<blockquote>
+<p><strong>Civic Agora provides the architectural features necessary for public reasoning.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-201<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.90<br>
+<strong>Type</strong>: Technical/Descriptive</p>
+<hr>
+<h3 id="argument-a-201-argument-from-properties">Argument A-201: Argument from Properties</h3>
+<p><strong>Scheme</strong>: Argument from Classification (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-201                                                      │
 │ Scheme: Argument from Classification                                │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -425,35 +821,51 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.90                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-201
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Does the individual (Civic Agora) actually have the properties? | ANSWERED | E-201b provides implementation evidence; properties are verifiable in code |
-| CQ2 | Is the classification (public reasoning infrastructure) appropriate? | ANSWERED | Classification derived from established requirements (P1) |
-| CQ3 | Are there exceptions to the classification? | OPEN | Platform must be actually deployed and used to confirm real-world adequacy |
-
----
-
-### Claim C-202
-
-> **The platform's formal foundations (AIF, ASPIC+, PPD) are theoretically sound.**
-
-**Claim ID**: C-202  
-**Status**: IN  
-**Confidence**: 0.85  
-**Type**: Theoretical/Technical
-
----
-
-### Argument A-202: Argument from Established Theory
-
-**Scheme**: Argument from Expert Opinion (applied to academic consensus)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-201">Critical Questions for A-201</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Does the individual (Civic Agora) actually have the properties?</td>
+<td>ANSWERED</td>
+<td>E-201b provides implementation evidence; properties are verifiable in code</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is the classification (public reasoning infrastructure) appropriate?</td>
+<td>ANSWERED</td>
+<td>Classification derived from established requirements (P1)</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are there exceptions to the classification?</td>
+<td>OPEN</td>
+<td>Platform must be actually deployed and used to confirm real-world adequacy</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="claim-c-202">Claim C-202</h3>
+<blockquote>
+<p><strong>The platform's formal foundations (AIF, ASPIC+, PPD) are theoretically sound.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-202<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.85<br>
+<strong>Type</strong>: Theoretical/Technical</p>
+<hr>
+<h3 id="argument-a-202-argument-from-established-theory">Argument A-202: Argument from Established Theory</h3>
+<p><strong>Scheme</strong>: Argument from Expert Opinion (applied to academic consensus)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-202                                                      │
 │ Scheme: Argument from Expert Opinion (Academic Consensus)           │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -463,7 +875,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ P1: The argumentation theory research community has developed       │
 │     and validated formal frameworks for representing argument       │
 │     [Evidence: E-202a - 40+ years of computational argumentation    │
-│      research; COMMA conference series; Argument & Computation      │
+│      research; COMMA conference series; Argument &amp; Computation      │
 │      journal]                                                       │
 │                                                                     │
 │ P2: AIF (Argument Interchange Format) is the standard ontology      │
@@ -474,11 +886,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ P3: ASPIC+ is the leading framework for structured argumentation    │
 │     with defeasible reasoning                                       │
 │     [Evidence: E-202c - Prakken (2010); extensive citations;        │
-│      Modgil & Prakken (2018)]                                       │
+│      Modgil &amp; Prakken (2018)]                                       │
 │                                                                     │
 │ P4: PPD (Protocol for Persuasion Dialogues) is grounded in          │
 │     formal dialogue game theory                                     │
-│     [Evidence: E-202d - Walton & Krabbe (1995); Prakken (2006)]     │
+│     [Evidence: E-202d - Walton &amp; Krabbe (1995); Prakken (2006)]     │
 │                                                                     │
 │ P5: Civic Agora implements AIF, ASPIC+, and PPD                     │
 │     [Evidence: E-202e - System Architecture Document]               │
@@ -493,24 +905,42 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.85                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-202
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Is there genuine expert consensus? | ANSWERED | AIF and ASPIC+ are standard references; no competing paradigm dominates |
-| CQ2 | Is the implementation faithful to the theory? | PARTIAL | Architecture claims fidelity; empirical verification pending |
-| CQ3 | Does theoretical soundness imply practical utility? | CHALLENGED | See Attack ATK-202 |
-
----
-
-### Attack ATK-202: Theory-Practice Gap
-
-**Attack Type**: UNDERCUT
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-202">Critical Questions for A-202</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is there genuine expert consensus?</td>
+<td>ANSWERED</td>
+<td>AIF and ASPIC+ are standard references; no competing paradigm dominates</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is the implementation faithful to the theory?</td>
+<td>PARTIAL</td>
+<td>Architecture claims fidelity; empirical verification pending</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Does theoretical soundness imply practical utility?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-202</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-202-theory-practice-gap">Attack ATK-202: Theory-Practice Gap</h3>
+<p><strong>Attack Type</strong>: UNDERCUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-202                                                      │
 │ Type: UNDERCUT                                                      │
 │ Target: A-202 (inference from theory to utility)                    │
@@ -520,29 +950,25 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ Theoretical soundness of formal frameworks does not guarantee       │
 │ practical utility. Academic argumentation theory may be too         │
-│ complex for real-world users. The inference from "formally          │
-│ sound" to "practically adequate" is unwarranted.                    │
+│ complex for real-world users. The inference from &quot;formally          │
+│ sound&quot; to &quot;practically adequate&quot; is unwarranted.                    │
 │                                                                     │
 │ CA-Node: Conflict Application (undercut)                            │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-202: Progressive Formalization
-
-**Move Type**: GROUNDS  
-**Status**: DEFENDED
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-202-progressive-formalization">Defense D-202: Progressive Formalization</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-202                                                       │
 │ Type: GROUNDS                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │ 1. The attack identifies a real concern: theory-practice gap.       │
 │                                                                     │
-│ 2. The platform addresses this through "progressive                 │
-│    formalization"—formal infrastructure underlies the system,       │
+│ 2. The platform addresses this through &quot;progressive                 │
+│    formalization&quot;—formal infrastructure underlies the system,       │
 │    but users interact at varying levels of complexity:              │
 │                                                                     │
 │    Discussion → Proposition → Claim → Argument → Thesis             │
@@ -562,14 +988,10 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ sound AND designed for progressive accessibility                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Prong II Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="prong-ii-summary">Prong II Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ PRONG II: INFRASTRUCTURE ADEQUACY                                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
@@ -589,29 +1011,21 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Aggregate Confidence: 0.87                                          │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Prong III: Theory of Change
-
-### Claim C-301
-
-> **Improving reasoning quality among discourse-shaping actors can affect political outcomes.**
-
-**Claim ID**: C-301  
-**Status**: IN  
-**Confidence**: 0.70  
-**Type**: Causal/Theoretical
-
----
-
-### Argument A-301: Argument from Analogy (Journalism Infrastructure)
-
-**Scheme**: Argument from Analogy (Walton)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h2 id="prong-iii-theory-of-change">Prong III: Theory of Change</h2>
+<h3 id="claim-c-301">Claim C-301</h3>
+<blockquote>
+<p><strong>Improving reasoning quality among discourse-shaping actors can affect political outcomes.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-301<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.70<br>
+<strong>Type</strong>: Causal/Theoretical</p>
+<hr>
+<h3 id="argument-a-301-argument-from-analogy-journalism-infrastructure">Argument A-301: Argument from Analogy (Journalism Infrastructure)</h3>
+<p><strong>Scheme</strong>: Argument from Analogy (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-301                                                      │
 │ Scheme: Argument from Analogy                                       │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -650,25 +1064,48 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.70                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-301
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Are there relevant similarities between the cases? | ANSWERED | Both involve: infrastructure → professional users → public effects; both support epistemic activities |
-| CQ2 | Are there relevant differences? | CHALLENGED | See Attack ATK-301 |
-| CQ3 | Is the same relationship plausible in the target case? | QUALIFIED | Plausible but uncertain; this is a bet, not a certainty |
-| CQ4 | Are there counter-analogies? | OPEN | None registered |
-
----
-
-### Attack ATK-301: Disanalogy (Journalism Has Distribution)
-
-**Attack Type**: UNDERCUT
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-301">Critical Questions for A-301</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Are there relevant similarities between the cases?</td>
+<td>ANSWERED</td>
+<td>Both involve: infrastructure → professional users → public effects; both support epistemic activities</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are there relevant differences?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-301</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is the same relationship plausible in the target case?</td>
+<td>QUALIFIED</td>
+<td>Plausible but uncertain; this is a bet, not a certainty</td>
+</tr>
+<tr>
+<td>CQ4</td>
+<td>Are there counter-analogies?</td>
+<td>OPEN</td>
+<td>None registered</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-301-disanalogy-journalism-has-distribution">Attack ATK-301: Disanalogy (Journalism Has Distribution)</h3>
+<p><strong>Attack Type</strong>: UNDERCUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-301                                                      │
 │ Type: UNDERCUT                                                      │
 │ Target: A-301 (analogy validity)                                    │
@@ -685,15 +1122,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CA-Node: Conflict Application (undercut on disanalogy)              │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-301: Distribution Through Existing Networks
-
-**Move Type**: GROUNDS  
-**Status**: DEFENDED
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-301-distribution-through-existing-networks">Defense D-301: Distribution Through Existing Networks</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-301                                                       │
 │ Type: GROUNDS                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -706,11 +1139,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │    - Users who already have audiences (journalists, analysts,       │
 │      newsletter writers, podcasters)                                │
 │    - Platform outputs designed for export to existing formats       │
-│    - "Credibility anchor" model: analysis on platform, outputs      │
+│    - &quot;Credibility anchor&quot; model: analysis on platform, outputs      │
 │      distributed through users' existing channels                   │
 │                                                                     │
-│ 3. The analogy is not "newsroom = Civic Agora" but                  │
-│    "newsroom = Civic Agora + users' existing distribution"          │
+│ 3. The analogy is not &quot;newsroom = Civic Agora&quot; but                  │
+│    &quot;newsroom = Civic Agora + users' existing distribution&quot;          │
 │                                                                     │
 │ 4. The platform's export formats (thread drafts, newsletter         │
 │    blocks, citation blocks) are designed precisely for this.        │
@@ -719,40 +1152,33 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CONFIDENCE: Maintained at 0.70 (still uncertain)                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Claim C-302
-
-> **Repeated exposure to contradiction materials can erode phantasmic identity pillars.**
-
-**Claim ID**: C-302  
-**Status**: UNDEC (contested)  
-**Confidence**: 0.60  
-**Type**: Psychological/Causal
-
----
-
-### Argument A-302: Argument from Mechanism (Psychoanalytic)
-
-**Scheme**: Argument from Cause to Effect (with mechanism specification)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="claim-c-302">Claim C-302</h3>
+<blockquote>
+<p><strong>Repeated exposure to contradiction materials can erode phantasmic identity pillars.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-302<br>
+<strong>Status</strong>: UNDEC (contested)<br>
+<strong>Confidence</strong>: 0.60<br>
+<strong>Type</strong>: Psychological/Causal</p>
+<hr>
+<h3 id="argument-a-302-argument-from-mechanism-psychoanalytic">Argument A-302: Argument from Mechanism (Psychoanalytic)</h3>
+<p><strong>Scheme</strong>: Argument from Cause to Effect (with mechanism specification)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-302                                                      │
 │ Scheme: Argument from Cause to Effect (Mechanism)                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │ PREMISES:                                                           │
 │                                                                     │
-│ P1: Identity formation requires supporting "pillars"—beliefs        │
+│ P1: Identity formation requires supporting &quot;pillars&quot;—beliefs        │
 │     and narratives that make the identity coherent                  │
 │     [Evidence: E-302a - psychoanalytic theory; social identity      │
 │      theory]                                                        │
 │                                                                     │
-│ P2: Pillars can be "phantasmic" (not corresponding to reality)      │
-│     or "reality-based" (can survive reality-testing)                │
+│ P2: Pillars can be &quot;phantasmic&quot; (not corresponding to reality)      │
+│     or &quot;reality-based&quot; (can survive reality-testing)                │
 │                                                                     │
 │ P3: Phantasmic pillars are stabilized through repetition,           │
 │     collective acceptance, and absence of contradiction             │
@@ -778,25 +1204,48 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.60 (theoretical; limited direct evidence)             │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Critical Questions for A-302
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Is the causal mechanism plausible? | ANSWERED | Draws on established psychoanalytic and social psychology concepts |
-| CQ2 | Is there empirical support? | WEAK | Limited direct research on pillar erosion specifically; adjacent research is supportive but not conclusive |
-| CQ3 | Are there counteracting factors? | CHALLENGED | See Attack ATK-302 |
-| CQ4 | What is the effect size and timeline? | OPEN | Unknown; likely slow and variable |
-
----
-
-### Attack ATK-302: Backfire Effect
-
-**Attack Type**: REBUT
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="critical-questions-for-a-302">Critical Questions for A-302</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is the causal mechanism plausible?</td>
+<td>ANSWERED</td>
+<td>Draws on established psychoanalytic and social psychology concepts</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is there empirical support?</td>
+<td>WEAK</td>
+<td>Limited direct research on pillar erosion specifically; adjacent research is supportive but not conclusive</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are there counteracting factors?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-302</td>
+</tr>
+<tr>
+<td>CQ4</td>
+<td>What is the effect size and timeline?</td>
+<td>OPEN</td>
+<td>Unknown; likely slow and variable</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-302-backfire-effect">Attack ATK-302: Backfire Effect</h3>
+<p><strong>Attack Type</strong>: REBUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-302                                                      │
 │ Type: REBUT                                                         │
 │ Target: C-302 (conclusion)                                          │
@@ -804,27 +1253,23 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ ATTACKING CLAIM:                                                    │
 │                                                                     │
-│ Research on the "backfire effect" suggests that challenging         │
+│ Research on the &quot;backfire effect&quot; suggests that challenging         │
 │ identity-relevant beliefs can STRENGTHEN rather than erode them.    │
 │ Motivated reasoning causes people to reject contradicting           │
 │ information and reinforce existing beliefs. Therefore, the          │
 │ erosion mechanism may be illusory or reversed.                      │
 │                                                                     │
-│ [Evidence: E-ATK302 - Nyhan & Reifler (2010) on backfire;           │
+│ [Evidence: E-ATK302 - Nyhan &amp; Reifler (2010) on backfire;           │
 │  Kahan on cultural cognition]                                       │
 │                                                                     │
 │ CA-Node: Conflict Application (rebut)                               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-302: Conditional Erosion
-
-**Move Type**: GROUNDS  
-**Status**: PARTIAL
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-302-conditional-erosion">Defense D-302: Conditional Erosion</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: PARTIAL</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-302                                                       │
 │ Type: GROUNDS                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -832,7 +1277,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ 1. The backfire effect is real and must be acknowledged.            │
 │                                                                     │
 │ 2. However, subsequent research has found the backfire effect       │
-│    is less robust than initially claimed (Wood & Porter, 2019).     │
+│    is less robust than initially claimed (Wood &amp; Porter, 2019).     │
 │    Corrections often do work, though imperfectly.                   │
 │                                                                     │
 │ 3. The erosion mechanism likely depends on conditions:              │
@@ -854,14 +1299,10 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ REVISED CONFIDENCE: 0.55                                            │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Prong III Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="prong-iii-summary">Prong III Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ PRONG III: THEORY OF CHANGE                                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
@@ -885,29 +1326,21 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ acknowledges uncertainty about ultimate effects.                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Prong IV: Risk Assessment
-
-### Claim C-401
-
-> **The risks of building Civic Agora are manageable and do not outweigh potential benefits.**
-
-**Claim ID**: C-401  
-**Status**: IN  
-**Confidence**: 0.80  
-**Type**: Practical/Evaluative
-
----
-
-### Argument A-401: Practical Reasoning (Risk-Benefit)
-
-**Scheme**: Practical Reasoning (Walton)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h2 id="prong-iv-risk-assessment">Prong IV: Risk Assessment</h2>
+<h3 id="claim-c-401">Claim C-401</h3>
+<blockquote>
+<p><strong>The risks of building Civic Agora are manageable and do not outweigh potential benefits.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-401<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.80<br>
+<strong>Type</strong>: Practical/Evaluative</p>
+<hr>
+<h3 id="argument-a-401-practical-reasoning-risk-benefit">Argument A-401: Practical Reasoning (Risk-Benefit)</h3>
+<p><strong>Scheme</strong>: Practical Reasoning (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-401                                                      │
 │ Scheme: Practical Reasoning (Means-End)                             │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -942,37 +1375,104 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.80                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Risk Register with Mitigations
-
-| Risk ID | Risk Description | Severity | Likelihood | Mitigation | Residual |
-|---------|------------------|----------|------------|------------|----------|
-| R1 | **Technocratic exclusion**: Formal infrastructure excludes non-experts | High | Medium | Progressive formalization; facilitated mode; multiple entry levels | Low-Medium |
-| R2 | **Bad actor capture**: Platform used to launder propaganda as "reasoned" | High | Medium | Commitment tracking; challenge visibility; provenance; community norms | Medium |
-| R3 | **False legitimation**: Appearance of deliberation without substance | Medium | Medium | Measurement framework; transparent evaluation; clear success criteria | Low-Medium |
-| R4 | **Resource waste**: Theory of change fails; investment wasted | Medium | Medium | Phased deployment; clear milestones; pivot capability | Low |
-| R5 | **Unintended consequences**: Unknown negative effects | Unknown | Unknown | Iterative deployment; monitoring; feedback loops | Unknown |
-
-#### Critical Questions for A-401
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Are there other means to realize G? | CHALLENGED | See Attack ATK-401 |
-| CQ2 | Is the means (platform) realistically achievable? | ANSWERED | Platform is implemented; civic deployment is feasible |
-| CQ3 | Are the side effects acceptable? | ANSWERED | Risk register documents and addresses known risks |
-| CQ4 | Are there better alternatives? | CHALLENGED | See Prong V |
-
----
-
-### Attack ATK-401: Alternative Means (Education)
-
-**Attack Type**: UNDERCUT
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="risk-register-with-mitigations">Risk Register with Mitigations</h3>
+<table>
+<thead>
+<tr>
+<th>Risk ID</th>
+<th>Risk Description</th>
+<th>Severity</th>
+<th>Likelihood</th>
+<th>Mitigation</th>
+<th>Residual</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R1</td>
+<td><strong>Technocratic exclusion</strong>: Formal infrastructure excludes non-experts</td>
+<td>High</td>
+<td>Medium</td>
+<td>Progressive formalization; facilitated mode; multiple entry levels</td>
+<td>Low-Medium</td>
+</tr>
+<tr>
+<td>R2</td>
+<td><strong>Bad actor capture</strong>: Platform used to launder propaganda as &quot;reasoned&quot;</td>
+<td>High</td>
+<td>Medium</td>
+<td>Commitment tracking; challenge visibility; provenance; community norms</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>R3</td>
+<td><strong>False legitimation</strong>: Appearance of deliberation without substance</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Measurement framework; transparent evaluation; clear success criteria</td>
+<td>Low-Medium</td>
+</tr>
+<tr>
+<td>R4</td>
+<td><strong>Resource waste</strong>: Theory of change fails; investment wasted</td>
+<td>Medium</td>
+<td>Medium</td>
+<td>Phased deployment; clear milestones; pivot capability</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>R5</td>
+<td><strong>Unintended consequences</strong>: Unknown negative effects</td>
+<td>Unknown</td>
+<td>Unknown</td>
+<td>Iterative deployment; monitoring; feedback loops</td>
+<td>Unknown</td>
+</tr>
+</tbody>
+</table>
+<h4 id="critical-questions-for-a-401">Critical Questions for A-401</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Are there other means to realize G?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-401</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Is the means (platform) realistically achievable?</td>
+<td>ANSWERED</td>
+<td>Platform is implemented; civic deployment is feasible</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Are the side effects acceptable?</td>
+<td>ANSWERED</td>
+<td>Risk register documents and addresses known risks</td>
+</tr>
+<tr>
+<td>CQ4</td>
+<td>Are there better alternatives?</td>
+<td>CHALLENGED</td>
+<td>See Prong V</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-401-alternative-means-education">Attack ATK-401: Alternative Means (Education)</h3>
+<p><strong>Attack Type</strong>: UNDERCUT</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-401                                                      │
 │ Type: UNDERCUT                                                      │
 │ Target: A-401 (means selection)                                     │
@@ -982,21 +1482,17 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ There may be better means to improve democratic reasoning:          │
 │ civic education, media literacy programs, journalism funding,       │
-│ etc. The inference from "goal G" to "build platform" is             │
+│ etc. The inference from &quot;goal G&quot; to &quot;build platform&quot; is             │
 │ undercut by availability of alternatives.                           │
 │                                                                     │
 │ CA-Node: Conflict Application (undercut on means selection)         │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-401: Complementarity
-
-**Move Type**: GROUNDS  
-**Status**: DEFENDED
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-401-complementarity">Defense D-401: Complementarity</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-401                                                       │
 │ Type: GROUNDS                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -1019,14 +1515,10 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CONCLUSION STANDS: Platform is A reasonable means (not the only)    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Prong IV Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="prong-iv-summary">Prong IV Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ PRONG IV: RISK ASSESSMENT                                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
@@ -1044,29 +1536,21 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Aggregate Confidence: 0.80                                          │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Prong V: Alternative Comparison
-
-### Claim C-501
-
-> **Civic Agora is superior to available alternatives for structured civic deliberation.**
-
-**Claim ID**: C-501  
-**Status**: IN  
-**Confidence**: 0.75  
-**Type**: Comparative/Evaluative
-
----
-
-### Argument A-501: Argument from Comparison
-
-**Scheme**: Argument from Comparison (Walton)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h2 id="prong-v-alternative-comparison">Prong V: Alternative Comparison</h2>
+<h3 id="claim-c-501">Claim C-501</h3>
+<blockquote>
+<p><strong>Civic Agora is superior to available alternatives for structured civic deliberation.</strong></p>
+</blockquote>
+<p><strong>Claim ID</strong>: C-501<br>
+<strong>Status</strong>: IN<br>
+<strong>Confidence</strong>: 0.75<br>
+<strong>Type</strong>: Comparative/Evaluative</p>
+<hr>
+<h3 id="argument-a-501-argument-from-comparison">Argument A-501: Argument from Comparison</h3>
+<p><strong>Scheme</strong>: Argument from Comparison (Walton)</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ARGUMENT A-501                                                      │
 │ Scheme: Argument from Comparison                                    │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -1103,41 +1587,122 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Confidence: 0.75                                                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Comparative Matrix
-
-| Platform Type | Claims | Arguments | Evidence | Challenge | Accumulation | Accessibility | TOTAL |
-|---------------|--------|-----------|----------|-----------|--------------|---------------|-------|
-| **Comment tools** | 1 | 1 | 1 | 1 | 1 | 4 | 9 |
-| **Preference voting** | 2 | 1 | 1 | 2 | 2 | 4 | 12 |
-| **Social discussion** | 1 | 1 | 1 | 2 | 1 | 5 | 11 |
-| **Process tools** | 2 | 2 | 2 | 2 | 2 | 4 | 14 |
-| **Deliberative Polling** | 3 | 3 | 3 | 3 | 2 | 3 | 17 |
-| **Civic Agora** | 5 | 5 | 5 | 5 | 5 | 3 | 28 |
-
-*Scale: 1 (absent) to 5 (excellent)*
-
-**Note**: Civic Agora scores lower on accessibility than simple tools, offset by progressive formalization and facilitation.
-
-#### Critical Questions for A-501
-
-| CQ | Question | Status | Response |
-|----|----------|--------|----------|
-| CQ1 | Is the comparison fair? | CHALLENGED | See Attack ATK-501 |
-| CQ2 | Are the criteria appropriate? | ANSWERED | Derived from established deliberation requirements (C-101) |
-| CQ3 | Is the assessment accurate? | PARTIAL | Based on platform documentation; real-world testing pending |
-
----
-
-### Attack ATK-501: Unfair Comparison (Different Goals)
-
-**Attack Type**: UNDERMINE
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="comparative-matrix">Comparative Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>Platform Type</th>
+<th>Claims</th>
+<th>Arguments</th>
+<th>Evidence</th>
+<th>Challenge</th>
+<th>Accumulation</th>
+<th>Accessibility</th>
+<th>TOTAL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Comment tools</strong></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>4</td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>Preference voting</strong></td>
+<td>2</td>
+<td>1</td>
+<td>1</td>
+<td>2</td>
+<td>2</td>
+<td>4</td>
+<td>12</td>
+</tr>
+<tr>
+<td><strong>Social discussion</strong></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>2</td>
+<td>1</td>
+<td>5</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>Process tools</strong></td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>4</td>
+<td>14</td>
+</tr>
+<tr>
+<td><strong>Deliberative Polling</strong></td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+<td>2</td>
+<td>3</td>
+<td>17</td>
+</tr>
+<tr>
+<td><strong>Civic Agora</strong></td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>3</td>
+<td>28</td>
+</tr>
+</tbody>
+</table>
+<p><em>Scale: 1 (absent) to 5 (excellent)</em></p>
+<p><strong>Note</strong>: Civic Agora scores lower on accessibility than simple tools, offset by progressive formalization and facilitation.</p>
+<h4 id="critical-questions-for-a-501">Critical Questions for A-501</h4>
+<table>
+<thead>
+<tr>
+<th>CQ</th>
+<th>Question</th>
+<th>Status</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CQ1</td>
+<td>Is the comparison fair?</td>
+<td>CHALLENGED</td>
+<td>See Attack ATK-501</td>
+</tr>
+<tr>
+<td>CQ2</td>
+<td>Are the criteria appropriate?</td>
+<td>ANSWERED</td>
+<td>Derived from established deliberation requirements (C-101)</td>
+</tr>
+<tr>
+<td>CQ3</td>
+<td>Is the assessment accurate?</td>
+<td>PARTIAL</td>
+<td>Based on platform documentation; real-world testing pending</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="attack-atk-501-unfair-comparison-different-goals">Attack ATK-501: Unfair Comparison (Different Goals)</h3>
+<p><strong>Attack Type</strong>: UNDERMINE</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ ATTACK ATK-501                                                      │
 │ Type: UNDERMINE                                                     │
 │ Target: P2 (evaluation criteria)                                    │
@@ -1153,15 +1718,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ CA-Node: Conflict Application (undermine premise P2)                │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-#### Defense D-501: Goal Specification
-
-**Move Type**: GROUNDS  
-**Status**: DEFENDED
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<h4 id="defense-d-501-goal-specification">Defense D-501: Goal Specification</h4>
+<p><strong>Move Type</strong>: GROUNDS<br>
+<strong>Status</strong>: DEFENDED</p>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ DEFENSE D-501                                                       │
 │ Type: GROUNDS                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -1170,7 +1731,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │    different goals.                                                 │
 │                                                                     │
 │ 2. The thesis claim (C-501) is specifically scoped to               │
-│    "structured civic deliberation"—the comparison is valid          │
+│    &quot;structured civic deliberation&quot;—the comparison is valid          │
 │    for this specific purpose.                                       │
 │                                                                     │
 │ 3. For other purposes (quick feedback, preference aggregation),     │
@@ -1186,14 +1747,10 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ available alternatives.                                             │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Prong V Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="prong-v-summary">Prong V Summary</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────┐
 │ PRONG V: ALTERNATIVE COMPARISON                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
@@ -1210,81 +1767,245 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ Aggregate Confidence: 0.75                                          │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Commitment Store
-
-### Proponent Commitments (Platform Advocates)
-
-| ID | Commitment | Status | Confidence |
-|----|------------|--------|------------|
-| CM-P01 | Democratic legitimacy requires public reasoning infrastructure | ACTIVE | 0.85 |
-| CM-P02 | Current infrastructure systematically prevents public reasoning | ACTIVE | 0.90 |
-| CM-P03 | Infrastructure deficit causes democratic harm | ACTIVE | 0.75 |
-| CM-P04 | Civic Agora provides necessary architectural features | ACTIVE | 0.90 |
-| CM-P05 | Formal foundations are theoretically sound | ACTIVE | 0.85 |
-| CM-P06 | Discourse-shaping actors can affect political outcomes | ACTIVE | 0.70 |
-| CM-P07 | Erosion mechanism is possible under favorable conditions | ACTIVE | 0.55 |
-| CM-P08 | Risks are manageable | ACTIVE | 0.80 |
-| CM-P09 | Platform is superior for structured deliberation | ACTIVE | 0.75 |
-| CM-P10 | **THESIS**: Civic Agora should exist and be developed | ACTIVE | 0.77 |
-
-### Opponent Challenges Addressed
-
-| ID | Challenge | Resolution | Status |
-|----|-----------|------------|--------|
-| CH-01 | Mouffe disagrees with Habermas | Synthesized: both require articulation, not consensus | CLOSED |
-| CH-02 | Wikipedia shows infrastructure exists | Scoped: general-purpose platforms; Wikipedia is exception proving rule | CLOSED |
-| CH-03 | Theory-practice gap | Addressed via progressive formalization | CLOSED |
-| CH-04 | Distribution disanalogy | Addressed via credibility anchor model | CLOSED |
-| CH-05 | Backfire effect | Qualified: erosion conditional on favorable factors | PARTIAL |
-| CH-06 | Alternative means exist | Complementarity acknowledged; platform is A means, not THE means | CLOSED |
-| CH-07 | Unfair comparison criteria | Scoped to structured deliberation specifically | CLOSED |
-
----
-
-## Attack Register
-
-### All Registered Attacks
-
-| Attack ID | Type | Target | Status | Resolution |
-|-----------|------|--------|--------|------------|
-| ATK-101 | UNDERCUT | A-101 | DEFENDED | Synthesis incorporates agonistic critique |
-| ATK-102 | REBUT | C-102 | DEFENDED | Scope clarified to general-purpose platforms |
-| ATK-202 | UNDERCUT | A-202 | DEFENDED | Progressive formalization addresses gap |
-| ATK-301 | UNDERCUT | A-301 | DEFENDED | Distribution via users' existing networks |
-| ATK-302 | REBUT | C-302 | PARTIAL | Claim qualified with conditions |
-| ATK-401 | UNDERCUT | A-401 | DEFENDED | Complementarity of means acknowledged |
-| ATK-501 | UNDERMINE | A-501:P2 | DEFENDED | Scope clarified to structured deliberation |
-
-### Undefended Attacks
-
-None. All registered attacks have been addressed.
-
-### Open Critical Questions
-
-| CQ ID | Question | Status | Impact if Answered Negatively |
-|-------|----------|--------|-------------------------------|
-| A-201:CQ3 | Are there exceptions to the classification? | OPEN | Would require real-world validation |
-| A-302:CQ4 | What is the effect size and timeline? | OPEN | Would affect expectation setting |
-| A-501:CQ3 | Is the assessment accurate? | PARTIAL | Requires real-world testing |
-
----
-
-## Synthesis & Conclusion
-
-### Argument Chain: Complete Structure
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h2 id="commitment-store">Commitment Store</h2>
+<h3 id="proponent-commitments-platform-advocates">Proponent Commitments (Platform Advocates)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Commitment</th>
+<th>Status</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CM-P01</td>
+<td>Democratic legitimacy requires public reasoning infrastructure</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P02</td>
+<td>Current infrastructure systematically prevents public reasoning</td>
+<td>ACTIVE</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>CM-P03</td>
+<td>Infrastructure deficit causes democratic harm</td>
+<td>ACTIVE</td>
+<td>0.75</td>
+</tr>
+<tr>
+<td>CM-P04</td>
+<td>Civic Agora provides necessary architectural features</td>
+<td>ACTIVE</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>CM-P05</td>
+<td>Formal foundations are theoretically sound</td>
+<td>ACTIVE</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>CM-P06</td>
+<td>Discourse-shaping actors can affect political outcomes</td>
+<td>ACTIVE</td>
+<td>0.70</td>
+</tr>
+<tr>
+<td>CM-P07</td>
+<td>Erosion mechanism is possible under favorable conditions</td>
+<td>ACTIVE</td>
+<td>0.55</td>
+</tr>
+<tr>
+<td>CM-P08</td>
+<td>Risks are manageable</td>
+<td>ACTIVE</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>CM-P09</td>
+<td>Platform is superior for structured deliberation</td>
+<td>ACTIVE</td>
+<td>0.75</td>
+</tr>
+<tr>
+<td>CM-P10</td>
+<td><strong>THESIS</strong>: Civic Agora should exist and be developed</td>
+<td>ACTIVE</td>
+<td>0.77</td>
+</tr>
+</tbody>
+</table>
+<h3 id="opponent-challenges-addressed">Opponent Challenges Addressed</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Challenge</th>
+<th>Resolution</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CH-01</td>
+<td>Mouffe disagrees with Habermas</td>
+<td>Synthesized: both require articulation, not consensus</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-02</td>
+<td>Wikipedia shows infrastructure exists</td>
+<td>Scoped: general-purpose platforms; Wikipedia is exception proving rule</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-03</td>
+<td>Theory-practice gap</td>
+<td>Addressed via progressive formalization</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-04</td>
+<td>Distribution disanalogy</td>
+<td>Addressed via credibility anchor model</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-05</td>
+<td>Backfire effect</td>
+<td>Qualified: erosion conditional on favorable factors</td>
+<td>PARTIAL</td>
+</tr>
+<tr>
+<td>CH-06</td>
+<td>Alternative means exist</td>
+<td>Complementarity acknowledged; platform is A means, not THE means</td>
+<td>CLOSED</td>
+</tr>
+<tr>
+<td>CH-07</td>
+<td>Unfair comparison criteria</td>
+<td>Scoped to structured deliberation specifically</td>
+<td>CLOSED</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="attack-register">Attack Register</h2>
+<h3 id="all-registered-attacks">All Registered Attacks</h3>
+<table>
+<thead>
+<tr>
+<th>Attack ID</th>
+<th>Type</th>
+<th>Target</th>
+<th>Status</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ATK-101</td>
+<td>UNDERCUT</td>
+<td>A-101</td>
+<td>DEFENDED</td>
+<td>Synthesis incorporates agonistic critique</td>
+</tr>
+<tr>
+<td>ATK-102</td>
+<td>REBUT</td>
+<td>C-102</td>
+<td>DEFENDED</td>
+<td>Scope clarified to general-purpose platforms</td>
+</tr>
+<tr>
+<td>ATK-202</td>
+<td>UNDERCUT</td>
+<td>A-202</td>
+<td>DEFENDED</td>
+<td>Progressive formalization addresses gap</td>
+</tr>
+<tr>
+<td>ATK-301</td>
+<td>UNDERCUT</td>
+<td>A-301</td>
+<td>DEFENDED</td>
+<td>Distribution via users' existing networks</td>
+</tr>
+<tr>
+<td>ATK-302</td>
+<td>REBUT</td>
+<td>C-302</td>
+<td>PARTIAL</td>
+<td>Claim qualified with conditions</td>
+</tr>
+<tr>
+<td>ATK-401</td>
+<td>UNDERCUT</td>
+<td>A-401</td>
+<td>DEFENDED</td>
+<td>Complementarity of means acknowledged</td>
+</tr>
+<tr>
+<td>ATK-501</td>
+<td>UNDERMINE</td>
+<td>A-501:P2</td>
+<td>DEFENDED</td>
+<td>Scope clarified to structured deliberation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="undefended-attacks">Undefended Attacks</h3>
+<p>None. All registered attacks have been addressed.</p>
+<h3 id="open-critical-questions">Open Critical Questions</h3>
+<table>
+<thead>
+<tr>
+<th>CQ ID</th>
+<th>Question</th>
+<th>Status</th>
+<th>Impact if Answered Negatively</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A-201:CQ3</td>
+<td>Are there exceptions to the classification?</td>
+<td>OPEN</td>
+<td>Would require real-world validation</td>
+</tr>
+<tr>
+<td>A-302:CQ4</td>
+<td>What is the effect size and timeline?</td>
+<td>OPEN</td>
+<td>Would affect expectation setting</td>
+</tr>
+<tr>
+<td>A-501:CQ3</td>
+<td>Is the assessment accurate?</td>
+<td>PARTIAL</td>
+<td>Requires real-world testing</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="synthesis--conclusion">Synthesis &amp; Conclusion</h2>
+<h3 id="argument-chain-complete-structure">Argument Chain: Complete Structure</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
 │                        THESIS ARGUMENT CHAIN                                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │                            THESIS-001                                       │
-│                 "Civic Agora should exist and                               │
-│                    be developed" [IN: 0.77]                                 │
+│                 &quot;Civic Agora should exist and                               │
+│                    be developed&quot; [IN: 0.77]                                 │
 │                              ▲                                              │
 │                              │                                              │
 │              ┌───────────────┼───────────────┬───────────────┐              │
@@ -1317,14 +2038,10 @@ None. All registered attacks have been addressed.
 │  QUALIFICATION: Theory of change is the weakest link (0.62)                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Thesis Statement: Final Form
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
+</div></code></pre>
+<hr>
+<h3 id="thesis-statement-final-form">Thesis Statement: Final Form</h3>
+<pre class="hljs"><code><div>┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
 │                         THESIS-001 (FINAL)                                  │
 │                                                                             │
@@ -1389,52 +2106,158 @@ None. All registered attacks have been addressed.
 │  evaluating theory of change.                                               │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
-```
+</div></code></pre>
+<hr>
+<h2 id="appendix-evidence-registry">Appendix: Evidence Registry</h2>
+<table>
+<thead>
+<tr>
+<th>Evidence ID</th>
+<th>Description</th>
+<th>Source</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E-101a</td>
+<td>Habermas credentials</td>
+<td>Academic biography</td>
+<td>Authority</td>
+</tr>
+<tr>
+<td>E-101b</td>
+<td>Between Facts and Norms</td>
+<td>Habermas (1992), pp. 287-328</td>
+<td>Primary text</td>
+</tr>
+<tr>
+<td>E-ATK101</td>
+<td>Mouffe's critique</td>
+<td>The Democratic Paradox (2000), Agonistics (2013)</td>
+<td>Primary text</td>
+</tr>
+<tr>
+<td>E-102a</td>
+<td>Deliberation requirements</td>
+<td>Derived from literature synthesis</td>
+<td>Theoretical</td>
+</tr>
+<tr>
+<td>E-102b</td>
+<td>Platform architecture analysis</td>
+<td>Platform documentation, user research</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-103a</td>
+<td>Mechanism derivation</td>
+<td>Theoretical derivation</td>
+<td>Theoretical</td>
+</tr>
+<tr>
+<td>E-103b</td>
+<td>Democracy for Realists</td>
+<td>Achen &amp; Bartels (2016)</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-103c</td>
+<td>Engagement-responsiveness correlation</td>
+<td>Political science literature</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-201a</td>
+<td>Deliberation requirements</td>
+<td>Cross-reference C-101</td>
+<td>Derived</td>
+</tr>
+<tr>
+<td>E-201b</td>
+<td>System Architecture Document</td>
+<td>Platform documentation</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-202a</td>
+<td>Computational argumentation research</td>
+<td>COMMA proceedings, A&amp;C journal</td>
+<td>Academic</td>
+</tr>
+<tr>
+<td>E-202b</td>
+<td>AIF standard</td>
+<td>Chesñevar et al. (2006), Reed et al. (2010)</td>
+<td>Technical standard</td>
+</tr>
+<tr>
+<td>E-202c</td>
+<td>ASPIC+ framework</td>
+<td>Prakken (2010), Modgil &amp; Prakken (2018)</td>
+<td>Technical standard</td>
+</tr>
+<tr>
+<td>E-202d</td>
+<td>PPD protocol</td>
+<td>Walton &amp; Krabbe (1995), Prakken (2006)</td>
+<td>Technical standard</td>
+</tr>
+<tr>
+<td>E-202e</td>
+<td>Implementation</td>
+<td>System Architecture Document</td>
+<td>Technical</td>
+</tr>
+<tr>
+<td>E-301a</td>
+<td>Journalism role</td>
+<td>Media effects research, historical analysis</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-302a</td>
+<td>Identity pillars</td>
+<td>Psychoanalytic theory, social identity theory</td>
+<td>Theoretical</td>
+</tr>
+<tr>
+<td>E-302b</td>
+<td>Propaganda mechanisms</td>
+<td>Propaganda research, echo chamber studies</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-302c</td>
+<td>Attitude change</td>
+<td>Petty &amp; Cacioppo, inoculation theory</td>
+<td>Empirical</td>
+</tr>
+<tr>
+<td>E-ATK302</td>
+<td>Backfire effect</td>
+<td>Nyhan &amp; Reifler (2010), Kahan</td>
+<td>Empirical</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="document-metadata">Document Metadata</h2>
+<p><strong>Release</strong>: v1.0.0<br>
+<strong>Generated</strong>: January 2026<br>
+<strong>ASPIC+ Evaluation</strong>: Grounded extension computed<br>
+<strong>Thesis Status</strong>: IN<br>
+<strong>Aggregate Confidence</strong>: 0.77</p>
+<p><strong>Changelog from v0 (implicit prior state)</strong>:</p>
+<ul>
+<li>Initial thesis formulation</li>
+<li>Five prongs established</li>
+<li>Seven attacks registered and addressed</li>
+<li>Commitment store populated</li>
+<li>Evidence registry compiled</li>
+</ul>
+<hr>
+<p><em>This document demonstrates the platform's thesis generation capability. The thesis is subject to further challenge and refinement through ongoing deliberation.</em></p>
 
----
-
-## Appendix: Evidence Registry
-
-| Evidence ID | Description | Source | Type |
-|-------------|-------------|--------|------|
-| E-101a | Habermas credentials | Academic biography | Authority |
-| E-101b | Between Facts and Norms | Habermas (1992), pp. 287-328 | Primary text |
-| E-ATK101 | Mouffe's critique | The Democratic Paradox (2000), Agonistics (2013) | Primary text |
-| E-102a | Deliberation requirements | Derived from literature synthesis | Theoretical |
-| E-102b | Platform architecture analysis | Platform documentation, user research | Empirical |
-| E-103a | Mechanism derivation | Theoretical derivation | Theoretical |
-| E-103b | Democracy for Realists | Achen & Bartels (2016) | Empirical |
-| E-103c | Engagement-responsiveness correlation | Political science literature | Empirical |
-| E-201a | Deliberation requirements | Cross-reference C-101 | Derived |
-| E-201b | System Architecture Document | Platform documentation | Technical |
-| E-202a | Computational argumentation research | COMMA proceedings, A&C journal | Academic |
-| E-202b | AIF standard | Chesñevar et al. (2006), Reed et al. (2010) | Technical standard |
-| E-202c | ASPIC+ framework | Prakken (2010), Modgil & Prakken (2018) | Technical standard |
-| E-202d | PPD protocol | Walton & Krabbe (1995), Prakken (2006) | Technical standard |
-| E-202e | Implementation | System Architecture Document | Technical |
-| E-301a | Journalism role | Media effects research, historical analysis | Empirical |
-| E-302a | Identity pillars | Psychoanalytic theory, social identity theory | Theoretical |
-| E-302b | Propaganda mechanisms | Propaganda research, echo chamber studies | Empirical |
-| E-302c | Attitude change | Petty & Cacioppo, inoculation theory | Empirical |
-| E-ATK302 | Backfire effect | Nyhan & Reifler (2010), Kahan | Empirical |
-
----
-
-## Document Metadata
-
-**Release**: v1.0.0  
-**Generated**: January 2026  
-**ASPIC+ Evaluation**: Grounded extension computed  
-**Thesis Status**: IN  
-**Aggregate Confidence**: 0.77  
-
-**Changelog from v0 (implicit prior state)**:
-- Initial thesis formulation
-- Five prongs established
-- Seven attacks registered and addressed
-- Commitment store populated
-- Evidence registry compiled
-
----
-
-*This document demonstrates the platform's thesis generation capability. The thesis is subject to further challenge and refinement through ongoing deliberation.*
+</body>
+</html>

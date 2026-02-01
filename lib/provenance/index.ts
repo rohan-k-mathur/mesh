@@ -8,3 +8,5 @@ export * from "./types";
 
 // Services
 export * from "./provenanceService";
+export * from "./challengeService";
+export * from "./canonicalClaimService";
