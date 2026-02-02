@@ -1,7 +1,7 @@
 # Academic Features Implementation Progress
 
 > **Last Updated:** January 28, 2026  
-> **Status:** Phase 2.3 Complete ✅ | Phase 3 Not Started
+> **Status:** Phase 3.2 Complete ✅ | All academic export formats implemented
 
 ---
 
@@ -392,17 +392,462 @@ components/quotes/
 
 ---
 
-## Phase 3: External Integration ⏳ Not Started
+## Phase 3: Provenance & External Integration
 
-### Phase 3.1: DOI/Citation Integration
-- CrossRef API integration
-- Automatic DOI lookup
-- Citation metadata extraction
+### Phase 3.1: Claim Provenance Tracking ✅ Complete
 
-### Phase 3.2: Export Formats
-- BibTeX export (basic version in releases)
-- RIS export
-- PDF report generation
+**Goal:** Track the full lifecycle of claims including versions, challenges, defenses, and cross-deliberation identity for HSS scholars.
+
+#### Chunk 1: Schema & Types ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| VersionChangeType enum | ✅ | `lib/models/schema.prisma` |
+| ConsensusStatus enum | ✅ | `lib/models/schema.prisma` |
+| ClaimAttackStatus enum | ✅ | `lib/models/schema.prisma` |
+| ClaimDefenseType enum | ✅ | `lib/models/schema.prisma` |
+| ClaimDefenseOutcome enum | ✅ | `lib/models/schema.prisma` |
+| ClaimInstanceType enum | ✅ | `lib/models/schema.prisma` |
+| ClaimVersion model | ✅ | `lib/models/schema.prisma` |
+| ClaimAttack model | ✅ | `lib/models/schema.prisma` |
+| ClaimDefense model | ✅ | `lib/models/schema.prisma` |
+| ClaimInstance model | ✅ | `lib/models/schema.prisma` |
+| Enhanced Claim model | ✅ | `lib/models/schema.prisma` (provenance fields) |
+| Enhanced CanonicalClaim | ✅ | `lib/models/schema.prisma` |
+| Provenance types | ✅ | `lib/provenance/types.ts` |
+
+**New Enums:**
+```prisma
+enum VersionChangeType {
+  CREATED, REFINED, STRENGTHENED, WEAKENED, CORRECTED, MERGED, SPLIT, IMPORTED
+}
+
+enum ConsensusStatus {
+  UNDETERMINED, EMERGING, ACCEPTED, CONTESTED, REJECTED, SUPERSEDED
+}
+
+enum ClaimAttackStatus {
+  PENDING, ACTIVE, DEFENDED, CONCEDED, WITHDRAWN
+}
+
+enum ClaimDefenseType {
+  REBUTTAL, CLARIFICATION, EVIDENCE, QUALIFICATION, AUTHORITY, COUNTER_ATTACK
+}
+
+enum ClaimDefenseOutcome {
+  PENDING, SUCCESSFUL, PARTIALLY_SUCCESSFUL, UNSUCCESSFUL
+}
+
+enum ClaimInstanceType {
+  ORIGINAL, FORKED, IMPORTED, REFERENCED, MERGED
+}
+```
+
+**Schema Additions:**
+```prisma
+model ClaimVersion {
+  id              String   @id @default(cuid())
+  claimId         String
+  versionNumber   Int
+  text            String   @db.Text
+  changeType      VersionChangeType
+  changeReason    String?
+  previousVersionId String?
+  authorId        String
+  sourceIds       String[]
+  metadata        Json?
+  createdAt       DateTime @default(now())
+}
+
+model ClaimAttack {
+  id              String   @id @default(cuid())
+  targetClaimId   String
+  attackerId      String?
+  attackType      AttackType
+  argumentId      String?
+  status          ClaimAttackStatus @default(PENDING)
+  defenses        ClaimDefense[]
+  createdAt       DateTime @default(now())
+  resolvedAt      DateTime?
+}
+
+model ClaimDefense {
+  id              String   @id @default(cuid())
+  attackId        String
+  defenderId      String?
+  defenseType     ClaimDefenseType
+  argumentId      String?
+  outcome         ClaimDefenseOutcome @default(PENDING)
+  createdAt       DateTime @default(now())
+}
+
+model ClaimInstance {
+  id              String   @id @default(cuid())
+  canonicalId     String
+  claimId         String   @unique
+  deliberationId  String
+  instanceType    ClaimInstanceType @default(ORIGINAL)
+  localStatus     ConsensusStatus?
+  isPrimary       Boolean @default(false)
+  sourceInstanceId String?
+  createdAt       DateTime @default(now())
+}
+```
+
+#### Chunk 2: Provenance Service ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| getClaimProvenance() | ✅ | `lib/provenance/provenanceService.ts` |
+| createClaimVersion() | ✅ | `lib/provenance/provenanceService.ts` |
+| getClaimVersions() | ✅ | `lib/provenance/provenanceService.ts` |
+| compareClaimVersions() | ✅ | `lib/provenance/provenanceService.ts` |
+| getClaimTimeline() | ✅ | `lib/provenance/provenanceService.ts` |
+| calculateConsensusStatus() | ✅ | `lib/provenance/provenanceService.ts` |
+| updateClaimConsensusStatus() | ✅ | `lib/provenance/provenanceService.ts` |
+| initializeClaimVersionHistory() | ✅ | `lib/provenance/provenanceService.ts` |
+| revertClaimToVersion() | ✅ | `lib/provenance/provenanceService.ts` |
+
+**Key Functions:**
+```typescript
+// Version Management
+createClaimVersion(claimId, text, changeType, changeReason?, authorId?, sourceIds?)
+getClaimVersions(claimId, limit?)
+getClaimVersion(versionId)
+compareClaimVersions(versionIdA, versionIdB)
+revertClaimToVersion(claimId, versionId, authorId)
+
+// Timeline
+getClaimTimeline(claimId, filters?) // Combined version/attack/defense events
+
+// Consensus
+calculateConsensusStatus(challengeCount, defendedCount, concededCount, hasOpenChallenges)
+updateClaimConsensusStatus(claimId, status?)
+getClaimsByConsensusStatus(deliberationId, status, limit?)
+
+// Initialization
+initializeClaimVersionHistory(claimId, authorId?)
+initializeDeliberationVersionHistory(deliberationId)
+```
+
+#### Chunk 3: Challenge & Canonical Services ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| createAttack() | ✅ | `lib/provenance/challengeService.ts` |
+| getAttacksForClaim() | ✅ | `lib/provenance/challengeService.ts` |
+| updateAttackStatus() | ✅ | `lib/provenance/challengeService.ts` |
+| createDefense() | ✅ | `lib/provenance/challengeService.ts` |
+| getDefensesForAttack() | ✅ | `lib/provenance/challengeService.ts` |
+| updateDefenseOutcome() | ✅ | `lib/provenance/challengeService.ts` |
+| getChallengeReport() | ✅ | `lib/provenance/challengeService.ts` |
+| createCanonicalClaim() | ✅ | `lib/provenance/canonicalClaimService.ts` |
+| linkClaimToCanonical() | ✅ | `lib/provenance/canonicalClaimService.ts` |
+| getOrCreateCanonicalClaim() | ✅ | `lib/provenance/canonicalClaimService.ts` |
+| searchCanonicalClaims() | ✅ | `lib/provenance/canonicalClaimService.ts` |
+| recalculateGlobalStatus() | ✅ | `lib/provenance/canonicalClaimService.ts` |
+| Barrel exports | ✅ | `lib/provenance/index.ts` |
+
+**Challenge Service Functions:**
+```typescript
+// Attack Operations
+createAttack(targetClaimId, attackType, attackerId?, argumentId?)
+getAttack(attackId)
+getAttacksForClaim(claimId, filters?)
+updateAttackStatus(attackId, status, updatedById)
+deleteAttack(attackId, deletedById)
+
+// Defense Operations
+createDefense(attackId, defenseType, defenderId?, argumentId?)
+getDefensesForAttack(attackId)
+getDefensesForClaim(claimId)
+updateDefenseOutcome(defenseId, outcome, updatedById)
+
+// Reports
+getChallengeReport(claimId)
+getDeliberationChallengeStats(deliberationId)
+```
+
+**Canonical Claim Service Functions:**
+```typescript
+// CRUD
+createCanonicalClaim(representativeText, description?, createdById?)
+getCanonicalClaim(canonicalId)
+getCanonicalClaimBySlug(slug)
+updateCanonicalClaim(canonicalId, updates)
+
+// Instance Management
+linkClaimToCanonical(claimId, canonicalId, instanceType?, isPrimary?)
+unlinkClaimFromCanonical(claimId)
+getCanonicalClaimInstances(canonicalId, filters?)
+
+// Discovery
+searchCanonicalClaims(query, limit?)
+findSimilarCanonicalClaims(text, limit?)
+getOrCreateCanonicalClaim(representativeText, claimId, createdById?)
+
+// Status
+recalculateGlobalStatus(canonicalId)
+syncLocalStatusToCanonical(instanceId)
+```
+
+#### Chunk 4: API Routes ✅ Complete
+
+| Route | Methods | Purpose |
+|-------|---------|----------|
+| `/api/claims/[id]/provenance` | GET | Get claim provenance overview |
+| `/api/claims/[id]/versions` | GET, POST | List/create versions |
+| `/api/claims/[id]/timeline` | GET | Get timeline events |
+| `/api/claims/[id]/challenges` | GET, POST | List/create challenges |
+| `/api/claims/[id]/challenges/[id]` | GET, PATCH, DELETE | Challenge CRUD |
+| `/api/claims/[id]/challenges/[id]/defenses` | GET, POST | List/create defenses |
+| `/api/claims/[id]/challenges/[id]/defenses/[id]` | PATCH | Update defense outcome |
+| `/api/claims/canonical` | GET, POST | Search/create canonical claims |
+| `/api/claims/canonical/[id]` | GET, PATCH | Canonical claim details |
+| `/api/claims/canonical/[id]/instances` | GET, POST | List/link instances |
+| `/api/claims/canonical/[id]/instances/[id]` | DELETE | Unlink instance |
+
+**API Examples:**
+```bash
+# Get claim provenance
+GET /api/claims/{id}/provenance
+
+# Create new version
+POST /api/claims/{id}/versions
+Body: { "text": "...", "changeType": "REFINED", "changeReason": "Clarified scope" }
+
+# Get timeline (with filters)
+GET /api/claims/{id}/timeline?types=version,attack&limit=20
+
+# Create challenge (attack)
+POST /api/claims/{id}/challenges
+Body: { "attackType": "REBUTS", "argumentId": "arg_123" }
+
+# Add defense
+POST /api/claims/{id}/challenges/{challengeId}/defenses
+Body: { "defenseType": "REBUTTAL", "argumentId": "arg_456" }
+
+# Search canonical claims
+GET /api/claims/canonical?q=climate+change&limit=10
+
+# Link claim to canonical
+POST /api/claims/canonical/{canonicalId}/instances
+Body: { "claimId": "claim_789", "instanceType": "FORKED", "isPrimary": false }
+```
+
+#### Chunk 5: UI Components ✅ Complete
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| ConsensusIndicator | ✅ | Display consensus status with icon/color |
+| ChallengeSummaryDisplay | ✅ | Challenge breakdown summary |
+| ConsensusStatusSelect | ✅ | Select consensus status |
+| ChallengeBreakdown | ✅ | Progress bar visualization |
+| ProvenanceTimeline | ✅ | Full timeline of claim history |
+| ProvenanceTimelineCompact | ✅ | Compact timeline for inline use |
+| ChallengeCard | ✅ | Attack display with defenses |
+| ChallengeReportCard | ✅ | Full challenge report with stats |
+| VersionCard | ✅ | Version history entry |
+| VersionList | ✅ | List of versions with actions |
+| VersionBadge | ✅ | Version number with change type |
+| VersionCompare | ✅ | Side-by-side version comparison |
+| CanonicalClaimCard | ✅ | Cross-deliberation identity |
+| CanonicalClaimBadge | ✅ | Inline canonical reference |
+| CanonicalClaimLink | ✅ | Linkable canonical reference |
+
+**UI Components Location:**
+```
+components/provenance/
+├── index.ts                 # Barrel exports
+├── ConsensusIndicator.tsx   # Status display + selection
+├── ProvenanceTimeline.tsx   # Timeline + compact variant
+├── ChallengeCard.tsx        # Attack/defense display
+├── VersionCard.tsx          # Version history components
+└── CanonicalClaimCard.tsx   # Canonical claim display
+```
+
+---
+
+### Phase 3.2: Export Formats ✅ Complete
+
+**Goal:** Enable export of deliberations, claims, arguments, sources, and quotes in academic citation formats (BibTeX, RIS) and documentation formats (Markdown, PDF).
+
+#### Chunk 1: Export Types & Core Services ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| Export types | ✅ | `lib/exports/types.ts` |
+| BibTeX service | ✅ | `lib/exports/bibtexService.ts` |
+| RIS service | ✅ | `lib/exports/risService.ts` |
+| Barrel exports | ✅ | `lib/exports/index.ts` |
+
+**Type Definitions:**
+```typescript
+// Export Formats
+type ExportFormat = "bibtex" | "ris" | "markdown" | "pdf" | "csl-json" | "json"
+
+// Export Targets
+type ExportTarget = "deliberation" | "claim" | "argument" | "source" | "quote"
+
+// Export Options
+interface ExportOptions {
+  includeTOC?: boolean
+  includeFrontmatter?: boolean
+  includeDiagrams?: boolean
+  includeCover?: boolean
+  paperSize?: "letter" | "a4"
+  includeVersions?: boolean
+  includeSources?: boolean
+}
+
+// Export Result
+interface ExportResult {
+  content: string
+  mimeType: string
+  filename: string
+  format: ExportFormat
+  itemCount: number
+  generatedAt: string
+}
+
+// Helper Functions
+getMimeType(format: ExportFormat): string
+getFileExtension(format: ExportFormat): string
+generateExportFilename(baseName: string, format: ExportFormat, timestamp?: boolean): string
+```
+
+**BibTeX Service Functions:**
+```typescript
+exportDeliberationToBibTeX(deliberation)
+exportClaimsToBibTeX(claims, options?)
+exportArgumentsToBibTeX(arguments, options?)
+exportQuotesToBibTeX(quotes, options?)
+exportSourcesToBibTeX(sources, options?)
+```
+
+**RIS Service Functions:**
+```typescript
+exportDeliberationToRIS(deliberation)
+exportClaimsToRIS(claims, options?)
+exportArgumentsToRIS(arguments, options?)
+exportQuotesToRIS(quotes, options?)
+exportSourcesToRIS(sources, options?)
+```
+
+#### Chunk 2: Document Export Services ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| Markdown service | ✅ | `lib/exports/markdownService.ts` |
+| PDF service | ✅ | `lib/exports/pdfService.ts` |
+
+**Markdown Service Functions:**
+```typescript
+exportDeliberationToMarkdown(deliberation, options?)
+exportClaimsToMarkdown(claims, options?)
+exportArgumentsToMarkdown(arguments, options?)
+exportQuotesToMarkdown(quotes, options?)
+exportSourcesToMarkdown(sources, options?)
+```
+
+**Markdown Options:**
+- `includeTOC` - Table of contents
+- `includeFrontmatter` - YAML frontmatter for Obsidian/Jekyll
+- `includeDiagrams` - Mermaid argument diagrams
+
+**PDF Service Functions:**
+```typescript
+exportDeliberationToPDFHtml(deliberation, options?)
+exportClaimsToPDFHtml(claims, options?)
+exportArgumentsToPDFHtml(arguments, options?)
+exportQuotesToPDFHtml(quotes, options?)
+exportSourcesToPDFHtml(sources, options?)
+```
+
+**PDF Options:**
+- `includeCover` - Cover page with title/date
+- `paperSize` - "letter" or "a4"
+- Returns HTML for browser print-to-PDF
+
+#### Chunk 3: API Routes ✅ Complete
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/deliberations/[id]/export` | GET | Export full deliberation |
+| `/api/claims/export` | GET | Export claims (by deliberation or IDs) |
+| `/api/arguments/export` | GET | Export arguments (by deliberation or IDs) |
+| `/api/sources/export` | GET | Export sources (by IDs) |
+| `/api/quotes/export` | GET | Export quotes (by deliberation or IDs) |
+
+**API Examples:**
+```bash
+# Export deliberation as BibTeX
+GET /api/deliberations/{id}/export?format=bibtex
+
+# Export deliberation as Markdown with TOC
+GET /api/deliberations/{id}/export?format=markdown&includeTOC=true&includeFrontmatter=true
+
+# Export claims as RIS
+GET /api/claims/export?deliberationId={id}&format=ris
+
+# Export specific arguments as PDF
+GET /api/arguments/export?ids=arg1,arg2,arg3&format=pdf&includeCover=true
+
+# Export sources as BibTeX
+GET /api/sources/export?ids=src1,src2&format=bibtex
+
+# Export quotes as JSON
+GET /api/quotes/export?deliberationId={id}&format=json
+```
+
+**Query Parameters:**
+- `format` - bibtex | ris | markdown | pdf | csl-json | json
+- `deliberationId` - Filter by deliberation (claims/arguments/quotes)
+- `ids` - Comma-separated list of specific IDs
+- `includeTOC` - Add table of contents (markdown)
+- `includeFrontmatter` - Add YAML frontmatter (markdown)
+- `includeDiagrams` - Add Mermaid diagrams (markdown)
+- `includeCover` - Add cover page (pdf)
+- `paperSize` - letter | a4 (pdf)
+
+#### Chunk 4: UI Components ✅ Complete
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| ExportButton | ✅ | Dropdown button with format categories |
+| ExportFormatSelector | ✅ | Format picker with options panel |
+| ExportPreviewModal | ✅ | Preview content before download |
+| Barrel exports | ✅ | `components/exports/index.ts` |
+
+**ExportButton Features:**
+- Categorized dropdown: Citation Formats, Document Formats, Data Formats
+- Icons for each format (BibTeX, RIS, Markdown, PDF, etc.)
+- Download handling with proper MIME types
+- Loading states and error handling
+- Callbacks: onExportStart, onExportComplete, onExportError
+
+**ExportFormatSelector Features:**
+- Select dropdown for format selection
+- Options panel (settings icon) with format-specific options:
+  - Markdown: Include TOC, YAML Frontmatter, Mermaid Diagrams
+  - PDF: Cover Page, Paper Size (Letter/A4)
+  - JSON: Include Versions, Include Sources
+
+**ExportPreviewModal Features:**
+- Fetch and display export preview
+- Format selector for changing format
+- Copy to clipboard
+- Download with proper filename
+- Loading and error states
+
+**UI Components Location:**
+```
+components/exports/
+├── index.ts                   # Barrel exports
+├── ExportButton.tsx           # Dropdown export button
+├── ExportFormatSelector.tsx   # Format picker with options
+└── ExportPreviewModal.tsx     # Preview modal
+```
 
 ---
 
@@ -482,14 +927,87 @@ components/quotes/
 └── QuoteModals.tsx         # Create/Link/Interpretation modals
 ```
 
+### Phase 3.1 Files
+```
+lib/provenance/
+├── index.ts                  # Barrel exports
+├── types.ts                  # Provenance type definitions
+├── provenanceService.ts      # Version mgmt, timeline, consensus
+├── challengeService.ts       # Attack/defense tracking
+└── canonicalClaimService.ts  # Cross-deliberation identity
+
+app/api/claims/[id]/
+├── provenance/route.ts       # GET provenance overview
+├── versions/route.ts         # GET/POST versions
+├── timeline/route.ts         # GET timeline events
+└── challenges/
+    ├── route.ts              # GET/POST challenges
+    └── [challengeId]/
+        ├── route.ts          # GET/PATCH/DELETE challenge
+        └── defenses/
+            ├── route.ts      # GET/POST defenses
+            └── [defenseId]/route.ts  # PATCH defense outcome
+
+app/api/claims/canonical/
+├── route.ts                  # GET/POST canonical claims
+└── [canonicalId]/
+    ├── route.ts              # GET/PATCH canonical
+    └── instances/
+        ├── route.ts          # GET/POST instances
+        └── [instanceId]/route.ts  # DELETE instance
+
+components/provenance/
+├── index.ts                  # Barrel exports
+├── ConsensusIndicator.tsx    # Status display + selection
+├── ProvenanceTimeline.tsx    # Timeline + compact variant
+├── ChallengeCard.tsx         # Attack/defense display
+├── VersionCard.tsx           # Version history components
+└── CanonicalClaimCard.tsx    # Canonical claim display
+```
+
+### Phase 3.2 Files
+```
+lib/exports/
+├── index.ts                  # Barrel exports
+├── types.ts                  # ExportFormat, ExportResult, helpers
+├── bibtexService.ts          # BibTeX export functions
+├── risService.ts             # RIS export functions
+├── markdownService.ts        # Markdown export with TOC/frontmatter
+└── pdfService.ts             # PDF HTML generation
+
+app/api/deliberations/[id]/export/
+└── route.ts                  # GET deliberation export
+
+app/api/claims/export/
+└── route.ts                  # GET claims export
+
+app/api/arguments/export/
+└── route.ts                  # GET arguments export
+
+app/api/sources/export/
+└── route.ts                  # GET sources export
+
+app/api/quotes/export/
+└── route.ts                  # GET quotes export
+
+components/exports/
+├── index.ts                  # Barrel exports
+├── ExportButton.tsx          # Dropdown export button
+├── ExportFormatSelector.tsx  # Format picker with options
+└── ExportPreviewModal.tsx    # Preview modal
+```
+
 ---
 
 ## Next Steps
 
-1. **Database Migration** - Run `npx prisma db push` to apply Phase 2.3 schema changes
-2. **Testing** - Verify all Phase 1-2 services and API routes work correctly
-3. **Phase 3** - External integration (DOI/citations, export formats)
-4. **Argument Linting** - Consider adding "Argument CI" quality gates as Phase 2.4
+1. **Database Migration** - Run `npx prisma db push` to apply all schema changes
+2. **Testing** - Verify all Phase 1-3 services and API routes work correctly
+3. **Phase 4** - Consider additional features:
+   - DOI integration for external references
+   - Argument Linting / "Argument CI" quality gates
+   - Integration with external citation managers
+4. **UI Integration** - Add ExportButton to deliberation/claim views
 
 ---
 
@@ -502,6 +1020,9 @@ components/quotes/
 | JSON snapshots over normalized tables | Faster point-in-time queries; immutable release state |
 | Simplified ASPIC+ acceptability | Full grounded semantics deferred; basic attack counting for now |
 | BibTeX in releases | Academic users expect citation formats |
+| PDF as HTML (Phase 3.2) | Browser print-to-PDF for cross-platform compatibility; no server-side PDF libs needed |
+| Format-specific options | Markdown (TOC, frontmatter, diagrams) and PDF (cover, paper size) options for flexibility |
+| DropdownMenu over Popover | Using existing UI components; no additional dependencies needed |
 
 ---
 
