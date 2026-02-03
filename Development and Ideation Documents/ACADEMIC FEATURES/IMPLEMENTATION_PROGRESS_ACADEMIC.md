@@ -1,7 +1,7 @@
 # Academic Features Implementation Progress
 
-> **Last Updated:** January 28, 2026  
-> **Status:** Phase 3.2 Complete ✅ | All academic export formats implemented
+> **Last Updated:** February 2, 2026  
+> **Status:** Phase 3.3 Complete ✅ | Argument Citations with Permalinks implemented
 
 ---
 
@@ -851,6 +851,332 @@ components/exports/
 
 ---
 
+### Phase 3.3: Argument Citations ✅ Complete
+
+**Goal:** Enable scholars to cite specific arguments with stable permalinks, track citation relationships between arguments, and visualize citation graphs.
+
+#### Chunk 1: Schema Models ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| ArgCitationType enum | ✅ | `lib/models/schema.prisma` |
+| ArgumentCitation model | ✅ | `lib/models/schema.prisma` |
+| ArgumentPermalink model | ✅ | `lib/models/schema.prisma` |
+| ArgumentCitationMetrics model | ✅ | `lib/models/schema.prisma` |
+| Argument relations (citations) | ✅ | `lib/models/schema.prisma` |
+
+**Schema Additions:**
+```prisma
+enum ArgCitationType {
+  SUPPORT      // Citing to build upon/strengthen
+  EXTENSION    // Extending the argument further
+  APPLICATION  // Applying to new domain
+  CONTRAST     // Citing as contrast/alternative
+  REBUTTAL     // Citing to rebut
+  REFINEMENT   // Refining/improving the argument
+  METHODOLOGY  // Citing methodology/approach
+  CRITIQUE     // Methodological critique
+}
+
+model ArgumentCitation {
+  id                 String          @id @default(cuid())
+  citingArgumentId   String
+  citedArgumentId    String
+  citationType       ArgCitationType
+  annotation         String?         @db.Text
+  citedInContext     Json?           // Optional: {premiseArgumentId, premiseClaimId}
+  createdById        String
+  createdAt          DateTime        @default(now())
+  
+  citingArgument     Argument        @relation("CitationsMade", ...)
+  citedArgument      Argument        @relation("CitationsReceived", ...)
+  
+  @@unique([citingArgumentId, citedArgumentId])
+}
+
+model ArgumentPermalink {
+  id             String   @id @default(cuid())
+  argumentId     String   @unique
+  shortCode      String   @unique    // e.g., "xK3m9pQw"
+  slug           String?             // Human-readable URL slug
+  permalinkUrl   String              // Full URL
+  version        Int      @default(1)
+  accessCount    Int      @default(0)
+  lastAccessedAt DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model ArgumentCitationMetrics {
+  id                 String   @id @default(cuid())
+  argumentId         String   @unique
+  totalCitations     Int      @default(0)
+  supportCitations   Int      @default(0)
+  extensionCitations Int      @default(0)
+  contrastCitations  Int      @default(0)
+  rebuttalCitations  Int      @default(0)
+  externalCitations  Int      @default(0)
+  selfCitations      Int      @default(0)
+  lastCalculatedAt   DateTime @default(now())
+}
+```
+
+#### Chunk 2: Types ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| ArgCitationType | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| CITATION_TYPE_LABELS | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| ArgumentCitationInput | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| ArgumentCitationSummary | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| ArgumentPermalinkInfo | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| CitationMetrics | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| CitationGraph types | ✅ | `lib/citations/argumentCitationTypes.ts` |
+| Helper functions | ✅ | `lib/citations/argumentCitationTypes.ts` |
+
+**Type Highlights:**
+```typescript
+type ArgCitationType = "SUPPORT" | "EXTENSION" | "APPLICATION" | "CONTRAST" 
+                     | "REBUTTAL" | "REFINEMENT" | "METHODOLOGY" | "CRITIQUE";
+
+interface CitationGraph {
+  nodes: CitationGraphNode[];
+  edges: CitationGraphEdge[];
+  centerNodeId?: string;
+  maxDepth?: number;
+  totalNodes: number;
+  totalEdges: number;
+}
+
+// Helper functions
+getCitationTypeColor(type)      // Tailwind color classes
+isPositiveCitationType(type)    // SUPPORT, EXTENSION, etc.
+isNegativeCitationType(type)    // REBUTTAL, CRITIQUE
+isNeutralCitationType(type)     // CONTRAST
+```
+
+#### Chunk 3: Permalink Service ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| getOrCreatePermalink() | ✅ | `lib/citations/permalinkService.ts` |
+| getPermalinkInfo() | ✅ | `lib/citations/permalinkService.ts` |
+| resolvePermalink() | ✅ | `lib/citations/permalinkService.ts` |
+| incrementPermalinkAccess() | ✅ | `lib/citations/permalinkService.ts` |
+| bumpPermalinkVersion() | ✅ | `lib/citations/permalinkService.ts` |
+| generateCitationText() | ✅ | `lib/citations/permalinkService.ts` |
+| generateAllCitationFormats() | ✅ | `lib/citations/permalinkService.ts` |
+
+**Key Functions:**
+```typescript
+// Permalink Operations
+getOrCreatePermalink(argumentId)         // Get or create permalink
+resolvePermalink(identifier)             // Resolve shortCode or slug
+incrementPermalinkAccess(identifier)     // Track access
+bumpPermalinkVersion(argumentId)         // Increment version on change
+
+// Citation Text Generation
+generateCitationText(argumentId, format) // APA, MLA, Chicago, BibTeX, Mesh
+generateAllCitationFormats(argumentId)   // All formats at once
+```
+
+**Supported Citation Formats:**
+- **APA**: Author. (Year). Text. In Deliberation. Mesh. Retrieved from URL
+- **MLA**: Author. "Text" Deliberation, Mesh, Year, URL. Accessed Date.
+- **Chicago**: Author. "Text" In Deliberation. Mesh, Year. URL.
+- **BibTeX**: @misc{key, author, title, howpublished, year, url, note}
+- **Mesh**: [Author] "Text" — Deliberation (Year) URL
+
+#### Chunk 4: Citation Service ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| createCitation() | ✅ | `lib/citations/argumentCitationService.ts` |
+| getCitation() | ✅ | `lib/citations/argumentCitationService.ts` |
+| deleteCitation() | ✅ | `lib/citations/argumentCitationService.ts` |
+| updateCitationAnnotation() | ✅ | `lib/citations/argumentCitationService.ts` |
+| getArgumentCitations() | ✅ | `lib/citations/argumentCitationService.ts` |
+| getCitationsByType() | ✅ | `lib/citations/argumentCitationService.ts` |
+| getMostCitedArguments() | ✅ | `lib/citations/argumentCitationService.ts` |
+| updateCitationMetrics() | ✅ | `lib/citations/argumentCitationService.ts` |
+
+**Key Functions:**
+```typescript
+// CRUD
+createCitation(input, userId)            // Create with validation
+getCitation(citationId)                  // Get single citation
+deleteCitation(citationId, userId)       // Delete (creator only)
+updateCitationAnnotation(id, annotation, userId)
+
+// Queries
+getArgumentCitations(argumentId)         // All citations (made & received)
+getCitationsByType(argumentId)           // Grouped by type
+getMostCitedArguments(limit, deliberationId?)
+
+// Metrics
+updateCitationMetrics(argumentId)        // Recalculate metrics
+```
+
+#### Chunk 5: Citation Graph Service ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| buildArgumentCitationGraph() | ✅ | `lib/citations/citationGraphService.ts` |
+| buildDeliberationCitationGraph() | ✅ | `lib/citations/citationGraphService.ts` |
+| findCitationPath() | ✅ | `lib/citations/citationGraphService.ts` |
+| findShortestCitationPath() | ✅ | `lib/citations/citationGraphService.ts` |
+| getMostCitedArguments() | ✅ | `lib/citations/citationGraphService.ts` |
+| getDeliberationCitationStats() | ✅ | `lib/citations/citationGraphService.ts` |
+| findCitationClusters() | ✅ | `lib/citations/citationGraphService.ts` |
+| calculateGraphDensity() | ✅ | `lib/citations/citationGraphService.ts` |
+| getNodeDegrees() | ✅ | `lib/citations/citationGraphService.ts` |
+
+**Key Functions:**
+```typescript
+// Graph Building
+buildArgumentCitationGraph(argumentId, depth, includeIndirect)
+buildDeliberationCitationGraph(deliberationId, includeExternal)
+
+// Path Finding
+findCitationPath(fromId, toId, maxDepth)      // All paths (DFS)
+findShortestCitationPath(fromId, toId, maxDepth)  // Shortest path (BFS)
+
+// Analytics
+getMostCitedArguments(limit, options?)
+getDeliberationCitationStats(deliberationId)
+findCitationClusters(deliberationId, minClusterSize)
+
+// Helpers
+calculateGraphDensity(graph)
+getNodeDegrees(graph)  // in/out/total degrees
+```
+
+#### Chunk 6: API Routes ✅ Complete
+
+| Route | Methods | Purpose |
+|-------|---------|---------|
+| `/api/arguments/[argumentId]/arg-citations` | GET, POST | List/create argument citations |
+| `/api/arguments/[argumentId]/arg-citations/[citationId]` | GET, DELETE, PATCH | Citation CRUD |
+| `/api/arguments/[argumentId]/permalink` | GET | Get/create permalink with citation formats |
+| `/api/arguments/[argumentId]/citation-graph` | GET | Get citation graph for argument |
+| `/api/a/[identifier]` | GET | Resolve permalink (API or redirect) |
+| `/api/deliberations/[id]/citation-graph` | GET | Get citation graph for deliberation |
+
+**API Examples:**
+```bash
+# List citations for an argument
+GET /api/arguments/{id}/arg-citations
+
+# Create citation from argument A to argument B
+POST /api/arguments/{id}/arg-citations
+Body: { "citedArgumentId": "...", "citationType": "SUPPORT", "annotation": "..." }
+
+# Delete citation
+DELETE /api/arguments/{id}/arg-citations/{citationId}
+
+# Get permalink with APA citation
+GET /api/arguments/{id}/permalink?format=apa
+
+# Get citation graph (depth 3)
+GET /api/arguments/{id}/citation-graph?depth=3&includeIndirect=true
+
+# Resolve permalink (returns JSON for API, redirects for browser)
+GET /api/a/xK3m9pQw
+
+# Get deliberation citation graph with stats
+GET /api/deliberations/{id}/citation-graph?includeExternal=true&includeStats=true
+```
+
+**Note:** The route `/api/arguments/[argumentId]/arg-citations` is separate from the existing `/api/arguments/[id]/citations` which handles source/reference citations.
+
+#### Chunk 7: React Query Hooks ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| argumentCitationKeys | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useArgumentCitations() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useArgumentCitationGraph() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useDeliberationCitationGraph() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| usePermalink() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useCreateCitation() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useDeleteCitation() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useUpdateCitation() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| useCopyPermalink() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+| usePrefetchCitations() | ✅ | `lib/citations/argumentCitationHooks.ts` |
+
+**Hook Examples:**
+```typescript
+// Fetch citations
+const { data, isLoading } = useArgumentCitations(argumentId);
+
+// Fetch citation graph
+const { data: graph } = useArgumentCitationGraph(argumentId, { depth: 2 });
+
+// Create citation mutation
+const createCitation = useCreateCitation();
+await createCitation.mutateAsync({
+  citingArgumentId: "...",
+  citedArgumentId: "...",
+  citationType: "SUPPORT",
+});
+
+// Copy permalink utilities
+const { copyUrl, copyCitation } = useCopyPermalink(argumentId);
+await copyCitation("apa");
+
+// Prefetch for performance
+const { prefetchArgumentCitations, prefetchCitationGraph } = usePrefetchCitations();
+prefetchCitationGraph(argumentId, 2);
+```
+
+#### Chunk 8: UI Components ✅ Complete
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| ArgumentCitationBadge | ✅ | `components/citations/argument/ArgumentCitationBadge.tsx` |
+| CitationTypeSelector | ✅ | `components/citations/argument/ArgumentCitationBadge.tsx` |
+| ArgumentCitationCard | ✅ | `components/citations/argument/ArgumentCitationCard.tsx` |
+| ArgumentCitationCardCompact | ✅ | `components/citations/argument/ArgumentCitationCard.tsx` |
+| ArgumentCitationList | ✅ | `components/citations/argument/ArgumentCitationCard.tsx` |
+| PermalinkCopyButton | ✅ | `components/citations/argument/PermalinkCopyButton.tsx` |
+| PermalinkDisplay | ✅ | `components/citations/argument/PermalinkCopyButton.tsx` |
+| ArgumentCitationGraphViewer | ✅ | `components/citations/argument/ArgumentCitationGraphViewer.tsx` |
+| CitationGraphStats | ✅ | `components/citations/argument/ArgumentCitationGraphViewer.tsx` |
+| CreateCitationModal | ✅ | `components/citations/argument/CreateCitationModal.tsx` |
+| QuickCiteButton | ✅ | `components/citations/argument/CreateCitationModal.tsx` |
+| Barrel exports | ✅ | `components/citations/argument/index.ts` |
+
+**Component Highlights:**
+- **ArgumentCitationBadge**: Color-coded type badges with tooltips (xs/sm/md sizes)
+- **CitationTypeSelector**: Type picker for SUPPORT, EXTENSION, REBUTTAL, etc.
+- **ArgumentCitationCard**: Full citation display with direction, annotation, actions
+- **PermalinkCopyButton**: Dropdown for URL, APA, MLA, Chicago, BibTeX formats
+- **ArgumentCitationGraphViewer**: Interactive SVG with zoom/pan, legend, stats
+- **CreateCitationModal**: Search, select type, add annotation workflow
+- **QuickCiteButton**: One-click "Cite" button that opens CreateCitationModal
+
+**Usage Examples:**
+```tsx
+// Display citation type badge
+<ArgumentCitationBadge type="SUPPORT" size="sm" />
+
+// Permalink copy button with formats
+<PermalinkCopyButton argumentId={id} showFormats />
+
+// Citation graph visualization
+<ArgumentCitationGraphViewer 
+  graph={citationGraph}
+  onNodeClick={(nodeId) => router.push(`/arguments/${nodeId}`)}
+/>
+
+// Quick cite button on argument card
+<QuickCiteButton 
+  citingArgumentId={argumentId} 
+  citingArgumentText={argument.text}
+/>
+```
+
+---
+
 ## File Index
 
 ### Phase 1.2 Files
@@ -995,6 +1321,37 @@ components/exports/
 ├── ExportButton.tsx          # Dropdown export button
 ├── ExportFormatSelector.tsx  # Format picker with options
 └── ExportPreviewModal.tsx    # Preview modal
+```
+
+### Phase 3.3 Files
+```
+lib/citations/
+├── argumentCitationTypes.ts      # Type definitions for arg citations
+├── argumentCitationService.ts    # Citation CRUD & metrics
+├── permalinkService.ts           # Permalink generation & citation text
+├── citationGraphService.ts       # Graph building & path finding
+└── argumentCitationHooks.ts      # React Query hooks
+
+app/api/arguments/[argumentId]/
+├── arg-citations/
+│   ├── route.ts                  # GET/POST citations
+│   └── [citationId]/route.ts     # GET/DELETE/PATCH single citation
+├── permalink/route.ts            # GET permalink with citation formats
+└── citation-graph/route.ts       # GET citation graph
+
+app/api/a/[identifier]/
+└── route.ts                      # Permalink resolver (redirect/API)
+
+app/api/deliberations/[id]/
+└── citation-graph/route.ts       # GET deliberation citation graph
+
+components/citations/argument/
+├── index.ts                      # Barrel exports
+├── ArgumentCitationBadge.tsx     # Type badge + CitationTypeSelector
+├── ArgumentCitationCard.tsx      # Card, CompactCard, List components
+├── PermalinkCopyButton.tsx       # Copy URL/citation formats dropdown
+├── ArgumentCitationGraphViewer.tsx # Interactive SVG graph + stats
+└── CreateCitationModal.tsx       # Create citation modal + QuickCiteButton
 ```
 
 ---

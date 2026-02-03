@@ -2982,6 +2982,12 @@ model Argument {
   attacksAsAttacker  ClaimAttack[]   @relation("AttackingArgument")
   defensesAsDefender ClaimDefense[]  @relation("DefendingArgument")
 
+  // Phase 3.2: Argument-Level Citations
+  citationsMade       ArgumentCitation[]        @relation("CitingArguments")
+  citationsReceived   ArgumentCitation[]        @relation("CitedByArguments")
+  permalink           ArgumentPermalink?
+  citationMetrics     ArgumentCitationMetrics?
+
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
@@ -8246,4 +8252,113 @@ model PredictionOutcome {
   
   @@index([predictionId])
   @@index([recordedById])
+}
+
+// ============================================================
+// PHASE 3.2: ARGUMENT-LEVEL CITATIONS
+// ============================================================
+
+/// Type of citation relationship between arguments
+enum ArgCitationType {
+  SUPPORT        // Citing to build upon/strengthen
+  EXTENSION      // Extending the argument further
+  APPLICATION    // Applying to new domain
+  CONTRAST       // Citing as contrast/alternative
+  REBUTTAL       // Citing to rebut
+  REFINEMENT     // Refining/improving the argument
+  METHODOLOGY    // Citing methodology/approach
+  CRITIQUE       // Methodological critique
+}
+
+/// Citation relationship between arguments
+model ArgumentCitation {
+  id                String   @id @default(cuid())
+  
+  // The argument doing the citing
+  citingArgumentId  String
+  citingArgument    Argument @relation("CitingArguments", fields: [citingArgumentId], references: [id], onDelete: Cascade)
+  
+  // The argument being cited
+  citedArgumentId   String
+  citedArgument     Argument @relation("CitedByArguments", fields: [citedArgumentId], references: [id], onDelete: Cascade)
+  
+  // Type of citation
+  citationType      ArgCitationType
+  
+  // Optional annotation explaining why/how
+  annotation        String?  @db.Text
+  
+  // Context where citation appears - store as JSON with argumentId + claimId
+  // (ArgumentPremise uses composite key, so we store reference info as JSON)
+  citedInContext    Json?    // { premiseArgumentId, premiseClaimId }
+  
+  // Who created the citation
+  createdById       String   // auth_id
+  createdAt         DateTime @default(now())
+  
+  // Prevent duplicate citations
+  @@unique([citingArgumentId, citedArgumentId])
+  @@index([citingArgumentId])
+  @@index([citedArgumentId])
+  @@index([citationType])
+}
+
+/// Stable permalink for arguments (for academic citations)
+model ArgumentPermalink {
+  id            String   @id @default(cuid())
+  
+  // The argument this permalink refers to
+  argumentId    String   @unique
+  argument      Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  
+  // Short code for URLs (e.g., "a7f3x2")
+  shortCode     String   @unique
+  
+  // Human-readable slug (e.g., "climate-evidence-supports-action")
+  slug          String?
+  
+  // Full permalink URL
+  permalinkUrl  String
+  
+  // Version tracking (bump when argument significantly changes)
+  version       Int      @default(1)
+  
+  // Access tracking
+  accessCount   Int      @default(0)
+  lastAccessedAt DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([shortCode])
+  @@index([slug])
+}
+
+/// Citation analytics/metrics per argument
+model ArgumentCitationMetrics {
+  id                    String   @id @default(cuid())
+  
+  // The argument these metrics are for
+  argumentId            String   @unique
+  argument              Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  
+  // Total citations received
+  totalCitations        Int      @default(0)
+  
+  // Citations by type
+  supportCitations      Int      @default(0)
+  extensionCitations    Int      @default(0)
+  contrastCitations     Int      @default(0)
+  rebuttalCitations     Int      @default(0)
+  
+  // Cross-deliberation citations (from other deliberations)
+  externalCitations     Int      @default(0)
+  
+  // Self-citations (from same author)
+  selfCitations         Int      @default(0)
+  
+  // Last recalculated
+  lastCalculatedAt      DateTime @default(now())
+  
+  @@index([totalCitations])
 }
