@@ -87,6 +87,7 @@ export function PermalinkCopyButton({
   className,
 }: PermalinkCopyButtonProps) {
   const [copiedFormat, setCopiedFormat] = React.useState<CopyFormat | null>(null);
+  const [isLoadingFormat, setIsLoadingFormat] = React.useState(false);
   const { data: permalink, isLoading } = usePermalink(argumentId);
   const copyMutation = useCopyPermalink(argumentId);
 
@@ -95,24 +96,28 @@ export function PermalinkCopyButton({
 
     let textToCopy: string;
 
-    switch (format) {
-      case "url":
-        textToCopy = permalink.url;
-        break;
-      case "apa":
-        textToCopy = permalink.citationFormats.apa;
-        break;
-      case "mla":
-        textToCopy = permalink.citationFormats.mla;
-        break;
-      case "chicago":
-        textToCopy = permalink.citationFormats.chicago;
-        break;
-      case "bibtex":
-        textToCopy = permalink.citationFormats.bibtex;
-        break;
-      default:
-        textToCopy = permalink.url;
+    if (format === "url") {
+      // URL is available directly from permalink
+      textToCopy = permalink.fullUrl || permalink.permalinkUrl || "";
+    } else {
+      // Fetch the citation format on demand
+      setIsLoadingFormat(true);
+      try {
+        const res = await fetch(`/api/arguments/${argumentId}/permalink?format=${format}`);
+        if (!res.ok) throw new Error("Failed to fetch citation");
+        const data = await res.json();
+        textToCopy = data.data?.citation?.text || "";
+        if (!textToCopy) {
+          toast.error(`${format.toUpperCase()} citation not available`);
+          setIsLoadingFormat(false);
+          return;
+        }
+      } catch {
+        toast.error("Failed to generate citation");
+        setIsLoadingFormat(false);
+        return;
+      }
+      setIsLoadingFormat(false);
     }
 
     try {
@@ -272,10 +277,11 @@ export function PermalinkDisplay({ argumentId, className }: PermalinkDisplayProp
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = async () => {
-    if (!permalink?.url) return;
+    const url = permalink?.fullUrl || permalink?.permalinkUrl;
+    if (!url) return;
 
     try {
-      await navigator.clipboard.writeText(permalink.url);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Permalink copied!");
       setTimeout(() => setCopied(false), 2000);
@@ -301,7 +307,7 @@ export function PermalinkDisplay({ argumentId, className }: PermalinkDisplayProp
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono text-gray-600 dark:text-gray-300 truncate">
           <Link2 className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{permalink.shortId}</span>
+          <span className="truncate">{permalink.shortCode}</span>
         </div>
       </div>
       <Button

@@ -55,6 +55,12 @@ import { SchemeAdditionDialog } from "@/components/argumentation/SchemeAdditionD
 import { DependencyEditor } from "@/components/argumentation/DependencyEditor";
 import { ArgumentNetBuilder } from "@/components/argumentation/ArgumentNetBuilder";
 import { QuickContraryDialog } from "./QuickContraryDialog";
+import { 
+  PermalinkCopyButton, 
+  QuickCiteButton,
+  ArgumentCitationBadge,
+} from "@/components/citations/argument";
+import { useArgumentCitations } from "@/lib/citations/argumentCitationHooks";
 import { current } from "immer";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -522,6 +528,15 @@ export function ArgumentCardV2({
       refreshInterval: 60000, // Refresh every minute
     }
   );
+
+  // Phase 3.3: Fetch argument citations data
+  const { data: argCitationsData, isLoading: citationsLoading } = useArgumentCitations(id);
+  const argCitationCount = React.useMemo(() => {
+    if (!argCitationsData) return { made: 0, received: 0, total: 0 };
+    const made = argCitationsData.citationsMade?.length || 0;
+    const received = argCitationsData.citationsReceived?.length || 0;
+    return { made, received, total: made + received };
+  }, [argCitationsData]);
 
   // Build map of claim ID -> commitment count
   const commitmentCounts = React.useMemo(() => {
@@ -1005,6 +1020,21 @@ export function ArgumentCardV2({
                 Mark Contrary
               </button>
               
+              {/* Phase 3.3: Argument Citation Actions */}
+              <PermalinkCopyButton
+                argumentId={id}
+                variant="ghost"
+                size="sm"
+                showFormats={true}
+              />
+              
+              <QuickCiteButton
+                citingArgumentId={id}
+                citingArgumentText={conclusion.text}
+                variant="ghost"
+                size="sm"
+              />
+              
               {argCqStatus && (
                 <CQStatusPill 
                   required={argCqStatus.required} 
@@ -1014,12 +1044,32 @@ export function ArgumentCardV2({
                 />
               )}
 
-              {/* Citations Badge */}
+              {/* Source Citations Badge */}
               {citations.length > 0 && (
                 <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium">
                   <LinkIcon className="w-3 h-3" />
                   <span>{citations.length}</span>
                 </div>
+              )}
+              
+              {/* Phase 3.3: Argument Citations Badge */}
+              {argCitationCount.total > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium cursor-help">
+                      <span>📖</span>
+                      <span>{argCitationCount.total}</span>
+                      <span className="text-blue-500 text-[10px]">
+                        ({argCitationCount.received}↓ {argCitationCount.made}↑)
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      <strong>{argCitationCount.received}</strong> citations received • <strong>{argCitationCount.made}</strong> citations made
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               )}
 
               {/* Phase 1d.1: Contraries Badge */}
