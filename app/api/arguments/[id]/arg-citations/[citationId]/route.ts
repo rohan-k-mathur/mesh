@@ -25,7 +25,7 @@ const UpdateCitationSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { argumentId: string; citationId: string } }
+  { params }: { params: { id: string; citationId: string } }
 ) {
   try {
     const citation = await getCitation(params.citationId);
@@ -39,7 +39,7 @@ export async function GET(
 
     return NextResponse.json({ ok: true, data: citation }, NO_STORE);
   } catch (error: any) {
-    console.error("[GET /api/arguments/[argumentId]/arg-citations/[citationId]] Error:", error);
+    console.error("[GET /api/arguments/[id]/arg-citations/[citationId]] Error:", error);
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to get citation" },
       { status: 500, ...NO_STORE }
@@ -52,7 +52,7 @@ export async function GET(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { argumentId: string; citationId: string } }
+  { params }: { params: { id: string; citationId: string } }
 ) {
   try {
     const userId = await getCurrentUserId();
@@ -67,7 +67,7 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true }, NO_STORE);
   } catch (error: any) {
-    console.error("[DELETE /api/arguments/[argumentId]/arg-citations/[citationId]] Error:", error);
+    console.error("[DELETE /api/arguments/[id]/arg-citations/[citationId]] Error:", error);
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to delete citation" },
       { status: 500, ...NO_STORE }
@@ -80,7 +80,7 @@ export async function DELETE(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { argumentId: string; citationId: string } }
+  { params }: { params: { id: string; citationId: string } }
 ) {
   try {
     const userId = await getCurrentUserId();
@@ -108,7 +108,7 @@ export async function PATCH(
         { status: 400, ...NO_STORE }
       );
     }
-    console.error("[PATCH /api/arguments/[argumentId]/arg-citations/[citationId]] Error:", error);
+    console.error("[PATCH /api/arguments/[id]/arg-citations/[citationId]] Error:", error);
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to update citation" },
       { status: 500, ...NO_STORE }

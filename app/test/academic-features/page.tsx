@@ -13,6 +13,7 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { toast, Toaster } from "sonner";
 import {
   FileText,
   Search,
@@ -334,7 +335,7 @@ function CitationListDemo() {
             key={citation.id}
             citation={citation}
             direction="made"
-            onArgumentClick={(id) => alert(`Navigate to argument: ${id}`)}
+            onArgumentClick={(id) => toast.info("Navigate to Argument", { description: `Opening argument ${id.slice(0, 8)}...` })}
           />
         ))}
       </CardContent>
@@ -416,12 +417,36 @@ function GraphStatsDemo() {
 }
 
 function ExportFormatsDemo() {
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+
+  const handleExport = async (formatId: string, formatLabel: string) => {
+    setIsExporting(formatId);
+    
+    // Demo deliberation ID - in production, this would come from context
+    const demoDelibId = "demo-deliberation-id";
+    
+    toast.info(`Exporting as ${formatLabel}...`, {
+      description: "Export API is fully implemented at /api/deliberations/[id]/export",
+    });
+
+    // Simulate export delay for demo
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast.success(`Export Ready: ${formatLabel}`, {
+      description: `API endpoint: /api/deliberations/{id}/export?format=${formatId}`,
+      duration: 4000,
+    });
+    
+    setIsExporting(null);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Download className="w-5 h-5" />
           Export Formats
+          <Badge variant="default" className="ml-2 bg-green-600 text-xs">API Ready</Badge>
         </CardTitle>
         <CardDescription>
           Export deliberations and arguments in various formats
@@ -431,14 +456,20 @@ function ExportFormatsDemo() {
         <div className="grid grid-cols-2 gap-3">
           {MOCK_EXPORT_FORMATS.map((format) => {
             const Icon = format.icon;
+            const isLoading = isExporting === format.id;
             return (
               <button
                 key={format.id}
-                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 transition-colors text-left"
-                onClick={() => alert(`Export as ${format.label}`)}
+                disabled={isLoading}
+                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 transition-colors text-left disabled:opacity-50"
+                onClick={() => handleExport(format.id, format.label)}
               >
                 <div className="p-2 rounded bg-slate-100">
-                  <Icon className="w-4 h-4 text-slate-600" />
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                  ) : (
+                    <Icon className="w-4 h-4 text-slate-600" />
+                  )}
                 </div>
                 <div>
                   <p className="font-medium text-sm">{format.label}</p>
@@ -447,6 +478,13 @@ function ExportFormatsDemo() {
               </button>
             );
           })}
+        </div>
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Fully Implemented:</strong> Export services are complete at{" "}
+            <code className="bg-green-100 px-1 rounded">lib/exports/</code> with API at{" "}
+            <code className="bg-green-100 px-1 rounded">/api/deliberations/[id]/export</code>
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -561,15 +599,18 @@ function ReleasesDemo() {
               <span>📝 42 claims • 18 arguments</span>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => toast.success("Export Started", { description: "Downloading v2.1.0 as BibTeX..." })}>
                 <Download className="w-3 h-3 mr-1" />
                 Export
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => {
+                navigator.clipboard.writeText("Smith, J. et al. (2026). Climate Policy Consensus v2.1.0. Mesh. https://mesh.app/d/climate-policy/v2.1.0");
+                toast.success("Citation Copied", { description: "APA citation copied to clipboard" });
+              }}>
                 <Copy className="w-3 h-3 mr-1" />
                 Cite
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => toast.info("Opening Release", { description: "Navigating to v2.1.0 snapshot..." })}>
                 <ExternalLink className="w-3 h-3 mr-1" />
                 View
               </Button>
@@ -599,6 +640,7 @@ export default function AcademicFeaturesDemo() {
   
   return (
     <TooltipProvider>
+      <Toaster position="top-right" richColors closeButton />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -712,11 +754,11 @@ export default function AcademicFeaturesDemo() {
                       </div>
                     </div>
                     <div className="flex justify-center gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => toast.success("Fork Created", { description: "New branch 'my-analysis' created from Climate Policy Debate" })}>
                         <GitBranch className="w-3 h-3 mr-1" />
                         Create Fork
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => toast.info("Merge Request Opened", { description: "Draft merge request created. Add a description to submit." })}>
                         <MessageSquare className="w-3 h-3 mr-1" />
                         Open Merge Request
                       </Button>
@@ -786,35 +828,42 @@ export default function AcademicFeaturesDemo() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                 <div>
-                  <p className="font-semibold mb-2 text-blue-300">Key Files</p>
+                  <p className="font-semibold mb-2 text-blue-300">Key Services</p>
                   <ul className="space-y-1 text-slate-300 font-mono text-xs">
-                    <li>lib/citations/argumentCitationTypes.ts</li>
-                    <li>lib/citations/permalinkService.ts</li>
-                    <li>lib/citations/citationGraphService.ts</li>
-                    <li>lib/releases/releaseService.ts</li>
-                    <li>lib/provenance/provenanceService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/citations/argumentCitationService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/citations/permalinkService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/exports/bibtexService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/releases/releaseService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/provenance/provenanceService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/provenance/canonicalClaimService.ts</li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-semibold mb-2 text-blue-300">API Routes</p>
+                  <p className="font-semibold mb-2 text-blue-300">API Routes (Live)</p>
                   <ul className="space-y-1 text-slate-300 font-mono text-xs">
-                    <li>/api/arguments/[id]/arg-citations</li>
-                    <li>/api/arguments/[id]/permalink</li>
-                    <li>/api/deliberations/[id]/releases</li>
-                    <li>/api/deliberations/[id]/export</li>
-                    <li>/api/claims/[id]/provenance</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/arguments/[id]/arg-citations</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/arguments/[id]/permalink</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/deliberations/[id]/export</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/deliberations/[id]/releases</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/claims/[id]/challenges</li>
                   </ul>
                 </div>
                 <div>
-                  <p className="font-semibold mb-2 text-blue-300">Components</p>
+                  <p className="font-semibold mb-2 text-blue-300">UI Components</p>
                   <ul className="space-y-1 text-slate-300 font-mono text-xs">
-                    <li>components/citations/argument/</li>
-                    <li>components/exports/</li>
-                    <li>components/provenance/</li>
-                    <li>components/forks/</li>
-                    <li>components/quotes/</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/citations/argument/</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/exports/</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/provenance/</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/forks/</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/quotes/</li>
                   </ul>
                 </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <p className="text-xs text-slate-400">
+                  <strong className="text-slate-300">Export API Example:</strong>{" "}
+                  <code className="bg-slate-700 px-1 rounded">GET /api/deliberations/&#123;id&#125;/export?format=bibtex&includeTOC=true</code>
+                </p>
               </div>
             </CardContent>
           </Card>

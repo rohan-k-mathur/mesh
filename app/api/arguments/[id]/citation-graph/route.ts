@@ -18,7 +18,7 @@ const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { argumentId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { searchParams } = new URL(req.url);
@@ -34,14 +34,14 @@ export async function GET(
     const includeIndirect = includeIndirectParam !== "false";
 
     const graph = await buildArgumentCitationGraph(
-      params.argumentId,
+      params.id,
       depth,
       includeIndirect
     );
 
     return NextResponse.json({ ok: true, data: graph }, NO_STORE);
   } catch (error: any) {
-    console.error("[GET /api/arguments/[argumentId]/citation-graph] Error:", error);
+    console.error("[GET /api/arguments/[id]/citation-graph] Error:", error);
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to get citation graph" },
       { status: 500, ...NO_STORE }

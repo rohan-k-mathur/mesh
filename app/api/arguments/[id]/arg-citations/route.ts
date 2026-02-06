@@ -44,10 +44,10 @@ const CreateCitationSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { argumentId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const argumentId = params.argumentId;
+    const argumentId = params.id;
 
     const citations = await getArgumentCitations(argumentId);
 
@@ -60,7 +60,7 @@ export async function GET(
 
     return NextResponse.json({ ok: true, data: citations }, NO_STORE);
   } catch (error: any) {
-    console.error("[GET /api/arguments/[argumentId]/arg-citations] Error:", error);
+    console.error("[GET /api/arguments/[id]/arg-citations] Error:", error);
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to get citations" },
       { status: 500, ...NO_STORE }
@@ -73,7 +73,7 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { argumentId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const userId = await getCurrentUserId();
@@ -89,7 +89,7 @@ export async function POST(
 
     const citation = await createCitation(
       {
-        citingArgumentId: params.argumentId,
+        citingArgumentId: params.id,
         citedArgumentId: validatedData.citedArgumentId,
         citationType: validatedData.citationType,
         annotation: validatedData.annotation,
@@ -109,7 +109,7 @@ export async function POST(
         { status: 400, ...NO_STORE }
       );
     }
-    console.error("[POST /api/arguments/[argumentId]/arg-citations] Error:", error);
+    console.error("[POST /api/arguments/[id]/arg-citations] Error:", error);
     return NextResponse.json(
       { ok: false, error: error.message || "Failed to create citation" },
       { status: 500, ...NO_STORE }
