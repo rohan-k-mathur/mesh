@@ -35,19 +35,25 @@ import {
   ExternalLink,
   FileText,
   Filter,
+  GitFork,
   GraduationCap,
   Loader2,
+  MessageSquare,
   MoreHorizontal,
   RefreshCw,
   Search,
   Sparkles,
   Tag,
+  TrendingUp,
   User,
   Users,
   Verified,
 } from "lucide-react";
 import { ClaimExtractionPanel } from "@/components/claims/ClaimExtractionPanel";
 import { ClaimTypeBadge, CLAIM_TYPE_INFO } from "@/components/claims/ClaimTypeSelector";
+import { SourceCrossReferences } from "./SourceCrossReferences";
+import { SourceUsageStats } from "./SourceUsageStats";
+import { ProvenanceChain } from "./ProvenanceChain";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────
@@ -102,7 +108,7 @@ interface SourceDetailPageProps {
 // ─────────────────────────────────────────────────────────
 
 export function SourceDetailPage({ sourceId, onBack }: SourceDetailPageProps) {
-  const [activeTab, setActiveTab] = useState<"claims" | "extract">("claims");
+  const [activeTab, setActiveTab] = useState<"claims" | "extract" | "analytics">("claims");
   const queryClient = useQueryClient();
 
   // Fetch source details
@@ -182,9 +188,9 @@ export function SourceDetailPage({ sourceId, onBack }: SourceDetailPageProps) {
       {/* Source Metadata Card */}
       <SourceMetadataCard source={source} />
 
-      {/* Tabs: Claims / Extract */}
+      {/* Tabs: Claims / Extract / Analytics */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="claims" className="flex items-center gap-2">
             <Tag className="h-4 w-4" />
             Claims ({claimsQuery.data?.length || 0})
@@ -192,6 +198,10 @@ export function SourceDetailPage({ sourceId, onBack }: SourceDetailPageProps) {
           <TabsTrigger value="extract" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Extract Claims
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Analytics
           </TabsTrigger>
         </TabsList>
 
@@ -211,6 +221,19 @@ export function SourceDetailPage({ sourceId, onBack }: SourceDetailPageProps) {
             abstractText={source.abstractText}
             onClaimsCreated={handleClaimsCreated}
           />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          <div className="space-y-6">
+            {/* Usage Statistics */}
+            <SourceUsageStats sourceId={sourceId} variant="card" />
+            
+            {/* Cross-Platform References */}
+            <SourceCrossReferences sourceId={sourceId} variant="full" />
+            
+            {/* Evidence Provenance Chain */}
+            <ProvenanceChain sourceId={sourceId} variant="timeline" maxEvents={15} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

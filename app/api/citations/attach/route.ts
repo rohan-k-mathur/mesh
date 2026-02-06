@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
 import { CitationAnchorType, CitationIntent } from "@prisma/client";
+import { onCitationCreated, onCitationDeleted } from "@/lib/triggers/citationTriggers";
 
 const Attach = z.object({
   targetType: z.enum(["argument", "claim", "card", "comment", "move", "proposition"]),
@@ -179,6 +180,9 @@ if (d.targetType === "claim") {
       targetPreview,
     });
 
+    // Phase 3.3: Trigger source usage aggregation
+    onCitationCreated({ id: row.id, sourceId: row.sourceId });
+
     return NextResponse.json({ citation: row });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? "attach failed" }, { status: 400 });
@@ -194,9 +198,20 @@ export async function DELETE(req: NextRequest) {
   const parsed = DelBody.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
+  // Phase 3.3: Get sourceId before deletion for usage aggregation
+  const existing = await prisma.citation.findUnique({
+    where: { id: parsed.data.citationId },
+    select: { id: true, sourceId: true },
+  });
+
   const row = await prisma.citation.delete({ where: { id: parsed.data.citationId } }).catch(() => null);
 
   emitBus("citations:changed", { action: "deleted", citationId: parsed.data.citationId });
+
+  // Phase 3.3: Trigger source usage aggregation
+  if (existing) {
+    onCitationDeleted({ id: existing.id, sourceId: existing.sourceId });
+  }
 
   return NextResponse.json({ ok: true, deleted: !!row });
 }

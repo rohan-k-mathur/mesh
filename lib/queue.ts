@@ -24,6 +24,9 @@ export const userKnnQueue       = new Queue('user-knn',      { connection });
 // Phase 3.1: Source Trust Infrastructure queues
 export const sourceVerificationQueue = new Queue('source-verification', { connection });
 export const sourceArchivingQueue = new Queue('source-archiving', { connection });
+
+// Phase 3.3: Cross-Platform Intelligence queues
+export const sourceUsageQueue = new Queue('source-usage', { connection });
 // export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 

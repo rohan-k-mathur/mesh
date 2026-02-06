@@ -1443,8 +1443,8 @@ export default function StacksFeaturesPage() {
           
           {/* Tabs */}
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full justify-start bg-white border p-1 h-auto flex-wrap">
-              <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
+            <TabsList className="flex w-full justify-start bg-white border p-1 h-auto ">
+              <TabsTrigger value="overview" className="text-sm      ">Overview</TabsTrigger>
               <TabsTrigger value="blocks" className="text-sm">Block Types</TabsTrigger>
               <TabsTrigger value="connections" className="text-sm">Connections</TabsTrigger>
               <TabsTrigger value="evidence" className="text-sm">Evidence UX</TabsTrigger>

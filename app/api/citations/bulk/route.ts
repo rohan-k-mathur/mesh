@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
+import { triggerBulkAggregation } from "@/lib/triggers/citationTriggers";
 
 export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId().catch(() => null);
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     // Verify ownership of all citations
     const citations = await prisma.citation.findMany({
       where: { id: { in: citationIds } },
-      select: { id: true, createdById: true, targetType: true, targetId: true },
+      select: { id: true, createdById: true, targetType: true, targetId: true, sourceId: true },
     });
 
     const ownedIds = citations
@@ -57,6 +58,9 @@ export async function POST(req: NextRequest) {
       citations.map((c) => `${c.targetType}:${c.targetId}`)
     );
 
+    // Phase 3.3: Get unique source IDs for aggregation
+    const sourceIds = [...new Set(citations.map((c) => c.sourceId))];
+
     switch (action) {
       case "delete": {
         const result = await prisma.citation.deleteMany({
@@ -68,6 +72,9 @@ export async function POST(req: NextRequest) {
           const [targetType, targetId] = target.split(":");
           emitBus("citations:changed", { action: "bulk-deleted", targetType, targetId });
         }
+
+        // Phase 3.3: Trigger bulk aggregation for affected sources
+        triggerBulkAggregation(sourceIds);
 
         return NextResponse.json({
           ok: true,

@@ -1963,6 +1963,11 @@ model Source {
   refManagerItems ReferenceManagerItem[]
   claims          Claim[]                 // Phase 1.1: Claims extracted from this source
   quotes          QuoteNode[]             // Phase 2.3: Quote nodes from this source
+  
+  // Phase 3.3: Cross-Platform Intelligence
+  usage           SourceUsage?            // Aggregated usage stats
+  citationContexts SourceCitationContext[] // Where this source is cited
+  provenanceEvents EvidenceProvenanceEvent[] // Provenance chain
 
   @@index([verificationStatus])
   @@index([lastCheckedAt])
@@ -1993,6 +1998,9 @@ model Citation {
 
   source     Source      @relation(fields: [sourceId], references: [id])
   annotation Annotation? @relation(fields: [anchorId], references: [id], onDelete: SetNull)
+  
+  // Phase 3.3: Cross-Platform Intelligence
+  citationContext SourceCitationContext?
 
   @@unique([targetType, targetId, sourceId, locator]) // prevents dup cites
   @@index([anchorId])
@@ -2047,6 +2055,116 @@ model SourceAlertNotification {
 
   @@unique([alertId, userId])
   @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 3.3: Cross-Platform Intelligence
+// Cross-deliberation citation tracking & evidence provenance
+// ─────────────────────────────────────────────────────────
+
+model SourceUsage {
+  id              String   @id @default(cuid())
+  sourceId        String   @unique
+  
+  // Aggregated counts (denormalized for performance)
+  totalCitations      Int      @default(0)
+  deliberationCount   Int      @default(0)
+  argumentCount       Int      @default(0)
+  stackCount          Int      @default(0)
+  
+  // Intent breakdown
+  supportCount        Int      @default(0)
+  refuteCount         Int      @default(0)
+  contextCount        Int      @default(0)
+  
+  // Unique users who have cited this source
+  uniqueCiters        Int      @default(0)
+  
+  // Trending metrics
+  citationsLast7Days  Int      @default(0)
+  citationsLast30Days Int      @default(0)
+  trendScore          Float    @default(0)
+  
+  // First and most recent usage
+  firstCitedAt        DateTime?
+  lastCitedAt         DateTime?
+  
+  updatedAt           DateTime @updatedAt
+  
+  source              Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  @@index([trendScore])
+  @@index([totalCitations])
+  @@map("source_usage")
+}
+
+model SourceCitationContext {
+  id              String   @id @default(cuid())
+  sourceId        String
+  
+  // Where it's cited
+  deliberationId  String?
+  argumentId      String?
+  stackId         String?
+  
+  // Citation details
+  citationId      String   @unique
+  intent          CitationIntent?
+  quote           String?
+  
+  // Visibility (for filtering public contexts)
+  isPublic        Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  
+  source          Source        @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  deliberation    Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  citation        Citation      @relation(fields: [citationId], references: [id], onDelete: Cascade)
+  
+  @@index([sourceId, isPublic])
+  @@index([deliberationId])
+  @@map("source_citation_contexts")
+}
+
+// Evidence Provenance Event Types
+enum ProvenanceEventType {
+  imported           // First import to platform (from DOI, URL, etc.)
+  cited              // Attached to argument/claim
+  lifted_to_stack    // Lifted from citation to stack
+  imported_from_stack // Imported from someone else's stack
+  forked             // Stack containing this source was forked
+  shared             // Shared via direct link
+  exported           // Exported to reference manager
+}
+
+model EvidenceProvenanceEvent {
+  id              String   @id @default(cuid())
+  
+  // The source being tracked
+  sourceId        String
+  
+  // Event type
+  eventType       ProvenanceEventType
+  
+  // Actor (user auth_id or user identifier)
+  actorId         String
+  
+  // Context: where did this happen?
+  fromType        String?  // "external", "stack", "deliberation", "argument"
+  fromId          String?
+  toType          String?  // "stack", "deliberation", "argument", "citation"
+  toId            String?
+  
+  // Additional metadata
+  metadata        Json?    // { doi: "...", importSource: "semantic_scholar", etc. }
+  
+  createdAt       DateTime @default(now())
+  
+  source          Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  @@index([sourceId, createdAt])
+  @@index([actorId])
+  @@map("evidence_provenance_events")
 }
 
 // ─────────────────────────────────────────────────────────
@@ -4805,6 +4923,9 @@ model Deliberation {
   
   // Phase 3.1: Claim provenance - cross-deliberation identity tracking
   claimInstances      ClaimInstance[]
+  
+  // Phase 3.3: Cross-Platform Intelligence
+  sourceCitationContexts SourceCitationContext[]
   
   // Claim Prediction System
   claimPredictions    ClaimPrediction[]

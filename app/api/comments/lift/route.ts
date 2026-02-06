@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
 import { DeliberationHostType } from "@prisma/client";
+import { onCitationCreated } from "@/lib/triggers/citationTriggers";
 
 function normalizeHostType(input: string): DeliberationHostType {
   // happy path
@@ -118,6 +119,9 @@ export async function POST(req: NextRequest) {
           select: { id: true, sourceId: true },
         });
         copiedCitations.push(newCitation);
+        
+        // Phase 3.3: Trigger source usage aggregation for copied citation
+        onCitationCreated({ id: newCitation.id, sourceId: newCitation.sourceId });
       } catch (copyErr) {
         // Skip duplicates (unique constraint) but continue
         console.warn("Citation copy skipped (likely duplicate):", copyErr);
