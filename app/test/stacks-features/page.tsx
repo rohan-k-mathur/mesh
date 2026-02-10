@@ -27,10 +27,17 @@
  * - 2.2 Lift Carries Citations
  * - 2.3 Citation Intent (supports/refutes/context)
  * 
+ * PHASE 3 IMPROVEMENTS (Source Trust & Intelligence):
+ * - 3.1 Source Freshness & Verification (URL checks, retraction detection)
+ * - 3.2 Reference Manager Integration (Zotero, BibTeX import)
+ * - 3.3 Cross-Platform Intelligence (usage tracking, provenance)
+ * - 3.4.1 Knowledge Graph View (D3 force-directed visualization)
+ * - 3.4.2 Related Content Discovery (similarity-based recommendations)
+ * - 3.4.3 Timeline View (temporal evidence visualization)
+ * 
  * Accessible at: /test/stacks-features
  */
 
-import * as React from "react";
 import { useState } from "react";
 import { toast, Toaster } from "sonner";
 import {
@@ -49,23 +56,30 @@ import {
   Quote,
   FileTextIcon,
   VideoIcon,
-  ImageIcon,
   PlusCircle,
   GripVertical,
   ExternalLink,
   Check,
   ChevronRight,
   BookOpen,
-  Shield,
   ArrowUpRight,
   FolderIcon,
-  Search,
   FileJsonIcon,
   Settings,
   UserPlus,
   Bell,
   Highlighter,
   Network,
+  // Phase 3 icons
+  ShieldCheck,
+  Archive,
+  AlertTriangle,
+  LibraryBig,
+  Share2,
+  GitBranch,
+  Calendar,
+  Compass,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -379,6 +393,104 @@ const PHASES = [
       },
     ],
   },
+  {
+    id: "phase3",
+    title: "Phase 3: Source Trust & Intelligence",
+    description: "Source verification, reference management, and discovery",
+    features: [
+      {
+        id: "source-verification",
+        title: "Source Freshness & Verification",
+        description: "Monitor source health with automated checks",
+        icon: ShieldCheck,
+        status: "complete" as const,
+        items: ["URL verification", "Retraction detection", "Archive integration", "Source alerts"],
+      },
+      {
+        id: "reference-manager",
+        title: "Reference Manager Integration",
+        description: "Import from Zotero, Mendeley, and more",
+        icon: LibraryBig,
+        status: "complete" as const,
+        items: ["Zotero import", "BibTeX import", "Auto-metadata", "Bulk import"],
+      },
+      {
+        id: "cross-platform",
+        title: "Cross-Platform Intelligence",
+        description: "Track source usage across deliberations",
+        icon: Share2,
+        status: "complete" as const,
+        items: ["Usage tracking", "Citation contexts", "Evidence provenance", "Trust scoring"],
+      },
+      {
+        id: "knowledge-graph",
+        title: "Knowledge Graph View",
+        description: "Explore connections between sources and topics",
+        icon: GitBranch,
+        status: "complete" as const,
+        items: ["Interactive graph", "Node filtering", "BFS traversal", "Topic clusters"],
+      },
+      {
+        id: "related-content",
+        title: "Related Content",
+        description: "Discover related deliberations and stacks",
+        icon: Compass,
+        status: "complete" as const,
+        items: ["Related deliberations", "Related stacks", "Related sources", "Similarity scoring"],
+      },
+      {
+        id: "timeline-view",
+        title: "Timeline View",
+        description: "Temporal visualization of evidence evolution",
+        icon: Calendar,
+        status: "complete" as const,
+        items: ["Publication dates", "Citation events", "Retraction alerts", "Year grouping"],
+      },
+    ],
+  },
+];
+
+// Phase 3 Mock Data
+const MOCK_SOURCE_ALERTS = [
+  {
+    id: "alert-1",
+    type: "retraction",
+    sourceTitle: "Hydroxychloroquine Study 2020",
+    message: "This paper has been retracted by the publisher",
+    severity: "critical",
+    date: "2025-12-01",
+  },
+  {
+    id: "alert-2",
+    type: "broken_link",
+    sourceTitle: "Climate Data Portal",
+    message: "URL returned 404 - source may have moved",
+    severity: "warning",
+    date: "2025-12-10",
+  },
+  {
+    id: "alert-3",
+    type: "correction",
+    sourceTitle: "Ocean Temperature Analysis",
+    message: "Authors published correction to methodology",
+    severity: "info",
+    date: "2025-12-15",
+  },
+];
+
+const MOCK_TIMELINE_EVENTS = [
+  { id: "evt-1", type: "source_published", year: 2020, title: "IPCC Report Published", color: "#3b82f6" },
+  { id: "evt-2", type: "source_cited", year: 2021, title: "Cited in Climate Deliberation", color: "#10b981" },
+  { id: "evt-3", type: "argument_created", year: 2022, title: "New argument added", color: "#8b5cf6" },
+  { id: "evt-4", type: "retraction", year: 2023, title: "Related study retracted", color: "#ef4444" },
+  { id: "evt-5", type: "source_cited", year: 2024, title: "Cited in 3 new deliberations", color: "#10b981" },
+  { id: "evt-6", type: "source_published", year: 2025, title: "Follow-up study published", color: "#3b82f6" },
+];
+
+const MOCK_RELATED_ITEMS = [
+  { id: "rel-1", type: "deliberation", title: "Carbon Capture Technology", score: 85, reason: "3 shared sources" },
+  { id: "rel-2", type: "deliberation", title: "Renewable Energy Policy", score: 72, reason: "2 shared topics" },
+  { id: "rel-3", type: "stack", title: "Ocean Research Collection", score: 68, reason: "45% source overlap" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -389,7 +501,7 @@ function FeatureCard({ feature }: { feature: typeof PHASES[0]["features"][0] }) 
   const Icon = feature.icon;
   
   return (
-    <Card className="h-full">
+    <Card className="h-full bg-indigo-50/60">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -425,7 +537,7 @@ function StackPreviewCard() {
   const [visibility, setVisibility] = useState<string>("public_closed");
   
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FolderOpen className="w-5 h-5" />
@@ -468,7 +580,7 @@ function StackPreviewCard() {
         {/* Visibility Selector */}
         <div>
           <p className="text-sm font-medium mb-2">Visibility Mode:</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 bg-white">
             {VISIBILITY_OPTIONS.map((opt) => {
               const Icon = opt.icon;
               const isSelected = visibility === opt.value;
@@ -497,22 +609,23 @@ function StackPreviewCard() {
         </div>
         
         {/* Collaborators */}
-        <div>
+        <div >
           <p className="text-sm font-medium mb-2">Collaborators:</p>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
+            <Badge variant="outline" className="bg-amber-50 border-amber-500 p-2 text-amber-700">
               {MOCK_STACK.owner.name} (Owner)
             </Badge>
             {MOCK_STACK.collaborators.map((c) => (
-              <Badge key={c.id} variant="outline" className="bg-slate-50">
+              <Badge key={c.id} variant="outline" className="bg-white  p-2 border-slate-500">
                 {c.name} ({c.role})
               </Badge>
             ))}
-            <Button variant="ghost" size="sm" className="h-6 text-xs">
-              <UserPlus className="w-3 h-3 mr-1" />
+             </div>
+            <Button className="bg-white mt-2">
+              <UserPlus className="w-3 h-3 " />
               Add
             </Button>
-          </div>
+       
         </div>
       </CardContent>
     </Card>
@@ -521,7 +634,7 @@ function StackPreviewCard() {
 
 function BlockTypesDemo() {
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Layers className="w-5 h-5" />
@@ -535,7 +648,7 @@ function BlockTypesDemo() {
       <CardContent>
         <div className="grid grid-cols-2 gap-3">
           {/* PDF Block */}
-          <div className="border rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
+          <div className="border bg-white rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
             <div className="aspect-[4/3] bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center">
               <FileText className="w-12 h-12 text-red-400" />
             </div>
@@ -547,7 +660,7 @@ function BlockTypesDemo() {
           </div>
           
           {/* Link Block */}
-          <div className="border rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
+          <div className="border  bg-white rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
             <div className="aspect-[4/3] bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
               <ExternalLink className="w-12 h-12 text-blue-400" />
             </div>
@@ -559,7 +672,7 @@ function BlockTypesDemo() {
           </div>
           
           {/* Text Block */}
-          <div className="border rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
+          <div className="border bg-white rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
             <div className="aspect-[4/3] bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center p-3">
               <div className="text-xs text-emerald-600 font-mono line-clamp-4">
                 # Research Notes<br/>
@@ -576,7 +689,7 @@ function BlockTypesDemo() {
           </div>
           
           {/* Video Block */}
-          <div className="border rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
+          <div className="border bg-white rounded-lg overflow-hidden hover:border-indigo-300 transition-colors">
             <div className="aspect-[4/3] bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center relative">
               <VideoIcon className="w-12 h-12 text-purple-400" />
               <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
@@ -595,23 +708,23 @@ function BlockTypesDemo() {
         <div className="mt-4 border-t pt-4">
           <p className="text-sm font-medium mb-2">StackComposer Actions:</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => toast.info("Opening file picker...")}>
+            <Button className="bg-white" onClick={() => toast.info("Opening file picker...")}>
               <FileText className="w-3 h-3 mr-1" />
               Add PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={() => toast.info("Opening link dialog...")}>
+             <Button className="bg-white" onClick={() => toast.info("Opening link dialog...")}>
               <LinkIcon className="w-3 h-3 mr-1" />
               Add Link
             </Button>
-            <Button variant="outline" size="sm" onClick={() => toast.info("Opening note editor...")}>
+              <Button className="bg-white" onClick={() => toast.info("Opening note editor...")}>
               <FileTextIcon className="w-3 h-3 mr-1" />
               Add Note
             </Button>
-            <Button variant="outline" size="sm" onClick={() => toast.info("Opening video dialog...")}>
+             <Button className="bg-white" onClick={() => toast.info("Opening video dialog...")}>
               <VideoIcon className="w-3 h-3 mr-1" />
               Add Video
             </Button>
-            <Button variant="outline" size="sm" onClick={() => toast.info("Opening embed picker...")}>
+            <Button className="bg-white" onClick={() => toast.info("Opening embed picker...")}>
               <FolderIcon className="w-3 h-3 mr-1" />
               Embed Stack
             </Button>
@@ -626,7 +739,7 @@ function ConnectionsDemo() {
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Link2 className="w-5 h-5" />
@@ -717,7 +830,7 @@ function ConnectionsDemo() {
 
 function StackEmbedsDemo() {
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FolderIcon className="w-5 h-5" />
@@ -730,7 +843,7 @@ function StackEmbedsDemo() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Embedded Stack Card Preview */}
-        <div className="border-2 border-dashed rounded-lg p-4 bg-gradient-to-br from-indigo-50/70 to-purple-50/70 hover:border-indigo-400 transition-colors cursor-pointer">
+        <div className="border-2 border-dashed border-indigo-400  rounded-lg p-4 bg-gradient-to-br from-indigo-50 to-purple-50 hover:border-indigo-700 transition-colors cursor-pointer">
           <div className="flex items-start gap-3">
             <div className="p-2.5 rounded-lg bg-indigo-100 text-indigo-600">
               <FolderIcon className="w-5 h-5" />
@@ -753,11 +866,11 @@ function StackEmbedsDemo() {
         
         {/* Embed Actions */}
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => toast.info("Opening stack picker...")}>
+          <Button className="bg-white" onClick={() => toast.info("Opening stack picker...")}>
             <FolderIcon className="w-3 h-3 mr-1" />
             Embed Stack
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => toast.info("Stack embed cards show preview + item count")}>
+          <Button className="bg-white" onClick={() => toast.info("Stack embed cards show preview + item count")}>
             Learn More
           </Button>
         </div>
@@ -786,7 +899,7 @@ function ExportDemo() {
   };
 
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Download className="w-5 h-5" />
@@ -842,7 +955,7 @@ function CitationAnchorsDemo() {
   const [selectedCitation, setSelectedCitation] = useState<typeof MOCK_CITATIONS[0] | null>(null);
   
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Highlighter className="w-5 h-5" />
@@ -975,7 +1088,7 @@ function LiftWithCitationsDemo() {
   };
   
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ArrowUp className="w-5 h-5" />
@@ -1089,7 +1202,7 @@ function CitationIntentDemo() {
   const [selectedIntent, setSelectedIntent] = useState<string>("supports");
   
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Quote className="w-5 h-5" />
@@ -1210,7 +1323,7 @@ function getIntentDescription(intent: string): string {
 
 function DiscussionDemo() {
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5" />
@@ -1318,7 +1431,7 @@ function DragDropDemo() {
   };
   
   return (
-    <Card>
+    <Card className="bg-indigo-50/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <GripVertical className="w-5 h-5" />
@@ -1372,6 +1485,826 @@ function DragDropDemo() {
     </Card>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTS - PART 3: SOURCE TRUST & INTELLIGENCE (Phase 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SourceVerificationDemo() {
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+  const [verifying, setVerifying] = useState<string | null>(null);
+
+  const handleVerify = async (alertId: string, title: string) => {
+    setVerifying(alertId);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    setVerifying(null);
+    setDismissedAlerts(prev => new Set([...prev, alertId]));
+    toast.success(`Source Re-verified`, {
+      description: `${title} has been checked and updated`,
+    });
+  };
+
+  const handleDismiss = (alertId: string, title: string) => {
+    setDismissedAlerts(prev => new Set([...prev, alertId]));
+    toast.info(`Alert Dismissed`, {
+      description: `${title} alert hidden from view`,
+    });
+  };
+
+  const activeAlerts = MOCK_SOURCE_ALERTS.filter(a => !dismissedAlerts.has(a.id));
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5" />
+          Source Freshness & Verification
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.1</Badge>
+        </CardTitle>
+        <CardDescription>
+          Monitor source health with automated verification checks
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Verification Status Indicators */}
+        <div>
+          <p className="text-sm font-medium mb-3">Verification Statuses:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { status: "verified", color: "bg-green-100 text-green-700 border-green-300", icon: Check, label: "Verified" },
+              { status: "unverified", color: "bg-gray-100 text-gray-700 border-gray-300", icon: Eye, label: "Unverified" },
+              { status: "broken", color: "bg-red-100 text-red-700 border-red-300", icon: AlertTriangle, label: "Broken Link" },
+              { status: "archived", color: "bg-blue-100 text-blue-700 border-blue-300", icon: Archive, label: "Archived" },
+            ].map((item) => (
+              <div
+                key={item.status}
+                className={`flex items-center gap-2 p-3 border rounded-lg ${item.color}`}
+              >
+                <item.icon className="w-4 h-4" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Source Alerts */}
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium">Active Source Alerts:</p>
+            {dismissedAlerts.size > 0 && (
+              <button
+                onClick={() => {
+                  setDismissedAlerts(new Set());
+                  toast.info("All alerts restored");
+                }}
+                className="text-xs text-indigo-600 hover:underline"
+              >
+                Reset ({dismissedAlerts.size} dismissed)
+              </button>
+            )}
+          </div>
+          {activeAlerts.length === 0 ? (
+            <div className="p-4 text-center border rounded-lg bg-green-50 border-green-200">
+              <Check className="w-6 h-6 text-green-600 mx-auto mb-1" />
+              <p className="text-sm font-medium text-green-700">All Clear</p>
+              <p className="text-xs text-green-600">No active source alerts</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {activeAlerts.map((alert) => {
+                const severityStyles = {
+                  critical: "bg-red-50 border-red-200 text-red-700",
+                  warning: "bg-amber-50 border-amber-200 text-amber-700",
+                  info: "bg-blue-50 border-blue-200 text-blue-700",
+                };
+                const isVerifying = verifying === alert.id;
+                return (
+                  <div
+                    key={alert.id}
+                    className={`p-3 border rounded-lg ${severityStyles[alert.severity as keyof typeof severityStyles]}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{alert.sourceTitle}</p>
+                        <p className="text-xs mt-0.5">{alert.message}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {alert.type.replace("_", " ")}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs"
+                        disabled={isVerifying}
+                        onClick={() => handleVerify(alert.id, alert.sourceTitle)}
+                      >
+                        {isVerifying ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin mr-1" />
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-3 h-3 mr-1" />
+                            Re-verify
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => handleDismiss(alert.id, alert.sourceTitle)}
+                      >
+                        Dismiss
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> Worker at{" "}
+            <code className="bg-green-100 px-1 rounded">workers/sourceVerification.ts</code>{" "}
+            checks sources via BullMQ queue
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReferenceManagerDemo() {
+  const [importing, setImporting] = useState(false);
+  
+  const handleImport = async (source: string) => {
+    setImporting(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast.success(`Import Complete`, {
+      description: `Imported 12 references from ${source}`,
+    });
+    setImporting(false);
+  };
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <LibraryBig className="w-5 h-5" />
+          Reference Manager Integration
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.2</Badge>
+        </CardTitle>
+        <CardDescription>
+          Import sources from Zotero, Mendeley, BibTeX, and more
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { id: "zotero", name: "Zotero", desc: "Connect your Zotero library" },
+            { id: "mendeley", name: "Mendeley", desc: "Import from Mendeley" },
+            { id: "bibtex", name: "BibTeX", desc: "Upload .bib files" },
+            { id: "ris", name: "RIS", desc: "Import RIS format" },
+          ].map((source) => (
+            <button
+              key={source.id}
+              disabled={importing}
+              onClick={() => handleImport(source.name)}
+              className="flex flex-col items-center gap-2 p-4 border rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              <BookOpen className="w-6 h-6 text-indigo-600" />
+              <span className="font-medium text-sm">{source.name}</span>
+              <span className="text-xs text-muted-foreground text-center">{source.desc}</span>
+            </button>
+          ))}
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> API at{" "}
+            <code className="bg-green-100 px-1 rounded">/api/reference-manager/import</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CrossPlatformIntelligenceDemo() {
+  const SOURCES_DATA = [
+    {
+      id: "s1",
+      title: "IPCC Climate Report 2025",
+      doi: "doi:10.1000/ipcc-2025",
+      trust: "High",
+      trustColor: "bg-green-50 text-green-700",
+      stats: { deliberations: 12, citations: 45, stacks: 8 },
+      contexts: [
+        { delib: "Carbon Capture Debate", quote: "confirms 1.5°C threshold...", intent: "supports" },
+        { delib: "Policy Analysis", quote: "methodology limitations...", intent: "context" },
+      ],
+    },
+    {
+      id: "s2",
+      title: "Ocean Acidification Study",
+      doi: "doi:10.1000/ocean-ph",
+      trust: "Medium",
+      trustColor: "bg-amber-50 text-amber-700",
+      stats: { deliberations: 5, citations: 18, stacks: 3 },
+      contexts: [
+        { delib: "Marine Conservation", quote: "pH levels declining at 0.02/decade...", intent: "supports" },
+        { delib: "Fisheries Impact", quote: "economic projections uncertain...", intent: "refutes" },
+      ],
+    },
+    {
+      id: "s3",
+      title: "Renewable Energy Economics",
+      doi: "doi:10.1000/re-econ",
+      trust: "High",
+      trustColor: "bg-green-50 text-green-700",
+      stats: { deliberations: 9, citations: 32, stacks: 6 },
+      contexts: [
+        { delib: "Energy Transition", quote: "cost parity achieved by 2024...", intent: "supports" },
+      ],
+    },
+  ];
+
+  const [selectedSource, setSelectedSource] = useState(SOURCES_DATA[0]);
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Share2 className="w-5 h-5" />
+          Cross-Platform Intelligence
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.3</Badge>
+        </CardTitle>
+        <CardDescription>
+          Track how sources are used across deliberations
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Source Selector */}
+        <div>
+          <p className="text-sm font-medium mb-2">Select a source:</p>
+          <div className="flex gap-2">
+            {SOURCES_DATA.map((src) => (
+              <button
+                key={src.id}
+                onClick={() => {
+                  setSelectedSource(src);
+                  toast.info(src.title, {
+                    description: `${src.stats.citations} citations across ${src.stats.deliberations} deliberations`,
+                  });
+                }}
+                className={`flex-1 p-2 text-left border rounded-lg text-xs transition-all ${
+                  selectedSource.id === src.id
+                    ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                    : "hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <p className="font-medium truncate">{src.title}</p>
+                <p className="text-muted-foreground mt-0.5">{src.stats.citations} citations</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Usage Stats */}
+        <div className="border rounded-lg p-4 bg-slate-50">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="font-medium">{selectedSource.title}</p>
+              <p className="text-xs text-muted-foreground">{selectedSource.doi}</p>
+            </div>
+            <Badge variant="outline" className={selectedSource.trustColor}>{selectedSource.trust} Trust</Badge>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-indigo-600">{selectedSource.stats.deliberations}</p>
+              <p className="text-xs text-muted-foreground">Deliberations</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-600">{selectedSource.stats.citations}</p>
+              <p className="text-xs text-muted-foreground">Citations</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-amber-600">{selectedSource.stats.stacks}</p>
+              <p className="text-xs text-muted-foreground">Stacks</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Citation Contexts */}
+        <div>
+          <p className="text-sm font-medium mb-2">Recent Citation Contexts:</p>
+          <div className="space-y-2">
+            {selectedSource.contexts.map((ctx, i) => (
+              <div key={i} className="p-2 border rounded bg-white text-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="outline" className="text-xs">{ctx.intent}</Badge>
+                  <span className="text-muted-foreground text-xs">{ctx.delib}</span>
+                </div>
+                <p className="text-xs italic">&ldquo;{ctx.quote}&rdquo;</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> Models{" "}
+            <code className="bg-green-100 px-1 rounded">SourceUsage</code>,{" "}
+            <code className="bg-green-100 px-1 rounded">SourceCitationContext</code>,{" "}
+            <code className="bg-green-100 px-1 rounded">EvidenceProvenanceEvent</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function KnowledgeGraphDemo() {
+  const GRAPH_NODES = [
+    { id: "S1", label: "IPCC Report", type: "source", x: 15, y: 20, color: "#3b82f6" },
+    { id: "T1", label: "Climate Change", type: "topic", x: 40, y: 35, color: "#10b981" },
+    { id: "D1", label: "Carbon Policy", type: "deliberation", x: 70, y: 15, color: "#8b5cf6" },
+    { id: "S2", label: "NASA Portal", type: "source", x: 25, y: 65, color: "#3b82f6" },
+    { id: "A1", label: "Dr. Smith", type: "author", x: 65, y: 70, color: "#f59e0b" },
+    { id: "T2", label: "Ocean Science", type: "topic", x: 50, y: 55, color: "#10b981" },
+  ];
+
+  const GRAPH_EDGES = [
+    { from: "S1", to: "T1", label: "about" },
+    { from: "T1", to: "D1", label: "discussed in" },
+    { from: "S2", to: "T1", label: "about" },
+    { from: "S2", to: "T2", label: "about" },
+    { from: "A1", to: "S1", label: "authored" },
+    { from: "A1", to: "D1", label: "participates" },
+  ];
+
+  const [selectedNode, setSelectedNode] = useState<typeof GRAPH_NODES[0] | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  const connectedEdges = selectedNode
+    ? GRAPH_EDGES.filter(e => e.from === selectedNode.id || e.to === selectedNode.id)
+    : [];
+  const connectedNodeIds = new Set(
+    connectedEdges.flatMap(e => [e.from, e.to])
+  );
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <GitBranch className="w-5 h-5" />
+          Knowledge Graph View
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.4.1</Badge>
+        </CardTitle>
+        <CardDescription>
+          Explore connections between sources, topics, and deliberations
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Interactive Graph Visualization */}
+        <div className="border rounded-lg p-4 bg-slate-900 text-white min-h-[220px] relative overflow-hidden">
+          {/* Edges (SVG lines) */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+            {GRAPH_EDGES.map((edge, i) => {
+              const fromNode = GRAPH_NODES.find(n => n.id === edge.from)!;
+              const toNode = GRAPH_NODES.find(n => n.id === edge.to)!;
+              const isHighlighted = selectedNode
+                ? edge.from === selectedNode.id || edge.to === selectedNode.id
+                : false;
+              return (
+                <line
+                  key={i}
+                  x1={`${fromNode.x}%`}
+                  y1={`${fromNode.y}%`}
+                  x2={`${toNode.x}%`}
+                  y2={`${toNode.y}%`}
+                  stroke={isHighlighted ? "#818cf8" : "#475569"}
+                  strokeWidth={isHighlighted ? 2 : 1}
+                  strokeOpacity={selectedNode && !isHighlighted ? 0.2 : 0.6}
+                />
+              );
+            })}
+          </svg>
+
+          {/* Nodes */}
+          {GRAPH_NODES.map((node) => {
+            const isSelected = selectedNode?.id === node.id;
+            const isConnected = connectedNodeIds.has(node.id);
+            const isHovered = hoveredNode === node.id;
+            const dimmed = selectedNode && !isSelected && !isConnected;
+            return (
+              <Tooltip key={node.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200"
+                    style={{
+                      left: `${node.x}%`,
+                      top: `${node.y}%`,
+                      zIndex: isSelected ? 10 : isHovered ? 5 : 2,
+                      opacity: dimmed ? 0.3 : 1,
+                    }}
+                    onClick={() => {
+                      const next = isSelected ? null : node;
+                      setSelectedNode(next);
+                      if (next) {
+                        const edges = GRAPH_EDGES.filter(e => e.from === next.id || e.to === next.id);
+                        toast.info(`${next.label}`, {
+                          description: `${edges.length} connection${edges.length !== 1 ? "s" : ""} • ${next.type}`,
+                        });
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredNode(node.id)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    aria-label={`${node.label} (${node.type})`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                        isSelected ? "ring-2 ring-white scale-125 border-white" : isHovered ? "scale-110 border-white/60" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: node.color }}
+                    >
+                      {node.id}
+                    </div>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs font-medium">{node.label}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{node.type}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+          
+          {/* Legend */}
+          <div className="absolute bottom-2 left-2 flex gap-3 text-xs" style={{ zIndex: 3 }}>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500" /> Sources</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500" /> Topics</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500" /> Deliberations</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-500" /> Authors</span>
+          </div>
+        </div>
+
+        {/* Selected Node Detail */}
+        {selectedNode && (
+          <div className="p-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+            <p className="text-sm font-medium text-indigo-700 mb-2">
+              Selected: {selectedNode.label}
+            </p>
+            <div className="space-y-1">
+              {connectedEdges.map((edge, i) => {
+                const otherNodeId = edge.from === selectedNode.id ? edge.to : edge.from;
+                const otherNode = GRAPH_NODES.find(n => n.id === otherNodeId)!;
+                return (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: otherNode.color }}
+                    />
+                    <span className="text-slate-500">{edge.label}</span>
+                    <span className="font-medium">{otherNode.label}</span>
+                    <Badge variant="outline" className="text-[10px] scale-90">{otherNode.type}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="p-2 border rounded">
+            <p className="font-medium">Node Types</p>
+            <p className="text-xs text-muted-foreground">Sources, Topics, Deliberations, Authors</p>
+          </div>
+          <div className="p-2 border rounded">
+            <p className="font-medium">Edge Types</p>
+            <p className="text-xs text-muted-foreground">Citations, Topic Links, Authorship</p>
+          </div>
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> D3 visualization at{" "}
+            <code className="bg-green-100 px-1 rounded">components/explore/KnowledgeGraphExplorer.tsx</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RelatedContentDemo() {
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
+
+  const handleBookmark = (id: string, title: string) => {
+    setBookmarked(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        toast.info("Removed from bookmarks", { description: title });
+      } else {
+        next.add(id);
+        toast.success("Bookmarked for later", { description: title });
+      }
+      return next;
+    });
+  };
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Compass className="w-5 h-5" />
+          Related Content Discovery
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.4.2</Badge>
+        </CardTitle>
+        <CardDescription>
+          Find deliberations, stacks, and sources with shared evidence
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          {MOCK_RELATED_ITEMS.map((item) => {
+            const isSelected = selectedItem === item.id;
+            const isBookmarked = bookmarked.has(item.id);
+            return (
+              <div key={item.id}>
+                <button
+                  className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all text-left ${
+                    isSelected
+                      ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
+                      : "hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                  onClick={() => {
+                    setSelectedItem(isSelected ? null : item.id);
+                    if (!isSelected) {
+                      toast.info(`Viewing: ${item.title}`, {
+                        description: `${item.score}% relevance • ${item.reason}`,
+                      });
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.type === "deliberation" ? (
+                      <MessageSquare className="w-5 h-5 text-purple-500" />
+                    ) : (
+                      <Layers className="w-5 h-5 text-blue-500" />
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.reason}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-12 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full"
+                          style={{ width: `${item.score}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-8">{item.score}%</span>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isSelected ? "rotate-90" : ""}`} />
+                  </div>
+                </button>
+                {isSelected && (
+                  <div className="mt-1 ml-8 p-3 bg-slate-50 border rounded-lg text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">
+                        Shared evidence basis with your current deliberation
+                      </span>
+                      <Button
+                        variant={isBookmarked ? "default" : "outline"}
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBookmark(item.id, item.title);
+                        }}
+                      >
+                        {isBookmarked ? (
+                          <><Check className="w-3 h-3 mr-1" /> Saved</>
+                        ) : (
+                          <><PlusCircle className="w-3 h-3 mr-1" /> Save</>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant="outline" className="text-[10px]">{item.type}</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {item.score >= 80 ? "Strong match" : item.score >= 60 ? "Good match" : "Partial match"}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> Components at{" "}
+            <code className="bg-green-100 px-1 rounded">components/related/</code> •
+            API at <code className="bg-green-100 px-1 rounded">/api/deliberations/[id]/related</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TimelineViewDemo() {
+  const ALL_EVENTS = [
+    ...MOCK_TIMELINE_EVENTS,
+    { id: "tl-extra-1", title: "Follow-up Study Published", year: 2021, color: "#3b82f6", type: "Published" },
+    { id: "tl-extra-2", title: "Methodology Critique", year: 2023, color: "#8b5cf6", type: "Argument" },
+    { id: "tl-extra-3", title: "Data Replication Confirmed", year: 2024, color: "#10b981", type: "Cited" },
+  ];
+
+  const [selectedEvent, setSelectedEvent] = useState<typeof ALL_EVENTS[0] | null>(null);
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [yearRange, setYearRange] = useState<[number, number]>([2020, 2025]);
+
+  const filteredEvents = ALL_EVENTS.filter(evt => {
+    if (filterType && evt.type !== filterType) return false;
+    if (evt.year < yearRange[0] || evt.year > yearRange[1]) return false;
+    return true;
+  });
+
+  const EVENT_TYPES = [
+    { type: "Published", color: "#3b82f6" },
+    { type: "Cited", color: "#10b981" },
+    { type: "Argument", color: "#8b5cf6" },
+    { type: "Retraction", color: "#ef4444" },
+  ];
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Timeline View
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.4.3</Badge>
+        </CardTitle>
+        <CardDescription>
+          Temporal visualization of evidence evolution
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Filter Controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Filter:</span>
+            <button
+              onClick={() => setFilterType(null)}
+              className={`px-2 py-1 rounded text-xs border transition-colors ${
+                filterType === null ? "bg-indigo-100 text-indigo-700 border-indigo-300" : "hover:bg-slate-50"
+              }`}
+            >
+              All
+            </button>
+            {EVENT_TYPES.map((et) => (
+              <button
+                key={et.type}
+                onClick={() => {
+                  setFilterType(filterType === et.type ? null : et.type);
+                  toast.info(`Filtering: ${filterType === et.type ? "All events" : et.type}`);
+                }}
+                className={`px-2 py-1 rounded text-xs border transition-colors flex items-center gap-1 ${
+                  filterType === et.type ? "bg-indigo-100 text-indigo-700 border-indigo-300" : "hover:bg-slate-50"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: et.color }} />
+                {et.type}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            <span className="text-xs text-muted-foreground">Zoom:</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 w-6 p-0 text-xs"
+              onClick={() => {
+                setYearRange(([s, e]) => [Math.min(s + 1, e - 1), e]);
+              }}
+              disabled={yearRange[1] - yearRange[0] <= 1}
+            >
+              −
+            </Button>
+            <span className="text-xs font-mono w-16 text-center">{yearRange[0]}–{yearRange[1]}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 w-6 p-0 text-xs"
+              onClick={() => {
+                setYearRange(([s, e]) => [Math.max(s - 1, 2018), Math.min(e + 1, 2026)]);
+              }}
+              disabled={yearRange[0] <= 2018 && yearRange[1] >= 2026}
+            >
+              +
+            </Button>
+          </div>
+        </div>
+
+        {/* Mini Timeline */}
+        <div className="border rounded-lg p-4">
+          <div className="flex justify-between text-xs text-muted-foreground mb-2">
+            {Array.from({ length: yearRange[1] - yearRange[0] + 1 }, (_, i) => yearRange[0] + i).map((year) => (
+              <span key={year}>{year}</span>
+            ))}
+          </div>
+          <div className="relative h-2 bg-gray-200 rounded-full">
+            {filteredEvents.map((evt) => {
+              const range = yearRange[1] - yearRange[0];
+              const pos = ((evt.year - yearRange[0]) / range) * 100;
+              if (pos < 0 || pos > 100) return null;
+              const isSelected = selectedEvent?.id === evt.id;
+              return (
+                <Tooltip key={evt.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      className={`absolute rounded-full border-2 border-white shadow cursor-pointer transform -translate-y-0.5 transition-all ${
+                        isSelected ? "w-4 h-4 ring-2 ring-indigo-400 -translate-y-1 z-10" : "w-3 h-3"
+                      }`}
+                      style={{
+                        left: `${pos}%`,
+                        backgroundColor: evt.color,
+                      }}
+                      onClick={() => {
+                        const next = isSelected ? null : evt;
+                        setSelectedEvent(next);
+                        if (next) {
+                          toast.info(next.title, { description: `${next.year} • ${next.type}` });
+                        }
+                      }}
+                      aria-label={`${evt.title} (${evt.year})`}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs font-medium">{evt.title}</p>
+                    <p className="text-xs text-muted-foreground">{evt.year} • {evt.type}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""} shown
+            {filterType && ` (${filterType} only)`}
+          </p>
+        </div>
+
+        {/* Selected Event Detail */}
+        {selectedEvent && (
+          <div className="p-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedEvent.color }} />
+              <p className="text-sm font-medium text-indigo-700">{selectedEvent.title}</p>
+            </div>
+            <div className="flex gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">{selectedEvent.year}</Badge>
+              <Badge variant="outline" className="text-xs">{selectedEvent.type}</Badge>
+            </div>
+          </div>
+        )}
+        
+        {/* Event Types Legend */}
+        <div className="flex flex-wrap gap-2">
+          {EVENT_TYPES.map((item) => (
+            <div key={item.type} className="flex items-center gap-1 text-xs">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+              {item.type}
+            </div>
+          ))}
+        </div>
+        
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> Component at{" "}
+            <code className="bg-green-100 px-1 rounded">components/timeline/TimelineView.tsx</code> •
+            API at <code className="bg-green-100 px-1 rounded">/api/timeline</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1392,7 +2325,7 @@ export default function StacksFeaturesPage() {
                 <div>
                   <h1 className="text-xl font-bold">Stacks Features Demo</h1>
                   <p className="text-sm text-muted-foreground">
-                    Foundational + Phase 1-2 Improvements
+                    Foundational + Phase 1-3 Improvements
                   </p>
                 </div>
               </div>
@@ -1424,11 +2357,11 @@ export default function StacksFeaturesPage() {
                   </p>
                   <div className="flex gap-4 mt-4">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-indigo-600">15+</p>
+                      <p className="text-2xl font-bold text-indigo-600">21+</p>
                       <p className="text-xs text-indigo-600">Features</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-indigo-600">3</p>
+                      <p className="text-2xl font-bold text-indigo-600">4</p>
                       <p className="text-xs text-indigo-600">Phases</p>
                     </div>
                     <div className="text-center">
@@ -1443,12 +2376,14 @@ export default function StacksFeaturesPage() {
           
           {/* Tabs */}
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="flex w-full justify-start bg-white border p-1 h-auto ">
-              <TabsTrigger value="overview" className="text-sm      ">Overview</TabsTrigger>
+            <TabsList className="flex w-full justify-start p-1 h-auto ">
+              <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
               <TabsTrigger value="blocks" className="text-sm">Block Types</TabsTrigger>
               <TabsTrigger value="connections" className="text-sm">Connections</TabsTrigger>
               <TabsTrigger value="evidence" className="text-sm">Evidence UX</TabsTrigger>
               <TabsTrigger value="exports" className="text-sm">Exports</TabsTrigger>
+              <TabsTrigger value="verification" className="text-sm">Source Trust</TabsTrigger>
+              <TabsTrigger value="discovery" className="text-sm">Discovery</TabsTrigger>
             </TabsList>
             
             {/* Overview Tab */}
@@ -1470,6 +2405,10 @@ export default function StacksFeaturesPage() {
             
             {/* Block Types Tab */}
             <TabsContent value="blocks" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">Block Types & Content</h3>
+                <p className="text-sm text-muted-foreground">Stacks support multiple content types — PDFs, links, text notes, videos, and nested stack embeds.</p>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <BlockTypesDemo />
                 <StackEmbedsDemo />
@@ -1482,6 +2421,10 @@ export default function StacksFeaturesPage() {
             
             {/* Connections Tab */}
             <TabsContent value="connections" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">Multi-Stack Connections</h3>
+                <p className="text-sm text-muted-foreground">Blocks can belong to multiple stacks simultaneously, enabling cross-collection discovery and re-use.</p>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ConnectionsDemo />
                 <StackEmbedsDemo />
@@ -1490,6 +2433,10 @@ export default function StacksFeaturesPage() {
             
             {/* Evidence UX Tab */}
             <TabsContent value="evidence" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">Evidence UX <Badge variant="outline" className="ml-2">Phase 2</Badge></h3>
+                <p className="text-sm text-muted-foreground">Executable citations, semantic intent labeling, and evidence-preserving lift workflows.</p>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <CitationAnchorsDemo />
                 <LiftWithCitationsDemo />
@@ -1502,9 +2449,13 @@ export default function StacksFeaturesPage() {
             
             {/* Exports Tab */}
             <TabsContent value="exports" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">Export & Portability <Badge variant="outline" className="ml-2">Phase 1.6</Badge></h3>
+                <p className="text-sm text-muted-foreground">Export stacks as JSON, Markdown, or BibTeX for academic citations and cross-platform portability.</p>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ExportDemo />
-                <Card>
+                <Card className="bg-indigo-50/60">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="w-5 h-5" />
@@ -1610,11 +2561,160 @@ export default function StacksFeaturesPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            
+            {/* Source Trust Tab (Phase 3.1-3.3) */}
+            <TabsContent value="verification" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">Source Trust & Intelligence <Badge variant="outline" className="ml-2">Phase 3.1–3.3</Badge></h3>
+                <p className="text-sm text-muted-foreground">Automated source verification, reference manager integration, and cross-platform usage intelligence.</p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SourceVerificationDemo />
+                <ReferenceManagerDemo />
+              </div>
+              <div className="grid grid-cols-1 gap-6">
+                <CrossPlatformIntelligenceDemo />
+              </div>
+              
+              {/* Phase 3 Implementation Reference */}
+              <Card className="bg-slate-800 text-white">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Phase 3 Implementation Reference
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                    <div>
+                      <p className="font-semibold mb-2 text-indigo-300">New Data Models</p>
+                      <ul className="space-y-1 text-slate-300 font-mono text-xs">
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> SourceAlert</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> ReferenceManagerItem</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> SourceUsage</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> SourceCitationContext</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> EvidenceProvenanceEvent</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> ExplorerNode</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> ExplorerEdge</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-2 text-indigo-300">Workers & Libraries</p>
+                      <ul className="space-y-1 text-slate-300 font-mono text-xs">
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> workers/sourceVerification.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> workers/knowledgeGraphBuilder.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/similarity/computeSimilarity.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/timeline/buildTimeline.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/knowledgeGraph/queryGraph.ts</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-2 text-indigo-300">API Endpoints</p>
+                      <ul className="space-y-1 text-slate-300 font-mono text-xs">
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/sources/[id]/verify</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/reference-manager/import</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/knowledge-graph</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/timeline</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/deliberations/[id]/related</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Discovery Tab (Phase 3.4) */}
+            <TabsContent value="discovery" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">Discovery & Exploration <Badge variant="outline" className="ml-2">Phase 3.4</Badge></h3>
+                <p className="text-sm text-muted-foreground">Knowledge graph visualization, related content recommendations, and temporal evidence timelines.</p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <KnowledgeGraphDemo />
+                <RelatedContentDemo />
+              </div>
+              <div className="grid grid-cols-1 gap-6">
+                <TimelineViewDemo />
+              </div>
+              
+              {/* Explore Page Link */}
+              <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-white shadow-sm">
+                        <Sparkles className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-purple-900">Try the Explore Page</h3>
+                        <p className="text-sm text-purple-700">
+                          Interactive knowledge graph visualization with D3.js force-directed layout
+                        </p>
+                      </div>
+                    </div>
+                    <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                      <a href="/explore">
+                        Open Explore <ExternalLink className="w-4 h-4 ml-2" />
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Phase 3.4 Discovery Implementation Reference */}
+              <Card className="bg-slate-800 text-white">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Phase 3.4 Discovery Implementation Reference
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                    <div>
+                      <p className="font-semibold mb-2 text-indigo-300">Components</p>
+                      <ul className="space-y-1 text-slate-300 font-mono text-xs">
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> KnowledgeGraphExplorer.tsx</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> RelatedDeliberations.tsx</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> RelatedStacks.tsx</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> RelatedSources.tsx</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> TimelineView.tsx</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-2 text-indigo-300">Libraries</p>
+                      <ul className="space-y-1 text-slate-300 font-mono text-xs">
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/similarity/computeSimilarity.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/timeline/types.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/timeline/buildTimeline.ts</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/knowledgeGraph/queryGraph.ts</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-2 text-indigo-300">API Endpoints</p>
+                      <ul className="space-y-1 text-slate-300 font-mono text-xs">
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/knowledge-graph</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/deliberations/[id]/related</li>
+                        <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/timeline</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    <p className="text-xs text-slate-400">
+                      <strong className="text-slate-300">Architecture:</strong>{" "}
+                      Knowledge graph built by <code className="bg-slate-700 px-1 rounded">workers/knowledgeGraphBuilder.ts</code> •
+                      Similarity computed via Jaccard coefficient on shared sources •
+                      Timeline events aggregate publication dates, citation events, and retractions
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
           
           {/* Footer */}
           <div className="text-center text-sm text-slate-500 pb-8">
-            <p>Stacks Features Demo • Foundational + Phase 1-2 Complete • Mesh Platform</p>
+            <p>Stacks Features Demo • Foundational + Phase 1-3 Complete • Mesh Platform</p>
           </div>
         </div>
       </div>
