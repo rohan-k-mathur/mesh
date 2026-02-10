@@ -5,6 +5,7 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
 import { jsonSafe } from "@/lib/bigintjson";
 import { ensureBaselineLudicsDesigns } from "@/lib/ludics/ensureBaseline";
+import { onDeliberationCreated } from "@/lib/triggers/knowledgeGraphTriggers";
 import { TargetType } from "@prisma/client";
 import { z } from "zod";
 
@@ -82,6 +83,8 @@ export async function POST(req: NextRequest) {
     });
     created = true;
     emitBus("deliberations:created", { id: d.id, hostType, hostId, source: "ensure" });
+    // Trigger knowledge graph update
+    onDeliberationCreated(d.id).catch(console.error);
     // 👇 Ensure baseline Ludics designs exist so DeepDivePanel has something to render.
 
    try {

@@ -27,6 +27,9 @@ export const sourceArchivingQueue = new Queue('source-archiving', { connection }
 
 // Phase 3.3: Cross-Platform Intelligence queues
 export const sourceUsageQueue = new Queue('source-usage', { connection });
+
+// Phase 3.4: Discovery & Exploration queues
+export const knowledgeGraphQueue = new Queue('knowledge-graph', { connection });
 // export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 

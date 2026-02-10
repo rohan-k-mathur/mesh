@@ -8483,3 +8483,90 @@ model ArgumentCitationMetrics {
   
   @@index([totalCitations])
 }
+
+// ============================================================================
+// Phase 3.4: Discovery & Exploration - Knowledge Graph Explorer
+// ============================================================================
+
+enum ExplorerNodeType {
+  source
+  topic
+  claim
+  deliberation
+  argument
+  author
+  institution
+}
+
+enum ExplorerEdgeType {
+  cites           // Source → Source
+  discusses       // Deliberation/Source → Topic
+  contains        // Deliberation → Claim
+  supports        // Source → Claim
+  refutes         // Source → Claim
+  authored_by     // Source → Author
+  affiliated_with // Author → Institution
+  related_to      // Topic → Topic
+  builds_on       // Claim → Claim
+}
+
+/// Node in the knowledge graph explorer representing sources, topics, claims, etc.
+model ExplorerNode {
+  id              String            @id @default(cuid())
+  
+  // Node type and reference to the actual entity
+  nodeType        ExplorerNodeType
+  referenceId     String            // ID of the actual entity (sourceId, topicName, etc.)
+  
+  // Display properties
+  label           String
+  description     String?           @db.Text
+  
+  // Metadata for rendering
+  weight          Float             @default(1)  // Node importance/size
+  color           String?           // Custom color override
+  
+  // Computed properties
+  connectionCount Int               @default(0)
+  lastActivityAt  DateTime?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Edges where this is source
+  outgoingEdges   ExplorerEdge[]    @relation("ExplorerEdgeSource")
+  // Edges where this is target
+  incomingEdges   ExplorerEdge[]    @relation("ExplorerEdgeTarget")
+  
+  @@unique([nodeType, referenceId])
+  @@index([nodeType])
+  @@index([weight])
+}
+
+/// Edge connecting two nodes in the knowledge graph explorer
+model ExplorerEdge {
+  id            String            @id @default(cuid())
+  
+  sourceNodeId  String
+  targetNodeId  String
+  
+  // Edge type
+  edgeType      ExplorerEdgeType
+  
+  // Edge properties
+  weight        Float             @default(1)
+  label         String?
+  
+  // Metadata (JSON for flexibility)
+  metadata      Json?
+  
+  createdAt     DateTime          @default(now())
+  
+  sourceNode    ExplorerNode      @relation("ExplorerEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode    ExplorerNode      @relation("ExplorerEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  
+  @@unique([sourceNodeId, targetNodeId, edgeType])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@index([edgeType])
+}

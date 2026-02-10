@@ -15,6 +15,7 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { resolveDOI, normalizeDOI, isValidDOI } from "@/lib/integrations/crossref";
 import { enrichFromOpenAlex } from "@/lib/integrations/openAlex";
+import { onSourceCreated } from "@/lib/triggers/knowledgeGraphTriggers";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -206,6 +207,9 @@ async function handleDOICreation(body: unknown, userId: string) {
     },
   });
 
+  // Trigger knowledge graph update
+  onSourceCreated(source.id).catch(console.error);
+
   return NextResponse.json(
     { 
       success: true, 
@@ -288,6 +292,9 @@ async function handleManualCreation(body: unknown, userId: string) {
       _count: { select: { claims: true } },
     },
   });
+
+  // Trigger knowledge graph update
+  onSourceCreated(source.id).catch(console.error);
 
   return NextResponse.json(
     {
