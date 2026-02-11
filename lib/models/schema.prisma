@@ -4363,7 +4363,17 @@ model CanonicalClaim {
   // Semantic fingerprint for matching (hash of normalized text)
   semanticHash      String?
   
+  // Phase 3.3: Field/domain tagging
+  primaryField      String?  @db.VarChar(100)
+  secondaryFields   String[] @default([])
+  
+  // Phase 3.3: Claim Equivalence relations
+  equivalences      ClaimEquivalence[] @relation("PrimaryEquivalences")
+  equivalentTo      ClaimEquivalence[] @relation("EquivalentClaims")
+  
   @@index([globalStatus])
+  @@index([primaryField])
+  @@index([semanticHash])
 }
 
 model ClaimEvidence {
@@ -6872,6 +6882,22 @@ model ArgumentImport {
   /// Timestamp of import creation
   createdAt DateTime @default(now())
 
+  // Phase 3.3: Academic import tracking fields
+  /// Import type for academic cross-deliberation arguments
+  importType        ImportType?
+  /// Reason for importing this argument
+  importReason      String?    @db.Text
+  /// Whether to preserve original author attribution
+  preserveAttribution Boolean @default(true)
+  /// Auth ID of the original author
+  originalAuthorId  String?
+  /// Whether the imported argument was modified
+  wasModified       Boolean  @default(false)
+  /// Notes describing modifications made during import
+  modificationNotes String?  @db.Text
+  /// Auth ID of the user who performed the import
+  importedById      String?
+
   // Relations
   fromDeliberation Deliberation @relation("ArgImpFrom", fields: [fromDeliberationId], references: [id], onDelete: Cascade)
   toDeliberation   Deliberation @relation("ArgImpTo", fields: [toDeliberationId], references: [id], onDelete: Cascade)
@@ -8155,6 +8181,22 @@ enum ClaimInstanceType {
   DERIVED           // Derived/refined from original
 }
 
+enum EquivalenceType {
+  SEMANTIC          // Same meaning, different words
+  TERMINOLOGICAL    // Different field terminology
+  SUBSET            // One is more specific
+  SUPERSET          // One is more general
+  CONTRAPOSITIVE    // Logically equivalent formulation
+  REFORMULATION     // Structural reformulation
+}
+
+enum ImportType {
+  FULL              // Complete argument structure
+  PREMISES_ONLY     // Only premises, new conclusion
+  SKELETON          // Structure without specific claims
+  REFERENCE         // Just a reference/citation
+}
+
 // ─────────────────────────────────────────────────────────
 // Claim Version Tracking
 // ─────────────────────────────────────────────────────────
@@ -8293,10 +8335,47 @@ model ClaimInstance {
   linkedAt          DateTime @default(now())
   linkedById        String   // auth_id of user who linked
   
+  // Phase 3.3: Variation notes (if claim differs from canonical)
+  variationNotes    String?  @db.Text
+  
   @@unique([canonicalClaimId, claimId])
   @@index([deliberationId])
   @@index([claimId])
   @@index([canonicalClaimId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Claim Equivalence (Cross-Deliberation Mapping)
+// ─────────────────────────────────────────────────────────
+
+model ClaimEquivalence {
+  id                  String   @id @default(cuid())
+  
+  // Primary claim (the "official" version)
+  primaryClaimId      String
+  primaryClaim        CanonicalClaim @relation("PrimaryEquivalences", fields: [primaryClaimId], references: [id], onDelete: Cascade)
+  
+  // Equivalent claim
+  equivalentClaimId   String
+  equivalentClaim     CanonicalClaim @relation("EquivalentClaims", fields: [equivalentClaimId], references: [id], onDelete: Cascade)
+  
+  // Equivalence type
+  equivalenceType     EquivalenceType @default(SEMANTIC)
+  
+  // Confidence/strength
+  confidence          Float    @default(0.5)
+  isVerified          Boolean  @default(false)
+  
+  // Notes explaining the relationship
+  notes               String?  @db.Text
+  
+  // Who established this
+  createdAt           DateTime @default(now())
+  createdById         String   // auth_id of user who created equivalence
+  
+  @@unique([primaryClaimId, equivalentClaimId])
+  @@index([primaryClaimId])
+  @@index([equivalentClaimId])
 }
 
 // ─────────────────────────────────────────────────────────

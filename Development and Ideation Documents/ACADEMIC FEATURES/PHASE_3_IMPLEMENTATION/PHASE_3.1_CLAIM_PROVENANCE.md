@@ -23,7 +23,9 @@ Track the complete lifecycle of claims — from original assertion through refin
 | US-3.1.3 | As a researcher, I want to know what challenges a claim faces | P0 | L |
 | US-3.1.4 | As a participant, I want to see if challenges have been defended | P1 | M |
 | US-3.1.5 | As a scholar, I want canonical IDs for claims across contexts | P1 | L |
-| US-3.1.6 | As a reader, I want to see the consensus status of a claim | P2 | M |
+| US-3.1.6 | As a reader, I want to see the consensus status of a claim | P2 | M | 
+
+
 
 ---
 
