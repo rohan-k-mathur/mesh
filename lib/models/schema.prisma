@@ -123,6 +123,20 @@ model User {
   // Phase 3.2.4: Public API keys
   apiKeys                   ApiKey[]
 
+  // Phase 4.1: Peer Review relations
+  createdReviewTemplates    ReviewTemplate[]        @relation("ReviewTemplateCreator")
+  editedReviews             ReviewDeliberation[]    @relation("ReviewEditor")
+  reviewAssignments         ReviewerAssignment[]    @relation("ReviewerUser")
+  assignedReviews           ReviewerAssignment[]    @relation("ReviewerAssigner")
+  recordedPhaseOutcomes     PhaseOutcome[]          @relation("PhaseOutcomeRecorder")
+  authorResponses           AuthorResponse[]        @relation("AuthorResponseUser")
+
+  // Phase 4.2: Reputation System relations
+  scholarContributions      ScholarContribution[]   @relation("UserContributions")
+  scholarStats              ScholarStats?           @relation("UserScholarStats")
+  scholarExpertise          ScholarExpertise[]      @relation("UserExpertise")
+  reviewerProfile           ReviewerProfile?        @relation("UserReviewerProfile")
+
   @@map("users")
 }
 
@@ -1969,6 +1983,9 @@ model Source {
   citationContexts SourceCitationContext[] // Where this source is cited
   provenanceEvents EvidenceProvenanceEvent[] // Provenance chain
 
+  // Phase 4.1: Peer Review - sources being reviewed
+  reviewDeliberations ReviewDeliberation[] @relation("ReviewTargetSource")
+
   @@index([verificationStatus])
   @@index([lastCheckedAt])
   @@index([archiveStatus])
@@ -3105,6 +3122,16 @@ model Argument {
   citationsReceived   ArgumentCitation[]        @relation("CitedByArguments")
   permalink           ArgumentPermalink?
   citationMetrics     ArgumentCitationMetrics?
+
+  // Phase 4.1: Peer Review Commitments
+  reviewerCommitments ReviewerCommitment[]      @relation("CommitmentArgument")
+  
+  // Phase 4.1: Author Response Moves
+  targetResponseMoves      AuthorResponseMove[]     @relation("ResponseTargetArgument")
+  supportingResponseMoves  AuthorResponseMove[]     @relation("ResponseSupportingArgument")
+
+  // Phase 4.2: Contribution tracking
+  scholarContributions     ScholarContribution[]    @relation("ArgumentContributions")
 
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
@@ -4244,6 +4271,9 @@ model Claim {
   disconfirmedCount Int                   @default(0)
   pendingCount      Int                   @default(0)
 
+  // Phase 4.1: Peer Review - claims being evaluated
+  reviewerCommitments ReviewerCommitment[]  @relation("CommitmentTargetClaim")
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -4939,6 +4969,12 @@ model Deliberation {
   
   // Claim Prediction System
   claimPredictions    ClaimPrediction[]
+
+  // Phase 4.1: Peer Review Deliberations
+  reviewDeliberation  ReviewDeliberation?
+
+  // Phase 4.2: Contribution tracking
+  scholarContributions ScholarContribution[] @relation("DeliberationContributions")
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -8648,4 +8684,585 @@ model ExplorerEdge {
   @@index([sourceNodeId])
   @@index([targetNodeId])
   @@index([edgeType])
+}
+
+// ============================================================
+// PHASE 4.1: PEER REVIEW DELIBERATION MODELS
+// ============================================================
+
+/// Type of scholarly work being reviewed
+enum ReviewTargetType {
+  PAPER           // Academic paper
+  PREPRINT        // Preprint
+  THESIS          // Thesis/dissertation
+  GRANT_PROPOSAL  // Grant proposal
+  OTHER           // Other scholarly work
+}
+
+/// Status of the review process
+enum ReviewStatus {
+  INITIATED       // Review created, not yet started
+  IN_REVIEW       // Active review phase
+  AUTHOR_RESPONSE // Author responding to reviews
+  REVISION        // Author revising based on feedback
+  FINAL_REVIEW    // Reviewing revisions
+  DECISION        // Decision being made
+  COMPLETED       // Review completed
+  WITHDRAWN       // Review withdrawn
+}
+
+/// Final decision for a review
+enum ReviewDecision {
+  ACCEPT          // Accept as-is
+  MINOR_REVISION  // Accept with minor revisions
+  MAJOR_REVISION  // Major revisions required
+  REJECT          // Reject
+  DESK_REJECT     // Desk rejection (not sent for review)
+}
+
+/// Type of review phase
+enum ReviewPhaseType {
+  INITIAL_REVIEW      // First round of reviews
+  AUTHOR_RESPONSE     // Author responds to reviews
+  REVISION            // Author revises manuscript
+  SECOND_REVIEW       // Second round of reviews
+  FINAL_DECISION      // Editor makes decision
+  CUSTOM              // Custom phase
+}
+
+/// Status of a review phase
+enum PhaseStatus {
+  PENDING         // Not yet started
+  ACTIVE          // Currently active
+  COMPLETED       // Phase completed
+  SKIPPED         // Phase was skipped
+}
+
+/// Role of a reviewer
+enum ReviewerRole {
+  REVIEWER           // Standard reviewer
+  SENIOR_REVIEWER    // Senior/lead reviewer
+  STATISTICAL_REVIEWER // Statistical review
+  ETHICS_REVIEWER    // Ethics review
+  GUEST_EDITOR       // Guest editor (for special issues)
+}
+
+/// Status of a reviewer assignment
+enum ReviewerStatus {
+  INVITED         // Invitation sent
+  ACCEPTED        // Accepted to review
+  DECLINED        // Declined invitation
+  IN_PROGRESS     // Review in progress
+  COMPLETED       // Review submitted
+  WITHDRAWN       // Withdrew from review
+}
+
+/// Reviewer's position on an issue
+enum CommitmentPosition {
+  STRONGLY_SUPPORT    // Strongly supports the claim/approach
+  SUPPORT             // Supports with reservations
+  NEUTRAL             // No strong position
+  CONCERN             // Has concerns
+  STRONGLY_OPPOSE     // Strongly opposes
+}
+
+/// Strength/importance of a commitment
+enum CommitmentStrength {
+  WEAK                // Minor point
+  MODERATE            // Moderate importance
+  STRONG              // Critical point
+  BLOCKING            // Must be addressed
+}
+
+/// Type of author response move
+enum ResponseMoveType {
+  CONCEDE             // Accept the criticism, will address
+  DEFEND              // Defend current approach
+  QUALIFY             // Partially accept, provide nuance
+  REVISE              // Describe revision made
+  DEFER               // Acknowledge but defer to future work
+  CLARIFY             // Provide clarification (not a change)
+  CHALLENGE           // Challenge the reviewer's position
+}
+
+/// Template for peer review deliberations
+model ReviewTemplate {
+  id              String   @id @default(cuid())
+  
+  // Template info
+  name            String   @db.VarChar(200)
+  description     String?  @db.Text
+  
+  // Template configuration (stores ReviewPhaseConfig[])
+  phases          Json
+  defaultSettings Json?    // Default settings for reviews using this template
+  
+  // Ownership (uses auth_id)
+  createdById     String
+  createdBy       User     @relation("ReviewTemplateCreator", fields: [createdById], references: [auth_id])
+  
+  // Usage tracking
+  isPublic        Boolean  @default(false)
+  usageCount      Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  reviews         ReviewDeliberation[]
+  
+  @@index([isPublic])
+  @@index([createdById])
+}
+
+/// A peer review process as a deliberation
+model ReviewDeliberation {
+  id              String   @id @default(cuid())
+  
+  // Link to base deliberation
+  deliberationId  String   @unique
+  deliberation    Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  // What is being reviewed
+  targetType      ReviewTargetType
+  targetSourceId  String?  // Optional link to Source model
+  targetSource    Source?  @relation("ReviewTargetSource", fields: [targetSourceId], references: [id], onDelete: SetNull)
+  targetUrl       String?  @db.VarChar(500)
+  targetTitle     String   @db.VarChar(500)
+  
+  // Template used
+  templateId      String?
+  template        ReviewTemplate? @relation(fields: [templateId], references: [id])
+  
+  // Review phases
+  currentPhaseId  String?
+  phases          ReviewPhase[]
+  
+  // Review status
+  status          ReviewStatus @default(INITIATED)
+  decision        ReviewDecision?
+  decisionDate    DateTime?
+  decisionNote    String?  @db.Text
+  
+  // Editor (uses auth_id)
+  editorId        String?
+  editor          User?    @relation("ReviewEditor", fields: [editorId], references: [auth_id])
+  
+  // Participants
+  reviewers       ReviewerAssignment[]
+  
+  // Author(s) of the work being reviewed (auth_ids)
+  authorUserIds   String[] @default([])
+  
+  // Settings
+  isBlinded       Boolean  @default(false)  // Single/double blind
+  isPublicReview  Boolean  @default(true)   // Public or private review
+  
+  // Author responses
+  authorResponses AuthorResponse[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([status])
+  @@index([targetSourceId])
+  @@index([editorId])
+}
+
+/// A phase within a review process
+model ReviewPhase {
+  id              String   @id @default(cuid())
+  
+  reviewId        String
+  review          ReviewDeliberation @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  
+  // Phase info
+  name            String   @db.VarChar(100)
+  description     String?  @db.Text
+  order           Int
+  phaseType       ReviewPhaseType
+  
+  // Timing
+  startDate       DateTime?
+  endDate         DateTime?
+  deadline        DateTime?
+  
+  // Status
+  status          PhaseStatus @default(PENDING)
+  
+  // Phase-specific settings (JSON)
+  settings        Json?
+  
+  // Outcomes
+  outcomes        PhaseOutcome[]
+  
+  // Author responses for this phase
+  authorResponses AuthorResponse[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([reviewId, order])
+  @@index([reviewId])
+}
+
+/// Outcome/summary of a review phase
+model PhaseOutcome {
+  id              String   @id @default(cuid())
+  
+  phaseId         String
+  phase           ReviewPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  
+  // Outcome summary
+  summary         String   @db.Text
+  
+  // Linked arguments (key critiques/responses from this phase)
+  keyArgumentIds  String[] @default([])
+  
+  // Who recorded the outcome (auth_id)
+  recordedById    String
+  recordedBy      User     @relation("PhaseOutcomeRecorder", fields: [recordedById], references: [auth_id])
+  recordedAt      DateTime @default(now())
+  
+  @@index([phaseId])
+}
+
+/// Assignment of a reviewer to a review
+model ReviewerAssignment {
+  id              String   @id @default(cuid())
+  
+  reviewId        String
+  review          ReviewDeliberation @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  
+  // Reviewer (auth_id)
+  userId          String
+  user            User     @relation("ReviewerUser", fields: [userId], references: [auth_id])
+  
+  // Assignment details
+  role            ReviewerRole @default(REVIEWER)
+  assignedAt      DateTime @default(now())
+  assignedById    String
+  assignedBy      User     @relation("ReviewerAssigner", fields: [assignedById], references: [auth_id])
+  
+  // Status
+  status          ReviewerStatus @default(INVITED)
+  respondedAt     DateTime?
+  declineReason   String?  @db.VarChar(500)
+  
+  // Deadline
+  deadline        DateTime?
+  
+  // Review completion
+  completedAt     DateTime?
+  
+  // Commitments made by this reviewer
+  commitments     ReviewerCommitment[]
+  
+  @@unique([reviewId, userId])
+  @@index([userId])
+  @@index([status])
+}
+
+/// A reviewer's commitment/position on a specific issue
+model ReviewerCommitment {
+  id              String   @id @default(cuid())
+  
+  assignmentId    String
+  assignment      ReviewerAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  
+  // What the commitment is about
+  topic           String   @db.VarChar(200)
+  description     String   @db.Text
+  
+  // The reviewer's position
+  position        CommitmentPosition
+  strength        CommitmentStrength @default(MODERATE)
+  
+  // Supporting argument (if any)
+  argumentId      String?
+  argument        Argument? @relation("CommitmentArgument", fields: [argumentId], references: [id])
+  
+  // Linked claim being evaluated
+  targetClaimId   String?
+  targetClaim     Claim?   @relation("CommitmentTargetClaim", fields: [targetClaimId], references: [id])
+  
+  // Evolution (self-referential for tracking changes)
+  previousCommitmentId String?
+  previousCommitment   ReviewerCommitment? @relation("CommitmentHistory", fields: [previousCommitmentId], references: [id])
+  subsequentCommitments ReviewerCommitment[] @relation("CommitmentHistory")
+  
+  // Resolution
+  isResolved      Boolean  @default(false)
+  resolutionNote  String?  @db.Text
+  resolvedAt      DateTime?
+  
+  // Back-relation for author response moves
+  responseMoves   AuthorResponseMove[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([assignmentId])
+  @@index([targetClaimId])
+  @@index([argumentId])
+}
+
+/// An author's response to reviewer feedback
+model AuthorResponse {
+  id              String   @id @default(cuid())
+  
+  // Link to review
+  reviewId        String
+  review          ReviewDeliberation @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  
+  // Which phase this response is for
+  phaseId         String
+  phase           ReviewPhase @relation(fields: [phaseId], references: [id])
+  
+  // The author responding (uses auth_id)
+  authorId        String
+  author          User     @relation("AuthorResponseUser", fields: [authorId], references: [auth_id])
+  
+  // Response content
+  summary         String   @db.Text
+  
+  // Individual moves
+  moves           AuthorResponseMove[]
+  
+  // Linked revision (if any)
+  revisionId      String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([reviewId])
+  @@index([phaseId])
+  @@index([authorId])
+}
+
+/// A specific move in an author's response
+model AuthorResponseMove {
+  id              String   @id @default(cuid())
+  
+  responseId      String
+  response        AuthorResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  
+  // What this move responds to
+  targetCommitmentId String?
+  targetCommitment   ReviewerCommitment? @relation(fields: [targetCommitmentId], references: [id])
+  
+  // Alternative: respond to a specific argument
+  targetArgumentId   String?
+  targetArgument     Argument? @relation("ResponseTargetArgument", fields: [targetArgumentId], references: [id])
+  
+  // The move type
+  moveType        ResponseMoveType
+  
+  // Move content
+  explanation     String   @db.Text
+  
+  // Supporting argument (author's counter or defense)
+  supportingArgumentId String?
+  supportingArgument   Argument? @relation("ResponseSupportingArgument", fields: [supportingArgumentId], references: [id])
+  
+  // For revise moves: what changed
+  revisionDescription String?  @db.Text
+  revisionLocation    String?  @db.VarChar(200)  // e.g., "Section 3.2"
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([responseId])
+  @@index([targetCommitmentId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Phase 4.2: Argumentation-Based Reputation System
+// ─────────────────────────────────────────────────────────
+
+/// Types of scholarly contributions
+enum ContributionType {
+  // Argumentation contributions
+  ARGUMENT_CREATED        // Created an argument
+  ATTACK_INITIATED        // Initiated an attack on an argument
+  DEFENSE_PROVIDED        // Defended an argument under attack
+  SUPPORT_GIVEN           // Supported another's argument
+  EVIDENCE_ADDED          // Added evidence to a claim
+  
+  // Review contributions
+  REVIEW_COMPLETED        // Completed a peer review
+  COMMITMENT_MADE         // Made a reviewer commitment
+  BLOCKING_CONCERN_RAISED // Raised a blocking concern
+  
+  // Response contributions
+  CONCESSION_MADE         // Made a concession in response
+  REVISION_COMPLETED      // Completed a revision
+  CLARIFICATION_PROVIDED  // Provided clarification
+  
+  // Quality indicators
+  CONSENSUS_ACHIEVED      // Argument reached consensus
+  CHALLENGE_RESOLVED      // Successfully resolved a challenge
+  CITATION_RECEIVED       // Argument was cited
+}
+
+/// Expertise level for scholars in a topic area
+enum ExpertiseLevel {
+  NOVICE          // < 5 contributions
+  CONTRIBUTOR     // 5-20 contributions
+  ESTABLISHED     // 20-50 contributions
+  EXPERT          // 50-100 contributions
+  AUTHORITY       // 100+ contributions
+}
+
+/// Individual contribution record
+model ScholarContribution {
+  id              String   @id @default(cuid())
+  
+  userId          BigInt
+  user            User     @relation("UserContributions", fields: [userId], references: [id])
+  
+  // Contribution type
+  type            ContributionType
+  
+  // Context
+  deliberationId  String?
+  deliberation    Deliberation? @relation("DeliberationContributions", fields: [deliberationId], references: [id])
+  
+  argumentId      String?
+  argument        Argument? @relation("ArgumentContributions", fields: [argumentId], references: [id])
+  
+  reviewId        String?
+  
+  // Contribution details
+  details         Json?    // Type-specific details
+  
+  // Weighting/scoring
+  baseWeight      Float    @default(1.0)
+  qualityMultiplier Float  @default(1.0)
+  impactScore     Float?   // Calculated impact
+  
+  // Verification
+  isVerified      Boolean  @default(false)
+  verifiedAt      DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId])
+  @@index([type])
+  @@index([deliberationId])
+  @@index([createdAt])
+}
+
+/// Aggregated statistics for a scholar
+model ScholarStats {
+  id              String   @id @default(cuid())
+  
+  userId          BigInt   @unique
+  user            User     @relation("UserScholarStats", fields: [userId], references: [id])
+  
+  // ============================================
+  // Argumentation metrics
+  // ============================================
+  totalArguments  Int      @default(0)
+  argumentsWithConsensus Int @default(0)
+  
+  totalAttacks    Int      @default(0)
+  successfulAttacks Int    @default(0)  // Led to concession/revision
+  
+  totalDefenses   Int      @default(0)
+  successfulDefenses Int   @default(0)  // Held against attack
+  
+  // ============================================
+  // Review metrics
+  // ============================================
+  reviewsCompleted Int     @default(0)
+  averageReviewDepth Float @default(0)  // Avg commitments per review
+  
+  blockingConcernsRaised Int @default(0)
+  concernsResolved Int     @default(0)  // Blocking concerns that were addressed
+  
+  // ============================================
+  // Response pattern metrics
+  // ============================================
+  concessionsReceived Int  @default(0)  // Others conceded to this scholar
+  concessionsMade Int      @default(0)  // This scholar conceded
+  
+  // ============================================
+  // Impact metrics
+  // ============================================
+  citationCount   Int      @default(0)
+  downstreamUsage Int      @default(0)  // Arguments built on theirs
+  
+  // ============================================
+  // Calculated scores
+  // ============================================
+  defenseSuccessRate Float @default(0)  // successfulDefenses / totalDefenses
+  attackPrecision    Float @default(0)  // successfulAttacks / totalAttacks
+  consensusRate      Float @default(0)  // argumentsWithConsensus / totalArguments
+  reviewQuality      Float @default(0)  // Calculated review quality score
+  
+  // Overall reputation score
+  reputationScore Float    @default(0)
+  
+  // Last calculation time
+  calculatedAt    DateTime @default(now())
+  
+  @@index([reputationScore])
+}
+
+/// Expertise area tracking
+model ScholarExpertise {
+  id              String   @id @default(cuid())
+  
+  userId          BigInt
+  user            User     @relation("UserExpertise", fields: [userId], references: [id])
+  
+  // Topic/area - using string-based topic area (more flexible without dedicated Topic model)
+  topicArea       String   @db.VarChar(200)
+  
+  // Evidence
+  contributionCount Int    @default(0)
+  consensusContributions Int @default(0)
+  
+  // Calculated expertise level
+  expertiseScore  Float    @default(0)
+  expertiseLevel  ExpertiseLevel @default(NOVICE)
+  
+  firstContribution DateTime?
+  lastContribution DateTime?
+  
+  @@unique([userId, topicArea])
+  @@index([userId])
+  @@index([topicArea])
+}
+
+/// Reviewer-specific profile
+model ReviewerProfile {
+  id              String   @id @default(cuid())
+  
+  userId          BigInt   @unique
+  user            User     @relation("UserReviewerProfile", fields: [userId], references: [id])
+  
+  // Review portfolio stats
+  totalReviews    Int      @default(0)
+  completedOnTime Int      @default(0)
+  
+  // Review style
+  averageCommitments Float @default(0)
+  blockingConcernRate Float @default(0)  // % of reviews with blocking concerns
+  
+  // Quality metrics
+  concernResolutionRate Float @default(0)  // % of concerns that get resolved
+  revisionInfluenceRate Float @default(0)  // % of reviews that led to revision
+  
+  // Specializations
+  topSpecialties  Json?    // Array of { topicArea, reviewCount }
+  
+  // Timeliness
+  averageResponseDays Float @default(0)
+  
+  // Trust indicators
+  invitationAcceptRate Float @default(0)
+  repeatInvitations Int    @default(0)
+  
+  updatedAt       DateTime @updatedAt
 }
