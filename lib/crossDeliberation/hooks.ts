@@ -68,7 +68,7 @@ export function useRelatedDeliberations(deliberationId: string) {
   return useQuery({
     queryKey: crossDelibKeys.related(deliberationId),
     queryFn: async () => {
-      const res = await fetch(`/api/deliberations/${deliberationId}/related`);
+      const res = await fetch(`/api/deliberations/${deliberationId}/shared-claims-related`);
       if (!res.ok) throw new Error("Failed to fetch related deliberations");
       return res.json();
     },

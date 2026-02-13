@@ -44,6 +44,8 @@ import {
   PlusCircle,
   Settings,
   GripVertical,
+  Globe,
+  Import,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -329,8 +331,61 @@ const PHASES = [
         status: "complete" as const,
         items: ["Quote extraction", "Locator types", "Interpretations", "Voting on interpretations"],
       },
+      {
+        id: "cross-delib",
+        title: "Cross-Deliberation",
+        description: "Connect claims across deliberations",
+        icon: Globe,
+        phase: "Phase 3.5",
+        status: "complete" as const,
+        items: ["Canonical claim registry", "Cross-room search", "Argument import", "Related deliberations"],
+      },
     ],
   },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MOCK DATA - CROSS-DELIBERATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MOCK_CROSS_ROOM_CLAIMS = [
+  {
+    id: "canonical-1",
+    text: "Carbon emissions contribute to global warming",
+    globalStatus: "ACCEPTED",
+    instances: 7,
+    deliberations: [
+      { id: "d1", title: "Climate Policy Debate" },
+      { id: "d2", title: "Energy Policy Forum" },
+      { id: "d3", title: "Environmental Impact Study" },
+    ],
+  },
+  {
+    id: "canonical-2",
+    text: "Renewable energy can fully replace fossil fuels by 2050",
+    globalStatus: "CONTESTED",
+    instances: 4,
+    deliberations: [
+      { id: "d2", title: "Energy Policy Forum" },
+      { id: "d4", title: "Green Technology Discussion" },
+    ],
+  },
+  {
+    id: "canonical-3",
+    text: "Nuclear power is essential for meeting climate goals",
+    globalStatus: "EMERGING",
+    instances: 3,
+    deliberations: [
+      { id: "d5", title: "Nuclear Energy Debate" },
+      { id: "d2", title: "Energy Policy Forum" },
+    ],
+  },
+];
+
+const MOCK_RELATED_DELIBS = [
+  { id: "rd1", title: "Energy Policy Forum", sharedClaims: 12, relationship: 0.85 },
+  { id: "rd2", title: "Environmental Impact Study", sharedClaims: 8, relationship: 0.62 },
+  { id: "rd3", title: "Green Technology Discussion", sharedClaims: 5, relationship: 0.41 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1685,6 +1740,288 @@ function QuotesDemo() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTS - CROSS-DELIBERATION (Phase 3.5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CrossRoomSearchDemo() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<typeof MOCK_CROSS_ROOM_CLAIMS>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async () => {
+    if (query.length < 2) return;
+    setIsSearching(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setResults(
+      MOCK_CROSS_ROOM_CLAIMS.filter((c) =>
+        c.text.toLowerCase().includes(query.toLowerCase())
+      )
+    );
+    setIsSearching(false);
+    toast.success("Search Complete", {
+      description: `Found ${results.length} canonical claims`,
+    });
+  };
+
+  const statusColors: Record<string, string> = {
+    ACCEPTED: "bg-green-100 text-green-700",
+    EMERGING: "bg-blue-100 text-blue-600",
+    CONTESTED: "bg-amber-100 text-amber-700",
+  };
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="w-5 h-5" />
+          Cross-Room Search
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.5</Badge>
+        </CardTitle>
+        <CardDescription>
+          Search claims across all deliberations via canonical registry
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Search input */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="Search claims across deliberations..."
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            />
+          </div>
+          <Button onClick={handleSearch} disabled={isSearching || query.length < 2}>
+            {isSearching ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              "Search"
+            )}
+          </Button>
+        </div>
+
+        {/* Results */}
+        {results.length > 0 && (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {results.map((claim) => (
+              <div
+                key={claim.id}
+                className="p-3 bg-white rounded-lg border hover:border-indigo-300 transition cursor-pointer"
+              >
+                <p className="text-sm font-medium text-gray-900 mb-2">
+                  {claim.text}
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Users className="w-3 h-3" />
+                    <span>{claim.instances} deliberation(s)</span>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      statusColors[claim.globalStatus] || "bg-gray-100"
+                    }`}
+                  >
+                    {claim.globalStatus}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {claim.deliberations.slice(0, 2).map((d) => (
+                    <span
+                      key={d.id}
+                      className="text-xs px-2 py-0.5 bg-gray-100 rounded"
+                    >
+                      {d.title}
+                    </span>
+                  ))}
+                  {claim.deliberations.length > 2 && (
+                    <span className="text-xs text-gray-400">
+                      +{claim.deliberations.length - 2} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {query.length > 0 && query.length < 2 && (
+          <p className="text-center text-sm text-gray-500">Type at least 2 characters</p>
+        )}
+
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> Cross-room search via canonical claim registry •
+            API at <code className="bg-green-100 px-1 rounded">/api/cross-room-search</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RelatedDeliberationsDemo() {
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Network className="w-5 h-5" />
+          Related Deliberations
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.5</Badge>
+        </CardTitle>
+        <CardDescription>
+          Find deliberations that share canonical claims
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          {MOCK_RELATED_DELIBS.map((delib) => (
+            <div
+              key={delib.id}
+              className="p-3 bg-white rounded-lg border hover:border-indigo-300 transition"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-900">
+                  {delib.title}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    delib.relationship > 0.7
+                      ? "bg-green-100 text-green-700"
+                      : delib.relationship > 0.4
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {(delib.relationship * 100).toFixed(0)}% related
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <FileText className="w-3 h-3" />
+                <span>{delib.sharedClaims} shared claims</span>
+              </div>
+              <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 rounded-full transition-all"
+                  style={{ width: `${delib.relationship * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> Related deliberations discovery •
+            API at <code className="bg-green-100 px-1 rounded">/api/deliberations/[id]/related</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ArgumentImportDemo() {
+  const [importType, setImportType] = useState<string>("FULL");
+  const [isImporting, setIsImporting] = useState(false);
+
+  const importTypes = [
+    { id: "FULL", label: "Full Import", description: "Complete argument with premises" },
+    { id: "PREMISES_ONLY", label: "Premises Only", description: "Import premises, write new conclusion" },
+    { id: "SKELETON", label: "Structure", description: "Import argument structure only" },
+    { id: "REFERENCE", label: "Reference", description: "Just cite, don't copy" },
+  ];
+
+  const handleImport = async () => {
+    setIsImporting(true);
+    await new Promise((r) => setTimeout(r, 1200));
+    setIsImporting(false);
+    toast.success("Argument Imported", {
+      description: `${importType} import complete with full provenance`,
+    });
+  };
+
+  return (
+    <Card className="bg-indigo-50/60">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Import className="w-5 h-5" />
+          Argument Import
+          <Badge className="ml-2 bg-indigo-600 text-xs">Phase 3.5</Badge>
+        </CardTitle>
+        <CardDescription>
+          Import arguments from other deliberations with provenance
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Source argument preview */}
+        <div className="p-3 bg-white rounded-lg border">
+          <p className="text-xs text-gray-500 mb-1">Source Argument:</p>
+          <p className="text-sm text-gray-900">
+            &ldquo;Carbon pricing mechanisms effectively reduce emissions while maintaining
+            economic growth.&rdquo;
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            from <span className="text-indigo-600">Energy Policy Forum</span>
+          </p>
+        </div>
+
+        {/* Import type selection */}
+        <div>
+          <p className="text-sm font-medium mb-2">Import Type:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {importTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setImportType(type.id)}
+                className={`p-3 rounded-lg border text-left transition ${
+                  importType === type.id
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}
+              >
+                <p
+                  className={`text-sm font-medium ${
+                    importType === type.id ? "text-indigo-700" : "text-gray-900"
+                  }`}
+                >
+                  {type.label}
+                </p>
+                <p className="text-xs text-gray-500">{type.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Button onClick={handleImport} disabled={isImporting} className="w-full">
+          {isImporting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              Importing...
+            </>
+          ) : (
+            <>
+              <Import className="w-4 h-4 mr-2" />
+              Import Argument
+            </>
+          )}
+        </Button>
+
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-xs text-green-700">
+            <strong>✅ Implemented:</strong> 4 import types with full provenance tracking •
+            API at <code className="bg-green-100 px-1 rounded">/api/arguments/[id]/import</code>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1704,7 +2041,7 @@ export default function AcademicFeaturesDemo() {
                 <div>
                   <h1 className="text-xl font-bold">Academic Features Demo</h1>
                   <p className="text-sm text-muted-foreground">
-                    Phase 1-3 Scholarly Deliberation Infrastructure
+                    Phase 1-3.5 Scholarly Deliberation Infrastructure
                   </p>
                 </div>
               </div>
@@ -1769,6 +2106,7 @@ export default function AcademicFeaturesDemo() {
               <TabsTrigger value="provenance" className="text-sm">Provenance</TabsTrigger>
               <TabsTrigger value="exports" className="text-sm">Exports</TabsTrigger>
               <TabsTrigger value="quotes" className="text-sm">Quotes</TabsTrigger>
+              <TabsTrigger value="cross-delib" className="text-sm">Cross-Delib</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
@@ -1956,6 +2294,65 @@ export default function AcademicFeaturesDemo() {
                 <QuotesDemo />
               </div>
             </TabsContent>
+
+            {/* Cross-Deliberation Tab (Phase 3.5) */}
+            <TabsContent value="cross-delib" className="space-y-6">
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <h3 className="font-semibold text-lg">
+                  Cross-Deliberation Claim Mapping{" "}
+                  <Badge variant="outline" className="ml-2">Phase 3.5</Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Connect claims across deliberations with a canonical registry, cross-room search, and argument import.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <CrossRoomSearchDemo />
+                <RelatedDeliberationsDemo />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ArgumentImportDemo />
+                <Card className="bg-indigo-50/60">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      Cross-Deliberation Implementation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 text-sm">
+                      <div>
+                        <p className="font-semibold text-indigo-600 mb-2">Services</p>
+                        <ul className="space-y-1 font-mono text-xs text-slate-600">
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> lib/crossDeliberation/canonicalRegistryService.ts</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> lib/crossDeliberation/crossRoomSearchService.ts</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> lib/crossDeliberation/argumentTransportService.ts</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> lib/crossDeliberation/hooks.ts</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-indigo-600 mb-2">API Routes</p>
+                        <ul className="space-y-1 font-mono text-xs text-slate-600">
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> /api/canonical-claims</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> /api/cross-room-search</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> /api/arguments/[id]/import</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> /api/deliberations/[id]/related</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-indigo-600 mb-2">UI Components</p>
+                        <ul className="space-y-1 font-mono text-xs text-slate-600">
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> CrossRoomSearchPanel.tsx</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> ArgumentImportModal.tsx</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> CrossDeliberationTab.tsx</li>
+                          <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> CanonicalClaimBadge.tsx</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
           </Tabs>
 
           {/* Complete Implementation Reference */}
@@ -1977,6 +2374,8 @@ export default function AcademicFeaturesDemo() {
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/releases/releaseService.ts</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/provenance/provenanceService.ts</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/provenance/canonicalClaimService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/crossDeliberation/crossRoomSearchService.ts</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> lib/crossDeliberation/argumentTransportService.ts</li>
                   </ul>
                 </div>
                 <div>
@@ -1988,6 +2387,8 @@ export default function AcademicFeaturesDemo() {
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/deliberations/[id]/export</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/deliberations/[id]/releases</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/claims/[id]/challenges</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/cross-room-search</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> /api/arguments/[id]/import</li>
                   </ul>
                 </div>
                 <div>
@@ -1998,6 +2399,7 @@ export default function AcademicFeaturesDemo() {
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/provenance/</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/forks/</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/quotes/</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> components/crossDeliberation/</li>
                   </ul>
                 </div>
               </div>
@@ -2014,7 +2416,7 @@ export default function AcademicFeaturesDemo() {
 
           {/* Footer */}
           <div className="text-center text-sm text-slate-500 pb-8">
-            <p>Academic Features Demo • Phase 1-3 Complete • Mesh Platform</p>
+            <p>Academic Features Demo • Phase 1-3.5 Complete • Mesh Platform</p>
           </div>
         </div>
       </div>

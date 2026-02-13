@@ -161,19 +161,36 @@ export async function findRelatedDeliberations(
           title: true,
         },
       },
+      claim: {
+        select: {
+          id: true,
+          text: true,
+        },
+      },
     },
   });
 
-  // Group by deliberation and count shared claims
+  // Group by deliberation and collect shared claims
   const deliberationMap = new Map<
     string,
-    { deliberation: { id: string; title: string }; sharedClaimCount: number }
+    { 
+      deliberation: { id: string; title: string }; 
+      sharedClaimCount: number;
+      sharedClaims: Array<{ id: string; text: string }>;
+    }
   >();
 
   for (const inst of relatedInstances) {
     const existing = deliberationMap.get(inst.deliberationId);
     if (existing) {
       existing.sharedClaimCount++;
+      // Add claim if not already included
+      if (!existing.sharedClaims.some((c) => c.id === inst.claim.id)) {
+        existing.sharedClaims.push({
+          id: inst.claim.id,
+          text: inst.claim.text,
+        });
+      }
     } else {
       deliberationMap.set(inst.deliberationId, {
         deliberation: {
@@ -181,11 +198,22 @@ export async function findRelatedDeliberations(
           title: inst.deliberation.title || "",
         },
         sharedClaimCount: 1,
+        sharedClaims: [{
+          id: inst.claim.id,
+          text: inst.claim.text,
+        }],
       });
     }
   }
 
+  // Calculate relationship strength based on shared claim count
+  const maxShared = Math.max(...Array.from(deliberationMap.values()).map((v) => v.sharedClaimCount), 1);
+
   return Array.from(deliberationMap.values())
+    .map((v) => ({
+      ...v,
+      relationshipStrength: v.sharedClaimCount / maxShared,
+    }))
     .sort((a, b) => b.sharedClaimCount - a.sharedClaimCount)
     .slice(0, limit);
 }
@@ -199,14 +227,32 @@ export async function findRelatedDeliberations(
  */
 export async function getClaimCrossRoomStatus(
   claimId: string
-): Promise<ClaimCrossRoomStatus | null> {
+): Promise<ClaimCrossRoomStatus> {
   const claim = await prisma.claim.findUnique({
     where: { id: claimId },
-    select: { canonicalClaimId: true },
+    select: { 
+      id: true,
+      deliberationId: true,
+      canonicalClaimId: true,
+    },
   });
 
-  if (!claim?.canonicalClaimId) {
-    return null;
+  if (!claim) {
+    return {
+      claimId,
+      isCanonical: false,
+      totalInstances: 0,
+      otherDeliberations: [],
+    };
+  }
+
+  if (!claim.canonicalClaimId) {
+    return {
+      claimId,
+      isCanonical: false,
+      totalInstances: 0,
+      otherDeliberations: [],
+    };
   }
 
   const canonical = await prisma.canonicalClaim.findUnique({
@@ -233,7 +279,14 @@ export async function getClaimCrossRoomStatus(
     },
   });
 
-  if (!canonical) return null;
+  if (!canonical) {
+    return {
+      claimId,
+      isCanonical: false,
+      totalInstances: 0,
+      otherDeliberations: [],
+    };
+  }
 
   // Aggregate status across instances
   const statusCounts: Record<string, number> = {};
@@ -245,12 +298,25 @@ export async function getClaimCrossRoomStatus(
     totalChallenges += inst.claim.challengeCount || 0;
   }
 
+  // Get other deliberations (excluding current claim's deliberation)
+  const otherDeliberations = canonical.instances
+    .filter((inst) => inst.deliberationId !== claim.deliberationId)
+    .map((inst) => ({
+      id: inst.deliberation.id,
+      title: inst.deliberation.title || "",
+    }))
+    // Remove duplicates
+    .filter((d, idx, arr) => arr.findIndex((v) => v.id === d.id) === idx);
+
   return {
+    claimId,
+    isCanonical: true,
     canonicalId: canonical.id,
     globalStatus: canonical.globalStatus,
     totalInstances: canonical.instances.length,
     statusBreakdown: statusCounts,
     totalChallenges,
+    otherDeliberations,
     instances: canonical.instances.map((inst) => ({
       deliberationId: inst.deliberation.id,
       deliberationTitle: inst.deliberation.title || "",

@@ -63,6 +63,9 @@ import { ThesisRenderer } from "../thesis/ThesisRenderer";
 import { ThesisListView } from "../thesis/ThesisListView";
 import { ActiveAssumptionsPanel } from "@/components/assumptions/ActiveAssumptionsPanel";
 import { CreateAssumptionForm } from "@/components/assumptions/CreateAssumptionForm";
+import CrossRoomSearchPanel from "@/components/crossDeliberation/CrossRoomSearchPanel";
+import ArgumentImportModal from "@/components/crossDeliberation/ArgumentImportModal";
+import CrossDeliberationTab from "@/components/crossDeliberation/CrossDeliberationTab";
 import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
 import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPanel";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
@@ -1394,6 +1397,7 @@ const {
             <TabsTrigger value="thesis">Thesis</TabsTrigger>
             {/* ASPIC moved to Arguments → ASPIC nested tab (Week 2 Task 2.5) */}
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="cross">Cross</TabsTrigger>
           </TabsList>
           </div>
 
@@ -1861,6 +1865,14 @@ const {
             <AnalyticsTab 
               deliberationId={deliberationId}
               currentUserId={authorId}
+            />
+          </TabsContent>
+
+          {/* CROSS-DELIBERATION TAB - Phase 3.3 */}
+          <TabsContent value="cross" className="w-full min-w-0 mt-4 space-y-4">
+            <CrossDeliberationTab
+              deliberationId={deliberationId}
+              currentUserId={currentUserId}
             />
           </TabsContent>
         </Tabs>

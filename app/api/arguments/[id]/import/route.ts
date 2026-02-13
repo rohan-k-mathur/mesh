@@ -1,6 +1,6 @@
 /**
  * Phase 3.3: Argument Import API
- * POST /api/arguments/:argumentId/import - Import an argument to another deliberation
+ * POST /api/arguments/:id/import - Import an argument to another deliberation
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -24,7 +24,7 @@ const ImportSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ argumentId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -34,13 +34,13 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { argumentId } = await params;
+    const { id } = await params;
     const body = await req.json();
     const validatedData = ImportSchema.parse(body);
 
     const result = await importArgument(
       {
-        sourceArgumentId: argumentId,
+        sourceArgumentId: id,
         ...validatedData,
       },
       user.id

@@ -1,6 +1,9 @@
 /**
- * Phase 3.3: Related Deliberations API
- * GET /api/deliberations/:deliberationId/related - Find related deliberations by shared claims
+ * Phase 3.3: Cross-Deliberation Related API
+ * GET /api/deliberations/:id/shared-claims-related - Find related deliberations by shared canonical claims
+ * 
+ * This endpoint finds deliberations that share canonical claims with the given deliberation.
+ * Different from /api/deliberations/[id]/related which uses source/topic similarity.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -9,7 +12,7 @@ import { findRelatedDeliberations } from "@/lib/crossDeliberation/crossRoomSearc
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ deliberationId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -19,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { deliberationId } = await params;
+    const { id: deliberationId } = await params;
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "10", 10);
 
@@ -30,9 +33,9 @@ export async function GET(
 
     return NextResponse.json(related);
   } catch (error) {
-    console.error("Find related deliberations error:", error);
+    console.error("Find cross-deliberation related error:", error);
     return NextResponse.json(
-      { error: "Failed to find related deliberations" },
+      { error: "Failed to find related deliberations by shared claims" },
       { status: 500 }
     );
   }

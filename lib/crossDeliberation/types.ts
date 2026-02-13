@@ -153,15 +153,23 @@ export interface RelatedDeliberation {
     title: string;
   };
   sharedClaimCount: number;
+  sharedClaims?: Array<{ id: string; text: string }>;
+  relationshipStrength?: number;
 }
 
 export interface ClaimCrossRoomStatus {
-  canonicalId: string;
-  globalStatus: string;
+  claimId: string;
+  isCanonical: boolean;
+  canonicalId?: string;
+  globalStatus?: string;
   totalInstances: number;
-  statusBreakdown: Record<string, number>;
-  totalChallenges: number;
-  instances: Array<{
+  statusBreakdown?: Record<string, number>;
+  totalChallenges?: number;
+  otherDeliberations: Array<{
+    id: string;
+    title: string;
+  }>;
+  instances?: Array<{
     deliberationId: string;
     deliberationTitle: string;
     claimId: string;
