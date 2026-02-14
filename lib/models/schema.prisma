@@ -137,6 +137,16 @@ model User {
   scholarExpertise          ScholarExpertise[]      @relation("UserExpertise")
   reviewerProfile           ReviewerProfile?        @relation("UserReviewerProfile")
 
+  // Phase 4.3: Academic Credit Integration
+  orcidConnection           OrcidConnection?        @relation("UserOrcidConnection")
+  cvExports                 CvExport[]              @relation("UserCvExports")
+
+  // Phase 5.1: Cross-Field Mapping
+  createdConcepts           FieldConcept[]           @relation("ConceptCreator")
+  proposedEquivalences      ConceptEquivalence[]    @relation("EquivalenceProposer")
+  verifiedEquivalences      ConceptEquivalence[]    @relation("ConceptVerifiers")
+  crossFieldAlerts          CrossFieldAlert[]       @relation("UserCrossFieldAlerts")
+
   @@map("users")
 }
 
@@ -4274,6 +4284,11 @@ model Claim {
   // Phase 4.1: Peer Review - claims being evaluated
   reviewerCommitments ReviewerCommitment[]  @relation("CommitmentTargetClaim")
 
+  // Phase 5.1: Cross-Field Mapping
+  academicFieldId String?
+  academicField   AcademicField? @relation(fields: [academicFieldId], references: [id], onDelete: SetNull)
+  concepts        FieldConcept[] @relation("ClaimConcepts")
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -4283,6 +4298,7 @@ model Claim {
   @@index([sourceId])                                    // Phase 1.1: Index for source lookups
   @@index([academicClaimType])                           // Phase 1.1: Index for claim type filtering
   @@index([consensusStatus])                             // Phase 3.1: Consensus status filtering
+  @@index([academicFieldId])                             // Phase 5.1: Field filtering
 }
 
 model ClaimEdge {
@@ -9219,6 +9235,10 @@ model ScholarExpertise {
   // Topic/area - using string-based topic area (more flexible without dedicated Topic model)
   topicArea       String   @db.VarChar(200)
   
+  // Phase 5.1: Optional link to academic field
+  academicFieldId String?
+  academicField   AcademicField? @relation("FieldExpertise", fields: [academicFieldId], references: [id])
+  
   // Evidence
   contributionCount Int    @default(0)
   consensusContributions Int @default(0)
@@ -9233,6 +9253,7 @@ model ScholarExpertise {
   @@unique([userId, topicArea])
   @@index([userId])
   @@index([topicArea])
+  @@index([academicFieldId])
 }
 
 /// Reviewer-specific profile
@@ -9241,6 +9262,7 @@ model ReviewerProfile {
   
   userId          BigInt   @unique
   user            User     @relation("UserReviewerProfile", fields: [userId], references: [id])
+
   
   // Review portfolio stats
   totalReviews    Int      @default(0)
@@ -9265,4 +9287,376 @@ model ReviewerProfile {
   repeatInvitations Int    @default(0)
   
   updatedAt       DateTime @updatedAt
+}
+
+// ============================================================
+// PHASE 4.3: ORCID & EXTERNAL CREDIT INTEGRATION
+// ============================================================
+
+/// ORCID connection for a user
+model OrcidConnection {
+  id              String   @id @default(cuid())
+  
+  userId          BigInt   @unique
+  user            User     @relation("UserOrcidConnection", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // ORCID identifiers
+  orcidId         String   @unique @db.VarChar(50)  // e.g., "0000-0002-1234-5678"
+  
+  // OAuth tokens
+  accessToken     String   @db.Text
+  refreshToken    String?  @db.Text
+  tokenExpiresAt  DateTime?
+  
+  // Sync settings
+  autoSyncEnabled Boolean  @default(false)
+  lastSyncAt      DateTime?
+  syncErrors      Json?    // Array of error messages
+  
+  // Synced works tracking
+  syncedWorks     OrcidWork[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// A work synced to ORCID
+model OrcidWork {
+  id              String   @id @default(cuid())
+  
+  connectionId    String
+  connection      OrcidConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  
+  // ORCID identifiers
+  orcidPutCode    String?  @db.VarChar(50)  // ORCID's internal ID for this work
+  
+  // Local reference
+  workType        OrcidWorkType
+  sourceId        String   // ID of the local entity (argument, review, etc.)
+  
+  // Work metadata sent to ORCID
+  title           String   @db.VarChar(500)
+  description     String?  @db.Text
+  workDate        DateTime
+  externalUrl     String?  @db.VarChar(500)
+  
+  // Sync status
+  orcidSyncStatus OrcidSyncStatus @default(PENDING)
+  syncedAt        DateTime?
+  errorMessage    String?  @db.Text
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([connectionId, workType, sourceId])
+  @@index([connectionId])
+}
+
+enum OrcidWorkType {
+  SCHOLARLY_ARGUMENT    // A significant argument or position
+  PEER_REVIEW          // Review contribution
+  RESEARCH_SYNTHESIS   // Consensus or synthesis work
+  CITATION             // Notable citation impact
+}
+
+enum OrcidSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  DELETED
+}
+
+/// CV export record
+model CvExport {
+  id              String   @id @default(cuid())
+  
+  userId          BigInt
+  user            User     @relation("UserCvExports", fields: [userId], references: [id])
+  
+  // Export configuration
+  format          CvExportFormat
+  dateRange       Json?    // { start, end }
+  includeTypes    String[] @default([])  // Contribution types to include
+  
+  // Generated file
+  fileUrl         String?  @db.VarChar(500)
+  fileName        String   @db.VarChar(200)
+  
+  // Metadata
+  contributionCount Int    @default(0)
+  
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime?
+  
+  @@index([userId])
+}
+
+enum CvExportFormat {
+  JSON_LD         // Structured data
+  BIBTEX          // BibTeX format
+  WORD            // Word document
+  PDF             // PDF document
+  LATEX           // LaTeX source
+  CSV             // Spreadsheet
+}
+
+/// Institutional report
+model InstitutionalReport {
+  id              String   @id @default(cuid())
+  
+  // Scope
+  institutionId   String?  // Organization ID, null for cross-institution
+  departmentId    String?
+  
+  // Report period
+  startDate       DateTime
+  endDate         DateTime
+  
+  // Report type
+  reportType      InstitutionalReportType
+  
+  // Generated data
+  data            Json     // Report payload
+  summary         String?  @db.Text
+  
+  // File export
+  fileUrl         String?  @db.VarChar(500)
+  
+  generatedBy     String
+  generatedAt     DateTime @default(now())
+  
+  @@index([institutionId])
+  @@index([startDate, endDate])
+}
+
+enum InstitutionalReportType {
+  FACULTY_CONTRIBUTIONS   // Per-faculty breakdown
+  DEPARTMENT_SUMMARY      // Department aggregate
+  INSTITUTION_OVERVIEW    // Full institution stats
+  IMPACT_REPORT           // Citation and consensus impact
+}
+
+// ============================================================
+// PHASE 5.1: CROSS-FIELD CLAIM MAPPING
+// ============================================================
+
+/// Academic discipline/field taxonomy
+model AcademicField {
+  id              String   @id @default(cuid())
+  
+  // Core identity
+  name            String   @unique @db.VarChar(200)
+  slug            String   @unique @db.VarChar(200)
+  description     String?  @db.Text
+  
+  // Hierarchy
+  parentFieldId   String?
+  parentField     AcademicField? @relation("FieldHierarchy", fields: [parentFieldId], references: [id])
+  subFields       AcademicField[] @relation("FieldHierarchy")
+  
+  // Discovery
+  aliases         String[] // Alternative names
+  keyTerms        String[] // Key vocabulary
+  
+  // Epistemic characterization
+  epistemicStyle  EpistemicStyle @default(MIXED)
+  
+  // Relationships
+  relatedFields   FieldRelation[] @relation("SourceField")
+  relatedTo       FieldRelation[] @relation("TargetField")
+  
+  // Usage
+  claims          Claim[]
+  concepts        FieldConcept[]
+  userExpertise   ScholarExpertise[]  @relation("FieldExpertise")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([parentFieldId])
+}
+
+enum EpistemicStyle {
+  EMPIRICAL       // Data-driven, hypothesis testing
+  INTERPRETIVE    // Hermeneutic, meaning-focused
+  FORMAL          // Logic, mathematics, modeling
+  NORMATIVE       // Value-based, prescriptive
+  HISTORICAL      // Archival, narrative
+  MIXED           // Combination approaches
+}
+
+/// Relationships between fields
+model FieldRelation {
+  id              String   @id @default(cuid())
+  
+  sourceFieldId   String
+  sourceField     AcademicField @relation("SourceField", fields: [sourceFieldId], references: [id])
+  
+  targetFieldId   String
+  targetField     AcademicField @relation("TargetField", fields: [targetFieldId], references: [id])
+  
+  relationType    FieldRelationType
+  strength        Float    @default(0.5) // 0-1
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([sourceFieldId, targetFieldId])
+}
+
+enum FieldRelationType {
+  PARENT_CHILD        // Hierarchical
+  OVERLAPPING         // Shared concerns
+  COMPLEMENTARY       // Different angles on same problems
+  METHODOLOGICAL      // Shares methods
+  HISTORICAL_RELATION // Emerged from
+  INTERDISCIPLINARY   // Bridge field
+}
+
+// ============================================================
+// CONCEPT MAPPING
+// ============================================================
+
+/// A concept within a field (named FieldConcept to avoid conflicts)
+model FieldConcept {
+  id              String   @id @default(cuid())
+  
+  // Core
+  name            String   @db.VarChar(300)
+  definition      String   @db.Text
+  
+  // Field association
+  fieldId         String
+  field           AcademicField @relation(fields: [fieldId], references: [id])
+  
+  // Variations
+  aliases         String[]
+  relatedTerms    String[]
+  
+  // Source
+  keySourceId     String?  // Canonical source for definition
+  
+  // Equivalences
+  equivalencesAs  ConceptEquivalence[] @relation("SourceConcept")
+  equivalentTo    ConceptEquivalence[] @relation("TargetConcept")
+  
+  // Claims using this concept
+  claims          Claim[]  @relation("ClaimConcepts")
+  
+  // Embeddings for matching
+  embedding       Float[]
+  
+  createdById     BigInt
+  createdBy       User     @relation("ConceptCreator", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([fieldId, name])
+  @@index([fieldId])
+}
+
+/// Cross-field concept equivalence
+model ConceptEquivalence {
+  id              String   @id @default(cuid())
+  
+  // Linked concepts
+  sourceConceptId String
+  sourceConcept   FieldConcept @relation("SourceConcept", fields: [sourceConceptId], references: [id])
+  
+  targetConceptId String
+  targetConcept   FieldConcept @relation("TargetConcept", fields: [targetConceptId], references: [id])
+  
+  // Relationship type
+  equivalenceType ConceptEquivalenceType
+  confidence      Float    @default(0.5) // 0-1
+  
+  // Evidence
+  justification   String?  @db.Text
+  deliberationId  String?  // Where mapping was negotiated
+  
+  // Verification
+  verifiedBy      User[]   @relation("ConceptVerifiers")
+  verificationCount Int    @default(0)
+  
+  // Status
+  status          ConceptEquivalenceStatus @default(PROPOSED)
+  
+  proposedById    BigInt
+  proposedBy      User     @relation("EquivalenceProposer", fields: [proposedById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([sourceConceptId, targetConceptId])
+}
+
+enum ConceptEquivalenceType {
+  IDENTICAL       // Same concept, different name
+  SIMILAR         // Very close, minor differences
+  OVERLAPPING     // Partial overlap
+  RELATED         // Conceptually linked but distinct
+  TRANSLATES_TO   // Can be translated with caveats
+  CONTRASTING     // Intentionally different approaches
+}
+
+enum ConceptEquivalenceStatus {
+  PROPOSED        // Awaiting review
+  UNDER_REVIEW    // Being deliberated
+  VERIFIED        // Community verified
+  CONTESTED       // Active disagreement
+  REJECTED        // Deemed incorrect
+}
+
+// ============================================================
+// CROSS-FIELD ALERTS
+// ============================================================
+
+/// Alert for cross-field discoveries
+model CrossFieldAlert {
+  id              String   @id @default(cuid())
+  
+  // Recipient
+  userId          BigInt
+  user            User     @relation("UserCrossFieldAlerts", fields: [userId], references: [id])
+  
+  // Alert type
+  alertType       CrossFieldAlertType
+  
+  // Referenced items
+  sourceClaimId   String?
+  targetClaimId   String?
+  conceptId       String?
+  equivalenceId   String?
+  
+  // Context
+  sourceField     String?
+  targetField     String?
+  matchScore      Float?   // Similarity score
+  
+  // Content
+  title           String   @db.VarChar(300)
+  description     String   @db.Text
+  
+  // Status
+  status          CrossFieldAlertStatus @default(UNREAD)
+  
+  createdAt       DateTime @default(now())
+  readAt          DateTime?
+  actionedAt      DateTime?
+  
+  @@index([userId, status])
+  @@index([createdAt])
+}
+
+enum CrossFieldAlertType {
+  SIMILAR_CLAIM       // Similar claim in another field
+  NEW_EQUIVALENCE     // Concept mapping created
+  TRANSLATION_READY   // Translation deliberation completed
+  FIELD_DISCUSSION    // Active discussion in related field
+  COLLABORATION_MATCH // Potential collaborator found
+}
+
+enum CrossFieldAlertStatus {
+  UNREAD
+  READ
+  DISMISSED
+  ACTIONED
 }
