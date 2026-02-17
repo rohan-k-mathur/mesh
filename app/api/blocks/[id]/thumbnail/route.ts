@@ -17,7 +17,8 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
   //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   // }
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_BASE_URL;
+  if (!base) return NextResponse.json({ error: "NEXT_PUBLIC_BASE_URL not configured" }, { status: 500 });
   const previewUrl = `${base}/blocks/${id}/preview`;
 
   try {

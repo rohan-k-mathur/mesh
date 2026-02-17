@@ -4,9 +4,10 @@ import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MoveKind } from './types'; // (ok to remove if unused)
 import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
 
-// 🧪 Developer testing mode: allows authors to challenge their own claims
-// Set DIALOGUE_TESTING_MODE=true in .env to enable
-const TESTING_MODE = process.env.DIALOGUE_TESTING_MODE === 'true';
+// Testing mode: only available in development.
+const TESTING_MODE =
+  process.env.NODE_ENV === "development" &&
+  process.env.DIALOGUE_TESTING_MODE === "true";
 
 export type Move = {
   kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';

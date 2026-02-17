@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, badRequest, readJSON } from '../_util';
+import { ok, badRequest, readJSON, devOnlyGuard } from '../_util';
 import { DB } from '../_store';
 import type { AudienceSelector, MessageFacet } from '@app/sheaf-acl';
 import { canForward, audienceSubsetOf } from '@app/sheaf-acl';
@@ -22,6 +22,9 @@ const env = {
 //   quoteRange?: { start: number; end: number } // optional metadata for quotes
 // }
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   type Body = {
     op: 'quote' | 'forward';
     messageId: string;

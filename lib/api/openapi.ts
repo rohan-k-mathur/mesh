@@ -70,10 +70,9 @@ Response includes:
       url: "https://mesh.app/api/v1",
       description: "Production",
     },
-    {
-      url: "http://localhost:3000/api/v1",
-      description: "Development",
-    },
+    ...(process.env.NODE_ENV === "development"
+      ? [{ url: "http://localhost:3000/api/v1", description: "Development" }]
+      : []),
   ],
   components: {
     securitySchemes: {

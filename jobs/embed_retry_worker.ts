@@ -4,7 +4,10 @@ import { getRedis } from '@/lib/redis';
 const GROUP = 'retry_group';
 const BATCH = 50;
 const MAX_RETRY = 3;
-const EMBED_URL = process.env.EMBEDDING_URL ?? 'http://localhost:3000/api/embed';
+const EMBED_URL = process.env.EMBEDDING_URL;
+if (!EMBED_URL) {
+  throw new Error('[embed_retry_worker] EMBEDDING_URL env var is required');
+}
 
 export async function runOnce() {
   const redis = getRedis();

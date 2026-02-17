@@ -21,7 +21,8 @@ function toBigIntId(v: bigint | number | string | undefined | null): bigint | nu
 
 async function renderBlockThumbnail(blockId: string): Promise<string | null> {
   try {
-    const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!base) throw new Error("NEXT_PUBLIC_BASE_URL not configured");
     const url  = `${base}/blocks/${blockId}/preview`; // 👈 the preview page
 
     // Render screenshot (use your existing Playwright utility)

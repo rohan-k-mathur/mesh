@@ -105,8 +105,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── 5. Security Check: Can't submit non-canonical for own content ─
-    // Skip this check in testing mode to allow end-to-end testing
-    const isTestingMode = process.env.DIALOGUE_TESTING_MODE === "true";
+    // Testing mode only in development
+    const isTestingMode =
+      process.env.NODE_ENV === "development" &&
+      process.env.DIALOGUE_TESTING_MODE === "true";
     
     if (!isTestingMode && currentUserId?.toString() === authorId) {
       return NextResponse.json(

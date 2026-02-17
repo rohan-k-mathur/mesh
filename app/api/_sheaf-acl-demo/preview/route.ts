@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, badRequest, readJSON } from '../_util';
+import { ok, badRequest, readJSON, devOnlyGuard } from '../_util';
 import { DB, getUserCtx, labelForAudience, signPreview } from '../_store';
 import type { AudienceSelector, MessageFacet, Message, UserContext } from '@app/sheaf-acl';
 import { visibleFacetsFor, defaultFacetFor, priorityRank } from '@app/sheaf-acl';
@@ -9,6 +9,8 @@ import { createHash } from 'node:crypto';
 // Body: { draftMessage: {threadId, authorId, facets[...]}, viewAs: { userId? | role? | everyone? } }
 // Returns: visible facets + defaultFacet for that hypothetical viewer + signed token (60s)
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
   type DraftFacet = {
     audience: AudienceSelector;
     sharePolicy?: 'ALLOW'|'REDACT'|'FORBID';

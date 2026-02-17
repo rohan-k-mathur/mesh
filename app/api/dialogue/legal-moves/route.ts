@@ -8,9 +8,10 @@ import { getCurrentUserId } from '@/lib/serverutils';
 import type { RCode, WCode } from '@/lib/dialogue/codes';
 import { codeHelp } from '@/lib/dialogue/codes';
 
-// 🧪 Developer testing mode: allows authors to challenge their own claims
-// Set DIALOGUE_TESTING_MODE=true in .env to enable
-const TESTING_MODE = process.env.DIALOGUE_TESTING_MODE === 'true';
+// Testing mode: only available in development.
+const TESTING_MODE =
+  process.env.NODE_ENV === "development" &&
+  process.env.DIALOGUE_TESTING_MODE === "true";
 
 const Q = z.object({
   deliberationId: z.string().min(5),

@@ -13,8 +13,9 @@ function toPlainText(m: any): string {
 // Avoid hardcoding base URL in dev/prod
 function getBaseUrl(req: NextRequest) {
   const h = req.headers;
-  const proto = h.get("x-forwarded-proto") || "http";
-  const host = h.get("x-forwarded-host") || h.get("host") || "localhost:3000";
+  const proto = h.get("x-forwarded-proto") || "https";
+  const host = h.get("x-forwarded-host") || h.get("host") || "";
+  if (!host) throw new Error("Cannot determine base URL — no Host header");
   return `${proto}://${host}`;
 }
 

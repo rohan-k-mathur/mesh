@@ -48,7 +48,7 @@ export async function generateMetadata({ params, searchParams }: any) {
 
   const desc = msg.text ? snippet(msg.text) : `Merged version ${idx + 1 || "—"}`;
 
-  const base = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
+  const base = process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://mesh.app";
   const url = `${base}/m/${String(msg.id)}/compare${v ? `?v=${v}` : ""}`;
   const ogImage = `${url}/opengraph-image${v ? `?v=${v}` : ""}`;
 

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { ok, badRequest, readJSON } from '../_util';
+import { ok, badRequest, readJSON, devOnlyGuard } from '../_util';
 import { DB, createMessage, getUserCtx, labelForAudience, listMessagesFor } from '../_store';
 import type { AudienceSelector } from '@app/sheaf-acl';
 import { visibleFacetsFor, defaultFacetFor } from '@app/sheaf-acl';
@@ -7,6 +7,8 @@ import { visibleFacetsFor, defaultFacetFor } from '@app/sheaf-acl';
 // GET /api/_sheaf-acl-demo/messages?userId=...
 // Renders messages per-viewer with only visible facets (no meta-leaks).
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get('userId');
   if (!userId) return badRequest('Missing userId');
@@ -19,6 +21,9 @@ export async function GET(req: NextRequest) {
 // POST /api/_sheaf-acl-demo/messages
 // Create a message with facets (v1: public + LIST(SNAPSHOT) works great)
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   type FacetInput = {
     audience: AudienceSelector;
     sharePolicy?: 'ALLOW'|'REDACT'|'FORBID';

@@ -1,8 +1,14 @@
 // app/api/connective-test/route.ts
+//
+// ⚠️  DEV-ONLY — blocked in production.
+//
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
   const body = await req.json().catch(()=> ({}));
   const { deliberationId, premises = [], conclusion, mode = 'deductive' } = body;
 

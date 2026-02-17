@@ -230,14 +230,39 @@ export function withApiAuth(
 }
 
 /**
- * CORS headers for API responses
+ * Allowed origins for CORS.
+ * In production, restrict to your domain(s).
+ * Add additional origins as needed (e.g. preview deploy URLs).
+ */
+const ALLOWED_ORIGINS = new Set([
+  "https://mesh.app",
+  "https://www.mesh.app",
+  // Vercel preview deploys
+  ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+  // Local development
+  ...(process.env.NODE_ENV === "development" ? ["http://localhost:3000"] : []),
+]);
+
+function isAllowedOrigin(origin: string | null | undefined): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Allow all Vercel preview deploys for your project
+  if (origin.endsWith(".vercel.app")) return true;
+  return false;
+}
+
+/**
+ * CORS headers for API responses.
+ * Only reflects back origins that are explicitly allowed.
  */
 export function corsHeaders(origin?: string): Record<string, string> {
+  const allowedOrigin = origin && isAllowedOrigin(origin) ? origin : "";
   return {
-    "Access-Control-Allow-Origin": origin || "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
+    ...(allowedOrigin ? { "Vary": "Origin" } : {}),
   };
 }
 
@@ -246,6 +271,9 @@ export function corsHeaders(origin?: string): Record<string, string> {
  */
 export function handleCorsPreFlight(req: NextRequest): NextResponse {
   const origin = req.headers.get("Origin") || undefined;
+  if (!isAllowedOrigin(origin)) {
+    return new NextResponse(null, { status: 403 });
+  }
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(origin),

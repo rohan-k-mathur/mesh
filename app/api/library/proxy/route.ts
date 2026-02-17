@@ -14,11 +14,13 @@ export async function GET(req: NextRequest) {
   if (!r.ok) return NextResponse.json({ error: `fetch failed ${r.status}` }, { status: 502 });
 
   const ab = await r.arrayBuffer();
+  const origin = req.headers.get("Origin") || "";
   return new NextResponse(Buffer.from(ab), {
     headers: {
       "Content-Type": r.headers.get("content-type") || "application/pdf",
       "Cache-Control": "no-store",
-      "Access-Control-Allow-Origin": "*",
+      ...(origin ? { "Access-Control-Allow-Origin": origin } : {}),
+      "Vary": "Origin",
     },
   });
 }

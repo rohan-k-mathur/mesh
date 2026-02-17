@@ -22,8 +22,10 @@ export interface RunResult {
   latencyMs: number;
 }
 
-const EMBEDDING_ENDPOINT =
-  process.env.EMBEDDING_URL ?? 'http://localhost:3000/api/embed';
+const EMBEDDING_ENDPOINT = process.env.EMBEDDING_URL;
+if (!EMBEDDING_ENDPOINT) {
+  throw new Error('[favorites_builder] EMBEDDING_URL env var is required');
+}
 const PCA_DIM_IN = 768;
 const PCA_DIM_OUT = 256;
 const BATCH_SIZE = 200; // for embedding calls
