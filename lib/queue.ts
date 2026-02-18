@@ -1,4 +1,4 @@
-import { Queue, QueueEvents } from "bullmq";
+import { Queue } from "bullmq";
 import redis from "./redis";
 import IORedis from 'ioredis';
 import { getRedis } from "./redis";
@@ -15,11 +15,7 @@ if (!redisUrl) {
 export const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
 //const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
-export const spotifyIngestQueue = new Queue('spotify-ingest', { connection }); // <-- no colon
 export const reembedQueue       = new Queue('reembed',       { connection });
-export const tasteVectorQueue   = new Queue('taste-vector',   { connection });
-export const candidateBuilderQueue = new Queue('candidate-builder', { connection });
-export const userKnnQueue       = new Queue('user-knn',      { connection });
 
 // Phase 3.1: Source Trust Infrastructure queues
 export const sourceVerificationQueue = new Queue('source-verification', { connection });
@@ -30,25 +26,6 @@ export const sourceUsageQueue = new Queue('source-usage', { connection });
 
 // Phase 3.4: Discovery & Exploration queues
 export const knowledgeGraphQueue = new Queue('knowledge-graph', { connection });
-// export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 
 /** one reusable ioredis connection */
-
-
-
-/* (optional) queue‑event helpers – keep a reference so GC doesn't kill them */
-export const tasteVectorEvents  = new QueueEvents('taste-vector', { connection });
-tasteVectorEvents.on('completed',
-  ({ jobId }) => console.log('[taste-vector] completed', jobId));
-tasteVectorEvents.on('failed',
-  ({ jobId, failedReason }) => console.error('[taste-vector] FAILED', failedReason));
-
-
-// export const spotifyIngestQueue = new Queue("spotify-ingest", {
-//   connection: new IORedis(redisUrl, { maxRetriesPerRequest: null }),
-// });
-
-// export const reembedQueue = new Queue("reembed", {
-//   connection: redis,
-// });

@@ -12,7 +12,6 @@ import ReplicatedPostCard from "./ReplicatedPostCard";
 import ProductReviewCard from "./ProductReviewCard";
 import PortfolioCard from "./PortfolioCard";
 import DeleteCardButton from "../buttons/DeleteCardButton";
-import ImageCard from "./ImageCard";
 import GalleryCarousel from "./GalleryCarousel";
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
@@ -200,10 +199,14 @@ const [postId, setPostId] = useState<string | null>(null);
   return null
 })()}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
-              <ImageCard
-                id={id}
-                imageurl={image_url}
-                caption={caption || undefined}
+              <Image
+                className="flex img-feed-frame ml-[19%] mr-[19%] rounded-sm mt-[1rem] mb-[1rem]"
+                src={image_url}
+                alt={caption || "image"}
+                width={700}
+                height={400}
+                sizes="100vw"
+                style={{ width: "auto", height: "auto" }}
               />
 
               // <Image

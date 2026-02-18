@@ -24,7 +24,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "swapmeet-api": ["services/swapmeet-api/src/index.ts"],
       "@app/sheaf-acl": ["packages/sheaf-acl/src/index.ts"]
 
     }

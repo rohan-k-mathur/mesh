@@ -16,8 +16,8 @@ export async function ensureStripeAccount(userId: string) {
 export async function createOnboardingLink(accountId: string) {
   const link = await stripe.accountLinks.create({
     account: accountId,
-    refresh_url: `${ORIGIN}/swapmeet/stripe/refresh`,
-    return_url: `${ORIGIN}/swapmeet/stripe/return`,
+    refresh_url: `${ORIGIN}/settings/stripe/refresh`,
+    return_url: `${ORIGIN}/settings/stripe/return`,
     type: "account_onboarding",
   });
   return link.url;

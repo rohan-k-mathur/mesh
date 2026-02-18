@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { app } from "@/lib/firebase/firebase";
-import BackgroundCanvas from "@/components/threejs/BackgroundCanvas";
 import localFont from "next/font/local";
 
 const founderslight = localFont({ src: "./NewEdgeTest-LightRounded.otf" });
@@ -47,10 +46,7 @@ export default function Login() {
 
   return (
     <div className={`${founderslight.className}`}>
-      <div className="z-back">
-        {/* <BackgroundCanvas /> */}
-      </div>
-      <main className=" z-front flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8 ">
+      <main className="flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8">
         <div className="w-full bg-white bg-opacity-30  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
             <h1 className="text-center tracking-widest text-slate-800 font-bold text-[2rem]">
