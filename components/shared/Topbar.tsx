@@ -7,7 +7,6 @@ import { signOut, getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { app } from "@/lib/firebase/firebase";
 import { useAuth } from "@/lib/AuthContext";
-import CartButton from "@/components/CartButton";
 import NotificationBell from "@/components/NotificationBell";
 import { Chakra_Petch } from "next/font/google";
 import localFont from 'next/font/local'
@@ -56,7 +55,6 @@ function Topbar() {
         </div>
 
       </Link>
-      <CartButton />
       <NotificationBell />
       </div>
 

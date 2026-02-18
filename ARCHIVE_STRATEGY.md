@@ -302,7 +302,7 @@ app/api/polls/                              # route.ts, [id]/vote, query
 components/predictions/                     # PredictionCard, Creator, Badge, Section, OutcomeRecorder, ResolutionModal, Stats, index
 components/cards/PredictionMarketCard.tsx
 components/modals/ResolveMarketDialog.tsx
-components/modals/TradePredictionModal.tsx
+components/modals/TradePredictionModal.tsx 
 components/forms/CreatePredictionPost.tsx
 components/chat/PollChip.tsx
 components/chat/QuickPollComposer.tsx

@@ -74,7 +74,6 @@ export async function middleware(req: Request) {
   // }
 
   // 3) Other explicit allowlists
-  if (pathname.startsWith("/portfolio/")) return NextResponse.next();
   if (pathname === "/.well-known/webfinger") return NextResponse.next();
   if (isApPath(pathname) && isApNegotiation(req)) return NextResponse.next();
 
@@ -100,15 +99,6 @@ export async function middleware(req: Request) {
       // Block auth'd users from auth pages (except /room/global)
       if (PUBLIC_PATHS.includes(pathname) && pathname !== "/room/global") {
         return redirectToHome(request);
-      }
-
-      // Friendly redirect for /swapmeet
-      if (pathname === "/swapmeet") {
-        const r = await fetch(new URL("/swapmeet/api/spawn", request.url));
-        if (r.ok) {
-          const { x, y } = (await r.json()) as { x: number; y: number };
-          return NextResponse.redirect(new URL(`/swapmeet/market/${x}/${y}`, request.url));
-        }
       }
 
       return NextResponse.next({ request: { headers } });
