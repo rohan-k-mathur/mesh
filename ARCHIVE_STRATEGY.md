@@ -322,7 +322,7 @@ types/poll.ts
 # Scripts
 scripts/closeMarkets.ts
 
-# Tests
+# Tests. 
 tests/prediction.service.test.ts
 tests/prediction/                           # All prediction test files
 tests/tradePreview.test.ts
