@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 
 export default function Page() {
     const router = useRouter();
-    function gotopageflow() {
-      router.push("/pageflow");
-    }
     function gotowordrails() {
       router.push("/wordrails");
     }
@@ -22,17 +19,6 @@ export default function Page() {
         <h1 className="text-[2rem] px-[35%] pb-4  font-bold">MESH Applications</h1>
         <div className="space-y-4 ">
             <div  className="flex flex-wrap gap-4 w-fit h-full">
-              <Button variant={"outline"} className="likebutton h-full text-[1.2rem] p-4" type="submit" onClick={gotopageflow}>
-                <Image
-              src="/assets/branch.svg"
-              alt="pageflow"
-              className="mr-2"
-              width={24}
-              height={24}
-            />
-            Pageflow
-              </Button>
-              <div className="space-y-4"></div>
               <Button variant={"outline"} className="likebutton text-[1.2rem] h-full p-4" type="submit" onClick={gotowordrails}>
               <Image
               src="/assets/workspace.svg"

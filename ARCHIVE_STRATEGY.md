@@ -116,6 +116,8 @@ git push origin alpha-complete
 | **Stripe** | Subscriptions/payments (if used for platform access) |
 | **Blocks / Briefs** | Content blocks, briefs system |
 | **Ledger / Credit** | Reputation/credit ledger |
+| **Prediction Markets & Polls** | Kept for launch — lightweight, useful for discourse engagement |
+| **Product Reviews** | Kept for launch — lightweight, useful for content quality |
 
 ### ARCHIVE — Exploratory Features
 
@@ -123,9 +125,7 @@ git push origin alpha-complete
 |---|---|
 | **Swapmeet** | Marketplace/trading — not discourse |
 | **Group-Halfway** | Meet-up location finder — not discourse |
-| **Prediction Markets** | Speculative betting — not discourse core |
 | **Portfolio Builder** | Personal site builder — not discourse |
-| **Product Reviews** | E-commerce reviews — not discourse |
 | **Workflow/Automation Builder** | Visual automation — not discourse |
 | **ReactFlow Social Media Canvas** | Old v11 canvas for rooms (keep `@xyflow/react` v12 for argument chains) |
 | **Spotify Integration** | Music/taste profiling — not discourse |
@@ -285,8 +285,10 @@ tests/spotify.test.ts
 
 > **Estimated effort: ~2-3 days**
 > These features have 8-20 cross-references each, mostly in shared types, feed actions, and post rendering.
+>
+> **Decision (2026-03-02):** Waves 2.1 (Prediction Markets & Polls) and 2.4 (Product Reviews) are **SKIPPED** — these features are lightweight and will be kept for launch. Only 2.2, 2.3, and 2.5 are executed.
 
-### 4.1 Prediction Markets & Polls
+### 4.1 Prediction Markets & Polls — SKIPPED (keeping for launch)
 
 **Delete:**
 ```
@@ -443,7 +445,7 @@ sql/taste_neighbours.sql
 
 ---
 
-### 4.4 Product Reviews
+### 4.4 Product Reviews — SKIPPED (keeping for launch)
 
 **Delete:**
 ```
