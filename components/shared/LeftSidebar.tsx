@@ -64,11 +64,6 @@ function LeftSidebar({ userRooms }: Props) {
       router.push("/create-room");
 
     }
-    function gotoflowbuilder()
-    {
-      router.push("/workflows/new");
-
-    }
     function gotoapplications()
     {
       router.push("/applications");
