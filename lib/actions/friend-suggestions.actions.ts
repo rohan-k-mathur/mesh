@@ -5,7 +5,7 @@
 
 import { prisma } from "../prismaclient";
 import { deepseekEmbedding } from "../deepseekclient";
-import { getPineconeIndex, knnPgvector } from "@/lib/pineconeClient";
+import { getPineconeIndex } from "@/lib/pineconeClient";
 import type { UserAttributes } from "@prisma/client";
 
 type Big = bigint;
@@ -55,8 +55,6 @@ export async function updateUserEmbedding(userId: Big) {
       await index.upsert({
         vectors: [{ id: userId.toString(), values: embedding }],
       });
-    } else {
-      await knnPgvector(embedding); // optional fallback
     }
   } catch (err) {
     console.warn("Pinecone upsert failed", err);
@@ -70,15 +68,15 @@ export async function generateFriendSuggestions(userId: Big) {
   });
   if (!base) return [];
 
-  /* -- nearest neighbours (Pinecone or pgvector) -------------- */
-  const index     = await getPineconeIndex();
-  const neighbours = index
-    ? await index.query({
-        topK: 300,
-        vector: base.embedding,
-        includeValues: false,
-      })
-    : await knnPgvector(base.embedding, 300);
+  /* -- nearest neighbours (Pinecone) ------------------------- */
+  const index = await getPineconeIndex();
+  if (!index) return [];
+
+  const neighbours = await index.query({
+    topK: 300,
+    vector: base.embedding,
+    includeValues: false,
+  });
 
   const otherIds = neighbours.matches.map((m) => BigInt(m.id));
   if (otherIds.length === 0) return [];
