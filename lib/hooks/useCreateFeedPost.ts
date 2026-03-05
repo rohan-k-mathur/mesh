@@ -3,13 +3,12 @@
 export type ClientCreateFeedPostArgs = {
   type:
     | "TEXT" | "IMAGE" | "VIDEO" | "GALLERY" | "PREDICTION" | "PRODUCT_REVIEW"
-    | "PORTFOLIO" | "MUSIC" | "LIVECHAT" | "ARTICLE" | "LIBRARY";
+    | "MUSIC" | "LIVECHAT" | "ARTICLE" | "LIBRARY";
   content?: string;
   imageUrl?: string;
   videoUrl?: string;
   caption?: string;
   isPublic?: boolean;
-  portfolio?: { pageUrl: string; snapshot?: string };
 library?: {     kind: "single" | "stack";
 libraryPostId: string | null;
 coverUrl: string | null;

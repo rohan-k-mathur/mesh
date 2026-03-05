@@ -376,20 +376,8 @@ export async function uploadFileToSupabase(file: File): Promise<UploadResult> {
   return uploadToBucket("realtime_post_images", file, { folder: "public" });
 }
 
-export async function uploadPortfolioFileToSupabase(
-  file: File,
-  opts: { bucket?: string; folder?: string; filename?: string } = {}
-): Promise<UploadResult> {
-  const bucket = opts.bucket ?? "realtime_post_images";
-  return uploadToBucket(bucket, file, { folder: opts.folder, filename: opts.filename });
-}
-
 export async function uploadAudioToSupabase(file: File): Promise<UploadResult> {
   return uploadToBucket("realtimepostaudio", file, { folder: "public" });
-}
-
-export async function uploadStallImage(file: File): Promise<UploadResult> {
-  return uploadToBucket("stall-images", file, { folder: "public" });
 }
 
 /** Useful to fix already-saved bad URLs (missing /public, spaces). */

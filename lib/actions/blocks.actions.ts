@@ -47,55 +47,6 @@ async function renderBlockThumbnail(blockId: string): Promise<string | null> {
 
 // ----- existing APIs updated to call the helper -----
 
-export async function createBlockFromElement(args: {
-  pageSlug: string;
-  elementId: string;
-  ownerId?: bigint | number | string;
-}) {
-  const user = await getUserFromCookies().catch(() => null);
-  const owner = toBigIntId(args.ownerId ?? user?.id);
-  if (!owner) throw new Error("Unauthorized");
-
-  // Load the page payload and find the component element
-  const page = await prisma.portfolioPage.findUnique({
-    where: { slug: args.pageSlug },
-    select: { payload: true },
-  });
-  if (!page?.payload) throw new Error("Page/payload not found");
-
-  const payload = page.payload as any;
-  const abs: any[] = Array.isArray(payload.absolutes) ? payload.absolutes : [];
-  const el = abs.find((e) => e?.id === args.elementId && e?.type === "component");
-  if (!el) throw new Error("Component element not found");
-
-  const id = nanoid();
-  const manifest = await prisma.blockManifest.create({
-    data: {
-      id,
-      ownerId: owner,
-      component: el.component,
-      props: el.props ?? {},
-      originSlug: args.pageSlug,
-      originElId: args.elementId,
-      isPublic: true,
-    },
-    select: { id: true, component: true, props: true },
-  });
-
-  // best-effort back-fill of blockId on canvas payload
-  try {
-    const nextAbs = abs.map((e) => (e.id === args.elementId ? { ...e, blockId: id } : e));
-    await prisma.portfolioPage.update({
-      where: { slug: args.pageSlug },
-      data: { payload: { ...payload, absolutes: nextAbs } },
-    });
-  } catch {}
-
-  // 👇 generate a thumbnail
-  await renderBlockThumbnail(manifest.id);
-  return manifest;
-}
-
 export async function listBlocks(ownerId?: bigint | number | string) {
   const user = await getUserFromCookies().catch(() => null);
   const owner = toBigIntId(ownerId ?? user?.id);
