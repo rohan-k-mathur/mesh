@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
         "LIVECHAT",
         "MUSIC",
         "ENTROPY",
-        "PORTFOLIO",
         "PLUGIN",
         "PRODUCT_REVIEW",
         "PREDICTION",

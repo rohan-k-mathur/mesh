@@ -11,7 +11,6 @@ interface CreateFeedPostParams {
   imageUrl?: string;
   videoUrl?: string;
   isPublic?: boolean;
-  portfolio?: { pageUrl: string; snapshot?: string };
   productReview?: {
     productName: string;
     rating: number; // 1 – 5
@@ -32,7 +31,6 @@ export async function createFeedPost({
   imageUrl,
   videoUrl,
   isPublic = true,
-  portfolio,
   productReview,
   stackId,
   libraryPostId,
@@ -51,7 +49,7 @@ export async function createFeedPost({
       caption: caption ?? null,
       image_url: imageUrl ?? null,
       video_url: videoUrl ?? null,
-      portfolio: portfolio ?? null, // don’t pass undefined
+
       articleId: articleId ?? null,
       ...(stackId && { stack_id: stackId }),
       ...(libraryPostId && { library_post_id: libraryPostId }),

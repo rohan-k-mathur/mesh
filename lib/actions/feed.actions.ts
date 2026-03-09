@@ -6,10 +6,6 @@ import { jsonSafe } from "../bigintjson";
 import { canRepost } from "@/lib/repostPolicy";
 import { JsonValue } from "tldraw";
 
-export interface PortfolioPayload {
-  pageUrl: string;   // “/portfolio/abc123”
-  snapshot?: string; // CDN url of PNG (optional)
-}
 
 export interface LibraryPayload{
      kind: "single" | "stack";
@@ -28,7 +24,6 @@ export interface CreateFeedPostArgs {
     | "GALLERY"
     | "PREDICTION"
     | "PRODUCT_REVIEW"
-    | "PORTFOLIO"
     | "MUSIC"
     | "LIVECHAT"
     | "ARTICLE"
@@ -56,7 +51,6 @@ export interface CreateFeedPostArgs {
     status?: string;
     astJson?: JsonValue;
     analytics?: JsonValue;
-  portfolio?: PortfolioPayload;
   path: string;
   coordinates: { x: number; y: number };
   realtimeRoomId: string;
@@ -117,7 +111,6 @@ export async function createFeedPost(
       ...(rest.imageUrl && { image_url: rest.imageUrl }),
       ...(rest.videoUrl && { video_url: rest.videoUrl }),
       ...(rest.caption && { caption: rest.caption }),
-      ...(rest.portfolio && { portfolio: rest.portfolio }),
       ...(rest.libraryPostId && { library_post_id: rest.libraryPostId }),
       ...(rest.stackId && { stack_id: rest.stackId }),
       ...(rest.articleId && { id: rest.articleId  }),
@@ -265,7 +258,6 @@ export async function fetchFeedPosts() {
       library_post_id: true,
       stack_id: true,
       image_url: true,
-      portfolio: true,        
 
       video_url: true,
       caption: true,

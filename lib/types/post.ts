@@ -7,16 +7,6 @@ export interface CanvasState {
   viewport?: { x: number; y: number; zoom: number };
   roomId?: string;
 }
-export interface PortfolioPayload {
-  pageUrl: string;
-  snapshot?: string;
-  /* -- legacy fields, all optional -- */
-  text?: string;
-  images?: string[];
-  links?: string[];
-  layout?: "grid" | "column" | "free";
-  color?: string;
-}
 
 export interface BasePost {
   id: bigint;
@@ -28,7 +18,6 @@ export interface BasePost {
   content?: string | null;
   roomPostContent?: CanvasState | null;
   image_url?: string | null;
-  portfolio?: PortfolioPayload | null;   // ← NEW
   productReview?: {
     product_name: string;
     rating: number;

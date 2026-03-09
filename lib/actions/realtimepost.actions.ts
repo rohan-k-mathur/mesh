@@ -6,19 +6,13 @@ import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createProductReview } from "./productreview.actions";
-import { createPortfolioPage } from "./portfolio.actions";
 import { canRepost } from "@/lib/repostPolicy";
 
-export interface PortfolioPayload {
-  pageUrl: string;   // “/portfolio/abc123”
-  snapshot?: string; // CDN url of PNG (optional)
-}
 
 export interface CreateRealtimePostParams {
   text?: string;
   imageUrl?: string;
   videoUrl?: string;
-  portfolio?: PortfolioPayload;
   caption?: string;
   path: string;
   coordinates: { x: number; y: number };
@@ -38,7 +32,6 @@ interface UpdateRealtimePostParams {
   text?: string;
   imageUrl?: string;
   videoUrl?: string;
-  portfolio?: PortfolioPayload;
   caption?: string;
 
   coordinates?: { x: number; y: number };
@@ -59,7 +52,6 @@ export async function createRealtimePost({
   text,
   imageUrl,
   videoUrl,
-  portfolio,
 
   path,
   coordinates,
@@ -87,7 +79,6 @@ export async function createRealtimePost({
         ...(imageUrl && { image_url: imageUrl }),
        ...(videoUrl && { video_url: videoUrl }),
         ...(caption && { caption }),
-        ...[portfolio && { pageUrl: portfolio }],
         author_id: user.userId!,
         x_coordinate: new Prisma.Decimal(coordinates.x),
         y_coordinate: new Prisma.Decimal(coordinates.y),
@@ -105,13 +96,7 @@ export async function createRealtimePost({
         ...(collageGap !== undefined && { collageGap }),
       },
     });
-    if (type==="PORTFOLIO") {
-      if (!portfolio?.pageUrl)
-        throw new Error("Portfolio post requires { pageUrl }");
-       createdRealtimePost.portfolio.pageUrl = JSON.stringify(portfolio);
-      if (portfolio.snapshot) data.image_url = portfolio.snapshot; // thumbnail
-    }
-    
+
     if (type === "PRODUCT_REVIEW" && text) {
       try {
         const parsed = JSON.parse(text);

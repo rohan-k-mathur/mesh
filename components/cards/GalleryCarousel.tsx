@@ -5,7 +5,6 @@ import { useState, useMemo } from "react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { buildSlideVariants } from "./helpers/slideVariants";
-import { useEmbedEnv } from "@/components/portfolio/EmbedEnv";
 
 export type GalleryAnimationStyle = "cylinder" | "cube" | "portal" | "towardscreen";
 
@@ -29,7 +28,8 @@ export default function GalleryCarousel({
   // If there is nothing to show, bail early (outside embed only)
   if (!embed && urls.length === 0) return null;
 
-  const { inRepeater, fit } = useEmbedEnv();
+  const inRepeater = false;
+  const fit = "contain" as const;
   const simplePreview = inRepeater || embed;   // 👈 key change
   const fitMode = inRepeater ? fit : "contain";
 

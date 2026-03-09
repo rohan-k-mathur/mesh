@@ -1,7 +1,7 @@
 import UserCard from "@/components/cards/UserCard";
 import Image from "next/image";
 import Link from "next/link";
-import { fetchRecommendations } from "@/lib/actions/recommendation.actions";
+import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect } from "next/navigation";
 
@@ -14,7 +14,20 @@ export default async function Page() {
   const user = await getUserFromCookies();
   if (!user?.onboarded) redirect("/onboarding");
   if (!user.userId) redirect("/login");
-  const { users, rooms } = await fetchRecommendations({ userId: user.userId });
+
+  const [users, rooms] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { not: Number(user.userId) } },
+      take: 10,
+      orderBy: { created_at: "desc" },
+      select: { id: true, name: true, username: true, image: true },
+    }),
+    prisma.realtimeRoom.findMany({
+      take: 10,
+      orderBy: { created_at: "desc" },
+      select: { id: true, room_icon: true },
+    }),
+  ]);
 
   return (
     <section>

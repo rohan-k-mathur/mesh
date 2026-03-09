@@ -11,7 +11,6 @@ export const mapRealtimePost = (dbRow: any): BasePost => ({
   content: dbRow.content ?? null,
   roomPostContent: dbRow.room_post_content ?? dbRow.roomPostContent ?? null,
   image_url: dbRow.image_url ?? null,
-  portfolio: dbRow.portfolio ?? null,
   productReview: dbRow.productReview?? null,
   video_url: dbRow.video_url ?? null,
   caption: (dbRow as any).caption ?? null,
@@ -42,7 +41,6 @@ export const mapFeedPost = (dbRow: any): BasePost => ({
   content: dbRow.content ?? null,
   roomPostContent: dbRow.room_post_content ?? dbRow.roomPostContent ?? null,
   image_url: dbRow.image_url ?? null,
-  portfolio: dbRow.portfolio ?? null,
   productReview: dbRow.productReview?? null,
 
   video_url: dbRow.video_url ?? null,

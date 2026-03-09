@@ -10,9 +10,8 @@ import ReplicateButton from "../buttons/ReplicateButton";
 import { canRepost } from "@/lib/repostPolicy";
 import ReplicatedPostCard from "./ReplicatedPostCard";
 import ProductReviewCard from "./ProductReviewCard";
-import PortfolioCard from "./PortfolioCard";
 import DeleteCardButton from "../buttons/DeleteCardButton";
-import GalleryCarousel from "./GalleryCarousel";
+
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
@@ -66,7 +65,6 @@ const PostCard = ({
   roomPostContent = null,
   author,
   image_url,
-  portfolio = null,
   productReview,
   video_url,
   caption,
@@ -346,48 +344,6 @@ const [postId, setPostId] = useState<string | null>(null);
                 </div>
               </div>
             )}
-            {type === "PORTFOLIO" &&
-              (() => {
-                /* ③ choose the preferred payload */
-                const data =
-                  portfolio ?? // ← new schema
-                  (() => {
-                    // ← fall back to legacy string
-                    if (!content) return null;
-                    try {
-                      return JSON.parse(content);
-                    } catch {
-                      return null;
-                    }
-                  })();
-
-                if (!data) return null;
-
-                if (data.pageUrl) {
-                  return (
-                    <PortfolioCard
-                      pageUrl={data.pageUrl}
-                      snapshot={
-                        data.snapshot ?? image_url /* graceful fallback */
-                      }
-                    />
-                  );
-                }
-
-                /* 🕜 legacy raw-content fallback */
-                return (
-                  <PortfolioCard
-                    pageUrl="" /* empty => shows legacy content only */
-                    snapshot={undefined}
-                    text={data.text}
-                    images={data.images || []}
-                    links={data.links || []}
-                    layout={data.layout}
-                    color={data.color}
-                  />
-                );
-              })()}
-
             {type === "PRODUCT_REVIEW" &&
               /* Prefer the 1-to-1 relation; fall back to legacy JSON string */
               (productReview ? (
