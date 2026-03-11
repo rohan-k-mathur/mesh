@@ -12,7 +12,7 @@ import {
   type ChainStrength,
   type SchemeAggregation,
 } from "@/lib/utils/chainAnalysisUtils";
-import type { Node, Edge } from "reactflow";
+import type { Node, Edge } from "@xyflow/react";
 import type { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
 
 /**

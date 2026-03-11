@@ -27,11 +27,9 @@ import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
 import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
-import RoomCanvasModal from "../modals/RoomCanvasModal";
 import PredictionMarketModal from "../modals/PredictionMarketModal";
 // import LibraryPostModal from "@/components/modals/LibraryPostModal";
 import dynamic from "next/dynamic";
-import { exportRoomCanvas } from "@/lib/actions/realtimeroom.actions";
 import {
   uploadFileToSupabase,
   uploadAudioToSupabase,
@@ -51,7 +49,7 @@ import {
   SplineViewerPostValidation,
   ProductReviewValidation,
 } from "@/lib/validations/thread";
-import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
+
 import { useCreateFeedPost } from "@/lib/hooks/useCreateFeedPost";  // client
 import { useSession }        from "@/lib/hooks/useSession";
 const LibraryPostModal = dynamic(() => import("@/components/modals/LibraryPostModal"), { ssr: false });
@@ -238,7 +236,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
       await createRealtimePost({
         path: "/",
         coordinates: { x: 0, y: 0 },
-        type: value as AppNodeType,
+        type: value as string,
         realtimeRoomId: roomId,
       });
       reset();
@@ -252,7 +250,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
         coordinates: { x: 0, y: 0 },
         type: "IMAGE_COMPUTE",
         realtimeRoomId: roomId,
-        imageUrl: DEFAULT_NODE_VALUES["IMAGE_COMPUTE"],
+        imageUrl: "",
       });
       reset();
       router.refresh();
@@ -416,30 +414,6 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 realtimeRoomId: roomId,
                 pluginType: "SPLINE_VIEWER",
                 pluginData: { sceneUrl: vals.sceneUrl },
-              });
-              reset();
-              router.refresh();
-            }}
-          />
-        );
-      case "ROOM_CANVAS":
-        return (
-          <RoomCanvasModal
-            onSubmit={async (vals) => {
-              const canvas = await exportRoomCanvas(vals.roomId);
-              if (!canvas) return;
-              const safeCanvas = serializeBigInt(canvas);
-              if (JSON.stringify(safeCanvas).length > 1_000_000) {
-                alert("Canvas too large to share");
-                return;
-              }
-              await createRealtimePost({
-                text: vals.description,
-                path: "/",
-                coordinates: { x: 0, y: 0 },
-                type: "ROOM_CANVAS",
-                realtimeRoomId: vals.roomId,
-                roomPostContent: safeCanvas,
               });
               reset();
               router.refresh();

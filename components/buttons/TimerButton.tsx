@@ -1,9 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import useStore from "@/lib/reactflow/store";
-import { AppState } from "@/lib/reactflow/types";
-import { useShallow } from "zustand/react/shallow";
+import { useModalStore } from "@/lib/stores/modalStore";
 import TimerModal from "../modals/TimerModal";
 
 interface Props {
@@ -19,11 +17,7 @@ const TimerButton = ({
   isOwned,
   expirationDate,
 }: Props) => {
-  const { openModal } = useStore(
-    useShallow((state: AppState) => ({
-      openModal: state.openModal,
-    }))
-  );
+  const { openModal } = useModalStore();
 
   return (
     <button>

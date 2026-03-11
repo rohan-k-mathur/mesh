@@ -14,10 +14,6 @@ import { app } from "@/lib/firebase/firebase";
 import { RealtimeRoom } from "@prisma/client";
 
 import CreateFeedPost from "@/components/forms/CreateFeedPost";
-import useStore from "@/lib/reactflow/store";
-import { AppState } from "@/lib/reactflow/types";
-import { useShallow } from "zustand/react/shallow";
-import UserRoomsModal from "../modals/UserRoomsModal";
 import localFont from "next/font/local";
 
 

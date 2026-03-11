@@ -4,7 +4,7 @@ import React, { useState, useCallback } from "react";
 import { X, Shield, Swords, Sparkles } from "lucide-react";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 import { EDGE_TYPES, EDGE_TYPE_GROUPS } from "@/lib/constants/chainEdgeTypes";
-import { MarkerType } from "reactflow";
+import { MarkerType } from "@xyflow/react";
 
 const CATEGORY_ICONS = {
   support: Shield,

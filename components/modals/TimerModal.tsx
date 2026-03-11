@@ -8,9 +8,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import useStore from "@/lib/reactflow/store";
-import { AppState } from "@/lib/reactflow/types";
-import { useShallow } from "zustand/react/shallow";
+import { useModalStore } from "@/lib/stores/modalStore";
 
 interface Props {
   postId?: bigint;
@@ -29,11 +27,7 @@ const TimerModal = ({
   isOwned,
   expirationDate,
 }: Props) => {
-  const { closeModal } = useStore(
-    useShallow((state: AppState) => ({
-      closeModal: state.closeModal,
-    }))
-  );
+  const { closeModal } = useModalStore();
   const [duration, setDuration] = useState("none");
 
   const remaining = useMemo(() => {

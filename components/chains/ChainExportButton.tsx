@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { Download, Image as ImageIcon, FileCode, Network, FileText, Copy } from "lucide-react";
 import { toPng, toSvg } from "html-to-image";
-import { useReactFlow } from "reactflow";
+import { useReactFlow } from "@xyflow/react";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
 import { generateNarrative, copyNarrativeToClipboard } from "@/lib/chains/narrativeGenerator";
 import { downloadAsFile, generateFilename, getMimeType } from "@/lib/utils/fileExport";

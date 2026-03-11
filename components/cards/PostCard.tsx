@@ -25,9 +25,7 @@ import React from "react";
 import localFont from "next/font/local";
 import type { BasePost, CanvasState } from "@/lib/types/post";
 import { parseJson } from "@/lib/parsejsonhelper";
-const EmbeddedCanvas = dynamic(() => import("./EmbeddedCanvas"), {
-  ssr: false,
-});
+
 
 const founders = localFont({ src: "./NewEdgeTest-RegularRounded.otf" });
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false });
@@ -334,16 +332,6 @@ const [postId, setPostId] = useState<string | null>(null);
             {type === "ROOM_CANVAS" && content && (
               <p className="mt-2 text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
             )} */}
-            {type === "ROOM_CANVAS" && roomPostContent && (
-              <div className="flex flex-col w-full mx-auto px-10 h-fit items-center justify-center ">
-                <div className="h-[14rem]  justify-center w-full border-black border-[1px] rounded-xl">
-                  <EmbeddedCanvas
-                    canvas={roomPostContent}
-                    roomId={roomPostContent.roomId ?? "global"}
-                  />
-                </div>
-              </div>
-            )}
             {type === "PRODUCT_REVIEW" &&
               /* Prefer the 1-to-1 relation; fall back to legacy JSON string */
               (productReview ? (

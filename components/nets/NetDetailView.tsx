@@ -27,8 +27,8 @@ import ReactFlow, {
   useEdgesState,
   MarkerType,
   Position,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
 // ============================
 // Types

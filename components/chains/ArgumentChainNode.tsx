@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { Handle, Position, NodeProps } from "reactflow";
+import { Handle, Position, NodeProps } from "@xyflow/react";
 import { ChainNodeData } from "@/lib/types/argumentChain";
 import { Network, Info, Plus, ThumbsUp, Swords, MoreHorizontal } from "lucide-react";
 import {

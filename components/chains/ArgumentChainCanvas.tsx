@@ -12,8 +12,8 @@ import ReactFlow, {
   BackgroundVariant,
   MarkerType,
   useReactFlow,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { ChevronLeft, ChevronRight, Layers, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
