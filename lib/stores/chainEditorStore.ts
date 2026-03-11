@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Node, Edge, OnNodesChange, OnEdgesChange, applyNodeChanges, applyEdgeChanges } from "reactflow";
+import { Node, Edge, OnNodesChange, OnEdgesChange, applyNodeChanges, applyEdgeChanges } from "@xyflow/react";
 import { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
 
 interface ChainEditorState {

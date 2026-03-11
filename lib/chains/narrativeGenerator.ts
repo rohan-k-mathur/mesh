@@ -8,7 +8,7 @@
  * - Epistemic status: Includes epistemic indicators in argument text
  */
 
-import { Node, Edge } from "reactflow";
+import { Node, Edge } from "@xyflow/react";
 import { 
   ChainNodeData, 
   ChainEdgeData,

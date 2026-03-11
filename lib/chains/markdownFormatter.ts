@@ -8,7 +8,7 @@
  * - Chain type descriptions: Structural context based on chain type
  */
 
-import { Node, Edge } from "reactflow";
+import { Node, Edge } from "@xyflow/react";
 import { 
   ChainNodeData, 
   ChainEdgeData,

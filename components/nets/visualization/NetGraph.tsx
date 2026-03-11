@@ -13,8 +13,8 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Panel,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { SchemeNode } from "./nodes/SchemeNode";
 import { DependencyEdge } from "./edges/DependencyEdge";
 import { NetLayoutEngine } from "./layout/NetLayoutEngine";

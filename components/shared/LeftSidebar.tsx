@@ -10,10 +10,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreateFeedPost from "@/components/forms/CreateFeedPost";
-import useStore from "@/lib/reactflow/store";
-import { AppState } from "@/lib/reactflow/types";
-import { useShallow } from "zustand/react/shallow";
-import UserRoomsModal from "../modals/UserRoomsModal";
 import localFont from "next/font/local";
 
 const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
@@ -26,15 +22,6 @@ function LeftSidebar({ userRooms }: Props) {
   const router = useRouter();
   const user = useAuth();
   const isUserSignedIn = !!user.user;
-  const store = useStore(
-    useShallow((state: AppState) => ({
-      openModal: state.openModal,
-    }))
-  );
-
-  const openRoomsModal = () => {
-    store.openModal(<UserRoomsModal userRooms={userRooms} />);
-  };
 
   async function handleLogout() {
     await signOut(getAuth(app));
@@ -94,22 +81,6 @@ function LeftSidebar({ userRooms }: Props) {
               </div>
             </button>
        
-            <button
-              className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
-          onClick={openRoomsModal}
-        >
-                          <div className="flex align-center gap-3">
-
-          <Image src="/assets/3D-print-mesh.svg" 
-          alt="YourRooms" 
-          className="flex align-center"
-
-          width={24} 
-          height={24} />
-            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden">Rooms</div>
-              </div>
-            </button>
-
             <button
               className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={gotoapplications}

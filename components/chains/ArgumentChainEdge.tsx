@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { BaseEdge, EdgeProps, getBezierPath, EdgeLabelRenderer } from "reactflow";
+import { BaseEdge, EdgeProps, getBezierPath, EdgeLabelRenderer } from "@xyflow/react";
 import { ChainEdgeData } from "@/lib/types/argumentChain";
 import { getEdgeTypeConfig, getEdgeStrokeWidth } from "@/lib/constants/chainEdgeTypes";
 import { Swords } from "lucide-react";

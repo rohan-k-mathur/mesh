@@ -2,18 +2,10 @@
 
 import React from "react";
 import { Dialog } from "../ui/dialog";
-import useStore from "../../lib/reactflow/store";
-import { useShallow } from "zustand/react/shallow";
-import { AppState } from "@/lib/reactflow/types";
+import { useModalStore } from "@/lib/stores/modalStore";
 
 const Modal = () => {
-  const { isModalOpen, modalContent, closeModal } = useStore(
-    useShallow((state: AppState) => ({
-      isModalOpen: state.isModalOpen,
-      modalContent: state.modalContent,
-      closeModal: state.closeModal,
-    }))
-  );
+  const { isModalOpen, modalContent, closeModal } = useModalStore();
 
   return (
     <div className="absolute">

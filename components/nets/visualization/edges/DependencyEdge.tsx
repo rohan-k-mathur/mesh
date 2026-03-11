@@ -6,7 +6,7 @@ import {
   EdgeLabelRenderer,
   EdgeProps,
   getSmoothStepPath,
-} from "reactflow";
+} from "@xyflow/react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

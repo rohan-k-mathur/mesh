@@ -1,5 +1,5 @@
 import dagre from "dagre";
-import { Node, Edge } from "reactflow";
+import { Node, Edge } from "@xyflow/react";
 
 export class NetLayoutEngine {
   private readonly NODE_WIDTH = 280;

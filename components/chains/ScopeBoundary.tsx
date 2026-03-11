@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { NodeProps } from "reactflow";
+import { NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lightbulb, AlertCircle, HelpCircle } from "lucide-react";
-import { Node } from "reactflow";
+import { Node } from "@xyflow/react";
 import { ChainNodeData } from "@/lib/types/argumentChain";
 
 interface Enabler {

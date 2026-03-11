@@ -10,12 +10,6 @@ import { UserStatus } from "./definitions";
 import { LiveCursorHandles } from "@/components/cursors/LiveCursors";
 import { RefObject } from "react";
 import { MOUSE_EVENT } from "@/constants";
-import {
-  convertPostToNode,
-  convertRealtimeEdgeToEdge,
-} from "./reactflow/reactflowutils";
-import { RealtimeEdge, RealtimePost } from "@prisma/client";
-import { AppEdge, AppNode } from "./reactflow/types";
 import { supabase } from "./supabaseclient";
 import { nanoid } from "nanoid";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -167,117 +161,6 @@ export function subscribeToRoom(
       };
       room.track(userStatus);
     });
-}
-
-export function subscribeToDatabaseUpdates(
-  room: RealtimeChannel,
-  roomId: string,
-  addNode: (node: AppNode) => void,
-  updateNode: (post: RealtimePost) => void,
-  removeNode: (idToRemove: string) => void,
-  addEdge: (edge: AppEdge) => void,
-  updateEdge: (edge: AppEdge) => void,
-  removeEdge: (idToRemove: string) => void
-) {
-  room
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "realtime_posts",
-        filter: `realtime_room_id=eq.${roomId}`,
-      },
-      (payload: RealtimePostgresChangesPayload<RealtimePost>) => {
-        if (Object.keys(payload.new).length !== 0) {
-          const updatedObject = payload.new as RealtimePost;
-          updateNode(updatedObject);
-        }
-      }
-    )
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "realtime_posts",
-        filter: `realtime_room_id=eq.${roomId}`,
-      },
-      (payload: RealtimePostgresChangesPayload<RealtimePost>) => {
-        if (Object.keys(payload.new).length !== 0) {
-          const newObject = payload.new as RealtimePost;
-          addNode(
-            convertPostToNode({
-              ...newObject,
-              x_coordinate: Number(newObject.x_coordinate),
-              y_coordinate: Number(newObject.y_coordinate),
-            })
-          );
-        }
-      }
-    )
-    .on(
-      "postgres_changes",
-      {
-        event: "DELETE",
-        schema: "public",
-        table: "realtime_posts",
-        filter: `realtime_room_id=eq.${roomId}`,
-      },
-      (payload: RealtimePostgresChangesPayload<RealtimePost>) => {
-        if (Object.keys(payload.old).length !== 0) {
-          const oldObject = payload.old as RealtimePost;
-          removeNode(oldObject.id.toString());
-        }
-      }
-    );
-  room
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "realtime_edges",
-        filter: `realtime_room_id=eq.${roomId}`,
-      },
-      (payload: RealtimePostgresChangesPayload<RealtimeEdge>) => {
-        if (Object.keys(payload.new).length !== 0) {
-          const updatedObject = payload.new as RealtimeEdge;
-          updateEdge(convertRealtimeEdgeToEdge(updatedObject));
-        }
-      }
-    )
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "realtime_edges",
-        filter: `realtime_room_id=eq.${roomId}`,
-      },
-      (payload: RealtimePostgresChangesPayload<RealtimeEdge>) => {
-        if (Object.keys(payload.new).length !== 0) {
-          const newObject = payload.new as RealtimeEdge;
-          addEdge(convertRealtimeEdgeToEdge(newObject));
-        }
-      }
-    )
-    .on(
-      "postgres_changes",
-      {
-        event: "DELETE",
-        schema: "public",
-        table: "realtime_edges",
-        filter: `realtime_room_id=eq.${roomId}`,
-      },
-      (payload: RealtimePostgresChangesPayload<RealtimeEdge>) => {
-        if (Object.keys(payload.old).length !== 0) {
-          const oldObject = payload.old as RealtimeEdge;
-          removeEdge(oldObject.id.toString());
-        }
-      }
-    )
-    .subscribe();
 }
 
 // export async function uploadFileToSupabase(file: File) {
