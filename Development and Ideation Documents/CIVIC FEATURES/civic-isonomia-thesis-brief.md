@@ -1,4 +1,4 @@
-# In Defense of the Civic Agora Developed by MEsh
+# In Defense of the Civic Use Case of Isonomia
 
 ## Meta-Documentation
 
@@ -7,13 +7,12 @@
 **Release Version**: v1.0.0  
 **Status**: DEFENDED (subject to challenge)  
 **Author**: Platform Development Team  
-**Date**: January 2026
 
 ---
 
 ## Central Thesis
 
-**THESIS-001**: *Civic Agora should exist and be developed as infrastructure for democratic reasoning.*
+**THESIS-001**: *Isonomia should exist and be developed as infrastructure for democratic reasoning.*
 
 **Thesis Type**: Practical (action-guiding)  
 **Status**: IN (grounded extension)
@@ -373,7 +372,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 
 ### Claim C-201
 
-> **Civic Agora provides the architectural features necessary for public reasoning.**
+> **Isonomia provides the architectural features necessary for public reasoning.**
 
 **Claim ID**: C-201  
 **Status**: IN  
@@ -403,7 +402,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │     [Evidence: E-201a - derived from C-101, deliberative            │
 │      democracy requirements]                                        │
 │                                                                     │
-│ P2: Civic Agora implements:                                         │
+│ P2: Isonomia implements:                                         │
 │     (a) Canonical Claims with UUIDs                                 │
 │     (b) AIF-compliant argument graphs (I-nodes, RA-nodes)           │
 │     (c) Evidence model with citation specificity                    │
@@ -419,7 +418,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Civic Agora is an instance of public reasoning infrastructure    │
+│ C: Isonomia is an instance of public reasoning infrastructure    │
 │                                                                     │
 │ RA-Node: Classification inference                                   │
 │ Confidence: 0.90                                                    │
@@ -431,7 +430,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 
 | CQ | Question | Status | Response |
 |----|----------|--------|----------|
-| CQ1 | Does the individual (Civic Agora) actually have the properties? | ANSWERED | E-201b provides implementation evidence; properties are verifiable in code |
+| CQ1 | Does the individual (Isonomia) actually have the properties? | ANSWERED | E-201b provides implementation evidence; properties are verifiable in code |
 | CQ2 | Is the classification (public reasoning infrastructure) appropriate? | ANSWERED | Classification derived from established requirements (P1) |
 | CQ3 | Are there exceptions to the classification? | OPEN | Platform must be actually deployed and used to confirm real-world adequacy |
 
@@ -480,14 +479,14 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │     formal dialogue game theory                                     │
 │     [Evidence: E-202d - Walton & Krabbe (1995); Prakken (2006)]     │
 │                                                                     │
-│ P5: Civic Agora implements AIF, ASPIC+, and PPD                     │
+│ P5: Isonomia implements AIF, ASPIC+, and PPD                     │
 │     [Evidence: E-202e - System Architecture Document]               │
 │                                                                     │
 │ ───────────────────────────────────────────────────────────────     │
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Civic Agora's formal foundations are theoretically sound         │
+│ C: Isonomia's formal foundations are theoretically sound         │
 │                                                                     │
 │ RA-Node: Inference from academic consensus                          │
 │ Confidence: 0.85                                                    │
@@ -558,7 +557,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │    on progressive disclosure (Nielsen, 1994).                       │
 │                                                                     │
 │ ATTACK FORCE: Reduced from UNDERCUT to QUALIFIER                    │
-│ REVISED CONCLUSION: Civic Agora's foundations are theoretically     │
+│ REVISED CONCLUSION: Isonomia's foundations are theoretically     │
 │ sound AND designed for progressive accessibility                    │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -583,7 +582,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │        └── A-202 (Expert Consensus)                 Conf: 0.85      │
 │            └── ATK-202 (Theory-practice gap)        [DEFENDED]      │
 │                                                                     │
-│ PRONG CONCLUSION: Civic Agora is adequate infrastructure     [IN]   │
+│ PRONG CONCLUSION: Isonomia is adequate infrastructure     [IN]   │
 │ for public reasoning                                                │
 │                                                                     │
 │ Aggregate Confidence: 0.87                                          │
@@ -631,7 +630,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │     infrastructure serves professionals whose outputs               │
 │     propagate                                                       │
 │                                                                     │
-│ P4: Civic Agora provides reasoning infrastructure that enables      │
+│ P4: Isonomia provides reasoning infrastructure that enables      │
 │     researchers, analysts, and journalists to produce               │
 │     structured analysis that shapes public understanding            │
 │                                                                     │
@@ -677,10 +676,10 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ ATTACKING CLAIM:                                                    │
 │                                                                     │
 │ Journalism infrastructure includes DISTRIBUTION (newspapers,        │
-│ broadcasts, websites with audience). Civic Agora is production      │
+│ broadcasts, websites with audience). Isonomia is production      │
 │ infrastructure without guaranteed distribution. The analogy         │
 │ fails because journalism's effects depend on reaching audiences,    │
-│ and Civic Agora lacks this distribution mechanism.                  │
+│ and Isonomia lacks this distribution mechanism.                  │
 │                                                                     │
 │ CA-Node: Conflict Application (undercut on disanalogy)              │
 │                                                                     │
@@ -709,8 +708,8 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │    - "Credibility anchor" model: analysis on platform, outputs      │
 │      distributed through users' existing channels                   │
 │                                                                     │
-│ 3. The analogy is not "newsroom = Civic Agora" but                  │
-│    "newsroom = Civic Agora + users' existing distribution"          │
+│ 3. The analogy is not "newsroom = Isonomia" but                  │
+│    "newsroom = Isonomia + users' existing distribution"          │
 │                                                                     │
 │ 4. The platform's export formats (thread drafts, newsletter         │
 │    blocks, citation blocks) are designed precisely for this.        │
@@ -893,7 +892,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 
 ### Claim C-401
 
-> **The risks of building Civic Agora are manageable and do not outweigh potential benefits.**
+> **The risks of building Isonomia are manageable and do not outweigh potential benefits.**
 
 **Claim ID**: C-401  
 **Status**: IN  
@@ -917,10 +916,10 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │ P1: My goal is to improve democratic reasoning quality (G)          │
 │     [Derived from thesis motivation]                                │
 │                                                                     │
-│ P2: Building Civic Agora is a means to realize G                    │
+│ P2: Building Isonomia is a means to realize G                    │
 │     [Established in Prongs I-III]                                   │
 │                                                                     │
-│ P3: The identified risks of building Civic Agora are:               │
+│ P3: The identified risks of building Isonomia are:               │
 │     R1: Technocratic exclusion (platform too complex)               │
 │     R2: Capture by bad actors                                       │
 │     R3: False legitimation (appearance without substance)           │
@@ -936,7 +935,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Building Civic Agora is a reasonable means to pursue G           │
+│ C: Building Isonomia is a reasonable means to pursue G           │
 │                                                                     │
 │ RA-Node: Practical reasoning inference                              │
 │ Confidence: 0.80                                                    │
@@ -1052,7 +1051,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 
 ### Claim C-501
 
-> **Civic Agora is superior to available alternatives for structured civic deliberation.**
+> **Isonomia is superior to available alternatives for structured civic deliberation.**
 
 **Claim ID**: C-501  
 **Status**: IN  
@@ -1090,14 +1089,14 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ P3: Comparative assessment (see matrix below)                       │
 │                                                                     │
-│ P4: Civic Agora scores higher on criteria weighted by               │
+│ P4: Isonomia scores higher on criteria weighted by               │
 │     deliberation requirements                                       │
 │                                                                     │
 │ ───────────────────────────────────────────────────────────────     │
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Civic Agora is superior for structured civic deliberation        │
+│ C: Isonomia is superior for structured civic deliberation        │
 │                                                                     │
 │ RA-Node: Comparative inference                                      │
 │ Confidence: 0.75                                                    │
@@ -1116,11 +1115,11 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 | **Social discussion** | 1 | 1 | 1 | 2 | 1 | 5 | 11 |
 | **Process tools** | 2 | 2 | 2 | 2 | 2 | 4 | 14 |
 | **Deliberative Polling** | 3 | 3 | 3 | 3 | 2 | 3 | 17 |
-| **Civic Agora** | 5 | 5 | 5 | 5 | 5 | 3 | 28 |
+| **Isonomia** | 5 | 5 | 5 | 5 | 5 | 3 | 28 |
 
 *Scale: 1 (absent) to 5 (excellent)*
 
-**Note**: Civic Agora scores lower on accessibility than simple tools, offset by progressive formalization and facilitation.
+**Note**: Isonomia scores lower on accessibility than simple tools, offset by progressive formalization and facilitation.
 
 #### Critical Questions for A-501
 
@@ -1145,7 +1144,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ ATTACKING CLAIM:                                                    │
 │                                                                     │
-│ The comparison uses criteria favorable to Civic Agora. The          │
+│ The comparison uses criteria favorable to Isonomia. The          │
 │ alternative platforms have different goals (quick feedback,         │
 │ preference aggregation, social connection) and should be            │
 │ evaluated on those criteria. The comparison is unfair.              │
@@ -1175,14 +1174,14 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ 3. For other purposes (quick feedback, preference aggregation),     │
 │    other tools may be superior. The thesis does not claim           │
-│    Civic Agora is superior for ALL civic engagement.                │
+│    Isonomia is superior for ALL civic engagement.                │
 │                                                                     │
 │ 4. The relevant question: for contexts requiring structured         │
 │    deliberation on consequential decisions, what serves best?       │
 │                                                                     │
 │ ATTACK FORCE: Reduced to scope clarification                        │
 │ REVISED CLAIM C-501': For structured deliberation on                │
-│ consequential civic decisions, Civic Agora is superior to           │
+│ consequential civic decisions, Isonomia is superior to           │
 │ available alternatives.                                             │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -1199,7 +1198,7 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 │                                                                     │
 │ Claims Established:                                                 │
 │                                                                     │
-│ C-501': For structured deliberation, Civic Agora is superior [IN]   │
+│ C-501': For structured deliberation, Isonomia is superior [IN]   │
 │         (scoped)                                                    │
 │        └── A-501 (Comparison)                       Conf: 0.75      │
 │            └── ATK-501 (Unfair comparison)          [DEFENDED]      │
@@ -1223,13 +1222,13 @@ This thesis is supported by five primary prongs, each of which is itself a defen
 | CM-P01 | Democratic legitimacy requires public reasoning infrastructure | ACTIVE | 0.85 |
 | CM-P02 | Current infrastructure systematically prevents public reasoning | ACTIVE | 0.90 |
 | CM-P03 | Infrastructure deficit causes democratic harm | ACTIVE | 0.75 |
-| CM-P04 | Civic Agora provides necessary architectural features | ACTIVE | 0.90 |
+| CM-P04 | Isonomia provides necessary architectural features | ACTIVE | 0.90 |
 | CM-P05 | Formal foundations are theoretically sound | ACTIVE | 0.85 |
 | CM-P06 | Discourse-shaping actors can affect political outcomes | ACTIVE | 0.70 |
 | CM-P07 | Erosion mechanism is possible under favorable conditions | ACTIVE | 0.55 |
 | CM-P08 | Risks are manageable | ACTIVE | 0.80 |
 | CM-P09 | Platform is superior for structured deliberation | ACTIVE | 0.75 |
-| CM-P10 | **THESIS**: Civic Agora should exist and be developed | ACTIVE | 0.77 |
+| CM-P10 | **THESIS**: Isonomia should exist and be developed | ACTIVE | 0.77 |
 
 ### Opponent Challenges Addressed
 
@@ -1283,7 +1282,7 @@ None. All registered attacks have been addressed.
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │                            THESIS-001                                       │
-│                 "Civic Agora should exist and                               │
+│                 "Isonomia should exist and                               │
 │                    be developed" [IN: 0.77]                                 │
 │                              ▲                                              │
 │                              │                                              │
@@ -1328,7 +1327,7 @@ None. All registered attacks have been addressed.
 │                                                                             │
 │                         THESIS-001 (FINAL)                                  │
 │                                                                             │
-│  Civic Agora should exist and be developed as infrastructure for           │
+│  Isonomia should exist and be developed as infrastructure for           │
 │  democratic reasoning.                                                      │
 │                                                                             │
 │  ─────────────────────────────────────────────────────────────────────────  │
@@ -1339,7 +1338,7 @@ None. All registered attacks have been addressed.
 │     reasoning infrastructure that current platforms do not provide,         │
 │     with measurable democratic consequences.                                │
 │                                                                             │
-│  2. PRONG II establishes that Civic Agora's architecture provides           │
+│  2. PRONG II establishes that Isonomia's architecture provides           │
 │     the necessary features (addressable claims, argument structure,         │
 │     evidence linking, challenge mechanisms, accumulation) on                │
 │     theoretically sound foundations (AIF, ASPIC+, PPD).                     │
@@ -1356,7 +1355,7 @@ None. All registered attacks have been addressed.
 │     and do not outweigh potential benefits.                                 │
 │                                                                             │
 │  5. PRONG V establishes that for structured deliberation on                 │
-│     consequential civic decisions, Civic Agora offers capabilities          │
+│     consequential civic decisions, Isonomia offers capabilities          │
 │     unavailable in alternative platforms.                                   │
 │                                                                             │
 │  ─────────────────────────────────────────────────────────────────────────  │

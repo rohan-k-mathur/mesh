@@ -16,6 +16,7 @@ import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
 import PredictionMarketCard from "./PredictionMarketCard";
+import GalleryCarousel from "./GalleryCarousel";
 import PdfLightbox from "../modals/PdfLightbox";
 import LibraryCard from "./LibraryCard";
 import ArticleCard from "../article/ArticleCard";

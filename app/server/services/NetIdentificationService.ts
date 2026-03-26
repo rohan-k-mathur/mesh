@@ -195,10 +195,7 @@ export class NetIdentificationService {
   ): Promise<NetCandidate[]> {
     const argumentsInDelib = await prisma.argument.findMany({
       where: { deliberationId },
-      include: {
-        scheme: true,
-        claim: true,
-      },
+      select: { id: true },
     });
 
     const netCandidates: NetCandidate[] = [];
@@ -899,7 +896,6 @@ export class NetIdentificationService {
       where: { id: argumentId },
       include: {
         scheme: true,
-        claim: true,
         deliberation: true,
       },
     });

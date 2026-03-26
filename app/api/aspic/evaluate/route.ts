@@ -219,10 +219,10 @@ export async function GET(req: NextRequest) {
     const argumentsList = await prisma.argument.findMany({
       where: { deliberationId },
       include: {
-        conclusion: true,
+        conclusion: { select: { id: true, text: true } },
         premises: {
           include: {
-            claim: true,
+            claim: { select: { id: true, text: true } },
           },
         },
         scheme: true,
@@ -272,8 +272,8 @@ export async function GET(req: NextRequest) {
         status: "ACTIVE",
       },
       include: {
-        claim: true,
-        contrary: true,
+        claim: { select: { id: true, text: true } },
+        contrary: { select: { id: true, text: true } },
       },
     });
 

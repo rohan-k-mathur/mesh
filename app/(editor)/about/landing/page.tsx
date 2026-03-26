@@ -164,7 +164,7 @@ function HeroSection() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
         >
-          Digital Agora: Infrastructure for Collective Reasoning
+           Isonomia: Infrastructure for Collective Reasoning
         </motion.h1>
         
         <motion.p
@@ -183,7 +183,7 @@ function HeroSection() {
           className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
         >
           <p>
-            When groups reason together—policy teams, research communities, civic organizations—the structure of their thinking matters as much as the conclusions. But current tools treat reasoning as disposable: ideas scatter across threads, evidence disconnects from claims, and past conclusions cannot be cited or audited. <strong className="text-slate-900">Agora changes this.</strong>
+            When groups reason together—policy teams, research communities, civic organizations—the structure of their thinking matters as much as the conclusions. But current tools treat reasoning as disposable: ideas scatter across threads, evidence disconnects from claims, and past conclusions cannot be cited or audited. <strong className="text-slate-900">Isonomia changes this.</strong>
           </p>
           
           <p>
@@ -294,7 +294,7 @@ function HeroSectionAlternate() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
         >
-          Digital Agora: Rebuilding Public Reasoning Infrastructure
+           Isonomia: Rebuilding Public Reasoning Infrastructure
         </motion.h1>
 
         <motion.p 
@@ -316,7 +316,7 @@ function HeroSectionAlternate() {
             <strong>The problem is infrastructural.</strong> Contemporary platforms were built for virality, not validity. There is no shared representation for evidential grounding, no protocol for burden of proof, no way to track how decisions emerged from alternatives. Institutions default to opaque processes because the internet provides no tools for transparent, auditable reasoning.
           </p>
           <p>
-            <strong>Digital Agora is infrastructure for public intelligence.</strong> Rationality becomes objective through language-governed interaction—where claims receive challenges, evidence gets tested, and arguments must survive critical questioning. The platform operationalizes this: every assertion has a stable identifier, every attack targets a specific node, every dialogue move follows protocol. Structure is machine-readable; semantic labels derive from formal calculus; reasoning chains compose across contexts.
+            <strong> Isonomia is infrastructure for public intelligence.</strong> Rationality becomes objective through language-governed interaction—where claims receive challenges, evidence gets tested, and arguments must survive critical questioning. The platform operationalizes this: every assertion has a stable identifier, every attack targets a specific node, every dialogue move follows protocol. Structure is machine-readable; semantic labels derive from formal calculus; reasoning chains compose across contexts.
           </p>
           <p>
             <strong>Meaning emerges through interaction, not static labels.</strong> A claim's status (accepted/rejected/undecided) computes from its position in the argument graph and the attacks it faces. Schemes auto-generate critical questions. Dialogue games enforce termination: when no legal moves remain, deliberation concludes with an auditable trace. This is not opinion aggregation—it is structured knowledge work that produces reusable, verifiable artifacts.
@@ -415,7 +415,7 @@ function HeroSectionRevised() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
         >
-          Digital Agora: Infrastructure for Public Reasoning
+           Isonomia: Infrastructure for Public Reasoning
         </motion.h1>
 
         <motion.p 
@@ -460,7 +460,7 @@ function HeroSectionRevised() {
           className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
         >
           <p>
-            Digital Agora addresses this by implementing the structure that rigorous discourse 
+             Isonomia addresses this by implementing the structure that rigorous discourse 
             requires. Claims receive stable identifiers so they can be referenced precisely. 
             Challenges target specific components—a premise, an inference, a piece of evidence—rather 
             than entire arguments. Exchanges follow protocols: when someone asks "what is your 
@@ -939,7 +939,7 @@ function AdvancedCapabilitiesSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mb-10 text-sm leading-relaxed text-slate-700"
         >
-          Beyond basic discussion, Agora implements formal systems from argumentation theory and provides infrastructure for evidence management and cross-context reasoning.
+          Beyond basic discussion, Isonomia implements formal systems from argumentation theory and provides infrastructure for evidence management and cross-context reasoning.
         </motion.p>
         
         <div className="grid md:grid-cols-2 gap-8">
@@ -1898,7 +1898,7 @@ function UseCasesSection() {
                   From Papers-as-PDFs to Papers-as-Debatable Claim Graphs
                 </h3>
                 <p className="text-sm text-slate-700 mb-4">
-                  The unit of scholarly networking has shrunk from people → papers → metadata objects—but has not yet reached <strong>claims and arguments</strong>. Agora fills this gap.
+                  The unit of scholarly networking has shrunk from people → papers → metadata objects—but has not yet reached <strong>claims and arguments</strong>. Isonomia fills this gap.
                 </p>
                 
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -1962,7 +1962,7 @@ function UseCasesSection() {
                   Transparent, Auditable Reasoning That Transfers
                 </h3>
                 <p className="text-sm text-slate-700 mb-4">
-                  When the FDA evaluates drug safety, when a standards body develops specifications—these produce reasoning chains other institutions need. But that reasoning exists only as prose in PDFs. <strong>Agora makes it structured, importable, and auditable.</strong>
+                  When the FDA evaluates drug safety, when a standards body develops specifications—these produce reasoning chains other institutions need. But that reasoning exists only as prose in PDFs. <strong>Isonomia makes it structured, importable, and auditable.</strong>
                 </p>
                 
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -2026,7 +2026,7 @@ function UseCasesSection() {
                   Democratic Discourse with Rigor
                 </h3>
                 <p className="text-sm text-slate-700 mb-4">
-                  Complex questions—climate policy, public health, technology governance—require collective intelligence that current platforms actively undermine. <strong>Agora provides the structure for sustained, productive deliberation.</strong>
+                  Complex questions—climate policy, public health, technology governance—require collective intelligence that current platforms actively undermine. <strong>Isonomia provides the structure for sustained, productive deliberation.</strong>
                 </p>
                 
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -2200,7 +2200,7 @@ function FoundationsSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="mb-8 text-sm text-slate-700"
         >
-          Digital Agora synthesizes formal theories from argumentation, logic, dialogue systems, and platform design. 
+           Isonomia synthesizes formal theories from argumentation, logic, dialogue systems, and platform design. 
           Each theoretical contribution maps to specific data models, API contracts, or UI affordances.
         </motion.p>
 
@@ -2400,7 +2400,7 @@ function ClosingSection() {
             The system described here exists and is deployable. Every capability listed—claims with stable identifiers, typed argument relationships, scheme-based critical questions, composable outputs—is implemented and in use. This is infrastructure for reasoning, available to any group that needs to think together seriously.
           </p>
           <p className="text-sm leading-relaxed text-slate-600">
-            The question is not "would this be nice to have" but: <strong className="text-slate-800">does this solve a problem you currently face?</strong> If your research community needs claim-level engagement—if your organization's reasoning needs to outlive project teams—if your deliberations need more than threads and votes—Agora provides the substrate.
+            The question is not "would this be nice to have" but: <strong className="text-slate-800">does this solve a problem you currently face?</strong> If your research community needs claim-level engagement—if your organization's reasoning needs to outlive project teams—if your deliberations need more than threads and votes—Isonomia provides the substrate.
           </p>
         </motion.div>
       </div>

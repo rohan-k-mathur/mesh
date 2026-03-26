@@ -6,6 +6,7 @@ import "@/app/article/rhetoric.css";
 import "@/app/article/type-tokens.css";
 import '@/app/fonts/fonts.css';
 import '@/components/agora/deliberation-styles.css';
+import QueryProvider from "@/components/providers/QueryProvider";
 
 
 
@@ -22,7 +23,7 @@ export default function ReaderLayout({
   return (
     <html lang="en">
       <body className="flex  justify-center items-center align-center  pb-4 h-full w-full  deliberation-bg ">
-      {children}
+      <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
