@@ -64,7 +64,7 @@ export function FieldBrowser({
     </div>
   );
 }
-//fieldnodeprops
+//
 interface FieldNodeProps { 
   field: FieldHierarchy;
   level: number;
