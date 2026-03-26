@@ -1,4 +1,4 @@
-# THESIS BRIEF: In Defense of Academic Agora
+# THESIS BRIEF: In Defense of the Academic Use Case of Isonomia
 
 ## Meta-Documentation
 
@@ -7,13 +7,12 @@
 **Release Version**: v1.0.0  
 **Status**: DEFENDED (subject to challenge)  
 **Author**: Platform Development Team  
-**Date**: January 2026
 
 ---
 
 ## Central Thesis
 
-**THESIS-001**: *Academic Agora should exist and be developed as infrastructure for scholarly discourse—transforming academic debate from papers-as-PDFs to papers-as-debatable, composable claim graphs.*
+**THESIS-001**: *Academic Isonomia should exist and be developed as infrastructure for scholarly discourse—transforming academic debate from papers-as-PDFs to papers-as-debatable, composable claim graphs.*
 
 **Thesis Type**: Practical (action-guiding)  
 **Status**: IN (grounded extension)
@@ -346,7 +345,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │ 1. The attack correctly identifies that need ≠ automatic emergence. │
 │                                                                     │
 │ 2. However, the thesis is not "the layer will inevitably emerge"    │
-│    but "Academic Agora SHOULD be built" (action-guiding).           │
+│    but "Academic Isonomia SHOULD be built" (action-guiding).           │
 │                                                                     │
 │ 3. The historical pattern establishes:                              │
 │    - The gap is real (need exists)                                  │
@@ -400,7 +399,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 
 ### Claim C-201
 
-> **Academic Agora provides the architectural features necessary for structured scholarly discourse.**
+> **Academic Isonomia provides the architectural features necessary for structured scholarly discourse.**
 
 **Claim ID**: C-201  
 **Status**: IN  
@@ -433,7 +432,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │     (i) Versioned releases for citation                             │
 │     [Evidence: E-201a - derived from C-101 requirements]            │
 │                                                                     │
-│ P2: Academic Agora implements:                                      │
+│ P2: Academic Isonomia implements:                                      │
 │     (a) Canonical Claims with UUIDs via Claim model                 │
 │     (b) PPD protocol with DialogueMove types                        │
 │     (c) Evidence model with locators and DOI integration            │
@@ -452,7 +451,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora is an instance of scholarly discourse             │
+│ C: Academic Isonomia is an instance of scholarly discourse             │
 │    infrastructure                                                   │
 │                                                                     │
 │ RA-Node: Classification inference                                   │
@@ -465,7 +464,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 
 | CQ | Question | Status | Response |
 |----|----------|--------|----------|
-| CQ1 | Does Academic Agora actually have the properties? | ANSWERED | E-201b provides implementation evidence; properties verifiable in codebase |
+| CQ1 | Does Academic Isonomia actually have the properties? | ANSWERED | E-201b provides implementation evidence; properties verifiable in codebase |
 | CQ2 | Is the classification appropriate? | ANSWERED | Classification derived from established requirements (P1) |
 | CQ3 | Are there exceptions? | OPEN | Real-world scholarly adoption testing pending |
 
@@ -512,14 +511,14 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │ P4: ASPIC+ is the leading structured argumentation framework        │
 │     [Evidence: E-202d - Prakken (2010); Modgil & Prakken (2018)]    │
 │                                                                     │
-│ P5: Academic Agora implements Walton schemes, AIF, and ASPIC+       │
+│ P5: Academic Isonomia implements Walton schemes, AIF, and ASPIC+       │
 │     [Evidence: E-202e - System Architecture Document]               │
 │                                                                     │
 │ ───────────────────────────────────────────────────────────────     │
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora's argumentation foundations are theoretically     │
+│ C: Academic Isonomia's argumentation foundations are theoretically     │
 │    sound and validated                                              │
 │                                                                     │
 │ RA-Node: Inference from academic consensus                          │
@@ -577,7 +576,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │ 1. The attack correctly identifies historical adoption failure.     │
 │                                                                     │
 │ 2. However, previous tools required users to learn formalism        │
-│    BEFORE contributing. Academic Agora inverts this:                │
+│    BEFORE contributing. Academic Isonomia inverts this:                │
 │                                                                     │
 │    - Progressive formalization: start informal, add structure       │
 │      incrementally as complexity warrants                           │
@@ -590,7 +589,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │    based. The platform maps to existing practice rather than        │
 │    imposing foreign formalism.                                      │
 │                                                                     │
-│ 4. Prior tools were standalone; Academic Agora integrates with      │
+│ 4. Prior tools were standalone; Academic Isonomia integrates with      │
 │    existing scholarly workflow (DOI linking, ORCID, reference       │
 │    managers, PDF annotation).                                       │
 │                                                                     │
@@ -636,7 +635,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │     (f) BibTeX/RIS export for argument-level citation               │
 │     (g) Release versioning for citable snapshots                    │
 │                                                                     │
-│ P2: Academic Agora implements all of (a)-(g):                       │
+│ P2: Academic Isonomia implements all of (a)-(g):                       │
 │     (a) PDF extraction + AI claim extraction pipeline               │
 │     (b) Crossref/OpenAlex/ORCID integration                         │
 │     (c) QuoteNode model with interpretation voting                  │
@@ -650,7 +649,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora addresses unique scholarly requirements           │
+│ C: Academic Isonomia addresses unique scholarly requirements           │
 │                                                                     │
 │ RA-Node: Properties inference                                       │
 │ Confidence: 0.85                                                    │
@@ -689,7 +688,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │        └── A-203 (Properties)                       Conf: 0.85      │
 │            └── No undefended attacks                                │
 │                                                                     │
-│ PRONG CONCLUSION: Academic Agora is adequate infrastructure  [IN]   │
+│ PRONG CONCLUSION: Academic Isonomia is adequate infrastructure  [IN]   │
 │ for scholarly discourse                                             │
 │                                                                     │
 │ Aggregate Confidence: 0.88                                          │
@@ -703,7 +702,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 
 ### Claim C-301
 
-> **Humanities and Social Sciences scholarship is already argumentation-based, making Academic Agora a natural fit.**
+> **Humanities and Social Sciences scholarship is already argumentation-based, making Academic Isonomia a natural fit.**
 
 **Claim ID**: C-301  
 **Status**: IN  
@@ -732,7 +731,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │     [Evidence: E-301a - Disciplinary self-descriptions;             │
 │      graduate training curricula]                                   │
 │                                                                     │
-│ P2: Academic Agora core activities are:                             │
+│ P2: Academic Isonomia core activities are:                             │
 │     - Making claims with evidence linking                           │
 │     - Constructing arguments using schemes                          │
 │     - Responding via typed dialogue moves                           │
@@ -748,7 +747,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora maps directly to HSS practice, making it a        │
+│ C: Academic Isonomia maps directly to HSS practice, making it a        │
 │    natural fit with low adoption barriers                           │
 │                                                                     │
 │ RA-Node: Analogical inference                                       │
@@ -866,7 +865,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │     [Evidence: E-302a - User interviews; disciplinary commentary;   │
 │      Crooked Timber meta-discussions]                               │
 │                                                                     │
-│ P2: Academic Agora addresses each frustration:                      │
+│ P2: Academic Isonomia addresses each frustration:                      │
 │                                                                     │
 │     F1 → Immediate engagement, no publication delay                 │
 │     F2 → Unlimited space for structured dialogue                    │
@@ -878,7 +877,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora addresses documented HSS scholar frustrations     │
+│ C: Academic Isonomia addresses documented HSS scholar frustrations     │
 │                                                                     │
 │ RA-Node: Evidence-hypothesis inference                              │
 │ Confidence: 0.85                                                    │
@@ -1287,7 +1286,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │     [Evidence: E-403a - Academic incentive literature;              │
 │      Edwards & Roy (2017) on perverse incentives]                   │
 │                                                                     │
-│ P2: Academic Agora enables credit for argumentation contributions:  │
+│ P2: Academic Isonomia enables credit for argumentation contributions:  │
 │     - Contribution metrics (claims curated, arguments made)         │
 │     - Defense rate tracking                                         │
 │     - Reviewer recognition for constructive critique                │
@@ -1358,7 +1357,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 
 ### Claim C-501
 
-> **The risks of building Academic Agora are manageable and do not outweigh potential benefits.**
+> **The risks of building Academic Isonomia are manageable and do not outweigh potential benefits.**
 
 **Claim ID**: C-501  
 **Status**: IN  
@@ -1381,7 +1380,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ P1: Goal is to improve scholarly discourse infrastructure (G)       │
 │                                                                     │
-│ P2: Building Academic Agora is a means to realize G                 │
+│ P2: Building Academic Isonomia is a means to realize G                 │
 │     [Established in Prongs I-IV]                                    │
 │                                                                     │
 │ P3: The identified risks are:                                       │
@@ -1401,7 +1400,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Building Academic Agora is a reasonable means to pursue G        │
+│ C: Building Academic Isonomia is a reasonable means to pursue G        │
 │                                                                     │
 │ RA-Node: Practical reasoning inference                              │
 │ Confidence: 0.80                                                    │
@@ -1471,7 +1470,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │    - Twitter/X is MORE dangerous (public, unmoderated, hostile)     │
 │    - Email is private but still trackable                           │
 │    - Conference Q&A is public and ephemeral                         │
-│    - Academic Agora with mitigations is NOT worse than current      │
+│    - Academic Isonomia with mitigations is NOT worse than current      │
 │      state                                                          │
 │                                                                     │
 │ 4. The platform can be a SAFER venue for structured critique than   │
@@ -1516,7 +1515,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 
 ### Claim C-601
 
-> **Academic Agora is superior to available alternatives for structured scholarly discourse.**
+> **Academic Isonomia is superior to available alternatives for structured scholarly discourse.**
 
 **Claim ID**: C-601  
 **Status**: IN  
@@ -1557,13 +1556,13 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ P3: Comparative assessment (see matrix below)                       │
 │                                                                     │
-│ P4: Academic Agora scores highest on weighted criteria              │
+│ P4: Academic Isonomia scores highest on weighted criteria              │
 │                                                                     │
 │ ───────────────────────────────────────────────────────────────     │
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora is superior for structured scholarly discourse    │
+│ C: Academic Isonomia is superior for structured scholarly discourse    │
 │                                                                     │
 │ RA-Node: Comparative inference                                      │
 │ Confidence: 0.85                                                    │
@@ -1583,17 +1582,17 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 | **ResearchGate** | 1 | 1 | 1 | 2 | 1 | 1 | 3 | 5 | 15 |
 | **Twitter/X** | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 5 | 12 |
 | **PhilPapers** | 2 | 2 | 1 | 2 | 1 | 1 | 4 | 3 | 16 |
-| **Academic Agora** | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 3 | 38 |
+| **Academic Isonomia** | 5 | 5 | 5 | 5 | 5 | 5 | 5 | 3 | 38 |
 
 *Scale: 1 (absent) to 5 (excellent)*
 
-**Note**: Academic Agora scores lower on accessibility than simple social tools; this is addressed by progressive formalization and facilitated entry.
+**Note**: Academic Isonomia scores lower on accessibility than simple social tools; this is addressed by progressive formalization and facilitated entry.
 
 ---
 
 ### Claim C-602
 
-> **Academic Agora provides capabilities that cannot be retrofitted onto existing platforms.**
+> **Academic Isonomia provides capabilities that cannot be retrofitted onto existing platforms.**
 
 **Claim ID**: C-602  
 **Status**: IN  
@@ -1614,7 +1613,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ PREMISES:                                                           │
 │                                                                     │
-│ P1: Academic Agora capabilities requiring purpose-built             │
+│ P1: Academic Isonomia capabilities requiring purpose-built             │
 │     architecture:                                                   │
 │                                                                     │
 │     (a) Canonical claims with ASPIC+ acceptability semantics        │
@@ -1640,7 +1639,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 │                                                                     │
 │ CONCLUSION:                                                         │
 │                                                                     │
-│ C: Academic Agora provides capabilities that cannot be retrofitted  │
+│ C: Academic Isonomia provides capabilities that cannot be retrofitted  │
 │    onto existing platforms                                          │
 │                                                                     │
 │ RA-Node: Properties inference                                       │
@@ -1707,7 +1706,7 @@ This thesis is supported by six primary prongs, each of which is itself a defend
 | CM-P13 | Risks are manageable | ACTIVE | 0.80 |
 | CM-P14 | Platform is superior to alternatives | ACTIVE | 0.85 |
 | CM-P15 | Capabilities cannot be retrofitted | ACTIVE | 0.85 |
-| CM-P16 | **THESIS**: Academic Agora should exist and be developed | ACTIVE | 0.83 |
+| CM-P16 | **THESIS**: Academic Isonomia should exist and be developed | ACTIVE | 0.83 |
 
 ### Opponent Challenges Addressed
 
@@ -1763,7 +1762,7 @@ None. All registered attacks have been addressed.
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │                            THESIS-001                                       │
-│                 "Academic Agora should exist and                            │
+│                 "Academic Isonomia should exist and                            │
 │                    be developed" [IN: 0.83]                                 │
 │                              ▲                                              │
 │                              │                                              │
@@ -1808,7 +1807,7 @@ None. All registered attacks have been addressed.
 │                                                                             │
 │                         THESIS-001 (FINAL)                                  │
 │                                                                             │
-│  Academic Agora should exist and be developed as infrastructure for         │
+│  Academic Isonomia should exist and be developed as infrastructure for         │
 │  scholarly discourse—transforming academic debate from papers-as-PDFs       │
 │  to papers-as-debatable, composable claim graphs.                           │
 │                                                                             │
@@ -1821,7 +1820,7 @@ None. All registered attacks have been addressed.
 │     production, and historical analysis reveals a missing layer in          │
 │     the evolution of scholarly infrastructure.                              │
 │                                                                             │
-│  2. PRONG II establishes that Academic Agora provides the necessary         │
+│  2. PRONG II establishes that Academic Isonomia provides the necessary         │
 │     architectural features (claim addressability, typed dialogue,           │
 │     argument structure, evidence linking, versioned releases) on            │
 │     theoretically sound foundations (Walton schemes, AIF, ASPIC+),          │
@@ -1844,7 +1843,7 @@ None. All registered attacks have been addressed.
 │     junior vulnerability, gaming, platform power, sustainability,           │
 │     scale) have documented mitigations and do not outweigh benefits.        │
 │                                                                             │
-│  6. PRONG VI establishes that Academic Agora is superior to available       │
+│  6. PRONG VI establishes that Academic Isonomia is superior to available       │
 │     alternatives for structured scholarly discourse and provides            │
 │     capabilities that cannot be retrofitted onto existing platforms.        │
 │                                                                             │

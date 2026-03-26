@@ -17,7 +17,8 @@ import {
   GitFork,
   List,
 } from "lucide-react";
-import ReactFlow, {
+import {
+  ReactFlow,
   Node,
   Edge,
   Controls,
