@@ -64,8 +64,8 @@ export function FieldBrowser({
     </div>
   );
 }
-
-interface FieldNodeProps {
+//fieldnodeprops
+interface FieldNodeProps { 
   field: FieldHierarchy;
   level: number;
   onSelect?: (fieldId: string) => void;
