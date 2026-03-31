@@ -6,7 +6,7 @@ import { redirect, notFound } from "next/navigation";
 import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
 import MessengerPane from "@/components/chat/MessengerPane";
-import Image from "next/image";
+import ConversationHeader from "@/components/chat/ConversationHeader";
 
 
 export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { mid?: string } }) {
@@ -69,39 +69,11 @@ export default async function Page({ params, searchParams }: { params: { id: str
   }));
   return (
     <main className="p-4 mt-[-4rem] items-center justify-center">
-      <div className="flex w-full h-full items-center justify-center align-center gap-4">
-                {isGroup ? (
-          // Composite avatar (up to 4 faces)
-          <div className="flex flex-wrap rounded-full gap-4 ">
-            {headerUsers.slice(0, 4).map((u, i) => (
-                       <button key={u?.name ?? i} className="flex w-[2.5rem] h-[2.5rem]">
-                         <Image
-                src={u.image || "/assets/user-helsinki.svg"}
-                alt={u.name}
-                width={50}
-                height={50}
-                className="rounded-full object-fill p-1 profile-shadow bg-white/20 align-center justify-center items-center"
-                />
-                     </button>
-
-            ))}
-          </div>
-        ) : (
-          // Single avatar
-          <button className="flex w-[2.5rem] h-[2.5rem]">
-          <Image
-            src={headerUsers[0]?.image || "/assets/user-helsinki.svg"}
-            alt={headerUsers[0]?.name ?? "User"}
-            width={50}
-            height={50}
-            className="rounded-full object-fill w-full h-full p-[.1rem] profile-shadow bg-white/20 align-center justify-center items-center"
-          />
-          </button>
-        )}
-        <button>
-        <h1 className="text-[2.1rem] justify-center items-center align-center tracking-wider mt-1">{title}</h1>
-        </button>
-      </div>
+      <ConversationHeader
+        isGroup={isGroup}
+        headerUsers={headerUsers}
+        title={title}
+      />
       <hr className="mt-3"/>
 
 
