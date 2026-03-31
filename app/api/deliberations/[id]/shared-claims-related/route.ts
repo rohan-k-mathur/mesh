@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/util/supabase/server";
+import { getSupabaseServerClient } from "@/lib/auth";
 import { findRelatedDeliberations } from "@/lib/crossDeliberation/crossRoomSearchService";
 
 export async function GET(
@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = getSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
