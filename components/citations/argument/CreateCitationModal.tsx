@@ -163,7 +163,7 @@ export function CreateCitationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="bg-white sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {step === "search" ? "Cite an Argument" : "Citation Details"}
@@ -343,12 +343,11 @@ export function QuickCiteButton({
     <>
       <Button
         variant={variant}
-        size={size === "sm" ? "sm" : "default"}
+
         onClick={() => setIsModalOpen(true)}
-        className={className}
+        className="rounded-full px-2 py-2 bg-slate-50 hover:bg-slate-100 "
       >
-        <ArrowRight className="w-4 h-4 mr-1.5" />
-        Cite
+        Quick Cite
       </Button>
 
       <CreateCitationModal

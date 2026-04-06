@@ -189,10 +189,9 @@ export function PermalinkCopyButton({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant={variant}
-          size={size === "sm" ? "sm" : "default"}
+          
           disabled={isLoading || !permalink}
-          className={cn("gap-1", className)}
+        className="rounded-full px-2 py-2 bg-slate-100 hover:bg-slate-200 "
         >
           {copiedFormat ? (
             <>
