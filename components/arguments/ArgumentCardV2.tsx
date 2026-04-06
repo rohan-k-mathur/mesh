@@ -1032,7 +1032,7 @@ export function ArgumentCardV2({
                 citingArgumentId={id}
                 citingArgumentText={conclusion.text}
                 variant="ghost"
-                size="sm"
+                className="btnv2  rounded-xl "
               />
               
               {argCqStatus && (
