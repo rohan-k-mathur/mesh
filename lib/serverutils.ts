@@ -1,6 +1,6 @@
 
 import { getTokens } from "next-firebase-auth-edge";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { User } from "./AuthContext";
 
 import { Tokens } from "next-firebase-auth-edge";
@@ -11,6 +11,7 @@ import {
   clearUserCache,
 } from "./actions/user.actions";
 import { serverConfig } from "./firebase/config";
+import { getAdminAuth } from "./firebase/admin";
 
 export async function toUser({ decodedToken }: Tokens): Promise<User> {
   const {
@@ -72,12 +73,55 @@ export async function getUserFromCookies(): Promise<User | null> {
 }
 
 export async function getCurrentUserId(): Promise<bigint | null> {
+  // 1. Try cookie-based auth (standard web sessions)
   const u = await getUserFromCookies();
-  // prisma expects BigInt; your `userId` is already the DB pk
-  return u?.userId ? BigInt(u.userId) : null;
+  if (u?.userId) return BigInt(u.userId);
+
+  // 2. Fall back to Bearer token auth (Chrome extension, API clients)
+  return getUserIdFromBearerToken();
 }
 
 export async function getCurrentUserAuthId(): Promise<string | null> {
   const u = await getUserFromCookies();
-  return u?.uid || null;
+  if (u?.uid) return u.uid;
+
+  // Fall back to Bearer token
+  return getAuthIdFromBearerToken();
+}
+
+/**
+ * Validate a Firebase ID token from the Authorization header.
+ * Used by the Chrome extension which sends tokens via Bearer auth.
+ */
+async function getUserIdFromBearerToken(): Promise<bigint | null> {
+  try {
+    const hdrs = headers();
+    const authHeader = hdrs.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) return null;
+
+    const idToken = authHeader.slice(7);
+    if (!idToken) return null;
+
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    const user = await fetchUserByAuthId(decoded.uid);
+    return user?.id ? BigInt(user.id) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getAuthIdFromBearerToken(): Promise<string | null> {
+  try {
+    const hdrs = headers();
+    const authHeader = hdrs.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) return null;
+
+    const idToken = authHeader.slice(7);
+    if (!idToken) return null;
+
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
 }

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { X, Swords, Info, ChevronDown } from "lucide-react";
+import { X, Swords, Info, ChevronDown, PlusCircle } from "lucide-react";
 
 interface ArgumentAttackModalProps {
   deliberationId: string;
@@ -208,13 +208,13 @@ export function ArgumentAttackModal({
   const currentInfo = attackTypeInfo[attackType];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-lg">
+      <div className="bg-white border-indigo-300 border-2 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200 px-6 py-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <Swords className="w-6 h-6 text-indigo-600" />
+              <PlusCircle className="w-6 h-6 text-indigo-600" />
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
                   Create ASPIC+ Attack
@@ -295,7 +295,6 @@ export function ArgumentAttackModal({
                       }
                     `}
                   >
-                    <div className="text-2xl mb-2">{info.icon}</div>
                     <div className={`text-sm font-semibold ${isSelected ? info.textClass : "text-slate-700"}`}>
                       {info.label}
                     </div>

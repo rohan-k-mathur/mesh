@@ -33,9 +33,9 @@ The deliverable is a portable citation-evidence-argument object that can be past
 
 ## Phase 1: Foundation — Rich Previews & Embed Infrastructure
 
-**Goal**: Make any existing Mesh argument or claim instantly shareable as a rich, visually compelling link preview on Reddit, Twitter, Discord, LinkedIn, Slack, and any OG-supporting platform. Simultaneously ship the iframe embed pages and extend the oEmbed endpoint.
+**Goal**: Make any existing Isonomia argument or claim instantly shareable as a rich, visually compelling link preview on Reddit, Twitter, Discord, LinkedIn, Slack, and any OG-supporting platform. Simultaneously ship the iframe embed pages and extend the oEmbed endpoint.
 
-**Success criteria**: A user can copy an argument's permalink, paste it in a Reddit comment, and see a well-designed card with the claim text, evidence count, confidence score, and Mesh branding unfurl automatically.
+**Success criteria**: A user can copy an argument's permalink, paste it in a Reddit comment, and see a well-designed card with the claim text, evidence count, confidence score, and Isonomia branding unfurl automatically.
 
 ### Step 1.1: Dynamic OG Image Generation for Arguments
 
@@ -54,7 +54,7 @@ app/api/og/argument/[identifier]/route.tsx    — OG image generator
    - Resolve argument via `resolvePermalink()` (from `lib/citations/permalinkService.ts`) or direct Prisma query
    - Prisma query fetches: `text`, `confidence`, `author.displayName`, `conclusionClaim.text`, `premises` (count), `deliberation.title`, `argumentSchemes` (first scheme name), `citationMetrics.totalCitations`, `ClaimEvidence` (on conclusion claim)
    - Render JSX layout (Satori-compatible subset of CSS):
-     - Top bar: Mesh logo (inline SVG) + "ARGUMENT" badge
+     - Top bar: Isonomia logo (inline SVG) + "ARGUMENT" badge
      - Center: Claim text (max 150 chars, truncated with ellipsis). Use `conclusionClaim.text` if available, fallback to `argument.text`
      - Bottom left: Evidence count ("3 sources cited"), confidence bar (colored segments), scheme name
      - Bottom right: Author name, permalink slug
@@ -65,17 +65,17 @@ app/api/og/argument/[identifier]/route.tsx    — OG image generator
 2. Design the OG image layout using "Option A: Card layout" from the brainstorm:
    ```
    ┌────────────────────────────────────────────────────────┐
-   │ [Mesh logo]                           ARGUMENT CARD    │
+   │ [Isonomia logo]                           ARGUMENT CARD    │
    │                                                        │
    │ ┌────────────────────────────────────────────────────┐ │
    │ │  "Remote work increases productivity               │ │
    │ │   for knowledge workers"                           │ │
    │ └────────────────────────────────────────────────────┘ │
    │                                                        │
-   │  📚 3 sources cited         ▓▓▓▓░ 82% confidence      │
+   │  📚 3 sources cited         ▓▓▓▓░ 82% confidence       │
    │  Scheme: Argument from Expert Opinion                  │
    │                                                        │
-   │  mesh.app/a/Bx7kQ2mN                    by @janedoe   │
+   │  Isonomia.app/a/Bx7kQ2mN                    by @janedoe   │
    └────────────────────────────────────────────────────────┘
    ```
 
@@ -108,7 +108,7 @@ app/api/og/claim/[identifier]/route.tsx    — Claim OG image generator
    - Accept `identifier` as `claimId` or `moid`
    - Prisma query: `text`, `moid`, `createdBy.displayName`, `ClaimEvidence[]` (count + titles), `edgesFrom`/`edgesTo` (support/attack counts), `deliberation.title`
    - Layout: Similar to argument but simpler:
-     - Top: Mesh logo + "CLAIM" badge
+     - Top: Isonomia logo + "CLAIM" badge
      - Center: Claim text
      - Bottom: Evidence count, support/attack counts, MOID, author
    - Same caching, same fallback strategy
@@ -136,14 +136,14 @@ app/a/[identifier]/layout.tsx             — Layout with OG meta via generateMe
        ```typescript
        {
          title: claimText,
-         description: `Evidence-backed argument · ${evidenceCount} sources · ${confidenceDisplay} confidence · ${schemeName || "Structured reasoning"} · View on Mesh`,
+         description: `Evidence-backed argument · ${evidenceCount} sources · ${confidenceDisplay} confidence · ${schemeName || "Structured reasoning"} · View on Isonomia`,
          openGraph: {
            title: claimText,
            description: ogDescription,
            type: "article",
            url: `${baseUrl}/a/${identifier}`,
            images: [{ url: `${baseUrl}/api/og/argument/${identifier}`, width: 1200, height: 630 }],
-           siteName: "Mesh",
+           siteName: "Isonomia",
          },
          twitter: {
            card: "summary_large_image",
@@ -172,8 +172,8 @@ app/a/[identifier]/layout.tsx             — Layout with OG meta via generateMe
        - Deliberation context (link)
        - Attack/support counts
        - Citation count
-       - "Respond to this argument" CTA → links to Mesh app
-       - "View in deliberation" CTA → links to deliberation in Mesh app
+       - "Respond to this argument" CTA → links to Isonomia app
+       - "View in deliberation" CTA → links to deliberation in Isonomia app
        - JSON-LD `<script type="application/ld+json">` with Schema.org Claim + ClaimReview structured data
      - This page is **public, no auth required**. Auth is only needed for response actions.
      - Use inline styles (like existing embed pages) OR a minimal Tailwind build if the page is part of the main app
@@ -181,11 +181,11 @@ app/a/[identifier]/layout.tsx             — Layout with OG meta via generateMe
 
 2. **Keep the existing `/api/a/[identifier]/route.ts` as-is** for JSON API consumers. The new page handles browser + crawler traffic; the API route handles programmatic access.
 
-3. **Base URL**: Use `process.env.NEXT_PUBLIC_APP_URL || process.env.PUBLIC_BASE_URL || "https://mesh.app"` (consistent with existing embed pages).
+3. **Base URL**: Use `process.env.NEXT_PUBLIC_APP_URL || process.env.PUBLIC_BASE_URL || "https://Isonomia.app"` (consistent with existing embed pages).
 
 **Testing**:
-- `curl -H "User-Agent: Twitterbot" https://mesh.app/a/{shortCode}` should return HTML with OG meta tags
-- `curl -H "User-Agent: Mozilla/5.0" https://mesh.app/a/{shortCode}` should return the full page
+- `curl -H "User-Agent: Twitterbot" https://Isonomia.app/a/{shortCode}` should return HTML with OG meta tags
+- `curl -H "User-Agent: Mozilla/5.0" https://Isonomia.app/a/{shortCode}` should return the full page
 - Validate with Twitter Card Validator, Facebook Debugger
 - Test with nonexistent permalink → 404 page
 - Test mobile viewports (375px, 414px, 768px)
@@ -237,9 +237,9 @@ app/embed/argument/[identifier]/page.tsx   — Argument embed widget
    - `generateMetadata()` with basic OG tags
 
 2. Layout:
-   - **Standard mode**: Claim text, evidence list (titles + links), scheme badge, confidence bar, author, "View on Mesh" CTA, "Respond" CTA
+   - **Standard mode**: Claim text, evidence list (titles + links), scheme badge, confidence bar, author, "View on Isonomia" CTA, "Respond" CTA
    - **Compact mode**: Claim text only, evidence count, confidence, single CTA
-   - Footer: "Powered by Mesh" with link (consistent with existing embeds)
+   - Footer: "Powered by Isonomia" with link (consistent with existing embeds)
 
 3. Access control:
    - Arguments in public/unlisted deliberations: accessible
@@ -303,7 +303,7 @@ app/api/oembed/route.ts                    — Add argument + claim type handlin
        "title": "<claim text, truncated to 256 chars>",
        "author_name": "<author displayName>",
        "author_url": "<baseUrl>/u/<authorId>",
-       "provider_name": "Mesh",
+       "provider_name": "Isonomia",
        "provider_url": "<baseUrl>",
        "html": "<iframe src=\"<baseUrl>/embed/argument/<identifier>?theme=auto\" width=\"600\" height=\"400\" ...>",
        "width": 600,
@@ -319,8 +319,8 @@ app/api/oembed/route.ts                    — Add argument + claim type handlin
 4. Keep existing `Cache-Control: public, max-age=3600` header.
 
 **Testing**:
-- `GET /api/oembed?url=https://mesh.app/embed/argument/Bx7kQ2mN&format=json` → valid oEmbed response
-- `GET /api/oembed?url=https://mesh.app/a/Bx7kQ2mN&format=json` → valid oEmbed response
+- `GET /api/oembed?url=https://isonomia.app/embed/argument/Bx7kQ2mN&format=json` → valid oEmbed response
+- `GET /api/oembed?url=https://isonomia.app/a/Bx7kQ2mN&format=json` → valid oEmbed response
 - Verify Discord auto-discovery works (paste link in Discord, verify rich embed appears)
 
 ---
@@ -341,7 +341,7 @@ app/api/widgets/embed/route.ts             — Add argument + claim types
 3. Return `EmbedResponse` with:
    - `widgetUrl`: `/embed/argument/{identifier}`
    - `embedCodes.iframe`: `<iframe src="..." width="600" height="400" ...>`
-   - `embedCodes.script`: `<div class="mesh-widget" data-mesh-type="argument" data-mesh-id="..." ...>`
+   - `embedCodes.script`: `<div class="Isonomia-widget" data-Isonomia-type="argument" data-Isonomia-id="..." ...>`
    - `embedCodes.oembed`: `/api/oembed?url=...`
    - `preview`: `/a/{identifier}`
 
@@ -441,10 +441,10 @@ app/c/[identifier]/page.tsx                — Add JSON-LD script tag
 - [ ] `GET /api/widgets/embed?type=argument&id=...` returns embed codes
 - [ ] `GET /api/widgets/embed?type=claim&id=...` returns embed codes
 - [ ] `ClaimPermalink` model exists and `claimPermalinkService` is functional
-- [ ] Pasting `mesh.app/a/{shortCode}` in Reddit shows rich OG card
-- [ ] Pasting `mesh.app/a/{shortCode}` in Twitter shows `summary_large_image` card
-- [ ] Pasting `mesh.app/a/{shortCode}` in Discord shows rich embed with thumbnail
-- [ ] Pasting `mesh.app/a/{shortCode}` in Slack shows unfurled card
+- [ ] Pasting `Isonomia.app/a/{shortCode}` in Reddit shows rich OG card
+- [ ] Pasting `Isonomia.app/a/{shortCode}` in Twitter shows `summary_large_image` card
+- [ ] Pasting `Isonomia.app/a/{shortCode}` in Discord shows rich embed with thumbnail
+- [ ] Pasting `Isonomia.app/a/{shortCode}` in Slack shows unfurled card
 - [ ] JSON-LD validates in Google Rich Results Test
 - [ ] All pages are mobile-responsive
 - [ ] `npm run lint` passes
@@ -454,13 +454,13 @@ app/c/[identifier]/page.tsx                — Add JSON-LD script tag
 
 ## Phase 2: Creation — Quick Argument Builder & Share Flow
 
-**Goal**: Give users the tools to create embeddable arguments quickly and share them outward. This is what turns passive Mesh users into distribution vectors.
+**Goal**: Give users the tools to create embeddable arguments quickly and share them outward. This is what turns passive Isonomia users into distribution vectors.
 
 **Success criteria**: A user can go from "I want to make an argument about X" to "here's a link I can paste in Reddit" in under 60 seconds.
 
 ### Step 2.1: Share Argument Modal
 
-**What**: A modal component that appears when a user clicks "Share" on any argument within Mesh. Displays the argument's permalink, embed code, and share-to-platform buttons.
+**What**: A modal component that appears when a user clicks "Share" on any argument within Isonomia. Displays the argument's permalink, embed code, and share-to-platform buttons.
 
 **Files to create**:
 ```
@@ -479,7 +479,7 @@ components/modals/ShareArgumentModal.tsx   — Share modal component
 
 3. Modal sections:
    - **Link Preview**: Show a thumbnail of the OG image (load from `/api/og/argument/{identifier}`)
-   - **Copy Link**: One-click copy of `https://mesh.app/a/{shortCode}`
+   - **Copy Link**: One-click copy of `https://isonomia.app/a/{shortCode}`
    - **Copy Embed Code**: `<iframe>` snippet
    - **Copy as Markdown**: Formatted text block:
      ```markdown
@@ -491,7 +491,7 @@ components/modals/ShareArgumentModal.tsx   — Share modal component
      
      **Confidence:** 82% · **Scheme:** Argument from Expert Opinion
      
-     [View full argument on Mesh](https://mesh.app/a/Bx7kQ2mN)
+     [View full argument on Isonomia](https://isonomia.app/a/Bx7kQ2mN)
      ```
    - **Copy as Plain Text**: Same content without Markdown formatting
    - **Share to Platform** buttons: Reddit (pre-fills Reddit submission URL), Twitter (pre-fills tweet with link), LinkedIn, copy for Discord/Slack
@@ -508,7 +508,7 @@ components/modals/ShareArgumentModal.tsx   — Share modal component
 
 ### Step 2.2: Integrate Share Button into Argument UI
 
-**What**: Add a "Share" button to argument cards/panels throughout the Mesh UI that opens the `ShareArgumentModal`.
+**What**: Add a "Share" button to argument cards/panels throughout the Isonomia UI that opens the `ShareArgumentModal`.
 
 **Files to modify** (identify the primary argument display components):
 ```
@@ -551,7 +551,7 @@ app/api/arguments/quick/route.ts           — POST endpoint for quick argument 
 **Implementation details**:
 
 1. `POST /api/arguments/quick`:
-   - Requires authentication (standard Mesh auth middleware)
+   - Requires authentication (standard Isonomia auth middleware)
    - Request body:
      ```typescript
      {
@@ -583,7 +583,7 @@ app/api/arguments/quick/route.ts           — POST endpoint for quick argument 
        claim: { id, text, moid },
        permalink: { shortCode, slug, url },
        embedCodes: {
-         link: "https://mesh.app/a/{shortCode}",
+         link: "https://Isonomia.app/a/{shortCode}",
          iframe: "<iframe ...>",
          markdown: "**Claim:** ...",
          plainText: "CLAIM: ...",
@@ -602,7 +602,7 @@ app/api/arguments/quick/route.ts           — POST endpoint for quick argument 
 
 ### Step 2.5: Quick Argument Builder — Frontend UI
 
-**What**: A lightweight, fast creation form accessible from the Mesh UI, designed for the "I need to make an argument to share in a comment thread right now" use case.
+**What**: A lightweight, fast creation form accessible from the Isonomia UI, designed for the "I need to make an argument to share in a comment thread right now" use case.
 
 **Files to create**:
 ```
@@ -633,8 +633,8 @@ app/quick/page.tsx                               — Standalone page for quick c
 
 2. Create `app/quick/page.tsx`:
    - A dedicated page at `/quick` for the Quick Argument Builder
-   - Minimal chrome — just the builder and Mesh header/nav
-   - This page is linkable from outside Mesh and from the browser extension
+   - Minimal chrome — just the builder and Isonomia header/nav
+   - This page is linkable from outside Isonomia and from the browser extension
    - Accepts query params for pre-filling: `?claim=...&url=...` (used by browser extension)
 
 **Key UX decisions**:
@@ -733,13 +733,13 @@ app/api/unfurl/route.ts                    — URL metadata extraction
 
 ## Phase 3: Distribution — Browser Extension
 
-**Goal**: Enable argument creation from anywhere on the web and make Mesh links render richer on supported platforms for extension users.
+**Goal**: Enable argument creation from anywhere on the web and make Isonomia links render richer on supported platforms for extension users.
 
-**Success criteria**: A user can highlight text on any webpage, right-click, select "Create Mesh Argument," and have a link copied to their clipboard in under 15 seconds.
+**Success criteria**: A user can highlight text on any webpage, right-click, select "Create Isonomia Argument," and have a link copied to their clipboard in under 15 seconds.
 
 ### Step 3.1: Extension Project Setup
 
-**What**: Initialize a Chrome browser extension project within the Mesh repo.
+**What**: Initialize a Chrome browser extension project within the Isonomia repo.
 
 **Files to create**:
 ```
@@ -749,8 +749,8 @@ extensions/chrome/
 │   ├── background/
 │   │   └── service-worker.ts              — Background service worker
 │   ├── content/
-│   │   ├── link-detector.ts               — Finds Mesh URLs on pages
-│   │   ├── inline-renderer.ts             — Renders rich previews for Mesh links
+│   │   ├── link-detector.ts               — Finds Isonomia URLs on pages
+│   │   ├── inline-renderer.ts             — Renders rich previews for Isonomia links
 │   │   └── selection-handler.ts           — Right-click → create argument
 │   ├── popup/
 │   │   ├── popup.html                     — Extension popup HTML
@@ -760,7 +760,7 @@ extensions/chrome/
 │   │   ├── options.html                   — Options page
 │   │   └── options.tsx                    — Account connection, toggles
 │   └── shared/
-│       ├── api-client.ts                  — Mesh API client (authenticated)
+│       ├── api-client.ts                  — Isonomia API client (authenticated)
 │       ├── auth.ts                        — OAuth / token management
 │       └── types.ts                       — Shared type definitions
 ├── webpack.config.js                      — Build config
@@ -772,25 +772,25 @@ extensions/chrome/
 
 1. Use **Manifest V3** (required for Chrome Web Store as of Nov 2024)
 2. Build with webpack or esbuild (lightweight, no full Next.js needed)
-3. Authentication: OAuth2 flow with Mesh backend, store token in `chrome.storage.local`
+3. Authentication: OAuth2 flow with Isonomia backend, store token in `chrome.storage.local`
 4. Permissions: `activeTab`, `contextMenus`, `storage`, `identity`
-5. Host permissions: `*://mesh.app/*` (or whatever the production domain is)
+5. Host permissions: `*://Isonomia.app/*` (or whatever the production domain is)
 
 ---
 
-### Step 3.2: Context Menu — "Create Mesh Argument"
+### Step 3.2: Context Menu — "Create Isonomia Argument"
 
 **What**: Right-click context menu on text selection that creates a quick argument pre-filled with the selected text and current page as a source.
 
 **Implementation details**:
 
 1. In `service-worker.ts`:
-   - Register context menu: `chrome.contextMenus.create({ id: "create-mesh-argument", title: "Create Mesh Argument", contexts: ["selection"] })`
+   - Register context menu: `chrome.contextMenus.create({ id: "create-Isonomia-argument", title: "Create Isonomia Argument", contexts: ["selection"] })`
    - On click: send selected text + page URL + page title to popup/sidebar
 
 2. In `popup.tsx` (or a sidebar panel):
    - Pre-fill claim with selected text
-   - Pre-fill first evidence URL with current page URL (auto-unfurl via Mesh API)
+   - Pre-fill first evidence URL with current page URL (auto-unfurl via Isonomia API)
    - User can edit claim text, add more sources
    - "Create & Copy Link" button calls `/api/arguments/quick`
    - On success: copy permalink to clipboard, show confirmation, close popup
@@ -799,16 +799,16 @@ extensions/chrome/
 
 ---
 
-### Step 3.3: Content Script — Mesh Link Detection & Inline Preview
+### Step 3.3: Content Script — Isonomia Link Detection & Inline Preview
 
-**What**: When viewing Reddit, Twitter/X, HN, or other supported sites, detect `mesh.app/a/...` URLs in the page content and render rich inline previews for users who have the extension installed.
+**What**: When viewing Reddit, Twitter/X, HN, or other supported sites, detect `Isonomia.app/a/...` URLs in the page content and render rich inline previews for users who have the extension installed.
 
 **Implementation details**:
 
 1. In `link-detector.ts`:
-   - Scan page for links matching `mesh.app/a/` or `mesh.app/c/` patterns
+   - Scan page for links matching `Isonomia.app/a/` or `Isonomia.app/c/` patterns
    - For each detected link:
-     - Fetch argument/claim metadata from Mesh API (or from the page's OG tags if available)
+     - Fetch argument/claim metadata from Isonomia API (or from the page's OG tags if available)
      - Inject a styled card below/beside the link (using Shadow DOM for style isolation)
 
 2. Platform-specific handling:
@@ -831,7 +831,7 @@ extensions/chrome/
 1. Compact version of the full Quick Argument Builder from Step 2.5
 2. Pre-fills current page URL as evidence source
 3. Shows recent arguments (last 5) for quick re-sharing
-4. "Search Mesh arguments" field for finding existing arguments to share
+4. "Search Isonomia arguments" field for finding existing arguments to share
 5. Build with lightweight React (Preact) or vanilla JS to keep popup fast
 
 ---
@@ -863,10 +863,10 @@ extensions/chrome/
 ### Phase 3 Completion Checklist
 
 - [ ] Chrome extension installable from local build
-- [ ] Right-click → "Create Mesh Argument" works with text selection
+- [ ] Right-click → "Create Isonomia Argument" works with text selection
 - [ ] Popup quick builder creates argument and copies link
-- [ ] Content script detects and enhances Mesh links on Reddit
-- [ ] Content script detects and enhances Mesh links on Twitter/X
+- [ ] Content script detects and enhances Isonomia links on Reddit
+- [ ] Content script detects and enhances Isonomia links on Twitter/X
 - [ ] Extension options page allows account connection and per-site toggles
 - [ ] Firefox extension published
 - [ ] Safari extension published
@@ -878,7 +878,7 @@ extensions/chrome/
 
 **Goal**: Close the feedback loop — when someone sees an embedded argument and wants to respond, make it trivially easy to create a counter-argument and get their own permalink. Track embed performance.
 
-**Success criteria**: Two users in a Reddit thread can have a structured argumentative exchange mediated by Mesh permalink cards, with each argument linked in the Mesh graph.
+**Success criteria**: Two users in a Reddit thread can have a structured argumentative exchange mediated by Isonomia permalink cards, with each argument linked in the Isonomia graph.
 
 ### Step 4.1: "Respond to This" Landing Flow
 
@@ -892,16 +892,16 @@ app/a/[identifier]/page.tsx                — Add response CTAs and composer tr
 **Implementation details**:
 
 1. On the public argument page (`/a/{identifier}`), add prominent response CTAs:
-   - "Support this argument" → opens Mesh with a pre-filled argument composer targeting the original as a SUPPORT edge
-   - "Challenge this argument" → opens Mesh with a pre-filled argument composer targeting the original as an ATTACK edge (choice of REBUT, UNDERCUT, UNDERMINE)
-   - "Ask a critical question" → opens Mesh with the argument's scheme CQs visible
+   - "Support this argument" → opens Isonomia with a pre-filled argument composer targeting the original as a SUPPORT edge
+   - "Challenge this argument" → opens Isonomia with a pre-filled argument composer targeting the original as an ATTACK edge (choice of REBUT, UNDERCUT, UNDERMINE)
+   - "Ask a critical question" → opens Isonomia with the argument's scheme CQs visible
 
 2. For unauthenticated users:
    - Show the CTAs but clicking them goes to login/signup with `?redirect=/a/{identifier}?action=respond`
    - After auth, redirect back to the argument with the composer open
 
 3. For authenticated users:
-   - CTAs link to the argument within its deliberation in the full Mesh app, with the response composer pre-opened
+   - CTAs link to the argument within its deliberation in the full Isonomia app, with the response composer pre-opened
    - After response creation: automatically generate a permalink for the response and show the ShareArgumentModal so the user can paste their counter-argument link back in the thread
 
 4. **The key UX moment**: After creating a response, the modal should say something like: "Your counter-argument is ready. Copy the link to paste it in the conversation:" with a one-click copy button.
@@ -925,7 +925,7 @@ app/embed/deliberation/[deliberationId]/page.tsx   — Deliberation summary embe
    - Title
    - Stats row: N arguments, N claims, N participants
    - Top claims list (3 items, each with support/attack count)
-   - "View full deliberation on Mesh" CTA
+   - "View full deliberation on Isonomia" CTA
 4. Theme + compact support
 
 ---
@@ -992,7 +992,7 @@ embedContexts     EmbedContext[]
 
 ### Step 4.4: Embed Analytics Dashboard
 
-**What**: A page within Mesh where users can see how their embedded arguments are performing.
+**What**: A page within Isonomia where users can see how their embedded arguments are performing.
 
 **Files to create**:
 ```
@@ -1047,23 +1047,23 @@ components/analytics/EmbedAnalytics.tsx    — Analytics display component
 
 ## Phase 5: Ecosystem — Integrations & Public API
 
-**Goal**: Make Mesh argument embeds a standard tool available beyond just link-sharing: native integrations for major platforms, a public API for third-party builders, and Web Components for custom site integration.
+**Goal**: Make Isonomia argument embeds a standard tool available beyond just link-sharing: native integrations for major platforms, a public API for third-party builders, and Web Components for custom site integration.
 
-**Success criteria**: A developer can embed a Mesh argument in their own website using a `<mesh-argument>` custom element with a single script tag, and a Slack workspace can unfurl Mesh links with rich interactive cards.
+**Success criteria**: A developer can embed a Isonomia argument in their own website using a `<Isonomia-argument>` custom element with a single script tag, and a Slack workspace can unfurl Isonomia links with rich interactive cards.
 
 ### Step 5.1: Web Component Distribution
 
-**What**: A standalone JavaScript bundle that registers `<mesh-argument>`, `<mesh-claim>`, and `<mesh-deliberation>` custom elements, usable on any website without React or Mesh dependencies.
+**What**: A standalone JavaScript bundle that registers `<Isonomia-argument>`, `<Isonomia-claim>`, and `<Isonomia-deliberation>` custom elements, usable on any website without React or Isonomia dependencies.
 
 **Files to create**:
 ```
-packages/mesh-embed/
+packages/Isonomia-embed/
 ├── src/
-│   ├── mesh-argument.ts                   — <mesh-argument> custom element
-│   ├── mesh-claim.ts                      — <mesh-claim> custom element
-│   ├── mesh-deliberation.ts               — <mesh-deliberation> custom element
+│   ├── Isonomia-argument.ts                   — <Isonomia-argument> custom element
+│   ├── Isonomia-claim.ts                      — <Isonomia-claim> custom element
+│   ├── Isonomia-deliberation.ts               — <Isonomia-deliberation> custom element
 │   ├── shared/
-│   │   ├── api.ts                         — Fetch argument data from Mesh API
+│   │   ├── api.ts                         — Fetch argument data from Isonomia API
 │   │   ├── renderer.ts                    — HTML/CSS rendering utilities
 │   │   └── theme.ts                       — Theme detection and application
 │   └── index.ts                           — Register all custom elements
@@ -1077,26 +1077,26 @@ packages/mesh-embed/
 
 1. Each custom element:
    - Uses Shadow DOM for style isolation
-   - Fetches data from Mesh API on connectedCallback
+   - Fetches data from Isonomia API on connectedCallback
    - Renders the same card layout as the embed pages
    - Attributes: `argument-id`, `claim-id`, `theme`, `compact`, `show-evidence`, `show-scheme`
-   - Emits custom events: `mesh:loaded`, `mesh:error`, `mesh:click`
+   - Emits custom events: `Isonomia:loaded`, `Isonomia:error`, `Isonomia:click`
 
-2. Bundle: Single file (`mesh-embed.js`), <50KB gzipped, no dependencies
-3. Serve from CDN: `https://mesh.app/embed/mesh-embed.js`
+2. Bundle: Single file (`Isonomia-embed.js`), <50KB gzipped, no dependencies
+3. Serve from CDN: `https://Isonomia.app/embed/Isonomia-embed.js`
 4. Fallback: If JS fails to load, show a `<noscript>` link to the argument permalink
 
 5. Usage:
    ```html
-   <mesh-argument argument-id="Bx7kQ2mN"></mesh-argument>
-   <script src="https://mesh.app/embed/mesh-embed.js" async></script>
+   <Isonomia-argument argument-id="Bx7kQ2mN"></Isonomia-argument>
+   <script src="https://Isonomia.app/embed/Isonomia-embed.js" async></script>
    ```
 
 ---
 
 ### Step 5.2: Slack App Integration
 
-**What**: A Slack app that provides rich interactive unfurling of Mesh argument links and slash commands for creating/sharing arguments.
+**What**: A Slack app that provides rich interactive unfurling of Isonomia argument links and slash commands for creating/sharing arguments.
 
 **Files to create**:
 ```
@@ -1105,7 +1105,7 @@ services/slack-app/
 │   ├── events/
 │   │   └── link-shared.ts                 — Handle link_shared events for unfurling
 │   ├── commands/
-│   │   └── mesh-argument.ts               — /mesh-argument slash command
+│   │   └── Isonomia-argument.ts               — /Isonomia-argument slash command
 │   ├── actions/
 │   │   └── respond.ts                     — "Respond" button action handler
 │   ├── app.ts                             — Slack Bolt app setup
@@ -1117,12 +1117,12 @@ services/slack-app/
 **Implementation details**:
 
 1. Use Slack Bolt SDK
-2. **Link unfurling**: When a `mesh.app/a/...` link is shared in a channel:
-   - Fetch argument metadata from Mesh API
+2. **Link unfurling**: When a `Isonomia.app/a/...` link is shared in a channel:
+   - Fetch argument metadata from Isonomia API
    - Render Block Kit message with: claim text, evidence list, confidence, scheme, action buttons
-   - Action buttons: "View on Mesh" (link button), "Respond" (opens external URL), "Add to Stack" (triggers modal)
-3. **Slash command**: `/mesh-argument "claim text" https://source1.com https://source2.com`
-   - Creates a quick argument via Mesh API
+   - Action buttons: "View on Isonomia" (link button), "Respond" (opens external URL), "Add to Stack" (triggers modal)
+3. **Slash command**: `/Isonomia-argument "claim text" https://source1.com https://source2.com`
+   - Creates a quick argument via Isonomia API
    - Posts the argument card in the channel
 4. Deploy as a microservice (Docker → k8s, consistent with existing services under `services/`)
 
@@ -1130,14 +1130,14 @@ services/slack-app/
 
 ### Step 5.3: Discord Bot
 
-**What**: A Discord bot that enhances Mesh link rendering in Discord channels and provides argument creation commands.
+**What**: A Discord bot that enhances Isonomia link rendering in Discord channels and provides argument creation commands.
 
 **Files to create**:
 ```
 services/discord-bot/
 ├── src/
 │   ├── events/
-│   │   └── message-create.ts              — Detect and enhance Mesh links
+│   │   └── message-create.ts              — Detect and enhance Isonomia links
 │   ├── commands/
 │   │   └── argument.ts                    — /argument slash command
 │   ├── embeds/
@@ -1151,7 +1151,7 @@ services/discord-bot/
 **Implementation details**:
 
 1. Use Discord.js v14
-2. **Link detection**: On message containing `mesh.app/a/...`, reply with a rich embed showing the full argument card (using Discord embed fields for claim, evidence, scheme, confidence)
+2. **Link detection**: On message containing `Isonomia.app/a/...`, reply with a rich embed showing the full argument card (using Discord embed fields for claim, evidence, scheme, confidence)
 3. **Slash command**: `/argument create claim:"..." evidence:"url1, url2" reasoning:"..."`
 4. Deploy as a microservice
 
@@ -1159,18 +1159,18 @@ services/discord-bot/
 
 ### Step 5.4: WordPress Plugin
 
-**What**: A WordPress plugin that provides a Gutenberg block and shortcode for embedding Mesh arguments.
+**What**: A WordPress plugin that provides a Gutenberg block and shortcode for embedding Isonomia arguments.
 
 **Files to create**:
 ```
 packages/wordpress-plugin/
-├── mesh-argument-embed/
-│   ├── mesh-argument-embed.php            — Plugin entry point
+├── Isonomia-argument-embed/
+│   ├── Isonomia-argument-embed.php            — Plugin entry point
 │   ├── includes/
-│   │   ├── class-mesh-oembed.php          — Register oEmbed provider
-│   │   └── class-mesh-shortcode.php       — [mesh_argument id="..."] shortcode
+│   │   ├── class-Isonomia-oembed.php          — Register oEmbed provider
+│   │   └── class-Isonomia-shortcode.php       — [Isonomia_argument id="..."] shortcode
 │   ├── blocks/
-│   │   └── mesh-argument/
+│   │   └── Isonomia-argument/
 │   │       ├── block.json                 — Block metadata
 │   │       ├── edit.js                    — Block editor component
 │   │       ├── save.js                    — Block frontend render
@@ -1180,12 +1180,12 @@ packages/wordpress-plugin/
 
 **Implementation details**:
 
-1. Register Mesh as an oEmbed provider in WordPress:
+1. Register Isonomia as an oEmbed provider in WordPress:
    ```php
-   wp_oembed_add_provider('https://mesh.app/a/*', 'https://mesh.app/api/oembed');
-   wp_oembed_add_provider('https://mesh.app/c/*', 'https://mesh.app/api/oembed');
+   wp_oembed_add_provider('https://Isonomia.app/a/*', 'https://Isonomia.app/api/oembed');
+   wp_oembed_add_provider('https://Isonomia.app/c/*', 'https://Isonomia.app/api/oembed');
    ```
-2. Shortcode: `[mesh_argument id="Bx7kQ2mN" theme="auto"]` → renders iframe
+2. Shortcode: `[Isonomia_argument id="Bx7kQ2mN" theme="auto"]` → renders iframe
 3. Gutenberg block: URL input → live preview via oEmbed → renders iframe on save
 4. Submit to WordPress.org plugin directory
 
@@ -1193,7 +1193,7 @@ packages/wordpress-plugin/
 
 ### Step 5.5: Public API (v3)
 
-**What**: A versioned public API for third-party developers to create, read, and embed Mesh arguments programmatically.
+**What**: A versioned public API for third-party developers to create, read, and embed Isonomia arguments programmatically.
 
 **Files to create**:
 ```
@@ -1228,10 +1228,10 @@ app/api/v3/
    {
      "data": { ... },
      "embed": {
-       "permalink": "https://mesh.app/a/...",
-       "og_image": "https://mesh.app/api/og/argument/...",
+       "permalink": "https://Isonomia.app/a/...",
+       "og_image": "https://Isonomia.app/api/og/argument/...",
        "iframe": "<iframe ...>",
-       "oembed": "https://mesh.app/api/oembed?url=..."
+       "oembed": "https://Isonomia.app/api/oembed?url=..."
      }
    }
    ```
@@ -1256,7 +1256,7 @@ app/a/[identifier]/page.tsx                — Enhance JSON-LD to include ClaimR
      "@context": "https://schema.org",
      "@type": "ClaimReview",
      "claimReviewed": "<claim text>",
-     "author": { "@type": "Organization", "name": "Mesh", "url": "https://mesh.app" },
+     "author": { "@type": "Organization", "name": "Isonomia", "url": "https://Isonomia.app" },
      "reviewRating": {
        "@type": "Rating",
        "ratingValue": "<confidence>",
@@ -1276,7 +1276,7 @@ app/a/[identifier]/page.tsx                — Enhance JSON-LD to include ClaimR
 
 ### Step 5.7: Argument Search Engine
 
-**What**: A public search interface that lets anyone search across all public Mesh arguments by topic, claim text, or evidence.
+**What**: A public search interface that lets anyone search across all public Isonomia arguments by topic, claim text, or evidence.
 
 **Files to create**:
 ```
@@ -1297,11 +1297,11 @@ app/api/v3/search/route.ts                 — Search API endpoint
 
 ### Phase 5 Completion Checklist
 
-- [ ] `<mesh-argument>` Web Component works on any HTML page
+- [ ] `<Isonomia-argument>` Web Component works on any HTML page
 - [ ] Web Component bundle < 50KB gzipped, served from CDN
-- [ ] Slack app unfurls Mesh links with Block Kit cards
-- [ ] Slack `/mesh-argument` command creates arguments from Slack
-- [ ] Discord bot enhances Mesh links with rich embeds
+- [ ] Slack app unfurls Isonomia links with Block Kit cards
+- [ ] Slack `/Isonomia-argument` command creates arguments from Slack
+- [ ] Discord bot enhances Isonomia links with rich embeds
 - [ ] Discord `/argument create` command works
 - [ ] WordPress plugin registers oEmbed provider and Gutenberg block
 - [ ] Public API v3 serves argument and claim data with embed codes

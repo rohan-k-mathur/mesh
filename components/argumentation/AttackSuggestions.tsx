@@ -213,12 +213,12 @@ export function AttackSuggestions({
               </Select>
     
               {/* Refresh button */}
-              <Button
-              
+              {/* <Button
+                
                 onClick={loadSuggestions}
               >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+                <RefreshCw className=" h-4 w-4" />
+              </Button> */}
             </div>
           </div>
         </CardHeader>

@@ -31,7 +31,7 @@
  * - 3.1 Text Selection → Anchored Comment Threads
  * - 3.2 Comment Rail with Collision Resolution
  * - 3.3 Rhetoric Analysis Overlays (hedge, intensifier, absolute, analogy, metaphor)
- * - 3.4 Deep Dive Panel Integration (deliberation, arguments, claims)
+ * - 3.4 Deliberation Panel Integration (deliberation, arguments, claims)
  * - 3.5 Proposition Composer (lift annotations to deliberation)
  *
  * Accessible at: /test/article-features
@@ -113,37 +113,56 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 // MOCK DATA
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOCK_ARTICLE = {
-  id: "article-demo-1",
-  title: "The Geometry of Democratic Deliberation",
-  slug: "the-geometry-of-democratic-deliberation",
-  template: "feature",
-  status: "PUBLISHED" as const,
-  heroImageKey: "hero-demo-1.jpg",
-  excerpt: "An exploration of how spatial metaphors and geometric reasoning can illuminate the structure of democratic argument...",
-  readingTime: 12,
-  publishedAt: "2026-03-15T10:00:00Z",
-  createdAt: "2026-03-01T08:00:00Z",
-  updatedAt: "2026-03-15T10:00:00Z",
-  allowAnnotations: true,
-  author: { id: "user-1", name: "Dr. Elena Voss", username: "evoss" },
+const MOCK_ARTICLES = {
+  attention: {
+    id: "article-demo-1",
+    title: "The Hidden Cost of Attention: How Algorithmic Feeds Reshape Civic Discourse",
+    slug: "the-hidden-cost-of-attention-how-algorithmic-feeds-reshape-civic-discourse",
+    template: "feature" as const,
+    status: "PUBLISHED" as const,
+    heroImageKey: "hero-demo-1.jpg",
+    excerpt: "A deep investigation into how engagement-optimized recommendation systems systematically deprioritize nuance, amplify outrage, and erode the epistemic commons we depend on for democratic self-governance.",
+    readingTime: 14,
+    publishedAt: "2026-03-15T10:00:00Z",
+    createdAt: "2026-03-01T08:00:00Z",
+    updatedAt: "2026-03-15T10:00:00Z",
+    allowAnnotations: true,
+    author: { id: "user-1", name: "Dr. Priya Anand", username: "panand" },
+  },
+  socialChoice: {
+    id: "article-demo-2",
+    title: "Arrow's Impossibility Theorem and the Limits of Preference Aggregation",
+    slug: "arrows-impossibility-theorem-limits-preference-aggregation",
+    template: "standard" as const,
+    status: "PUBLISHED" as const,
+    heroImageKey: null,
+    excerpt: "A formal treatment of Arrow's impossibility result, extending it to deliberative contexts where preference transformation — not just aggregation — is the mechanism of collective choice.",
+    readingTime: 18,
+    publishedAt: "2026-02-20T08:00:00Z",
+    createdAt: "2026-01-15T10:00:00Z",
+    updatedAt: "2026-02-20T08:00:00Z",
+    allowAnnotations: true,
+    author: { id: "user-2", name: "Prof. Marcus Chen", username: "mchen" },
+  },
 };
+
+type ArticleKey = keyof typeof MOCK_ARTICLES;
 
 const MOCK_ARTICLES_LIST = [
   {
     id: "article-1",
-    title: "The Geometry of Democratic Deliberation",
-    slug: "the-geometry-of-democratic-deliberation",
+    title: "The Hidden Cost of Attention: How Algorithmic Feeds Reshape Civic Discourse",
+    slug: "the-hidden-cost-of-attention-how-algorithmic-feeds-reshape-civic-discourse",
     template: "feature",
     status: "PUBLISHED" as const,
-    readingTime: 12,
-    excerpt: "An exploration of how spatial metaphors illuminate democratic argument...",
+    readingTime: 14,
+    excerpt: "How engagement-optimized recommendation systems deprioritize nuance, amplify outrage, and erode the epistemic commons...",
     updatedAt: "2026-03-15T10:00:00Z",
     heroImageKey: "hero-1.jpg",
   },
   {
     id: "article-2",
-    title: "Interview: Building Epistemic Infrastructure",
+    title: "Interview: Danielle Allen on Participatory Technology and Power",
     slug: null,
     template: "interview",
     status: "DRAFT" as const,
@@ -154,18 +173,18 @@ const MOCK_ARTICLES_LIST = [
   },
   {
     id: "article-3",
-    title: "Notes on Argumentation Frameworks",
-    slug: "notes-on-argumentation-frameworks",
+    title: "Why Prediction Markets Get Elections Wrong",
+    slug: "why-prediction-markets-get-elections-wrong",
     template: "standard",
     status: "PUBLISHED" as const,
-    readingTime: 8,
-    excerpt: "A survey of classical and modern argumentation frameworks...",
+    readingTime: 9,
+    excerpt: "Thin markets, correlated information sources, and motivated reasoning create systematic blind spots in political prediction...",
     updatedAt: "2026-02-28T09:00:00Z",
     heroImageKey: "hero-3.jpg",
   },
   {
     id: "article-4",
-    title: "Untitled Draft",
+    title: "Climate Conversations: A Comparative Study of Citizen Deliberations in FR and US",
     slug: null,
     template: "standard",
     status: "DRAFT" as const,
@@ -174,13 +193,24 @@ const MOCK_ARTICLES_LIST = [
     updatedAt: "2026-03-22T16:45:00Z",
     heroImageKey: null,
   },
+  {
+    id: "article-5",
+    title: "Arrow's Impossibility Theorem and the Limits of Preference Aggregation",
+    slug: "arrows-impossibility-theorem-limits-preference-aggregation",
+    template: "standard",
+    status: "PUBLISHED" as const,
+    readingTime: 18,
+    excerpt: "A formal treatment of Arrow's impossibility result, extending it to deliberative contexts...",
+    updatedAt: "2026-02-20T08:00:00Z",
+    heroImageKey: null,
+  },
 ];
 
 const MOCK_REVISIONS = [
   { id: "rev-5", createdAt: "2026-03-15T10:00:00Z", label: "Published version" },
-  { id: "rev-4", createdAt: "2026-03-14T18:30:00Z", label: "Final edits" },
-  { id: "rev-3", createdAt: "2026-03-12T11:00:00Z", label: "Added section 3" },
-  { id: "rev-2", createdAt: "2026-03-05T09:15:00Z", label: "Restructured intro" },
+  { id: "rev-4", createdAt: "2026-03-14T18:30:00Z", label: "Incorporated peer review feedback" },
+  { id: "rev-3", createdAt: "2026-03-12T11:00:00Z", label: "Added empirical evidence section" },
+  { id: "rev-2", createdAt: "2026-03-05T09:15:00Z", label: "Restructured around three attention mechanisms" },
   { id: "rev-1", createdAt: "2026-03-01T08:00:00Z", label: "Initial draft" },
 ];
 
@@ -196,45 +226,58 @@ const MOCK_THREADS: MockThread[] = [
   {
     id: "thread-1",
     anchor: { startPath: "0/0", startOffset: 4, endPath: "0/0", endOffset: 42 },
-    anchorText: "spatial metaphors and geometric reasoning",
+    anchorText: "engagement-maximizing recommender systems",
     resolved: false,
     comments: [
-      { id: "c-1a", authorName: "Dr. Marcus Chen", body: "This framing is compelling — have you considered connecting this to Habermas's discourse ethics?", createdAt: "2026-03-16T09:00:00Z" },
-      { id: "c-1b", authorName: "Dr. Elena Voss", body: "Great point! I'll add a section on communicative rationality in the next revision.", createdAt: "2026-03-16T10:30:00Z" },
+      { id: "c-1a", authorName: "Prof. James Williams", body: "This framing aligns with my research on attentional scarcity — but I'd push back on treating all engagement optimization as equivalent. Some designs surface serendipity rather than outrage.", createdAt: "2026-03-16T09:00:00Z" },
+      { id: "c-1b", authorName: "Dr. Priya Anand", body: "Fair distinction. I'll add a taxonomy in §3 separating curiosity-driven engagement from reactive engagement. The harm concentrates in the latter.", createdAt: "2026-03-16T10:30:00Z" },
     ],
   },
   {
     id: "thread-2",
     anchor: { startPath: "2/0", startOffset: 0, endPath: "2/0", endOffset: 28 },
-    anchorText: "the topology of consensus",
+    anchorText: "an epistemic commons",
     resolved: true,
     comments: [
-      { id: "c-2a", authorName: "Amara Okafor", body: "Could you clarify the distinction between convergence and consensus in this context?", createdAt: "2026-03-16T11:00:00Z" },
-      { id: "c-2b", authorName: "Dr. Elena Voss", body: "Convergence is directional tendency; consensus is a fixed point. Updated the paragraph.", createdAt: "2026-03-16T14:00:00Z" },
-      { id: "c-2c", authorName: "Amara Okafor", body: "Perfect, much clearer now. Resolving.", createdAt: "2026-03-16T15:00:00Z" },
+      { id: "c-2a", authorName: "Tomás Reyes", body: "The commons metaphor is powerful but risks implying there was a golden age of shared truth. Can you address how the pre-algorithmic information landscape had its own distortions?", createdAt: "2026-03-16T11:00:00Z" },
+      { id: "c-2b", authorName: "Dr. Priya Anand", body: "You're right — I've added a paragraph acknowledging that gatekept media had exclusion problems. The claim is about the *type* of degradation, not that we fell from grace.", createdAt: "2026-03-16T14:00:00Z" },
+      { id: "c-2c", authorName: "Tomás Reyes", body: "That nuance makes the argument much stronger. Resolving.", createdAt: "2026-03-16T15:00:00Z" },
     ],
   },
   {
     id: "thread-3",
     anchor: { startPath: "5/1", startOffset: 10, endPath: "5/1", endOffset: 55 },
-    anchorText: "argumentation as a force-directed graph",
+    anchorText: "a 23% decrease in policy-relevant content",
     resolved: false,
     comments: [
-      { id: "c-3a", authorName: "Lin Wei", body: "This connects beautifully to the claim graph visualization in the deep dive panel.", createdAt: "2026-03-17T08:00:00Z" },
+      { id: "c-3a", authorName: "Dr. Aisha Mbeki", body: "This statistic is striking. Is this from the 2025 Reuters Institute report? Would be worth citing directly — it's one of the strongest pieces of evidence in the whole article.", createdAt: "2026-03-17T08:00:00Z" },
     ],
   },
 ];
 
 const MOCK_EDITOR_CONTENT = {
-  type: "doc",
-  content: [
-    { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "The Geometry of Democratic Deliberation" }] },
-    { type: "paragraph", content: [{ type: "text", text: "Democratic deliberation, at its best, is a spatial practice. Arguments occupy positions in a conceptual landscape, and the topology of consensus emerges from the gravitational pull of evidence and reason." }] },
-    { type: "pullQuote", content: [{ type: "text", text: "\"The marketplace of ideas is not a flat plane — it has peaks of insight, valleys of confusion, and ridgelines of productive disagreement.\"" }] },
-    { type: "paragraph", content: [{ type: "text", text: "When we model argumentation as a force-directed graph, we can see how claims cluster, how evidence creates attractive forces, and how contradictions generate repulsive boundaries that define the topology of discourse." }] },
-    { type: "callout", attrs: { variant: "info" }, content: [{ type: "text", text: "Key Insight: The geometry of deliberation is not Euclidean — it follows the curvature of shared understanding." }] },
-    { type: "mathBlock", content: [{ type: "text", text: "\\nabla \\cdot \\vec{F}_{\\text{consensus}} = \\sum_{i} w_i \\cdot \\text{evidence}_i" }] },
-  ],
+  attention: {
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "The Hidden Cost of Attention: How Algorithmic Feeds Reshape Civic Discourse" }] },
+      { type: "paragraph", content: [{ type: "text", text: "Every minute, engagement-maximizing recommender systems make billions of micro-decisions about what 4.9 billion people will see next. These systems treat attention as an extractive resource — harvesting it in milliseconds, converting it to ad revenue, and discarding the epistemic residue. The result is an epistemic commons under unprecedented structural pressure." }] },
+      { type: "pullQuote", content: [{ type: "text", text: "\"The most consequential editorial decisions in history are now made by loss functions that have never encountered the concept of civic responsibility.\"" }] },
+      { type: "paragraph", content: [{ type: "text", text: "Between 2020 and 2025, platforms optimizing for time-on-site produced a 23% decrease in policy-relevant content reaching median users, while emotionally arousing political content saw a 340% amplification. This is not a neutral redistribution — it is a systematic reweighting of what counts as important." }] },
+      { type: "callout", attrs: { variant: "info" }, content: [{ type: "text", text: "Key Insight: The problem is not that algorithms have biases — all editorial systems do. The problem is that these biases are optimized against metrics that are structurally misaligned with informed democratic participation." }] },
+      { type: "mathBlock", content: [{ type: "text", text: "\\text{Attention}_{\\text{civic}} = \\frac{\\sum_{i} R_i \\cdot s_i}{\\sum_{j} E_j \\cdot \\tau_j} \\quad \\text{where } E_j \\gg R_i" }] },
+    ],
+  },
+  socialChoice: {
+    type: "doc",
+    content: [
+      { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Arrow's Impossibility Theorem and the Limits of Preference Aggregation" }] },
+      { type: "paragraph", content: [{ type: "text", text: "Kenneth Arrow's 1951 impossibility theorem remains one of the most profound results in social choice theory. It demonstrates that no rank-order voting system with three or more alternatives can simultaneously satisfy a small set of seemingly reasonable fairness conditions. This paper revisits the theorem in the context of deliberative platforms, where preferences are not fixed inputs but evolve through structured argument." }] },
+      { type: "pullQuote", content: [{ type: "text", text: "\"The impossibility is not a defect of democracy — it is a proof that collective rationality requires more than the mechanical aggregation of individual rankings.\"" }] },
+      { type: "paragraph", content: [{ type: "text", text: "We define a social welfare function F that maps individual preference profiles to a social ordering, and show that the conditions of unrestricted domain, Pareto efficiency, independence of irrelevant alternatives (IIA), and non-dictatorship are jointly inconsistent when the deliberative transformation operator D is absent." }] },
+      { type: "callout", attrs: { variant: "info" }, content: [{ type: "text", text: "Key Insight: When preferences are endogenous to deliberation rather than exogenous inputs, the domain restriction that Arrow's theorem requires may arise naturally — not as a constraint imposed on voters, but as a consequence of reasoned exchange." }] },
+      { type: "mathBlock", content: [{ type: "text", text: "F: \\mathcal{L}(A)^n \\to \\mathcal{L}(A) \\quad \\text{s.t. } \\nexists\\, F \\text{ satisfying U, P, IIA, ND simultaneously}" }] },
+    ],
+  },
 };
 
 const ARTICLE_TEMPLATES = [
@@ -300,11 +343,11 @@ const TOOLBAR_GROUPS = [
 ];
 
 const RHETORIC_TYPES = [
-  { type: "hedge", label: "Hedge", color: "bg-yellow-100 text-yellow-800 border-yellow-300", example: "It seems likely that...", description: "Language expressing uncertainty or tentativeness" },
-  { type: "intensifier", label: "Intensifier", color: "bg-orange-100 text-orange-800 border-orange-300", example: "This is absolutely critical", description: "Language amplifying strength of a claim" },
-  { type: "absolute", label: "Absolute", color: "bg-red-100 text-red-800 border-red-300", example: "All experts agree that...", description: "Universal or totalizing claims" },
-  { type: "analogy", label: "Analogy", color: "bg-blue-100 text-blue-800 border-blue-300", example: "Like a rising tide lifts all boats", description: "Comparisons drawing structural parallels" },
-  { type: "metaphor", label: "Metaphor", color: "bg-purple-100 text-purple-800 border-purple-300", example: "The marketplace of ideas", description: "Figurative language shaping conceptual framing" },
+  { type: "hedge", label: "Hedge", color: "bg-yellow-100 text-yellow-800 border-yellow-300", example: "It seems plausible that...", description: "Language expressing uncertainty or tentativeness" },
+  { type: "intensifier", label: "Intensifier", color: "bg-orange-100 text-orange-800 border-orange-300", example: "Overwhelmingly corrosive", description: "Language amplifying strength of a claim" },
+  { type: "absolute", label: "Absolute", color: "bg-red-100 text-red-800 border-red-300", example: "Inevitably degrades...", description: "Universal or totalizing claims" },
+  { type: "analogy", label: "Analogy", color: "bg-blue-100 text-blue-800 border-blue-300", example: "Like strip-mining a watershed", description: "Comparisons drawing structural parallels" },
+  { type: "metaphor", label: "Metaphor", color: "bg-purple-100 text-purple-800 border-purple-300", example: "The attention economy", description: "Figurative language shaping conceptual framing" },
 ];
 
 const PHASES = [
@@ -488,7 +531,7 @@ const PHASES = [
       },
       {
         id: "deep-dive",
-        title: "Deep Dive Panel Integration",
+        title: "Deliberation Panel Integration",
         description: "Connect articles to full deliberation system",
         icon: Scale,
         status: "complete" as const,
@@ -551,6 +594,8 @@ function FeatureCard({ feature }: { feature: (typeof PHASES)[0]["features"][0] }
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ArticleEditorDemo() {
+  const [activeArticle, setActiveArticle] = useState<ArticleKey>("attention");
+  const article = MOCK_ARTICLES[activeArticle];
   const [selectedTemplate, setSelectedTemplate] = useState("feature");
   const [charCount, setCharCount] = useState(1847);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -582,6 +627,35 @@ function ArticleEditorDemo() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Article Switcher */}
+        <div>
+          <p className="text-sm font-medium mb-2">Demo Article:</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setActiveArticle("attention"); setSelectedTemplate("feature"); setCharCount(1847); }}
+              className={`flex-1 text-left px-4 py-3 rounded-lg border text-sm transition-all ${
+                activeArticle === "attention"
+                  ? "border-amber-500 bg-amber-50 ring-2 ring-amber-200"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <p className="font-medium text-slate-800">The Hidden Cost of Attention</p>
+              <p className="text-xs text-slate-500 mt-0.5">Feature · Civic discourse & algorithms</p>
+            </button>
+            <button
+              onClick={() => { setActiveArticle("socialChoice"); setSelectedTemplate("standard"); setCharCount(4231); }}
+              className={`flex-1 text-left px-4 py-3 rounded-lg border text-sm transition-all ${
+                activeArticle === "socialChoice"
+                  ? "border-amber-500 bg-amber-50 ring-2 ring-amber-200"
+                  : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              <p className="font-medium text-slate-800">Arrow&apos;s Impossibility Theorem</p>
+              <p className="text-xs text-slate-500 mt-0.5">Standard · Formal social choice theory</p>
+            </button>
+          </div>
+        </div>
+
         {/* Template Selector */}
         <div>
           <p className="text-sm font-medium mb-2">Template:</p>
@@ -652,31 +726,104 @@ function ArticleEditorDemo() {
             )}
 
             {/* Simulated Content */}
-            <h1 className="text-2xl font-bold mb-3">{MOCK_ARTICLE.title}</h1>
-            <p className="text-slate-600 mb-3">
-              Democratic deliberation, at its best, is a spatial practice. Arguments occupy positions in a conceptual landscape, and{" "}
-              <span className="bg-yellow-100 border-b-2 border-yellow-400">the topology of consensus</span>{" "}
-              emerges from the gravitational pull of evidence and reason.
-            </p>
+            <h1 className="text-2xl font-bold mb-3">{article.title}</h1>
 
-            {/* PullQuote Node */}
-            <div className="border-l-4 border-amber-400 bg-amber-50/50 px-4 py-3 my-3 italic text-slate-700">
-              &ldquo;The marketplace of ideas is not a flat plane — it has peaks of insight, valleys of confusion, and ridgelines of productive disagreement.&rdquo;
-            </div>
+            {activeArticle === "attention" ? (
+              <>
+                <p className="text-slate-600 mb-3">
+                  Every minute, engagement-maximizing recommender systems make billions of micro-decisions about what 4.9 billion people will see next. These systems treat attention as{" "}
+                  <span className="bg-yellow-100 border-b-2 border-yellow-400">an extractive resource</span>
+                  {" "}— harvesting it in milliseconds, converting it to ad revenue, and discarding the epistemic residue.
+                </p>
 
-            {/* Callout Node */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 my-3 flex gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-blue-700">Key Insight</p>
-                <p className="text-sm text-blue-600">The geometry of deliberation is not Euclidean — it follows the curvature of shared understanding.</p>
-              </div>
-            </div>
+                {/* PullQuote Node */}
+                <div className="border-l-4 border-amber-400 bg-amber-50/50 px-4 py-3 my-3 italic text-slate-700">
+                  &ldquo;The most consequential editorial decisions in history are now made by loss functions that have never encountered the concept of civic responsibility.&rdquo;
+                </div>
 
-            {/* Math Block Node */}
-            <div className="rounded-lg border bg-slate-50 px-4 py-3 my-3 text-center font-mono text-sm text-slate-700">
-              ∇ · F<sub>consensus</sub> = Σ w<sub>i</sub> · evidence<sub>i</sub>
-            </div>
+                {/* Callout Node */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 my-3 flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">Key Insight</p>
+                    <p className="text-sm text-blue-600">The problem is not that algorithms have biases — all editorial systems do. The problem is that these biases are optimized against metrics structurally misaligned with informed democratic participation.</p>
+                  </div>
+                </div>
+
+                {/* Math Block Node */}
+                <div className="rounded-lg border bg-slate-50 px-4 py-3 my-3 text-center font-mono text-sm text-slate-700">
+                  Attention<sub>civic</sub> = Σ R<sub>i</sub> · s<sub>i</sub> / Σ E<sub>j</sub> · τ<sub>j</sub> &nbsp; where E<sub>j</sub> ≫ R<sub>i</sub>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-slate-600 mb-3">
+                  Kenneth Arrow&apos;s 1951 impossibility theorem remains one of the most profound results in social choice theory. It demonstrates that no rank-order voting system with{" "}
+                  <span className="bg-yellow-100 border-b-2 border-yellow-400">three or more alternatives</span>
+                  {" "}can simultaneously satisfy a small set of seemingly reasonable fairness conditions.
+                </p>
+
+                {/* PullQuote Node */}
+                <div className="border-l-4 border-amber-400 bg-amber-50/50 px-4 py-3 my-3 italic text-slate-700">
+                  &ldquo;The impossibility is not a defect of democracy — it is a proof that collective rationality requires more than the mechanical aggregation of individual rankings.&rdquo;
+                </div>
+
+                {/* Definition Block — math-heavy */}
+                <div className="rounded-lg border bg-slate-50 px-4 py-3 my-3 space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Definition 1 — Social Welfare Function</p>
+                  <div className="text-center font-mono text-sm text-slate-700">
+                    F : L(A)<sup>n</sup> → L(A)
+                  </div>
+                  <p className="text-xs text-slate-500 text-center">Maps a profile of n individual orderings over alternative set A to a single social ordering.</p>
+                </div>
+
+                {/* Theorem Block */}
+                <div className="rounded-lg border-2 border-amber-300 bg-amber-50/30 px-4 py-3 my-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Theorem (Arrow, 1951)</p>
+                  <p className="text-sm text-slate-700">If |A| ≥ 3, there exists no social welfare function F satisfying all of:</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mt-1">
+                    <div className="rounded bg-white border px-2 py-1"><strong>U</strong> — Unrestricted Domain</div>
+                    <div className="rounded bg-white border px-2 py-1"><strong>P</strong> — Pareto Efficiency</div>
+                    <div className="rounded bg-white border px-2 py-1"><strong>IIA</strong> — Independence of Irrelevant Alternatives</div>
+                    <div className="rounded bg-white border px-2 py-1"><strong>ND</strong> — Non-Dictatorship</div>
+                  </div>
+                </div>
+
+                {/* Callout Node */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 my-3 flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">Key Insight</p>
+                    <p className="text-sm text-blue-600">When preferences are endogenous to deliberation rather than fixed inputs, the domain restriction Arrow requires may arise naturally — as a consequence of reasoned exchange, not an imposed constraint.</p>
+                  </div>
+                </div>
+
+                {/* Math Block Nodes — multiple equations */}
+                <div className="rounded-lg border bg-slate-50 px-4 py-3 my-3 space-y-3">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">Formal Statement</p>
+                  <div className="text-center font-mono text-sm text-slate-700">
+                    ∄ F : L(A)<sup>n</sup> → L(A) satisfying U ∧ P ∧ IIA ∧ ND
+                  </div>
+                  <div className="border-t pt-2 text-center font-mono text-sm text-slate-700">
+                    <p className="text-xs text-slate-500 mb-1">Deliberative transformation operator:</p>
+                    D(R<sub>1</sub>, …, R<sub>n</sub>) = (R&apos;<sub>1</sub>, …, R&apos;<sub>n</sub>) where R&apos;<sub>i</sub> ∈ L<sub>SR</sub>(A) ⊂ L(A)
+                  </div>
+                  <div className="border-t pt-2 text-center font-mono text-sm text-slate-700">
+                    <p className="text-xs text-slate-500 mb-1">Sen&apos;s value restriction (sufficient for transitivity):</p>
+                    ∀ &#123;x, y, z&#125; ⊆ A, ∃ rank r : ¬∃ i (x R<sub>i</sub> y R<sub>i</sub> z with rank r)
+                  </div>
+                </div>
+
+                {/* Inline Math Example */}
+                <p className="text-slate-600 mb-3">
+                  The key move is recognizing that the deliberative operator <span className="font-mono text-sm bg-slate-100 px-1 rounded">D</span> produces
+                  single-peaked preferences over the latent dimension of the deliberation topic, satisfying Sen&apos;s
+                  value restriction. Under single-peakedness, majority rule yields a transitive social ordering — the
+                  median voter&apos;s peak <span className="font-mono text-sm bg-slate-100 px-1 rounded">x<sup>*</sup> = med(x<sub>1</sub><sup>*</sup>, …, x<sub>n</sub><sup>*</sup>)</span> is
+                  a Condorcet winner.
+                </p>
+              </>
+            )}
 
             {/* Slash Command Popup */}
             {showSlashMenu && (
@@ -780,6 +927,8 @@ function ArticleEditorDemo() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function PublishingDemo() {
+  const [activeArticle, setActiveArticle] = useState<ArticleKey>("attention");
+  const article = MOCK_ARTICLES[activeArticle];
   const [articleStatus, setArticleStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [isPublishing, setIsPublishing] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -813,12 +962,34 @@ function PublishingDemo() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Article Switcher */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setActiveArticle("attention"); setArticleStatus("DRAFT"); }}
+            className={`flex-1 text-left px-3 py-2 rounded-lg border text-sm transition-all ${
+              activeArticle === "attention" ? "border-orange-500 bg-orange-50 ring-2 ring-orange-200" : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
+            <p className="font-medium text-sm">The Hidden Cost of Attention</p>
+            <p className="text-xs text-slate-500">Feature article</p>
+          </button>
+          <button
+            onClick={() => { setActiveArticle("socialChoice"); setArticleStatus("DRAFT"); }}
+            className={`flex-1 text-left px-3 py-2 rounded-lg border text-sm transition-all ${
+              activeArticle === "socialChoice" ? "border-orange-500 bg-orange-50 ring-2 ring-orange-200" : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
+            <p className="font-medium text-sm">Arrow&apos;s Impossibility Theorem</p>
+            <p className="text-xs text-slate-500">Academic article</p>
+          </button>
+        </div>
+
         {/* Publish Workflow */}
         <div className="border rounded-lg bg-white p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">{MOCK_ARTICLE.title}</p>
-              <p className="text-xs text-slate-500">By {MOCK_ARTICLE.author.name}</p>
+              <p className="text-sm font-medium">{article.title}</p>
+              <p className="text-xs text-slate-500">By {article.author.name}</p>
             </div>
             <Badge className={articleStatus === "PUBLISHED" ? "bg-emerald-600" : "bg-slate-500"}>
               {articleStatus}
@@ -828,9 +999,9 @@ function PublishingDemo() {
           {/* Publish Steps */}
           <div className="space-y-2">
             {[
-              { step: "Generate slug", detail: `"${MOCK_ARTICLE.slug}"`, done: articleStatus === "PUBLISHED" },
-              { step: "Compute excerpt", detail: `${MOCK_ARTICLE.excerpt?.slice(0, 50)}...`, done: articleStatus === "PUBLISHED" },
-              { step: "Calculate reading time", detail: `${MOCK_ARTICLE.readingTime} min read`, done: articleStatus === "PUBLISHED" },
+              { step: "Generate slug", detail: `"${article.slug}"`, done: articleStatus === "PUBLISHED" },
+              { step: "Compute excerpt", detail: `${article.excerpt?.slice(0, 50)}...`, done: articleStatus === "PUBLISHED" },
+              { step: "Calculate reading time", detail: `${article.readingTime} min read`, done: articleStatus === "PUBLISHED" },
               { step: "Create revision snapshot", detail: "Immutable point-in-time copy", done: articleStatus === "PUBLISHED" },
               { step: "Create feed post", detail: "Article shared to platform feed", done: articleStatus === "PUBLISHED" },
             ].map((s, i) => (
@@ -870,11 +1041,11 @@ function PublishingDemo() {
               <ImageIcon className="w-10 h-10 text-amber-300" />
             </div>
             <div className="p-3">
-              <p className="font-medium text-sm">{MOCK_ARTICLE.title}</p>
-              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{MOCK_ARTICLE.excerpt}</p>
+              <p className="font-medium text-sm">{article.title}</p>
+              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{article.excerpt}</p>
               <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {MOCK_ARTICLE.readingTime} min</span>
-                <span>{MOCK_ARTICLE.author.name}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {article.readingTime} min</span>
+                <span>{article.author.name}</span>
               </div>
             </div>
           </div>
@@ -977,7 +1148,7 @@ function AnnotationDemo() {
           <Badge className="ml-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs shadow-sm">Interactive</Badge>
         </CardTitle>
         <CardDescription>
-          Select text to annotate, comment rail with collision resolution, rhetoric analysis, and deep dive integration
+          Select text to annotate, comment rail with collision resolution, rhetoric analysis, and deliberation integration
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -990,7 +1161,7 @@ function AnnotationDemo() {
                 <Crosshair className="w-3 h-3" /> Select text to create annotations (simulated)
               </p>
               <p className="text-slate-700">
-                Democratic deliberation, at its best, is a spatial practice.{" "}
+                Every minute,{" "}
                 <span
                   className={`cursor-pointer border-b-2 transition-colors ${
                     activeThread === "thread-1"
@@ -999,15 +1170,15 @@ function AnnotationDemo() {
                   }`}
                   onClick={() => {
                     setActiveThread(activeThread === "thread-1" ? null : "thread-1");
-                    toast.info("Thread: spatial metaphors and geometric reasoning");
+                    toast.info("Thread: engagement-maximizing recommender systems");
                   }}
                 >
-                  Spatial metaphors and geometric reasoning
+                  engagement-maximizing recommender systems
                 </span>{" "}
-                illuminate the structure of democratic argument.
+                make billions of micro-decisions about what 4.9 billion people will see next.
               </p>
               <p className="text-slate-700">
-                When we examine{" "}
+                The result is{" "}
                 <span
                   className={`cursor-pointer border-b-2 transition-colors ${
                     activeThread === "thread-2"
@@ -1018,15 +1189,15 @@ function AnnotationDemo() {
                   }`}
                   onClick={() => {
                     setActiveThread(activeThread === "thread-2" ? null : "thread-2");
-                    toast.info("Thread: the topology of consensus (resolved)");
+                    toast.info("Thread: an epistemic commons (resolved)");
                   }}
                 >
-                  the topology of consensus
-                </span>
-                , we see how evidence creates convergence and shared understanding.
+                  an epistemic commons
+                </span>{" "}
+                under unprecedented structural pressure — where nuance is taxed and outrage is subsidized.
               </p>
               <p className="text-slate-700">
-                Modeling{" "}
+                Between 2020 and 2025, platforms produced{" "}
                 <span
                   className={`cursor-pointer border-b-2 transition-colors ${
                     activeThread === "thread-3"
@@ -1035,12 +1206,12 @@ function AnnotationDemo() {
                   }`}
                   onClick={() => {
                     setActiveThread(activeThread === "thread-3" ? null : "thread-3");
-                    toast.info("Thread: argumentation as a force-directed graph");
+                    toast.info("Thread: a 23% decrease in policy-relevant content");
                   }}
                 >
-                  argumentation as a force-directed graph
+                  a 23% decrease in policy-relevant content
                 </span>{" "}
-                reveals how claims cluster and how contradictions create boundaries.
+                reaching median users, while emotionally arousing political content saw a 340% amplification.
               </p>
 
               {/* Rhetoric Overlays */}
@@ -1048,11 +1219,11 @@ function AnnotationDemo() {
                 <div className="mt-4 pt-3 border-t">
                   <p className="text-xs font-medium text-slate-500 mb-2">Rhetoric Analysis:</p>
                   <p className="text-slate-700">
-                    <span className="bg-yellow-100 border-b border-yellow-400 px-0.5">It seems likely</span> that deliberation{" "}
-                    <span className="bg-red-100 border-b border-red-400 px-0.5">always</span> involves tension.{" "}
-                    The process is <span className="bg-orange-100 border-b border-orange-400 px-0.5">absolutely fundamental</span> to democracy,{" "}
-                    <span className="bg-blue-100 border-b border-blue-400 px-0.5">like a marketplace of ideas</span> where{" "}
-                    <span className="bg-purple-100 border-b border-purple-400 px-0.5">the landscape of discourse</span> shapes outcomes.
+                    <span className="bg-yellow-100 border-b border-yellow-400 px-0.5">It seems plausible</span> that algorithmic curation{" "}
+                    <span className="bg-red-100 border-b border-red-400 px-0.5">inevitably</span> degrades civic attention.{" "}
+                    The effect is <span className="bg-orange-100 border-b border-orange-400 px-0.5">overwhelmingly corrosive</span> to informed self-governance,{" "}
+                    <span className="bg-blue-100 border-b border-blue-400 px-0.5">like strip-mining a watershed</span> — where{" "}
+                    <span className="bg-purple-100 border-b border-purple-400 px-0.5">the attention economy</span> extracts value while externalizing the cost.
                   </p>
                 </div>
               )}
@@ -1159,11 +1330,11 @@ function AnnotationDemo() {
           </div>
         </div>
 
-        {/* Deep Dive Integration */}
+        {/* deliberation Integration */}
         <div className="border rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 p-4">
           <div className="flex items-center gap-2 mb-3">
             <Scale className="w-5 h-5 text-slate-600" />
-            <p className="text-sm font-medium">Deep Dive Panel Integration</p>
+            <p className="text-sm font-medium">Deliberation Panel Integration</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[
@@ -1176,7 +1347,7 @@ function AnnotationDemo() {
               return (
                 <button
                   key={tab.label}
-                  onClick={() => toast.info(`Deep Dive: ${tab.label} — ${tab.desc}`)}
+                  onClick={() => toast.info(`Deliberation: ${tab.label} — ${tab.desc}`)}
                   className="flex flex-col items-center gap-1 p-3 rounded-lg border bg-white hover:bg-slate-50 transition-colors"
                 >
                   <Icon className="w-5 h-5 text-slate-500" />
@@ -1462,7 +1633,7 @@ export default function ArticleFeaturesPage() {
             </h1>
             <p className="text-slate-500 mt-3 max-w-2xl mx-auto">
               End-to-end article authoring, publishing, reading, annotation, and deliberation —
-              from TipTap editor with custom nodes to anchored comment threads and deep dive integration.
+              from TipTap editor with custom nodes to anchored comment threads and deliberation integration.
             </p>
             <div className="flex items-center justify-center gap-3 mt-4">
               <Badge className="bg-emerald-600 shadow-sm">
@@ -1639,7 +1810,7 @@ export default function ArticleFeaturesPage() {
                       DOMPurify paste sanitization •
                       Revision snapshots on publish •
                       Anchor-based comment threads with collision resolution •
-                      Deep dive panel for deliberation •
+                      Deliberation panel for deliberation •
                       Rhetoric analysis overlays (CSS-based)
                     </p>
                   </div>
