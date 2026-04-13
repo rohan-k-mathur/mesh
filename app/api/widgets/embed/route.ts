@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 
-type WidgetType = "stack" | "evidence" | "source" | "health";
+type WidgetType = "stack" | "evidence" | "source" | "health" | "argument" | "claim";
 type Theme = "light" | "dark" | "auto";
 
 interface EmbedResponse {
@@ -33,6 +33,8 @@ const DEFAULT_HEIGHTS: Record<WidgetType, number> = {
   evidence: 500,
   source: 150,
   health: 60,
+  argument: 400,
+  claim: 280,
 };
 
 const DEFAULT_WIDTHS: Record<WidgetType, number> = {
@@ -40,6 +42,8 @@ const DEFAULT_WIDTHS: Record<WidgetType, number> = {
   evidence: 500,
   source: 400,
   health: 150,
+  argument: 600,
+  claim: 600,
 };
 
 export async function GET(req: NextRequest) {
@@ -53,9 +57,9 @@ export async function GET(req: NextRequest) {
     : undefined;
   const compact = searchParams.get("compact") === "true";
 
-  if (!widgetType || !["stack", "evidence", "source", "health"].includes(widgetType)) {
+  if (!widgetType || !["stack", "evidence", "source", "health", "argument", "claim"].includes(widgetType)) {
     return NextResponse.json(
-      { error: "Valid type required: stack, evidence, source, or health" },
+      { error: "Valid type required: stack, evidence, source, health, argument, or claim" },
       { status: 400 }
     );
   }
@@ -190,11 +194,7 @@ async function verifyPublicAccess(
       // Health badges are for deliberations
       const deliberation = await prisma.deliberation.findUnique({
         where: { id: targetId },
-        select: {
-          id: true,
-          name: true,
-          isPublic: true,
-        },
+        select: { id: true, title: true },
       });
 
       if (!deliberation) {
@@ -202,9 +202,62 @@ async function verifyPublicAccess(
       }
 
       return {
-        allowed: deliberation.isPublic,
+        allowed: true,
         metadata: {
-          title: deliberation.name || "Deliberation",
+          title: deliberation.title || "Deliberation",
+        },
+      };
+    }
+
+    case "argument": {
+      // targetId is the ArgumentPermalink shortCode
+      const permalink = await prisma.argumentPermalink.findFirst({
+        where: { OR: [{ shortCode: targetId }, { slug: targetId }] },
+        select: {
+          argumentId: true,
+          argument: {
+            select: {
+              text: true,
+              conclusion: { select: { text: true } },
+            },
+          },
+        },
+      });
+
+      if (!permalink) {
+        return { allowed: false, metadata: { title: "" } };
+      }
+
+      const { argument } = permalink;
+      const title = argument.conclusion?.text
+        ? argument.conclusion.text.slice(0, 80)
+        : argument.text.slice(0, 80);
+
+      return {
+        allowed: true,
+        metadata: {
+          title,
+          description: argument.text.slice(0, 200),
+        },
+      };
+    }
+
+    case "claim": {
+      // targetId is the claim moid
+      const claim = await prisma.claim.findUnique({
+        where: { moid: targetId },
+        select: { text: true, moid: true },
+      });
+
+      if (!claim) {
+        return { allowed: false, metadata: { title: "" } };
+      }
+
+      return {
+        allowed: true,
+        metadata: {
+          title: claim.text.slice(0, 80),
+          description: claim.text.slice(0, 200),
         },
       };
     }

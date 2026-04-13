@@ -1701,7 +1701,8 @@ export default function LivingPeerReviewDemo() {
 
           {/* Tabs */}
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="flex w-full justify-start p-1 h-auto flex-wrap">
+                          <TabsList className="flex w-full justify-start p-1 h-auto">
+              
               <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
               <TabsTrigger value="peer-review" className="text-sm">Peer Review</TabsTrigger>
               <TabsTrigger value="commitments" className="text-sm">Commitments</TabsTrigger>

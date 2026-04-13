@@ -109,6 +109,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (metadata.thumbnailUrl) {
+    response.thumbnail_url = metadata.thumbnailUrl;
+    response.thumbnail_width = 1200;
+    response.thumbnail_height = 630;
+  }
+
   // Add oEmbed discovery headers
   const headers = new Headers();
   headers.set("Content-Type", "application/json+oembed");
@@ -118,7 +124,7 @@ export async function GET(req: NextRequest) {
 }
 
 interface ParsedUrl {
-  type: "stack" | "evidence" | "source" | "health";
+  type: "stack" | "evidence" | "source" | "health" | "argument" | "claim";
   id: string;
   theme?: string;
   compact?: boolean;
@@ -130,7 +136,7 @@ function parseEmbedUrl(url: string): ParsedUrl | null {
 
     // Match /embed/{type}/{id} pattern
     const embedMatch = parsed.pathname.match(
-      /\/embed\/(stack|evidence|source|health)\/([^\/\?]+)/
+      /\/embed\/(stack|evidence|source|health|argument|claim)\/([^\/\?]+)/
     );
 
     if (embedMatch) {
@@ -159,6 +165,28 @@ function parseEmbedUrl(url: string): ParsedUrl | null {
       };
     }
 
+    // Match /a/{shortCode} (argument permalink pages)
+    const argPageMatch = parsed.pathname.match(/^\/a\/([^\/\?]+)$/);
+    if (argPageMatch) {
+      return {
+        type: "argument",
+        id: argPageMatch[1],
+        theme: parsed.searchParams.get("theme") || undefined,
+        compact: parsed.searchParams.get("compact") === "true",
+      };
+    }
+
+    // Match /c/{moid} (claim permalink pages)
+    const claimPageMatch = parsed.pathname.match(/^\/c\/([^\/\?]+)$/);
+    if (claimPageMatch) {
+      return {
+        type: "claim",
+        id: claimPageMatch[1],
+        theme: parsed.searchParams.get("theme") || undefined,
+        compact: parsed.searchParams.get("compact") === "true",
+      };
+    }
+
     return null;
   } catch {
     return null;
@@ -171,6 +199,7 @@ interface Metadata {
   authorName?: string;
   authorUrl?: string;
   itemCount?: number;
+  thumbnailUrl?: string;
 }
 
 async function getMetadata(
@@ -221,24 +250,24 @@ async function getMetadata(
         where: { id },
         select: {
           title: true,
-          authors: true,
+          authorsJson: true,
           container: true,
         },
       });
 
       if (!source) return null;
 
-      // Parse authors for author_name
+      // Parse authorsJson for author_name
       let authorName: string | undefined;
-      if (source.authors) {
+      if (source.authorsJson) {
         try {
-          const parsed = JSON.parse(source.authors);
+          const parsed = source.authorsJson as unknown[];
           if (Array.isArray(parsed) && parsed.length > 0) {
             const first = parsed[0];
-            authorName = typeof first === "string" ? first : first.name;
+            authorName = typeof first === "string" ? first : (first as { name?: string; given?: string; family?: string }).name || undefined;
           }
         } catch {
-          authorName = source.authors.split(",")[0]?.trim();
+          // authorsJson was not parseable; skip author
         }
       }
 
@@ -265,16 +294,62 @@ async function getMetadata(
     case "health": {
       const deliberation = await prisma.deliberation.findUnique({
         where: { id },
+        select: { title: true },
+      });
+
+      if (!deliberation) return null;
+
+      return {
+        title: deliberation.title || "Deliberation Health",
+      };
+    }
+
+    case "argument": {
+      // id is the ArgumentPermalink shortCode or slug
+      const permalink = await prisma.argumentPermalink.findFirst({
+        where: { OR: [{ shortCode: id }, { slug: id }] },
         select: {
-          name: true,
-          isPublic: true,
+          argumentId: true,
+          argument: {
+            select: {
+              text: true,
+              conclusion: { select: { text: true } },
+              deliberation: { select: { title: true } },
+            },
+          },
         },
       });
 
-      if (!deliberation || !deliberation.isPublic) return null;
+      if (!permalink) return null;
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mesh.app";
+      const { argument } = permalink;
+      const title = argument.conclusion?.text
+        ? argument.conclusion.text.slice(0, 100)
+        : argument.text.slice(0, 100);
 
       return {
-        title: deliberation.name || "Deliberation Health",
+        title,
+        description: argument.text.slice(0, 200),
+        thumbnailUrl: `${baseUrl}/api/og/argument/${id}`,
+      };
+    }
+
+    case "claim": {
+      // id is the claim moid
+      const claim = await prisma.claim.findUnique({
+        where: { moid: id },
+        select: { text: true, moid: true },
+      });
+
+      if (!claim) return null;
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mesh.app";
+
+      return {
+        title: claim.text.slice(0, 100),
+        description: claim.text.slice(0, 200),
+        thumbnailUrl: `${baseUrl}/api/og/claim/${id}`,
       };
     }
 
@@ -293,6 +368,8 @@ function calculateDimensions(
     evidence: { width: 500, height: 500 },
     source: { width: 400, height: 150 },
     health: { width: 150, height: 60 },
+    argument: { width: 600, height: 400 },
+    claim: { width: 600, height: 280 },
   };
 
   const { width: defWidth, height: defHeight } = defaults[type] || {

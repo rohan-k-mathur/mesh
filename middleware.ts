@@ -14,6 +14,7 @@ const PUBLIC_API = [
     /^\/api\/evidentialdev\//,         
   /^\/api\/events$/,
   /^\/api\/agora\/events/,
+  /^\/api\/auth\/extension-token$/,
 ];
 
 function isApPath(pathname: string) {

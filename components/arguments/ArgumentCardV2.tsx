@@ -23,8 +23,11 @@ import {
   Plus,
   View,
   PlusCircle,
-  Split
+  Split,
+  Share2,
 } from "lucide-react";
+import { useModalStore } from "@/lib/stores/modalStore";
+import { ShareArgumentModal } from "@/components/modals/ShareArgumentModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +67,40 @@ import { useArgumentCitations } from "@/lib/citations/argumentCitationHooks";
 import { current } from "immer";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
+
+// Inline share button — opens the ShareArgumentModal via the global modal store.
+function ShareButtonInline({
+  argumentId,
+  claimText,
+  confidence,
+  schemeName,
+}: {
+  argumentId: string;
+  claimText: string;
+  confidence?: number | null;
+  schemeName?: string | null;
+}) {
+  const { openModal } = useModalStore();
+  return (
+    <button
+      onClick={() =>
+        openModal(
+          <ShareArgumentModal
+            argumentId={argumentId}
+            claimText={claimText}
+            confidence={confidence}
+            schemeName={schemeName}
+          />
+        )
+      }
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 hover:bg-sky-100 hover:border-sky-300 transition-all cursor-pointer text-xs font-medium text-sky-700"
+      title="Share this argument"
+    >
+      <Share2 className="w-3 h-3" />
+      Share
+    </button>
+  );
+}
 
 type Prem = { id: string; text: string };
 
@@ -1021,6 +1058,14 @@ export function ArgumentCardV2({
               </button>
               
               {/* Phase 3.3: Argument Citation Actions */}
+              {/* Phase 2: Share Argument */}
+              <ShareButtonInline
+                argumentId={id}
+                claimText={conclusion.text}
+                confidence={confidence}
+                schemeName={schemes?.[0]?.schemeName ?? schemeName ?? null}
+              />
+
               <PermalinkCopyButton
                 argumentId={id}
                 variant="ghost"
@@ -1032,7 +1077,7 @@ export function ArgumentCardV2({
                 citingArgumentId={id}
                 citingArgumentText={conclusion.text}
                 variant="ghost"
-                className="btnv2  rounded-xl "
+                className="btnv2 rounded-xl "
               />
               
               {argCqStatus && (
