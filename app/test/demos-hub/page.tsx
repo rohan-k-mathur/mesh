@@ -69,6 +69,13 @@ const categories: DemoCategory[] = [
           "Cross-deliberation networks, meta-edges, room functors, confidence gating.",
         icon: "🌐",
       },
+      {
+        title: "Institutional Pathways",
+        href: "/test/pathways-features",
+        description:
+          "Forward deliberation outcomes to institutions, hash-chained packets, dispositions & responses.",
+        icon: "🏛️",
+      },
     ],
   },
   {

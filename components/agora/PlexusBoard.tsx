@@ -311,7 +311,12 @@ React.useEffect(() => {
 
   // Build quick lookups
   const rooms = (data?.rooms ?? []).slice();
-  const edges = (data?.edges ?? []).slice();
+  const edges = (data?.edges ?? []).filter(
+    (e: any) =>
+      e &&
+      e.kind !== "institutional_pathway" &&
+      e.kind !== "pathway_response",
+  ).slice();
 
   // Live refresh when system changes
   React.useEffect(() => {

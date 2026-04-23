@@ -1416,7 +1416,7 @@ export default function EmbeddableWidgetPhase2DemoPage() {
             <p className="text-sm font-semibold text-slate-700 mb-4">The distribution funnel — Phase 2 unlocks steps 2 &amp; 3</p>
             <div className="flex items-stretch gap-1">
               {[
-                { step: "1", label: "OG image is the beer", sub: "Looks better than everything else in the thread", phase: "Phase 1", done: true },
+                { step: "1", label: "OG image is the draw", sub: "Looks better than everything else in the thread", phase: "Phase 1", done: true },
                 { step: "2", label: "Permalink is the invitation", sub: "Zero-friction, full argument, visible depth", phase: "Phase 1", done: true },
                 { step: "3", label: "Quick Builder arms users", sub: "Turns them into distribution vectors", phase: "Phase 2", done: true, active: true },
                 { step: "4", label: "Response loop is the hook", sub: "Converts readers into creators", phase: "Phase 3", done: false },

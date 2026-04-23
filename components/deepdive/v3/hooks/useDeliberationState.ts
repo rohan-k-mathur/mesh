@@ -12,7 +12,9 @@ export type DeliberationTab =
   | "sources"
   | "thesis"
   | "analytics"
-  | "chains"; // Task 1.7: Argument chains tab
+  | "chains" // Task 1.7: Argument chains tab
+  | "cross"
+  | "pathways"; // Scope A — institutional pathways tab
 
 /**
  * Confidence calculation mode
