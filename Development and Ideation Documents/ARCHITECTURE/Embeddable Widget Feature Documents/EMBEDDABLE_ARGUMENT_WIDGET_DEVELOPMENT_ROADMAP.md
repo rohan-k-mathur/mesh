@@ -12,7 +12,7 @@
 The deliverable is a portable citation-evidence-argument object that can be pasted into any comment section or forum and render as a structured, verifiable argument card. The implementation is organized into five phases, each building on the last but independently shippable. The first two phases are the only ones that matter until the funnel is proven.
 
 **The funnel:**
-1. **The OG image is the beer** — it has to look better than everything else in the comment thread
+1. **The OG image is the draw** — it has to look better than everything else in the comment thread
 2. **The permalink page is the invitation** — zero-friction, no-auth, full argument with visible depth
 3. **The Quick Argument Builder arms your users** — turns them into distribution vectors
 4. **The response loop is the hook** — converts readers into creators
@@ -23,7 +23,7 @@ The deliverable is a portable citation-evidence-argument object that can be past
 
 | Phase | Name | Core Deliverable | Funnel Role |
 |-------|------|-----------------|-------------|
-| **1** | Foundation — Rich Previews & Embed Infrastructure | OG images + argument/claim embed pages + extended oEmbed | The beer + the invitation |
+| **1** | Foundation — Rich Previews & Embed Infrastructure | OG images + argument/claim embed pages + extended oEmbed | The draw + the invitation |
 | **2** | Creation — Quick Argument Builder & Share Flow | Lightweight creation UI + Share modal + Markdown/text export | Arming users |
 | **3** | Distribution — Browser Extension | Chrome extension for create-from-anywhere + inline preview enhancement | Expanding reach |
 | **4** | Engagement — Response Loop & Analytics | "Respond to this" flow + embed tracking + notification pipeline | The hook |

@@ -7,8 +7,15 @@ import { useRoomGraphPrefetch } from '@/components/agora/useRoomGraphPrefetch';
 import PlexusRoomMetrics from '@/components/agora/PlexusRoomMetrics';
 
 /** ---------------- Types & constants ---------------- */
-type EdgeKind = 'xref'|'overlap'|'stack_ref'|'imports'|'shared_author';
-type LinkSketchKind = EdgeKind | 'transport';
+type EdgeKind =
+  | 'xref'
+  | 'overlap'
+  | 'stack_ref'
+  | 'imports'
+  | 'shared_author'
+  | 'institutional_pathway'
+  | 'pathway_response';
+type LinkSketchKind = Exclude<EdgeKind, 'institutional_pathway' | 'pathway_response'> | 'transport';
 
 type RoomNode = {
   id: string;
@@ -23,18 +30,47 @@ type RoomNode = {
   debateSheetId?: string | null;
 };
 
-type MetaEdge = { from: string; to: string; kind: EdgeKind; weight: number };
-type Network = { scope: 'public'|'following'; version: number; rooms: RoomNode[]; edges: MetaEdge[] };
-
-const EDGE_COLORS: Record<EdgeKind,string> = {
-  xref:'#6366f1',          // indigo
-  overlap:'#ef4444',       // red
-  stack_ref:'#f59e0b',     // amber
-  imports:'#14b8a6',       // teal
-  shared_author:'#64748b', // slate
+type InstitutionNode = {
+  id: string; // "inst:<uuid>"
+  institutionId: string;
+  type: 'institution';
+  name: string;
+  kind: string;
+  linkedDeliberationId: string | null;
 };
-const EDGE_LABELS: Record<EdgeKind,string> = {
-  xref:'Cross‑ref', overlap:'Overlap', stack_ref:'Stack ref', imports:'Imports', shared_author:'Shared author'
+
+type MetaEdge = {
+  from: string;
+  to: string;
+  kind: EdgeKind;
+  weight: number;
+  meta?: Record<string, unknown>;
+};
+type Network = {
+  scope: 'public' | 'following';
+  version: number;
+  rooms: RoomNode[];
+  edges: MetaEdge[];
+  institutions?: InstitutionNode[];
+};
+
+const EDGE_COLORS: Record<EdgeKind, string> = {
+  xref: '#6366f1', // indigo
+  overlap: '#ef4444', // red
+  stack_ref: '#f59e0b', // amber
+  imports: '#14b8a6', // teal
+  shared_author: '#64748b', // slate
+  institutional_pathway: '#8b5cf6', // violet
+  pathway_response: '#0ea5e9', // sky
+};
+const EDGE_LABELS: Record<EdgeKind, string> = {
+  xref: 'Cross‑ref',
+  overlap: 'Overlap',
+  stack_ref: 'Stack ref',
+  imports: 'Imports',
+  shared_author: 'Shared author',
+  institutional_pathway: 'Institutional pathway',
+  pathway_response: 'Pathway response',
 };
 
 type OrderBy   = 'recent'|'size'|'accept'|'alpha';
@@ -101,7 +137,19 @@ export default function Plexus({
   /** ---------- UI state ---------- */
   const [edgeOn, setEdgeOn] = usePersistentState<Record<EdgeKind, boolean>>(
     'plexus:edgeOn',
-    { xref:true, overlap:true, stack_ref:true, imports:true, shared_author:false }
+    {
+      xref: true,
+      overlap: true,
+      stack_ref: true,
+      imports: true,
+      shared_author: false,
+      institutional_pathway: true,
+      pathway_response: true,
+    },
+  );
+  const [showInstitutions, setShowInstitutions] = usePersistentState<boolean>(
+    'plexus:showInstitutions',
+    true,
   );
   const [bundleEdges, setBundleEdges] = usePersistentState<boolean>('plexus:bundle', true);
   const [orderBy, setOrderBy]       = usePersistentState<OrderBy>('plexus:order', 'recent');
@@ -227,16 +275,41 @@ export default function Plexus({
     });
   }, [allRooms, selectedTags, qNorm, orderBy]);
 
-  const visibleIds = new Set(rooms.map(r => r.id));
+  // Institution nodes (Scope A)
+  const allInstitutions = data?.institutions ?? [];
+  const institutions = React.useMemo(() => {
+    if (!showInstitutions) return [] as InstitutionNode[];
+    // Only show institutions that are linked to at least one visible room via
+    // institutional_pathway / pathway_response edges.
+    const linked = new Set<string>();
+    for (const e of data?.edges ?? []) {
+      if (e.kind !== 'institutional_pathway' && e.kind !== 'pathway_response') continue;
+      if (visibleIds.has(e.from) && e.to.startsWith('inst:')) linked.add(e.to);
+      if (visibleIds.has(e.to) && e.from.startsWith('inst:')) linked.add(e.from);
+    }
+    return allInstitutions.filter((i) => linked.has(i.id));
+  }, [allInstitutions, showInstitutions, data?.edges, visibleIds]);
+
+  const visibleIdsAll = React.useMemo(() => {
+    const s = new Set(visibleIds);
+    institutions.forEach((i) => s.add(i.id));
+    return s;
+  }, [visibleIds, institutions]);
 
   // Edge filter for visible rooms only
-  const filteredEdges = allEdges.filter(e => visibleIds.has(e.from) && visibleIds.has(e.to));
+  const filteredEdges = allEdges.filter(e => visibleIdsAll.has(e.from) && visibleIdsAll.has(e.to));
 
-  // Edge bundling (group by pair+kind)
+  // Edge bundling (group by pair+kind). Institutional pathway / response edges
+  // are directional and should not be canonicalized — keep them as-is.
   const edges = React.useMemo(() => {
     if (!bundleEdges) return filteredEdges;
-    const m = new Map<string, { from:string; to:string; kind:EdgeKind; weight:number; count:number }>();
+    const out: MetaEdge[] = [];
+    const m = new Map<string, { from:string; to:string; kind:EdgeKind; weight:number; count:number; meta?: Record<string, unknown> }>();
     for (const e of filteredEdges) {
+      if (e.kind === 'institutional_pathway' || e.kind === 'pathway_response') {
+        out.push(e);
+        continue;
+      }
       const a = e.from < e.to ? e.from : e.to;
       const b = e.from < e.to ? e.to   : e.from;
       const k = `${a}|${b}|${e.kind}`;
@@ -244,7 +317,8 @@ export default function Plexus({
       if (cur) { cur.weight += e.weight; cur.count += 1; }
       else m.set(k, { from:a, to:b, kind:e.kind, weight:e.weight, count:1 });
     }
-    return Array.from(m.values()).map(v => ({ from:v.from, to:v.to, kind:v.kind, weight:v.weight })) as MetaEdge[];
+    for (const v of m.values()) out.push({ from:v.from, to:v.to, kind:v.kind, weight:v.weight });
+    return out;
   }, [filteredEdges, bundleEdges]);
 
   /** ---------------- Layout & interaction ---------------- */
@@ -261,8 +335,19 @@ export default function Plexus({
       const a = (i / N) * 2 * Math.PI;
       out.set(r.id, { x: cx + RADIUS * Math.cos(a), y: cy + RADIUS * Math.sin(a) });
     });
+    // Institution nodes ride a slightly outer ring, offset so they don't
+    // overlap room labels.
+    const INST_RADIUS = RADIUS + 60;
+    const M = Math.max(1, institutions.length);
+    institutions.forEach((inst, i) => {
+      const a = (i / M) * 2 * Math.PI + Math.PI / M; // half-step rotation
+      out.set(inst.id, {
+        x: cx + INST_RADIUS * Math.cos(a),
+        y: cy + INST_RADIUS * Math.sin(a),
+      });
+    });
     return out;
-  }, [rooms, w, h]);
+  }, [rooms, institutions, w, h]);
 
   React.useEffect(() => {
   const svg = svgRef.current;
@@ -317,9 +402,37 @@ export default function Plexus({
   };
 
   /** --------------------- Rendering ---------------------- */
-  const edgeTooltip = hoverEdge 
-    ? `${EDGE_LABELS[hoverEdge.kind]} • ${hoverEdge.kind === "imports" ? `${Math.round(hoverEdge.weight)} argument${Math.round(hoverEdge.weight) !== 1 ? "s" : ""}` : `weight ${Math.round(hoverEdge.weight)}`}` 
-    : null;
+  const edgeTooltip = (() => {
+    if (!hoverEdge) return null;
+    const base = EDGE_LABELS[hoverEdge.kind];
+    if (hoverEdge.kind === 'institutional_pathway') {
+      const m = (hoverEdge.meta ?? {}) as {
+        status?: string;
+        currentPacketVersion?: number | null;
+      };
+      const parts = [base];
+      if (m.status) parts.push(`status ${m.status}`);
+      if (m.currentPacketVersion != null) parts.push(`packet v${m.currentPacketVersion}`);
+      return parts.join(' • ');
+    }
+    if (hoverEdge.kind === 'pathway_response') {
+      const m = (hoverEdge.meta ?? {}) as {
+        responseStatus?: string;
+        acceptedRatio?: number;
+      };
+      const parts = [base];
+      if (m.responseStatus) parts.push(m.responseStatus);
+      if (typeof m.acceptedRatio === 'number') {
+        parts.push(`${Math.round(m.acceptedRatio * 100)}% accepted`);
+      }
+      return parts.join(' • ');
+    }
+    if (hoverEdge.kind === 'imports') {
+      const w = Math.round(hoverEdge.weight);
+      return `${base} • ${w} argument${w !== 1 ? 's' : ''}`;
+    }
+    return `${base} • weight ${Math.round(hoverEdge.weight)}`;
+  })();
 
   // Content bounds (for minimap)
   const bounds = React.useMemo(() => {
@@ -408,6 +521,15 @@ export default function Plexus({
           <label className="inline-flex items-center gap-1 text-[12px]">
             <input type="checkbox" className="accent-slate-600" checked={bundleEdges} onChange={e=>setBundleEdges(e.target.checked)} />
             <span>bundle edges</span>
+          </label>
+          <label className="inline-flex items-center gap-1 text-[12px]" title="Show institutional pathway nodes and edges">
+            <input
+              type="checkbox"
+              className="accent-violet-600"
+              checked={showInstitutions}
+              onChange={(e) => setShowInstitutions(e.target.checked)}
+            />
+            <span>institutions</span>
           </label>
 
           {/* Link sketch mode */}
@@ -509,6 +631,15 @@ export default function Plexus({
             <marker id="arrow-stack-ref" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
             </marker>
+
+            {/* Institutional pathway arrows (violet) */}
+            <marker id="arrow-pathway" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b5cf6" />
+            </marker>
+            {/* Pathway response arrows (sky) */}
+            <marker id="arrow-response" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#0ea5e9" />
+            </marker>
           </defs>
 
           <g transform={`translate(${transform.tx},${transform.ty}) scale(${transform.k})`}>
@@ -536,7 +667,17 @@ export default function Plexus({
                 marker = "url(#arrow-xref)";
               } else if (e.kind === "stack_ref") {
                 marker = "url(#arrow-stack-ref)";
+              } else if (e.kind === "institutional_pathway") {
+                marker = "url(#arrow-pathway)";
+              } else if (e.kind === "pathway_response") {
+                marker = "url(#arrow-response)";
               }
+              const dashArray =
+                e.kind === "institutional_pathway"
+                  ? "6 4"
+                  : e.kind === "pathway_response"
+                  ? "2 3"
+                  : undefined;
 
               return (
                 <g key={i}>
@@ -544,8 +685,9 @@ export default function Plexus({
                     d={`M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`}
                     fill="none"
                     stroke={color}
-                    strokeOpacity={isHovered ? 0.7 : (e.kind === "imports" ? 0.35 : 0.22)}
+                    strokeOpacity={isHovered ? 0.85 : (e.kind === "imports" ? 0.35 : (e.kind === "institutional_pathway" || e.kind === "pathway_response" ? 0.6 : 0.22))}
                     strokeWidth={isHovered ? wgt + 1 : wgt}
+                    strokeDasharray={dashArray}
                     markerEnd={marker}
                     onMouseEnter={() => setHoverEdge(e)}
                     onMouseLeave={() => setHoverEdge(null)}
@@ -680,6 +822,54 @@ export default function Plexus({
                         S
                       </text>
                     </g>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Institution nodes (Scope A) */}
+            {institutions.map((inst) => {
+              const p = coords.get(inst.id);
+              if (!p) return null;
+              const half = 14;
+              return (
+                <g
+                  key={inst.id}
+                  transform={`translate(${p.x},${p.y})`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => window.open(`/institutions/${inst.institutionId}`, "_blank", "noopener,noreferrer")}
+                  onMouseEnter={() => setHoverRoom(inst.id)}
+                  onMouseLeave={() => setHoverRoom((cur) => (cur === inst.id ? null : cur))}
+                >
+                  {/* Diamond shape distinguishes institutions from rooms */}
+                  <rect
+                    x={-half}
+                    y={-half}
+                    width={half * 2}
+                    height={half * 2}
+                    transform="rotate(45)"
+                    fill="#8b5cf6"
+                    fillOpacity={0.9}
+                    stroke="#5b21b6"
+                    strokeWidth={1.5}
+                    style={{ filter: "drop-shadow(0 1px 0.5px rgba(0,0,0,0.05))" }}
+                  />
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    y={0.5}
+                    className="fill-white text-[9px] font-bold pointer-events-none"
+                  >
+                    {inst.kind.slice(0, 3).toUpperCase()}
+                  </text>
+                  {(hoverRoom === inst.id || transform.k >= 1.25) && (
+                    <text
+                      textAnchor="middle"
+                      y={half + 14}
+                      className="fill-violet-800 text-[10px] font-medium pointer-events-none"
+                    >
+                      {inst.name}
+                    </text>
                   )}
                 </g>
               );

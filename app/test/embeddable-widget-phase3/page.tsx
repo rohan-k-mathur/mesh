@@ -1207,7 +1207,7 @@ export default function EmbeddableWidgetPhase3Page() {
             <p className="text-sm font-semibold text-slate-700 mb-4">The distribution funnel — Phase 3 expands reach</p>
             <div className="flex items-stretch gap-1">
               {[
-                { step: "1", label: "OG image is the beer", sub: "Looks better than everything else in the thread", phase: "Phase 1", done: true },
+                { step: "1", label: "OG image is the draw", sub: "Looks better than everything else in the thread", phase: "Phase 1", done: true },
                 { step: "2", label: "Permalink is the invitation", sub: "Zero-friction, full argument, visible depth", phase: "Phase 1", done: true },
                 { step: "3", label: "Quick Builder arms users", sub: "Turns them into distribution vectors", phase: "Phase 2", done: true },
                 { step: "4", label: "Extension expands reach", sub: "Create from anywhere, detect everywhere", phase: "Phase 3", done: false, active: true },

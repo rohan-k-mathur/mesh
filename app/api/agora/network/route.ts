@@ -5,8 +5,21 @@ import { z } from 'zod';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type EdgeKind = 'xref' | 'overlap' | 'stack_ref' | 'imports' | 'shared_author';
-type EdgeRow = { from: string; to: string; kind: EdgeKind; weight: number };
+type EdgeKind =
+  | 'xref'
+  | 'overlap'
+  | 'stack_ref'
+  | 'imports'
+  | 'shared_author'
+  | 'institutional_pathway'
+  | 'pathway_response';
+type EdgeRow = {
+  from: string;
+  to: string;
+  kind: EdgeKind;
+  weight: number;
+  meta?: Record<string, unknown>;
+};
 
 const Q = z.object({
   scope: z.enum(['public', 'following']).default('public'),
@@ -163,12 +176,105 @@ const claims = await prisma.claim.findMany({
     })));
   } catch {}
 
+  // E) institutional pathways: deliberation -> institution and institution -> deliberation (response)
+  const institutionsById = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      kind: string;
+      linkedDeliberationId: string | null;
+    }
+  >();
+  try {
+    const pathways = await prisma.institutionalPathway.findMany({
+      where: { deliberationId: { in: roomIds } },
+      select: {
+        id: true,
+        deliberationId: true,
+        institutionId: true,
+        status: true,
+        currentPacket: { select: { version: true } },
+        institution: {
+          select: {
+            id: true,
+            name: true,
+            kind: true,
+            linkedDeliberationId: true,
+          },
+        },
+        submissions: {
+          orderBy: { submittedAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            responses: {
+              orderBy: { respondedAt: 'desc' },
+              take: 1,
+              select: {
+                status: true,
+                items: { select: { decision: true } },
+              },
+            },
+          },
+        },
+      },
+      take: 5000,
+    });
+    for (const p of pathways) {
+      institutionsById.set(p.institution.id, {
+        id: p.institution.id,
+        name: p.institution.name,
+        kind: p.institution.kind,
+        linkedDeliberationId: p.institution.linkedDeliberationId,
+      });
+      meta.push({
+        from: p.deliberationId,
+        to: `inst:${p.institutionId}`,
+        kind: 'institutional_pathway',
+        weight: 1,
+        meta: {
+          pathwayId: p.id,
+          status: p.status,
+          currentPacketVersion: p.currentPacket?.version ?? null,
+        },
+      });
+      const latestResp = p.submissions[0]?.responses[0];
+      if (latestResp) {
+        const items = latestResp.items;
+        const accepted = items.filter((i) => i.decision === 'ACCEPT').length;
+        const acceptedRatio = items.length > 0 ? accepted / items.length : 0;
+        meta.push({
+          from: `inst:${p.institutionId}`,
+          to: p.deliberationId,
+          kind: 'pathway_response',
+          weight: 1,
+          meta: {
+            pathwayId: p.id,
+            responseStatus: latestResp.status,
+            acceptedRatio,
+          },
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[agora/network] pathways fetch failed:', err);
+  }
+
   // Aggregate duplicates across the same (from,to,kind)
   const agg = new Map<string, EdgeRow>();
   for (const e of meta) {
     const k = `${e.from}|${e.to}|${e.kind}`;
     const prev = agg.get(k);
-    agg.set(k, prev ? { ...prev, weight: prev.weight + e.weight } : e);
+    if (prev) {
+      agg.set(k, {
+        ...prev,
+        weight: prev.weight + e.weight,
+        meta: e.meta ?? prev.meta,
+      });
+    } else {
+      agg.set(k, e);
+    }
   }
 
   /* ---------------- 4) Response ---------------- */
@@ -184,6 +290,14 @@ const claims = await prisma.claim.findMany({
       debateSheetId: mSheets.get(r.id) ?? null,
     })),
     edges: Array.from(agg.values()),
+    institutions: Array.from(institutionsById.values()).map((i) => ({
+      id: `inst:${i.id}`,
+      institutionId: i.id,
+      type: 'institution' as const,
+      name: i.name,
+      kind: i.kind,
+      linkedDeliberationId: i.linkedDeliberationId,
+    })),
   };
 
   return NextResponse.json(out, { headers: { 'Cache-Control': 'no-store' } });

@@ -64,6 +64,7 @@ import { ThesisListView } from "../thesis/ThesisListView";
 import { ActiveAssumptionsPanel } from "@/components/assumptions/ActiveAssumptionsPanel";
 import { CreateAssumptionForm } from "@/components/assumptions/CreateAssumptionForm";
 import CrossRoomSearchPanel from "@/components/crossDeliberation/CrossRoomSearchPanel";
+import { DeliberationPathwaysTab } from "@/components/pathways/DeliberationPathwaysTab";
 import ArgumentImportModal from "@/components/crossDeliberation/ArgumentImportModal";
 import CrossDeliberationTab from "@/components/crossDeliberation/CrossDeliberationTab";
 import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
@@ -1398,6 +1399,7 @@ const {
             {/* ASPIC moved to Arguments → ASPIC nested tab (Week 2 Task 2.5) */}
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="cross">Cross</TabsTrigger>
+            <TabsTrigger value="pathways">Pathways</TabsTrigger>
           </TabsList>
           </div>
 
@@ -1874,6 +1876,10 @@ const {
               deliberationId={deliberationId}
               currentUserId={currentUserId}
             />
+          </TabsContent>
+
+          <TabsContent value="pathways" className="w-full min-w-0 mt-4 space-y-4">
+            <DeliberationPathwaysTab deliberationId={deliberationId} />
           </TabsContent>
         </Tabs>
       </div>
