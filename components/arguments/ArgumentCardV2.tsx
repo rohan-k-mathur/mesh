@@ -45,6 +45,7 @@ import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetai
 import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
+import { TypologyAxisStrip } from "@/components/typology/TypologyAxisStrip";
 import { Button } from "@/components/ui/button";
 import { GlossaryText } from "@/components/glossary/GlossaryText";
 import { InlineCommitmentCount } from "@/components/aif/CommitmentBadge";
@@ -937,6 +938,14 @@ export function ArgumentCardV2({
                   claimText={conclusion.text}
                   createdById={authorId}
                   claimAuthorId={authorId}
+                  className="mt-2"
+                />
+
+                {/* B3.6: Tagged disagreement axis pills (argument-level) */}
+                <TypologyAxisStrip
+                  deliberationId={deliberationId}
+                  targetType="ARGUMENT"
+                  targetId={id}
                   className="mt-2"
                 />
               </div>

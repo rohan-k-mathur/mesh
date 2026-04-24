@@ -931,9 +931,7 @@ export default function PathwaysFeaturesPage() {
               <p className="text-sm text-slate-500 mt-0.5">
                 Forward deliberation outcomes to real institutions and track
                 their response ·{" "}
-                <code className="text-xs bg-slate-100 px-1 rounded">
-                  /test/pathways-features
-                </code>
+               
               </p>
             </div>
             <div className="flex items-center gap-2">

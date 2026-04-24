@@ -52,6 +52,7 @@ const prismaMock = {
     findMany: jest.fn(),
     create: jest.fn(),
   },
+  facilitationSession: { findFirst: jest.fn() },
   $transaction: jest.fn(),
 };
 

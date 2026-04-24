@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { current } from "immer";
 import { GroupedCitationList, EvidenceBalanceBar } from "@/components/citations/GroupedCitationList";
 import { EvidencePanel } from "@/components/citations/EvidencePanel";
+import { TypologyAxisStrip } from "@/components/typology/TypologyAxisStrip";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -200,6 +201,14 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
 
       {expanded && (
         <div className="px-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* B3.6: Tagged disagreement axis pills (claim-level) */}
+          <TypologyAxisStrip
+            deliberationId={deliberationId}
+            targetType="CLAIM"
+            targetId={claimId}
+            className="px-3"
+          />
+
           {/* Show message if no content yet */}
           {!hasContent && (
             <div className="px-2 py-1 text-xs text-slate-500 italic bg-slate-50/50 rounded-lg border border-slate-200">
