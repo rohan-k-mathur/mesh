@@ -3374,6 +3374,15 @@ enum LogEntryType {
   RESPONSE_RECEIVED
   PATHWAY_REVISED
   PATHWAY_CLOSED
+  // Facilitation (Scope C / WS3) extensions
+  FACILITATION_OPENED
+  FACILITATION_INTERVENTION
+  FACILITATION_HANDOFF
+  FACILITATION_CLOSED
+  // Typology / Meta-consensus (Scope B / WS2) extensions
+  DISAGREEMENT_TAGGED
+  META_CONSENSUS_PUBLISHED
+  META_CONSENSUS_RETRACTED
 }
 
 /// --- P1: Deliberation Core ---
@@ -4482,6 +4491,17 @@ model Deliberation {
   // Pathways (Scope A / WS1)
   pathways          InstitutionalPathway[]
   linkedInstitution Institution?           @relation("InstitutionLinkedDeliberation")
+
+  // Facilitation (Scope C / WS3)
+  facilitationSessions  FacilitationSession[]
+  facilitationQuestions FacilitationQuestion[]
+  equityMetricSnapshots EquityMetricSnapshot[]
+
+  // Typology / Meta-consensus (Scope B / WS2)
+  disagreementTags       DisagreementTag[]
+  typologyCandidates     TypologyCandidate[]
+  metaConsensusSummaries MetaConsensusSummary[]
+  metaConsensusEvents    MetaConsensusEvent[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -9409,4 +9429,493 @@ model PathwayEvent {
   @@index([pathwayId, createdAt])
   @@index([eventType, createdAt])
   @@index([actorId])
+}
+
+// ─────────────────────────────────────────────────────────
+// Facilitation (Scope C / WS3) — see docs/facilitation/MIGRATION_DRAFT.md
+// ─────────────────────────────────────────────────────────
+
+enum FacilitationSessionStatus {
+  OPEN
+  HANDED_OFF
+  CLOSED
+}
+
+enum FacilitationFramingType {
+  open
+  choice
+  evaluative
+  generative
+}
+
+enum FacilitationCheckKind {
+  CLARITY
+  LEADING
+  BALANCE
+  SCOPE
+  BIAS
+  READABILITY
+}
+
+enum FacilitationCheckSeverity {
+  INFO
+  WARN
+  BLOCK
+}
+
+enum FacilitationEventType {
+  SESSION_OPENED
+  METRIC_THRESHOLD_CROSSED
+  INTERVENTION_RECOMMENDED
+  INTERVENTION_APPLIED
+  INTERVENTION_DISMISSED
+  MANUAL_NUDGE
+  QUESTION_REOPENED
+  TIMEBOX_ADJUSTED
+  HANDOFF_INITIATED
+  HANDOFF_ACCEPTED
+  HANDOFF_DECLINED
+  HANDOFF_CANCELED
+  SESSION_CLOSED
+}
+
+enum FacilitationInterventionKind {
+  ELICIT_UNHEARD
+  REBALANCE_CHALLENGE
+  PROMPT_EVIDENCE
+  REFRAME_QUESTION
+  INVITE_RESPONSE
+  COOLDOWN
+  OTHER
+}
+
+enum FacilitationInterventionTargetType {
+  CLAIM
+  ARGUMENT
+  USER
+  ROOM
+}
+
+enum FacilitationDismissalTag {
+  not_relevant
+  already_addressed
+  wrong_target
+  other
+}
+
+enum EquityMetricKind {
+  PARTICIPATION_GINI
+  CHALLENGE_CONCENTRATION
+  RESPONSE_LATENCY_P50
+  ATTENTION_DEFICIT
+  FACILITATOR_LOAD
+}
+
+enum FacilitationHandoffStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELED
+}
+
+/// Locked decision #1: exactly one OPEN session per deliberation. The partial
+/// unique index `WHERE status = 'OPEN'` is applied as raw SQL after `prisma db push`
+/// (Prisma cannot express partial uniques natively); see scripts/apply-facilitation-indexes.sql.
+model FacilitationSession {
+  id             String                    @id @default(cuid())
+  deliberationId String
+  deliberation   Deliberation              @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  openedById     String // auth_id of opener
+  openedAt       DateTime                  @default(now())
+  closedAt       DateTime?
+  closedById     String? // auth_id of closer
+  status         FacilitationSessionStatus @default(OPEN)
+  isPublic       Boolean                   @default(false) // locked decision #5: opt-in per deliberation
+  summary        String?
+
+  // Typology / Meta-consensus (Scope B / WS2)
+  disagreementTags       DisagreementTag[]
+  typologyCandidates     TypologyCandidate[]
+  metaConsensusSummaries MetaConsensusSummary[]
+  metaConsensusEvents    MetaConsensusEvent[]
+
+  events          FacilitationEvent[]
+  interventions   FacilitationIntervention[]
+  metricSnapshots EquityMetricSnapshot[]
+  handoffsFrom    FacilitationHandoff[]      @relation("HandoffFrom")
+  handoffsTo      FacilitationHandoff[]      @relation("HandoffTo")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deliberationId, status])
+  @@index([openedById])
+}
+
+model FacilitationQuestion {
+  id                String                      @id @default(cuid())
+  deliberationId    String
+  deliberation      Deliberation                @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  version           Int                         @default(1)
+  text              String
+  framingType       FacilitationFramingType
+  qualityReportJson Json? // snapshot of the most recent assistant run
+  lockedAt          DateTime?
+  lockedById        String? // auth_id of locker
+  authoredById      String // auth_id of author
+  parentQuestionId  String?
+  parentQuestion    FacilitationQuestion?       @relation("QuestionRevision", fields: [parentQuestionId], references: [id])
+  revisions         FacilitationQuestion[]      @relation("QuestionRevision")
+  checks            FacilitationQuestionCheck[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([deliberationId, version])
+  @@index([deliberationId, lockedAt])
+  @@index([authoredById])
+}
+
+model FacilitationQuestionCheck {
+  id               String                    @id @default(cuid())
+  questionId       String
+  question         FacilitationQuestion      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  runId            String // groups checks from the same assistant invocation
+  kind             FacilitationCheckKind
+  severity         FacilitationCheckSeverity
+  messageText      String
+  evidenceJson     Json?
+  acknowledgedAt   DateTime? // populated when a WARN is acknowledged at lock time
+  acknowledgedById String? // auth_id
+
+  createdAt DateTime @default(now())
+
+  @@index([questionId, runId])
+  @@index([questionId, severity])
+}
+
+/// Append-only, hash-chained per session. Reuses lib/pathways/hashChain.ts algorithm verbatim.
+model FacilitationEvent {
+  id            String                @id @default(cuid())
+  sessionId     String
+  session       FacilitationSession   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  eventType     FacilitationEventType
+  actorId       String // auth_id; for SYSTEM-emitted events use literal "system"
+  actorRole     String // "facilitator" | "host" | "system"
+  payloadJson   Json
+  hashChainPrev String? // sha256 hex of the previous event in this session, or null for SESSION_OPENED genesis
+  hashChainSelf String // sha256 hex; deterministic over (hashChainPrev || canonical_json(payload) || createdAt)
+
+  // Optional cross-references — populated when the event was triggered by a specific row.
+  interventionId   String?
+  intervention     FacilitationIntervention? @relation(fields: [interventionId], references: [id])
+  metricSnapshotId String?
+  metricSnapshot   EquityMetricSnapshot?     @relation(fields: [metricSnapshotId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, hashChainSelf])
+  @@index([sessionId, createdAt])
+  @@index([sessionId, eventType])
+  @@index([interventionId])
+  @@index([metricSnapshotId])
+}
+
+model FacilitationIntervention {
+  id                          String                             @id @default(cuid())
+  sessionId                   String
+  session                     FacilitationSession                @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  kind                        FacilitationInterventionKind
+  targetType                  FacilitationInterventionTargetType
+  targetId                    String
+  recommendedAt               DateTime                           @default(now())
+  appliedAt                   DateTime?
+  appliedById                 String? // auth_id
+  dismissedAt                 DateTime?
+  dismissedById               String? // auth_id
+  dismissedReasonText         String? // free-text (required on dismiss; see decision #4)
+  dismissedReasonTag          FacilitationDismissalTag?
+  rationaleJson               Json
+  priority                    Int // 1-5
+  ruleName                    String // e.g. "unheardSpeakerRule"
+  ruleVersion                 Int // pinned at recommendation time
+  triggeredByMetric           EquityMetricKind?
+  triggeredByMetricSnapshotId String? // foreign-key pin (decision #3 retention)
+  triggeredByMetricSnapshot   EquityMetricSnapshot?              @relation(fields: [triggeredByMetricSnapshotId], references: [id])
+
+  events FacilitationEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId, recommendedAt])
+  @@index([sessionId, kind])
+  @@index([targetType, targetId])
+  @@index([triggeredByMetricSnapshotId])
+}
+
+/// First-class snapshots, pinned `metricVersion`, `isFinal` flag for the
+/// official end-of-session value (decision #3).
+model EquityMetricSnapshot {
+  id             String               @id @default(cuid())
+  deliberationId String
+  deliberation   Deliberation         @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  sessionId      String?
+  session        FacilitationSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  windowStart    DateTime
+  windowEnd      DateTime
+  metricKind     EquityMetricKind
+  metricVersion  Int // pinned to the calculator version that produced the row
+  value          Decimal              @db.Decimal(12, 6)
+  breakdownJson  Json
+  isFinal        Boolean              @default(false) // true exactly once per (sessionId, metricKind) after SESSION_CLOSED
+
+  // Back-references that pin a snapshot for indefinite retention.
+  triggeredInterventions FacilitationIntervention[]
+  events                 FacilitationEvent[]
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, metricKind, windowEnd])
+  @@index([deliberationId, metricKind, windowEnd])
+  @@index([sessionId, isFinal])
+}
+
+model FacilitationHandoff {
+  id                         String                    @id @default(cuid())
+  fromSessionId              String
+  fromSession                FacilitationSession       @relation("HandoffFrom", fields: [fromSessionId], references: [id], onDelete: Restrict)
+  toSessionId                String? // populated when the receiving session is created on accept
+  toSession                  FacilitationSession?      @relation("HandoffTo", fields: [toSessionId], references: [id], onDelete: Restrict)
+  toUserId                   String // auth_id of intended receiver
+  initiatedById              String // auth_id of initiator
+  initiatedAt                DateTime                  @default(now())
+  acceptedAt                 DateTime?
+  declinedAt                 DateTime?
+  canceledAt                 DateTime?
+  status                     FacilitationHandoffStatus @default(PENDING)
+  notesText                  String?
+  outstandingInterventionIds Json // string[] snapshotted at initiation
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fromSessionId])
+  @@index([toUserId, status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Typology / Meta-consensus (Scope B / WS2)
+// See docs/typology/MIGRATION_DRAFT.md and docs/DelibDemocracyScopeB_Roadmap.md.
+// Hash chain reuses lib/pathways/hashChain.ts verbatim (parallels Scope C).
+// Polymorphic targetId on DisagreementTag is intentional (parity with
+// FacilitationIntervention.targetId); guarded in tagService.assertTargetExists.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DisagreementAxisKey {
+  VALUE
+  EMPIRICAL
+  FRAMING
+  INTEREST
+}
+
+enum DisagreementTagTargetType {
+  CLAIM
+  ARGUMENT
+  EDGE
+}
+
+enum DisagreementTagAuthorRole {
+  PARTICIPANT
+  FACILITATOR
+  HOST
+}
+
+enum DisagreementTagSeedSource {
+  MANUAL
+  INTERVENTION_SEED
+  METRIC_SEED
+  REPEATED_ATTACK_SEED
+  VALUE_LEXICON_SEED
+  IMPORTED
+}
+
+enum MetaConsensusSummaryStatus {
+  DRAFT
+  PUBLISHED
+  RETRACTED
+}
+
+enum MetaConsensusEventType {
+  TAG_PROPOSED
+  TAG_CONFIRMED
+  TAG_RETRACTED
+  CANDIDATE_ENQUEUED
+  CANDIDATE_DISMISSED
+  SUMMARY_DRAFTED
+  SUMMARY_PUBLISHED
+  SUMMARY_RETRACTED
+  AXIS_VERSION_BUMPED
+}
+
+/// Registry table; rarely changes; populated by prisma/seed/typologyAxes.ts
+/// after migration. `version` is bumped when `description` or
+/// `interventionHint` change; existing tags retain `axisVersion` pinning.
+model DisagreementAxis {
+  id               String              @id @default(cuid())
+  key              DisagreementAxisKey @unique
+  displayName      String
+  description      String
+  colorToken       String
+  interventionHint String
+  version          Int                 @default(1)
+  isActive         Boolean             @default(true)
+  seededAt         DateTime            @default(now())
+
+  tags       DisagreementTag[]
+  candidates TypologyCandidate[]
+
+  @@index([isActive])
+}
+
+/// Polymorphic-target tag attaching an axis (with version pin), confidence
+/// and evidence. Lives in CANDIDATE state until `confirmedAt` is set;
+/// transitions to RETRACTED via `retractedAt`. Idempotency rule
+/// "(deliberationId, targetType, targetId, axisId, authoredById) + latest
+/// non-retracted wins" is enforced in lib/typology/tagService.ts.
+model DisagreementTag {
+  id                      String                    @id @default(cuid())
+  deliberationId          String
+  deliberation            Deliberation              @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  sessionId               String?
+  session                 FacilitationSession?      @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  targetType              DisagreementTagTargetType
+  targetId                String
+  axisId                  String
+  axis                    DisagreementAxis          @relation(fields: [axisId], references: [id], onDelete: Restrict)
+  axisVersion             Int
+  confidence              Decimal                   @db.Decimal(4, 3)
+  evidenceText            String
+  evidenceJson            Json?
+  authoredById            String
+  authoredRole            DisagreementTagAuthorRole
+  seedSource              DisagreementTagSeedSource @default(MANUAL)
+  seedReferenceJson       Json?
+  promotedFromCandidateId String?
+  confirmedAt             DateTime?
+  confirmedById           String?
+  retractedAt             DateTime?
+  retractedById           String?
+  retractedReasonText     String?
+
+  events MetaConsensusEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deliberationId, targetType, targetId])
+  @@index([sessionId, axisId])
+  @@index([axisId, confirmedAt])
+  @@index([deliberationId, targetType, targetId, axisId, authoredById])
+}
+
+/// Transient queue row populated by lib/typology/subscribers/facilitationSeeder
+/// and per-session rules. Pruned after promote/dismiss or by a TTL job.
+/// Idempotency on replay enforced via raw partial-unique index on
+/// (seedReferenceJson->>'facilitationEventId') — see scripts/apply-typology-indexes.sql.
+model TypologyCandidate {
+  id                   String                     @id @default(cuid())
+  deliberationId       String
+  deliberation         Deliberation               @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  sessionId            String
+  session              FacilitationSession        @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  targetType           DisagreementTagTargetType?
+  targetId             String?
+  suggestedAxisId      String
+  suggestedAxis        DisagreementAxis           @relation(fields: [suggestedAxisId], references: [id], onDelete: Restrict)
+  suggestedAxisVersion Int
+  seedSource           DisagreementTagSeedSource
+  seedReferenceJson    Json
+  rationaleText        String
+  priority             Int
+  ruleName             String
+  ruleVersion          Int
+  promotedToTagId      String?
+  promotedAt           DateTime?
+  promotedById         String?
+  dismissedAt          DateTime?
+  dismissedById        String?
+  dismissedReasonText  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId, dismissedAt, promotedAt])
+  @@index([sessionId, suggestedAxisId])
+  @@index([targetType, targetId])
+}
+
+/// Session- or deliberation-scoped synthesis. Publish freezes `snapshotJson`
+/// + `snapshotHash`. Edits to a published summary require a new version row
+/// pointing at `parentSummaryId`. 256 KiB cap enforced in summaryService.publish().
+model MetaConsensusSummary {
+  id                  String                     @id @default(cuid())
+  deliberationId      String
+  deliberation        Deliberation               @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  sessionId           String?
+  session             FacilitationSession?       @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  version             Int                        @default(1)
+  status              MetaConsensusSummaryStatus @default(DRAFT)
+  authoredById        String
+  publishedAt         DateTime?
+  publishedById       String?
+  retractedAt         DateTime?
+  retractedById       String?
+  retractedReasonText String?
+  parentSummaryId     String?
+  parentSummary       MetaConsensusSummary?      @relation("SummaryRevision", fields: [parentSummaryId], references: [id])
+  revisions           MetaConsensusSummary[]     @relation("SummaryRevision")
+  bodyJson            Json
+  narrativeText       String?
+  snapshotJson        Json?
+  snapshotHash        String?
+
+  events MetaConsensusEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deliberationId, sessionId, status, publishedAt])
+  @@index([parentSummaryId])
+  @@index([authoredById])
+}
+
+/// Append-only, hash-chained per (deliberationId, sessionId | null).
+/// Reuses lib/pathways/hashChain.ts algorithm verbatim.
+model MetaConsensusEvent {
+  id             String                 @id @default(cuid())
+  deliberationId String
+  deliberation   Deliberation           @relation(fields: [deliberationId], references: [id], onDelete: Restrict)
+  sessionId      String?
+  session        FacilitationSession?   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  eventType      MetaConsensusEventType
+  actorId        String
+  actorRole      String
+  payloadJson    Json
+  hashChainPrev  String?
+  hashChainSelf  String
+
+  tagId       String?
+  tag         DisagreementTag?      @relation(fields: [tagId], references: [id])
+  summaryId   String?
+  summary     MetaConsensusSummary? @relation(fields: [summaryId], references: [id])
+  candidateId String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([deliberationId, sessionId, hashChainSelf])
+  @@index([deliberationId, sessionId, createdAt])
+  @@index([deliberationId, sessionId, eventType])
+  @@index([tagId])
+  @@index([summaryId])
 }

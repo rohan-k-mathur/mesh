@@ -44,6 +44,27 @@ export async function GET(
         })
       : null;
 
+    // C4.5 — Cross-link to facilitation report when the deliberation has
+    // ever had a facilitation session. Additive only; consumers without
+    // facilitation enabled can ignore this field. Returns the most recent
+    // closed session's report URL if present, else falls back to the
+    // deliberation-level report endpoint (which itself resolves the latest
+    // closed session). The field is `null` when no session has ever been
+    // opened against this deliberation.
+    const latestFacilitationSession =
+      await prisma.facilitationSession.findFirst({
+        where: { deliberationId: pathway.deliberationId },
+        orderBy: [{ closedAt: "desc" }, { openedAt: "desc" }],
+        select: { id: true, status: true },
+      });
+    const facilitationReportUrl = latestFacilitationSession
+      ? `/deliberations/${pathway.deliberationId}/facilitation/report${
+          latestFacilitationSession.status === "OPEN"
+            ? ""
+            : `?sessionId=${latestFacilitationSession.id}`
+        }`
+      : null;
+
     return NextResponse.json({
       pathway: isAuthed ? pathway : { ...pathway, openedById: null },
       currentPacket: isAuthed
@@ -66,6 +87,7 @@ export async function GET(
         acknowledgementToResponseMs: null,
         itemDispositionCoverage: null,
       },
+      facilitationReportUrl,
     });
   } catch (err) {
     return mapServiceError(err);

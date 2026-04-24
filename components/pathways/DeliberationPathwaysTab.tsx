@@ -5,6 +5,7 @@ import useSWR from "swr";
 import clsx from "clsx";
 import { PathwayTimeline } from "./PathwayTimeline";
 import { PacketBuilder } from "./PacketBuilder";
+import { RemainingDisagreementsPanel } from "@/components/typology/RemainingDisagreementsPanel";
 
 /**
  * A3.6 — "Pathways" tab for the deliberation room.
@@ -115,6 +116,9 @@ export function DeliberationPathwaysTab({
           {showOpenForm ? "Cancel" : "Open new pathway"}
         </button>
       </header>
+
+      {/* B3.7: Latest published meta-consensus summary as report context */}
+      <RemainingDisagreementsPanel deliberationId={deliberationId} defaultOpen={false} />
 
       {showOpenForm && (
         <OpenPathwayForm
