@@ -1,115 +1,99 @@
 # Commonplace: Initial Setup Guide
 
-How to bootstrap Commonplace as a separate Next.js app inside the Mesh monorepo, reusing specific infrastructure without coupling to the argumentation domain.
+How to bootstrap Commonplace as a **fully self-contained** Next.js app inside the Mesh monorepo. The setup procedure does not modify any existing Mesh file, does not extract code out of Mesh, and does not edit the root `package.json` or `tsconfig.json`. Everything lives under a single new directory: `packages/commonplace/`.
+
+The original, extraction-based plan is preserved in [COMMONPLACE_SETUP.original.md](COMMONPLACE_SETUP.original.md) for reference. Use it later if/when shared-code duplication becomes painful enough to justify factoring out an `@app/shared` package. For the MVP, the goal is to add Commonplace to the repo with zero touch on existing files.
 
 ---
 
-## 1. Workspace Structure
+## 1. Guiding Constraint
 
-The monorepo already uses Yarn workspaces (`"workspaces": ["packages/*"]` in root `package.json`). Commonplace will live alongside the existing packages:
+**No file outside `packages/commonplace/` is modified by this setup.** Specifically:
+
+- `package.json` (root) — untouched. Yarn workspaces already match `packages/*`, so Commonplace is picked up automatically.
+- `tsconfig.json` (root) — untouched. Commonplace defines its own `tsconfig.json` with its own path aliases, scoped to its own directory.
+- `app/`, `components/`, `lib/`, `workers/`, `services/` (Mesh) — untouched. Nothing is moved out, no imports are rewritten.
+- `prisma/schema.prisma` (Mesh) — untouched. Commonplace uses its own Prisma schema in `packages/commonplace/prisma/` pointing at its own database.
+
+The only side effect of `npm install` at the root is updates to the generated `package-lock.json`. That is unavoidable when adding any workspace and is not a hand-edit of an existing file.
+
+---
+
+## 2. Workspace Layout
 
 ```
 mesh/
-├── app/                    # Mesh Next.js app (unchanged)
+├── app/                    # Mesh (unchanged)
+├── components/             # Mesh (unchanged)
+├── lib/                    # Mesh (unchanged)
+├── workers/                # Mesh (unchanged)
 ├── packages/
-│   ├── sheaf-acl/          # existing
-│   ├── commonplace/        # ← new Next.js app
-│   │   ├── app/            # Next.js app router
-│   │   ├── components/     # Commonplace-specific UI
-│   │   ├── lib/            # Local utilities
-│   │   ├── prisma/         # Own Prisma schema (separate DB)
-│   │   ├── workers/        # Commonplace-specific workers
-│   │   ├── public/
-│   │   ├── next.config.mjs
-│   │   ├── tailwind.config.ts
-│   │   ├── tsconfig.json
-│   │   └── package.json
-│   └── shared/             # ← new: extracted shared infra
-│       ├── tiptap/         # Tiptap extensions (from lib/tiptap/)
-│       ├── graph/          # Graph layouts (from components/graph/)
-│       ├── queue/          # BullMQ setup (from lib/queue.ts)
-│       └── versioning/     # Revision history patterns (from lib/provenance/)
+│   ├── sheaf-acl/          # existing (unchanged)
+│   └── commonplace/        # ← the entire MVP lives here
+│       ├── app/            # Next.js app router
+│       │   ├── layout.tsx
+│       │   ├── page.tsx
+│       │   ├── write/page.tsx
+│       │   ├── read/page.tsx
+│       │   ├── archive/page.tsx
+│       │   ├── entry/[entryId]/page.tsx
+│       │   └── api/
+│       │       ├── entries/route.ts
+│       │       ├── threads/route.ts
+│       │       └── versions/route.ts
+│       ├── components/     # Commonplace UI
+│       ├── lib/
+│       │   ├── tiptap/     # vendored generic Tiptap extensions (one-time copy)
+│       │   ├── graph/      # vendored generic graph layout functions
+│       │   ├── queue.ts    # local BullMQ factory (~20 lines)
+│       │   └── versioning.ts # local version-chain types (~20 lines)
+│       ├── prisma/
+│       │   └── schema.prisma  # own schema, own database
+│       ├── workers/
+│       │   └── index.ts
+│       ├── public/
+│       ├── next.config.mjs
+│       ├── tailwind.config.ts
+│       ├── tsconfig.json
+│       ├── package.json
+│       └── .env            # COMMONPLACE_DATABASE_URL etc.
 ```
 
-The `packages/shared` package holds infrastructure that both Mesh and Commonplace consume. This avoids duplicating code while keeping domain models separate.
+There is no `packages/shared/`. Anything that would have lived there is either vendored into `packages/commonplace/lib/` (one-time copy of stable generic code) or written fresh inside Commonplace (small patterns not worth a shared package yet).
 
 ---
 
-## 2. Create the Shared Infrastructure Package
+## 3. What Gets Vendored vs. Written Fresh
 
-### 2.1 Package scaffold
+### 3.1 Vendored from Mesh (one-time copy into `packages/commonplace/lib/`)
 
-```bash
-mkdir -p packages/shared/{tiptap,graph,queue,versioning}
-```
+These files are domain-agnostic, stable, and small. They are copied — not symlinked, not imported across packages — so Commonplace owns its copy outright.
 
-**`packages/shared/package.json`**:
-```json
-{
-  "name": "@app/shared",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    "./tiptap": { "types": "./dist/tiptap/index.d.ts", "default": "./dist/tiptap/index.js" },
-    "./graph":  { "types": "./dist/graph/index.d.ts",  "default": "./dist/graph/index.js" },
-    "./queue":  { "types": "./dist/queue/index.d.ts",  "default": "./dist/queue/index.js" },
-    "./versioning": { "types": "./dist/versioning/index.d.ts", "default": "./dist/versioning/index.js" }
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json"
-  },
-  "peerDependencies": {
-    "@tiptap/starter-kit": "^2.0.0",
-    "@tiptap/extension-underline": "^2.0.0",
-    "@tiptap/extension-highlight": "^2.0.0",
-    "@tiptap/extension-link": "^2.0.0",
-    "@tiptap/extension-text-style": "^2.0.0",
-    "@tiptap/extension-color": "^2.0.0",
-    "cytoscape": "^3.30.0",
-    "bullmq": "^3.0.0",
-    "ioredis": "^5.0.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.4"
-  }
-}
-```
+**Tiptap extensions** → `packages/commonplace/lib/tiptap/`:
 
-### 2.2 What to extract
+| File | Source in Mesh | Notes |
+|------|---------------|-------|
+| `shared.ts` | `lib/tiptap/extensions/shared.ts` | Core extension bundle |
+| `FancyTextStyle.ts` | `lib/tiptap/extensions/FancyTextStyle.ts` | |
+| `ssr-text-align.ts` | `lib/tiptap/extensions/ssr-text-align.ts` | |
+| `sectionBreak.ts` | `lib/tiptap/extensions/sectionBreak.ts` | |
+| `block-move.ts` | `lib/tiptap/extensions/block-move.ts` | |
+| `indent.ts` | `lib/tiptap/extensions/indent.ts` | |
+| `code-tab.ts` | `lib/tiptap/extensions/code-tab.ts` | |
+| `font-family.ts` | `lib/tiptap/extensions/font-family.ts` | |
+| `font-size.ts` | `lib/tiptap/extensions/font-size.ts` | |
+| `quick-link.ts` | `lib/tiptap/extensions/quick-link.ts` | Useful for internal entry linking |
 
-**Tiptap** — Move these from `lib/tiptap/extensions/` into `packages/shared/tiptap/`:
+**Explicitly NOT vendored** (Mesh-domain-specific): `citation-node.tsx`, `argument-node.tsx`, `claim-node.tsx`, `proposition-node.tsx`, `draft-claim-node.tsx`, `draft-proposition-node.tsx`, `theorywork-node.tsx`. Commonplace will define its own genre-specific Tiptap nodes (excerpt, meditation, letter) directly in `packages/commonplace/lib/tiptap/nodes/` as they are needed.
 
-| File | Keep / Adapt |
-|------|-------------|
-| `shared.ts` | Keep as-is (core extension bundle) |
-| `FancyTextStyle.ts` | Keep |
-| `ssr-text-align.ts` | Keep |
-| `sectionBreak.ts` | Keep |
-| `block-move.ts` | Keep |
-| `indent.ts` | Keep |
-| `code-tab.ts` | Keep |
-| `font-family.ts` | Keep |
-| `font-size.ts` | Keep |
-| `citation-node.tsx` | **Drop** (Mesh domain-specific) |
-| `argument-node.tsx` | **Drop** |
-| `claim-node.tsx` | **Drop** |
-| `proposition-node.tsx` | **Drop** |
-| `draft-claim-node.tsx` | **Drop** |
-| `draft-proposition-node.tsx` | **Drop** |
-| `theorywork-node.tsx` | **Drop** |
-| `quick-link.ts` | Keep (useful for internal linking) |
+**Graph layouts** → `packages/commonplace/lib/graph/layouts.ts`:
+Copy the pure layout functions from `components/graph/layouts.ts` (hierarchical, polarized, grounded, temporal, focus). These take `{ nodes, edges }` and return positions; no React, no Cytoscape wrapper. The Cytoscape React wrappers (`AFLens.tsx`, `BipolarLens.tsx`) stay in Mesh — Commonplace will build its own wrapper when Phase 5 (citation graph) lands.
 
-The domain-specific nodes (argument, claim, proposition) stay in Mesh. Commonplace will define its own Tiptap nodes for entry genres (excerpt, meditation, etc.) in its local codebase.
+### 3.2 Written fresh inside Commonplace (not vendored)
 
-**Graph layouts** — Extract `components/graph/layouts.ts` into `packages/shared/graph/`. The layout algorithms (hierarchical, polarized, grounded, temporal, focus) are generic graph layout functions that take `{ nodes, edges }` and return positions. The Cytoscape React wrapper components (`AFLens.tsx`, `BipolarLens.tsx`) stay in Mesh — Commonplace will build its own wrapper with its own node/edge types.
-
-**Queue** — Extract the connection + queue factory pattern from `lib/queue.ts` into `packages/shared/queue/`:
+**`packages/commonplace/lib/queue.ts`** — small enough to write directly rather than share:
 
 ```typescript
-// packages/shared/queue/index.ts
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
@@ -122,46 +106,57 @@ export function createQueue(name: string, connection: IORedis) {
 }
 ```
 
-Individual queue definitions and workers stay in each app. Only the setup pattern is shared.
-
-**Versioning** — Extract the revision-history data patterns from `lib/provenance/` into `packages/shared/versioning/`. This is primarily the *types and interfaces* — `VersionChangeType` enum, the version-chain data structure, the diff-comparison interface. The actual Prisma queries stay in each app because they'll operate on different schemas.
-
-### 2.3 Update Mesh to consume shared
-
-After extraction, update Mesh's imports:
+**`packages/commonplace/lib/versioning.ts`** — version-chain types specific to the Commonplace schema:
 
 ```typescript
-// Before (in Mesh):
-import { tiptapSharedExtensions } from "@/lib/tiptap/extensions/shared";
+export type VersionChangeType =
+  | "CREATED"
+  | "REVISED"
+  | "REFINED"
+  | "CORRECTED"
+  | "RECLASSIFIED";
 
-// After:
-import { tiptapSharedExtensions } from "@app/shared/tiptap";
-```
-
-Update root `tsconfig.json` paths:
-
-```json
-"paths": {
-  "@/*": ["./*"],
-  "@app/sheaf-acl": ["packages/sheaf-acl/src/index.ts"],
-  "@app/shared/*": ["packages/shared/src/*"]
+export interface VersionChainNode<T> {
+  id: string;
+  versionNumber: number;
+  previousId: string | null;
+  body: T;
+  changeType: VersionChangeType;
+  createdAt: Date;
 }
 ```
 
+The Prisma queries operating on `EntryVersion` are written against Commonplace's own schema in `packages/commonplace/lib/versioning-queries.ts` when needed.
+
+### 3.3 Trade-off
+
+Vendoring duplicates ~10 small, stable files between Mesh and Commonplace. If a bug is fixed in Mesh's copy of a Tiptap extension, it must be manually ported to Commonplace's copy (and vice versa). This is acceptable because:
+
+- The vendored files are stable — they have not changed often in Mesh.
+- Divergence is likely anyway as Commonplace adds genre-specific behavior.
+- Refactoring to a shared package later is straightforward once the actual sharing surface is known. Premature extraction is harder to undo than late extraction.
+
+If duplication becomes painful, the original extraction-based plan in [COMMONPLACE_SETUP.original.md](COMMONPLACE_SETUP.original.md) is the migration path.
+
 ---
 
-## 3. Create the Commonplace App
+## 4. Scaffolding Commonplace
 
-### 3.1 Scaffold
+All commands run from the repo root.
+
+### 4.1 Create the Next.js app
 
 ```bash
 cd packages
 npx create-next-app@14 commonplace \
   --typescript --tailwind --eslint \
   --app --src-dir=false --import-alias="@cp/*"
+cd ..
 ```
 
-Then edit `packages/commonplace/package.json`:
+### 4.2 Replace the generated `package.json`
+
+`packages/commonplace/package.json`:
 
 ```json
 {
@@ -174,15 +169,16 @@ Then edit `packages/commonplace/package.json`:
     "start": "next start -p 3100",
     "lint": "next lint",
     "db:push": "prisma db push",
-    "db:studio": "npx prisma studio",
-    "worker": "tsx -r dotenv/config workers/index.ts"
+    "db:studio": "prisma studio",
+    "prisma:generate": "prisma generate",
+    "worker": "tsx -r dotenv/config workers/index.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "next": "^14.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "@prisma/client": "^5.0.0",
-    "@app/shared": "workspace:*",
     "@tiptap/react": "^2.0.0",
     "@tiptap/starter-kit": "^2.0.0",
     "@tiptap/extension-underline": "^2.0.0",
@@ -190,7 +186,7 @@ Then edit `packages/commonplace/package.json`:
     "@tiptap/extension-link": "^2.0.0",
     "@tiptap/extension-text-style": "^2.0.0",
     "@tiptap/extension-color": "^2.0.0",
-    "cytoscape": "^3.33.0",
+    "cytoscape": "^3.30.0",
     "bullmq": "^3.0.0",
     "ioredis": "^5.0.0",
     "zod": "^3.0.0"
@@ -199,14 +195,18 @@ Then edit `packages/commonplace/package.json`:
     "typescript": "^5.5.4",
     "prisma": "^5.0.0",
     "tailwindcss": "^3.0.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.0.0",
+    "dotenv": "^16.0.0"
   }
 }
 ```
 
-### 3.2 TypeScript config
+The Prisma client output is local to this package (see schema below), so Commonplace's `prisma generate` does not interfere with Mesh's `prisma generate`.
 
-**`packages/commonplace/tsconfig.json`**:
+### 4.3 TypeScript config (scoped to this package)
+
+`packages/commonplace/tsconfig.json`:
+
 ```json
 {
   "compilerOptions": {
@@ -224,8 +224,7 @@ Then edit `packages/commonplace/package.json`:
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@cp/*": ["./*"],
-      "@app/shared/*": ["../shared/src/*"]
+      "@cp/*": ["./*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
@@ -233,36 +232,43 @@ Then edit `packages/commonplace/package.json`:
 }
 ```
 
-### 3.3 Next.js config
+The `@cp/*` alias is local to Commonplace. The root `tsconfig.json`'s `@/*` alias still points at the Mesh repo root and is unaffected.
 
-**`packages/commonplace/next.config.mjs`**:
+### 4.4 Next.js config
+
+`packages/commonplace/next.config.mjs`:
+
 ```javascript
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@app/shared"],
+  // No transpilePackages needed — nothing is shared from outside this package.
 };
 
 export default nextConfig;
 ```
 
-### 3.4 Root package.json scripts
+### 4.5 Vendor the generic files
 
-Add to the root `package.json` scripts:
+```bash
+mkdir -p packages/commonplace/lib/tiptap packages/commonplace/lib/graph
 
-```json
-"cp:dev": "npm run -w @app/commonplace dev",
-"cp:build": "npm run -w @app/commonplace build",
-"cp:worker": "npm run -w @app/commonplace worker",
-"cp:db:push": "npm run -w @app/commonplace db:push"
+# Tiptap extensions (generic only)
+cp lib/tiptap/extensions/{shared,FancyTextStyle,ssr-text-align,sectionBreak,block-move,indent,code-tab,font-family,font-size,quick-link}.ts \
+   packages/commonplace/lib/tiptap/
+
+# Graph layouts (pure functions only)
+cp components/graph/layouts.ts packages/commonplace/lib/graph/layouts.ts
 ```
+
+After copying, fix any internal import paths inside the copied files so they resolve within `packages/commonplace/lib/tiptap/` (e.g. if `shared.ts` references sibling files, the relative paths should still work since the directory structure is preserved). The original Mesh files are untouched.
 
 ---
 
-## 4. Commonplace Data Model (Own Prisma Schema)
+## 5. Commonplace Data Model
 
-Commonplace gets its own Prisma schema pointing at its own database. This is the core divergence from Mesh — separate data, separate domain.
+Commonplace uses its own Prisma schema and its own Postgres database. Mesh's `prisma/schema.prisma` is untouched.
 
-**`packages/commonplace/prisma/schema.prisma`**:
+`packages/commonplace/prisma/schema.prisma`:
 
 ```prisma
 generator client {
@@ -291,26 +297,21 @@ model Entry {
   id        String     @id @default(cuid())
   genre     EntryGenre @default(FRAGMENT)
   body      Json       // Tiptap JSON document
-  plainText String     @map("plain_text") // searchable plaintext extraction
+  plainText String     @map("plain_text")
 
-  // Temporal structure (primary architectural dimension)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Relations
   authorId  String   @map("author_id")
   author    Author   @relation(fields: [authorId], references: [id])
   threadId  String?  @map("thread_id")
   thread    Thread?  @relation(fields: [threadId], references: [id])
 
-  // Revision chain
   versions  EntryVersion[]
 
-  // Citation (for excerpts)
   sourceId  String? @map("source_id")
   source    Source? @relation(fields: [sourceId], references: [id])
 
-  // Cross-references
   outgoingLinks EntryLink[] @relation("from")
   incomingLinks EntryLink[] @relation("to")
 
@@ -327,23 +328,23 @@ enum VersionChangeType {
   REVISED
   REFINED
   CORRECTED
-  RECLASSIFIED  // genre changed
+  RECLASSIFIED
 }
 
 model EntryVersion {
-  id              String            @id @default(cuid())
-  entryId         String            @map("entry_id")
-  entry           Entry             @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  versionNumber   Int               @map("version_number")
-  body            Json              // Tiptap JSON at this version
-  plainText       String            @map("plain_text")
-  genre           EntryGenre
-  changeType      VersionChangeType @default(CREATED)
-  changeNote      String?           @map("change_note")
-  previousId      String?           @map("previous_id")
-  previous        EntryVersion?     @relation("chain", fields: [previousId], references: [id])
-  next            EntryVersion?     @relation("chain")
-  createdAt       DateTime          @default(now()) @map("created_at")
+  id            String            @id @default(cuid())
+  entryId       String            @map("entry_id")
+  entry         Entry             @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  versionNumber Int               @map("version_number")
+  body          Json
+  plainText     String            @map("plain_text")
+  genre         EntryGenre
+  changeType    VersionChangeType @default(CREATED)
+  changeNote    String?           @map("change_note")
+  previousId    String?           @map("previous_id")
+  previous      EntryVersion?     @relation("chain", fields: [previousId], references: [id])
+  next          EntryVersion?     @relation("chain")
+  createdAt     DateTime          @default(now()) @map("created_at")
 
   @@unique([entryId, versionNumber])
   @@index([entryId, createdAt])
@@ -353,15 +354,15 @@ model EntryVersion {
 // ─── Threads (Meditation Themes) ────────────────────────
 
 model Thread {
-  id          String   @id @default(cuid())
-  name        String?  // named themes; null = unnamed/emerging
+  id          String    @id @default(cuid())
+  name        String?
   description String?
-  authorId    String   @map("author_id")
-  author      Author   @relation(fields: [authorId], references: [id])
+  authorId    String    @map("author_id")
+  author      Author    @relation(fields: [authorId], references: [id])
   entries     Entry[]
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  archivedAt  DateTime? @map("archived_at") // dormant themes
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  archivedAt  DateTime? @map("archived_at")
 
   @@index([authorId, updatedAt])
   @@map("threads")
@@ -372,12 +373,12 @@ model Thread {
 model Source {
   id        String   @id @default(cuid())
   title     String
-  author    String?  // source author, not archive author
+  author    String?
   url       String?
   isbn      String?
   publisher String?
   year      Int?
-  locator   String?  // page number, chapter, timestamp
+  locator   String?
   entries   Entry[]
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -387,21 +388,21 @@ model Source {
 // ─── Cross-References ───────────────────────────────────
 
 enum LinkType {
-  REFERENCE         // explicit cross-reference
-  DEVELOPS          // this entry develops that one
-  RESPONDS_TO       // this entry responds to that one
-  CONTRADICTS       // this entry contradicts that one
-  SHARED_SOURCE     // linked through same source
+  REFERENCE
+  DEVELOPS
+  RESPONDS_TO
+  CONTRADICTS
+  SHARED_SOURCE
 }
 
 model EntryLink {
-  id       String   @id @default(cuid())
-  fromId   String   @map("from_id")
-  from     Entry    @relation("from", fields: [fromId], references: [id], onDelete: Cascade)
-  toId     String   @map("to_id")
-  to       Entry    @relation("to", fields: [toId], references: [id], onDelete: Cascade)
-  type     LinkType @default(REFERENCE)
-  note     String?  // why this link exists
+  id        String   @id @default(cuid())
+  fromId    String   @map("from_id")
+  from      Entry    @relation("from", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String   @map("to_id")
+  to        Entry    @relation("to", fields: [toId], references: [id], onDelete: Cascade)
+  type      LinkType @default(REFERENCE)
+  note      String?
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([fromId, toId, type])
@@ -422,47 +423,35 @@ model Author {
 }
 ```
 
-Key design decisions in this schema:
+Key points:
 
-- **`body` is Tiptap JSON** — the same document format used by Mesh's editor. This means shared extensions render identically.
-- **`plainText` column** — extracted on save for full-text search without parsing JSON.
-- **`EntryVersion` chain** — mirrors the `ClaimVersion` pattern from Mesh's provenance system. Each version links to its predecessor, forming a navigable revision chain.
-- **`Thread`** — the meditation-thread concept. Entries optionally belong to a named theme. Threads can be archived (dormant) but never deleted.
-- **`EntryLink`** — typed edges between entries, supporting the graph-of-entries view. Types are inspired by the document's description of thematic resonance and developmental predecessors.
-- **Separate database** — `COMMONPLACE_DATABASE_URL` env var. Completely isolated from Mesh's data.
+- **Separate database.** `COMMONPLACE_DATABASE_URL` is a different Postgres instance (or at minimum a different schema/database) from Mesh's `DATABASE_URL`. No shared tables.
+- **Local Prisma client output.** `../node_modules/.prisma/commonplace-client` keeps Commonplace's generated client out of Mesh's `node_modules/.prisma/client`. Imports use `import { PrismaClient } from "@prisma/client"` resolved through Commonplace's own `node_modules`.
+- **`body` is Tiptap JSON.** Same document format the vendored extensions produce.
+- **`plainText` column.** Extracted on save for full-text search without parsing JSON.
+- **`EntryVersion` chain.** Mirrors Mesh's `ClaimVersion` pattern conceptually but is a fresh implementation against this schema.
 
 ---
 
-## 5. Commonplace App Skeleton
-
-### 5.1 Minimal app routes
+## 6. App Skeleton
 
 ```
 packages/commonplace/app/
-├── layout.tsx              # Root layout (minimal chrome)
+├── layout.tsx              # Root layout (minimal chrome, max-w-2xl)
 ├── page.tsx                # Landing → redirects to /write
-├── write/
-│   └── page.tsx            # Capture mode (primary entry point)
+├── write/page.tsx          # Capture mode (primary entry point)
 ├── read/
 │   ├── page.tsx            # Thread browser
-│   └── [threadId]/
-│       └── page.tsx        # Single thread reader
-├── archive/
-│   └── page.tsx            # Long-view mode (temporal horizons)
-├── entry/
-│   └── [entryId]/
-│       └── page.tsx        # Single entry with revision history
-├── api/
-│   ├── entries/
-│   │   └── route.ts        # Entry CRUD
-│   ├── threads/
-│   │   └── route.ts        # Thread CRUD
-│   └── versions/
-│       └── route.ts        # Version history
-└── globals.css             # Tailwind + Commonplace typography
+│   └── [threadId]/page.tsx # Single thread reader
+├── archive/page.tsx        # Long-view mode
+├── entry/[entryId]/page.tsx # Entry + revision history
+└── api/
+    ├── entries/route.ts
+    ├── threads/route.ts
+    └── versions/route.ts
 ```
 
-### 5.2 Root layout
+### 6.1 Root layout
 
 ```tsx
 // packages/commonplace/app/layout.tsx
@@ -482,31 +471,27 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-stone-50 text-stone-900 antialiased">
-        <main className="mx-auto max-w-2xl px-6 py-12">
-          {children}
-        </main>
+        <main className="mx-auto max-w-2xl px-6 py-12">{children}</main>
       </body>
     </html>
   );
 }
 ```
 
-The layout is deliberately minimal — `max-w-2xl`, generous padding, no sidebar, no navbar. The document's emphasis on "minimal chrome" and contemplative pacing starts here.
-
-### 5.3 Capture mode stub
+### 6.2 Capture mode stub
 
 ```tsx
 // packages/commonplace/app/write/page.tsx
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
-import { tiptapSharedExtensions } from "@app/shared/tiptap";
+import { tiptapSharedExtensions } from "@cp/lib/tiptap/shared";
 
 export default function WritePage() {
   const editor = useEditor({
     extensions: [
       ...tiptapSharedExtensions(),
-      // Commonplace-specific extensions will go here
+      // Commonplace genre-specific nodes go here as they are built.
     ],
     editorProps: {
       attributes: {
@@ -516,119 +501,141 @@ export default function WritePage() {
     autofocus: true,
   });
 
-  return (
-    <div>
-      <EditorContent editor={editor} />
-    </div>
-  );
+  return <EditorContent editor={editor} />;
 }
 ```
 
+The import uses `@cp/lib/tiptap/shared`, the local alias defined in Commonplace's own `tsconfig.json`. There is no cross-package import.
+
 ---
 
-## 6. Environment & Dev Workflow
+## 7. Environment & Dev Workflow
 
-### 6.1 Environment variables
+### 7.1 Environment variables
 
-**`packages/commonplace/.env`** (gitignored):
+`packages/commonplace/.env` (gitignored, local to the package). The MVP uses Supabase Postgres with Prisma; both pooled and direct URLs are required so migrations bypass the pooler:
 
 ```env
-COMMONPLACE_DATABASE_URL="postgresql://user:pass@localhost:5432/commonplace"
-UPSTASH_REDIS_URL="redis://..."
+# Pooled (port 6543) — runtime
+COMMONPLACE_DATABASE_URL="postgresql://postgres.<project-ref>:<password>@<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+# Direct (port 5432) — migrations / prisma db push
+COMMONPLACE_DIRECT_URL="postgresql://postgres.<project-ref>:<password>@<region>.pooler.supabase.com:5432/postgres"
+
+# Supabase JS client (Phase 1+ auth)
+NEXT_PUBLIC_SUPABASE_URL="https://<project-ref>.supabase.co"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="sb_publishable_..."
+
+UPSTASH_REDIS_URL=""   # optional; needed in Phase 4+
 ```
 
-### 6.2 Development commands
+See [packages/commonplace/.env.example](packages/commonplace/.env.example) for the concrete project values. Mesh's `.env` is untouched and unrelated.
+
+### 7.2 Commands
+
+All run from the repo root unless noted.
 
 ```bash
-# From repo root:
+# First time (after creating packages/commonplace/):
+npm install                              # picks up the new workspace, updates package-lock.json
 
-# First time setup
-yarn install
-npm run -w @app/shared build
-
-# Push Commonplace schema to its database
+# Push Commonplace schema to its database:
 npm run -w @app/commonplace db:push
 
-# Run Commonplace dev server (port 3100, separate from Mesh on 3000)
-npm run cp:dev
+# Generate the Commonplace Prisma client:
+npm run -w @app/commonplace prisma:generate
 
-# Run Commonplace workers
-npm run cp:worker
+# Run Commonplace dev server (port 3100):
+npm run -w @app/commonplace dev
 
-# Run Mesh alongside (separate terminal)
-yarn dev
+# Run Commonplace workers:
+npm run -w @app/commonplace worker
+
+# Mesh continues to work exactly as before, unmodified:
+npm run dev    # Mesh on port 3000
 ```
 
-### 6.3 Build dependency chain
+> Note: AGENTS.md mentions yarn, but the repo's actual lockfile is `package-lock.json`, so npm is the working package manager. Both work via workspaces; we use npm here to match the existing lockfile.
+
+If you prefer shorter commands, add aliases to your shell rather than to the root `package.json` — that keeps the no-touch promise.
+
+```bash
+# In ~/.zshrc, optional:
+alias cp:dev='npm run -w @app/commonplace dev'
+alias cp:worker='npm run -w @app/commonplace worker'
+alias cp:db:push='npm run -w @app/commonplace db:push'
+```
+
+### 7.3 Build dependency chain
 
 ```
-@app/shared          ← build first (tsc)
-@app/sheaf-acl       ← build first (tsc) — only needed for Mesh
-@app/commonplace     ← next build (consumes @app/shared)
-ephemera (root)      ← next build (consumes @app/shared + @app/sheaf-acl)
+@app/commonplace   ← self-contained; no internal-package builds required first
+@app/sheaf-acl     ← Mesh's prebuild (unchanged)
+ephemera (root)    ← Mesh (unchanged)
 ```
 
-Update root `package.json` to add a predev for shared:
-
-```json
-"precp:dev": "npm run -w @app/shared build"
-```
+No `predev` or `prebuild` hooks need to be added at the root.
 
 ---
 
-## 7. What Each Cherry-Picked Piece Gives You
+## 8. What This Self-Contained Setup Gives You
 
-| Shared piece | What Commonplace gets | What it still needs to build |
-|---|---|---|
-| **Tiptap extensions** | Rich text editing with formatting, section breaks, text alignment, font control. Same document format as Mesh. | Genre-specific Tiptap nodes (excerpt with source citation, meditation with thread header, letter with addressee). |
-| **Graph layouts** | Temporal spiral layout, hierarchical layout, ego/focus layout — all applicable to entry/theme graphs. | A Cytoscape React wrapper component with entry-specific node rendering and theme-based coloring. |
-| **Queue infrastructure** | BullMQ + Redis connection factory. Can immediately define Commonplace queues (embedding, OCR, export). | Individual workers: plaintext extraction, embedding generation, PDF typesetting. |
-| **Versioning patterns** | Version-chain data structures and diff interfaces. The conceptual pattern for `EntryVersion`. | Prisma queries for the Commonplace schema, version-diff UI component, revision timeline visualization. |
-
----
-
-## 8. First Working Milestone
-
-After completing this setup, you should be able to:
-
-1. `npm run cp:dev` → Commonplace dev server running on `localhost:3100`
-2. Navigate to `/write` → Tiptap editor with full formatting, autofocused, minimal chrome
-3. Save an entry → persisted to the Commonplace Postgres database with genre classification
-4. View entry at `/entry/[id]` → rendered from Tiptap JSON with revision history
-5. Browse threads at `/read` → list of named themes with entry counts and last-updated dates
-
-This is the "capture mode" from the document — cursor in a text field, minimal chrome, you write. Everything else (reading mode, long-view mode, production mode, physical production) builds on this foundation.
+| Capability | Source |
+|---|---|
+| Rich-text editing with formatting, section breaks, alignment | Vendored Tiptap extensions in `packages/commonplace/lib/tiptap/` |
+| Same document JSON format as Mesh | Same vendored extensions |
+| Background-job infrastructure (BullMQ + Redis) | Local 20-line `lib/queue.ts` |
+| Graph layout algorithms (for Phase 5 citation graph) | Vendored `lib/graph/layouts.ts` |
+| Revision-chain data shape | Local `lib/versioning.ts` + Prisma schema |
+| Genre-specific Tiptap nodes | Built fresh in `packages/commonplace/lib/tiptap/nodes/` per phase |
+| Cytoscape React wrapper | Built fresh when Phase 5 needs it |
+| Prisma queries for `EntryVersion` | Written against Commonplace's own schema |
 
 ---
 
-## 9. Development Roadmap
+## 9. First Working Milestone (Phase 1)
 
-### Phase 0 — Scaffold & Shared Extraction
-Extract `@app/shared` package from Mesh (Tiptap extensions, graph layouts, queue factory, versioning types). Scaffold `@app/commonplace` Next.js app with its own Prisma schema, Tailwind config, and dev scripts. Verify both apps build and run simultaneously. No user-facing features — just plumbing.
+After this setup completes you should be able to:
+
+1. `yarn workspace @app/commonplace dev` → server on `localhost:3100`.
+2. Navigate to `/write` → Tiptap editor with full formatting, autofocused, minimal chrome.
+3. Save an entry → persisted to the Commonplace Postgres database with genre classification.
+4. View an entry at `/entry/[id]` → rendered from Tiptap JSON with revision history.
+5. Browse threads at `/read` → list of named themes with entry counts and last-updated dates.
+6. Mesh `yarn dev` continues to work on `localhost:3000`, completely unaffected.
+
+---
+
+## 10. Development Roadmap
+
+### Phase 0 — Self-Contained Scaffold
+Create `packages/commonplace/` with Next.js app, own Prisma schema, vendored Tiptap files, vendored graph layouts, local queue/versioning helpers. Verify `yarn install` succeeds, the Commonplace dev server starts on port 3100, and Mesh continues to work unmodified on port 3000. No user-facing features — just plumbing.
 
 ### Phase 1 — Capture Mode
-The primary entry point. Tiptap editor at `/write` with minimal chrome. Entry CRUD API routes. Genre selection (subtle post-write prompt — excerpt, observation, meditation, dialogue, letter, list, fragment). Thread assignment for meditations (create new theme or attach to existing). Plaintext extraction on save for search. Auth (likely Firebase, matching Mesh's pattern). This phase produces a usable writing tool.
+Tiptap editor at `/write` with minimal chrome. Entry CRUD API routes. Genre selection (subtle post-write prompt). Thread assignment for meditations. Plaintext extraction on save for search. Auth (likely Firebase, matching Mesh's pattern but with its own Firebase project). This phase produces a usable writing tool.
 
 ### Phase 2 — Revision System
-`EntryVersion` chain creation on every save. Revision timeline UI on the entry detail page — navigate any prior state, see the diff between versions, read the entry at any point in its history. Genre-reclassification tracked as a version event. Change notes (optional annotations on why a revision was made). This is the "revision as first-class object" commitment.
+`EntryVersion` chain creation on every save. Revision timeline UI on the entry detail page. Genre-reclassification tracked as a version event. Change notes (optional annotations on why a revision was made). Revision-as-first-class-object commitment realized.
 
 ### Phase 3 — Reading Mode
-Thread browser at `/read` — list of named themes sorted by recency, with entry counts and date ranges. Thread detail view showing entries in chronological order with genre indicators. Inline revision markers (show when an entry was last revised). Cross-reference links rendered inline. Full-text search across the archive. This phase makes the archive navigable.
+Thread browser at `/read` — list of named themes sorted by recency, with entry counts and date ranges. Thread detail view in chronological order. Inline revision markers. Cross-reference links rendered inline. Full-text search across the archive.
 
 ### Phase 4 — Temporal Views
-The three horizon modes: one-week (current work), six-month (seasonal development), multi-year (long arc). These are not search — they are curated representations of archive activity over time. Theme activity heatmap or timeline. Dormant/emerging/active thread classification. This is the "long-view mode" — the examination-of-conscience interface. Likely requires a background worker for periodic archive-state snapshots.
+The three horizon modes: one-week, six-month, multi-year. Curated representations of archive activity over time. Theme activity heatmap or timeline. Dormant/emerging/active thread classification. Likely requires a background worker for periodic archive-state snapshots.
 
 ### Phase 5 — Citation & Source Graph
-Source model with bibliographic metadata. Excerpt entries linked to sources with locator (page, chapter, timestamp). Source detail view showing all excerpts drawn from a given text. Citation graph visualization using shared Cytoscape layouts — entries as nodes, `EntryLink` edges rendered by type. Theme-level graph (threads as supernodes, shared sources and cross-references as edges). This is the graph-of-graphs concept.
+Source model with bibliographic metadata. Excerpt entries linked to sources with locator. Source detail view showing all excerpts drawn from a given text. Citation graph visualization using the vendored Cytoscape layouts — entries as nodes, `EntryLink` edges rendered by type. Build the Cytoscape React wrapper here, fresh, with Commonplace's own node/edge rendering.
 
 ### Phase 6 — Production Mode
-Artifact composition — select entries from the archive, arrange them into a structured document (essay, letter, collection). Provenance metadata preserved (which entries contributed, which revisions were drawn on). Export to Markdown, HTML, and print-ready PDF. Typography and layout controls for the PDF output (serif body, proper margins, running headers). This is where the archive produces outward-facing artifacts.
+Artifact composition — select entries, arrange them into a structured document. Provenance metadata preserved. Export to Markdown, HTML, and print-ready PDF.
 
 ### Phase 7 — Physical Production
-LaTeX or Typst pipeline for beautifully typeset print artifacts. Yearly or custom-range bound volumes — the user selects a time range or theme, the system generates a print-ready PDF with proper typography, front matter, and index. Integration with a print-on-demand service (Lulu, Blurb) or just PDF download for local printing. This closes the physical-digital loop.
+LaTeX or Typst pipeline for typeset print artifacts. Yearly or custom-range bound volumes. Integration with print-on-demand or local PDF download.
 
 ### Phase 8 — Privacy Hardening (Optional / Long-term)
-Local-first storage layer (Yjs/automerge on SQLite or IndexedDB). End-to-end encrypted sync. Zero-telemetry architecture. This is the most architecturally demanding phase and fundamentally changes the data layer. Only pursue if the project reaches the scale where the privacy commitment matters practically. Can be deferred indefinitely — the server-side version from Phases 0–7 is fully functional without it.
+Local-first storage layer (Yjs/automerge on SQLite or IndexedDB). End-to-end encrypted sync. Zero-telemetry architecture. Defer indefinitely if not needed.
+
+### Phase 9 — Optional: Extract `@app/shared`
+Only when duplication between Mesh and Commonplace becomes painful (likely never for the vendored Tiptap extensions, possibly relevant if both apps grow shared graph or queue patterns). The migration path is documented in [COMMONPLACE_SETUP.original.md](COMMONPLACE_SETUP.original.md).
 
 ### Not Planned
 - AI integration into the writing practice (per the document's explicit stance)
