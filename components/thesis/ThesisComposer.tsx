@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
-  BookPlus
+  BookPlus,
+  Lightbulb
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -66,6 +67,17 @@ type Prong = {
     argument: {
       id: string;
       text: string;
+      // D4 Week 3: scheme instances enable per-prong enabler counts
+      argumentSchemes?: {
+        id: string;
+        justification?: string | null;
+        scheme: {
+          id: string;
+          key: string;
+          name?: string | null;
+          premises?: any;
+        } | null;
+      }[];
     };
   }[];
 };
@@ -703,6 +715,28 @@ export function ThesisComposer({
                                 <FileText className="w-3.5 h-3.5" />
                                 {prong.arguments.length} argument{prong.arguments.length !== 1 ? "s" : ""}
                               </span>
+                              {(() => {
+                                // D4 Week 3: surface inference-assumption count per prong
+                                let enablers = 0;
+                                for (const a of prong.arguments) {
+                                  for (const inst of a.argument?.argumentSchemes ?? []) {
+                                    const premises = inst?.scheme?.premises;
+                                    if (Array.isArray(premises) && premises.length > 0) {
+                                      enablers += 1;
+                                    }
+                                  }
+                                }
+                                if (enablers === 0) return null;
+                                return (
+                                  <span
+                                    className="flex items-center gap-1 text-yellow-700"
+                                    title="Inference assumptions surfaced from argumentation schemes"
+                                  >
+                                    <Lightbulb className="w-3.5 h-3.5" />
+                                    {enablers} assumption{enablers !== 1 ? "s" : ""}
+                                  </span>
+                                );
+                              })()}
                               {prong.introduction && (
                                 <span className="flex items-center gap-1">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />

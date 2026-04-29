@@ -13,10 +13,13 @@ import {
   ArrowDown,
   FileText
 } from "lucide-react";
+import { LiveBadgeStrip } from "@/lib/thesis/LiveBadgeStrip";
+import { useOpenInspector } from "@/lib/thesis/ThesisLiveContext";
 
 // React component for rendering the argument
 function ArgumentNodeView({ node }: NodeViewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const openInspector = useOpenInspector();
   
   const { 
     argumentId, 
@@ -133,9 +136,28 @@ function ArgumentNodeView({ node }: NodeViewProps) {
 
           {/* Conclusion (Primary) */}
           <div className="mb-2">
-            <p className="text-base font-semibold text-slate-900 leading-relaxed">
+            <p
+              className="text-base font-semibold text-slate-900 leading-relaxed cursor-pointer hover:underline decoration-dotted"
+              role="button"
+              tabIndex={0}
+              onClick={() =>
+                argumentId &&
+                openInspector({ kind: "argument", id: argumentId, tab: "overview" })
+              }
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && argumentId) {
+                  e.preventDefault();
+                  openInspector({ kind: "argument", id: argumentId, tab: "overview" });
+                }
+              }}
+            >
               {text}
             </p>
+          </div>
+
+          {/* Live badges (label, attacks, evidence, CQ, freshness) */}
+          <div className="mb-2">
+            <LiveBadgeStrip id={argumentId} kind="argument" />
           </div>
 
           {/* Expand/Collapse Toggle */}

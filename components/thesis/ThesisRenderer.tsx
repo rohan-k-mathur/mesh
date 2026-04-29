@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import useSWR from "swr";
 import { GlossaryText } from "@/components/glossary/GlossaryText";
+import { ConfidenceBadge } from "@/components/thesis/ConfidenceBadge";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -234,6 +235,13 @@ export function ThesisRenderer({ thesisId }: { thesisId: string }) {
                           <h3 className="text-xl font-semibold text-slate-900">
                             {prong.title}
                           </h3>
+                          <ConfidenceBadge
+                            thesisId={thesis.id}
+                            prongId={prong.id}
+                            size="sm"
+                            label="Strength"
+                            className="ml-auto"
+                          />
                         </div>
                         <div className="flex items-start gap-2 ml-8 text-slate-700">
                           {prong.mainClaim.ClaimLabel && (

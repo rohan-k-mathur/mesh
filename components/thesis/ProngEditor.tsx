@@ -1,7 +1,7 @@
 // components/thesis/ProngEditor.tsx
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { ArgumentPicker } from "./ArgumentPicker";
@@ -18,6 +18,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnablerPanel } from "@/components/chains/EnablerPanel";
+import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
+import {
+  ArgumentChainPicker,
+  type PickedChain,
+} from "@/components/thesis/ArgumentChainPicker";
+import { GitBranch, Loader2, Workflow } from "lucide-react";
+import type { Node } from "@xyflow/react";
+import type { ChainNodeData } from "@/lib/types/argumentChain";
 import { toast } from "sonner";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -48,6 +58,19 @@ export function ProngEditor({
   const [showClaimPicker, setShowClaimPicker] = useState(false);
   const [showArgumentPicker, setShowArgumentPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // D4 Week 4: chain ↔ prong conversion state
+  const [showChainPicker, setShowChainPicker] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  // D4 Week 3: enabler challenge dialog state
+  const [challengeTarget, setChallengeTarget] = useState<
+    | {
+        argumentId: string;
+        schemeName: string;
+        enablerText: string;
+      }
+    | null
+  >(null);
 
   // Fetch existing prong if editing
   const { data: prongData } = useSWR(
@@ -208,12 +231,141 @@ export function ProngEditor({
     [thesisId, prongId]
   );
 
+  // D4 Week 4: import a chain into a brand-new prong (only when isNew).
+  const handleImportFromChain = useCallback(
+    async (picked: PickedChain) => {
+      setShowChainPicker(false);
+      setImporting(true);
+      try {
+        const res = await fetch(`/api/thesis/${thesisId}/prongs/from-chain`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chainId: picked.id,
+            title: picked.caption || picked.name,
+            role,
+            includeObjections: true,
+            includeComments: false,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.error) {
+          throw new Error(json.error ?? "Import failed");
+        }
+        toast.success(
+          `Imported chain "${picked.name}" — ${json.argumentCount} argument${
+            json.argumentCount === 1 ? "" : "s"
+          }${json.skippedNodeCount ? `, ${json.skippedNodeCount} skipped` : ""}`,
+        );
+        mutate(`/api/thesis/${thesisId}`);
+        onClose();
+      } catch (err: any) {
+        toast.error(err?.message ?? "Import failed");
+      } finally {
+        setImporting(false);
+      }
+    },
+    [thesisId, role, onClose],
+  );
+
+  // D4 Week 4: export this prong as a new ArgumentChain (only when editing).
+  const handleExportToChain = useCallback(async () => {
+    if (!prongId || !prong) return;
+    if (!prong.arguments || prong.arguments.length === 0) {
+      toast.error("Add at least one argument before exporting to a chain.");
+      return;
+    }
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/argument-chains/from-prong`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prongId,
+          name: title || prong.title,
+          chainType: "GRAPH",
+          inferEnables: true,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Export failed");
+      }
+      toast.success(
+        `Created chain "${json.chainName}" (${json.nodeCount} nodes, ${json.edgeCount} edges).`,
+      );
+      mutate(`/api/argument-chains?deliberationId=${deliberationId}`);
+      mutate(`/api/thesis/${thesisId}`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  }, [thesisId, prongId, prong, title, deliberationId]);
+
+
+  // D4 Week 3: Convert prong arguments → ReactFlow-shaped nodes for EnablerPanel.
+  // EnablerPanel only reads `data.argument.argumentSchemes`, so we don't need real layout.
+  const enablerNodes = useMemo<Node<ChainNodeData>[]>(() => {
+    if (!prong?.arguments) return [];
+    return prong.arguments.map((arg: any, idx: number) => ({
+      id: arg.argument.id,
+      type: "default",
+      position: { x: 0, y: idx * 80 },
+      data: {
+        argument: arg.argument,
+        role: arg.role,
+        addedBy: null,
+        nodeOrder: idx,
+      } as ChainNodeData,
+    }));
+  }, [prong?.arguments]);
+
+  const enablerCount = useMemo(() => {
+    if (!prong?.arguments) return 0;
+    let total = 0;
+    for (const arg of prong.arguments as any[]) {
+      const schemes = arg.argument?.argumentSchemes ?? [];
+      for (const inst of schemes) {
+        const premises = inst?.scheme?.premises;
+        if (Array.isArray(premises) && premises.length > 0) {
+          total += 1; // count one enabler per scheme instance (the major premise)
+        }
+      }
+    }
+    return total;
+  }, [prong?.arguments]);
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? "Add New Prong" : "Edit Prong"}</DialogTitle>
         </DialogHeader>
+
+        {isNew && (
+          <div className="mt-3 rounded-lg border border-teal-200 bg-gradient-to-r from-teal-50/60 to-cyan-50/40 px-3 py-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <GitBranch className="w-4 h-4 text-teal-600 shrink-0" />
+              <p className="text-xs text-slate-700 truncate">
+                Already have an argument chain? Materialize it as a prong
+                automatically.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowChainPicker(true)}
+              disabled={importing}
+              className="text-xs px-3 py-1.5 rounded-md border border-teal-300 bg-white text-teal-700 hover:bg-teal-50 transition shrink-0 disabled:opacity-50 inline-flex items-center gap-1"
+            >
+              {importing ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Workflow className="w-3 h-3" />
+              )}
+              Import from chain…
+            </button>
+          </div>
+        )}
 
         <div className="space-y-4 mt-4">
           {/* Title */}
@@ -267,19 +419,42 @@ export function ProngEditor({
             />
           </div>
 
-          {/* Arguments (only show when editing existing prong) */}
+          {/* Arguments + Assumptions (only show when editing existing prong) */}
           {!isNew && prong && (
-            <div>
+            <Tabs defaultValue="arguments">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-700">Arguments</label>
-                <button
-                  onClick={() => setShowArgumentPicker(true)}
-                  className="text-sm px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
-                >
-                  + Add Argument
-                </button>
+                <TabsList>
+                  <TabsTrigger value="arguments">
+                    Arguments ({prong.arguments?.length ?? 0})
+                  </TabsTrigger>
+                  <TabsTrigger value="enablers">
+                    Assumptions ({enablerCount})
+                  </TabsTrigger>
+                </TabsList>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportToChain}
+                    disabled={exporting || !(prong.arguments?.length > 0)}
+                    className="text-xs px-3 py-1 rounded border border-teal-300 bg-white text-teal-700 hover:bg-teal-50 transition disabled:opacity-50 inline-flex items-center gap-1"
+                    title="Materialize this prong as a new ArgumentChain (round-trip)"
+                  >
+                    {exporting ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <GitBranch className="w-3 h-3" />
+                    )}
+                    Export to chain
+                  </button>
+                  <button
+                    onClick={() => setShowArgumentPicker(true)}
+                    className="text-sm px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
+                  >
+                    + Add Argument
+                  </button>
+                </div>
               </div>
 
+              <TabsContent value="arguments" className="mt-0">
               <div className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-200 rounded-lg p-2">
                 {prong.arguments?.length === 0 && (
                   <div className="text-sm text-slate-500 text-center py-8">
@@ -320,7 +495,7 @@ export function ProngEditor({
                             {arg.role}
                           </span>
                           {/* Justification indicator */}
-                          {arg.argument.schemes && arg.argument.schemes.some((s: any) => s.justification) && (
+                          {arg.argument.argumentSchemes && arg.argument.argumentSchemes.some((s: any) => s.justification) && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
@@ -329,7 +504,7 @@ export function ProngEditor({
                                 <TooltipContent side="right" className="max-w-sm">
                                   <div className="space-y-1">
                                     <p className="font-semibold text-xs">Reconstruction Notes:</p>
-                                    {arg.argument.schemes
+                                    {arg.argument.argumentSchemes
                                       .filter((s: any) => s.justification)
                                       .map((scheme: any, idx: number) => (
                                         <p key={idx} className="text-xs italic">
@@ -354,7 +529,18 @@ export function ProngEditor({
                   </div>
                 ))}
               </div>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="enablers" className="mt-0">
+                <EnablerPanel
+                  nodes={enablerNodes}
+                  chainId={undefined}
+                  onChallengeEnabler={(nodeId, schemeName, enablerText) => {
+                    setChallengeTarget({ argumentId: nodeId, schemeName, enablerText });
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
           )}
 
           {/* Conclusion */}
@@ -409,6 +595,14 @@ export function ProngEditor({
           allowCreate={true}
         />
 
+        {/* D4 Week 4: Chain Picker for "Import from chain" */}
+        <ArgumentChainPicker
+          deliberationId={deliberationId}
+          open={showChainPicker}
+          onClose={() => setShowChainPicker(false)}
+          onPick={handleImportFromChain}
+        />
+
         {/* Argument Picker Modal */}
         {showArgumentPicker && (
           <Dialog open onOpenChange={() => setShowArgumentPicker(false)}>
@@ -420,6 +614,36 @@ export function ProngEditor({
                 deliberationId={deliberationId}
                 onSelect={handleAddArgument}
               />
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* D4 Week 3: Challenge Enabler dialog (CQs against the inference assumption) */}
+        {challengeTarget && (
+          <Dialog open onOpenChange={() => setChallengeTarget(null)}>
+            <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  Challenge inference assumption
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-xs">
+                  <p className="font-semibold text-yellow-800 mb-1">
+                    Scheme: {challengeTarget.schemeName}
+                  </p>
+                  <p className="italic text-yellow-900">
+                    {challengeTarget.enablerText}
+                  </p>
+                </div>
+                <CriticalQuestionsV3
+                  targetType="argument"
+                  targetId={challengeTarget.argumentId}
+                  createdById={authorId || undefined}
+                  deliberationId={deliberationId}
+                  currentUserId={authorId || undefined}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         )}

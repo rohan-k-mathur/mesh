@@ -82,7 +82,7 @@ export function ThesisExportModal({ open, onClose, thesisId, thesisTitle }: Thes
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-slate-900">Export Thesis</DialogTitle>
           <DialogDescription className="text-slate-600">

@@ -229,6 +229,23 @@ function arcPath(
   return `M ${x1} ${y1} Q ${mx} ${cy} ${x2} ${y2}`;
 }
 
+// ─── Connection composer constants ──────────────────────
+
+type LinkType =
+  | "REFERENCE"
+  | "DEVELOPS"
+  | "RESPONDS_TO"
+  | "CONTRADICTS"
+  | "SHARED_SOURCE";
+
+const LINK_TYPES: { value: LinkType; verb: string; key: string }[] = [
+  { value: "REFERENCE", verb: "references", key: "r" },
+  { value: "DEVELOPS", verb: "develops", key: "d" },
+  { value: "RESPONDS_TO", verb: "responds to", key: "a" },
+  { value: "CONTRADICTS", verb: "contradicts", key: "c" },
+  { value: "SHARED_SOURCE", verb: "shares a source with", key: "s" },
+];
+
 // ─── Component ──────────────────────────────────────────
 
 export default function Graph({ nodes, links, threads }: Props) {
@@ -238,13 +255,30 @@ export default function Graph({ nodes, links, threads }: Props) {
   const [tooltipPos, setTooltipPos] = useState<Pos | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Shift-click connection state
+  const [selected, setSelected] = useState<string[]>([]);
+  const [composer, setComposer] = useState<
+    | { from: Node; to: Node }
+    | null
+  >(null);
+  const [relation, setRelation] = useState<LinkType>("REFERENCE");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [composerError, setComposerError] = useState<string | null>(null);
+  const [localLinks, setLocalLinks] = useState<LinkEdge[]>([]);
+
+  const allLinks = useMemo(
+    () => [...links, ...localLinks],
+    [links, localLinks],
+  );
+
   const positions = useMemo(() => {
     if (layout === "chronicle") return chronicleLayout(nodes);
     return constellationLayout(nodes, [
-      ...links.map((l) => ({ from: l.from, to: l.to })),
+      ...allLinks.map((l) => ({ from: l.from, to: l.to })),
       ...threads.map((t) => ({ from: t.fromId, to: t.toId })),
     ]);
-  }, [layout, nodes, links, threads]);
+  }, [layout, nodes, allLinks, threads]);
 
   // Recency rank: 0 (oldest) → 1 (newest), used as the fade weight
   // for node fill in chronicle layout. Constellation ignores it
@@ -272,7 +306,7 @@ export default function Graph({ nodes, links, threads }: Props) {
   const neighbors = useMemo(() => {
     if (!hovered) return new Set<string>();
     const s = new Set<string>();
-    for (const l of links) {
+    for (const l of allLinks) {
       if (l.from === hovered) s.add(l.to);
       if (l.to === hovered) s.add(l.from);
     }
@@ -281,7 +315,7 @@ export default function Graph({ nodes, links, threads }: Props) {
       if (t.toId === hovered) s.add(t.fromId);
     }
     return s;
-  }, [hovered, links, threads]);
+  }, [hovered, allLinks, threads]);
 
   const isHighlighted = (from: string, to: string) =>
     hovered !== null && (from === hovered || to === hovered);
@@ -290,6 +324,119 @@ export default function Graph({ nodes, links, threads }: Props) {
     () => nodes.filter((n) => n.isOrphan).length,
     [nodes],
   );
+
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+
+  const closeComposer = () => {
+    setComposer(null);
+    setSelected([]);
+    setRelation("REFERENCE");
+    setNote("");
+    setComposerError(null);
+    setSaving(false);
+  };
+
+  const handleNodeClick = (e: React.MouseEvent, n: Node) => {
+    if (!e.shiftKey) {
+      router.push(`/entry/${n.id}`);
+      return;
+    }
+    e.preventDefault();
+    // Shift-click: toggle into selection.
+    setSelected((prev) => {
+      if (prev.includes(n.id)) return prev.filter((id) => id !== n.id);
+      const next = [...prev, n.id].slice(-2);
+      if (next.length === 2) {
+        const fromNode = nodeById.get(next[0]);
+        const toNode = nodeById.get(next[1]);
+        if (fromNode && toNode) {
+          setComposer({ from: fromNode, to: toNode });
+          setComposerError(null);
+        }
+        return [];
+      }
+      return next;
+    });
+  };
+
+  const submitConnection = async () => {
+    if (!composer) return;
+    setSaving(true);
+    setComposerError(null);
+    try {
+      const res = await fetch(`/api/entries/${composer.from.id}/links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toId: composer.to.id,
+          type: relation,
+          note: note.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409 || data?.error === "duplicate_link") {
+          setComposerError("Already connected.");
+        } else {
+          setComposerError(data?.error || "Could not save.");
+        }
+        setSaving(false);
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      const newId =
+        (data && (data.id || data.link?.id)) ||
+        `local-${composer.from.id}-${composer.to.id}-${Date.now()}`;
+      setLocalLinks((prev) => [
+        ...prev,
+        {
+          id: newId,
+          from: composer.from.id,
+          to: composer.to.id,
+          type: relation,
+        },
+      ]);
+      closeComposer();
+    } catch {
+      setComposerError("Could not save.");
+      setSaving(false);
+    }
+  };
+
+  // Keyboard: relation letters, Enter to submit, Escape to cancel.
+  useEffect(() => {
+    if (!composer) return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeComposer();
+        return;
+      }
+      if (ev.key === "Enter" && !saving) {
+        // Don't intercept Enter inside the note textarea (shift+enter for newline already free).
+        const target = ev.target as HTMLElement | null;
+        if (target && target.tagName === "TEXTAREA") return;
+        ev.preventDefault();
+        void submitConnection();
+        return;
+      }
+      const target = ev.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      const match = LINK_TYPES.find((t) => t.key === ev.key.toLowerCase());
+      if (match) {
+        ev.preventDefault();
+        setRelation(match.value);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composer, saving, relation, note]);
 
   if (nodes.length === 0) {
     return (
@@ -387,7 +534,7 @@ export default function Graph({ nodes, links, threads }: Props) {
 
           {/* Cross-reference edges */}
           <g fill="none">
-            {links.map((l) => {
+            {allLinks.map((l) => {
               const a = positions.get(l.from);
               const b = positions.get(l.to);
               if (!a || !b) return null;
@@ -425,7 +572,9 @@ export default function Graph({ nodes, links, threads }: Props) {
               if (!p) return null;
               const isHover = hovered === n.id;
               const isNeighbor = neighbors.has(n.id);
-              const isFaded = hovered !== null && !isHover && !isNeighbor;
+              const isSelected = selectedSet.has(n.id);
+              const isFaded =
+                hovered !== null && !isHover && !isNeighbor && !isSelected;
               const t = isChronicle ? (recencyRank.get(n.id) ?? 1) : 1;
               const baseFill = isHover
                 ? "#b45309"
@@ -433,26 +582,37 @@ export default function Graph({ nodes, links, threads }: Props) {
                   ? "#44403c"
                   : recencyColor(t);
               return (
-                <circle
-                  key={n.id}
-                  cx={p.x}
-                  cy={p.y}
-                  r={isHover ? HOVER_RADIUS : NODE_RADIUS}
-                  fill={n.isOrphan ? "#fafaf9" : baseFill}
-                  stroke={n.isOrphan ? baseFill : "none"}
-                  strokeWidth={n.isOrphan ? 1 : 0}
-                  opacity={isFaded ? 0.25 : 1}
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={() => {
-                    setHovered(n.id);
-                    setTooltipPos({ x: p.x, y: p.y });
-                  }}
-                  onMouseLeave={() => {
-                    setHovered(null);
-                    setTooltipPos(null);
-                  }}
-                  onClick={() => router.push(`/entry/${n.id}`)}
-                />
+                <g key={n.id}>
+                  {isSelected && (
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={HOVER_RADIUS + 2}
+                      fill="none"
+                      stroke="#b45309"
+                      strokeWidth={1.25}
+                    />
+                  )}
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={isHover || isSelected ? HOVER_RADIUS : NODE_RADIUS}
+                    fill={n.isOrphan ? "#fafaf9" : baseFill}
+                    stroke={n.isOrphan ? baseFill : "none"}
+                    strokeWidth={n.isOrphan ? 1 : 0}
+                    opacity={isFaded ? 0.25 : 1}
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() => {
+                      setHovered(n.id);
+                      setTooltipPos({ x: p.x, y: p.y });
+                    }}
+                    onMouseLeave={() => {
+                      setHovered(null);
+                      setTooltipPos(null);
+                    }}
+                    onClick={(e) => handleNodeClick(e, n)}
+                  />
+                </g>
               );
             })}
           </g>
@@ -478,14 +638,113 @@ export default function Graph({ nodes, links, threads }: Props) {
             </div>
           </div>
         )}
+
+        {/* Selection hint — appears once one node is shift-picked. */}
+        {selected.length === 1 && !composer && (
+          <div className="pointer-events-none absolute left-2 top-2 rounded border border-amber-700/30 bg-white/90 px-2 py-1 font-sans text-xs text-stone-600">
+            Shift-click another entry to draw a connection.
+            <button
+              type="button"
+              onClick={() => setSelected([])}
+              className="pointer-events-auto ml-2 text-stone-400 hover:text-stone-700"
+              aria-label="Cancel selection"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Connection composer */}
+      {composer && (
+        <div className="rounded border border-stone-300 bg-stone-50 p-4 space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="font-sans text-sm text-stone-900">
+              Draw a connection
+            </h3>
+            <button
+              type="button"
+              onClick={closeComposer}
+              className="font-sans text-xs text-stone-500 hover:text-stone-900"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="space-y-2 font-serif text-sm text-stone-700">
+            <div>
+              <span className="font-sans text-xs uppercase tracking-wide text-stone-400">
+                {composer.from.genre.toLowerCase()}
+              </span>{" "}
+              <span>{composer.from.snippet || "(empty)"}</span>
+            </div>
+            <div className="font-sans text-xs italic text-stone-500">
+              {LINK_TYPES.find((t) => t.value === relation)?.verb}
+            </div>
+            <div>
+              <span className="font-sans text-xs uppercase tracking-wide text-stone-400">
+                {composer.to.genre.toLowerCase()}
+              </span>{" "}
+              <span>{composer.to.snippet || "(empty)"}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-3 gap-y-1 font-sans text-xs">
+            {LINK_TYPES.map((t) => {
+              const active = relation === t.value;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setRelation(t.value)}
+                  className={
+                    active
+                      ? "text-amber-700 underline underline-offset-4"
+                      : "text-stone-500 hover:text-stone-900"
+                  }
+                  title={`Press ${t.key}`}
+                >
+                  {t.verb}
+                  <span className="ml-1 text-stone-400">[{t.key}]</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Why this connection? (optional)"
+            rows={2}
+            className="w-full resize-none border border-stone-300 bg-white px-2 py-1 font-serif text-sm text-stone-800 placeholder:text-stone-400 focus:border-stone-500 focus:outline-none"
+          />
+
+          {composerError && (
+            <p className="font-sans text-xs text-rose-700">{composerError}</p>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void submitConnection()}
+              disabled={saving}
+              className="font-sans text-xs text-amber-700 hover:underline disabled:text-stone-400"
+            >
+              {saving ? "Saving…" : "Save connection"}
+            </button>
+            <span className="font-sans text-xs italic text-stone-400">
+              ↵ to save · esc to cancel
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Caption — italic serif annotation under the figure. The
           numbers below are the chrome; this is the figure's voice. */}
       <p className="font-serif italic text-sm text-stone-500">
         {isChronicle
           ? "Time runs left to right. Older entries fade; the present is dark."
-          : "A force-settled scatter. Position is meaningless; clusters are the signal."}
+          : "A force-settled scatter. Clusters are the signal."}
       </p>
 
       {/* Stats bar */}
@@ -495,8 +754,8 @@ export default function Graph({ nodes, links, threads }: Props) {
         </span>
         <span>·</span>
         <span>
-          {links.length}{" "}
-          {links.length === 1 ? "cross-reference" : "cross-references"}
+          {allLinks.length}{" "}
+          {allLinks.length === 1 ? "cross-reference" : "cross-references"}
         </span>
         <span>·</span>
         <span>

@@ -36,8 +36,16 @@ import { ArgumentNode } from "@/lib/tiptap/extensions/argument-node";
 import { CitationNode } from "@/lib/tiptap/extensions/citation-node";
 import { TheoryWorkNode } from "@/lib/tiptap/extensions/theorywork-node";
 import { PropositionNode } from "@/lib/tiptap/extensions/proposition-node";
+import {
+  ArgumentChainNode,
+  type ChainEmbedRole,
+} from "@/lib/tiptap/extensions/argument-chain-node";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { ArgumentPicker } from "@/components/arguments/ArgumentPicker";
+import {
+  ArgumentChainPicker,
+  type PickedChain,
+} from "@/components/thesis/ArgumentChainPicker";
 import { ThesisPublishConfirmation } from "@/components/thesis/ThesisPublishConfirmation";
 import { ThesisExportModal } from "@/components/thesis/ThesisExportModal";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
@@ -89,6 +97,7 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
   // Picker modals state
   const [showClaimPicker, setShowClaimPicker] = useState(false);
   const [showArgumentPicker, setShowArgumentPicker] = useState(false);
+  const [showChainPicker, setShowChainPicker] = useState(false);
 
   // Publish confirmation state
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
@@ -143,8 +152,9 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
       ClaimNode,
       ArgumentNode,
       CitationNode,
-      TheoryWorkNode,
+
       PropositionNode,
+      ArgumentChainNode,
     ],
     content: thesis?.content || { type: "doc", content: [{ type: "paragraph" }] },
     editorProps: {
@@ -295,6 +305,31 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
     setShowArgumentPicker(false);
     toast.success("Argument inserted");
   }, [editor]);
+
+  // D4 Week 1–2: insert an existing ArgumentChain as an embedded canvas.
+  const handleInsertChain = useCallback(
+    (chain: PickedChain) => {
+      if (!editor) return;
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "argumentChainNode",
+          attrs: {
+            chainId: chain.id,
+            chainName: chain.name,
+            caption: chain.caption ?? null,
+            role: chain.role as ChainEmbedRole,
+            showEnabler: false,
+            highlightNodes: [],
+          },
+        })
+        .run();
+      setShowChainPicker(false);
+      toast.success("Argument chain inserted");
+    },
+    [editor],
+  );
 
   // Handlers for inserting newly created objects via rich editors
   const handleInsertDraftClaim = useCallback(() => {
@@ -602,6 +637,14 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
                 Argument
               </button>
               <button
+                onClick={() => setShowChainPicker(true)}
+                className="px-1 py-1.5 text-sm text-slate-700 hover:bg-white hover:shadow-sm rounded-lg transition-all flex items-center gap-1"
+                title="Insert existing argument chain"
+              >
+                <Lightbulb className="w-4 h-4" />
+                Chain
+              </button>
+              <button
                 className="px-1 py-1.5 text-sm text-slate-400 cursor-not-allowed rounded-lg flex items-center gap-1"
                 title="Insert citation (coming soon)"
                 disabled
@@ -609,14 +652,7 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
                 <LinkIcon className="w-4 h-4" />
                 Citation
               </button>
-              <button
-                className="px-1 py-1.5 text-sm text-slate-400 cursor-not-allowed rounded-lg flex items-center gap-1"
-                title="Insert theory (coming soon)"
-                disabled
-              >
-                <BookOpen className="w-4 h-4" />
-                Theory
-              </button>
+             
             </div>
           </div>
 
@@ -640,6 +676,14 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
         open={showArgumentPicker}
         onClose={() => setShowArgumentPicker(false)}
         onPick={handleInsertArgument}
+      />
+
+      {/* Argument Chain Picker Modal (D4 Week 1–2) */}
+      <ArgumentChainPicker
+        deliberationId={deliberationId}
+        open={showChainPicker}
+        onClose={() => setShowChainPicker(false)}
+        onPick={handleInsertChain}
       />
 
       {/* Publish Confirmation Modal */}

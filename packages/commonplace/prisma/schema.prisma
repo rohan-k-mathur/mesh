@@ -141,15 +141,33 @@ model EntryLink {
   @@map("entry_links")
 }
 
+// ─── Artifacts (Composed Documents) ─────────────────────
+
+model Artifact {
+  id          String    @id @default(cuid())
+  title       String    @default("Untitled")
+  subtitle    String?
+  body        Json      // { blocks: ArtifactBlock[] } — see lib/artifact-types.ts
+  authorId    String    @map("author_id")
+  author      Author    @relation(fields: [authorId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  publishedAt DateTime? @map("published_at")
+
+  @@index([authorId, updatedAt])
+  @@map("artifacts")
+}
+
 // ─── Author ─────────────────────────────────────────────
 
 model Author {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String     @id @default(cuid())
+  email     String     @unique
   name      String?
   entries   Entry[]
   threads   Thread[]
-  createdAt DateTime @default(now()) @map("created_at")
+  artifacts Artifact[]
+  createdAt DateTime   @default(now()) @map("created_at")
 
   @@map("authors")
 }
