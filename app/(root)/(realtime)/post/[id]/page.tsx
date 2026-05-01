@@ -24,7 +24,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   const currentUserLike = user
     ? await fetchRealtimeLikeForCurrentUser({
         realtimePostId: post.id,
-        userId: user.userId,
+        userId: user.userId!,
       })
     : null;
   const mappedPost = mapRealtimePost(post);

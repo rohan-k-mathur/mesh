@@ -23,8 +23,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import '../about-styles.css'
-import { colorClasses } from '../details/page'
-import { foundationCategories } from '../details/page'
+import { colorClasses } from '../color-classes'
+import { foundationCategories } from '../color-classes'
 
 export default function AboutPage() {
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set())

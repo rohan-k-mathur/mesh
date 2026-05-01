@@ -231,4 +231,4 @@ export async function GET(req: NextRequest) {
 }
 
 // Re-export stores and types for use by other routes
-export { interactionStore, interactionsByArena, type InteractionState } from "./store";
+// re-exports removed: not valid in Next.js route files

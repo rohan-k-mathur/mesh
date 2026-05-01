@@ -111,12 +111,12 @@ export const STEP_4_COMPONENTS = {
 
 export const STEP_5_COMPONENTS = {
   primary: 'ClaimMiniMap',
-  path: '@/components/claims/ClaimMiniMap',
-  description: 'Force-directed graph visualization of claims',
+  primaryPath: '@/components/claims/ClaimMiniMap',
+  primaryDescription: 'Force-directed graph visualization of claims',
   
   secondary: 'CegMiniMap',
-  path: '@/components/deepdive/CegMiniMap',
-  description: 'Hierarchical tree view showing Claims → Arguments → Evidence',
+  secondaryPath: '@/components/deepdive/CegMiniMap',
+  secondaryDescription: 'Hierarchical tree view showing Claims → Arguments → Evidence',
   
   supporting: [
     {

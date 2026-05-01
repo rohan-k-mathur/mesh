@@ -931,7 +931,7 @@ async function setCachedAspicResult(key: string, data: any, ttlSeconds: number):
  * Invalidate cached ASPIC result for a deliberation
  * Call this when arguments/conflicts change
  */
-export async function invalidateAspicCache(deliberationId: string): Promise<void> {
+async function invalidateAspicCache(deliberationId: string): Promise<void> {
   // Clear from memory cache (all keys for this deliberation)
   for (const key of memoryCache.keys()) {
     if (key.startsWith(`aspic:eval:${deliberationId}:`)) {

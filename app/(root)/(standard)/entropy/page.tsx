@@ -155,7 +155,7 @@ export default function Page() {
 //   const { puzzle, index } = getTodayPuzzle();
 //   const [guesses, setGuesses] = useState<{ word: string; digits: number[] }[]>([]);
 const [secret] = useState<string>(pickRandomSecret);
-const [starter]  = useState<string>(() => pickStarter(dictionaryArray));
+const [starter]  = useState<string>(() => pickStarter([...dictionaryArray]));
 
 const [guesses, setGuesses] = useState<GuessRow[]>([]);
 

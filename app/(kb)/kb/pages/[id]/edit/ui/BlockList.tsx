@@ -2,8 +2,8 @@
 'use client';
 import * as React from 'react';
 
-export function BlockList({ blocks , render }:{
-  blocks:any[]; onReorder:(ids:string[])=>void; render:(b:any)=>React.ReactNode
+export function BlockList({ blocks, render, pageId }: {
+  blocks: any[]; onReorder?: (ids: string[]) => void; render: (b: any) => React.ReactNode; pageId?: string
 }) {
 //   const [dragId, setDragId] = React.useState<string|null>(null);
 
@@ -39,7 +39,7 @@ async function onDrop() {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ order })
   });
-  refetchBlocks();
+  // refetchBlocks(); // TODO: pass refetch callback as prop
 }
 
 
@@ -48,7 +48,7 @@ async function onDrop() {
       {blocks.map(b => (
         <li key={b.id} draggable
             onDragStart={()=>onDragStart(b.id)}
-            onDragOver={(e)=>onDragOver(e,b.id)}
+            onDragOver={(e)=>onDragOver(b.id,e)}
             className="border rounded bg-white/80">
           <div className="flex items-center justify-between px-2 py-1 border-b">
             <span className="text-[11px] text-slate-500">⋮⋮ drag</span>

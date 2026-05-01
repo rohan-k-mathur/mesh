@@ -22,6 +22,9 @@ async function Page({ params }: { params: { id: string } }) {
         username={profilePageUser.username}
         imgUrl={profilePageUser.image}
         bio={profilePageUser.bio}
+        currentUserId={activeUser?.userId ? String(activeUser.userId) : ""}
+        isFollowing={false}
+        isFriend={false}
       />
       <div className="mt-9">
         <Tabs defaultValue="threads" className="w-full">
