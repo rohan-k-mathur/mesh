@@ -42,3 +42,15 @@ function validateAIF(nodes: NodeRef[], edges: Edge[]) {
   }
   return { ok: true };
 }
+
+import { NextResponse } from "next/server";
+
+export async function POST(req: Request) {
+  try {
+    const { nodes, edges } = await req.json();
+    const result = validateAIF(nodes, edges);
+    return NextResponse.json(result);
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 400 });
+  }
+}

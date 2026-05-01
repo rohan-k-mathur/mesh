@@ -175,9 +175,9 @@ export default function DialogueInspectorPage() {
         {showInspector && (
           <DialogueInspector
             deliberationId={deliberationId}
-            targetType={targetType}
-            targetId={targetId}
-            locusPath={locusPath}
+            initialTargetType={targetType as any}
+            initialTargetId={targetId}
+            initialLocusPath={locusPath}
           />
         )}
 

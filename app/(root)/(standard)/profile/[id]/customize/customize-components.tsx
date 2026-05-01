@@ -34,7 +34,7 @@ import React, { useState } from 'react';
 
 interface Props {
   userAttributes: UserAttributes;
-  currentBio: string;
+  currentBio?: string;
   initialOpen?: boolean;
 }
 
@@ -60,7 +60,7 @@ export default function CustomButtons({ userAttributes, currentBio, initialOpen 
       : ""
   );
   const path = usePathname();
-  const [message, setMessage] = useState(currentBio);
+  const [message, setMessage] = useState(currentBio ?? "");
   const handleChange = (event) => {
     setMessage(event.target.value);
   };

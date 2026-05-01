@@ -260,4 +260,4 @@ function computeArenaStats(arena: UniversalArena): {
 }
 
 // Export arena store for use by other routes
-export { arenaStore, arenaById };
+// re-exports removed: not valid in Next.js route files

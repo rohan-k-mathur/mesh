@@ -54,6 +54,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 8,
     centrality: 0.82,
     isControversial: false,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 0,
   },
   {
@@ -68,6 +70,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 12,
     centrality: 0.65,
     isControversial: false,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 0,
   },
   {
@@ -82,6 +86,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 2,
     centrality: 0.58,
     isControversial: false,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 1,
   },
   {
@@ -96,6 +102,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 6,
     centrality: 0.75,
     isControversial: true,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 2,
   },
   {
@@ -110,6 +118,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 9,
     centrality: 0.71,
     isControversial: false,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 0,
   },
   {
@@ -124,6 +134,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 3,
     centrality: 0.52,
     isControversial: false,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 1,
   },
   {
@@ -138,6 +150,8 @@ const MOCK_NODES: CegNode[] = [
     approvals: 10,
     centrality: 0.48,
     isControversial: false,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 0,
   },
   {
@@ -152,21 +166,23 @@ const MOCK_NODES: CegNode[] = [
     approvals: 4,
     centrality: 0.62,
     isControversial: true,
+    type: 'claim',
+    netStrength: 0,
     clusterId: 2,
   },
 ]
 
 const MOCK_EDGES: CegEdge[] = [
-  { id: 'e1', source: 'claim-2', target: 'claim-1', type: 'support', strength: 8.5 },
-  { id: 'e2', source: 'claim-5', target: 'claim-1', type: 'support', strength: 7.2 },
-  { id: 'e3', source: 'claim-7', target: 'claim-1', type: 'support', strength: 6.8 },
-  { id: 'e4', source: 'claim-3', target: 'claim-1', type: 'rebut', strength: 4.2 },
-  { id: 'e5', source: 'claim-6', target: 'claim-2', type: 'rebut', strength: 5.8 },
-  { id: 'e6', source: 'claim-4', target: 'claim-3', type: 'undercut', strength: 6.5 },
-  { id: 'e7', source: 'claim-8', target: 'claim-4', type: 'support', strength: 5.2 },
-  { id: 'e8', source: 'claim-1', target: 'claim-8', type: 'support', strength: 4.8 },
-  { id: 'e9', source: 'claim-4', target: 'claim-6', type: 'rebut', strength: 5.5 },
-  { id: 'e10', source: 'claim-5', target: 'claim-6', type: 'rebut', strength: 7.1 },
+  { id: 'e1', source: 'claim-2', target: 'claim-1', type: 'supports', confidence: 1 },
+  { id: 'e2', source: 'claim-5', target: 'claim-1', type: 'supports', confidence: 1 },
+  { id: 'e3', source: 'claim-7', target: 'claim-1', type: 'supports', confidence: 1 },
+  { id: 'e4', source: 'claim-3', target: 'claim-1', type: 'rebuts', confidence: 1 },
+  { id: 'e5', source: 'claim-6', target: 'claim-2', type: 'rebuts', confidence: 1 },
+  { id: 'e6', source: 'claim-4', target: 'claim-3', type: 'undercuts', confidence: 1 },
+  { id: 'e7', source: 'claim-8', target: 'claim-4', type: 'supports', confidence: 1 },
+  { id: 'e8', source: 'claim-1', target: 'claim-8', type: 'supports', confidence: 1 },
+  { id: 'e9', source: 'claim-4', target: 'claim-6', type: 'rebuts', confidence: 1 },
+  { id: 'e10', source: 'claim-5', target: 'claim-6', type: 'rebuts', confidence: 1 },
 ]
 
 // =========================================================================

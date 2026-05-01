@@ -19,7 +19,7 @@ function downsample(vec: number[]): number[] {
   return Array.from(out);
 }
 
-export async function logToDlq(mediaId: string, err: Error) {
+async function logToDlq(mediaId: string, err: Error) {
   const redis = getRedis();
 if (redis) {
   

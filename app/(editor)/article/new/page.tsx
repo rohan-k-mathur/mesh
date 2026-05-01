@@ -89,7 +89,7 @@ function ConsoleCard({ error, message }: { error?: boolean; message?: string }) 
       {/* Body */}
       <div className="relative p-6 font-mono text-[13px] leading-relaxed">
         <div className="mb-6 flex items-center gap-4">
-          <Spinner prefersReduced={prefersReduced} />
+          <Spinner prefersReduced={prefersReduced ?? false} />
           <div className="text-sm">
             {error ? (
               <span className="font-medium text-rose-600">{message}</span>

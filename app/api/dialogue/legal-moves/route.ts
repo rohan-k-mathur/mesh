@@ -20,7 +20,7 @@ const Q = z.object({
   locusPath: z.string().optional(),
 });
 
-export type Move = {
+type Move = {
   kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
   label: string;
   payload?: any;
