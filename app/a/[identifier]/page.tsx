@@ -1,15 +1,55 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { resolvePermalink } from "@/lib/citations/permalinkService";
+import {
+  buildArgumentAttestation,
+  type ArgumentAttestation,
+} from "@/lib/citations/argumentAttestation";
+import {
+  buildArgumentJsonLd,
+  buildCitationMetaTags,
+} from "@/lib/citations/argumentJsonLd";
 import { prisma } from "@/lib/prismaclient";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ identifier: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://isonomia.app";
+
+/**
+ * Track A.1 — content negotiation.
+ *
+ * Browsers asking for HTML get the page; AI agents and JSON-LD consumers
+ * asking for `application/ld+json` (or anyone passing `?format=aif|jsonld|attestation`)
+ * get redirected to the machine-citable representation at /api/a/[id]/aif.
+ */
+function prefersJsonLd(acceptHeader: string | null): boolean {
+  if (!acceptHeader) return false;
+  const accept = acceptHeader.toLowerCase();
+  // Only treat as JSON-LD preference when *not* asking for HTML at all
+  if (accept.includes("text/html")) return false;
+  return (
+    accept.includes("application/ld+json") ||
+    accept.includes("application/json") ||
+    accept.includes("application/aif+json")
+  );
+}
+
+function parseFormatParam(
+  raw: string | string[] | undefined
+): "aif" | "jsonld" | "attestation" | null {
+  const v = (Array.isArray(raw) ? raw[0] : raw || "").toLowerCase();
+  if (v === "aif") return "aif";
+  if (v === "jsonld" || v === "json-ld" || v === "rich") return "jsonld";
+  if (v === "attestation" || v === "envelope") return "attestation";
+  return null;
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { identifier } = await params;
@@ -39,6 +79,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const ogImageUrl = `${BASE_URL}/api/og/argument/${identifier}`;
   const embedUrl = `${BASE_URL}/embed/argument/${identifier}`;
   const canonicalUrl = `${BASE_URL}/a/${identifier}`;
+  const aifUrl = `${BASE_URL}/api/a/${identifier}/aif`;
 
   return {
     title: `${title} — Isonomia`,
@@ -48,6 +89,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       canonical: canonicalUrl,
       types: {
         "application/json+oembed": `${BASE_URL}/api/oembed?url=${encodeURIComponent(embedUrl)}`,
+        "application/ld+json": `${aifUrl}?format=aif`,
+        "application/json": `${aifUrl}?format=attestation`,
       },
     },
     openGraph: {
@@ -74,12 +117,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ArgumentPage({ params }: PageProps) {
+export default async function ArgumentPage({ params, searchParams }: PageProps) {
   const { identifier } = await params;
+  const sp = (await searchParams) || {};
+
+  // ---- Track A.1: content negotiation ----
+  // Explicit ?format= query wins over Accept-header sniffing.
+  const explicitFormat = parseFormatParam(sp.format);
+  if (explicitFormat) {
+    redirect(`${BASE_URL}/api/a/${identifier}/aif?format=${explicitFormat}`);
+  }
+  // Note: headers() is async in Next.js 15 but compatible when awaited.
+  const h = await headers();
+  if (prefersJsonLd(h.get("accept"))) {
+    redirect(`${BASE_URL}/api/a/${identifier}/aif?format=aif`);
+  }
 
   const resolved = await resolvePermalink(identifier);
   let argumentId = identifier;
   if (resolved) argumentId = resolved.argumentId;
+
+  // Build the attestation envelope in parallel with the page-render query;
+  // we still hydrate the page from the existing fetch (richer relations) but
+  // the JSON-LD now derives from the canonical attestation primitive.
+  const attestationPromise: Promise<ArgumentAttestation | null> =
+    buildArgumentAttestation(argumentId, identifier);
 
   const argument = await prisma.argument.findUnique({
     where: { id: argumentId },
@@ -142,29 +204,25 @@ export default async function ArgumentPage({ params }: PageProps) {
   const primaryScheme = argument.argumentSchemes.find((s) => s.isPrimary) ||
     argument.argumentSchemes[0];
 
-  // JSON-LD structured data
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    url: canonicalUrl,
-    name: argument.conclusion?.text
-      ? `Argument: ${argument.conclusion.text.slice(0, 100)}`
-      : "Argument",
-    text: argument.text,
-    provider: {
-      "@type": "Organization",
-      name: "Isonomia",
-      url: BASE_URL,
-    },
-    ...(argument.conclusion
-      ? {
-          about: {
-            "@type": "Claim",
-            text: argument.conclusion.text,
-          },
-        }
-      : {}),
-  };
+  // ---- Track A.2: rich composite JSON-LD via attestation envelope ----
+  // Falls back to a minimal CreativeWork node if attestation building failed
+  // (defensive — should not happen in practice).
+  const attestation = await attestationPromise;
+  const jsonLd = attestation
+    ? buildArgumentJsonLd(attestation)
+    : {
+        "@context": "https://schema.org",
+        "@type": "CreativeWork",
+        url: canonicalUrl,
+        name: argument.conclusion?.text
+          ? `Argument: ${argument.conclusion.text.slice(0, 100)}`
+          : "Argument",
+        text: argument.text,
+      };
+
+  const citationMetaTags = attestation
+    ? buildCitationMetaTags(attestation)
+    : [];
 
   const iframeEmbed = `<iframe src="${embedUrl}" width="600" height="400" frameborder="0" style="border:1px solid #e5e7eb;border-radius:8px;" title="Isonomia Argument" loading="lazy"></iframe>`;
 
@@ -172,10 +230,35 @@ export default async function ArgumentPage({ params }: PageProps) {
     <main className="page">
       <style>{pageStyles()}</style>
 
-      {/* JSON-LD */}
+      {/* JSON-LD (rich composite: Schema.org + AIF + attestation envelope) */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      {/* Citation meta tags for Zotero / Google Scholar / scholarly tooling */}
+      {citationMetaTags.map((tag) => (
+        <meta key={tag.name} name={tag.name} content={tag.content} />
+      ))}
+
+      {/* Track A.1 \u2014 alternate machine-citable representations */}
+      <link
+        rel="alternate"
+        type="application/ld+json"
+        href={`${BASE_URL}/api/a/${identifier}/aif?format=aif`}
+        title="AIF-JSON-LD subgraph"
+      />
+      <link
+        rel="alternate"
+        type="application/ld+json"
+        href={`${BASE_URL}/api/a/${identifier}/aif?format=jsonld`}
+        title="Rich composite JSON-LD"
+      />
+      <link
+        rel="alternate"
+        type="application/json"
+        href={`${BASE_URL}/api/a/${identifier}/aif?format=attestation`}
+        title="Attestation envelope"
       />
 
       {/* Nav bar */}

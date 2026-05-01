@@ -4,12 +4,12 @@ import useSWR from 'swr';
 const fetcher=(u:string)=>fetch(u).then(r=>r.json());
 
 export function VoteWidget({ sessionId }: { sessionId: string }) {
+  const [sel, setSel] = React.useState<Record<string, boolean>>({});
+  const [rank, setRank] = React.useState<string[]>([]);
+
   const { data, mutate } = useSWR(`/api/votes/sessions?sessionId=${sessionId}`, fetcher);
   const session = (data?.items ?? []).find((s:any)=>s.id===sessionId);
   if (!session) return null;
-
-  const [sel, setSel] = React.useState<Record<string, boolean>>({});
-  const [rank, setRank] = React.useState<string[]>([]);
 
   async function cast() {
     await fetch(`/api/votes/${sessionId}/vote`, {

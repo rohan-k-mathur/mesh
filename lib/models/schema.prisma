@@ -3927,9 +3927,25 @@ model ClaimEvidence {
   addedById String?
   createdAt DateTime @default(now())
 
+  // ── Track A.4 — Evidence provenance hardening ─────────────────────────
+  // Populated server-side after evidence is created. All fields are
+  // nullable: enrichment runs out-of-band and may fail (timeout, robots,
+  // 4xx/5xx, archive.org rate limit). Consumers must treat absence as
+  // "not yet attested" rather than as a negative claim.
+  contentSha256  String?   // sha256 of the fetched response body
+  byteSize       Int?      // length in bytes of the fetched body
+  contentType    String?   // HTTP Content-Type header value
+  httpStatus     Int?      // HTTP status code observed at fetch time
+  lastModifiedAt DateTime? // From source Last-Modified header (if any)
+  fetchedAt      DateTime? // When provenance enrichment ran successfully
+  archivedUrl    String?   // Wayback / archive.org snapshot URL
+  archivedAt     DateTime? // When the archive snapshot was taken/observed
+  fetchError     String?   // Last error short-message; null when latest run succeeded
+
   claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@index([claimId])
+  @@index([contentSha256])
 }
 
 model Urn {

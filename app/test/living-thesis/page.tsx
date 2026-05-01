@@ -965,7 +965,7 @@ function LiveBindingDemo({ onOpenInspector }: { onOpenInspector: (id: string) =>
       </div>
 
       <div className="rounded-xl border border-slate-900/[0.08] bg-slate-950 text-slate-100 p-4 font-mono text-[11px] overflow-x-auto">
-        <p className="text-slate-400 mb-1.5">// GET /api/thesis/{MOCK_THESIS.id}/live</p>
+        <p className="text-slate-400 mb-1.5">{"// GET /api/thesis/"}{MOCK_THESIS.id}{"/live"}</p>
         <pre className="text-slate-200 leading-relaxed">{`{
   "cursor":     "${1745000000 + tick * 30000}",
   "computedAt": "2026-04-22T11:30:${String((tick * 7) % 60).padStart(2, "0")}Z",

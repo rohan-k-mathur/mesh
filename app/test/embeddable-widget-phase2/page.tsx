@@ -1362,19 +1362,11 @@ export default function EmbeddableWidgetPhase2DemoPage() {
                 </div>
                 Embeddable Argument Widget
               </h1>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Phase 2 — Creation &amp; Share Flow ·{" "}
-                <code className="text-xs bg-slate-100 px-1 rounded">/test/embeddable-widget-phase2</code>
+              <p className="text-sm text-slate-500 mt-0.5 ml-4">
+                Creation &amp; Share Flow {" "}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge className="bg-emerald-600 text-white shadow-sm">
-                <Check className="w-3 h-3 mr-1" />
-                Phase 2 Complete
-              </Badge>
-              <Badge variant="outline" className="text-slate-500">7 deliverables</Badge>
-              <Badge variant="outline" className="text-slate-500">6 new files</Badge>
-            </div>
+     
           </div>
         </div>
 

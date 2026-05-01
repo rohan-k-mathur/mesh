@@ -20,17 +20,6 @@ const Body = z.object({
 
 type EdgeSpec = { fromClaimId: string; toClaimId: string; type: 'supports'|'rebuts'; attackType?: 'SUPPORTS'|'REBUTS'|'UNDERCUTS'|'UNDERMINES'; targetScope?: 'premise'|'inference'|'conclusion' };
 
-async function makeEdge(fromId: string, payload: Omit<EdgeSpec,'fromClaimId'>) {
-  // Reuse your existing endpoint so recompute/labels happen in one place. :contentReference[oaicite:12]{index=12}
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/claims/${fromId}/edges`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) throw new Error(`edge upsert failed: ${await res.text()}`);
-  return res.json();
-}
-
 function asAIF({ claims, edges }:{ claims: {id:string,text:string}[], edges: EdgeSpec[] }) {
   // Minimal AIF/AIF+ graph (I, RA/CA). You can expand to PA and schemes later. 
   const I = claims.map(c => ({ id: `I:${c.id}`, text: c.text }));
@@ -150,7 +139,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
         type: e.type,
         attackType: e.attackType,
         targetScope: e.targetScope
-      }).then(res => createdEdges.push(res.edge));
+      }, origin).then(res => createdEdges.push(res.edge));
     }
   }
 

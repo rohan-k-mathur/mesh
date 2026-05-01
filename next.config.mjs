@@ -91,7 +91,7 @@ const nextConfig = {
     },
     transpilePackages: ['@app/sheaf-acl'], 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   };
   

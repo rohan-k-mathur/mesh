@@ -2,7 +2,7 @@
 type NodeRef = { type: 'I'|'RA'|'CA'|'PA'; id: string };
 type Edge = { from: NodeRef; to: NodeRef; role: 'premise'|'conclusion'|'conflictingElement'|'conflictedElement'|'preferredElement'|'dispreferredElement' };
 
-export function validateAIF(nodes: NodeRef[], edges: Edge[]) {
+function validateAIF(nodes: NodeRef[], edges: Edge[]) {
   const typeOf = new Map(nodes.map(n => [n.id, n.type]));
   const outByRole = new Map<string, Map<string, number>>();
 

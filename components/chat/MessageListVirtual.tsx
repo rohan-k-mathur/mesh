@@ -43,6 +43,15 @@ export const MessageListVirtual = React.forwardRef<
     stuckOnce.current = true;
   }, [items.length, follow]);
 
+  const List = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+    ({ children, ...rest }, listRef) => (
+      <div {...rest} role="list" ref={listRef} className="flex flex-col gap-2">
+        {children}
+      </div>
+    )
+  );
+  List.displayName = "MessageListVirtualList";
+
   return (
     <div role="region" aria-label={ariaLabel} className="h-full w-full">
       <Virtuoso
@@ -56,13 +65,7 @@ export const MessageListVirtual = React.forwardRef<
         atBottomStateChange={onBottomStateChange}
         increaseViewportBy={{ top: 400, bottom: 600 }}
         components={{
-          List: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-            ({ children, ...rest }, listRef) => (
-              <div {...rest} role="list" ref={listRef} className="flex flex-col gap-2">
-                {children}
-              </div>
-            )
-          ),
+          List,
         }}
         itemContent={(_, item) => (
           <div role="listitem" tabIndex={-1}>

@@ -1,5 +1,5 @@
-// tools/verifier-cli/index.ts
 #!/usr/bin/env node
+// tools/verifier-cli/index.ts
 import fs from 'node:fs';
 import nacl from 'tweetnacl';
 

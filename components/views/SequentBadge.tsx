@@ -13,12 +13,10 @@ export default function SequentBadge({
   deltaTexts: string[];
   onClick?: () => void;
 }) {
+  const { sequent, isValidating } = useSequentStatus({ gammaTexts, deltaTexts });
   const { summary, isLoading } = useNliSequent(gammaTexts, deltaTexts);
   if (isLoading) return <span className="text-[11px] text-neutral-500">Entailment: …</span>;
   if (!summary) return null;
-
-
-  const { sequent, isValidating } = useSequentStatus({ gammaTexts, deltaTexts });
   const { label, sequentEntail } = sequent;
 
 

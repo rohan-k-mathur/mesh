@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 import { puzzles } from "./data";
 import { dictionaryArray, dictionary } from "./data";
 /* utils */
-export const SHAPE: Record<"G" | "Y" | "X", string> = {
+const SHAPE: Record<"G" | "Y" | "X", string> = {
     G: "  ◯",   // circle   (green)
     Y: "  □",   // square   (yellow)
     X: "  △",   // triangle (grey)
   };
   
-  export function shapeOf(status: "G" | "Y" | "X") {
+  function shapeOf(status: "G" | "Y" | "X") {
     return SHAPE[status];
   }
   
-  export function colourOf(status: "G" | "Y" | "X") {
+  function colourOf(status: "G" | "Y" | "X") {
     return status === "G"
       ? "text-green-600"
       : status === "Y"
@@ -26,7 +26,7 @@ export const SHAPE: Record<"G" | "Y" | "X", string> = {
   
   
   // helper that returns a word with six distinct letters
-  export function pickStarter(dictionary: string[]): string {
+  function pickStarter(dictionary: string[]): string {
     const uniques = dictionary.filter(
       w => new Set(w).size === 6 && w.length === 6
     );
