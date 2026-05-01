@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import DeliberationComposer from "./DeliberationComposer";
 import { RepresentativeViewpoints } from "./RepresentativeViewpoints";
 import ArgumentsList from "./ArgumentsList";
+import { SectionCard } from "./shared/SectionCard";
 import CardComposerTab from "@/components/deepdive/CardComposerTab";
 import StatusChip from "@/components/governance/StatusChip";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "../ui/tabs";

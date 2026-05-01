@@ -15,7 +15,7 @@
     "jsx": "preserve",
     "typeRoots": ["./node_modules/@types", "./types"],
     "incremental": true,
-    "types": ["stripe-event-types", "node"],
+    "types": ["node"],
     "plugins": [
       {
         "name": "next"
@@ -40,5 +40,5 @@
     ".next/types/**/*.ts",
     "scripts/**/*.ts", "lib/**/*.ts", "packages/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "__tests__/**"]
 }

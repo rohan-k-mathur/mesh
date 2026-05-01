@@ -3,6 +3,11 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import React from "react";
 import { MessageSquare, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { LiveBadgeStrip } from "@/lib/thesis/LiveBadgeStrip";
+import {
+  useOpenInspector,
+  useThesisLiveObject,
+} from "@/lib/thesis/ThesisLiveContext";
 
 // React component for rendering the claim
 function ClaimNodeView({ node }: NodeViewProps) {
@@ -12,6 +17,12 @@ function ClaimNodeView({ node }: NodeViewProps) {
     position?: "IN" | "OUT" | "UNDEC";
     authorName?: string;
   };
+
+  // Live overrides: when mounted under a ThesisLiveProvider, prefer the
+  // current semantic label over the publish-time `position` attr.
+  const liveStats = useThesisLiveObject(claimId);
+  const openInspector = useOpenInspector();
+  const livePosition = liveStats?.label ?? position;
 
   const positionConfig = {
     IN: {
@@ -34,7 +45,7 @@ function ClaimNodeView({ node }: NodeViewProps) {
     },
   };
 
-  const config = position ? positionConfig[position] : positionConfig.UNDEC;
+  const config = livePosition ? positionConfig[livePosition] : positionConfig.UNDEC;
   const Icon = config.icon;
 
   return (
@@ -44,7 +55,18 @@ function ClaimNodeView({ node }: NodeViewProps) {
       data-claim-id={claimId}
     >
       <div
-        className={`rounded-lg border-2 ${config.border} ${config.bg} p-4 shadow-sm hover:shadow-md transition-shadow`}
+        className={`rounded-lg border-2 ${config.border} ${config.bg} p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
+        role="button"
+        tabIndex={0}
+        onClick={() =>
+          claimId && openInspector({ kind: "claim", id: claimId, tab: "overview" })
+        }
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && claimId) {
+            e.preventDefault();
+            openInspector({ kind: "claim", id: claimId, tab: "overview" });
+          }
+        }}
       >
         <div className="flex items-start gap-3">
           <Icon className={`w-5 h-5 ${config.color} flex-shrink-0 mt-0.5`} />
@@ -54,17 +76,17 @@ function ClaimNodeView({ node }: NodeViewProps) {
               <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                 Claim
               </span>
-              {position && (
+              {livePosition && (
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    position === "IN"
+                    livePosition === "IN"
                       ? "bg-emerald-100 text-emerald-800"
-                      : position === "OUT"
+                      : livePosition === "OUT"
                       ? "bg-rose-100 text-rose-800"
                       : "bg-slate-100 text-slate-700"
                   }`}
                 >
-                  {position}
+                  {livePosition}
                 </span>
               )}
             </div>
@@ -74,6 +96,18 @@ function ClaimNodeView({ node }: NodeViewProps) {
             {authorName && (
               <p className="text-xs text-slate-500 mt-2">— {authorName}</p>
             )}
+            <div
+              className="mt-2"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <LiveBadgeStrip
+                id={claimId}
+                kind="claim"
+                fallbackLabel={position}
+                hideLabel
+              />
+            </div>
           </div>
         </div>
       </div>

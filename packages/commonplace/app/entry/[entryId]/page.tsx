@@ -5,6 +5,7 @@ import { prisma } from "@cp/lib/prisma";
 import { getCurrentAuthor } from "@cp/lib/auth";
 import { tiptapSharedExtensions } from "@cp/lib/tiptap/shared";
 import Connections from "@cp/app/_components/Connections";
+import SendToArtifact from "@cp/app/_components/SendToArtifact";
 
 type Params = { entryId: string };
 
@@ -208,7 +209,9 @@ export default async function EntryPage({ params }: { params: Params }) {
       )}
 
       <Connections entryId={entry.id} />
+<SendToArtifact entryId={entry.id} />
 
+      
       {entry.versions.length > 0 && (
         <section className="border-t border-stone-200 pt-6">
           <h2 className="mb-3 font-sans text-sm font-medium text-stone-700">

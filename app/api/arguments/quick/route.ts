@@ -15,6 +15,7 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { mintClaimMoid } from "@/lib/ids/mintMoid";
 import { getOrCreatePermalink } from "@/lib/citations/permalinkService";
 import { isSafePublicUrl, getOrFetchLinkPreview } from "@/lib/unfurl";
+import { enrichEvidenceProvenanceInBackground } from "@/lib/citations/evidenceProvenance";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -201,6 +202,23 @@ export async function POST(req: NextRequest) {
         })),
         skipDuplicates: true,
       });
+
+      // Track A.4 — fire-and-forget evidence provenance enrichment.
+      // Fetches each source URL, hashes the body, captures HTTP metadata,
+      // and requests an archive.org snapshot. Persists onto the row.
+      // Intentionally NOT awaited — must not block response latency.
+      try {
+        const created = await prisma.claimEvidence.findMany({
+          where: {
+            claimId: claimRecord.id,
+            uri: { in: enrichedEvidence.map((e) => e.url) },
+          },
+          select: { id: true },
+        });
+        enrichEvidenceProvenanceInBackground(created.map((c) => c.id));
+      } catch {
+        // best-effort; failure here doesn't break the create flow
+      }
     }
 
     // Create the Argument

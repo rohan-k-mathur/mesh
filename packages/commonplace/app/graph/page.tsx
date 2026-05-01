@@ -82,6 +82,9 @@ export default async function GraphPage() {
           continuity. Open dots are orphans — entries that have not
           yet found their place.
         </p>
+        <p className="font-serif italic text-sm text-stone-500">
+          Shift-click two entries to draw a connection.
+        </p>
       </header>
 
       <Graph

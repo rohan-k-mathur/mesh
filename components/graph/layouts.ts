@@ -198,7 +198,7 @@ export function useFocusLayout(props: LayoutProps & { focusId?: string | null })
     
     if (nodes.length === 0 || !focusId) {
       // Fallback to circular
-      return useCircularLayout(nodes, width, height);
+      return computeCircularLayout(nodes, width, height);
     }
 
     // Place focus node in center
@@ -239,7 +239,7 @@ export function useFocusLayout(props: LayoutProps & { focusId?: string | null })
   }, [props.nodes, props.edges, props.width, props.height, props.focusId]);
 }
 
-function useCircularLayout(nodes: CegNode[], width: number, height: number) {
+function computeCircularLayout(nodes: CegNode[], width: number, height: number) {
   const positions = new Map<string, { x: number; y: number }>();
   const centerX = width / 2;
   const centerY = height / 2;

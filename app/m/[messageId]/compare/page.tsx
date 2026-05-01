@@ -182,46 +182,21 @@ export default async function ComparePage({ params, searchParams }: any) {
                 const badge =
                   r.verified === "valid" ? "✅" : r.verified === "invalid" ? "❌" : "？";
                 return (
-                  // <a
-                  //   key={`v-${r.v}`}
-                  //   href={`/m/${encodeURIComponent(String(message.id))}/compare?v=${r.v}`}
-                  //   className={[
-                  //     "block text-[12px] px-2 py-1 rounded",
-                  //     isActive ? "bg-indigo-50 text-indigo-900" : "hover:bg-slate-50",
-                  //   ].join(" ")}
-                  // >
-                  //   <span className="mr-2 font-medium">v{r.v}</span>
-                  //   <span className="mr-2 opacity-80">{new Date(r.mergedAt).toLocaleString()}</span>
-                  //   <span className="mr-2 opacity-70">✅ {r.approvals} · ⛔ {r.blocks}</span>
-                  //   <span className="opacity-90">{badge}</span>
-                  // </a>
-                  /* ... inside your render where you map receipts (replaces the <a> you have now) ... */
-<div className="space-y-1 max-h-[60vh] overflow-auto">
-  {[...receipts].reverse().map((r) => {
-    const isActive = r.v === (active?.v ?? receipts.length);
-    const badge =
-      (r as any).verified === "valid" ? "✅" :
-      (r as any).verified === "invalid" ? "❌" : "？";
-
-    return (
-      <a
-        key={`v-${r.v}`}
-        href={`/m/${encodeURIComponent(String(message.id))}/compare?v=${r.v}`}
-        className={[
-          "block rounded px-2 py-1",
-          isActive ? "bg-indigo-50 text-indigo-900" : "hover:bg-slate-50",
-        ].join(" ")}
-      >
-        <div className="flex items-center gap-2 text-[12px]">
-          <span className="font-medium">v{r.v}</span>
-          <span className="opacity-80">{fmt(r.mergedAt)}</span>
-          <span className="opacity-70 ml-auto">✅ {r.approvals} · ⛔ {r.blocks}</span>
-          <span title={verifiedTip((r as any).verified)}>{badge}</span>
-        </div>
-      </a>
-    );
-  })}
-</div>
+                  <a
+                    key={`v-${r.v}`}
+                    href={`/m/${encodeURIComponent(String(message.id))}/compare?v=${r.v}`}
+                    className={[
+                      "block rounded px-2 py-1",
+                      isActive ? "bg-indigo-50 text-indigo-900" : "hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center gap-2 text-[12px]">
+                      <span className="font-medium">v{r.v}</span>
+                      <span className="opacity-80">{fmt(r.mergedAt)}</span>
+                      <span className="opacity-70 ml-auto">✅ {r.approvals} · ⛔ {r.blocks}</span>
+                      <span title={verifiedTip(r.verified)}>{badge}</span>
+                    </div>
+                  </a>
                 );
               })}
             </div>

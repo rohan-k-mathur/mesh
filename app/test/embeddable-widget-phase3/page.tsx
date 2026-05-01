@@ -1034,7 +1034,7 @@ async function fetchWithAuth(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-export const IsonomiaAPI = {
+const IsonomiaAPI = {
   createQuickArgument: (data: {
     claim: string;
     evidence: { url: string }[];

@@ -102,6 +102,14 @@ import StandardShell from "./StandardShell"; // 👈 add this
 export const metadata = {
   title: "Mesh",
   description: "A social media website",
+  // Track B.1 \u2014 discovery hints for LLM agents and AI-citation pipelines.
+  alternates: {
+    types: {
+      "application/json":
+        "/.well-known/argument-graph",
+      "text/markdown": "/.well-known/llms.txt",
+    },
+  },
 };
 
 const founders = localFont({ src: "./NewEdgeTest-RegularRounded.otf" });

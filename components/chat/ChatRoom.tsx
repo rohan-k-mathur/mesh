@@ -158,6 +158,8 @@ function MergeHistorySummary({
   isMine: boolean;
   edited?: boolean;
 }) {
+  const [open, setOpen] = React.useState(false);
+
   // Guard against invalid messageId (e.g., "undefined" from optimistic updates)
   const validMessageId = messageId && messageId !== "undefined" && messageId !== "null" ? messageId : null;
   const { list, latest, isLoading } = useReceipts(validMessageId);
@@ -165,8 +167,6 @@ function MergeHistorySummary({
   const hasEditsOnly = !!edited && !hasReceipts;
 
   if (!hasReceipts && !hasEditsOnly) return null;
-
-  const [open, setOpen] = React.useState(false);
 
   // label summary (like your thread chip)
   const label = hasReceipts ? (

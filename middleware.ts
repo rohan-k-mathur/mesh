@@ -15,6 +15,25 @@ const PUBLIC_API = [
   /^\/api\/events$/,
   /^\/api\/agora\/events/,
   /^\/api\/auth\/extension-token$/,
+  // Public argument/claim permalink + AIF endpoints (Track A.1).
+  // Crawlers, LLM agents, and oEmbed consumers need unauthenticated access.
+  /^\/api\/a\/[^/]+(\/.*)?$/,
+  /^\/api\/c\/[^/]+(\/.*)?$/,
+  /^\/api\/og\/argument\//,
+  /^\/api\/og\/claim\//,
+  /^\/api\/oembed/,
+  // Track B.2 \u2014 public read APIs surfaced via MCP / external retrieval.
+  /^\/api\/v3\/search\/arguments(\/.*)?$/,  // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
+  /^\/api\/v3\/openapi\.json$/,
+  /^\/api\/v3\/docs\/?$/,];
+
+// Public pages that must be reachable without auth (Phase 1 of the
+// embeddable-widget roadmap + Track A of the AI-epistemic-infrastructure
+// roadmap). These are the human-readable counterparts of PUBLIC_API.
+const PUBLIC_PAGES_RX = [
+  /^\/a\/[^/]+\/?$/,
+  /^\/c\/[^/]+\/?$/,
+  /^\/embed\//,
 ];
 
 function isApPath(pathname: string) {
@@ -22,6 +41,14 @@ function isApPath(pathname: string) {
   if (pathname === "/inbox") return true; // shared inbox (optional)
   if (/^\/users\/[^/]+(\/(inbox|outbox|followers|following))?$/.test(pathname)) return true;
   return false;
+}
+
+// Track B.1 — public LLM/agent discovery surfaces.
+function isPublicWellKnown(pathname: string) {
+  return (
+    pathname === "/.well-known/llms.txt" ||
+    pathname === "/.well-known/argument-graph"
+  );
 }
 
 function isApNegotiation(req: Request) {
@@ -36,7 +63,13 @@ function isApNegotiation(req: Request) {
 
 export async function middleware(req: Request) {
   const { pathname } = new URL(req.url);
+  if (isPublicWellKnown(pathname)) {
+    return NextResponse.next();
+  }
   if (PUBLIC_API.some((rx) => rx.test(pathname))) {
+    return NextResponse.next();
+  }
+  if (PUBLIC_PAGES_RX.some((rx) => rx.test(pathname))) {
     return NextResponse.next();
   }
   const res = NextResponse.next();
@@ -76,6 +109,7 @@ export async function middleware(req: Request) {
 
   // 3) Other explicit allowlists
   if (pathname === "/.well-known/webfinger") return NextResponse.next();
+  if (isPublicWellKnown(pathname)) return NextResponse.next();
   if (isApPath(pathname) && isApNegotiation(req)) return NextResponse.next();
 
   // Treat the incoming object as NextRequest at call sites (runtime it already is)

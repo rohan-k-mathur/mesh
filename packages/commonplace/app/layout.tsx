@@ -34,6 +34,9 @@ export default async function RootLayout({
                 <Link href="/graph" className="hover:text-stone-900">
                   Graph
                 </Link>
+                <Link href="/compose" className="hover:text-stone-900">
+                  Compose
+                </Link>
                 <Link href="/search" className="hover:text-stone-900">
                   Search
                 </Link>

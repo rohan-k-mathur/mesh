@@ -3,6 +3,7 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import React from "react";
 import { Link as LinkIcon, ExternalLink } from "lucide-react";
+import { useOpenInspector } from "@/lib/thesis/ThesisLiveContext";
 
 // React component for rendering the citation
 function CitationNodeView({ node }: NodeViewProps) {
@@ -13,6 +14,7 @@ function CitationNodeView({ node }: NodeViewProps) {
     author?: string;
     year?: string;
   };
+  const openInspector = useOpenInspector();
 
   return (
     <NodeViewWrapper
@@ -20,7 +22,21 @@ function CitationNodeView({ node }: NodeViewProps) {
       className="citation-embed not-prose my-4"
       data-citation-id={citationId}
     >
-      <div className="rounded-lg border-2 border-amber-200 bg-amber-50 p-4 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        className="rounded-lg border-2 border-amber-200 bg-amber-50 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={() =>
+          citationId &&
+          openInspector({ kind: "citation", id: citationId, tab: "overview" })
+        }
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && citationId) {
+            e.preventDefault();
+            openInspector({ kind: "citation", id: citationId, tab: "overview" });
+          }
+        }}
+      >
         <div className="flex items-start gap-3">
           <LinkIcon className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">

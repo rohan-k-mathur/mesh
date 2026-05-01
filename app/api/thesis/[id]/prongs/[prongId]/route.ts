@@ -6,6 +6,63 @@ import { getCurrentUserId } from "@/lib/serverutils";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { id: string; prongId: string } }
+) {
+  try {
+    const prong = await prisma.thesisProng.findFirst({
+      where: { id: params.prongId, thesisId: params.id },
+      include: {
+        mainClaim: { select: { id: true, text: true } },
+        arguments: {
+          include: {
+            argument: {
+              select: {
+                id: true,
+                text: true,
+                conclusion: { select: { id: true, text: true } },
+                premises: {
+                  include: {
+                    claim: { select: { id: true, text: true } },
+                  },
+                },
+                scheme: { select: { id: true, key: true, name: true } },
+                // D4 Week 3: include scheme instances so EnablerPanel can extract enablers.
+                argumentSchemes: {
+                  include: {
+                    scheme: {
+                      select: {
+                        id: true,
+                        key: true,
+                        name: true,
+                        title: true,
+                        description: true,
+                        premises: true,
+                      },
+                    },
+                  },
+                  orderBy: [{ role: "asc" }, { order: "asc" }],
+                },
+              },
+            },
+          },
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+
+    if (!prong) {
+      return NextResponse.json({ error: "Prong not found" }, { status: 404, ...NO_STORE });
+    }
+
+    return NextResponse.json({ ok: true, prong }, NO_STORE);
+  } catch (err: any) {
+    console.error("[thesis/:id/prongs/:prongId GET] failed", err);
+    return NextResponse.json({ error: err?.message ?? "Query failed" }, { status: 500, ...NO_STORE });
+  }
+}
+
 const UpdateProngSchema = z.object({
   title: z.string().min(3).optional(),
   mainClaimId: z.string().optional(),

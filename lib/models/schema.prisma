@@ -3927,9 +3927,25 @@ model ClaimEvidence {
   addedById String?
   createdAt DateTime @default(now())
 
+  // ── Track A.4 — Evidence provenance hardening ─────────────────────────
+  // Populated server-side after evidence is created. All fields are
+  // nullable: enrichment runs out-of-band and may fail (timeout, robots,
+  // 4xx/5xx, archive.org rate limit). Consumers must treat absence as
+  // "not yet attested" rather than as a negative claim.
+  contentSha256  String?   // sha256 of the fetched response body
+  byteSize       Int?      // length in bytes of the fetched body
+  contentType    String?   // HTTP Content-Type header value
+  httpStatus     Int?      // HTTP status code observed at fetch time
+  lastModifiedAt DateTime? // From source Last-Modified header (if any)
+  fetchedAt      DateTime? // When provenance enrichment ran successfully
+  archivedUrl    String?   // Wayback / archive.org snapshot URL
+  archivedAt     DateTime? // When the archive snapshot was taken/observed
+  fetchError     String?   // Last error short-message; null when latest run succeeded
+
   claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@index([claimId])
+  @@index([contentSha256])
 }
 
 model Urn {
@@ -7085,6 +7101,14 @@ model Thesis {
   prongs   ThesisProng[] // Lines of reasoning inserted in document
   sections ThesisSection[] // Prose sections for organization
 
+  // User-triggered point-in-time snapshots (Phase 5)
+  snapshots ThesisSnapshot[]
+
+  // D4 Week 1–2: explicit references to embedded ArgumentChains. Materialized
+  // on save by walking the TipTap content for `argumentChain` nodes; powers
+  // backlinks and avoids re-walking content JSON on every /live poll.
+  chainReferences ThesisChainReference[]
+
   // Context
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: SetNull)
@@ -7129,6 +7153,9 @@ model ThesisProng {
   // Argument chain
   arguments ThesisProngArgument[]
 
+  // D4 Week 1–2: optional structured chain references scoped to this prong.
+  chainReferences ThesisChainReference[] @relation("ProngChainReferences")
+
   // Prose framing (TipTap JSON)
   introduction Json? // Rich text intro
   conclusion   Json? // Rich text conclusion
@@ -7172,11 +7199,89 @@ model ThesisSection {
   // TipTap JSON content
   content Json? // Rich text content
 
+  // Optional structured chain references scoped to this section (D4 Week 1–2).
+  chainReferences ThesisChainReference[] @relation("SectionChainReferences")
+
   @@index([thesisId, order])
   @@map("thesis_sections")
 }
 
+/// Frozen point-in-time snapshot of a thesis (Phase 5).
+/// User-triggered only; auto-snapshot workers deferred (D1).
+model ThesisSnapshot {
+  id       String @id @default(cuid())
+  thesisId String
+  thesis   Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  label String? // Optional human label for the snapshot
+
+  // Frozen TipTap content at snapshot time.
+  contentJson Json
+
+  // Frozen /live payload (objects map + computedAt + cursor).
+  statsSnapshot Json
+
+  // Frozen /confidence payload (overall + prongs).
+  confidenceSnapshot Json?
+
+  // Optional frozen attack-register payload (status=all entries).
+  attacksSnapshot Json?
+
+  createdById String // auth_id of snapshot creator
+  createdAt   DateTime @default(now())
+
+  parentSnapshotId String?
+  parentSnapshot   ThesisSnapshot?  @relation("SnapshotParent", fields: [parentSnapshotId], references: [id], onDelete: SetNull)
+  children         ThesisSnapshot[] @relation("SnapshotParent")
+
+  @@index([thesisId, createdAt])
+  @@index([createdById])
+  @@map("thesis_snapshots")
+}
+
+/// D4 Week 1–2: explicit thesis ↔ ArgumentChain reference, materialized on
+/// save when the TipTap content contains an `argumentChain` node. Powers
+/// backlinks (`/api/objects/chain/[id]/backlinks`) and the live/inspect/
+/// attack pipelines without re-walking the content JSON for every reader.
+model ThesisChainReference {
+  id       String @id @default(cuid())
+  thesisId String
+  chainId  String
+
+  // Optional scoping (V1: content-embed only; chain-as-mainClaim deferred).
+  prongId   String?
+  sectionId String?
+
+  // Display metadata
+  caption String?
+  role    ChainReferenceRole @default(MAIN)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  thesis  Thesis         @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  chain   ArgumentChain  @relation(fields: [chainId], references: [id], onDelete: Restrict)
+  prong   ThesisProng?   @relation("ProngChainReferences", fields: [prongId], references: [id], onDelete: SetNull)
+  section ThesisSection? @relation("SectionChainReferences", fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@unique([thesisId, chainId])
+  @@index([thesisId])
+  @@index([chainId])
+  @@index([prongId])
+  @@index([sectionId])
+  @@map("thesis_chain_references")
+}
+
 // Enums for Thesis system
+enum ChainReferenceRole {
+  MAIN // Primary reconstruction this thesis analyzes
+  SUPPORTING // Supporting analysis
+  OBJECTION_TARGET // Reconstruction the thesis attacks / responds to
+  COMPARISON // Compared with another reconstruction
+}
+
 enum ThesisStatus {
   DRAFT
   SUBMITTED
@@ -7402,6 +7507,10 @@ model ArgumentChain {
   nodes        ArgumentChainNode[]
   edges        ArgumentChainEdge[]
   scopes       ArgumentScope[] // Hypothetical/counterfactual scopes
+
+  // D4 Week 1–2: theses that embed this chain. Restrict on delete so a chain
+  // cannot be removed while it is still referenced by a thesis.
+  thesisReferences ThesisChainReference[]
 
   @@index([deliberationId])
   @@index([createdBy])

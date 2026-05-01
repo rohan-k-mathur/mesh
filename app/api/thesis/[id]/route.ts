@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserAuthId } from "@/lib/serverutils";
+import { syncThesisChainReferences } from "@/lib/thesis/chain-references";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
@@ -63,6 +64,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
                         key: true,
                         name: true,
                       },
+                    },
+                    // Phase D4 Week 3: include scheme instances (with premises + justification)
+                    // so the EnablerPanel can extract inference assumptions in ProngEditor /
+                    // ThesisComposer surfaces.
+                    argumentSchemes: {
+                      include: {
+                        scheme: {
+                          select: {
+                            id: true,
+                            key: true,
+                            name: true,
+                            title: true,
+                            description: true,
+                            premises: true,
+                          },
+                        },
+                      },
+                      orderBy: [{ role: "asc" }, { order: "asc" }],
                     },
                   },
                 },
@@ -136,6 +155,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         updatedAt: true,
       },
     });
+
+    // D4 Week 1–2: keep ThesisChainReference rows in sync with embedded
+    // `argumentChainNode` atoms. Best-effort — we log + continue on failure
+    // so a transient DB hiccup never blocks the user's save.
+    if (parsed.data.content !== undefined) {
+      try {
+        await syncThesisChainReferences(
+          params.id,
+          parsed.data.content as any,
+        );
+      } catch (refErr) {
+        console.error(
+          "[thesis/:id PATCH] syncThesisChainReferences failed",
+          refErr,
+        );
+      }
+    }
 
     return NextResponse.json({ ok: true, thesis }, NO_STORE);
   } catch (err: any) {

@@ -25,6 +25,10 @@ export default function GalleryCarousel({
   unoptimized = false,
   sizes,
 }: Props) {
+  const prefersReduced = useReducedMotion();
+  const [[currentIndex, direction], setPage] = useState<[number, number]>([0, 0]);
+  const slideVariants = useMemo(() => buildSlideVariants(animation), [animation]);
+
   // If there is nothing to show, bail early (outside embed only)
   if (!embed && urls.length === 0) return null;
 
@@ -63,9 +67,6 @@ export default function GalleryCarousel({
   }
 
   // ---- original rich carousel (outside Repeater) ----
-  const prefersReduced = useReducedMotion();
-  const [[currentIndex, direction], setPage] = useState<[number, number]>([0, 0]);
-  const slideVariants = useMemo(() => buildSlideVariants(animation), [animation]);
   const hasArrows = urls.length > 1;
 
   const handleNext = (e: React.MouseEvent<HTMLButtonElement>) => {

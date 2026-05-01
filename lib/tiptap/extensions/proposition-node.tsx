@@ -3,6 +3,8 @@ import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 import { Lightbulb, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import { LiveBadgeStrip } from "@/lib/thesis/LiveBadgeStrip";
+import { useOpenInspector } from "@/lib/thesis/ThesisLiveContext";
 
 // React component for rendering the proposition
 function PropositionNodeView({ node }: NodeViewProps) {
@@ -13,6 +15,7 @@ function PropositionNodeView({ node }: NodeViewProps) {
     authorName?: string;
     citationCount?: number;
   };
+  const openInspector = useOpenInspector();
 
   const [citations, setCitations] = useState<any[]>([]);
   const [loadingCitations, setLoadingCitations] = useState(false);
@@ -61,7 +64,21 @@ function PropositionNodeView({ node }: NodeViewProps) {
       className="proposition-embed not-prose my-4"
       data-proposition-id={propositionId}
     >
-      <div className="rounded-lg border-2 border-purple-200 bg-purple-50 p-4 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        className="rounded-lg border-2 border-purple-200 bg-purple-50 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={() =>
+          propositionId &&
+          openInspector({ kind: "proposition", id: propositionId, tab: "overview" })
+        }
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && propositionId) {
+            e.preventDefault();
+            openInspector({ kind: "proposition", id: propositionId, tab: "overview" });
+          }
+        }}
+      >
         <div className="flex items-start gap-3">
           <Lightbulb className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
@@ -85,6 +102,17 @@ function PropositionNodeView({ node }: NodeViewProps) {
             <p className="text-slate-900 font-medium leading-relaxed">
               {propositionText}
             </p>
+            <div
+              className="mt-2"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <LiveBadgeStrip
+                id={propositionId}
+                kind="proposition"
+                hideLabel
+              />
+            </div>
             {mediaUrl && (
               <div className="mt-3">
                 <img

@@ -1229,7 +1229,7 @@ function ClosingSection() {
   )
 }
 
-export const colorClasses = {
+const colorClasses = {
   indigo: {
     bg: 'from-sky-50/30 to-sky-300/10',
     border: 'border-sky-200/60',
@@ -1288,7 +1288,7 @@ export const colorClasses = {
     },
   };
 
-  export const foundationCategories = [
+  const foundationCategories = [
     {
       id: 'core',
       title: 'Core Argumentation Theory',
