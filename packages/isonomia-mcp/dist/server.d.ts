@@ -15,6 +15,15 @@
  *   • cite_argument        — citation block (URL + content hash + pull quote)
  *   • propose_argument     — create a new argument (requires API token)
  *
+ *   Pt. 4 deliberation-scope tools (read-only):
+ *   • get_deliberation_fingerprint — honesty floor for any summary
+ *   • get_contested_frontier       — open dialectical edges
+ *   • get_missing_moves            — scheme-typical absences
+ *   • get_chains                   — chain exposure with weakest link
+ *   • get_synthetic_readout        — editorial primitive with refusalSurface
+ *   • get_cross_context            — canonical-claim families, plexus edges
+ *   • summarize_debate             — wrapper for the readout
+ *
  * Run:
  *   ISONOMIA_BASE_URL=https://isonomia.app \
  *   ISONOMIA_API_TOKEN=...                 \

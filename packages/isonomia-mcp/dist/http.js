@@ -9,11 +9,11 @@
  *                      Defaults to "https://isonomia.app" when unset.
  *   ISONOMIA_API_TOKEN Bearer token. REQUIRED for write tools
  *                      (propose_argument). Read tools work anonymously.
- *   ISONOMIA_TIMEOUT_MS  Per-request timeout (default 15000).
+ *   ISONOMIA_TIMEOUT_MS  Per-request timeout (default 30000).
  */
 export const BASE_URL = process.env.ISONOMIA_BASE_URL?.replace(/\/+$/, "") || "https://isonomia.app";
 export const API_TOKEN = process.env.ISONOMIA_API_TOKEN || "";
-export const TIMEOUT_MS = Number(process.env.ISONOMIA_TIMEOUT_MS ?? 15000) || 15000;
+export const TIMEOUT_MS = Number(process.env.ISONOMIA_TIMEOUT_MS ?? 30000) || 30000;
 export const USER_AGENT = "isonomia-mcp/0.1.0 (+https://isonomia.app/mcp)";
 /**
  * Fetch wrapper with timeout + UA + optional bearer + JSON parsing.
@@ -38,6 +38,8 @@ export async function isoFetch(path, init = {}) {
             const snippet = text.length > 500 ? text.slice(0, 500) + "…" : text;
             throw new Error(`HTTP ${res.status} ${res.statusText} from ${url}: ${snippet}`);
         }
+        if (init.raw)
+            return text;
         if (!text)
             return {};
         try {

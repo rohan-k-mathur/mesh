@@ -100,6 +100,45 @@ const MANIFEST = {
       description:
         "Quick Argument API. Token-gated; returns a permalink for the newly-created argument.",
     },
+    deliberationFingerprint: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/fingerprint`,
+      method: "GET",
+      description:
+        "Track AI-EPI Pt. 4 §1 — deterministic deliberation-scope statistical summary. Returns contentHash that keys every other Pt. 4 readout.",
+    },
+    deliberationContestedFrontier: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/frontier`,
+      method: "GET",
+      query: {
+        sortBy: ["loadBearingness", "recency", "severity"],
+      },
+      description:
+        "Track AI-EPI Pt. 4 §2 — open dialectical edges (unanswered undercuts, undermines, CQs, terminal leaves) with a load-bearingness ranking. Use before any 'middle ground' or 'consensus' summary.",
+    },
+    deliberationMissingMoves: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/missing-moves`,
+      method: "GET",
+      description:
+        "Track AI-EPI Pt. 4 §3 — diff between scheme-typical-move catalog and actual graph. Names absent CQs and undercuts by catalog key.",
+    },
+    deliberationChains: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/chains`,
+      method: "GET",
+      description:
+        "Track AI-EPI Pt. 4 §4 — ArgumentChain projections with chainStanding (worst-link), chainFitness, weakestLink, and uncoveredClaims.",
+    },
+    deliberationSyntheticReadout: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/synthetic-readout`,
+      method: "GET",
+      description:
+        "Track AI-EPI Pt. 4 §5 — editorial primitive. Composes fingerprint + frontier + missing-moves + chains and exposes refusalSurface.cannotConcludeBecause: a structured enumeration of conclusions the graph will not currently license. Consumers that close on a refused conclusion lie about a structured field.",
+    },
+    deliberationCrossContext: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/cross-context`,
+      method: "GET",
+      description:
+        "Track AI-EPI Pt. 4 §7 — canonical-claim families across rooms, plexus-edge counts (ArgumentImport), sibling-room scheme reuse. aggregateAcceptance is a deterministic fold over localStatus enums.",
+    },
   },
   citation: {
     envelopePath: "/api/a/{shortCode}/aif?format=attestation",
@@ -141,7 +180,7 @@ const MANIFEST = {
       {
         name: "search_arguments",
         description:
-          "Free-text search over public arguments; supports sort=dialectical_fitness re-rank.",
+          "Free-text search over public arguments; supports sort=dialectical_fitness re-rank and mode=hybrid|lexical|vector retrieval (hybrid is the default and fuses pgvector cosine + lexical via RRF).",
       },
       {
         name: "get_argument",
@@ -156,17 +195,52 @@ const MANIFEST = {
       {
         name: "find_counterarguments",
         description:
-          "Counter-arguments for a target claim. Honest-empty: returns no results rather than self-counters.",
+          "Counter-arguments for a target claim. Honest-empty: returns no results rather than self-counters. Supports mode=hybrid (default) for paraphrase-tolerant candidate recall.",
       },
       {
         name: "cite_argument",
         description:
-          "Returns a citation block with provenance counters, standingState classifier, and the strongest known objection attached by default.",
+          "Returns a citation block with provenance counters, standingState classifier, the strongest known objection attached by default, and the Isonomia URN (iso:argument:<shortCode>). Pass format=apa|mla|chicago|bibtex|ris|csl for the canonical scholarly citation string (AI-EPI E.1).",
       },
       {
         name: "propose_argument",
         description:
           "Create a new argument via the Quick Argument API. Token-gated.",
+      },
+      {
+        name: "get_deliberation_fingerprint",
+        description:
+          "Pt. 4 §1 — deterministic statistical summary of a deliberation. Honesty floor for any deliberation summary; the contentHash is the cache key for every other Pt. 4 readout.",
+      },
+      {
+        name: "get_contested_frontier",
+        description:
+          "Pt. 4 §2 — open dialectical edges in a deliberation with a load-bearingness ranking. Required before any 'consensus' or 'middle ground' summary.",
+      },
+      {
+        name: "get_missing_moves",
+        description:
+          "Pt. 4 §3 — diff between scheme-typical moves and what the graph contains. Names absent moves by catalog key.",
+      },
+      {
+        name: "get_chains",
+        description:
+          "Pt. 4 §4 — ArgumentChain projections with worst-link standing and weakest-link annotations.",
+      },
+      {
+        name: "get_synthetic_readout",
+        description:
+          "Pt. 4 §5 — composed deliberation readout with refusalSurface.cannotConcludeBecause. The editorial primitive.",
+      },
+      {
+        name: "get_cross_context",
+        description:
+          "Pt. 4 §7 — canonical-claim families and plexus-edge counts across rooms. Use when local depth is thin.",
+      },
+      {
+        name: "summarize_debate",
+        description:
+          "Pt. 4 wrapper — forces deliberation summaries through the synthetic-readout primitive instead of free synthesis from search hits.",
       },
     ],
   },
@@ -211,6 +285,12 @@ const MANIFEST = {
     honestEmptyOnSelfCounter: true,
     standingStateClassifier: true,
     immutablePermalinks: true,
+    deliberationFingerprint: true,
+    contestedFrontier: true,
+    missingMovesCatalog: true,
+    chainExposure: true,
+    syntheticReadoutWithRefusalSurface: true,
+    crossDeliberationContext: true,
   },
   meta: {
     generatedAt: new Date().toISOString().slice(0, 10),

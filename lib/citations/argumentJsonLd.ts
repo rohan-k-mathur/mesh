@@ -124,11 +124,15 @@ export function buildArgumentJsonLd(att: ArgumentAttestation): Record<string, un
     "@id": att.permalink,
     "@type": ["CreativeWork", "ScholarlyArticle", "Claim", "aif:RA"],
     url: att.permalink,
-    sameAs: [att.immutablePermalink, aifEndpoint].filter(Boolean),
+    sameAs: [att.immutablePermalink, att.isoUrl, aifEndpoint].filter(Boolean),
     identifier: [
+      { "@type": "PropertyValue", propertyID: "iso", value: att.isoId },
       { "@type": "PropertyValue", propertyID: "iso:permalink", value: att.identifier },
       { "@type": "PropertyValue", propertyID: "iso:contentHash", value: att.contentHash },
       { "@type": "PropertyValue", propertyID: "iso:version", value: String(att.version) },
+      ...(att.doi
+        ? [{ "@type": "PropertyValue", propertyID: "doi", value: att.doi }]
+        : []),
     ],
     name: headlineText.slice(0, 140),
     headline: headlineText.slice(0, 140),
@@ -261,35 +265,74 @@ export function buildArgumentJsonLd(att: ArgumentAttestation): Record<string, un
 
 /**
  * Build the <meta name="citation_*"> tag set for Zotero / Google Scholar
- * auto-detection. (Track E.1 — done as a small bonus alongside A.2 since it
- * costs almost nothing once the attestation envelope is built.)
+ * auto-detection, plus Dublin Core and PRISM tags for library harvesters
+ * and the iso: identifier so iso-aware tooling can round-trip our URN.
+ *
+ * (Track E.1 — extended in tandem with E.2 once the attestation envelope
+ * carries the iso:id.)
+ *
+ * Author rendering follows the AI-EPI Pt. 3 §5 attribution rules — see
+ * `renderAuthorPlain` in `lib/citation/formats.ts`.
  */
 export function buildCitationMetaTags(
   att: ArgumentAttestation
 ): Array<{ name: string; content: string }> {
   const tags: Array<{ name: string; content: string }> = [];
   const title = att.conclusion?.text || "Argument";
+  const isoDate = att.createdAt ? att.createdAt.split("T")[0] : null;
+  // Lazy import to avoid a circular dep between the JSON-LD module and
+  // the format module (formats.ts already imports the attestation type).
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { renderAuthorPlain } = require("@/lib/citation/formats") as {
+    renderAuthorPlain: (a: ArgumentAttestation["author"]) => string;
+  };
+  const authorPlain = renderAuthorPlain(att.author);
+
+  // ----- Highwire / Google Scholar / Zotero "citation_*" tags -----
   tags.push({ name: "citation_title", content: title });
   tags.push({ name: "citation_public_url", content: att.permalink });
   tags.push({ name: "citation_fulltext_html_url", content: att.permalink });
   tags.push({ name: "citation_abstract_html_url", content: att.permalink });
+  tags.push({ name: "citation_abstract", content: title });
   tags.push({ name: "citation_publisher", content: "Isonomia" });
-  if (att.author?.displayName) {
-    tags.push({ name: "citation_author", content: att.author.displayName });
+  tags.push({ name: "citation_journal_title", content: "Isonomia Arguments" });
+  tags.push({ name: "citation_author", content: authorPlain });
+  if (isoDate) {
+    tags.push({ name: "citation_publication_date", content: isoDate });
+    tags.push({ name: "citation_date", content: isoDate });
   }
-  if (att.createdAt) {
-    tags.push({
-      name: "citation_publication_date",
-      content: att.createdAt.split("T")[0],
-    });
-    tags.push({ name: "citation_date", content: att.createdAt.split("T")[0] });
-  }
+  if (att.doi) tags.push({ name: "citation_doi", content: att.doi });
   for (const e of att.evidence) {
     if (e.uri) tags.push({ name: "citation_reference", content: e.uri });
   }
-  // Custom Isonomia identifiers
+
+  // ----- Dublin Core (library harvesters: OAI-PMH, OpenAIRE) -----
+  tags.push({ name: "DC.title", content: title });
+  tags.push({ name: "DC.creator", content: authorPlain });
+  if (isoDate) tags.push({ name: "DC.date", content: isoDate });
+  tags.push({ name: "DC.publisher", content: "Isonomia" });
+  tags.push({ name: "DC.identifier", content: att.isoId });
+  tags.push({ name: "DC.identifier", content: att.immutablePermalink });
+  if (att.doi) tags.push({ name: "DC.identifier", content: `doi:${att.doi}` });
+  tags.push({ name: "DC.type", content: "InteractiveResource" });
+  tags.push({ name: "DC.format", content: "text/html" });
+  tags.push({ name: "DC.language", content: "en" });
+
+  // ----- PRISM (publishing-industry metadata) -----
+  if (isoDate) tags.push({ name: "prism.publicationDate", content: isoDate });
+  tags.push({ name: "prism.url", content: att.immutablePermalink });
+  if (att.doi) tags.push({ name: "prism.doi", content: att.doi });
+
+  // ----- Custom Isonomia identifiers -----
+  tags.push({ name: "iso_id", content: att.isoId });
+  tags.push({ name: "iso_url", content: att.isoUrl });
   tags.push({ name: "iso_permalink", content: att.permalink });
+  tags.push({ name: "iso_immutable_permalink", content: att.immutablePermalink });
   tags.push({ name: "iso_content_hash", content: att.contentHash });
   tags.push({ name: "iso_version", content: String(att.version) });
+  tags.push({
+    name: "iso_standing_state",
+    content: att.dialecticalStatus.standingState,
+  });
   return tags;
 }

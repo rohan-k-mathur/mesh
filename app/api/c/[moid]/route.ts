@@ -69,6 +69,10 @@ export async function GET(
       version: a.permalink!.version,
       text: a.text,
       createdAt: a.createdAt?.toISOString() ?? null,
+      // Citation hop: lets a model fetch the attestation envelope (with
+      // contentHash, immutable permalink, dialectical status, standingState)
+      // in one extra call rather than re-resolving via /api/a/{shortCode}/aif.
+      attestationUrl: `${BASE_URL}/api/a/${a.permalink!.shortCode}/aif?format=attestation`,
     }));
 
   return NextResponse.json(

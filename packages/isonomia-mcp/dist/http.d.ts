@@ -9,7 +9,7 @@
  *                      Defaults to "https://isonomia.app" when unset.
  *   ISONOMIA_API_TOKEN Bearer token. REQUIRED for write tools
  *                      (propose_argument). Read tools work anonymously.
- *   ISONOMIA_TIMEOUT_MS  Per-request timeout (default 15000).
+ *   ISONOMIA_TIMEOUT_MS  Per-request timeout (default 30000).
  */
 export declare const BASE_URL: string;
 export declare const API_TOKEN: string;
@@ -18,6 +18,8 @@ export declare const USER_AGENT = "isonomia-mcp/0.1.0 (+https://isonomia.app/mcp
 export interface IsoFetchInit extends RequestInit {
     /** When true, attaches the bearer token if configured */
     authenticated?: boolean;
+    /** When true, returns the raw response body as a string instead of parsing JSON. */
+    raw?: boolean;
 }
 /**
  * Fetch wrapper with timeout + UA + optional bearer + JSON parsing.

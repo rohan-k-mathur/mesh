@@ -13,7 +13,7 @@ export default async function ArticlesPage() {
   if (!user) redirect('/login') // or notFound()
 
   const items = await prisma.article.findMany({
-    where: { authorId: user.userId.toString(), deletedAt: null },
+    where: { authorId: user.userId!.toString(), deletedAt: null },
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     take: PAGE_SIZE + 1,                // grab one extra to compute nextCursor
     select: {

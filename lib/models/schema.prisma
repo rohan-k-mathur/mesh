@@ -2545,6 +2545,14 @@ model Argument {
   confidence     Float?
   isImplicit     Boolean @default(false)
 
+  // Track AI-EPI Pt. 3 §5 — authoring provenance
+  // HUMAN | AI | HYBRID. AI-authored rows are forced to enter at
+  // standing-state "untested-default" by the publishing flow regardless
+  // of structural completeness; the standing system already prevents
+  // them from inflating the dialectical record until a human engages.
+  authorKind   AuthorKind @default(HUMAN)
+  aiProvenance Json?      // { model, promptHash, sourceUrls[], generatedAt, ... }
+
   // DEPRECATED: Legacy single scheme field (Phase 1-3)
   // Use argumentSchemes many-to-many relation instead (Phase 4+)
   schemeId String?         @db.VarChar(64)
@@ -2625,6 +2633,16 @@ model Argument {
   // Phase 4.2: Contribution tracking
   scholarContributions ScholarContribution[] @relation("ArgumentContributions")
 
+  // Track AI-EPI C.1 — pgvector-based dense retrieval.
+  // 1536-dim text-embedding-3-small vector over canonical
+  // (conclusion|text · premises · scheme.key). embeddingHash is the
+  // sha256 of the embedded text — short-circuits re-embed on no-op edits.
+  // HNSW index added via raw migration (Prisma can't express it yet).
+  embedding      Unsupported("vector(1536)")?
+  embeddingHash  String?
+  embeddingModel String?
+  embeddedAt     DateTime?
+
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
@@ -2634,6 +2652,17 @@ model Argument {
 enum RuleType {
   STRICT // R_s: Strict rules (cannot rebut conclusions, sound deduction)
   DEFEASIBLE // R_d: Defeasible rules (rebuttable presumptive inference)
+}
+
+// Track AI-EPI Pt. 3 §5 — argument authoring provenance.
+// AI/HYBRID rows enter the graph at "untested-default" standing regardless
+// of structural completeness. The standing system already prevents AI-
+// authored content from inflating the dialectical record; this enum just
+// makes the provenance explicit so consumers (and other LLMs) can flag it.
+enum AuthorKind {
+  HUMAN
+  AI
+  HYBRID
 }
 
 // Junction table for many-to-many Argument-ArgumentScheme relation with confidence scores
@@ -10027,4 +10056,38 @@ model MetaConsensusEvent {
   @@index([deliberationId, sessionId, eventType])
   @@index([tagId])
   @@index([summaryId])
+}
+
+/// AI-EPI Pt. 4 §1 — readout cache.
+/// Keyed by (deliberationId, contentHash). Computed by
+/// `computeSyntheticReadout`; invalidated implicitly by hash drift
+/// when the underlying graph changes (no manual eviction needed).
+model DeliberationFingerprintCache {
+  id             String   @id @default(cuid())
+  deliberationId String
+  contentHash    String
+  payload        Json
+  createdAt      DateTime @default(now())
+
+  @@unique([deliberationId, contentHash])
+  @@index([deliberationId, createdAt])
+}
+
+/// AI-EPI Pt. 4 §8 — engagement telemetry on AI-authored arguments.
+/// Each row records a discrete human action against an argument whose
+/// authorKind is AI or HYBRID. Rolling-30d aggregates feed
+/// `fingerprint.extraction.humanEngagementRateOnAiSeeds`, which gates
+/// the `articulationOnly` chip on the DeliberationStateCard.
+///
+/// `kind` values: "attack" | "support" | "cqAnswer" | "concede".
+/// `actorAuthId` is the auth_id of the human who performed the action.
+model AiDraftEngagement {
+  id          String   @id @default(cuid())
+  argumentId  String
+  actorAuthId String
+  kind        String
+  occurredAt  DateTime @default(now())
+
+  @@index([argumentId, occurredAt])
+  @@index([occurredAt])
 }
