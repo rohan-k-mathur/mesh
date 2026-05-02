@@ -92,7 +92,20 @@ const SemanticDot = ({ label }: { label: "IN" | "OUT" | "UNDEC" }) => {
   );
 };
 
-export function ThesisRenderer({ thesisId }: { thesisId: string }) {
+export function ThesisRenderer({
+  thesisId,
+  deliberationId,
+}: {
+  thesisId: string;
+  /**
+   * AI-EPI Pt. 4 §6 — when provided, render a sidebar entry showing
+   * the SyntheticReadout `honestyLine` and a drawer trigger to the
+   * full structured readout. The thesis and the protocol readout are
+   * meant to coexist (brainstorm §5.5); when they disagree, that is
+   * itself a finding (sprint-2 surface).
+   */
+  deliberationId?: string;
+}) {
   const [expandedProngs, setExpandedProngs] = useState<Set<string>>(new Set());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
@@ -194,6 +207,13 @@ export function ThesisRenderer({ thesisId }: { thesisId: string }) {
             <div className="text-lg text-slate-800">
               <GlossaryText text={thesis.thesisClaim.text} />
             </div>
+          </div>
+        )}
+
+        {/* AI-EPI Pt. 4 §6 — Protocol readout coexistence surface. */}
+        {deliberationId && (
+          <div className="mb-8">
+            <ProtocolReadoutSidebar deliberationId={deliberationId} />
           </div>
         )}
 
@@ -394,6 +414,84 @@ export function ThesisRenderer({ thesisId }: { thesisId: string }) {
             <span className="w-2.5 h-2.5 rounded-full bg-zinc-600" /> UNDEC (Undecided)
           </span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// AI-EPI Pt. 4 §6 — Protocol-readout coexistence surface.
+//
+// Renders the deliberation's `SyntheticReadout.honestyLine` as a small
+// sidebar entry next to the thesis, plus a "see protocol readout"
+// button that opens the full structured readout (via the same Sheet
+// drawer the DeliberationStateCard uses).
+//
+// The full Thesis ↔ SyntheticReadout disagreement-detection surface
+// (brainstorm §8.4) is a sprint-2 item; this is the *coexistence*
+// surface only — both objects visible to the reader, no inferred
+// disagreement claims.
+// ────────────────────────────────────────────────────────────────
+
+function ProtocolReadoutSidebar({ deliberationId }: { deliberationId: string }) {
+  const { data, error, isLoading } = useSWR<{
+    honestyLine: string;
+    contentHash: string;
+    refusalSurface: { cannotConcludeBecause: Array<{ blockedBy: string }> };
+    fingerprint: { extraction: { articulationOnly: boolean } };
+  }>(
+    `/api/v3/deliberations/${encodeURIComponent(deliberationId)}/synthetic-readout`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 60_000,
+      dedupingInterval: 30_000,
+    },
+  );
+
+  if (isLoading) {
+    return (
+      <div className="p-4 bg-amber-50/40 border border-amber-200 rounded-r-xl animate-pulse">
+        <div className="h-4 w-40 bg-amber-200/60 rounded mb-2" />
+        <div className="h-3 w-3/4 bg-amber-200/40 rounded" />
+      </div>
+    );
+  }
+  if (error || !data) return null;
+
+  const refusalCount = data.refusalSurface.cannotConcludeBecause.length;
+  const articulationOnly = data.fingerprint.extraction.articulationOnly;
+
+  return (
+    <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-r-xl shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-semibold text-amber-900 uppercase tracking-wide">
+          Protocol readout
+        </div>
+        <div className="flex gap-1.5">
+          {articulationOnly && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+              articulation only
+            </span>
+          )}
+          {refusalCount > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300">
+              {refusalCount} refusal{refusalCount === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+      </div>
+      <p className="text-sm text-slate-700 leading-snug mb-3">
+        {data.honestyLine}
+      </p>
+      <a
+        href={`/deliberation/${encodeURIComponent(deliberationId)}#frontier`}
+        className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition"
+      >
+        See full protocol readout →
+      </a>
+      <div className="mt-2 text-[10px] font-mono text-slate-400 break-all">
+        contentHash: {data.contentHash.slice(0, 16)}…
       </div>
     </div>
   );

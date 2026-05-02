@@ -223,8 +223,8 @@ export const ISONOMIA_OPENAPI_SPEC = {
       },
       Testedness: {
         type: "string",
-        enum: ["untested", "lightly_tested", "moderately_tested", "heavily_tested"],
-        description: "Coarse bucket derived from CQ answer count + inbound traffic.",
+        enum: ["untested", "lightly_tested", "well_tested"],
+        description: "Coarse bucket derived from CQ answer count + inbound traffic. Prefer StandingState for richer signal.",
       },
       StandingState: {
         type: "string",
@@ -283,6 +283,7 @@ export const ISONOMIA_OPENAPI_SPEC = {
           text: { type: "string" },
           conclusion: { $ref: "#/components/schemas/Conclusion", nullable: true },
           scheme: { $ref: "#/components/schemas/Scheme", nullable: true },
+          standingState: { $ref: "#/components/schemas/StandingState", description: "5-bucket dialectical-standing classifier surfaced inline so a single search call gives an LLM enough signal to rank without per-result attestation fetches." },
           accessCount: { type: "integer" },
           createdAt: { type: "string", format: "date-time", nullable: true },
           attestationUrl: { type: "string", format: "uri", description: "Direct URL to the compact attestation envelope (?format=attestation)." },
@@ -348,6 +349,7 @@ export const ISONOMIA_OPENAPI_SPEC = {
                     version: { type: "integer" },
                     text: { type: "string" },
                     createdAt: { type: "string", format: "date-time", nullable: true },
+                    attestationUrl: { type: "string", format: "uri", description: "One-call hop to the compact attestation envelope (contentHash, immutable permalink, dialectical status)." },
                   },
                 },
               },

@@ -64,7 +64,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           "PREDICTION",
           "ROOM_CANVAS",
         ]}
-        currentUserId={user?.userId}
+        currentUserId={user?.userId ?? undefined}
       />
       )}
     </div>

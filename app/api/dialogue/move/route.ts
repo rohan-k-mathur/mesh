@@ -18,6 +18,7 @@ import type { MoveKind } from '@/lib/dialogue/types';
 import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
 import { invalidateCommitmentStoresCache, getCommitmentStores } from '@/lib/aif/graph-builder';
 import { checkNewCommitmentContradictions, type Contradiction } from '@/lib/aif/dialogue-contradictions';
+import { recordAiDraftEngagement } from '@/lib/argument/aiAuthoring';
 
 function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
 const WHY_TTL_HOURS = 24;
@@ -405,6 +406,24 @@ try {
       dedup = true;
     } else {
       throw e;
+    }
+  }
+
+  // AI-EPI Pt. 4 §8 — record human engagement against AI-authored arguments.
+  // Fire-and-forget; helper short-circuits on human targets and self-engagement.
+  if (!dedup && actualTargetType === 'argument') {
+    const engagementKind =
+      kind === 'GROUNDS' ? 'cqAnswer'
+      : kind === 'WHY' ? 'attack'
+      : (wasConcede || wasAccept) ? 'concede'
+      : kind === 'ASSERT' ? 'support'
+      : null;
+    if (engagementKind) {
+      void recordAiDraftEngagement({
+        argumentId: actualTargetId,
+        actorAuthId: String(actorId),
+        kind: engagementKind,
+      });
     }
   }
 

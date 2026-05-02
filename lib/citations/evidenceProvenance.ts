@@ -27,7 +27,11 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prismaclient";
 
 const FETCH_TIMEOUT_MS = 8_000;
-const ARCHIVE_TIMEOUT_MS = 12_000;
+// Save Page Now routinely needs 20–40 s to spider a fresh URL; 12 s
+// guaranteed timeout failures on slow targets (nature.com, hhs.gov, etc.).
+// 45 s gives SPN room while still capping worker latency.
+const ARCHIVE_TIMEOUT_MS = 45_000;
+const AVAILABILITY_TIMEOUT_MS = 8_000;
 const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MiB cap
 const USER_AGENT =
   "IsonomiaProvenanceBot/1.0 (+https://isonomia.app/bots; evidence attestation)";
@@ -216,11 +220,17 @@ export async function requestArchiveSnapshot(
     });
 
     // Wayback responds with various shapes. Prefer headers when present.
+    // - 302 redirect to the snapshot lives in `Location`
+    // - SPN sometimes uses `content-location` for an in-progress URL
+    // - The Memento `Link` header carries rel="memento" pointers
+    const location = res.headers.get("location");
     const contentLocation = res.headers.get("content-location");
     const link = res.headers.get("link");
 
     let archivedUrl: string | null = null;
-    if (contentLocation && contentLocation.startsWith("/web/")) {
+    if (location && /https?:\/\/web\.archive\.org\/web\//i.test(location)) {
+      archivedUrl = location;
+    } else if (contentLocation && contentLocation.startsWith("/web/")) {
       archivedUrl = "https://web.archive.org" + contentLocation;
     } else if (link) {
       const m = link.match(/<(https:\/\/web\.archive\.org\/web\/[^>]+)>/i);
@@ -242,6 +252,53 @@ export async function requestArchiveSnapshot(
       err?.name === "AbortError"
         ? "archive_timeout"
         : (err?.message || "archive_failed").slice(0, 200);
+    return { archivedUrl: null, archivedAt: null, error: msg };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Fallback to the Wayback availability API. When Save Page Now is slow or
+ * fails, an existing snapshot may still be sitting in the Wayback Machine.
+ * This is a cheap (~200 ms) JSON probe that returns the closest snapshot
+ * URL if one exists, or null if Wayback has nothing on file.
+ */
+export async function lookupExistingArchive(
+  uri: string,
+): Promise<{ archivedUrl: string | null; archivedAt: Date | null; error: string | null }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AVAILABILITY_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `https://archive.org/wayback/available?url=${encodeURIComponent(uri)}`,
+      {
+        method: "GET",
+        signal: controller.signal,
+        headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+      },
+    );
+    if (res.status !== 200) {
+      return { archivedUrl: null, archivedAt: null, error: `availability_http_${res.status}` };
+    }
+    const body = (await res.json()) as any;
+    const snap = body?.archived_snapshots?.closest;
+    if (snap?.available && typeof snap?.url === "string") {
+      let archivedAt: Date | null = null;
+      if (typeof snap.timestamp === "string" && /^\d{14}$/.test(snap.timestamp)) {
+        const t = snap.timestamp;
+        archivedAt = new Date(
+          `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)}T${t.slice(8, 10)}:${t.slice(10, 12)}:${t.slice(12, 14)}Z`,
+        );
+      }
+      return { archivedUrl: snap.url, archivedAt, error: null };
+    }
+    return { archivedUrl: null, archivedAt: null, error: "availability_no_snapshot" };
+  } catch (err: any) {
+    const msg =
+      err?.name === "AbortError"
+        ? "availability_timeout"
+        : (err?.message || "availability_failed").slice(0, 200);
     return { archivedUrl: null, archivedAt: null, error: msg };
   } finally {
     clearTimeout(timeout);
@@ -283,6 +340,15 @@ export async function enrichEvidenceProvenance(
   };
   if (archive && fetched.ok) {
     archived = await requestArchiveSnapshot(row.uri);
+    // Save Page Now is best-effort; on timeout, http error, or no snapshot
+    // header, fall back to the cheap availability API. Catches the case where
+    // Wayback already has a snapshot but SPN was too slow to confirm it.
+    if (!archived.archivedUrl) {
+      const fallback = await lookupExistingArchive(row.uri);
+      if (fallback.archivedUrl) {
+        archived = fallback;
+      }
+    }
   }
 
   const merged: EvidenceProvenanceResult = {

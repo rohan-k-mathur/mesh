@@ -22,7 +22,7 @@ async function Page({ params }: { params: { id: string } }) {
         username={profilePageUser.username}
         imgUrl={profilePageUser.image}
         bio={profilePageUser.bio}
-        currentUserId={activeUser?.userId ? String(activeUser.userId) : ""}
+        currentUserId={activeUser?.userId ?? null}
         isFollowing={false}
         isFriend={false}
       />

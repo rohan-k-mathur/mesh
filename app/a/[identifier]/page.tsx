@@ -11,6 +11,15 @@ import {
   buildArgumentJsonLd,
   buildCitationMetaTags,
 } from "@/lib/citations/argumentJsonLd";
+import {
+  toApa,
+  toMla,
+  toChicago,
+  toBibTeX,
+  toRis,
+  toCslJson,
+} from "@/lib/citation/formats";
+import CitationExportWidget from "@/components/citation/CitationExportWidget";
 import { prisma } from "@/lib/prismaclient";
 
 export const dynamic = "force-dynamic";
@@ -261,6 +270,26 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         title="Attestation envelope"
       />
 
+      {/* Track AI-EPI E.1 — citation format alternates (Zotero/citation.js pick these up) */}
+      <link
+        rel="alternate"
+        type="application/vnd.citationstyles.csl+json"
+        href={`${BASE_URL}/api/a/${identifier}/cite?format=csl`}
+        title="CSL-JSON citation"
+      />
+      <link
+        rel="alternate"
+        type="application/x-bibtex"
+        href={`${BASE_URL}/api/a/${identifier}/cite?format=bibtex`}
+        title="BibTeX citation"
+      />
+      <link
+        rel="alternate"
+        type="application/x-research-info-systems"
+        href={`${BASE_URL}/api/a/${identifier}/cite?format=ris`}
+        title="RIS citation"
+      />
+
       {/* Nav bar */}
       <nav className="topnav">
         <a href={BASE_URL} className="brand">
@@ -441,6 +470,24 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
             </div>
           </div>
         </section>
+
+        {/* Track AI-EPI E.1 — citation export widget */}
+        {attestation && (
+          <CitationExportWidget
+            isoId={attestation.isoId}
+            isoUrl={attestation.isoUrl}
+            shortCode={attestation.identifier}
+            citeEndpoint={`${BASE_URL}/api/a/${identifier}/cite`}
+            citations={{
+              apa: toApa(attestation),
+              mla: toMla(attestation),
+              chicago: toChicago(attestation),
+              bibtex: toBibTeX(attestation),
+              ris: toRis(attestation),
+              csl: JSON.stringify(toCslJson(attestation), null, 2),
+            }}
+          />
+        )}
 
         {/* Embed code */}
         <section className="embed-section">

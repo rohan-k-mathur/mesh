@@ -59,9 +59,9 @@ export default function CustomButtons({ userAttributes, currentBio, initialOpen 
       ? new Date(userAttributes.birthday).toISOString().split("T")[0]
       : ""
   );
-  const path = usePathname();
+  const path = usePathname() ?? "";
   const [message, setMessage] = useState(currentBio ?? "");
-  const handleChange = (event) => {
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(event.target.value);
   };
 

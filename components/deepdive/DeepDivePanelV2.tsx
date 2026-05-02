@@ -32,6 +32,8 @@ import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
 import { DefinitionSheet } from "@/components/glossary/DefinitionSheet";
 import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
+import { DeliberationStateCard } from "@/components/deliberation/DeliberationStateCard";
+import { FrontierLane } from "@/components/deliberation/FrontierLane";
 import React from "react";
 import clsx from "clsx";
 import { SectionCard, ChipBar, StickyHeader } from "./shared";
@@ -645,6 +647,20 @@ const {
     window.addEventListener('mesh:dialogue:refresh', onRefresh);
     return () => window.removeEventListener('mesh:dialogue:refresh', onRefresh);
   }, []);
+
+  // AI-EPI Pt. 4 §6 — `mesh:deepdive:setTab` channel. Lets sibling
+  // components (DeliberationStateCard drawer, FrontierLane CTAs, the
+  // embedded widget) seek into a specific tab without a prop drill.
+  useEffect(() => {
+    const onSetTab = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { tab?: string } | undefined;
+      if (detail?.tab && typeof detail.tab === "string") {
+        delibActions.setTab(detail.tab as any);
+      }
+    };
+    window.addEventListener("mesh:deepdive:setTab", onSetTab as EventListener);
+    return () => window.removeEventListener("mesh:deepdive:setTab", onSetTab as EventListener);
+  }, [delibActions]);
 
   function handleReplyTo(id: string, preview?: string) {
     delibActions.setReplyTarget({ id, preview });
@@ -1383,12 +1399,23 @@ const {
             {delibState.pending && <div className="text-xs text-neutral-500">Computing…</div>}
           </div>
         </div>
-      </StickyHeader>        {/* Main Tabs */}
+      </StickyHeader>
+
+        {/* AI-EPI Pt. 4 §6 — Deliberation-scope honesty floor card. */}
+        <div className="w-full mb-3">
+          <DeliberationStateCard
+            deliberationId={deliberationId}
+            onSeekTab={(tab) => delibActions.setTab(tab as any)}
+          />
+        </div>
+
+        {/* Main Tabs */}
         <Tabs value={delibState.tab} onValueChange={(v) => delibActions.setTab(v as any)}>
                   <div className="flex w-full items-center justify-center mx-auto">
 
           <TabsList className="w-full  items-center justify-center flex flex-1 mb-2">
             <TabsTrigger value="debate">Debate</TabsTrigger>
+            <TabsTrigger value="frontier">Frontier</TabsTrigger>
             <TabsTrigger value="arguments">Arguments</TabsTrigger>
             {/* Dialogue tab removed - Week 4 Task 4.3: Access via "Dialogue Timeline" button in header */}
             <TabsTrigger value="chains">Chains</TabsTrigger>
@@ -1444,6 +1471,12 @@ const {
               currentUserId={currentUserId}
               onTabChange={delibActions.setTab}
             />
+          </TabsContent>
+
+          {/* FRONTIER TAB — AI-EPI Pt. 4 §6. Each card prefills the composer
+              with a structured `mesh:openComposer` event. */}
+          <TabsContent value="frontier" className="w-full min-w-0 space-y-4 mt-4">
+            <FrontierLane deliberationId={deliberationId} />
           </TabsContent>
 
           {/* DIALOGUE TAB - Phase 3: Dialogue Visualization */}

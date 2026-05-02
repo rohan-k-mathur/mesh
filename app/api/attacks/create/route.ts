@@ -6,6 +6,7 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { computeAspicConflictMetadata } from "@/lib/aspic/conflictHelpers";
 import { createClaimAttack } from "@/lib/argumentation/createClaimAttack";
 import { suggestionForCQ } from "@/lib/argumentation/cqSuggestions";
+import { recordAiDraftEngagement } from "@/lib/argument/aiAuthoring";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
@@ -281,6 +282,16 @@ async function createConflictApplicationAttack(input: CreateAttackInput, userId:
     global.dispatchEvent(new CustomEvent("claims:changed"));
     global.dispatchEvent(new CustomEvent("arguments:changed"));
     global.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
+  }
+
+  // AI-EPI Pt. 4 §8 — record engagement against AI-authored arguments.
+  // No-op for human targets and self-engagement (helper handles both).
+  if (input.targetType === "argument") {
+    void recordAiDraftEngagement({
+      argumentId: input.targetId,
+      actorAuthId: String(userId),
+      kind: "attack",
+    });
   }
 
   return NextResponse.json({
