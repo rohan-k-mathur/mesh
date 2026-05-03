@@ -137,6 +137,9 @@ model User {
   verifiedEquivalences ConceptEquivalence[] @relation("ConceptVerifiers")
   crossFieldAlerts     CrossFieldAlert[]    @relation("UserCrossFieldAlerts")
 
+  // Track AI-EPI Pt. 5 §2 — per-author Ed25519 signing keys.
+  signingKeys AuthorSigningKey[] @relation("UserSigningKeys")
+
   @@map("users")
 }
 
@@ -2551,7 +2554,7 @@ model Argument {
   // of structural completeness; the standing system already prevents
   // them from inflating the dialectical record until a human engages.
   authorKind   AuthorKind @default(HUMAN)
-  aiProvenance Json?      // { model, promptHash, sourceUrls[], generatedAt, ... }
+  aiProvenance Json? // { model, promptHash, sourceUrls[], generatedAt, ... }
 
   // DEPRECATED: Legacy single scheme field (Phase 1-3)
   // Use argumentSchemes many-to-many relation instead (Phase 4+)
@@ -3961,15 +3964,15 @@ model ClaimEvidence {
   // nullable: enrichment runs out-of-band and may fail (timeout, robots,
   // 4xx/5xx, archive.org rate limit). Consumers must treat absence as
   // "not yet attested" rather than as a negative claim.
-  contentSha256  String?   // sha256 of the fetched response body
-  byteSize       Int?      // length in bytes of the fetched body
-  contentType    String?   // HTTP Content-Type header value
-  httpStatus     Int?      // HTTP status code observed at fetch time
+  contentSha256  String? // sha256 of the fetched response body
+  byteSize       Int? // length in bytes of the fetched body
+  contentType    String? // HTTP Content-Type header value
+  httpStatus     Int? // HTTP status code observed at fetch time
   lastModifiedAt DateTime? // From source Last-Modified header (if any)
   fetchedAt      DateTime? // When provenance enrichment ran successfully
-  archivedUrl    String?   // Wayback / archive.org snapshot URL
+  archivedUrl    String? // Wayback / archive.org snapshot URL
   archivedAt     DateTime? // When the archive snapshot was taken/observed
-  fetchError     String?   // Last error short-message; null when latest run succeeded
+  fetchError     String? // Last error short-message; null when latest run succeeded
 
   claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
@@ -10090,4 +10093,28 @@ model AiDraftEngagement {
 
   @@index([argumentId, occurredAt])
   @@index([occurredAt])
+}
+
+/// Track AI-EPI Pt. 5 §2 (D.2) — per-author Ed25519 signing key for
+/// AIF/citation attestations. One active key per user (notAfter NULL,
+/// revokedAt NULL); rotation creates a new row and bumps notAfter on
+/// the prior row. Private key is held server-side, KMS-wrapped
+/// (`custody = "server-kms"`) by default; `wrappedSecret` is the
+/// KMS-encrypted ciphertext of the 32-byte Ed25519 seed.
+model AuthorSigningKey {
+  keyId         String    @id
+  userId        BigInt?
+  user          User?     @relation("UserSigningKeys", fields: [userId], references: [id], onDelete: Cascade)
+  alg           String    @default("Ed25519")
+  publicKeyJwk  Json
+  wrappedSecret Bytes?
+  custody       String    @default("server-kms")
+  notBefore     DateTime  @default(now())
+  notAfter      DateTime?
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([notAfter])
 }
