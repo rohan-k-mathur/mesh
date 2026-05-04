@@ -23,6 +23,7 @@
  *   • get_synthetic_readout        — editorial primitive with refusalSurface
  *   • get_cross_context            — canonical-claim families, plexus edges
  *   • summarize_debate             — wrapper for the readout
+ *   • get_deliberation_evidence_context — pre-bound source corpus (B2)
  *
  * Run:
  *   ISONOMIA_BASE_URL=https://isonomia.app \
@@ -531,6 +532,19 @@ const tools: ToolSpec[] = [
       const input = DeliberationIdInput.parse(args);
       return await isoFetch(
         `/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/synthetic-readout`,
+      );
+    },
+  },
+  {
+    name: "get_deliberation_evidence_context",
+    description:
+      "Return the evidence corpus pre-bound to a deliberation as a flat reading list — the set of sources the deliberation was *built against*, separately from what was actually cited. Used in multi-agent deliberation experiments (and any other setting where the orchestrator pre-seeded a Stack of vetted sources before deliberation began) so a synthesizing agent can see the original source pool, not just the citations the participants happened to choose. Each source carries `citationToken` (a stable short identifier the orchestrator/agents can use in evidence payloads — e.g. `src:abc1234567`), `contentSha256` and `archiveUrl` for provenance, plus `keyFindings` (per-stack annotations) and `tags`. Returns 404 when no evidence Stack has been bound to the deliberation; in that case fall back to the cited evidence on `get_argument` results.",
+    inputSchema: zodToJsonSchema(DeliberationIdInput),
+    async handler(args) {
+      const input = DeliberationIdInput.parse(args);
+      return await isoFetch(
+        `/api/deliberations/${encodeURIComponent(input.deliberationId)}/evidence-context`,
+        { authenticated: true },
       );
     },
   },

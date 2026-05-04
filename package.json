@@ -45,7 +45,10 @@
     "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts",
     "briefseed": "tsx --env-file=.env prisma/brief-seed.ts",
     "cq:backfill": "tsx --env-file=.env scripts/backfill-cq-responses.ts",
-    "seed:test-chain": "tsx --env-file=.env scripts/seed-test-chain.ts"
+    "seed:test-chain": "tsx --env-file=.env scripts/seed-test-chain.ts",
+    "provision:agents": "tsx --env-file=.env scripts/experiments/provision-agents.ts",
+    "refresh:agents": "tsx --env-file=.env scripts/experiments/refresh-agent-tokens.ts",
+    "orchestrator": "tsx --env-file=.env experiments/polarization-1/orchestrator/index.ts"
   },
   "size-limit": [
     {

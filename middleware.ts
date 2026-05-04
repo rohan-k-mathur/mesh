@@ -72,6 +72,17 @@ export async function middleware(req: Request) {
   if (PUBLIC_PAGES_RX.some((rx) => rx.test(pathname))) {
     return NextResponse.next();
   }
+  // Bearer-token API requests bypass cookie middleware. Route handlers are
+  // responsible for verifying the token (getCurrentUserId / getCurrentUserAuthId
+  // already do this). This unblocks server-to-server clients (Chrome
+  // extension, experiment orchestrator bots, MCP) that don't carry the
+  // __session cookie. Routes that need auth must enforce it themselves.
+  if (pathname.startsWith("/api/")) {
+    const authz = req.headers.get("authorization") || "";
+    if (/^Bearer\s+/i.test(authz)) {
+      return NextResponse.next();
+    }
+  }
   const res = NextResponse.next();
   // set cookies here (not in config)
   res.cookies.set({

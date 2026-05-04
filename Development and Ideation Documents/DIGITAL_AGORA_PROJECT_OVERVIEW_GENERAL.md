@@ -123,3 +123,50 @@ If you've read this far and want to see it in action, reach out. We'd love to sh
 ---
 
 *For a more technical overview, see the companion document for developers.*
+
+
+Digital Agora: What We're Building and Why
+A plain-language explanation for curious friends and family
+
+The Short Version
+When groups need to work through hard questions—a city council debating a policy, a research team weighing conflicting evidence, a board evaluating options—they have no good tools for it. Discussions happen in scattered emails and meetings. Good points get made, then lost. Eventually a decision emerges, but six months later no one can explain why. The reasoning evaporated. Only the conclusion survived.
+We're building infrastructure that captures the structure of reasoning so it persists, accumulates, and can be built upon.
+
+The Problem
+Think about the last time you were part of a group trying to make a difficult decision—a committee at work, a board, even family members figuring something out together.
+What probably happened: people talked, some good points were made, a decision emerged. But if someone asked you later why you decided what you did—what alternatives you considered, what concerns were raised, how you addressed them—you'd struggle to reconstruct it.
+Now imagine that at institutional scale. Government agencies evaluating regulations. Medical boards assessing treatments. Standards organizations setting technical specifications. These groups make decisions that affect millions of people, but the reasoning behind those decisions exists only as prose buried in documents no one reads, meeting minutes that capture conclusions but not deliberation, and institutional memory that walks out the door when people retire.
+Three things break when reasoning isn't captured:
+You can't build on prior work. Every new group facing a similar question starts from scratch. Analysis that took months to develop sits locked in a PDF the next team won't find.
+You can't hold decisions accountable. "Why did you decide this?" becomes unanswerable—not from malice, but because the reasoning genuinely wasn't recorded.
+Disagreements go in circles. Without a record of what's been addressed, the same objections surface repeatedly. Discussions feel Sisyphean.
+
+What We're Building
+Digital Agora is a platform where the structure of reasoning becomes visible and persistent.
+When someone makes a claim, that claim becomes a discrete, trackable object—not just words scrolling past. Other people can explicitly agree with it, challenge it, or build on it. Challenges get recorded. Responses connect back to challenges. The result is a map of the deliberation: here's what was claimed, here's what supported it, here's what attacked it, here's how disputes were resolved.
+That map persists. New people can walk in and see the terrain—what ground has been covered, what's still contested, what's settled.
+Wikipedia made knowledge accumulate collaboratively. Before Wikipedia, learning about something meant finding an expert or a book. Wikipedia created a structure where contributions could be improved by others and the result was persistent, growing, and accessible.
+Git made code accumulate collaboratively. Before Git, multiple programmers on the same project meant chaos—conflicting versions, lost work, merge disasters. Git created a structure where every change is tracked, parallel work can be merged, and you can see exactly what changed and why.
+Agora is trying to do something similar for reasoning. Not facts in the Wikipedia sense, but contested questions: here are the arguments on various sides, here's the evidence they rely on, here's how the debate has evolved, here's what's been resolved and what hasn't.
+
+Why Structure Matters
+The key insight is that reasoning has structure, and that structure is what current tools destroy.
+When you make an argument, you're connecting a claim to reasons that support it. Someone might challenge your reasoning—not by saying "I disagree" generically, but by targeting a specific point: this premise is questionable, that inference doesn't follow, your evidence doesn't support your conclusion.
+Current tools treat all of this as undifferentiated text. Agora treats it as structured data. Claims are objects that can be referenced. Support and attack relationships are explicit. Challenges connect to responses.
+This lets you do things you can't do otherwise. You can see the shape of a debate without reading every message. You can tell whether objections were addressed or ignored. If another group tackled a related question, you can import their reasoning—not just read their conclusion, but see their argument structure, adopt what's sound, and diverge where you disagree.
+
+Who It's For
+The initial focus is on groups where reasoning quality really matters:
+Research communities where debates span years and tracking what's established versus contested is central to the work.
+Institutions making consequential decisions—regulatory bodies, standards organizations, policy teams—where transparency is increasingly demanded.
+Communities tackling complex questions that require sustained collective thinking rather than quick polls.
+This isn't trying to replace casual conversation. It's infrastructure for contexts where getting the reasoning right justifies the structure.
+
+The Motivation
+The problems we face now—climate, public health, technology governance, coordination at scale—are genuinely complex. They require sustained thinking by many people over long periods. They require integrating different perspectives, tracking what's established and what's uncertain, building on prior work.
+We don't have good infrastructure for that. Social media optimizes for engagement, not understanding. Chat apps optimize for conversation, not careful reasoning. Document tools optimize for prose, not argument structure.
+Agora is a bet that better tools can help. Not by changing human nature, but by supporting the kind of structured thinking that complex problems require.
+
+Where Things Stand
+The project is in active development with early users. The core infrastructure works—claims, arguments, dialogue tracking, knowledge base outputs. We're iterating based on real use.
+If you want to see it, let me know.

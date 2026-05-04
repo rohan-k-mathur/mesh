@@ -200,7 +200,7 @@ import {
   PerformanceMonitor 
 } from "@/components/ludics/analysis";
 
-// In your component:
+// In a component:
 <TypeSystemPanel designId={designId} strategyId={strategyId} />
 <SaturationPanel designId={designId} strategyId={strategyId} />
 <BehaviourPanel designId={designId} strategyId={strategyId} />

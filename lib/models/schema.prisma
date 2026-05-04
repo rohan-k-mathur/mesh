@@ -22,6 +22,11 @@ model User {
   image                     String?
   bio                       String?
   onboarded                 Boolean                   @default(false)
+  // Identity kind. Defaults to "human" for all existing rows. Bot users are
+  // real Firebase identities provisioned via scripts/experiments/provision-agents.ts
+  // and flagged here so the feed/analytics layers can split human vs. bot
+  // engagement and the experiment orchestrator can address agents by role.
+  kind                      UserKind                  @default(human)
   archivedPosts             ArchivedPost[]
   archivedRealtimePosts     ArchivedRealtimePost[]
   conversationsUser1        Conversation[]            @relation("ConversationUser1")
@@ -136,6 +141,9 @@ model User {
   proposedEquivalences ConceptEquivalence[] @relation("EquivalenceProposer")
   verifiedEquivalences ConceptEquivalence[] @relation("ConceptVerifiers")
   crossFieldAlerts     CrossFieldAlert[]    @relation("UserCrossFieldAlerts")
+
+  // Track AI-EPI Pt. 5 §2 — per-author Ed25519 signing keys.
+  signingKeys AuthorSigningKey[] @relation("UserSigningKeys")
 
   @@map("users")
 }
@@ -1064,6 +1072,15 @@ enum visibility {
   PRIVATE
 }
 
+// User identity kind. Used to distinguish real human users from automated
+// agents (e.g. multi-agent deliberation experiments) and platform service
+// accounts. Default for all existing/new rows is `human`.
+enum UserKind {
+  human
+  bot
+  service
+}
+
 enum notification_type {
   FOLLOW
   MESSAGE
@@ -1225,6 +1242,9 @@ model Stack {
 
   // Phase 3.2: Reference manager default target
   refManagerDefaults ReferenceManagerConnection[]
+
+  // B2: deliberations that pin this Stack as their evidence corpus
+  evidenceContexts DeliberationEvidenceContext[]
 
   @@unique([owner_id, name])
   @@index([visibility])
@@ -2551,7 +2571,7 @@ model Argument {
   // of structural completeness; the standing system already prevents
   // them from inflating the dialectical record until a human engages.
   authorKind   AuthorKind @default(HUMAN)
-  aiProvenance Json?      // { model, promptHash, sourceUrls[], generatedAt, ... }
+  aiProvenance Json? // { model, promptHash, sourceUrls[], generatedAt, ... }
 
   // DEPRECATED: Legacy single scheme field (Phase 1-3)
   // Use argumentSchemes many-to-many relation instead (Phase 4+)
@@ -3694,6 +3714,12 @@ model Claim {
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
+  // Stage-2 prereq: back-relation for Deliberation.representativeClaim. A
+  // Claim may be the "representative" thesis for at most one Deliberation
+  // (uniqueness lives on Deliberation.representativeClaimId being set per
+  // deliberation row, not enforced here at the DB level).
+  representativeForDeliberations Deliberation[] @relation("DeliberationRepresentativeClaim")
+
   // ─────────────────────────────────────────────────────────
   // Phase 1.1: Academic Paper-to-Claim Pipeline Fields
   // ─────────────────────────────────────────────────────────
@@ -3961,15 +3987,15 @@ model ClaimEvidence {
   // nullable: enrichment runs out-of-band and may fail (timeout, robots,
   // 4xx/5xx, archive.org rate limit). Consumers must treat absence as
   // "not yet attested" rather than as a negative claim.
-  contentSha256  String?   // sha256 of the fetched response body
-  byteSize       Int?      // length in bytes of the fetched body
-  contentType    String?   // HTTP Content-Type header value
-  httpStatus     Int?      // HTTP status code observed at fetch time
+  contentSha256  String? // sha256 of the fetched response body
+  byteSize       Int? // length in bytes of the fetched body
+  contentType    String? // HTTP Content-Type header value
+  httpStatus     Int? // HTTP status code observed at fetch time
   lastModifiedAt DateTime? // From source Last-Modified header (if any)
   fetchedAt      DateTime? // When provenance enrichment ran successfully
-  archivedUrl    String?   // Wayback / archive.org snapshot URL
+  archivedUrl    String? // Wayback / archive.org snapshot URL
   archivedAt     DateTime? // When the archive snapshot was taken/observed
-  fetchError     String?   // Last error short-message; null when latest run succeeded
+  fetchError     String? // Last error short-message; null when latest run succeeded
 
   claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
@@ -4548,10 +4574,40 @@ model Deliberation {
   metaConsensusSummaries MetaConsensusSummary[]
   metaConsensusEvents    MetaConsensusEvent[]
 
+  // Multi-agent deliberation experiments (B2): optional binding to a Stack
+  // that pre-seeds the evidence corpus for this deliberation. One Stack per
+  // deliberation. Distinct from the `library_stack` host type, which is for
+  // deliberations *hosted by* a stack rather than evidence pre-seeded for them.
+  evidenceContext DeliberationEvidenceContext?
+
+  // Stage-2 prereq: optional pin to the deliberation's "representative" or
+  // central Claim — typically the thesis the deliberation is organized around.
+  // Set by the Phase-1 topology translator (or any user with edit rights via
+  // PATCH /api/deliberations/[id]/representative-claim). `onDelete: SetNull`
+  // so deleting the underlying Claim simply unpins.
+  representativeClaimId String?
+  representativeClaim   Claim?  @relation("DeliberationRepresentativeClaim", fields: [representativeClaimId], references: [id], onDelete: SetNull)
+
   @@index([agoraRoomID])
   @@index([hostType, hostId])
   @@index([roomId])
   @@index([forkedFromId])
+}
+
+// Binds a Stack as the evidence corpus for a Deliberation. One row per
+// deliberation (the @id makes it idempotent — re-bind overwrites). See B2 of
+// the multi-agent deliberation experiment prereq plan.
+model DeliberationEvidenceContext {
+  deliberationId String   @id
+  stackId        String
+  boundAt        DateTime @default(now())
+  boundById      String // auth_id of the user who created the binding
+
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  stack        Stack        @relation(fields: [stackId], references: [id], onDelete: Cascade)
+
+  @@index([stackId])
+  @@map("deliberation_evidence_contexts")
 }
 
 // ─────────────────────────────────────────────────────────
@@ -10090,4 +10146,28 @@ model AiDraftEngagement {
 
   @@index([argumentId, occurredAt])
   @@index([occurredAt])
+}
+
+/// Track AI-EPI Pt. 5 §2 (D.2) — per-author Ed25519 signing key for
+/// AIF/citation attestations. One active key per user (notAfter NULL,
+/// revokedAt NULL); rotation creates a new row and bumps notAfter on
+/// the prior row. Private key is held server-side, KMS-wrapped
+/// (`custody = "server-kms"`) by default; `wrappedSecret` is the
+/// KMS-encrypted ciphertext of the 32-byte Ed25519 seed.
+model AuthorSigningKey {
+  keyId         String    @id
+  userId        BigInt?
+  user          User?     @relation("UserSigningKeys", fields: [userId], references: [id], onDelete: Cascade)
+  alg           String    @default("Ed25519")
+  publicKeyJwk  Json
+  wrappedSecret Bytes?
+  custody       String    @default("server-kms")
+  notBefore     DateTime  @default(now())
+  notAfter      DateTime?
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([notAfter])
 }

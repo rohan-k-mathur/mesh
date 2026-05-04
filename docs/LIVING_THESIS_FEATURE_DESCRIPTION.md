@@ -29,56 +29,65 @@ The more accurate framing is: the output is a live document that decision-makers
 
 A theory of what a document is, a theory of what knowledge is when knowledge is made native to the web, and a challenge to the entire tradition of the written argument as a completed artifact.
 
----
+The differential diagnosis: what the live thesis page is not.
 
-## Appendix A — Implementation status (Phase 7)
+It is not a wiki. The comparison to Wikipedia in the entry's final paragraph is  misleading.  A Wikipedia article is a live document in the sense that it can be edited — the text changes, the content is updated, the article evolves. But the article's structure is prose. The liveness is in the content, not in the form. Anyone can change what the article says. No one can change what the article is — it is an encyclopedia entry, organized by sections and paragraphs, whose structural unit is the sentence and whose mode of authority is the neutral encyclopedic voice. The structural relationships between claims are implicit in the prose rather than explicit in a formal graph. The challenge-response dynamic is relegated to the Talk page — a separate space, structurally disconnected from the article itself, where the disagreements that the article's neutral surface conceals are conducted in a register (discussion, argument, edit war) that the article's own format cannot represent.
 
-This appendix maps each vision claim above to the phase that delivered it.
-Cross-reference with [LIVING_THESIS_ROADMAP.md](LIVING_THESIS_ROADMAP.md) for
-file-level deliverables and [LIVING_THESIS_DEFERRED.md](LIVING_THESIS_DEFERRED.md)
-for explicitly-postponed scope.
+The live thesis page is structurally different because the structure itself is the content. The argumentative relationships — which claim supports which claim, which attack undermines which defense, which evidence is linked to which premise — are not implicit in prose but explicit in the graph. The graph is what is live. The prose is a projection of the graph onto a linear reading surface. The distinction between the wiki and the live thesis page is the distinction between a document whose content is live and a document whose structure is live — between a surface that can be repainted and an architecture that can be reconfigured.
 
-| Vision claim | Status | Shipped in | Notes |
-|---|---|---|---|
-| "The structure itself is live" — first-class objects with identity | ✅ shipped | Phase 1 | Batched `/api/thesis/[id]/live` + `useThesisLive` SWR (30s active / 120s hidden) feeds embedded TipTap nodes. |
-| "Inspect any element" — drawer reveals provenance | ✅ shipped | Phase 2 | `ThesisInspectorDrawer` + per-object `/inspect/[kind]/[objectId]` endpoint; opens via global `openInspector` event. |
-| "Reasoning that is alive" — visible attacks/defenses | ✅ shipped | Phase 3 | `ThesisAttackRegister` + `/api/thesis/[id]/attacks` (undefended/defended/conceded buckets). |
-| "Confidence that is auditable" | ✅ shipped | Phase 4 | `ConfidenceBadge` + `/api/thesis/[id]/confidence` returns the formula and every contributing input. |
-| "The thesis is a view, not a freeze" | ✅ shipped | Phase 5 | Manual `ThesisSnapshot` capture + diff against live or another snapshot via `/snapshots/[id]/compare`. |
-| "Alternative traversals of the same structure" | ✅ shipped | Phase 6 | Prong outline, Used-in backlinks (`/api/objects/[kind]/[id]/backlinks`), and provenance lineage ("promoted from proposition") in the inspector. |
-| "Citation as deep linking" — `?focus=…&tab=…` deep links | ✅ shipped | Phase 6 | `ThesisFocusHandler` + `/api/thesis/[id]/focus` resolves `ref` (id or `Claim.moid`) and dispatches `openInspector`. |
-| "The reasoning is published, addressable, linkable" | ✅ shipped | Phases 1–6 | Read path is permission-gated as of Phase 7.2 (author / published / deliberation participant). |
-| "Citations whose state can be re-inspected" — auto-snapshot on retraction | ⏳ deferred | D1 | Manual snapshots ship in Phase 5; background workers that auto-snapshot on label flip are tracked in `LIVING_THESIS_DEFERRED.md` D1. |
-| "Canonical embeddable widget" — `https://isonomia.app/c/CLAIM-…` | ⏳ deferred | D2 | `Claim.moid` is the stable handle (Phase 6 focus resolver accepts it); the canonical short URL + embed iframe is D2. |
-| "Live without polling" — push-based updates | ⏳ deferred | D3 | Phase 7.1 instrumentation (`thesis.reader.poll` log line emitting latencyMs / payloadBytes / staleMs / objectCount) gates the SSE/WS upgrade. |
-| "Chain embedding & enabler/justification reconstruction" | ⏳ deferred | D4 | The data model accommodates it; UI surface postponed pending pragmatics-team scoping. |
+It is not a collaborative document (Google Docs, Notion). These tools make the text collaborative — multiple authors can edit the same prose simultaneously. But the collaboration is at the level of the word, the sentence, the paragraph. The structural relationships between argumentative elements are not represented, not tracked, not inspectable. Two people editing the same Google Doc can produce a document that contradicts itself without either person noticing, because the document has no mechanism for detecting internal contradiction. The live thesis page has such a mechanism — the grounded extension computation, which determines which arguments are currently defensible given the full set of attacks and defenses — and the mechanism operates continuously, updating as new elements are added.
 
-### What Phase 7 actually delivered
+It is not an argumentation map (Kialo, DebateGraph, Compendium, Rationale). The existing argumentation platforms produce maps — visual representations of argument structures that can be inspected and navigated. But the maps are artifacts. They are produced, exported, shared, and then they freeze. The map is a snapshot of the deliberation at the moment the map was produced. If the deliberation continues after the map is exported, the map does not update. The map and the deliberation are separate objects. The map represents the deliberation but is not connected to it.
 
-- **7.1 Polling instrumentation.** `lib/thesis/observability.ts` emits a single
-  structured `console.info` line per reader request (`thesis.reader.poll`) with
-  `endpoint`, `thesisId`, `latencyMs`, `payloadBytes`, `objectCount`,
-  `staleMs`, `cursor`, `status`, and `requestId`. Wired into `/live`,
-  `/attacks`, `/confidence`, `/inspect/[kind]/[objectId]`. These are the
-  signals the SSE/WS upgrade decision (D3) depends on.
-- **7.2 Permissions audit.** `lib/thesis/permissions.ts` introduces
-  `checkThesisReadable`, `checkThesisWritable`, and `filterReadableTheses`.
-  Every Phase 3 reader endpoint now gates on author / `status === "PUBLISHED"`
-  / deliberation participation (via `lib/cqs/permissions.ts#isDeliberationParticipant`).
-  The cross-thesis `/api/objects/[kind]/[id]/backlinks` endpoint redacts
-  draft theses by other authors that the caller cannot see. We deliberately
-  did not use `packages/sheaf-acl` here — that package models per-message
-  audience selectors, not deliberation membership; the roadmap mention has
-  been corrected accordingly.
-- **7.3 This appendix.** Vision claims are explicitly mapped to shipped
-  phases or deferred items.
-- **7.4 Deferred ledger refresh.** See `docs/LIVING_THESIS_DEFERRED.md` for
-  the current scope of D1–D4 plus newly-tracked smaller items (hash-anchor
-  scrolling, MOID expansion to non-Claim objects, structured metric
-  emission).
+The live thesis page is not a map of the deliberation. It is a surface onto the deliberation — a window that stays synchronized with the underlying graph. The distinction between "map of" and "surface onto" is the distinction between representation and access. The map represents a state. The surface provides access to a process. The map can become outdated. The surface cannot, because the surface is not a copy of the graph but a view of it.
 
-The Living Thesis V1 is now complete. The reasoning surface is live,
-inspectable, auditable, snapshottable, traversable, deep-linkable, and
-permission-gated. What remains is push-based transport (D3) and the
-canonical embed URL (D2) — both of which are pure transport upgrades on
-the same payload shapes shipped in Phases 1–6.
+It is not a preprint or a living review. The academic preprint (arXiv) and the living review (Living Reviews in Relativity, Cochrane Reviews) are the closest existing academic analogs. The preprint is a document posted before peer review, updated by the author as revisions are made. The living review is a review article updated periodically as new research is published. Both are "live" in the sense that they change over time. But both are authored documents — they have a specific author or author team, the updates are made by the author, and the reader's relationship to the document is the reader's relationship to the author's claims. The reader can disagree but cannot register the disagreement within the document itself. The disagreement must be expressed elsewhere — in a response paper, in a comment on PubReview, in an email to the author.
+
+What the live thesis page actually implies:
+
+First: the document is not a container for knowledge. The document is knowledge.
+The traditional model: knowledge exists in the minds of the people who possess it. The document is a container — a vessel into which the knowledge is poured for transmission to other minds. The document is a medium. The knowledge is the content. The medium and the content are separable. The knowledge could, in principle, be transmitted through a different medium (a lecture, a conversation, a diagram) without loss of the knowledge's essential content.
+
+The live thesis page challenges this model at its foundation. The knowledge is not poured into the document. The knowledge is the document — the specific configuration of claims, arguments, attacks, defenses, evidence links, and computed extensions that the document presents. The knowledge cannot be separated from the document because the knowledge's structure — the relationships between the elements, the current state of the grounded extension, the history of challenges and responses — is the document's structure. To transmit the knowledge through a different medium (a PDF, a lecture, a conversation) would require flattening the structure into prose, and the flattening would destroy the knowledge's most important properties: its inspectability (the ability to trace any claim to its sources), its challengeability (the ability to file an attack against any element), its contingency (the fact that the current state is the result of all prior challenges and could be altered by the next one), and its provenance (the complete causal history of how each element came to be asserted).
+
+The knowledge is not in the document the way water is in a glass. The knowledge is the document the way a melody is a sequence of notes — the sequence is the melody, not a container for the melody. Removing the sequence destroys the melody. Flattening the live thesis page into a PDF destroys the knowledge's essential properties. The PDF preserves the content. The PDF destroys the structure. The structure was the knowledge.
+
+This is the Sellarsian-Brandomian thesis taken to its engineering conclusion: if knowledge is constituted by the social practice of giving and asking for reasons, then the document that implements that practice — that enforces the giving, that structures the asking, that tracks the reasons, that computes the defensibility — is not a representation of knowledge but an instantiation of it. The document is the space of reasons made concrete. The document is the infrastructure in which reasoning occurs. The document does not describe the reasoning. The document is the reasoning, the way the chavruta is the study rather than a container for the study.
+
+Second: the document has a temporality that no existing document type possesses.
+
+Every existing document type is either static (the book, the PDF, the printed article — frozen at the moment of publication, never updated) or versioned (the wiki, the preprint, the living review — updated at discrete intervals, each version replacing the previous one). The live thesis page is neither. It is continuous — the state changes in real time as new elements are added, as attacks are filed, as defenses are constructed, as the grounded extension is recomputed. The document does not have versions. The document has a history — a continuous timeline of states that can be inspected at any point, the way the Commonplace application's revision system preserves every version as a visible dimension of the entry's being.
+
+The live thesis page is the document that must be chosen again — the document whose defensibility is contingent on the continued willingness of the community to defend it, and whose defensibility changes the moment the community ceases to defend it. A claim that was defended yesterday is undefended today if the defense was retracted or undermined by a new attack. The document's current state is the community's current commitment. The community's commitment must be renewed. The renewal is continuous.
+
+Third: the document dissolves the distinction between the published and the unpublished, between the finished and the unfinished, between the product and the process.
+
+In the traditional model, a document is either published (fixed, authoritative, citeable) or unpublished (in progress, provisional, not yet ready for citation). The boundary between the two is the act of publication — the moment when the author or the publisher declares the document complete and releases it into the world. The boundary is binary. The document is either on one side or the other.
+
+The live thesis page has no such boundary. The document is always published (it is addressable, linkable, citeable — the journalist can cite CLAIM-7A3B at any time) and always in progress (new attacks can be filed, new defenses can be constructed, the grounded extension can change). The published-ness and the in-progress-ness are simultaneous rather than sequential. The document does not transition from unpublished to published. The document is both, continuously.
+
+This dissolves the concept of completion. A traditional argument is complete when the author has addressed all the objections the author can anticipate and has declared the argument finished. The declaration of completion is the author's judgment that the argument is defensible against the challenges the author has considered. The live thesis page cannot be declared complete because the challenges are not limited to those the author has considered. Any reader can file a new challenge at any time. The document's defensibility is not the author's assessment but the community's ongoing computation. 
+
+The live thesis page is the document that cannot become rhetoric because the document cannot become final. The document is permanently provisional — permanently subject to revision by the next challenge. The provisionality is not a weakness (it is not the provisionality of the draft, which will eventually be replaced by the finished version). The provisionality is the document's constitutive commitment to continued inquiry. The document that cannot be challenged is the document that has ceased to participate in the space of reasons. The document that can always be challenged is the document that remains in the space of reasons permanently.
+
+The deeper implication: the live thesis page as the resolution of the document's fundamental problem.
+
+The fundamental problem of the document — the problem that has existed since the invention of writing and that every subsequent technology (printing, typesetting, word processing, hypertext, the web) has addressed without solving — is the problem of the relationship between fixity and revisability. The document must be fixed (stable enough to be cited, referenced, built upon) and revisable (open to correction, update, challenge). Every existing document technology resolves this tension by choosing one side: the book is fixed, the wiki is revisable, the preprint is fixed-then-revised, the PDF is fixed-and-frozen.
+
+The live thesis page resolves the tension without choosing a side. The document is fixed at the level of the individual element — each claim, each argument, each attack has a permanent identity, a permanent URL, a permanent history. The element does not change. The element's status changes — its defensibility, its position in the grounded extension, the attacks filed against it, the defenses constructed for it. The fixity is in the elements. The revisability is in the relations between elements. The document is fixed and revisable simultaneously, at different structural levels.
+
+The recognition that fixity and revisability are not properties of the document-as-a-whole but properties of different structural levels within the document. The claim is fixed. The claim's defensibility is revisable. The argument is fixed. The argument's status in the grounded extension is revisable. The evidence is fixed. The evidence's relationship to the claims it supports is revisable. The document is a structure of fixed elements with revisable relations — a graph whose nodes are permanent and whose edges (the attack-defense relations, the support relations, the evidence links) can be added, removed, and reconfigured by the community's ongoing reasoning.
+
+The resolution echoes the Commonplace application's principle: "Earlier selves are not overwritten by later selves; both remain in the archive in conversation." The live thesis page implements this principle at the level of the argumentative document: earlier claims are not overwritten by later challenges. Both remain in the document, in conversation — the claim and the attack, the defense and the counter-attack, the entire history of the reasoning preserved as a visible dimension of the document's being.
+
+The positioning is: we produce a new kind of document — the argumentative document as a first-class web object with live structure, continuous temporality, inspectable provenance, and community-maintained defensibility. The document type does not exist. The platform creates it. 
+
+The new document type has specific constituencies that no existing document type serves:
+
+For policy makers: the live thesis page replaces the policy brief. The policy maker currently receives a PDF whose conclusions are asserted and whose reasoning is opaque. The live thesis page gives the policy maker a navigable surface where the reasoning is inspectable at any depth — the policy maker who wants the executive summary reads the top-level claims; the policy maker who wants the evidence reads the evidence links; the policy maker who wants to challenge a specific claim can file an attack and see whether the claim survives. The document serves the decision maker at whatever depth the decision requires, without the decision maker needing to commission a separate analysis for deeper investigation.
+
+For journalists: the live thesis page replaces the citation. The journalist currently cites a paragraph in a report — a static reference that may have been updated, may have been challenged, may have been retracted since the citation was made. The live thesis page gives the journalist a deep link to a specific claim whose current state the reader can inspect. The citation is self-auditing: if the cited claim was subsequently challenged and the challenge was not defended, the citation reveals this automatically. The journalist's attribution is not just traceable but living — it stays connected to the reasoning it cites.
+
+For researchers: the live thesis page replaces the literature review. The researcher currently reads papers, extracts claims, and manually reconstructs the argumentative relationships between claims across papers. The live thesis page gives the researcher a graph where the relationships are explicit, inspectable, and navigable — the researcher can enter at any claim and traverse the argument space in any direction, following the support relations forward and the challenge relations backward, discovering the structure of the debate without manually reconstructing it from prose.
+
+For the public: the live thesis page replaces the confident summary. The citizen currently encounters policy debates through the confident summary — the op-ed, the tweet, the Reddit comment that reduces the complex situation to a punchy take. The live thesis page gives the citizen a surface where the complexity is preserved but navigable — the citizen who wants the summary reads the top-level claims; the citizen who wants more reads the supporting arguments; the citizen who wants to challenge reads the attacks and files their own. 

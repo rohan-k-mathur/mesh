@@ -934,6 +934,8 @@ Current citations are semantically neutral — they don't indicate whether the s
 - **Defines** a term
 - Describes **methodology**
 
+
+
 Are.na doesn't need this (it's a moodboard). But for deliberation, knowing evidence intent enables:
 - Pro/con grouping in UI
 - "Evidence balance" metrics

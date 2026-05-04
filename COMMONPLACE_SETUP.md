@@ -611,7 +611,7 @@ After this setup completes you should be able to:
 Create `packages/commonplace/` with Next.js app, own Prisma schema, vendored Tiptap files, vendored graph layouts, local queue/versioning helpers. Verify `yarn install` succeeds, the Commonplace dev server starts on port 3100, and Mesh continues to work unmodified on port 3000. No user-facing features — just plumbing.
 
 ### Phase 1 — Capture Mode
-Tiptap editor at `/write` with minimal chrome. Entry CRUD API routes. Genre selection (subtle post-write prompt). Thread assignment for meditations. Plaintext extraction on save for search. Auth (likely Firebase, matching Mesh's pattern but with its own Firebase project). This phase produces a usable writing tool.
+Tiptap editor at `/write` with minimal chrome. Entry CRUD API routes. Genre selection (subtle post-write prompt). Thread assignment for meditations. Plaintext extraction on save for search. Auth. This phase produces a usable writing tool.
 
 ### Phase 2 — Revision System
 `EntryVersion` chain creation on every save. Revision timeline UI on the entry detail page. Genre-reclassification tracked as a version event. Change notes (optional annotations on why a revision was made). Revision-as-first-class-object commitment realized.
@@ -620,7 +620,7 @@ Tiptap editor at `/write` with minimal chrome. Entry CRUD API routes. Genre sele
 Thread browser at `/read` — list of named themes sorted by recency, with entry counts and date ranges. Thread detail view in chronological order. Inline revision markers. Cross-reference links rendered inline. Full-text search across the archive.
 
 ### Phase 4 — Temporal Views
-The three horizon modes: one-week, six-month, multi-year. Curated representations of archive activity over time. Theme activity heatmap or timeline. Dormant/emerging/active thread classification. Likely requires a background worker for periodic archive-state snapshots.
+The three horizon modes: one-week, six-month, multi-year. Curated representations of archive activity over time. Theme activity heatmap or timeline. Dormant/emerging/active thread classification. Background worker for periodic archive-state snapshots.
 
 ### Phase 5 — Citation & Source Graph
 Source model with bibliographic metadata. Excerpt entries linked to sources with locator. Source detail view showing all excerpts drawn from a given text. Citation graph visualization using the vendored Cytoscape layouts — entries as nodes, `EntryLink` edges rendered by type. Build the Cytoscape React wrapper here, fresh, with Commonplace's own node/edge rendering.

@@ -10,9 +10,26 @@ import { maybeUpsertClaimEdgeFromArgumentEdge } from '@/lib/deepdive/claimEdgeHe
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
 import type { EntityCode } from '@/lib/ids/urn';
 
+// Canonical claim-type enum, mirroring `AcademicClaimType` in lib/models/schema.prisma.
+// `Claim.claimType` is stored as `String?` for backward compat, but new writes
+// must validate against this enum so downstream consumers can rely on it.
+const ClaimTypeEnum = z.enum([
+  "THESIS",
+  "INTERPRETIVE",
+  "HISTORICAL",
+  "CONCEPTUAL",
+  "NORMATIVE",
+  "METHODOLOGICAL",
+  "COMPARATIVE",
+  "CAUSAL",
+  "META",
+  "EMPIRICAL",
+]);
+
 const PromoteSchema = z.object({
   deliberationId: z.string().optional(),
   text: z.string().min(1).optional(),
+  claimType: ClaimTypeEnum.optional(),
   target: z
     .object({
       type: z.enum(['argument', 'card']),
@@ -116,7 +133,7 @@ export async function POST(req: Request) {
         text,
         createdById: createdById.toString(),
         moid,
-         claimType: typeof normalized?.claimType === 'string' ? normalized.claimType : null,
+        claimType: input.claimType ?? null,
         ...(deliberationId ? { deliberation: { connect: { id: deliberationId } } } : {}),
         // If you have a Urn relation:
         urns: {

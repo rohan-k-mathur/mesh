@@ -1,0 +1,444 @@
+/**
+ * orchestrator/index.ts
+ *
+ * CLI entrypoint for the polarization-1 multi-agent deliberation
+ * orchestrator. Per Stage-1 §4.5 + §4.6.
+ *
+ * Usage:
+ *   npm run orchestrator -- preflight
+ *   npm run orchestrator -- state
+ *   npm run orchestrator -- phase 1 [--max-rounds N]
+ *   npm run orchestrator -- phase 2
+ *   npm run orchestrator -- dry-run phase N --round R
+ *   npm run orchestrator -- export-final-state
+ *
+ * Global flags:
+ *   --model-tier=dev|prod   (default: dev; required to be 'prod' when
+ *                            runtime/deliberation.json has experimentMode=true)
+ *   --experiment-root PATH  (default: ../ relative to this file)
+ *
+ * Phase implementations live in `phases/phase-N-*.ts` and are not all
+ * present yet — Phase 1 lands in step 6 of the implementation plan.
+ */
+
+import path from "path";
+
+import { existsSync, readFileSync } from "fs";
+
+import { loadConfig, requireDeliberation, modelFor, type ModelTier } from "./config";
+import { IsonomiaClient } from "./isonomia-client";
+import { AnthropicClient } from "./anthropic-client";
+import { RoundLogger } from "./log/round-logger";
+import { fetchState } from "./state/refresh";
+import { ClaimAnalystRefusedError, type Phase1PartialFile } from "./phases/phase-1-topology";
+import { produceReport, reportPathFor } from "./review/report";
+import { applyReport } from "./review/apply";
+import { finalizePhase1 } from "./finalize/phase-1-finalize";
+import { setupDeliberation } from "./setup/setup-deliberation";
+
+// ────────────────────────────────────────────────────────────────────────────
+// Tiny CLI parser
+// ────────────────────────────────────────────────────────────────────────────
+
+interface ParsedArgs {
+  positional: string[];
+  flags: Record<string, string | true>;
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const positional: string[] = [];
+  const flags: Record<string, string | true> = {};
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith("--")) {
+      const eq = a.indexOf("=");
+      if (eq >= 0) {
+        flags[a.slice(2, eq)] = a.slice(eq + 1);
+      } else {
+        const next = argv[i + 1];
+        if (next && !next.startsWith("--")) {
+          flags[a.slice(2)] = next;
+          i++;
+        } else {
+          flags[a.slice(2)] = true;
+        }
+      }
+    } else {
+      positional.push(a);
+    }
+  }
+  return { positional, flags };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Pre-flight validation (Stage-1 §4.6)
+// ────────────────────────────────────────────────────────────────────────────
+
+interface PreflightResult {
+  ok: boolean;
+  checks: Array<{ name: string; ok: boolean; detail?: string }>;
+}
+
+async function runPreflight(opts: {
+  modelTier: ModelTier;
+  experimentRoot?: string;
+  requireDeliberation?: boolean;
+  minEvidenceSources?: number;
+}): Promise<PreflightResult> {
+  const checks: PreflightResult["checks"] = [];
+  const cfg = loadConfig({ modelTier: opts.modelTier, experimentRoot: opts.experimentRoot });
+
+  // 1. Anthropic key present.
+  checks.push({
+    name: "ANTHROPIC_API_KEY present",
+    ok: !!cfg.anthropicApiKey,
+    detail: cfg.anthropicApiKey ? undefined : "Set ANTHROPIC_API_KEY in .env",
+  });
+
+  // 2. agents.json — already loaded by loadConfig, but verify each token works.
+  const iso = new IsonomiaClient(cfg);
+  for (const a of cfg.agents.agents) {
+    try {
+      const me = await iso.getMe(a.role);
+      checks.push({
+        name: `Agent ${a.role} authenticates against ${cfg.isonomiaBaseUrl}/api/me`,
+        ok: !!me?.uid,
+        detail: me?.uid ? `uid=${me.uid}` : undefined,
+      });
+    } catch (err) {
+      checks.push({
+        name: `Agent ${a.role} authenticates against ${cfg.isonomiaBaseUrl}/api/me`,
+        ok: false,
+        detail: (err as Error)?.message?.slice(0, 200),
+      });
+    }
+  }
+
+  // 3. Schemes catalog reachable. Phase 1 doesn't use schemes; only fail
+  //    preflight when an empty list will actually block the next phase
+  //    (i.e. phase >= 2). For phase 1 we surface a warning if the table is
+  //    empty so the operator knows to seed before phase 2.
+  try {
+    const schemes = await iso.getSchemes(cfg.agents.agents[0].role);
+    const arr = Array.isArray(schemes) ? schemes : (schemes as any)?.schemes ?? [];
+    const count = Array.isArray(arr) ? arr.length : 0;
+    const requireNonEmpty = (opts.minEvidenceSources ?? 0) >= 15;
+    checks.push({
+      name: "GET /api/schemes returns a non-empty list",
+      ok: requireNonEmpty ? count > 0 : true,
+      detail:
+        count > 0
+          ? `count=${count}`
+          : `count=0 (warn for phase 1; seed before phase 2)`,
+    });
+  } catch (err) {
+    checks.push({
+      name: "GET /api/schemes returns a non-empty list",
+      ok: false,
+      detail: (err as Error)?.message?.slice(0, 200),
+    });
+  }
+
+  // 4. deliberation.json — only required for phase commands.
+  if (opts.requireDeliberation) {
+    if (!cfg.deliberation.deliberationId) {
+      checks.push({
+        name: "runtime/deliberation.json present with deliberationId",
+        ok: false,
+        detail: "Create the deliberation and write its id to runtime/deliberation.json",
+      });
+    } else {
+      checks.push({
+        name: "runtime/deliberation.json present with deliberationId",
+        ok: true,
+        detail: cfg.deliberation.deliberationId,
+      });
+      // Tier guard: prod required when experimentMode.
+      if (cfg.deliberation.experimentMode && cfg.modelTier !== "prod") {
+        checks.push({
+          name: "Model tier matches deliberation.experimentMode",
+          ok: false,
+          detail: "deliberation.experimentMode=true but modelTier=dev — refuse to advance.",
+        });
+      }
+      // Evidence corpus floor.
+      const min = opts.minEvidenceSources ?? 15;
+      try {
+        const ec = await iso.getEvidenceContext(cfg.deliberation.deliberationId, {
+          role: cfg.agents.agents[0].role,
+        });
+        checks.push({
+          name: `Evidence context bound with ≥ ${min} sources`,
+          ok: (ec.stack?.sourceCount ?? 0) >= min,
+          detail: `stack=${ec.stack?.id} sourceCount=${ec.stack?.sourceCount}`,
+        });
+      } catch (err) {
+        checks.push({
+          name: `Evidence context bound with ≥ ${min} sources`,
+          ok: false,
+          detail: (err as Error)?.message?.slice(0, 200),
+        });
+      }
+    }
+  }
+
+  return { ok: checks.every((c) => c.ok), checks };
+}
+
+function printPreflight(r: PreflightResult): void {
+  for (const c of r.checks) {
+    const mark = c.ok ? "✓" : "✗";
+    process.stdout.write(`  ${mark} ${c.name}`);
+    if (c.detail) process.stdout.write(`  — ${c.detail}`);
+    process.stdout.write("\n");
+  }
+  process.stdout.write(r.ok ? "\nPreflight: OK\n" : "\nPreflight: FAILED\n");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Commands
+// ────────────────────────────────────────────────────────────────────────────
+
+async function cmdPreflight(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const r = await runPreflight({
+    modelTier: tier,
+    experimentRoot: root,
+    requireDeliberation: true,
+  });
+  printPreflight(r);
+  if (!r.ok) process.exit(1);
+}
+
+async function cmdState(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const delib = requireDeliberation(cfg);
+  const iso = new IsonomiaClient(cfg);
+  const role = cfg.agents.agents[0].role;
+  const state = await fetchState(iso, delib.deliberationId, { role });
+  process.stdout.write(JSON.stringify(state, null, 2) + "\n");
+}
+
+async function cmdPhase(phaseNum: number, args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+
+  const pre = await runPreflight({
+    modelTier: tier,
+    experimentRoot: root,
+    requireDeliberation: true,
+    minEvidenceSources: phaseNum >= 2 ? 15 : 0,
+  });
+  if (!pre.ok) {
+    printPreflight(pre);
+    process.exit(1);
+  }
+
+  // Lazy-load the phase module so missing phases produce a clear error
+  // before construction of clients.
+  const phaseFile = phaseNameFor(phaseNum);
+  let mod: any;
+  try {
+    mod = await import(`./phases/${phaseFile}`);
+  } catch (err) {
+    const msg = (err as Error)?.message ?? String(err);
+    process.stderr.write(
+      `Phase ${phaseNum} not implemented yet (looking for ./phases/${phaseFile}).\n` +
+        `  Underlying error: ${msg}\n`,
+    );
+    process.exit(2);
+  }
+  if (typeof mod.runPhase !== "function") {
+    process.stderr.write(`./phases/${phaseFile} does not export runPhase()\n`);
+    process.exit(2);
+  }
+
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const delib = requireDeliberation(cfg);
+  const iso = new IsonomiaClient(cfg);
+  const llm = new AnthropicClient(cfg.anthropicApiKey);
+  const logger = RoundLogger.forRound({
+    runtimeDir: cfg.runtimeDir,
+    phase: phaseNum,
+    round: 0,
+  });
+  logger.event("phase_start", {
+    phase: phaseNum,
+    model: modelFor(cfg),
+    modelTier: cfg.modelTier,
+    deliberationId: delib.deliberationId,
+  });
+
+  const result = await mod.runPhase({
+    cfg,
+    iso,
+    llm,
+    deliberationId: delib.deliberationId,
+    maxRounds: args.flags["max-rounds"] ? Number(args.flags["max-rounds"]) : undefined,
+    resume: args.flags["resume"] === true || args.flags["resume"] === "true",
+  });
+
+  logger.event("phase_complete", { phase: phaseNum, result });
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+}
+
+function phaseNameFor(n: number): string {
+  switch (n) {
+    case 1: return "phase-1-topology";
+    case 2: return "phase-2-arguments";
+    case 3: return "phase-3-attacks";
+    case 4: return "phase-4-concessions";
+    default: throw new Error(`Unknown phase ${n}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Entrypoint
+// ────────────────────────────────────────────────────────────────────────────
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const cmd = args.positional[0];
+
+  if (!cmd) {
+    process.stderr.write(usage());
+    process.exit(2);
+  }
+
+  try {
+    switch (cmd) {
+      case "preflight":
+        return await cmdPreflight(args);
+      case "state":
+        return await cmdState(args);
+      case "phase": {
+        const n = Number(args.positional[1]);
+        if (!Number.isInteger(n) || n < 1) {
+          process.stderr.write("Usage: orchestrator phase <N>\n");
+          process.exit(2);
+        }
+        return await cmdPhase(n, args);
+      }
+      case "review":
+        return await cmdReview(args);
+      case "finalize":
+        return await cmdFinalize(args);
+      case "setup":
+        return await cmdSetup(args);
+      default:
+        process.stderr.write(`Unknown command: ${cmd}\n\n${usage()}`);
+        process.exit(2);
+    }
+  } catch (err) {
+    if (err instanceof ClaimAnalystRefusedError) {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(err.exitCode);
+    }
+    process.stderr.write(`Error: ${(err as Error)?.message ?? String(err)}\n`);
+    process.exit(1);
+  }
+}
+
+async function cmdReview(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const phase = Number(args.flags["phase"] ?? 1);
+  if (phase !== 1) throw new Error(`review supports phase 1 only in v1; got ${phase}`);
+
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const partialPath = `${cfg.runtimeDir}/PHASE_${phase}_PARTIAL.json`;
+  if (!existsSync(partialPath)) {
+    throw new Error(`PHASE_${phase}_PARTIAL.json not found at ${partialPath}. Run \`npm run orchestrator -- phase ${phase}\` first.`);
+  }
+  const partial = JSON.parse(readFileSync(partialPath, "utf8")) as Phase1PartialFile;
+
+  if (args.flags["apply"]) {
+    const iso = new IsonomiaClient(cfg);
+    void iso; // reserved for v2 retract path
+    const result = await applyReport({ cfg, partial });
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    if (result.notes.length) {
+      process.stderr.write("\nFollow-up actions:\n");
+      for (const n of result.notes) process.stderr.write(`  - ${n}\n`);
+    }
+    return;
+  }
+
+  // Default: produce-report (and warn if a report already exists).
+  const force = args.flags["force"] === true || args.flags["force"] === "true";
+  const reportPath = reportPathFor(cfg.runtimeDir, phase);
+  if (existsSync(reportPath) && !force) {
+    process.stdout.write(`Report already exists: ${reportPath}\nPass --force to overwrite, or --apply to apply your verdicts.\n`);
+    return;
+  }
+  const out = produceReport({ partial, runtimeDir: cfg.runtimeDir, force });
+  process.stdout.write(`Wrote ${out.path}\nFill in verdicts, then run: npm run orchestrator -- review --phase ${phase} --apply\n`);
+}
+
+async function cmdFinalize(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const phase = Number(args.flags["phase"] ?? 1);
+  if (phase !== 1) throw new Error(`finalize supports phase 1 only in v1; got ${phase}`);
+
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const iso = new IsonomiaClient(cfg);
+  const complete = await finalizePhase1({ cfg, iso });
+  process.stdout.write(JSON.stringify(complete, null, 2) + "\n");
+}
+
+async function cmdSetup(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const iso = new IsonomiaClient(cfg);
+  const result = await setupDeliberation({
+    cfg,
+    iso,
+    force: args.flags["force"] === true || args.flags["force"] === "true",
+    reuseStackId: typeof args.flags["stack-id"] === "string" ? (args.flags["stack-id"] as string) : undefined,
+    role: typeof args.flags["role"] === "string" ? (args.flags["role"] as string) : undefined,
+    stackName: typeof args.flags["stack-name"] === "string" ? (args.flags["stack-name"] as string) : undefined,
+    experimentMode: args.flags["experiment-mode"] === true || args.flags["experiment-mode"] === "true",
+  });
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+  process.stderr.write(
+    `\nWrote ${result.runtimeDeliberationPath}\n` +
+      `  deliberationId=${result.deliberationId} (${result.deliberationCreated ? "created" : "reused"})\n` +
+      `  stackId=${result.stackId}${result.stackSlug ? ` (slug=${result.stackSlug})` : ""}\n` +
+      `  evidence items: added=${result.itemsAdded} skipped=${result.itemsSkipped}` +
+      (result.evidenceCorpusPath ? ` from ${result.evidenceCorpusPath}` : " (no evidence-corpus.json found)") +
+      `\n` +
+      (result.itemErrors.length
+        ? `  errors:\n${result.itemErrors.map((e) => `    - item[${e.index}]: ${e.error}`).join("\n")}\n`
+        : "") +
+      `\nNext: \`npm run orchestrator -- preflight\`\n`,
+  );
+}
+
+function usage(): string {
+  return [
+    "Usage: orchestrator <command> [args]",
+    "",
+    "Commands:",
+    "  preflight                      Validate runtime config + auth + evidence corpus",
+    "  state                          Print composed deliberation state JSON (no LLM calls)",
+    "  setup [--force] [--stack-id ID] [--stack-name S] [--experiment-mode] [--role R]",
+    "                                 Create stack + deliberation + bind evidence; writes runtime/deliberation.json",
+    "  phase <N> [--max-rounds N] [--resume]  Run phase N",
+    "  review --phase N [--apply] [--force]    Produce or apply phase-N review report",
+    "  finalize --phase N             Validate platform state and write PHASE_N_COMPLETE.json",
+    "",
+    "Global flags:",
+    "  --model-tier=dev|prod          Default: dev (refuses to run experimentMode=true)",
+    "  --experiment-root PATH         Override experiment root (defaults to ../)",
+    "",
+    `Resolved root: ${path.resolve(__dirname, "..")}`,
+    "",
+  ].join("\n");
+}
+
+main();
