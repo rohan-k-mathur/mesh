@@ -53,3 +53,35 @@ export function formatStateForPrompt(opts: FormatOptions): string {
   lines.push(task);
   return lines.join("\n");
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Phase-2-and-later: render the locked Phase-1 topology as labeled prose.
+// Stable: index assignments don't change once Phase 1 closes.
+// ─────────────────────────────────────────────────────────────────
+
+export interface FormatTopologyOptions {
+  rootClaimText: string;
+  subClaims: Array<{
+    index: number;
+    text: string;
+    layer: string;
+    claimType: string;
+    dependsOn: number[];
+  }>;
+}
+
+export function formatTopologyForPrompt(opts: FormatTopologyOptions): string {
+  const lines: string[] = [];
+  lines.push("## Phase-1 Claim Topology");
+  lines.push("");
+  lines.push(`Central claim: "${opts.rootClaimText}"`);
+  lines.push("");
+  lines.push("Sub-claims (referenced by index throughout this deliberation):");
+  lines.push("");
+  const sorted = [...opts.subClaims].sort((a, b) => a.index - b.index);
+  for (const sc of sorted) {
+    const deps = sc.dependsOn.length ? `, depends on ${sc.dependsOn.map((d) => `#${d}`).join(", ")}` : "";
+    lines.push(`[#${sc.index}] (${sc.layer} / ${sc.claimType}${deps}) ${sc.text}`);
+  }
+  return lines.join("\n");
+}

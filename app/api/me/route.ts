@@ -21,12 +21,12 @@ export async function GET() {
   if (!userId || !uid) return NextResponse.json(null, { status: 401 });
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, name: true },
+    select: { name: true, username: true },
   });
   return NextResponse.json(jsonSafe({
     uid,
     userId: userId.toString(),
-    email: u?.email ?? null,
-    name: u?.name ?? null,
+    email: null,
+    name: u?.name ?? u?.username ?? null,
   }), { headers: { "Cache-Control": "no-store" } });
 }

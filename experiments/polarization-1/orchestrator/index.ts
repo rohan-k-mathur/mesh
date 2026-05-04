@@ -5,12 +5,12 @@
  * orchestrator. Per Stage-1 §4.5 + §4.6.
  *
  * Usage:
- *   yarn orchestrator preflight
- *   yarn orchestrator state
- *   yarn orchestrator phase 1 [--max-rounds N]
- *   yarn orchestrator phase 2
- *   yarn orchestrator dry-run phase N --round R
- *   yarn orchestrator export-final-state
+ *   npm run orchestrator -- preflight
+ *   npm run orchestrator -- state
+ *   npm run orchestrator -- phase 1 [--max-rounds N]
+ *   npm run orchestrator -- phase 2
+ *   npm run orchestrator -- dry-run phase N --round R
+ *   npm run orchestrator -- export-final-state
  *
  * Global flags:
  *   --model-tier=dev|prod   (default: dev; required to be 'prod' when
@@ -23,11 +23,18 @@
 
 import path from "path";
 
+import { existsSync, readFileSync } from "fs";
+
 import { loadConfig, requireDeliberation, modelFor, type ModelTier } from "./config";
 import { IsonomiaClient } from "./isonomia-client";
 import { AnthropicClient } from "./anthropic-client";
 import { RoundLogger } from "./log/round-logger";
 import { fetchState } from "./state/refresh";
+import { ClaimAnalystRefusedError, type Phase1PartialFile } from "./phases/phase-1-topology";
+import { produceReport, reportPathFor } from "./review/report";
+import { applyReport } from "./review/apply";
+import { finalizePhase1 } from "./finalize/phase-1-finalize";
+import { setupDeliberation } from "./setup/setup-deliberation";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tiny CLI parser
@@ -107,14 +114,22 @@ async function runPreflight(opts: {
     }
   }
 
-  // 3. Schemes catalog reachable.
+  // 3. Schemes catalog reachable. Phase 1 doesn't use schemes; only fail
+  //    preflight when an empty list will actually block the next phase
+  //    (i.e. phase >= 2). For phase 1 we surface a warning if the table is
+  //    empty so the operator knows to seed before phase 2.
   try {
     const schemes = await iso.getSchemes(cfg.agents.agents[0].role);
     const arr = Array.isArray(schemes) ? schemes : (schemes as any)?.schemes ?? [];
+    const count = Array.isArray(arr) ? arr.length : 0;
+    const requireNonEmpty = (opts.minEvidenceSources ?? 0) >= 15;
     checks.push({
       name: "GET /api/schemes returns a non-empty list",
-      ok: Array.isArray(arr) && arr.length > 0,
-      detail: `count=${Array.isArray(arr) ? arr.length : 0}`,
+      ok: requireNonEmpty ? count > 0 : true,
+      detail:
+        count > 0
+          ? `count=${count}`
+          : `count=0 (warn for phase 1; seed before phase 2)`,
     });
   } catch (err) {
     checks.push({
@@ -263,6 +278,7 @@ async function cmdPhase(phaseNum: number, args: ParsedArgs) {
     llm,
     deliberationId: delib.deliberationId,
     maxRounds: args.flags["max-rounds"] ? Number(args.flags["max-rounds"]) : undefined,
+    resume: args.flags["resume"] === true || args.flags["resume"] === "true",
   });
 
   logger.event("phase_complete", { phase: phaseNum, result });
@@ -306,14 +322,101 @@ async function main() {
         }
         return await cmdPhase(n, args);
       }
+      case "review":
+        return await cmdReview(args);
+      case "finalize":
+        return await cmdFinalize(args);
+      case "setup":
+        return await cmdSetup(args);
       default:
         process.stderr.write(`Unknown command: ${cmd}\n\n${usage()}`);
         process.exit(2);
     }
   } catch (err) {
+    if (err instanceof ClaimAnalystRefusedError) {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(err.exitCode);
+    }
     process.stderr.write(`Error: ${(err as Error)?.message ?? String(err)}\n`);
     process.exit(1);
   }
+}
+
+async function cmdReview(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const phase = Number(args.flags["phase"] ?? 1);
+  if (phase !== 1) throw new Error(`review supports phase 1 only in v1; got ${phase}`);
+
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const partialPath = `${cfg.runtimeDir}/PHASE_${phase}_PARTIAL.json`;
+  if (!existsSync(partialPath)) {
+    throw new Error(`PHASE_${phase}_PARTIAL.json not found at ${partialPath}. Run \`npm run orchestrator -- phase ${phase}\` first.`);
+  }
+  const partial = JSON.parse(readFileSync(partialPath, "utf8")) as Phase1PartialFile;
+
+  if (args.flags["apply"]) {
+    const iso = new IsonomiaClient(cfg);
+    void iso; // reserved for v2 retract path
+    const result = await applyReport({ cfg, partial });
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+    if (result.notes.length) {
+      process.stderr.write("\nFollow-up actions:\n");
+      for (const n of result.notes) process.stderr.write(`  - ${n}\n`);
+    }
+    return;
+  }
+
+  // Default: produce-report (and warn if a report already exists).
+  const force = args.flags["force"] === true || args.flags["force"] === "true";
+  const reportPath = reportPathFor(cfg.runtimeDir, phase);
+  if (existsSync(reportPath) && !force) {
+    process.stdout.write(`Report already exists: ${reportPath}\nPass --force to overwrite, or --apply to apply your verdicts.\n`);
+    return;
+  }
+  const out = produceReport({ partial, runtimeDir: cfg.runtimeDir, force });
+  process.stdout.write(`Wrote ${out.path}\nFill in verdicts, then run: npm run orchestrator -- review --phase ${phase} --apply\n`);
+}
+
+async function cmdFinalize(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const phase = Number(args.flags["phase"] ?? 1);
+  if (phase !== 1) throw new Error(`finalize supports phase 1 only in v1; got ${phase}`);
+
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const iso = new IsonomiaClient(cfg);
+  const complete = await finalizePhase1({ cfg, iso });
+  process.stdout.write(JSON.stringify(complete, null, 2) + "\n");
+}
+
+async function cmdSetup(args: ParsedArgs) {
+  const tier = (args.flags["model-tier"] as ModelTier) || "dev";
+  const root = args.flags["experiment-root"] as string | undefined;
+  const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
+  const iso = new IsonomiaClient(cfg);
+  const result = await setupDeliberation({
+    cfg,
+    iso,
+    force: args.flags["force"] === true || args.flags["force"] === "true",
+    reuseStackId: typeof args.flags["stack-id"] === "string" ? (args.flags["stack-id"] as string) : undefined,
+    role: typeof args.flags["role"] === "string" ? (args.flags["role"] as string) : undefined,
+    stackName: typeof args.flags["stack-name"] === "string" ? (args.flags["stack-name"] as string) : undefined,
+    experimentMode: args.flags["experiment-mode"] === true || args.flags["experiment-mode"] === "true",
+  });
+  process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+  process.stderr.write(
+    `\nWrote ${result.runtimeDeliberationPath}\n` +
+      `  deliberationId=${result.deliberationId} (${result.deliberationCreated ? "created" : "reused"})\n` +
+      `  stackId=${result.stackId}${result.stackSlug ? ` (slug=${result.stackSlug})` : ""}\n` +
+      `  evidence items: added=${result.itemsAdded} skipped=${result.itemsSkipped}` +
+      (result.evidenceCorpusPath ? ` from ${result.evidenceCorpusPath}` : " (no evidence-corpus.json found)") +
+      `\n` +
+      (result.itemErrors.length
+        ? `  errors:\n${result.itemErrors.map((e) => `    - item[${e.index}]: ${e.error}`).join("\n")}\n`
+        : "") +
+      `\nNext: \`npm run orchestrator -- preflight\`\n`,
+  );
 }
 
 function usage(): string {
@@ -323,7 +426,11 @@ function usage(): string {
     "Commands:",
     "  preflight                      Validate runtime config + auth + evidence corpus",
     "  state                          Print composed deliberation state JSON (no LLM calls)",
-    "  phase <N> [--max-rounds N]     Run phase N",
+    "  setup [--force] [--stack-id ID] [--stack-name S] [--experiment-mode] [--role R]",
+    "                                 Create stack + deliberation + bind evidence; writes runtime/deliberation.json",
+    "  phase <N> [--max-rounds N] [--resume]  Run phase N",
+    "  review --phase N [--apply] [--force]    Produce or apply phase-N review report",
+    "  finalize --phase N             Validate platform state and write PHASE_N_COMPLETE.json",
     "",
     "Global flags:",
     "  --model-tier=dev|prod          Default: dev (refuses to run experimentMode=true)",

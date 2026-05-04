@@ -16,7 +16,7 @@
  *   • The client itself is stateless — auth is supplied per call (or via
  *     `withAgent()` for ergonomics).
  *   • We use the agent's bearer ID token. Refresh is the orchestrator's
- *     responsibility (call `yarn refresh:agents` between phases).
+ *     responsibility (call `npm run refresh:agents` between phases).
  */
 
 import type { OrchestratorConfig, AgentIdentity } from "./config";
@@ -231,6 +231,56 @@ export class IsonomiaClient {
   // Evidence context
   // ─────────────────────────────────────────────────────────────────
 
+  async createStack(
+    body: { name: string; slug?: string; visibility?: "public_open" | "public_closed" | "private" | "unlisted"; description?: string | null },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ id: string; slug: string }> {
+    const r = await this.raw("POST", "/api/stacks", { body, ctx });
+    const j = r.bodyJson as { id: string; slug: string };
+    return { id: j.id, slug: j.slug };
+  }
+
+  async addStackItem(
+    stackId: string,
+    body: {
+      itemKind: "url" | "doi";
+      url?: string;
+      doi?: string;
+      title?: string;
+      authors?: string[];
+      publishedAt?: string;
+      abstract?: string;
+      keyFindings?: string[];
+      tags?: string[];
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ stackItemId: string; sourceId: string; contentSha256?: string | null; archive?: { url: string; capturedAt: string } | null }> {
+    const r = await this.raw("POST", `/api/stacks/${encodeURIComponent(stackId)}/items`, { body, ctx });
+    return r.bodyJson as any;
+  }
+
+  async ensureDeliberation(
+    body: { hostType: "library_stack" | "article" | "post" | "room_thread" | "site" | "inbox_thread"; hostId: string },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ id: string; created: boolean }> {
+    const r = await this.raw("POST", "/api/deliberations/ensure", { body, ctx });
+    const j = r.bodyJson as { id: string; created: boolean };
+    return { id: j.id, created: !!j.created };
+  }
+
+  async bindEvidenceStack(
+    deliberationId: string,
+    stackId: string,
+    ctx: IsonomiaCallContext,
+  ): Promise<unknown> {
+    const r = await this.raw(
+      "POST",
+      `/api/deliberations/${encodeURIComponent(deliberationId)}/evidence-context`,
+      { body: { stackId }, ctx },
+    );
+    return r.bodyJson;
+  }
+
   async getEvidenceContext(
     deliberationId: string,
     ctx: IsonomiaCallContext,
@@ -297,5 +347,22 @@ export class IsonomiaClient {
       { ctx },
     );
     return r.bodyJson;
+  }
+
+  /**
+   * List claims in a deliberation. Used by Phase 1 finalize audit.
+   * Returns up to 500 claims with `id` and `text`.
+   */
+  async listClaims(
+    deliberationId: string,
+    ctx: IsonomiaCallContext,
+  ): Promise<Array<{ id: string; text: string }>> {
+    const r = await this.raw(
+      "GET",
+      `/api/claims/search`,
+      { ctx, query: { deliberationId } },
+    );
+    const body = r.bodyJson as { ok?: boolean; claims?: Array<{ id: string; text: string }> } | null;
+    return body?.claims ?? [];
   }
 }

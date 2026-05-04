@@ -72,13 +72,13 @@ export function loadConfig(opts: LoadConfigOptions = {}): OrchestratorConfig {
   const experimentRoot =
     opts.experimentRoot ??
     process.env.EXPERIMENT_ROOT ??
-    path.resolve(__dirname, "..", "..");
+    path.resolve(__dirname, "..");
   const runtimeDir = path.join(experimentRoot, "runtime");
 
   const agentsPath = path.join(runtimeDir, "agents.json");
   if (!existsSync(agentsPath)) {
     throw new Error(
-      `runtime/agents.json not found at ${agentsPath}. Run \`yarn provision:agents\` first.`,
+      `runtime/agents.json not found at ${agentsPath}. Run \`npm run provision:agents\` first.`,
     );
   }
   const agents = readJson<AgentsRuntime>(agentsPath);

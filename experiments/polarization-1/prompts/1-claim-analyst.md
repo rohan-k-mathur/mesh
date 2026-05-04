@@ -95,7 +95,7 @@ These are validated by the orchestrator. Violations are auto-rejected and you wi
 2. **All four layers covered.** The set `{ subClaim.layer | subClaim ∈ subClaims }` must equal `{ "definitional", "empirical", "causal", "normative" }`. At least one sub-claim per layer.
 3. **Single declarative sentences.** Each `text` parses as one sentence (one main clause, terminating in `.`). Questions, conjunctive lists, multi-sentence paragraphs, and dependent clauses left dangling are rejected.
 4. **No restatements of established claims.** None of your sub-claims may be paraphrases of items listed under "Established within the framing" in `FRAMING.md`. The orchestrator runs a manual review on this; flagrant restatements are flagged and you are re-prompted.
-5. **Dependency graph is a DAG with depth ≤ 3.** A sub-claim depends on at most 2 other sub-claims. No cycles. No chains longer than 3 (depth measured from any leaf to any root). This keeps Phase 2 tractable.
+5. **Dependency graph is a DAG with depth ≤ 6.** A sub-claim depends on at most 2 other sub-claims. No cycles. No chains longer than 6 (depth measured from any leaf to any root). This keeps Phase 2 tractable.
 6. **Indices are 1-based and sequential.** No gaps. `dependsOn` references must be valid indices in the same response.
 7. **`claimType` matches the layer.**
    - `definitional` layer → `CONCEPTUAL`

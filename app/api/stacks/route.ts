@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prismaclient';
 import { NextResponse } from 'next/server';
-import { getUserFromCookies } from '@/lib/serverutils';
+import { getUserFromCookies, getCurrentUserId } from '@/lib/serverutils';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
@@ -61,8 +61,15 @@ const CreateSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const user = await getUserFromCookies();
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  // Cookie or Bearer auth (Bearer needed by orchestrator bots / extension).
+  let userId: bigint | null = null;
+  const cookieUser = await getUserFromCookies();
+  if (cookieUser?.userId) {
+    userId = BigInt(cookieUser.userId);
+  } else {
+    userId = await getCurrentUserId();
+  }
+  if (!userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
 
   const safe = await req.json().catch(() => ({} as unknown));
   const parsed = CreateSchema.safeParse(safe);
@@ -80,7 +87,7 @@ export async function POST(req: Request) {
 
   const stack = await prisma.stack.create({
     data: {
-      owner_id: BigInt(user.userId),
+      owner_id: userId,
       name, 
       slug, 
       is_public: computedIsPublic,
