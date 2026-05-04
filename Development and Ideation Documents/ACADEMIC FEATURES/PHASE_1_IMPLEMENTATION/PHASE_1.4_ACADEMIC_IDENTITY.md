@@ -26,11 +26,11 @@ Allow scholars to verify their academic identity via ORCID, display credentials 
 | US-1.4.6 | As a scholar, I want to import my publications from ORCID | P2 | M |
 
 ---
-
+  
 ## ORCID Integration Architecture
 
 ```
-┌───────────────────────────────────────────────────────────────────────────┐
+┌────────ew ───────────────────────────────────────────────────────────────────┐
 │                      ORCID INTEGRATION FLOW                               │
 ├───────────────────────────────────────────────────────────────────────────┤
 │                                                                           │

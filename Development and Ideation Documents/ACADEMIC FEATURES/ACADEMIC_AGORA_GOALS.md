@@ -13,7 +13,7 @@
 #### Phase 3.1: Claim Provenance Tracking (Weeks 1-4)
 | Goal | Description | Success Criteria |
 |------|-------------|------------------|
-| **Claim Versioning** | Track claim evolution over time | Users can view version history for any claim |
+| **Claim Versioning** | Track claim evolution over time | Users can view version history for any claim |   
 | **Origin Tracking** | Record first assertion source/author/date | Every claim shows where it originated |
 | **Canonical IDs** | Cross-context claim identification | Same claim in multiple deliberations is linked |
 | **Challenge Aggregation** | Track open/defended/conceded challenges | Status dashboard shows challenge resolution |
@@ -22,8 +22,8 @@
 #### Phase 3.2: Argument-Level Citations (Weeks 5-8)
 | Goal | Description | Success Criteria |
 |------|-------------|------------------|
-| **Argument Permalinks** | Stable citable URIs for arguments | Every argument has a shareable link |
 | **Typed Argument Links** | SUPPORTS/EXTENDS/REFINES/RESPONDS relations | Clear relationship types between arguments |
+| **Argument Permalinks** | Stable citable URIs for arguments | Every argument has a shareable link |
 | **Citation Export** | BibTeX/RIS for individual arguments | One-click argument citation |
 | **Cross-Paper References** | "Argument A in Paper X attacks Argument B in Paper Y" | Visual cross-paper argument graph |
 

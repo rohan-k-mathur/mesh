@@ -227,7 +227,7 @@ Arguments and claims produced on the platform are exposed beyond the platform th
 
 **My Arguments Auto-Deliberation.** A user's first quick argument auto-creates a personal deliberation (`hostType: "free"`) so every individually authored argument still lives inside the deliberation infrastructure with no setup overhead.
 
-### Distribution — Browser Extension (Phase 3)
+### Distribution — Browser Extension 
 
 A Manifest V3 browser extension at [extensions/chrome/](extensions/chrome/) ships across Chrome, Firefox (via `webextension-polyfill`), and Safari (via the Safari Web Extensions Xcode wrapper):
 
@@ -236,7 +236,7 @@ A Manifest V3 browser extension at [extensions/chrome/](extensions/chrome/) ship
 - **Popup.** A compact Quick Argument Builder embedded in the extension popup for one-click creation without leaving the page, plus a list of the user's recent arguments.
 - **Auth.** OAuth-style handshake against `isonomia.app/login?ext={extensionId}&redirect=extension`.
 
-### Deliberation-Scope Embeds (Phase 4)
+### Deliberation-Scope Embeds 
 
 The `IsonomiaWidget` component ([components/embeddable/IsonomiaWidget.tsx](components/embeddable/IsonomiaWidget.tsx)) lifts the embed primitive from a single argument to an entire deliberation, exposing a state card and a contested-frontier lane suitable for embedding inside articles, briefs, or third-party sites. It is backed by the deliberation-scope readouts described in §V.
 

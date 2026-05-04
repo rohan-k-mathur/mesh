@@ -426,6 +426,20 @@ export async function computeDeliberationFingerprint(
     if (s.createdById) participants.add(s.createdById);
   }
 
+  // Author identity-kind lookup (User.kind ∈ {human, bot, service}). Used to
+  // count arguments authored by automated/bot accounts toward the AI bucket
+  // for `aiSeededRatio` telemetry, even when the per-argument `authorKind`
+  // column was written as HUMAN. See B1 of the multi-agent deliberation
+  // experiment prereq plan.
+  const authorIds = Array.from(participants);
+  const userKindRows = authorIds.length
+    ? await prisma.user.findMany({
+        where: { auth_id: { in: authorIds } },
+        select: { auth_id: true, kind: true },
+      })
+    : [];
+  const kindByAuthId = new Map(userKindRows.map((u) => [u.auth_id, u.kind]));
+
   // ────────────────────────────────────────────────────────────
   // CQ + evidence coverage rollups
   // ────────────────────────────────────────────────────────────
@@ -450,7 +464,21 @@ export async function computeDeliberationFingerprint(
   // Extraction (AI seeding) telemetry
   // ────────────────────────────────────────────────────────────
 
-  const aiSeededCount = authorCount.ai + authorCount.hybrid;
+  // An argument is treated as AI-seeded if either (a) its per-argument
+  // `authorKind` is AI/HYBRID, or (b) the author user is a non-human identity
+  // (User.kind ∈ {bot, service}) — e.g. provisioned via the multi-agent
+  // deliberation experiment.
+  const isAiSeeded = (a: (typeof argRows)[number]) => {
+    if (a.authorKind === "AI" || a.authorKind === "HYBRID") return true;
+    if (a.authorId) {
+      const k = kindByAuthId.get(a.authorId);
+      if (k === "bot" || k === "service") return true;
+    }
+    return false;
+  };
+
+  const aiSeedArgs = argRows.filter(isAiSeeded);
+  const aiSeededCount = aiSeedArgs.length;
   const aiSeededRatio =
     argRows.length > 0 ? aiSeededCount / argRows.length : 0;
 
@@ -459,9 +487,7 @@ export async function computeDeliberationFingerprint(
   // divided by the count of AI/HYBRID arguments. `null` when there are
   // no AI seeds (the ratio is undefined, and the consumer must
   // distinguish "no signal" from "zero engagement").
-  const aiSeedIds = argRows
-    .filter((a) => a.authorKind === "AI" || a.authorKind === "HYBRID")
-    .map((a) => a.id);
+  const aiSeedIds = aiSeedArgs.map((a) => a.id);
 
   let humanEngagementRateOnAiSeeds: number | null = null;
   if (aiSeedIds.length > 0) {
