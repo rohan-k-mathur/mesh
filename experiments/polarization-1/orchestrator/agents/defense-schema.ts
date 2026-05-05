@@ -22,6 +22,7 @@ import { z } from "zod";
 import {
   CitationTokenZ,
   SchemeKeyZ,
+  WebCitationZ,
 } from "./advocate-schema";
 
 // ─────────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ const DefenseArgumentZ = z.object({
   /** 0-based premise index in the targeted REBUTTAL; required iff attackType === "UNDERMINE". */
   targetPremiseIndex: z.number().int().nonnegative().nullable(),
   conclusionText: DeclarativeSentenceZ,
-  premises: z.array(DefensePremiseZ).min(1).max(4),
+  premises: z.array(DefensePremiseZ).min(1).max(6),
   schemeKey: SchemeKeyZ,
   warrant: z.string().min(1).max(300).nullable(),
 });
@@ -127,6 +128,8 @@ const DefenseOutputZ = z.object({
   advocateRole: z.enum(["A", "B"]),
   responses: z.array(ResponseZ).default([]),
   cqAnswers: z.array(CqAnswerZ).default([]),
+  /** Loosened-mode web sources discovered while drafting defenses. */
+  webCitations: z.array(WebCitationZ).max(40).optional().default([]),
 });
 
 export type DefenseOutput = z.infer<typeof DefenseOutputZ>;
@@ -226,6 +229,25 @@ export function buildDefenseOutputSchema(opts: DefenseSchemaOpts) {
         message: `advocateRole must equal "${advocateRole}" (got "${data.advocateRole}")`,
         path: ["advocateRole"],
       });
+    }
+
+    // Loosened-mode: union corpus tokens with this output's declared web tokens.
+    const declaredWebTokens = new Set<string>(
+      (data.webCitations ?? []).map((w) => w.token),
+    );
+    {
+      const seen = new Set<string>();
+      for (let i = 0; i < (data.webCitations ?? []).length; i++) {
+        const t = data.webCitations![i].token;
+        if (seen.has(t)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `webCitations[${i}].token "${t}" is duplicated`,
+            path: ["webCitations", i, "token"],
+          });
+        }
+        seen.add(t);
+      }
     }
 
     // 2. Coverage: every opposing rebuttal must receive exactly one response.
@@ -334,16 +356,16 @@ export function buildDefenseOutputSchema(opts: DefenseSchemaOpts) {
       }
     }
 
-    // 5. Citation tokens on defense premises must resolve to corpus tokens.
+    // 5. Citation tokens on defense premises must resolve to corpus OR declared web tokens.
     for (let i = 0; i < data.responses.length; i++) {
       const r = data.responses[i];
       if (!r.defense) continue;
       for (let j = 0; j < r.defense.premises.length; j++) {
         const tok = r.defense.premises[j].citationToken;
-        if (tok !== null && !allowedCitationTokens.has(tok)) {
+        if (tok !== null && !allowedCitationTokens.has(tok) && !declaredWebTokens.has(tok)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: `responses[${i}].defense.premises[${j}].citationToken "${tok}" is not in EVIDENCE_CORPUS`,
+            message: `responses[${i}].defense.premises[${j}].citationToken "${tok}" is not in EVIDENCE_CORPUS or in webCitations`,
             path: ["responses", i, "defense", "premises", j, "citationToken"],
           });
         }

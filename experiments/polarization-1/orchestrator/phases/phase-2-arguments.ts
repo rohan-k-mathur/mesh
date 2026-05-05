@@ -448,6 +448,7 @@ async function runOneAdvocate(opts: RunOneAdvocateOpts): Promise<AdvocateRunReco
     registry: opts.registry,
     authorRole: opts.role,
     schemeCatalog: opts.schemeCatalog,
+    stackId: opts.cfg.deliberation.evidenceStackId ?? null,
   });
 
   logger.event("phase_complete", {

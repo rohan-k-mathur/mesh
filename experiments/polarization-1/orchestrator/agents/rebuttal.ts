@@ -105,13 +105,17 @@ export async function runRebuttalTurn(input: RebuttalTurnInput): Promise<Rebutta
       system: systemPrompt,
       messages,
       model,
-      // Same temperature as Phase 2: moderate diversity, strict JSON.
-      temperature: 0.4,
-      // Phase-3 outputs are typically smaller than Phase-2 (≤16 cqResponses
-      // + ≤12 rebuttals × ≤4 premises). 12k tokens is comfortable headroom.
-      maxTokens: 12000,
+      // Loosened mode: same elevated temperature as Phase 2 so
+      // dialectical engagement can range over non-obvious angles
+      // (counter-mechanisms, base-rate critiques, unmeasured channels).
+      temperature: 0.8,
+      // Loosened caps: more rebuttals, more premises, optional web
+      // citations. Bump headroom from 12k → 24k.
+      maxTokens: 24000,
       logger: input.logger,
       agentRole: input.role,
+      useWebSearch: true,
+      webSearchMaxUses: 12,
     });
     totalInputTokens += res.usage.inputTokens;
     totalOutputTokens += res.usage.outputTokens;

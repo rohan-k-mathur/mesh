@@ -575,6 +575,7 @@ async function runOneAdvocate(opts: RunOneAdvocateOpts): Promise<DefenseRunRecor
     opposingRebuttals: opts.opposingRebuttals,
     opposingCqRaises: opts.opposingCqRaises,
     schemeCatalog: opts.schemeCatalog,
+    stackId: opts.cfg.deliberation.evidenceStackId ?? null,
   });
 
   logger.event("phase_complete", {

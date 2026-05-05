@@ -98,12 +98,50 @@ const PremiseZ = z.object({
 
 const ArgumentZ = z.object({
   conclusionClaimIndex: z.number().int().positive(),
-  premises: z.array(PremiseZ).min(1).max(4),
+  premises: z.array(PremiseZ).min(1).max(6),
   schemeKey: SchemeKeyZ,
   warrant: z.string().min(1).max(300).nullable(),
 });
 
 export type AdvocateArgument = z.infer<typeof ArgumentZ>;
+
+// ─────────────────────────────────────────────────────────────────
+// Web citations (loosened mode)
+// ─────────────────────────────────────────────────────────────────
+//
+// In loosened-mode runs the advocates may discover sources via web search
+// that aren't in the bound corpus. Each such source is declared once in
+// the top-level `webCitations` array of the output and referenced from
+// premises by its `token` (e.g. `web:nyhan-2023-pnas`). The translator
+// (argument-mint.ts → materializeWebCitations) lazily mints a Source +
+// stack item for each web citation before attaching premise citations.
+export const WebCitationZ = z.object({
+  token: CitationTokenZ.refine((t) => t.startsWith("web:"), {
+    message: "webCitations[].token must start with 'web:' (e.g. 'web:bail-2018-pnas')",
+  }),
+  url: z.string().url(),
+  title: z.string().min(1).max(500),
+  authors: z.array(z.string().min(1).max(200)).max(20).optional(),
+  publishedAt: z.string().min(4).max(40).optional(),
+  /** One-sentence characterization of what the source actually says, ≤ 500 chars. */
+  snippet: z.string().min(1).max(500),
+  /** Optional methodology tag — mirrors the corpus item shape. */
+  methodology: z
+    .enum([
+      "experimental",
+      "quasi-experimental",
+      "observational",
+      "meta-analysis",
+      "systematic-review",
+      "theoretical",
+      "expert-commentary",
+      "internal-data",
+      "other",
+    ])
+    .optional(),
+});
+
+export type WebCitation = z.infer<typeof WebCitationZ>;
 
 // ─────────────────────────────────────────────────────────────────
 // Refusal schema (prompt §8) — identical for A and B
@@ -144,9 +182,9 @@ export interface AdvocateSchemaOpts {
   allowedCitationTokens: ReadonlySet<string>;
   /** Defaults from the prompt §5; override only for testing. */
   totalArgumentsMin?: number; // default 12
-  totalArgumentsMax?: number; // default 30
-  perSubClaimMin?: number; // default 3
-  perSubClaimMax?: number; // default 5
+  totalArgumentsMax?: number; // default 60 (loosened from 30)
+  perSubClaimMin?: number; // default 2 (loosened from 3)
+  perSubClaimMax?: number; // default 10 (loosened from 5)
   minSubClaimsCovered?: number; // default 5
 }
 
@@ -161,9 +199,9 @@ export function buildAdvocateOutputSchema(opts: AdvocateSchemaOpts) {
     topology,
     allowedCitationTokens,
     totalArgumentsMin = 12,
-    totalArgumentsMax = 30,
-    perSubClaimMin = 3,
-    perSubClaimMax = 5,
+    totalArgumentsMax = 60,
+    perSubClaimMin = 2,
+    perSubClaimMax = 10,
     minSubClaimsCovered = 5,
   } = opts;
 
@@ -176,8 +214,30 @@ export function buildAdvocateOutputSchema(opts: AdvocateSchemaOpts) {
       phase: z.literal("2"),
       advocateRole: z.literal(advocateRole),
       arguments: z.array(ArgumentZ).min(totalArgumentsMin).max(totalArgumentsMax),
+      /**
+       * Loosened-mode web sources discovered via web search. Optional;
+       * empty/omitted when an output cites only the bound corpus.
+       */
+      webCitations: z.array(WebCitationZ).max(40).optional().default([]),
     })
     .superRefine((data, ctx) => {
+      // Build set of legal citation tokens for THIS output: corpus ∪ web.
+      const declaredWebTokens = new Set<string>(
+        (data.webCitations ?? []).map((w) => w.token),
+      );
+      // Every webCitations[].token must be unique within the output.
+      const seenWebTokens = new Set<string>();
+      for (let i = 0; i < (data.webCitations ?? []).length; i++) {
+        const t = data.webCitations![i].token;
+        if (seenWebTokens.has(t)) {
+          ctx.addIssue({
+            code: "custom",
+            message: `webCitations[${i}].token "${t}" is duplicated; each web citation must declare its token exactly once`,
+            path: ["webCitations", i, "token"],
+          });
+        }
+        seenWebTokens.add(t);
+      }
       // Constraint #1 is enforced by .min/.max above.
 
       // Build per-sub-claim grouping for #2, #3.
@@ -197,13 +257,13 @@ export function buildAdvocateOutputSchema(opts: AdvocateSchemaOpts) {
 
         perIndex.set(a.conclusionClaimIndex, (perIndex.get(a.conclusionClaimIndex) ?? 0) + 1);
 
-        // Constraint #7: citationToken resolves.
+        // Constraint #7: citationToken resolves (corpus OR declared web citation).
         for (let p = 0; p < a.premises.length; p++) {
           const tok = a.premises[p].citationToken;
-          if (tok != null && !allowedCitationTokens.has(tok)) {
+          if (tok != null && !allowedCitationTokens.has(tok) && !declaredWebTokens.has(tok)) {
             ctx.addIssue({
               code: "custom",
-              message: `arguments[${i}].premises[${p}].citationToken "${tok}" does not resolve to a bound corpus item`,
+              message: `arguments[${i}].premises[${p}].citationToken "${tok}" does not resolve to a bound corpus item or to a declared webCitations[].token`,
               path: ["arguments", i, "premises", p, "citationToken"],
             });
           }

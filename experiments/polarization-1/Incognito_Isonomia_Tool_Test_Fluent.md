@@ -1,8 +1,66 @@
+You have access to a structured multi-agent deliberation on the following
+contested claim:
+
+  "Algorithmic content curation on major social media platforms has been a
+   significant causal factor in the rise of political polarization in the
+   United States between 2012 and 2024."
+
+where "significant" is operationalized as "removing or substantially
+modifying this factor would reduce observed affective-polarization growth
+(2012–2024) by at least 10%."
+
+The deliberation ran four phases (decomposition, opening arguments, hinge
+attacks, defenses-and-concessions) and is available via the Isonomia MCP
+toolset at id `cmoqp0jzk00iu8c01gmg7qa68`. You should also use web search.
+
+Read the deliberation. Use the tools as much or as little as you want.
+Then write a synthesis for a smart non-expert who wants to understand
+where this debate actually stands — not a list of bullet points, not a
+Wikipedia summary, not a bibliography. Aim for ~1000–1500 words of
+readable prose.
+
+Cover:
+
+- The shape of the disagreement: what's actually being disputed
+  (definitional, empirical, methodological, policy), and why those
+  layers matter for how a reader should weigh the claim.
+- The strongest case on each side, in the strongest form each side has
+  actually made (steel-man, not straw-man).
+- What has been most consequentially weakened during the back-and-forth,
+  and what survives unscathed.
+- The single empirical or methodological move that would most change
+  where you land, and why.
+- Where the debate is structurally underdeveloped — what isn't being
+  argued that should be.
+- Your overall judgment, with a confidence level. You may produce a
+  directional verdict if the evidence licenses one; if it doesn't, say
+  so and say why. Refuse a centrist "both sides have a point" closer
+  unless that's literally what the evidence supports.
+
+Constraints on style:
+
+- Don't paste argument ids, schema keys, or graph metadata into the
+  response. Internal use of those is fine; the reader doesn't need to
+  see them.
+- When you reference a specific argument or move, describe it in plain
+  English — who's claiming what, what the rebuttal was, how it landed.
+  If the deliberation surfaces a study or a piece of evidence by name,
+  use the name.
+- Don't pad with throat-clearing about how complex the topic is. Get
+  into the substance fast.
+- It's fine to be opinionated about which side has the stronger
+  position, as long as the opinion is grounded in what you actually
+  read in the deliberation (and in any web search you do alongside it).
+
+If the deliberation forces refusal on any of the items above — say
+because the record is genuinely silent on something — name what's
+missing in one sentence and continue. Don't stop the whole synthesis.
+
+----
+
 Here's the synthesis — roughly 1,500 words of readable prose covering all six items you asked for.
 
 One transparency note from the deliberation's own metadata: this deliberation has 91 arguments, 0 median challengers per argument, and 2% catalog-critical-question coverage. No argument chains are on file, and 14 potential conclusions are not licensed by the current graph. In plain terms, many of the arguments were articulated but never deeply stress-tested, which means the back-and-forth is thinner than it could be — something I flagged in the "what's missing" section of the synthesis.
-
-
 
 
 # Algorithms and Polarization: Where the Debate Actually Stands

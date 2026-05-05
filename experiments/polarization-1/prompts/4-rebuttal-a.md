@@ -15,6 +15,20 @@ The framing document attached as `FRAMING.md` is the ground truth on what is in 
 
 ---
 
+## 0. Loosened mode (May 2026)
+
+This run is deliberately loosened. Phase 3 in particular benefits from the change — a rebuttal grounded in a 2025 replication failure or in a methodological literature the bound corpus doesn't carry is exactly the kind of "originality" this run is trying to elicit.
+
+Concretely:
+
+- **You have web search.** Use it to find replication failures, pre-registered re-analyses, methodological critiques, statistical-power calculations, instrumental-variable critiques, and base-rate / reference-class arguments that the bound corpus doesn't contain. The opposing advocate may also have cited web sources — you may attack those just like corpus citations.
+- **You may cite sources outside the bound corpus.** Declare each web-discovered source once in the top-level `webCitations` array (see §4.5) and reference it from rebuttal premises by its `web:<slug>` token. The orchestrator materializes these as Sources on the bound stack and they are first-class downstream.
+- **Attack budgets are larger** (see §5 — cqResponses ≤ 32, rebuttals ≤ 32, premises ≤ 6). Use the headroom for *distinct attack routes* on hinge arguments, not for shallow padding.
+- **Methodological and base-rate critiques are explicitly invited.** A rebuttal that says "this study's effect size is real but its 95% CI doesn't rule out an effect below the framing's ≥ 10% bar" is a *better* attack than one that says "a different study found nulls." Power-against-bar arguments, conjunction-decomposition rebuttals, and reference-class shifts (cable news, talk radio, pre-internet partisan press) are first-class moves.
+- **Citation discipline is unchanged.** Web citations are bound by the same rule as corpus citations: a premise that cites a source must be supported by what the source actually says. Mischaracterizing a web source is treated identically to mischaracterizing a corpus source.
+
+---
+
 ## 1. Your role in one sentence
 
 For each of Advocate B's arguments, raise the critical questions that genuinely weaken it, waive those that don't, and mount evidence-grounded rebuttals against the arguments you judge materially flawed.
@@ -157,14 +171,18 @@ Same rules as Phase 2: set `warrant` to a single sentence making the inferential
 
 If a rebuttal exists *because* of a specific critical question on B's argument, set `cqKey` to that CQ key. The orchestrator wires the resulting `ArgumentEdge.cqKey` to that value, which auto-marks the CQ as `answered` on the target argument and links the dialectical move into the reviewer's CQ-coverage view. If the rebuttal is a standalone attack not tied to a registered CQ, set `cqKey: null`.
 
+### 4.6 Web citations (loosened mode)
+
+Same contract as Phase 2 §4.5. Declare web-discovered sources once in the top-level `webCitations` array; reference them from rebuttal premises by `web:<slug>` token; the orchestrator materializes them onto the bound evidence stack with provenance. `token` follows `^web:[A-Za-z0-9._-]+$`; tokens are unique within the output; snippets must accurately characterize what the source says (mischaracterizations are flagged identically to corpus mischaracterizations); every declared web citation must be referenced by at least one premise.
+
 ---
 
 ## 5. Hard constraints
 
 These are mechanically validated. Violations are auto-rejected and you are re-prompted with the violation message. A second violation aborts the round.
 
-1. **`cqResponses.length ≤ 16`.** A higher cap floods the reviewer with shallow CQ entries; concentrate raises on CQs that meaningfully change argument standing.
-2. **`rebuttals.length ≤ 16`.** A higher cap floods Phase 4 (defenses) and dilutes which attacks the reviewer treats as load-bearing.
+1. **`cqResponses.length ≤ 32`.** Loosened from 16. Concentrate raises on CQs that meaningfully change argument standing; do not pad to the cap.
+2. **`rebuttals.length ≤ 32`.** Loosened from 16. Concentrate on hinge arguments and on rebuttals that genuinely change the dialectical state; do not pad.
 3. **Per-target rebuttal cap: ≤ 4 rebuttals against any single B argument.** Multi-flaw critiques should be collapsed into one rebuttal with multiple premises. Spreading shallow critiques across several rebuttals against the same target is dialectical padding.
 4. **Targeting consistency.**
     - REBUT: `targetPremiseIndex` MUST be null.
@@ -172,14 +190,15 @@ These are mechanically validated. Violations are auto-rejected and you are re-pr
     - UNDERCUT: `targetPremiseIndex` MUST be null.
 5. **`targetArgumentId` resolves.** Every `targetArgumentId` (in both `cqResponses` and `rebuttals`) must be one of B's argument IDs from `OPPONENT_ARGUMENTS`. Unknown IDs auto-rejected.
 6. **`cqKey` resolves.** Every `cqKey` (on `cqResponses` and on `rebuttals` where non-null) must be a valid critical-question key for the target argument's scheme. The catalog is shown inline per-argument in `OPPONENT_ARGUMENTS`.
-7. **Premise count.** `1 ≤ rebuttal.premises.length ≤ 4`. Most rebuttals will have 2–3 premises.
+7. **Premise count.** `1 ≤ rebuttal.premises.length ≤ 6`. Loosened from 4. Most rebuttals will still have 2–3 premises; use 4–6 only for genuinely multi-step critiques.
 8. **Premises and conclusionText are declarative sentences.** Each capitalized first word, terminating period, no leading conjunction, single main clause. Phrase fragments and questions are rejected.
 9. **`schemeKey` ∈ allowed catalog.** Same 12 keys as Phase 2 (`cause_to_effect`, `sign`, `inference_to_best_explanation`, `statistical_generalization`, `expert_opinion`, `practical_reasoning`, `positive_consequences`, `negative_consequences`, `analogy`, `argument_from_example`, `argument_from_lack_of_evidence`, `methodological_critique`).
-10. **`citationToken` resolves.** Every non-null `citationToken` must match a token from `EVIDENCE_CORPUS`.
+10. **`citationToken` resolves.** Every non-null `citationToken` must match either a token from `EVIDENCE_CORPUS` (corpus) OR a `token` declared in this output's top-level `webCitations` array (see §4.5).
 11. **Scheme-layer plausibility.** The rebuttal's `schemeKey` must be appropriate for the **layer of the opposing argument's conclusion sub-claim** (since the rebuttal lives in the same epistemic register as what it attacks). Empirical/causal layers → empirical/causal-appropriate schemes; normative layers → normative-appropriate schemes (same rules as Phase 2 §5 #8).
 12. **No restating B's own conclusion as your premise.** Don't put B's argument's conclusion text in your rebuttal as if it were a premise of yours. The rebuttal's premises must be independently grounded.
 13. **No re-litigation of established framing items.** Same as Phase 2 §5 #10.
 14. **`rationale` length on cqResponses.** 40 ≤ chars ≤ 400. Below 40 chars is dismissive boilerplate; above 400 is rebuttal-shaped reasoning that should be in `rebuttals` instead.
+15. **Web citations carry their weight.** Every `webCitations[]` entry must be referenced by at least one rebuttal premise. Orphan web citations are a soft-flag.
 
 ---
 

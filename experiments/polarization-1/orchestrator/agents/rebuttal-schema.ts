@@ -26,6 +26,7 @@ import { EXPERIMENT_SCHEME_KEYS, type ExperimentSchemeKey } from "../scheme-cata
 import {
   CitationTokenZ,
   SchemeKeyZ,
+  WebCitationZ,
   isSchemeAllowedForLayer,
   type AdvocateLayer,
 } from "./advocate-schema";
@@ -118,7 +119,7 @@ const RebuttalArgumentZ = z.object({
     .refine((s) => /[.!?]\s*$/.test(s.trim()), {
       message: "conclusionText must end with a sentence-terminating punctuation mark",
     }),
-  premises: z.array(RebuttalPremiseZ).min(1).max(4),
+  premises: z.array(RebuttalPremiseZ).min(1).max(6),
   schemeKey: SchemeKeyZ,
   warrant: z.string().min(1).max(300).nullable(),
   /**
@@ -141,6 +142,12 @@ const RebuttalOutputZ = z.object({
   advocateRole: z.enum(["A", "B"]),
   cqResponses: z.array(CqResponseZ).default([]),
   rebuttals: z.array(RebuttalArgumentZ).default([]),
+  /**
+   * Loosened-mode web sources discovered via web search during the rebuttal
+   * round. Same shape as Phase-2 webCitations; resolved by argument-mint
+   * (and re-used by attack-mint) before edge attachment.
+   */
+  webCitations: z.array(WebCitationZ).max(40).optional().default([]),
 });
 
 export type RebuttalOutput = z.infer<typeof RebuttalOutputZ>;
@@ -198,8 +205,8 @@ export interface RebuttalSchemaOpts {
   /** Bound evidence corpus tokens (same source as Phase 2). */
   allowedCitationTokens: ReadonlySet<string>;
   /** Defaults from prompt §5; override only for testing. */
-  cqResponsesMax?: number; // default 16
-  rebuttalsMax?: number; // default 16
+  cqResponsesMax?: number; // default 32 (loosened from 16)
+  rebuttalsMax?: number; // default 32 (loosened from 16)
   rebuttalsPerTargetMax?: number; // default 4 (REBUTTAL_PER_TARGET_MAX)
 }
 
@@ -214,8 +221,8 @@ export function buildRebuttalOutputSchema(opts: RebuttalSchemaOpts) {
     opposingArguments,
     cqKeysByScheme,
     allowedCitationTokens,
-    cqResponsesMax = 16,
-    rebuttalsMax = 16,
+    cqResponsesMax = 32,
+    rebuttalsMax = 32,
     rebuttalsPerTargetMax = REBUTTAL_PER_TARGET_MAX,
   } = opts;
 
@@ -226,6 +233,23 @@ export function buildRebuttalOutputSchema(opts: RebuttalSchemaOpts) {
         message: `advocateRole must equal "${advocateRole}" (got "${data.advocateRole}")`,
         path: ["advocateRole"],
       });
+    }
+
+    // Loosened-mode: union corpus tokens with this output's declared web tokens.
+    const declaredWebTokens = new Set<string>(
+      (data.webCitations ?? []).map((w) => w.token),
+    );
+    const seenWebTokens = new Set<string>();
+    for (let i = 0; i < (data.webCitations ?? []).length; i++) {
+      const t = data.webCitations![i].token;
+      if (seenWebTokens.has(t)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `webCitations[${i}].token "${t}" is duplicated`,
+          path: ["webCitations", i, "token"],
+        });
+      }
+      seenWebTokens.add(t);
     }
 
     // Global budget caps.
@@ -322,13 +346,13 @@ export function buildRebuttalOutputSchema(opts: RebuttalSchemaOpts) {
         });
       }
 
-      // Citation tokens resolve.
+      // Citation tokens resolve (corpus OR declared web citation).
       for (let p = 0; p < r.premises.length; p++) {
         const tok = r.premises[p].citationToken;
-        if (tok !== null && !allowedCitationTokens.has(tok)) {
+        if (tok !== null && !allowedCitationTokens.has(tok) && !declaredWebTokens.has(tok)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: `rebuttals[${i}].premises[${p}].citationToken "${tok}" does not resolve in EVIDENCE_CORPUS`,
+            message: `rebuttals[${i}].premises[${p}].citationToken "${tok}" does not resolve in EVIDENCE_CORPUS or in webCitations`,
             path: ["rebuttals", i, "premises", p, "citationToken"],
           });
         }
