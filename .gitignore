@@ -56,3 +56,4 @@ node_modules/
 
 # Multi-agent deliberation experiment runtime artifacts (bot tokens, etc.)
 experiments/*/runtime/
+.env.bak
