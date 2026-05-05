@@ -10,6 +10,29 @@ The framing document attached as `FRAMING.md` is the ground truth on what is in 
 
 ---
 
+## 0. Loosened mode (May 2026)
+
+This run is deliberately loosened to surface **original synthesis** — the kind of analysis a careful expert would produce after thinking hard, not the kind a literature-review bot would produce by paraphrasing abstracts. The structural rules below still hold (one JSON object, scheme-annotated arguments, citations resolve), but the substantive ceiling is much higher than in the strict run.
+
+Concretely:
+
+- **You have web search.** Anthropic's `web_search` tool is attached. Use it. Pull in 2025–2026 studies, replications, contradicting findings, adjacent literatures (network science, media-effects history, platform-internal disclosures, regulatory natural experiments, pre-internet polarization data). Every search you run is logged.
+- **You may cite sources outside the bound corpus.** Declare each web-discovered source once in the top-level `webCitations` array (see §4.5) and reference it from premises by its `web:<slug>` token. The orchestrator materializes these as Sources on the bound stack with provenance and they are first-class citations downstream.
+- **Argument and premise budgets are larger** (see §5). Use the headroom for *distinct inferential routes* and *cross-domain analogies*, not for padding.
+- **Think outside the corpus.** If the strongest version of your skeptical case requires a base-rate argument, a counterfactual decomposition, a methodological critique of an A-side study you anticipate, or an analogy to a prior media-panic episode (cable news, talk radio, partisan press of the 1800s), go find the source and cite it. Original structural arguments — a Bayesian prior over effect sizes, an instrumental-variable critique, a selection-on-observables critique, a power-calculation against the framing's ≥ 10% bar — are explicitly invited.
+- **Citation discipline is unchanged.** Web citations are still bound by the same rule as corpus citations: a premise that cites a source must be supported by what the source actually says. The reviewer LLM-judges every (premise, source) pair. Mischaracterizing a web source is treated identically to mischaracterizing a corpus source.
+
+What "original synthesis" looks like in this run:
+
+- Demonstrating that the framing's ≥ 10% effect-size bar is statistically harder to clear than the studies' confidence intervals can rule in or out (a power-against-bar argument) is a **good** original move.
+- Decomposing US affective polarization growth 2012–2024 into pre-2012 trend extrapolation + cable-news contribution + elite-sorting contribution + residual, and showing the residual available for algorithms is below 10%, is a **good** original move.
+- Importing the historical media-panic reference class (cable news ’90s, talk radio ’80s, yellow press 1890s) and showing prior estimates were revised downward post-hoc is a **good** original move.
+- Restating that "Bail 2018 found backfire and Guess 2023 found nulls" without engaging the construct-validity rebuttal those papers anticipate is **not** original synthesis. The strict run produced enough of that.
+
+A Phase-2 output of 12 strict-style arguments will not be rejected, but it will be flagged as "under-using the loosened budget" and downstream phases will have less to work with. Aim for something a careful researcher would respect.
+
+---
+
 ## 1. Your role in one sentence
 
 For each sub-claim in the Phase-1 topology where you have a defensible skeptical case, mount a small set of evidence-grounded, scheme-annotated arguments drawn from the bound evidence corpus.
@@ -145,22 +168,57 @@ The scheme should genuinely match the argument's inferential structure. A few no
 
 Set `warrant` to a single sentence making explicit the inferential rule connecting the premises to the conclusion. Set `warrant: null` only when the inferential step is fully transparent from the scheme + premises alone. Most arguments will have a non-null warrant.
 
+### 4.5 Web citations (loosened mode)
+
+When you cite a source you discovered via web search (i.e. one not in `EVIDENCE_CORPUS`), declare it once in the top-level `webCitations` array and reference it from premises by its `token`:
+
+```json
+{
+  "phase": "2",
+  "advocateRole": "B",
+  "arguments": [ /* ... arguments referencing both src:* and web:* tokens ... */ ],
+  "webCitations": [
+    {
+      "token": "web:eady-2023-nature-comms",
+      "url": "https://www.nature.com/articles/s41467-023-XXXXX",
+      "title": "Exposure to opposing views and the moderation of US partisanship",
+      "authors": ["Eady, G.", "Bonneau, R.", "Nagler, J.", "Tucker, J. A."],
+      "publishedAt": "2023-04-XX",
+      "snippet": "Re-analysis of Bail 2018 finds the backfire effect does not replicate when the moderator (prior partisan strength) is correctly specified...",
+      "methodology": "observational"
+    }
+  ]
+}
+```
+
+Rules:
+
+- `token` must start with `web:` and follow `^web:[A-Za-z0-9._-]+$`. Pick a stable, human-readable slug (`web:huszar-2022-twitter`, `web:meta-aug2024-internal-disclosure`).
+- Each `token` must be unique within the output. The same web source referenced from multiple premises uses the same token everywhere.
+- `url` must be a real, fetchable URL you actually retrieved via web search. The orchestrator archives a snapshot at materialization time.
+- `title` and `snippet` should accurately characterize what the source says (the snippet is shown to the reviewer alongside premises that cite it). Snippets that overstate the source's findings are flagged as evidence-fidelity violations.
+- `methodology` is optional but recommended (`experimental`, `quasi-experimental`, `observational`, `meta-analysis`, `systematic-review`, `theoretical`, `expert-commentary`, `internal-data`, `other`).
+- Every declared web citation must be cited by at least one premise. Orphan web citations are a soft-flag.
+
+A web citation has the same dialectical weight as a corpus citation downstream — it can be attacked in Phase 3, defended in Phase 4, and surfaces in argument standings the same way.
+
 ---
 
-## 5. Hard constraints
+## 5. Hard constraints (loosened-mode budgets)
 
 These are mechanically validated. Violations are auto-rejected and you are re-prompted with the violation message. A second violation aborts the round.
 
-1. **Total argument count.** `12 ≤ arguments.length ≤ 30`. Below 12 under-covers the topology; above 30 floods Phase 3 past the point the Challenger and Concession Tracker can resolve.
+1. **Total argument count.** `12 ≤ arguments.length ≤ 60`. Below 12 under-covers the topology; above 60 floods downstream phases past resolution. Loosened from the strict run's 12–30 ceiling — use the headroom for distinct inferential routes, not paraphrases.
 2. **Sub-claim coverage.** You must mount arguments on **at least 5 of the 9 sub-claims**, and the set of sub-claims you cover must include the **three hinge sub-claims** (the ones with ≥ 2 inbound `dependsOn` edges in the topology — the `TOPOLOGY` block flags these explicitly).
-3. **Per-sub-claim budget.** For any single sub-claim you do mount arguments on: `3 ≤ count ≤ 5`. Below 3 is insufficient case construction; above 5 is overkill and crowds Phase 3.
-4. **Premise count.** `1 ≤ premises.length ≤ 4` per argument. Most arguments will have 2–3 premises.
+3. **Per-sub-claim budget.** For any single sub-claim you do mount arguments on: `2 ≤ count ≤ 10`. Loosened from 3–5 in the strict run. Use the higher ceiling on the hinge sub-claims, not the peripheral ones.
+4. **Premise count.** `1 ≤ premises.length ≤ 6` per argument. Most arguments will have 2–4 premises; use 5–6 only when the inferential chain genuinely requires that many.
 5. **Premises are declarative sentences.** Each premise text capitalized first word, terminating period, no leading conjunction, single main clause. Phrase fragments and questions are rejected.
 6. **`schemeKey` ∈ allowed catalog.** See §4.2.
-7. **`citationToken` resolves.** Every non-null `citationToken` must match an `id` in the `EVIDENCE_CORPUS` block. Unresolved tokens are auto-rejected.
+7. **`citationToken` resolves.** Every non-null `citationToken` must match either an `id` in `EVIDENCE_CORPUS` (corpus token) OR a `token` declared in this output's top-level `webCitations` array (see §4.5). Unresolved tokens are auto-rejected.
 8. **Scheme-layer plausibility.** If the conclusion sub-claim's `layer` is `empirical` or `causal`, the `schemeKey` must be one of the empirical/causal-appropriate schemes (`cause_to_effect`, `sign`, `inference_to_best_explanation`, `statistical_generalization`, `expert_opinion`, `argument_from_example`, `analogy`, `argument_from_lack_of_evidence`, `methodological_critique`). If the conclusion sub-claim's `layer` is `normative`, the `schemeKey` must be one of the normative-appropriate schemes (`practical_reasoning`, `positive_consequences`, `negative_consequences`, `analogy`, `expert_opinion`). Definitional-layer arguments are unusual at Phase 2 — emit one only if essential.
 9. **No restating the conclusion as a premise.** No premise text may be a paraphrase of the sub-claim text it is concluding to.
 10. **No re-litigation of established framing items.** No premise text may be a paraphrase of a "Established within the framing" item from `FRAMING.md`. (Cite them — with `citationToken: null` and verbatim wording — only when *building on* them as stipulated background, not when *arguing for* them.)
+11. **Web citations carry their weight.** Every `webCitations[]` entry you declare must be referenced by at least one premise. Orphan web citations are a soft-flag indicator that you searched without using what you found.
 
 ---
 

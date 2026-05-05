@@ -110,15 +110,15 @@ export async function runDefenseTurn(input: DefenseTurnInput): Promise<DefenseTu
       system: systemPrompt,
       messages,
       model,
-      // Same temperature as Phase 3.
-      temperature: 0.4,
-      // Phase-4 outputs are larger than Phase-3: one response per attack
-      // (≤ 16) plus one cqAnswer per raised CQ (≤ 16), and each defense
-      // can have up to 4 premises with citations. 16k tokens is safe
-      // headroom; the typical output will be 4–8k.
-      maxTokens: 16000,
+      // Same elevated temperature as Phase 2/3 in loosened mode.
+      temperature: 0.8,
+      // Loosened-mode ceiling: defenses may now cite web sources and
+      // mount longer rationales. 32k headroom; typical output 6–12k.
+      maxTokens: 32000,
       logger: input.logger,
       agentRole: input.role,
+      useWebSearch: true,
+      webSearchMaxUses: 12,
     });
     totalInputTokens += res.usage.inputTokens;
     totalOutputTokens += res.usage.outputTokens;

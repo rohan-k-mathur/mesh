@@ -102,15 +102,23 @@ export async function runAdvocateTurn(input: AdvocateTurnInput): Promise<Advocat
       system: systemPrompt,
       messages,
       model,
-      // Advocates make professional rhetorical choices but the structured-
-      // output requirement is strict; a moderate temperature keeps argument
-      // selection diverse without breaking validation.
-      temperature: 0.4,
-      // Phase 2 outputs can hit ~30 args × ~4 premises each — easily 6k+ tokens
-      // of JSON. Give the model headroom; Anthropic bills only on actual use.
-      maxTokens: 16000,
+      // Loosened-mode (May 2026): higher temperature unlocks original
+      // synthesis and cross-domain analogies that the strict run
+      // suppressed. Structured-output discipline is still enforced by
+      // the Zod schema + two-attempt rule.
+      temperature: 0.8,
+      // Loosened mode runs with bigger argument ceilings + more premises
+      // per argument; budget bumped accordingly. Anthropic bills only on
+      // actual use.
+      maxTokens: 32000,
       logger: input.logger,
       agentRole: input.role,
+      // Advocates may discover and cite web sources beyond the bound
+      // corpus. The translator accepts `web:*` tokens (see
+      // argument-mint.ts) and attaches them as ClaimEvidence with
+      // provenance.
+      useWebSearch: true,
+      webSearchMaxUses: 12,
     });
     totalInputTokens += res.usage.inputTokens;
     totalOutputTokens += res.usage.outputTokens;

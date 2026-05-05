@@ -56,7 +56,10 @@ export interface OrchestratorConfig {
 }
 
 const DEFAULT_DEV_MODEL = "claude-haiku-4-5-20251001";
-const DEFAULT_PROD_MODEL = "claude-opus-4-5-20251101";
+// Bumped from Opus 4.5 → Opus 4.6 for the loosened, web-search-enabled
+// deliberation (May 2026). Override via ANTHROPIC_MODEL_PROD if a more
+// recent point release is available at run time.
+const DEFAULT_PROD_MODEL = "claude-opus-4-6";
 
 export function readJson<T>(filePath: string): T {
   const raw = readFileSync(filePath, "utf8");

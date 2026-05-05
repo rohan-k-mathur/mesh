@@ -473,6 +473,7 @@ async function runOneAdvocate(opts: RunOneAdvocateOpts): Promise<RebuttalRunReco
     opposingArgumentPremisesByArgId: opts.opposingArgumentPremisesByArgId,
     opposingArgumentConclusionByArgId: opts.opposingArgumentConclusionByArgId,
     schemeCatalog: opts.schemeCatalog,
+    stackId: opts.cfg.deliberation.evidenceStackId ?? null,
   });
 
   logger.event("phase_complete", {

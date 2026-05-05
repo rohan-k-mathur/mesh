@@ -19,7 +19,10 @@ const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MAX_TOKENS = 4096;
 const MAX_RETRIES = 6;
 const RETRY_BASE_MS = 2000;
-const TIMEOUT_MS = 180_000;
+// Web-search-enabled Opus turns can take several minutes (multiple search
+// fetches + a long structured-output draft). Push the per-call ceiling well
+// past the 3-minute Cloudflare gateway default so we don't false-abort.
+const TIMEOUT_MS = 600_000;
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -36,6 +39,19 @@ export interface ChatRequest {
   logger?: RoundLogger;
   /** Optional agent role for tagging log events. */
   agentRole?: string;
+  /**
+   * When true, attaches Anthropic's server-side `web_search_20250305` tool
+   * to the request. The model can issue web queries during reasoning;
+   * Anthropic runs the searches and inlines results inside the same turn,
+   * so no client-side tool_use loop is required and `text` still contains
+   * the model's final structured-output draft.
+   *
+   * Per-call cap is `webSearchMaxUses` (default 8). We log every search
+   * the model issues via the `web_search_use` event for downstream audit.
+   */
+  useWebSearch?: boolean;
+  /** Per-call cap on web_search invocations. Defaults to 8. */
+  webSearchMaxUses?: number;
 }
 
 export interface ChatResponse {
@@ -58,15 +74,27 @@ export class AnthropicClient {
       model: req.model,
       system: req.system,
       messages: req.messages,
+      useWebSearch: !!req.useWebSearch,
     });
 
-    const body = {
+    const tools = req.useWebSearch
+      ? [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: req.webSearchMaxUses ?? 8,
+          },
+        ]
+      : undefined;
+
+    const body: Record<string, unknown> = {
       model: req.model,
       max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
       temperature: req.temperature ?? 1,
       system: req.system,
       messages: req.messages,
     };
+    if (tools) body.tools = tools;
 
     let attempt = 0;
     let lastErr: unknown = null;
@@ -106,6 +134,31 @@ export class AnthropicClient {
               .map((c: any) => c.text)
               .join("\n")
           : "";
+        // Server-side web_search tool surfaces as `server_tool_use` /
+        // `web_search_tool_result` content blocks. Log each query the model
+        // ran so the round log preserves a full audit of external grounding.
+        if (Array.isArray(json.content) && req.useWebSearch) {
+          for (const block of json.content) {
+            if (block?.type === "server_tool_use" && block?.name === "web_search") {
+              req.logger?.event("web_search_use", {
+                agent: req.agentRole ?? "unknown",
+                query: block?.input?.query,
+                toolUseId: block?.id,
+              });
+            } else if (block?.type === "web_search_tool_result") {
+              const resultsArr = Array.isArray(block?.content) ? block.content : [];
+              const results = resultsArr
+                .filter((r: any) => r?.type === "web_search_result")
+                .map((r: any) => ({ url: r?.url, title: r?.title, age: r?.page_age }));
+              req.logger?.event("web_search_result", {
+                agent: req.agentRole ?? "unknown",
+                toolUseId: block?.tool_use_id,
+                count: results.length,
+                results,
+              });
+            }
+          }
+        }
         const out: ChatResponse = {
           text,
           stopReason: json.stop_reason,

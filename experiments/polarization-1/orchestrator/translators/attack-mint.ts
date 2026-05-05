@@ -67,6 +67,7 @@ import type {
   CqResponse,
 } from "../agents/rebuttal-schema";
 import { ClaimRegistry, resolvePremiseClaimIds } from "./claim-mint";
+import { materializeWebCitations } from "./argument-mint";
 import { prisma } from "@/lib/prismaclient";
 
 export interface AttackMintResult {
@@ -156,6 +157,12 @@ export interface TranslateRebuttalOpts {
    * `/api/schemes` itself on first call and caches the result.
    */
   schemeCatalog?: Array<{ id: string; key: string }>;
+
+  /**
+   * Loosened-mode evidence stack id. Required when the rebuttal output
+   * carries `webCitations`. See materializeWebCitations() in argument-mint.
+   */
+  stackId?: string | null;
 }
 
 const ATTACK_TYPE_TO_API: Record<RebuttalArgument["attackType"], "REBUTS" | "UNDERMINES" | "UNDERCUTS"> = {
@@ -244,6 +251,23 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
   // ─────────────────────────────────────────────────────────────────
   // 2. Pre-flight checks (mirror argument-mint)
   // ─────────────────────────────────────────────────────────────────
+  // Loosened-mode: materialize web citations declared in this output before
+  // pre-flight, so the per-premise resolution check can find them.
+  let tokenToSourceId = opts.tokenToSourceId;
+  const webCitations = (opts.output as any).webCitations as
+    | import("../agents/advocate-schema").WebCitation[]
+    | undefined;
+  if (webCitations && webCitations.length > 0) {
+    const materialized = await materializeWebCitations({
+      iso: opts.iso,
+      ctx,
+      stackId: opts.stackId ?? null,
+      webCitations,
+      logger: opts.logger,
+    });
+    tokenToSourceId = { ...opts.tokenToSourceId, ...materialized };
+  }
+
   const missingTargets = new Set<string>();
   const missingTokens = new Set<string>();
   for (const r of opts.output.rebuttals) {
@@ -251,7 +275,7 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
       missingTargets.add(r.targetArgumentId);
     }
     for (const p of r.premises) {
-      if (p.citationToken && !opts.tokenToSourceId[p.citationToken]) missingTokens.add(p.citationToken);
+      if (p.citationToken && !tokenToSourceId[p.citationToken]) missingTokens.add(p.citationToken);
     }
   }
   for (const c of opts.output.cqResponses) {
@@ -287,7 +311,7 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
       ctx,
       iso: opts.iso,
       registry: opts.registry,
-      tokenToSourceId: opts.tokenToSourceId,
+      tokenToSourceId: tokenToSourceId,
       schemeIdByKey,
       deliberationId: opts.deliberationId,
       opposingPremisesByArgId: opts.opposingArgumentPremisesByArgId,

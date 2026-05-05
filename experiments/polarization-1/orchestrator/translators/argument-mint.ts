@@ -98,6 +98,14 @@ export interface TranslateAdvocateOpts {
    * `/api/schemes` itself on first call and caches the result.
    */
   schemeCatalog?: Array<{ id: string; key: string }>;
+
+  /**
+   * Loosened-mode evidence stack id. Required when the output may carry
+   * `webCitations` — the translator lazily materializes each web citation
+   * as a Source on this stack before resolving premise tokens. Pass the
+   * value from `cfg.deliberation.evidenceStackId`.
+   */
+  stackId?: string | null;
 }
 
 export async function translateAdvocateOutput(opts: TranslateAdvocateOpts): Promise<ArgumentMintResult> {
@@ -118,6 +126,25 @@ export async function translateAdvocateOutput(opts: TranslateAdvocateOpts): Prom
       advocate: opts.authorRole,
       droppedArguments: orphanDelete.count,
     });
+  }
+
+  // 0.5 Loosened-mode: materialize any `webCitations` declared in this
+  //     output as Sources on the bound stack, and merge their tokens into
+  //     `tokenToSourceId` so the per-premise resolution check below can
+  //     find them. No-op when no web citations were declared.
+  let tokenToSourceId = opts.tokenToSourceId;
+  const webCitations = (opts.output as any).webCitations as
+    | import("../agents/advocate-schema").WebCitation[]
+    | undefined;
+  if (webCitations && webCitations.length > 0) {
+    const materialized = await materializeWebCitations({
+      iso: opts.iso,
+      ctx,
+      stackId: opts.stackId ?? null,
+      webCitations,
+      logger: opts.logger,
+    });
+    tokenToSourceId = { ...opts.tokenToSourceId, ...materialized };
   }
 
   // 1. Resolve scheme catalog → key→id map.
@@ -146,7 +173,7 @@ export async function translateAdvocateOutput(opts: TranslateAdvocateOpts): Prom
   for (const a of opts.output.arguments) {
     if (!opts.indexToClaimId[a.conclusionClaimIndex]) missingIndices.add(a.conclusionClaimIndex);
     for (const p of a.premises) {
-      if (p.citationToken && !opts.tokenToSourceId[p.citationToken]) missingTokens.add(p.citationToken);
+      if (p.citationToken && !tokenToSourceId[p.citationToken]) missingTokens.add(p.citationToken);
     }
   }
   if (missingIndices.size > 0) {
@@ -174,7 +201,7 @@ export async function translateAdvocateOutput(opts: TranslateAdvocateOpts): Prom
       inputIndex: i,
       conclusionClaimId,
       schemeId,
-      tokenToSourceId: opts.tokenToSourceId,
+      tokenToSourceId: tokenToSourceId,
       registry: opts.registry,
       iso: opts.iso,
       ctx,
@@ -338,4 +365,73 @@ export function buildTokenToSourceIdMap(
     if (s.citationToken && s.sourceId) m[s.citationToken] = s.sourceId;
   }
   return m;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Loosened-mode web-citation materialization
+// ─────────────────────────────────────────────────────────────────
+
+export interface MaterializeWebCitationsOpts {
+  iso: IsonomiaClient;
+  ctx: IsonomiaCallContext;
+  /** Bound evidence stack id; required for any web citation. */
+  stackId: string | null;
+  webCitations: Array<{
+    token: string;
+    url: string;
+    title: string;
+    authors?: string[];
+    publishedAt?: string;
+    snippet: string;
+    methodology?: string;
+  }>;
+  logger: RoundLogger;
+}
+
+/**
+ * Lazily mint each agent-declared web citation as a Source on the bound
+ * evidence stack. Returns `{ token → sourceId }` so the caller can merge
+ * the result into the corpus token map and proceed with normal premise
+ * citation attachment.
+ *
+ * Idempotency: `addStackItem` POST is idempotent server-side on (stackId,
+ * normalized url) — repeated calls return the existing sourceId.
+ */
+export async function materializeWebCitations(
+  opts: MaterializeWebCitationsOpts,
+): Promise<Record<string, string>> {
+  if (!opts.webCitations || opts.webCitations.length === 0) return {};
+  if (!opts.stackId) {
+    throw new Error(
+      `materializeWebCitations: deliberation has ${opts.webCitations.length} declared web citations but evidenceStackId is not set on runtime/deliberation.json`,
+    );
+  }
+  const result: Record<string, string> = {};
+  for (const wc of opts.webCitations) {
+    const item = await opts.iso.addStackItem(
+      opts.stackId,
+      {
+        itemKind: "url",
+        url: wc.url,
+        title: wc.title,
+        authors: wc.authors,
+        publishedAt: wc.publishedAt,
+        abstract: wc.snippet,
+        keyFindings: wc.snippet ? [wc.snippet] : undefined,
+        tags: wc.methodology ? ["web-discovered", wc.methodology] : ["web-discovered"],
+      },
+      opts.ctx,
+    );
+    result[wc.token] = item.sourceId;
+    opts.logger.event("web_citation_materialized", {
+      token: wc.token,
+      url: wc.url,
+      title: wc.title,
+      sourceId: item.sourceId,
+      stackItemId: item.stackItemId,
+      contentSha256: item.contentSha256 ?? null,
+      archived: item.archive ?? null,
+    });
+  }
+  return result;
 }

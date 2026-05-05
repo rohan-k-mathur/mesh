@@ -72,6 +72,7 @@ import type {
   CqAnswer,
 } from "../agents/defense-schema";
 import { ClaimRegistry, resolvePremiseClaimIds } from "./claim-mint";
+import { materializeWebCitations } from "./argument-mint";
 import { prisma } from "@/lib/prismaclient";
 
 // ─────────────────────────────────────────────────────────────────
@@ -203,6 +204,12 @@ export interface TranslateDefenseOpts {
 
   /** Optional pre-fetched scheme catalog. */
   schemeCatalog?: Array<{ id: string; key: string }>;
+
+  /**
+   * Loosened-mode evidence stack id. Required when the defense output
+   * carries `webCitations`. See materializeWebCitations() in argument-mint.
+   */
+  stackId?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -264,6 +271,23 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
   // ─────────────────────────────────────────────────────────────────
   // 2. Pre-flight checks
   // ─────────────────────────────────────────────────────────────────
+  // Loosened-mode: materialize any web citations declared in this output
+  // first so per-premise resolution sees them.
+  let tokenToSourceId = opts.tokenToSourceId;
+  const webCitations = (opts.output as any).webCitations as
+    | import("../agents/advocate-schema").WebCitation[]
+    | undefined;
+  if (webCitations && webCitations.length > 0) {
+    const materialized = await materializeWebCitations({
+      iso: opts.iso,
+      ctx,
+      stackId: opts.stackId ?? null,
+      webCitations,
+      logger: opts.logger,
+    });
+    tokenToSourceId = { ...opts.tokenToSourceId, ...materialized };
+  }
+
   const missingAttackIds = new Set<string>();
   const missingTokens = new Set<string>();
   const missingCqIds = new Set<string>();
@@ -271,7 +295,7 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
     if (!opts.opposingRebuttals.has(r.targetAttackId)) missingAttackIds.add(r.targetAttackId);
     if (r.defense) {
       for (const p of r.defense.premises) {
-        if (p.citationToken && !opts.tokenToSourceId[p.citationToken]) missingTokens.add(p.citationToken);
+        if (p.citationToken && !tokenToSourceId[p.citationToken]) missingTokens.add(p.citationToken);
       }
     }
   }
@@ -341,7 +365,7 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
         ctx,
         iso: opts.iso,
         registry: opts.registry,
-        tokenToSourceId: opts.tokenToSourceId,
+        tokenToSourceId: tokenToSourceId,
         schemeIdByKey,
         deliberationId: opts.deliberationId,
         logger: opts.logger,

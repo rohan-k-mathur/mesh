@@ -23,6 +23,20 @@ The framing document attached as `FRAMING.md` is the ground truth on what is in 
 
 ---
 
+## 0. Loosened mode (May 2026)
+
+This run is deliberately loosened. For Phase 4 specifically, this means: when a Phase-3 attack lands on a methodological or construct-validity weakness in your Phase-2 case, you are *not* required to defend with only the bound corpus — you may go find a follow-up study, a robustness re-analysis, an internal-platform disclosure, or an adjacent-domain analogy that supports the defense, declare it as a web citation, and use it.
+
+Concretely:
+
+- **You have web search.** Use it when the bound corpus is genuinely insufficient to answer the attack — not as a default. Phase-4 defenses that simply re-cite the Phase-2 source are flagged as boilerplate; defenses that find a methodologically stronger or more recent source that addresses the *specific* attack are good moves.
+- **You may cite sources outside the bound corpus.** Declare each web-discovered source once in the top-level `webCitations` array (see §4.6) and reference it from defense premises by `web:<slug>` token. The orchestrator materializes them onto the bound stack.
+- **Premise budget is larger** (premises ≤ 6, see §5). Use the headroom only when the defense genuinely requires a multi-step inferential chain (e.g. concede the attack's narrow point, but show why a strictly weaker reformulation still clears the framing's bar).
+- **Honest concessions remain dialectically valuable.** If the attack is sound and you cannot find a sound defense even with web search, `concede` or `narrow`. Defending an unwinnable attack with thin web sources is *worse* than defending it with thin corpus sources.
+- **Citation discipline is unchanged.** Web citations are bound by the same rule as corpus citations: the premise that cites a source must be supported by what the source actually says.
+
+---
+
 ## 1. Your role in one sentence
 
 For each of B's attacks against your Phase-2 arguments, decide whether to defend, concede, or narrow; for each critical question B raised against you, decide whether to answer or concede. Be honest. A well-targeted concession is dialectically stronger than a weak defense.
@@ -177,6 +191,10 @@ For each `CQ_RAISE` block in OPPONENT_ATTACKS_AGAINST_YOU you must produce exact
 
 Same rules as Phase 2 / Phase 3: copy the literal `<prefix>:<id>` token from `EVIDENCE_CORPUS` verbatim. Every defense premise should cite at least one source unless it states a stipulated framing item (then `citationToken: null` and the premise text mirrors the framing's wording).
 
+### 4.6 Web citations (loosened mode)
+
+Same contract as Phase 2 §4.5. Declare web-discovered sources once in the top-level `webCitations` array; reference them from defense premises by `web:<slug>` token; the orchestrator materializes them onto the bound evidence stack with provenance. `token` follows `^web:[A-Za-z0-9._-]+$`; tokens are unique within the output; snippets must accurately characterize what the source says (mischaracterizations are flagged identically to corpus mischaracterizations); every declared web citation must be referenced by at least one premise. A defense citing a web source should also be one whose premise specifically addresses what the Phase-3 attack alleged — web citations used to repeat the Phase-2 case are flagged as evidence-shopping.
+
 ---
 
 ## 5. Hard constraints
@@ -193,13 +211,14 @@ These are mechanically validated. Violations are auto-rejected and you are re-pr
     - UNDERMINE: `defense.targetPremiseIndex` REQUIRED, in `[0, rebuttal.premises.length)`.
     - UNDERCUT: `defense.targetPremiseIndex` MUST be null.
 4. **Per-attack defense cap: 1.** Exactly one response per `targetAttackId`. No second-pass defenses; this is the defenses-only round.
-5. **Premise count.** `1 ≤ defense.premises.length ≤ 4`. Most defenses will have 2–3 premises.
+5. **Premise count.** `1 ≤ defense.premises.length ≤ 6`. Loosened from 4. Most defenses will still have 2–3 premises; use 4–6 only when the defense genuinely requires a multi-step inferential chain.
 6. **Premises and conclusionText are declarative sentences.** Each capitalized first word, terminating period, no leading conjunction, single main clause.
 7. **`schemeKey` ∈ allowed catalog.** Same 12 keys as Phase 2/3.
-8. **`citationToken` resolves.** Every non-null `citationToken` must match a token from `EVIDENCE_CORPUS`.
+8. **`citationToken` resolves.** Every non-null `citationToken` must match either a token from `EVIDENCE_CORPUS` (corpus) OR a `token` declared in this output's top-level `webCitations` array (see §4.6).
 9. **`rationale` length.** 40 ≤ chars ≤ 600 for both `responses[*].rationale` and `cqAnswers[*].rationale`. Below 40 is dismissive boilerplate; above 600 is full argument-shaped reasoning that belongs in `defense.premises`.
 10. **No re-litigation of established framing items.** Same as Phase 2 §5 #10.
 11. **No restating the rebuttal as your defense premise.** Don't put B's rebuttal's conclusion text in your defense as if it were a premise of yours.
+12. **Web citations carry their weight.** Every `webCitations[]` entry must be referenced by at least one defense premise. Orphan web citations are a soft-flag.
 
 ---
 

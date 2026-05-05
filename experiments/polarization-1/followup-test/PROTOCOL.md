@@ -3,6 +3,63 @@
 > **Status:** Draft protocol. Designed to be the canonical
 > followup-quality measurement for polarization-2, with optional
 > retrospective application to polarization-1.
+>
+> **Blocking precondition (added 2026-05-04):** This protocol cannot
+> be run with same-family (Opus 4.6 ↔ Opus 4.6) generator/evaluator
+> pairing. A prior meta-evaluation experiment showed that two
+> Opus-4.6-extended evaluation runs of the same two documents, in
+> different orders, produced *opposite* directional rankings, each
+> defended with confident structural reasoning, with neither evaluator
+> able to detect the order effect from the inside. The diagnostic
+> phase below MUST resolve before the six-question protocol runs.
+
+## Blocking diagnostic phase (run before the main protocol)
+
+### Diagnostic 1: model-floor disambiguation
+
+Run condition A on **Opus 4.5** (the generation that produced the
+underlying deliberation). Single synthesis + single steelman
+followup, using the same fluent prompt as the existing 4.6-extended
+A runs. Compare on **artifact-observable features**, not
+holistic-quality scoring:
+
+- length, citation count, citation-source diversity
+- presence of formally structural arguments (Bayesian-prior frame,
+  conjunction-probability frame, reference-class frame)
+- hedging density (epistemic-modal count per 1000 words)
+- explicit verdict + confidence interval
+
+If 4.5-A is materially weaker on these observable features than
+4.6-A, then a chunk of B's apparent Round 1 advantage was
+model-floor-locked, not substrate-locked. Pre-register prediction
+before running.
+
+### Diagnostic 2: cross-family eval
+
+Take the four existing steelmans (A capped run 2, B Round 3, plus
+one new from each generated for variance control). Strip
+condition-identifying language, label 1/2/3/4. Submit to:
+
+- **GPT-5** with a flat rubric
+- **Gemini 3** with the same rubric
+
+Both judges must score blind to condition. Failure modes to watch:
+
+- **Both rank A≈B:** substrate-followup-advantage hypothesis is
+  effectively dead. Proceed to main protocol but with the prior that
+  the eight-question run will produce A≈B and any directional finding
+  is more likely an evaluator artifact than a substrate effect.
+- **GPT-5 and Gemini 3 disagree on direction:** generator/evaluator
+  coupling is dominating signal. The protocol-as-designed *cannot*
+  resolve the question. Redesign required (e.g., add a third
+  generator family, score on observable features only, or move to a
+  different measurement entirely).
+- **Both rank B>A or both rank A>B with at least 0.5-point margin:**
+  proceed to main protocol with cross-family eval baked in from the
+  start.
+
+The main protocol below should not run until both diagnostics are
+complete and at least diagnostic 2 returns a non-pathological result.
 
 ## What this measures
 
@@ -150,10 +207,18 @@ Did the response include explicit metacognitive marking — "I'm less
 confident here," "this would flip me if X," "I might be wrong about Y
 because Z"? Or did it produce the answer flatly?
 
-This sub-axis was the surprise from Round 3 B's pushback test (see
-"Background" below): B's metacognitive marking was substantively
-better than A's, and that's hard to do without an external structured
-record to anchor against.
+This sub-axis was initially hypothesized to favor B — "hard to do
+without an external structured record to anchor against" — based on
+Round 3 B's pushback test alone. **A subsequent A-side replication
+(Round 2 A capped run 2) produced a steelman pushback of comparable
+calibration quality.** A explicitly named which sub-arguments would
+flip its verdict ("demand-elasticity and base-rate arguments would
+push me to 20–25%, on the other side") and acknowledged the closing
+rhetorical risk ("'this time is different' is exactly what advocates
+for every previous media-effects hypothesis said"). This weakens but
+doesn't eliminate the hypothesis: the substrate may add calibration
+discipline at the *margin*, not as a categorical advantage. Keep the
+sub-axis but score on substantive depth, not just presence.
 
 ## Aggregate
 
@@ -168,33 +233,104 @@ doesn't.
 ## Predictions
 
 Recorded before running so post-hoc rationalization is harder to
-sneak in.
+sneak in. **Updated 2026-05-04** after a second A steelman run
+produced substantively better pushback than the original prediction
+framework anticipated.
 
-### Predicted outcomes
+### Predicted outcomes (revised)
 
 | Family    | A | B | Margin | Why |
 |-----------|---|---|--------|-----|
-| Pushback  | 3 | 4.5 | B by 1.5 | Prior turn = structured artifact for B; A only has its prose |
-| Drilldown | 3 | 4   | B by 1   | B can name argument ids and CQ statuses; A has paper-level granularity |
-| Recency   | 4 | 3   | A by 1   | Anchoring effect should reassert under pressure; question is whether B fails gracefully |
+| Pushback  | 4   | 4.5 | B by 0.5 | Both can argue against their own prior turn well; B has a slight edge from substrate-flavored moves (decay/compounding, conjunction-of-extrapolations frames). Earlier prediction (B by 1.5) overweighted the substrate's distinctive value here. |
+| Drilldown | 3   | 4   | B by 1   | B can name argument ids and CQ statuses; A has paper-level granularity. Substrate advantage should be most visible here. |
+| Recency   | 4   | 3   | A by 1   | Anchoring effect should reassert under pressure; question is whether B fails gracefully. |
 
-**Aggregate prediction:** B wins followups by a wider margin than the
-~1-point Round 1 single-shot margin. Specifically: B mean ≈ 3.8, A
-mean ≈ 3.3.
+**Aggregate prediction (revised):** B wins followups by a margin
+comparable to the ~1-point Round 1 single-shot margin, not
+substantially wider. Specifically: B mean ≈ 3.8, A mean ≈ 3.6.
+
+**The original "followups are where the substrate's largest advantage
+lives" hypothesis is downgraded** to: "followups are where the
+substrate's *consistency* shows — B's quality should be roughly the
+same across questions, while A's quality may have higher variance
+because A is improvising structure rather than reading it." This
+*variance* hypothesis is now the actual followup-test prediction.
+Measure it by computing per-condition standard deviation across the
+six question scores, not just the mean.
+
+### Evidence for the variance hypothesis
+
+From the two pre-protocol single steelman runs:
+
+- B (Round 3 fluent + nudge) steelman: high quality (~4.5)
+- A (Round 2 capped run 2) steelman: high quality (~4.5)
+
+Means match. The variance hypothesis would predict A's *other*
+followups (drilldown, recency) might dip lower than B's because A
+lacks a structured fallback when the prior turn doesn't already
+contain the answer. If A's drilldown answer is also ~4.5, the
+variance hypothesis fails too and the substrate's followup advantage
+is essentially nil.
+
+**Argument-shape parity, not just mean parity.** A more honest
+read of the two steelmans: each produces *one* formally
+structural argument and several "marshaling countervailing
+considerations" arguments. B's structural argument is the
+conjunction-probability frame (the proponent must win every
+extrapolation step; the skeptic only needs one to fail). A's
+structural argument is the Bayesian / media-effects-graveyard
+frame (set a low prior on any single media technology being a
+10%+ cause of a major societal trend; television, talk radio,
+video games are the reference class). These are not the same
+argument and they have different epistemic flavors, but they
+are comparable in formal rigor. Neither side produced one and
+the other only produced softer moves. This is stronger
+evidence against the substrate-followup-advantage hypothesis
+than mere mean-quality parity.
+
+**Evaluator-bias warning for the actual followup-test.** A
+third-party Claude instance, shown both steelmans without
+condition labels, judged B's steelman "structurally superior"
+on the basis that B's argument was formal while A's were
+"marshaling countervailing considerations" — a judgment that
+appears to under-credit A's Bayesian-prior argument as
+non-structural. Possible explanations: (1) order/recency
+effect (A evaluated first as baseline, B evaluated second as
+"even better" — natural narrative arc); (2) implicit framing
+bias from substrate-style phrasing in B's response cuing the
+evaluator to look for B-superiority. Either way, the actual
+followup-test must use evaluator blinding: present the
+six-question × two-condition responses without identifying
+which is which, ideally interleaved by question rather than
+batched by condition, with the evaluator scoring before
+seeing condition labels. Without this, the eval reproduces
+whatever priors the evaluator brings.
 
 ### Predictions that would falsify the substrate hypothesis
 
 - **B's tool calls drop to zero by turn 3.** Substrate is one-shot
   orientation, not durable.
-- **B's pushback steelman is no better than A's.** The "prior turn as
-  structured artifact" hypothesis is wrong; the substrate doesn't
-  durably help.
+- **B's pushback steelman is no better than A's.** ~~The "prior turn
+  as structured artifact" hypothesis is wrong; the substrate doesn't
+  durably help.~~ **Already partially observed:** A's steelman in the
+  capped run 2 was substantively comparable to B's. The hypothesis
+  is downgraded but not eliminated; B may still have a consistency
+  advantage even if not a peak-quality advantage.
 - **B's recency answer recommends a 2023–2024 paper as "most
   important since 2024."** The anchoring effect is unrecoverable by
   prompt nudging; substrate is structurally biased.
-- **A's calibration scores match or beat B's.** The "external record
+- **A's calibration scores match or beat B's.** ~~The "external record
   enables better metacognition" hypothesis is wrong; calibration is
-  model-intrinsic, not substrate-mediated.
+  model-intrinsic, not substrate-mediated.~~ **Already partially
+  observed in the capped run 2.** Calibration is at least partly
+  model-intrinsic. The substrate may add calibration discipline at
+  the margin in turns 3+, but it doesn't categorically enable it.
+- **A's drilldown answer matches B's despite lacking argument-id
+  granularity.** This would be the strongest possible falsification
+  of the substrate-followup-advantage hypothesis. If A can drill
+  into a specific claim's reasoning chain as well as B can by
+  paraphrasing the literature, the substrate's distinctive followup
+  value collapses to zero.
 
 ## Background: the steelman test that motivated this protocol
 
