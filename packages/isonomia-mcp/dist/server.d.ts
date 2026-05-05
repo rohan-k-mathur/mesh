@@ -23,6 +23,7 @@
  *   • get_synthetic_readout        — editorial primitive with refusalSurface
  *   • get_cross_context            — canonical-claim families, plexus edges
  *   • summarize_debate             — wrapper for the readout
+ *   • get_deliberation_evidence_context — pre-bound source corpus (B2)
  *
  * Run:
  *   ISONOMIA_BASE_URL=https://isonomia.app \

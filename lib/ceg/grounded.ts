@@ -85,6 +85,23 @@ export async function recomputeGroundedForDelib(deliberationId?: string | null) 
     isAttack: e.type === 'rebuts' || e.attackType === 'UNDERCUTS' || e.attackType === 'UNDERMINES',
   }));
 
+  // Derive attack edges from ArgumentEdge.attackType (Phase-3 / dialectical
+  // testing writes attacks here, not into ClaimEdge or ConflictApplication).
+  // Source claim = attacker arg's conclusion. Target claim = explicit
+  // targetClaimId / targetPremiseId, falling back to defender arg's conclusion.
+  const attackEdges = await prisma.argumentEdge.findMany({
+    where: deliberationId
+      ? { deliberationId, attackType: { not: null } }
+      : { attackType: { not: null } },
+    select: {
+      fromArgumentId: true,
+      toArgumentId: true,
+      attackType: true,
+      targetClaimId: true,
+      targetPremiseId: true,
+    },
+  });
+
   // Derive support edges from ArgumentPremise (RA-node structure)
   const premises = await prisma.argumentPremise.findMany({
     where: deliberationId ? {
@@ -117,6 +134,24 @@ export async function recomputeGroundedForDelib(deliberationId?: string | null) 
         from: premise.claimId,  // Premise I-node
         to: conclusionClaimId,  // Conclusion I-node
         isAttack: false,        // Support edge
+      });
+    }
+  }
+
+  // Add derived attack edges from ArgumentEdge
+  for (const ae of attackEdges) {
+    const fromClaimId = argToConclusionMap.get(ae.fromArgumentId);
+    const toClaimId =
+      ae.targetClaimId ??
+      ae.targetPremiseId ??
+      argToConclusionMap.get(ae.toArgumentId) ??
+      null;
+
+    if (fromClaimId && toClaimId && fromClaimId !== toClaimId) {
+      edges.push({
+        from: fromClaimId,
+        to: toClaimId,
+        isAttack: true,
       });
     }
   }

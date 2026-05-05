@@ -23,7 +23,13 @@ const PUBLIC_API = [
   /^\/api\/og\/claim\//,
   /^\/api\/oembed/,
   // Track B.2 \u2014 public read APIs surfaced via MCP / external retrieval.
-  /^\/api\/v3\/search\/arguments(\/.*)?$/,  // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
+  /^\/api\/v3\/search\/arguments(\/.*)?$/,
+  // Track AI-EPI Pt. 4 — deliberation-scope read APIs (fingerprint,
+  // contested frontier, missing moves, chains, synthetic readout,
+  // cross-context). Public, cache-friendly; route handlers do their
+  // own per-deliberation visibility checks where needed.
+  /^\/api\/v3\/deliberations\/[^/]+\/(fingerprint|frontier|missing-moves|chains|synthetic-readout|cross-context)\/?$/,
+  // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
   /^\/api\/v3\/openapi\.json$/,
   /^\/api\/v3\/docs\/?$/,];
 

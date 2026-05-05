@@ -333,10 +333,22 @@ export function CommitmentStorePanel({
     ? participantContradictions.get(selectedParticipant) || []
     : [];
 
-  // Calculate statistics
-  const stats = selectedStore ? {
+  // Calculate statistics. `commitments` holds the full move history (one row
+  // per ASSERT / CONCEDE / RETRACT), so multiple ASSERTs of the same claim
+  // produce multiple rows. The "active" set is the dedup'd set of claimIds
+  // that are currently asserted (most-recent move wins).
+  const activeByClaim = selectedStore
+    ? (() => {
+        const m = new Map<string, typeof selectedStore.commitments[number]>();
+        for (const c of selectedStore.commitments) {
+          if (c.isActive) m.set(c.claimId, c); // later iterations overwrite earlier
+        }
+        return m;
+      })()
+    : null;
+  const stats = selectedStore && activeByClaim ? {
     total: selectedStore.commitments.length,
-    active: selectedStore.commitments.filter(c => c.isActive).length,
+    active: activeByClaim.size,
     retracted: selectedStore.commitments.filter(c => !c.isActive).length,
     contradictions: selectedContradictions.length
   } : null;
@@ -358,6 +370,14 @@ export function CommitmentStorePanel({
       </Card>
     );
   }
+
+  // Per-store distinct active count (dedup by claimId, since `commitments`
+  // is move history not the active set).
+  const distinctActive = (store: { commitments: { claimId: string; isActive: boolean }[] }) => {
+    const s = new Set<string>();
+    for (const c of store.commitments) if (c.isActive) s.add(c.claimId);
+    return s.size;
+  };
 
   return (
     <Card className={className}>
@@ -383,7 +403,7 @@ export function CommitmentStorePanel({
                   <span className="flex items-center gap-2">
                     {store.participantName}
                     <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                      {store.commitments.filter(c => c.isActive).length}
+                      {distinctActive(store)}
                     </Badge>
                   </span>
                 </TabsTrigger>
@@ -395,7 +415,7 @@ export function CommitmentStorePanel({
                 <TabsTrigger key={store.participantId} value={store.participantId} className="text-xs">
                   {store.participantName}
                   <Badge variant="secondary" className="ml-1 text-[9px] h-4 px-1">
-                    {store.commitments.filter(c => c.isActive).length}
+                    {distinctActive(store)}
                   </Badge>
                 </TabsTrigger>
               ))}
@@ -449,9 +469,17 @@ export function CommitmentStorePanel({
                   />
                 ) : (
                   <div className="space-y-2">
-                    {/* Active commitments first */}
-                    {store.commitments
-                      .filter(c => c.isActive)
+                    {/* Active commitments first — dedup'd by claimId so the
+                        same claim asserted twice doesn't render twice. */}
+                    {Array.from(
+                      (() => {
+                        const m = new Map<string, typeof store.commitments[number]>();
+                        for (const c of store.commitments) {
+                          if (c.isActive) m.set(c.claimId, c);
+                        }
+                        return m.values();
+                      })(),
+                    )
                       .map((record, idx) => {
                         const recordContradictions = getContradictionsForClaim(
                           record.claimId,

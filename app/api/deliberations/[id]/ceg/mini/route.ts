@@ -115,10 +115,28 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       },
     });
 
+    // 3.5b. Also derive from ArgumentEdge attack rows. Phase-3 minting writes
+    // attacks to ArgumentEdge.attackType (REBUTS / UNDERCUTS / UNDERMINES) and
+    // does not populate ConflictApplication, so without this read the CEG
+    // sees zero counters even when 26 attacks exist on the underlying graph.
+    const attackEdges = await prisma.argumentEdge.findMany({
+      where: { deliberationId, attackType: { not: null } },
+      select: {
+        id: true,
+        fromArgumentId: true,
+        toArgumentId: true,
+        attackType: true,
+        targetClaimId: true,
+        targetPremiseId: true,
+      },
+    });
+
     // Get arguments to extract their conclusion claims
     const argIds = [...new Set([
       ...conflicts.map(c => c.conflictingArgumentId).filter(Boolean),
       ...conflicts.map(c => c.conflictedArgumentId).filter(Boolean),
+      ...attackEdges.map(e => e.fromArgumentId),
+      ...attackEdges.map(e => e.toArgumentId),
     ])] as string[];
 
     const argConclusionMap = new Map<string, string>();
@@ -169,6 +187,30 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
           toClaimId,
           type: 'rebuts', // Conflicts are always attacks
           attackType: conflict.aspicAttackType || conflict.legacyAttackType,
+          targetScope: null,
+        });
+      }
+    }
+
+    // 3.5b. Convert ArgumentEdge attacks to derived claim edges. Source claim
+    // is the attacker's conclusion claim. Target claim is, in priority order:
+    // (1) the explicit targetClaimId, (2) the explicit targetPremiseId
+    // (which is itself a claim id), (3) the defender's conclusion claim.
+    for (const ae of attackEdges) {
+      const fromClaimId = argConclusionMap.get(ae.fromArgumentId) ?? null;
+      const toClaimId =
+        ae.targetClaimId ??
+        ae.targetPremiseId ??
+        argConclusionMap.get(ae.toArgumentId) ??
+        null;
+
+      if (fromClaimId && toClaimId && fromClaimId !== toClaimId) {
+        derivedEdges.push({
+          id: `ae_${ae.id}`,
+          fromClaimId,
+          toClaimId,
+          type: 'rebuts',
+          attackType: ae.attackType, // 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES'
           targetScope: null,
         });
       }

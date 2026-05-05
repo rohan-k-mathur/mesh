@@ -17,8 +17,9 @@ import type { RoundLogger } from "./log/round-logger";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MAX_TOKENS = 4096;
-const MAX_RETRIES = 3;
-const TIMEOUT_MS = 120_000;
+const MAX_RETRIES = 6;
+const RETRY_BASE_MS = 2000;
+const TIMEOUT_MS = 180_000;
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -91,7 +92,7 @@ export class AnthropicClient {
               `Anthropic ${res.status} after ${MAX_RETRIES} attempts: ${txt.slice(0, 300)}`,
             );
           }
-          const wait = 1000 * 2 ** (attempt - 1);
+          const wait = RETRY_BASE_MS * 2 ** (attempt - 1);
           await new Promise((r) => setTimeout(r, wait));
           continue;
         }
@@ -125,7 +126,7 @@ export class AnthropicClient {
       } catch (err) {
         lastErr = err;
         if (attempt >= MAX_RETRIES) break;
-        await new Promise((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)));
+        await new Promise((r) => setTimeout(r, RETRY_BASE_MS * 2 ** (attempt - 1)));
       } finally {
         clearTimeout(timer);
       }

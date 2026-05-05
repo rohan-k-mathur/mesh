@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 // import { getServerSession } from 'next-auth'; // if you use NextAuth
-import { getUserFromCookies } from '@/lib/serverutils';
+import { getUserFromCookies, getCurrentUserId } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
 import { inferAndAssignScheme } from '@/lib/argumentation/schemeInference';
 import { ensureArgumentSupportInTx } from '@/lib/arguments/ensure-support';
@@ -151,8 +151,10 @@ export async function POST(req: NextRequest) {
   }
   
   const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text, premisesAreAxioms, ruleType, ruleName } = b ?? {};
+  // Cookie auth (browser) first; fall back to Bearer (bot agents, extension).
   const user = await getUserFromCookies();
-  if (!user) {
+  const userId = user?.userId ?? (await getCurrentUserId());
+  if (!userId) {
     console.error('[POST /api/arguments] No authenticated user');
     return NextResponse.json({ 
       ok: false, 

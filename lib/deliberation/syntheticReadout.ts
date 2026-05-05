@@ -32,12 +32,63 @@ import {
 } from "@/lib/deliberation/missingMoves";
 import {
   computeChainExposure,
+  computeArgumentMetricsBatch,
   type ChainExposure,
 } from "@/lib/deliberation/chainExposure";
 import {
   computeCrossDeliberationContext,
   type CrossDeliberationContext,
 } from "@/lib/deliberation/crossContext";
+import type { StandingState } from "@/lib/citations/argumentAttestation";
+
+/**
+ * Compact per-argument summary for the top of `loadBearingnessRanking`.
+ * Lets a synthesis client name the high-impact arguments without making
+ * 15-25 follow-up `get_argument` round trips. The list is bounded
+ * (currently 25) and intended as orientation, not a substitute for
+ * `get_argument` when a consumer needs full premise/citation detail.
+ */
+export interface TopArgumentSummary {
+  /** Argument id. Stable. */
+  id: string;
+  /** Position in `frontier.loadBearingnessRanking` (0-indexed). */
+  rankIndex: number;
+  /** Authoring user id. Lets clients group by advocate / participant. */
+  authorId: string;
+  /** Authoring kind — HUMAN | AI | HYBRID. */
+  authorKind: "HUMAN" | "AI" | "HYBRID";
+  /** Conclusion claim id (if any). */
+  conclusionClaimId: string | null;
+  /** Conclusion claim text (truncated to 400 chars). */
+  conclusionText: string | null;
+  /** Argument prose (truncated to 400 chars). */
+  argumentText: string | null;
+  /** Primary scheme key (e.g. "cause_to_effect"), null if unschemed. */
+  primarySchemeKey: string | null;
+  /** 5-bucket standing label. Match other endpoints' semantics. */
+  standing: StandingState;
+  /** Catalog CQ answered / required for the primary scheme. */
+  cqAnswered: number;
+  cqRequired: number;
+  /** Aggregated fitness total from `computeFitnessBreakdown`. */
+  fitness: number;
+}
+
+/**
+ * Same shape as `TopArgumentSummary`, plus `unansweredAttackCount`. Used
+ * for the `mostContested` list — arguments ranked by *unanswered
+ * actively-raised attacks against them*. Complements `topArguments`
+ * (which is foundation-biased / degree-based) by surfacing
+ * tested-undermined / tested-attacked material that the load-bearingness
+ * heuristic misses.
+ */
+export interface ContestedArgumentSummary
+  extends Omit<TopArgumentSummary, "rankIndex"> {
+  /** Position in `frontier.contestednessRanking` (0-indexed). */
+  rankIndex: number;
+  /** How many unanswered actively-raised attacks target this argument. */
+  unansweredAttackCount: number;
+}
 
 export interface RefusalSurfaceEntry {
   /** Shape only — no rendered prose. Conclusion claim text from the graph. */
@@ -71,6 +122,22 @@ export interface SyntheticReadout {
   refusalSurface: {
     cannotConcludeBecause: RefusalSurfaceEntry[];
   };
+  /**
+   * Top-N arguments from `frontier.loadBearingnessRanking`, hydrated
+   * with conclusion text, scheme, standing, and fitness. Lets a
+   * synthesis client name the load-bearing pieces of the deliberation
+   * in one round trip rather than 15-25 `get_argument` calls.
+   * Currently bounded to the top 25.
+   */
+  topArguments: TopArgumentSummary[];
+  /**
+   * Top-N arguments from `frontier.contestednessRanking` (ranked by
+   * unanswered actively-raised attacks). Surfaces tested-undermined /
+   * tested-attacked material that `topArguments` (degree-based) misses.
+   * Currently bounded to the top 25. May be empty when no actively-raised
+   * attacks remain unanswered.
+   */
+  mostContested: ContestedArgumentSummary[];
   /**
    * Single-sentence deterministic caveat. *NOT* generative prose. A
    * function of the fingerprint alone — same contentHash → same string.
@@ -237,6 +304,92 @@ async function _computeSyntheticReadoutUncached(
   }
 
   // ────────────────────────────────────────────────────────────
+  // topArguments + mostContested — hydrate the heads of
+  // `loadBearingnessRanking` (foundation-biased, degree-based) and
+  // `contestednessRanking` (unanswered-attacks-against). The two lists
+  // answer different questions: topArguments = "what's load-bearing?",
+  // mostContested = "what's actually being challenged?". A synthesis
+  // client should look at both before producing a closer.
+  // ────────────────────────────────────────────────────────────
+  const TOP_N = 25;
+  const TEXT_TRUNC = 400;
+  const topIds = frontier.loadBearingnessRanking.slice(0, TOP_N);
+  const contestedEntries = frontier.contestednessRanking.slice(0, TOP_N);
+  const contestedIds = contestedEntries.map((c) => c.argumentId);
+  const allIds = [...new Set([...topIds, ...contestedIds])];
+
+  let topArguments: TopArgumentSummary[] = [];
+  let mostContested: ContestedArgumentSummary[] = [];
+
+  if (allIds.length > 0) {
+    const [allRows, allMetrics] = await Promise.all([
+      prisma.argument.findMany({
+        where: { id: { in: allIds } },
+        select: {
+          id: true,
+          authorId: true,
+          authorKind: true,
+          text: true,
+          conclusionClaimId: true,
+          conclusion: { select: { text: true } },
+          argumentSchemes: {
+            select: {
+              isPrimary: true,
+              order: true,
+              scheme: { select: { id: true, key: true } },
+            },
+            orderBy: [{ isPrimary: "desc" }, { order: "asc" }],
+          },
+        },
+      }),
+      computeArgumentMetricsBatch(allIds, deliberationId),
+    ]);
+    const rowById = new Map(allRows.map((r) => [r.id, r] as const));
+    const truncate = (s: string | null | undefined) =>
+      !s ? null : s.length > TEXT_TRUNC ? s.slice(0, TEXT_TRUNC) + "…" : s;
+
+    const baseSummary = (
+      id: string,
+      idx: number,
+    ): TopArgumentSummary | null => {
+      const r = rowById.get(id);
+      const m = allMetrics.get(id);
+      if (!r) return null;
+      const primaryScheme =
+        r.argumentSchemes.find((s) => s.isPrimary) ?? r.argumentSchemes[0];
+      return {
+        id: r.id,
+        rankIndex: idx,
+        authorId: r.authorId,
+        authorKind: r.authorKind as "HUMAN" | "AI" | "HYBRID",
+        conclusionClaimId: r.conclusionClaimId,
+        conclusionText: truncate(r.conclusion?.text),
+        argumentText: truncate(r.text),
+        primarySchemeKey: primaryScheme?.scheme?.key ?? null,
+        standing: m?.standing ?? "untested-default",
+        cqAnswered: m?.cqAnswered ?? 0,
+        cqRequired: m?.cqRequired ?? 0,
+        fitness: m?.fitness.total ?? 0,
+      };
+    };
+
+    topArguments = topIds
+      .map((id, idx) => baseSummary(id, idx))
+      .filter((x): x is TopArgumentSummary => x !== null);
+
+    mostContested = contestedEntries
+      .map((entry, idx) => {
+        const base = baseSummary(entry.argumentId, idx);
+        if (!base) return null;
+        return {
+          ...base,
+          unansweredAttackCount: entry.unansweredAttackCount,
+        } satisfies ContestedArgumentSummary;
+      })
+      .filter((x): x is ContestedArgumentSummary => x !== null);
+  }
+
+  // ────────────────────────────────────────────────────────────
   // honestyLine — deterministic template, not free prose.
   // ────────────────────────────────────────────────────────────
 
@@ -263,6 +416,8 @@ async function _computeSyntheticReadoutUncached(
     chains,
     cross,
     refusalSurface: { cannotConcludeBecause: refusalEntries },
+    topArguments,
+    mostContested,
     honestyLine,
   };
 }
