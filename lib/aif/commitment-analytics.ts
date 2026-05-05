@@ -194,23 +194,49 @@ function computeClaimConsensus(
     string,
     {
       text: string;
+      // Per-participant aggregation: per claimId, track which participants
+      // have any commitment and which currently have an active one.
+      // This is critical because `commitments` is move history — a single
+      // participant asserting the same claim twice should count once for
+      // consensus, not twice.
+      participants: Set<string>;
+      activeParticipants: Set<string>;
       commitments: Array<{ isActive: boolean; timestamp: string }>;
     }
   >();
 
   // Aggregate commitments by claim
   for (const store of stores) {
+    // Per-claim, per-participant active flag (latest move wins for this
+    // participant). `getCommitmentStores` already sets `isActive=false`
+    // on history rows that were later retracted, and `isActive=true` on
+    // rows that are currently in the active set, so a simple OR over the
+    // participant's own rows for this claim is correct.
+    const seenForParticipant = new Map<string, { active: boolean }>();
+    for (const c of store.commitments) {
+      const cur = seenForParticipant.get(c.claimId);
+      if (!cur) seenForParticipant.set(c.claimId, { active: c.isActive });
+      else if (c.isActive) cur.active = true;
+    }
+
     for (const commitment of store.commitments) {
       if (!claimMap.has(commitment.claimId)) {
         claimMap.set(commitment.claimId, {
           text: commitment.claimText,
+          participants: new Set(),
+          activeParticipants: new Set(),
           commitments: [],
         });
       }
-      claimMap.get(commitment.claimId)!.commitments.push({
+      const entry = claimMap.get(commitment.claimId)!;
+      entry.commitments.push({
         isActive: commitment.isActive,
         timestamp: commitment.timestamp,
       });
+      entry.participants.add(store.participantId);
+      if (seenForParticipant.get(commitment.claimId)?.active) {
+        entry.activeParticipants.add(store.participantId);
+      }
     }
   }
 
@@ -221,10 +247,16 @@ function computeClaimConsensus(
     const activeCount = data.commitments.filter((c) => c.isActive).length;
     const retractedCount = commitmentCount - activeCount;
 
+    // Consensus = fraction of distinct participants who committed (or have
+    // an active commitment). Bounded in [0, 1]. The previous formula used
+    // raw move count and produced > 1 (e.g. 400%) when a single participant
+    // re-asserted the same claim across multiple moves.
+    const distinctCommitters = data.participants.size;
+    const distinctActiveCommitters = data.activeParticipants.size;
     const consensusScore =
-      totalParticipants > 0 ? commitmentCount / totalParticipants : 0;
+      totalParticipants > 0 ? distinctCommitters / totalParticipants : 0;
     const activeConsensusScore =
-      totalParticipants > 0 ? activeCount / totalParticipants : 0;
+      totalParticipants > 0 ? distinctActiveCommitters / totalParticipants : 0;
 
     const stability = commitmentCount > 0 ? activeCount / commitmentCount : 1;
     const isPolarizing = commitmentCount >= 3 && retractedCount / commitmentCount > 0.3;

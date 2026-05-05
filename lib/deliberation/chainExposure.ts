@@ -252,14 +252,14 @@ export async function computeChainExposure(
 // Internal: per-argument metrics in a batched query.
 // ────────────────────────────────────────────────────────────
 
-interface ArgMetrics {
+export interface ArgMetrics {
   fitness: FitnessBreakdown;
   standing: StandingState;
   cqAnswered: number;
   cqRequired: number;
 }
 
-async function computeArgumentMetricsBatch(
+export async function computeArgumentMetricsBatch(
   argIds: string[],
   deliberationId: string,
 ): Promise<Map<string, ArgMetrics>> {

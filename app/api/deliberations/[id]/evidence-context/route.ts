@@ -174,14 +174,17 @@ export async function GET(
     },
   });
 
-  // Resolve Source rows (one-to-many: a block may correspond to a Source via
-  // url match, since `Source.libraryPostId` is a soft FK).
+  // Resolve Source rows. Two lookup paths because items can be either
+  // URL-keyed (Source.url == LibraryPost.linkUrl) or DOI-keyed (LibraryPost
+  // has linkUrl=null and the Source is reachable only via Source.libraryPostId).
+  const blockIds = items.map((it) => it.block?.id).filter((x): x is string => !!x);
   const blockUrls = items
     .map((it) => it.block?.linkUrl)
     .filter((u): u is string => !!u);
-  const sourcesByUrl = blockUrls.length
-    ? await prisma.source
-        .findMany({
+
+  const [sourcesByUrlRows, sourcesByBlockRows] = await Promise.all([
+    blockUrls.length
+      ? prisma.source.findMany({
           where: { url: { in: blockUrls } },
           select: {
             id: true,
@@ -194,16 +197,47 @@ export async function GET(
             keywords: true,
             contentHash: true,
             archiveUrl: true,
+            libraryPostId: true,
           },
         })
-        .then((rows) => new Map(rows.map((r) => [r.url, r] as const)))
-    : new Map();
+      : Promise.resolve([] as any[]),
+    blockIds.length
+      ? prisma.source.findMany({
+          where: { libraryPostId: { in: blockIds } },
+          select: {
+            id: true,
+            url: true,
+            doi: true,
+            title: true,
+            authorsJson: true,
+            year: true,
+            abstractText: true,
+            keywords: true,
+            contentHash: true,
+            archiveUrl: true,
+            libraryPostId: true,
+          },
+        })
+      : Promise.resolve([] as any[]),
+  ]);
+
+  const sourcesByUrl = new Map<string, (typeof sourcesByUrlRows)[number]>(
+    sourcesByUrlRows.filter((r) => r.url).map((r) => [r.url as string, r] as const),
+  );
+  const sourcesByBlockId = new Map<string, (typeof sourcesByBlockRows)[number]>(
+    sourcesByBlockRows
+      .filter((r) => r.libraryPostId)
+      .map((r) => [r.libraryPostId as string, r] as const),
+  );
 
   const sources = items
     .map((item) => {
       const block = item.block;
       if (!block) return null;
-      const src = block.linkUrl ? sourcesByUrl.get(block.linkUrl) : null;
+      const src =
+        (block.linkUrl ? sourcesByUrl.get(block.linkUrl) : null) ??
+        sourcesByBlockId.get(block.id) ??
+        null;
       const sourceId = src?.id ?? `block:${block.id}`;
       const authors = Array.isArray(src?.authorsJson)
         ? (src.authorsJson as Array<{ family?: string; given?: string }>).map(

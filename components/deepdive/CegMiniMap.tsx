@@ -592,13 +592,13 @@ export default function CegMiniMap({
               )}
               {hubNodes.length > 0 && (
                 <div className="flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">
-                  <span>⭐</span>
+                  <span>🟠</span>
                   <span className="font-medium">{hubNodes.length} hubs</span>
                 </div>
               )}
               {stats.clusterCount > 1 && (
                 <div className="flex items-center gap-1 px-2 py-0.5 bg-sky-50 text-sky-700 rounded-full">
-                  <span>🗂️</span>
+                  <span>🌐</span>
                   <span className="font-medium">{stats.clusterCount} clusters</span>
                 </div>
               )}

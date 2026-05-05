@@ -172,6 +172,19 @@ export class IsonomiaClient {
     return r.bodyJson;
   }
 
+  /**
+   * Typed read of `/api/schemes` returning just `{id, key}` per scheme.
+   * Used by Phase-2 translators to resolve `schemeKey` → `schemeId`.
+   */
+  async listSchemes(
+    role: string,
+    logger?: RoundLogger,
+  ): Promise<Array<{ id: string; key: string }>> {
+    const r = await this.raw("GET", "/api/schemes", { ctx: { role, logger } });
+    const body = r.bodyJson as { items?: Array<{ id: string; key: string }> } | null;
+    return body?.items ?? [];
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // Claim minting
   // ─────────────────────────────────────────────────────────────────
@@ -364,5 +377,120 @@ export class IsonomiaClient {
     );
     const body = r.bodyJson as { ok?: boolean; claims?: Array<{ id: string; text: string }> } | null;
     return body?.claims ?? [];
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Arguments (Phase 2/3)
+  // ─────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/arguments — create an Argument with N premises and a scheme.
+   * Premises must already exist as Claims (mint via `createClaim` first and
+   * pass their IDs as `premiseClaimIds`).
+   *
+   * The route also creates the supporting `ArgumentPremise` rows, an
+   * `ArgumentSchemeInstance`, an `ArgumentSupport` bootstrap, and a
+   * `DialogueMove` ASSERT — the caller does not need to make any of those
+   * calls separately.
+   */
+  async createArgument(
+    body: {
+      deliberationId: string;
+      authorId: string;
+      conclusionClaimId: string;
+      premiseClaimIds: string[];
+      schemeId?: string | null;
+      implicitWarrant?: string | null;
+      text?: string;
+      premisesAreAxioms?: boolean;
+      ruleType?: "DEFEASIBLE" | "STRICT";
+      ruleName?: string | null;
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ argumentId: string }> {
+    const r = await this.raw("POST", "/api/arguments", { body, ctx });
+    const j = r.bodyJson as { argumentId?: string; argument?: { id?: string } } | null;
+    const id = j?.argumentId ?? j?.argument?.id;
+    if (!id) {
+      throw new Error(`createArgument: missing argumentId in response (got ${JSON.stringify(j).slice(0, 200)})`);
+    }
+    return { argumentId: id };
+  }
+
+  /**
+   * POST /api/citations/attach — bind a Source to an Argument (or other
+   * target). Phase-2 advocates emit `citationToken` per premise; the
+   * translator resolves the token → sourceId via `getEvidenceContext` and
+   * calls this once per premise-source pair.
+   *
+   * Returns `{citationId}`. Idempotent on (targetType, targetId, sourceId,
+   * locator) — server returns the existing row on duplicate.
+   */
+  async attachCitation(
+    body: {
+      targetType: "argument" | "claim" | "card" | "comment" | "move" | "proposition";
+      targetId: string;
+      sourceId: string;
+      locator?: string;
+      quote?: string;
+      note?: string;
+      relevance?: number;
+      intent?: "supports" | "refutes" | "context" | "defines" | "method" | "background" | "acknowledges" | "example" | null;
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ citationId: string }> {
+    const r = await this.raw("POST", "/api/citations/attach", { body, ctx });
+    const j = r.bodyJson as { citation?: { id?: string } } | null;
+    const id = j?.citation?.id;
+    if (!id) {
+      throw new Error(`attachCitation: missing citation.id in response (got ${JSON.stringify(j).slice(0, 200)})`);
+    }
+    return { citationId: id };
+  }
+
+  /**
+   * POST /api/arguments/{targetArgumentId}/attacks — create an
+   * `ArgumentEdge` row binding a rebuttal Argument to the argument it
+   * attacks. Used by Phase-3 (Dialectical Testing).
+   *
+   * Per-type guards on the route:
+   *   - REBUTS: `targetClaimId` MUST equal the target argument's `conclusionClaimId`.
+   *   - UNDERMINES: `targetPremiseId` REQUIRED, must be a Claim ID present in the target's `ArgumentPremise` rows.
+   *   - UNDERCUTS: no extra targeting fields required.
+   *
+   * If `cqKey` is set, the route ALSO upserts a `CQStatus` row marking
+   * the CQ as `answered` on the target argument with this rebuttal as
+   * the responding argument. (Phase-3 also writes its own CQStatus rows
+   * directly via prisma for the OPEN-state raises that don't have an
+   * accompanying rebuttal — see attack-mint.ts.)
+   *
+   * Returns `{edgeId}`.
+   */
+  async attachAttack(
+    targetArgumentId: string,
+    body: {
+      deliberationId: string;
+      createdById: string;
+      fromArgumentId: string;
+      attackType: "REBUTS" | "UNDERCUTS" | "UNDERMINES";
+      targetScope: "conclusion" | "inference" | "premise";
+      toArgumentId?: string | null;
+      targetClaimId?: string | null;
+      targetPremiseId?: string | null;
+      cqKey?: string | null;
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ edgeId: string }> {
+    const r = await this.raw(
+      "POST",
+      `/api/arguments/${encodeURIComponent(targetArgumentId)}/attacks`,
+      { body, ctx },
+    );
+    const j = r.bodyJson as { edgeId?: string } | null;
+    const id = j?.edgeId;
+    if (!id) {
+      throw new Error(`attachAttack: missing edgeId in response (got ${JSON.stringify(j).slice(0, 200)})`);
+    }
+    return { edgeId: id };
   }
 }

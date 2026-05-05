@@ -144,17 +144,51 @@ export async function buildDialogueAwareGraph(
     }
   }
 
-  // Step 3: Derive attack edges from ConflictApplication (CRITICAL!)
-  const conflicts = await prisma.conflictApplication.findMany({
-    where: { deliberationId },
-    include: includeDialogue
-      ? {
-          createdByMove: {
-            select: { id: true, kind: true, createdAt: true, actorId: true },
-          },
-        }
-      : {},
-  });
+  // Step 3: Derive attack edges from ConflictApplication (legacy) AND ArgumentEdge.
+  // Phase-3 orchestrator writes attacks to ArgumentEdge.attackType (REBUTS / UNDERCUTS /
+  // UNDERMINES) — those need to surface as CA-nodes too. We coalesce both sources
+  // into a single uniform `conflicts` array below.
+  const [conflictsRaw, attackEdges] = await Promise.all([
+    prisma.conflictApplication.findMany({
+      where: { deliberationId },
+      include: includeDialogue
+        ? {
+            createdByMove: {
+              select: { id: true, kind: true, createdAt: true, actorId: true },
+            },
+          }
+        : {},
+    }),
+    prisma.argumentEdge.findMany({
+      where: { deliberationId, attackType: { not: null } },
+      select: {
+        id: true,
+        fromArgumentId: true,
+        toArgumentId: true,
+        attackType: true,
+        targetClaimId: true,
+        targetPremiseId: true,
+        createdAt: true,
+        createdById: true,
+      },
+    }),
+  ]);
+
+  // Synthesize CA-shaped records from ArgumentEdge so the rest of the pipeline
+  // doesn't need to know which table they came from.
+  const conflicts: any[] = [
+    ...conflictsRaw,
+    ...attackEdges.map((e) => ({
+      id: `ae:${e.id}`,
+      conflictingArgumentId: e.fromArgumentId,
+      conflictedArgumentId: e.toArgumentId,
+      conflictingClaimId: null,
+      conflictedClaimId: e.targetClaimId ?? e.targetPremiseId ?? null,
+      legacyAttackType: e.attackType, // "REBUTS" | "UNDERCUTS" | "UNDERMINES"
+      createdByMoveId: null,
+      createdByMove: null,
+    })),
+  ];
 
   // Build claim-to-argument resolution map (follows generate-debate-sheets.ts pattern)
   const claimToArgMap = new Map<string, string>();
@@ -594,9 +628,9 @@ async function computeCommitmentStores(
       c.text as claim_text,
       arg."conclusionClaimId" as argument_conclusion_id,
       arg_claim.text as argument_conclusion_text,
-      clm.id as mapping_id,
-      clm."promotedAt" as promoted_at,
-      clm."ludicOwnerId" as ludic_owner_id,
+      clm_pick.id as mapping_id,
+      clm_pick."promotedAt" as promoted_at,
+      clm_pick."ludicOwnerId" as ludic_owner_id,
       lce."basePolarity" as ludic_polarity
     FROM "DialogueMove" dm
     LEFT JOIN users u ON (
@@ -608,12 +642,22 @@ async function computeCommitmentStores(
     LEFT JOIN "Claim" c ON dm."targetId" = c.id AND dm."targetType" = 'claim'
     LEFT JOIN "Argument" arg ON dm."targetId" = arg.id AND dm."targetType" = 'argument'
     LEFT JOIN "Claim" arg_claim ON arg."conclusionClaimId" = arg_claim.id
-    LEFT JOIN "CommitmentLudicMapping" clm 
-      ON clm."deliberationId" = dm."deliberationId" 
-      AND clm."participantId" = dm."actorId"
-      AND (c.text = clm.proposition OR arg_claim.text = clm.proposition)
+    -- Collapse possible 1:N CommitmentLudicMapping matches to at most one row per move,
+    -- keeping the most recently promoted mapping. This prevents row multiplication.
+    LEFT JOIN LATERAL (
+      SELECT id, "promotedAt", "ludicOwnerId", "ludicCommitmentElementId"
+      FROM "CommitmentLudicMapping" clm
+      WHERE clm."deliberationId" = dm."deliberationId"
+        AND clm."participantId" = dm."actorId"
+        AND (
+          (c.text IS NOT NULL AND c.text = clm.proposition)
+          OR (arg_claim.text IS NOT NULL AND arg_claim.text = clm.proposition)
+        )
+      ORDER BY clm."promotedAt" DESC NULLS LAST
+      LIMIT 1
+    ) clm_pick ON TRUE
     LEFT JOIN "LudicCommitmentElement" lce 
-      ON clm."ludicCommitmentElementId" = lce.id
+      ON clm_pick."ludicCommitmentElementId" = lce.id
     WHERE dm."deliberationId" = ${deliberationId}
       ${participantId ? Prisma.sql`AND dm."actorId" = ${participantId}` : Prisma.empty}
       ${asOf ? Prisma.sql`AND dm."createdAt" <= ${new Date(asOf)}` : Prisma.empty}

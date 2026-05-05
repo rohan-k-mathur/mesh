@@ -10,6 +10,8 @@ bearer token, and is safe to run on any developer laptop.
 
 ## Tools exposed
 
+### Argument-scope (read/write a single argument or claim)
+
 | Tool                   | Purpose                                                                 | Auth         |
 | ---------------------- | ----------------------------------------------------------------------- | ------------ |
 | `search_arguments`     | Ranked permalinks by free-text query and filters                        | none         |
@@ -18,6 +20,23 @@ bearer token, and is safe to run on any developer laptop.
 | `find_counterarguments`| Arguments contesting a target claim                                     | none         |
 | `cite_argument`        | Ready-to-paste citation block (URL + content hash + pull quote)         | none         |
 | `propose_argument`     | Create a new argument from claim + evidence                             | bearer token |
+
+### Deliberation-scope (Track AI-EPI Pt. 4 — read-only projections over a whole deliberation)
+
+| Tool                              | Purpose                                                                                                      | Auth |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---- |
+| `get_synthetic_readout`           | **First call for any summary task.** One-stop bundle: fingerprint + frontier + missing moves + chains + cross-context + `refusalSurface` + hydrated `topArguments` (load-bearing) + `mostContested` (challenged) | none |
+| `summarize_debate`                | Convenience alias for `get_synthetic_readout` — identical payload                                            | none |
+| `get_deliberation_fingerprint`    | Narrow slice — statistical summary only                                                                     | none |
+| `get_contested_frontier`          | Narrow slice — open dialectical edges + both rankings                                                       | none |
+| `get_missing_moves`               | Narrow slice — catalog-vs-actual diff                                                                        | none |
+| `get_chains`                      | Narrow slice — `ArgumentChain` projections                                                                   | none |
+| `get_cross_context`               | Cross-deliberation projection (canonical-claim families, plexus edges, sibling-room scheme reuse)            | none |
+| `get_deliberation_evidence_context` | Evidence corpus pre-bound to the deliberation (the source pool participants were given)                    | bearer token |
+
+Prefer `get_synthetic_readout` over the narrow slices — it returns all five
+projections in one round trip plus pre-hydrated argument summaries that
+eliminate ~25 follow-up `get_argument` calls.
 
 Every read tool returns a payload that includes the canonical permalink, the
 content-addressed `sha256` hash, the permalink version, and the dialectical
@@ -69,7 +88,7 @@ locations.
 | -------------------- | ------------------------ | ---------------------------------------------------- |
 | `ISONOMIA_BASE_URL`  | `https://isonomia.app`   | API origin to call                                   |
 | `ISONOMIA_API_TOKEN` | _(unset)_                | Bearer token for `propose_argument`                  |
-| `ISONOMIA_TIMEOUT_MS`| `15000`                  | Per-request timeout                                  |
+| `ISONOMIA_TIMEOUT_MS`| `30000`                  | Per-request timeout                                  |
 
 ## Local dev
 

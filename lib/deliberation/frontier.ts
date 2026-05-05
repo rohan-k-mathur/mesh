@@ -71,6 +71,21 @@ export interface ContestedFrontier {
   terminalLeaves: FrontierTerminalLeaf[];
   /** Argument ids ordered by frontier impact (highest first). */
   loadBearingnessRanking: string[];
+  /**
+   * Arguments ranked by *unanswered actively-raised attacks against them*
+   * (highest first). Complements `loadBearingnessRanking`, which is
+   * degree-based and surfaces foundational arguments. This list surfaces
+   * arguments that have been challenged and not yet defended — i.e.
+   * `tested-undermined` / `tested-attacked` material. Counts:
+   *   undercuts targeting the arg with `severity === "actively-raised"`
+   *   + undermines targeting the arg with a non-null challenger
+   * Catalog-only (`schemeTypical`) undercuts and unanswered CQs are
+   * excluded — those represent gaps, not contests.
+   */
+  contestednessRanking: Array<{
+    argumentId: string;
+    unansweredAttackCount: number;
+  }>;
 }
 
 export async function computeContestedFrontier(
@@ -311,6 +326,33 @@ export async function computeContestedFrontier(
   const loadBearingnessRanking = ranked.map((a) => a.id);
 
   // ────────────────────────────────────────────────────────────
+  // contestednessRanking: count unanswered *actively-raised* attacks
+  // per target argument and sort desc. Surfaces tested-undermined
+  // material that loadBearingnessRanking (degree-based) misses.
+  // ────────────────────────────────────────────────────────────
+  const contestCount = new Map<string, number>();
+  for (const u of unansweredUndercuts) {
+    if (u.severity !== "actively-raised") continue;
+    contestCount.set(
+      u.targetArgumentId,
+      (contestCount.get(u.targetArgumentId) ?? 0) + 1,
+    );
+  }
+  for (const u of unansweredUndermines) {
+    if (!u.challengerArgumentId) continue;
+    contestCount.set(
+      u.targetArgumentId,
+      (contestCount.get(u.targetArgumentId) ?? 0) + 1,
+    );
+  }
+  const contestednessRanking = [...contestCount.entries()]
+    .map(([argumentId, unansweredAttackCount]) => ({
+      argumentId,
+      unansweredAttackCount,
+    }))
+    .sort((a, b) => b.unansweredAttackCount - a.unansweredAttackCount);
+
+  // ────────────────────────────────────────────────────────────
   // Sort the per-list outputs as requested.
   // ────────────────────────────────────────────────────────────
 
@@ -337,5 +379,6 @@ export async function computeContestedFrontier(
     unansweredCqs,
     terminalLeaves,
     loadBearingnessRanking,
+    contestednessRanking,
   };
 }
