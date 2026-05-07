@@ -95,7 +95,7 @@ export async function runSynthesistTurn(input: SynthesistTurnInput): Promise<Syn
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
   const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const model = modelFor(input.cfg, "synthesist");
   const outputSchema = buildSynthesistVerdictSchema(input.schemaOpts);
 
   const userMessage = renderUserMessage(input);

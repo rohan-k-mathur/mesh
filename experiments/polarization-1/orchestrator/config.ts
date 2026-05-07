@@ -51,9 +51,27 @@ export interface OrchestratorConfig {
   anthropicModelDev: string;
   anthropicModelProd: string;
   modelTier: ModelTier;
+  /** Per-agent overrides. When set, beats `modelTier` for that role.
+   *  Populated from env vars `MODEL_TIER_<ROLE>` (see `loadConfig`). */
+  modelTierByRole: Partial<Record<AgentTierRole, ModelTier>>;
   agents: AgentsRuntime;
   deliberation: DeliberationRuntime;
+  /** Iter-3 gating flag. When true, Phase 3 runs two rounds (round-2 =
+   *  attacks-on-attacks + new direct attacks) and Phase 4 runs two
+   *  sub-rounds (4a / 4b). Default false preserves Iter-2 behavior.
+   *  Override via env `ITER3_MULTI_ROUND=1`. */
+  iter3MultiRound: boolean;
 }
+
+/** Roles whose model tier can be overridden independently. */
+export type AgentTierRole =
+  | "claim-analyst"
+  | "advocate"
+  | "rebuttal"
+  | "methodologist"
+  | "defense"
+  | "tracker"
+  | "synthesist";
 
 const DEFAULT_DEV_MODEL = "claude-haiku-4-5-20251001";
 // Bumped from Opus 4.5 → Opus 4.6 for the loosened, web-search-enabled
@@ -113,9 +131,47 @@ export function loadConfig(opts: LoadConfigOptions = {}): OrchestratorConfig {
     anthropicModelDev: process.env.ANTHROPIC_MODEL_DEV || DEFAULT_DEV_MODEL,
     anthropicModelProd: process.env.ANTHROPIC_MODEL_PROD || DEFAULT_PROD_MODEL,
     modelTier,
+    modelTierByRole: parseRoleTierOverrides(),
     agents,
     deliberation,
+    iter3MultiRound:
+      process.env.ITER3_MULTI_ROUND === "1" ||
+      process.env.ITER3_MULTI_ROUND === "true",
   };
+}
+
+/** Parse per-agent tier overrides from env. Recognized vars:
+ *  - `MODEL_TIER_CLAIM_ANALYST`
+ *  - `MODEL_TIER_ADVOCATE`     (both A and B)
+ *  - `MODEL_TIER_REBUTTAL`     (both A and B)
+ *  - `MODEL_TIER_METHODOLOGIST`
+ *  - `MODEL_TIER_DEFENSE`      (both A and B)
+ *  - `MODEL_TIER_TRACKER`
+ *  - `MODEL_TIER_SYNTHESIST`
+ *
+ *  Convenience preset: `MODEL_TIER_PRESET=opus-critical` is equivalent
+ *  to setting Synthesist + Methodologist + Tracker to `prod`.
+ */
+function parseRoleTierOverrides(): Partial<Record<AgentTierRole, ModelTier>> {
+  const out: Partial<Record<AgentTierRole, ModelTier>> = {};
+  function pick(env: string, role: AgentTierRole): void {
+    const v = process.env[env];
+    if (v === "prod" || v === "dev") out[role] = v;
+  }
+  // Apply preset first; explicit env vars below can still override.
+  if (process.env.MODEL_TIER_PRESET === "opus-critical") {
+    out.synthesist = "prod";
+    out.methodologist = "prod";
+    out.tracker = "prod";
+  }
+  pick("MODEL_TIER_CLAIM_ANALYST", "claim-analyst");
+  pick("MODEL_TIER_ADVOCATE", "advocate");
+  pick("MODEL_TIER_REBUTTAL", "rebuttal");
+  pick("MODEL_TIER_METHODOLOGIST", "methodologist");
+  pick("MODEL_TIER_DEFENSE", "defense");
+  pick("MODEL_TIER_TRACKER", "tracker");
+  pick("MODEL_TIER_SYNTHESIST", "synthesist");
+  return out;
 }
 
 export function requireDeliberation(cfg: OrchestratorConfig): DeliberationRuntime & { deliberationId: string } {
@@ -128,8 +184,10 @@ export function requireDeliberation(cfg: OrchestratorConfig): DeliberationRuntim
   return cfg.deliberation as DeliberationRuntime & { deliberationId: string };
 }
 
-export function modelFor(cfg: OrchestratorConfig): string {
-  return cfg.modelTier === "prod" ? cfg.anthropicModelProd : cfg.anthropicModelDev;
+export function modelFor(cfg: OrchestratorConfig, role?: AgentTierRole): string {
+  const tier =
+    (role && cfg.modelTierByRole[role]) || cfg.modelTier;
+  return tier === "prod" ? cfg.anthropicModelProd : cfg.anthropicModelDev;
 }
 
 export function agentByRole(cfg: OrchestratorConfig, role: string): AgentIdentity {

@@ -37,8 +37,12 @@ import { prisma } from "@/lib/prismaclient";
 
 export interface Phase3CompleteRebuttal {
   inputIndex: number;
+  /** Iter-3 multi-round indicator. "1" = round 1 (Iter-2 default), "2" = round 2 attack-on-attack. */
+  round: "1" | "2";
   rebuttalArgumentId: string;
   targetArgumentId: string;
+  /** Iter-3: which kind of object `targetArgumentId` resolves to. */
+  targetKind: "phase2-arg" | "round1-rebuttal";
   edgeId: string;
   attackType: "REBUT" | "UNDERMINE" | "UNDERCUT";
   targetPremiseIndex: number | null;
@@ -57,7 +61,11 @@ export interface Phase3CompleteRebuttal {
 
 export interface Phase3CompleteCqResponse {
   inputIndex: number;
+  /** Iter-3 multi-round indicator. */
+  round: "1" | "2";
   targetArgumentId: string;
+  /** Iter-3: which kind of object `targetArgumentId` resolves to. */
+  targetKind: "phase2-arg" | "round1-rebuttal";
   cqKey: string;
   action: "raise" | "waive";
   rationale: string;
@@ -302,8 +310,10 @@ function buildCompleteAdvocate(rec: RebuttalRunRecord): Phase3CompleteAdvocate {
     const orig = inputRebuttals[m.inputIndex];
     return {
       inputIndex: m.inputIndex,
+      round: rec.llmOutput!.round ?? "1",
       rebuttalArgumentId: m.rebuttalArgumentId,
       targetArgumentId: m.targetArgumentId,
+      targetKind: orig.targetKind ?? "phase2-arg",
       edgeId: m.edgeId,
       attackType: m.attackType,
       targetPremiseIndex: m.targetPremiseIndex,
@@ -325,7 +335,9 @@ function buildCompleteAdvocate(rec: RebuttalRunRecord): Phase3CompleteAdvocate {
     const orig = inputCqResponses[m.inputIndex];
     return {
       inputIndex: m.inputIndex,
+      round: rec.llmOutput!.round ?? "1",
       targetArgumentId: m.targetArgumentId,
+      targetKind: orig.targetKind ?? "phase2-arg",
       cqKey: m.cqKey,
       action: m.action,
       rationale: orig.rationale,
@@ -363,8 +375,10 @@ function buildCompleteMethodologist(
       const orig = inputRebuttals[m.inputIndex];
       return {
         inputIndex: m.inputIndex,
+        round: rec.llmOutput!.round ?? "1",
         rebuttalArgumentId: m.rebuttalArgumentId,
         targetArgumentId: m.targetArgumentId,
+        targetKind: orig.targetKind ?? "phase2-arg",
         targetAdvocateRole: orig.targetAdvocateRole,
         edgeId: m.edgeId,
         attackType: m.attackType,
@@ -389,7 +403,9 @@ function buildCompleteMethodologist(
       const orig = inputCqResponses[m.inputIndex];
       return {
         inputIndex: m.inputIndex,
+        round: rec.llmOutput!.round ?? "1",
         targetArgumentId: m.targetArgumentId,
+        targetKind: orig.targetKind ?? "phase2-arg",
         targetAdvocateRole: orig.targetAdvocateRole,
         cqKey: m.cqKey,
         action: m.action,

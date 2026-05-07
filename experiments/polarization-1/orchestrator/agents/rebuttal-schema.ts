@@ -61,6 +61,24 @@ export const AttackTypeZ = z.enum(["REBUT", "UNDERMINE", "UNDERCUT"]);
 export type AttackType = z.infer<typeof AttackTypeZ>;
 
 /**
+ * Iter-3 multi-round Phase 3. `"1"` = current behavior (attacks on
+ * opposing Phase-2 args). `"2"` = round-2 attacks; may target either
+ * an opposing Phase-2 arg (NEW direct attack) OR a round-1 rebuttal
+ * filed against THIS advocate's own Phase-2 args (attack-on-attack).
+ * Default `"1"` preserves Iter-2 outputs.
+ */
+export const RebuttalRoundZ = z.enum(["1", "2"]);
+export type RebuttalRound = z.infer<typeof RebuttalRoundZ>;
+
+/**
+ * Explicit tag identifying which kind of object the `targetArgumentId`
+ * resolves to. Required for Iter-3 round-2 disambiguation; defaults to
+ * `"phase2-arg"` so Iter-2 outputs validate unchanged.
+ */
+export const TargetKindZ = z.enum(["phase2-arg", "round1-rebuttal"]);
+export type TargetKind = z.infer<typeof TargetKindZ>;
+
+/**
  * A CQ raise OR waive against an opposing argument. Action `raise` opens
  * the CQ (sets `CQStatus.statusEnum = OPEN` if absent); `waive` records
  * the advocate's affirmative concession that the CQ is non-blocking
@@ -68,8 +86,10 @@ export type AttackType = z.infer<typeof AttackTypeZ>;
  * advocate marks the question moot rather than challenging it).
  */
 const CqResponseZ = z.object({
-  /** Argument-id of the opposing argument this CQ targets. */
+  /** Argument-id of the opposing argument (or round-1 rebuttal in Iter-3 round-2) this CQ targets. */
   targetArgumentId: z.string().min(4),
+  /** Iter-3: which kind of object `targetArgumentId` resolves to. */
+  targetKind: TargetKindZ.default("phase2-arg"),
   /** Critical-question key from the target argument's scheme. */
   cqKey: z.string().min(1).max(80),
   action: z.enum(["raise", "waive"]),
@@ -99,8 +119,10 @@ export type CqResponse = z.infer<typeof CqResponseZ>;
  *     (warrant attack); premises and conclusion-text describe why.
  */
 const RebuttalArgumentZ = z.object({
-  /** Argument-id of the opposing argument being attacked. */
+  /** Argument-id of the opposing argument (or round-1 rebuttal in Iter-3 round-2) being attacked. */
   targetArgumentId: z.string().min(4),
+  /** Iter-3: which kind of object `targetArgumentId` resolves to. */
+  targetKind: TargetKindZ.default("phase2-arg"),
   attackType: AttackTypeZ,
   /** 0-based premise index in the target argument; required iff attackType === "UNDERMINE". */
   targetPremiseIndex: z.number().int().nonnegative().nullable(),
@@ -140,6 +162,8 @@ export const REBUTTAL_PER_TARGET_MAX = 4;
 const RebuttalOutputZ = z.object({
   phase: z.literal("3"),
   advocateRole: z.enum(["A", "B"]),
+  /** Iter-3 multi-round indicator. Defaults to "1" so Iter-2 outputs validate. */
+  round: RebuttalRoundZ.default("1"),
   cqResponses: z.array(CqResponseZ).default([]),
   rebuttals: z.array(RebuttalArgumentZ).default([]),
   /**

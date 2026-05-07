@@ -88,7 +88,7 @@ export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTu
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
   const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const model = modelFor(input.cfg, "tracker");
   const outputSchema = buildTrackerVerdictSchema(input.schemaOpts);
 
   const userMessage = renderUserMessage(input);

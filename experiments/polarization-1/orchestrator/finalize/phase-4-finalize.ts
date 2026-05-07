@@ -78,6 +78,8 @@ export interface Phase4CompleteCqAnswer {
 export interface Phase4CompleteAdvocate {
   outcome: "ok";
   attempts: number;
+  /** Iter-3 multi-sub-round indicator. "a" = sub-round-a (Iter-2 default), "b" = sub-round-b. */
+  subRound: "a" | "b";
   tokenUsage: { inputTokens: number; outputTokens: number };
   responses: Phase4CompleteResponse[];
   cqAnswers: Phase4CompleteCqAnswer[];
@@ -396,6 +398,7 @@ function buildCompleteAdvocate(rec: DefenseRunRecord): Phase4CompleteAdvocate {
   return {
     outcome: "ok",
     attempts: rec.attempts,
+    subRound: rec.llmOutput!.subRound ?? "a",
     tokenUsage: rec.tokenUsage,
     responses,
     cqAnswers,

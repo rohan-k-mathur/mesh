@@ -163,9 +163,21 @@ export type CqAnswer = z.infer<typeof CqAnswerZ>;
 // Top-level Phase-4 output
 // ─────────────────────────────────────────────────────────────────
 
+/**
+ * Iter-3 multi-round Phase 4. `"a"` = sub-round-a, defending against
+ * Phase-3 round-1 attacks (current Iter-2 behavior). `"b"` = sub-round-b,
+ * defending against Phase-3 round-2 attacks (which themselves may have
+ * targeted either THIS advocate's Phase-2 args OR THIS advocate's
+ * round-1 rebuttals). Default `"a"` preserves Iter-2 behavior.
+ */
+export const DefenseSubRoundZ = z.enum(["a", "b"]);
+export type DefenseSubRound = z.infer<typeof DefenseSubRoundZ>;
+
 const DefenseOutputZ = z.object({
   phase: z.literal("4"),
   advocateRole: z.enum(["A", "B"]),
+  /** Iter-3: which sub-round of Phase 4. Defaults to "a" so Iter-2 outputs validate. */
+  subRound: DefenseSubRoundZ.default("a"),
   responses: z.array(ResponseZ).default([]),
   cqAnswers: z.array(CqAnswerZ).default([]),
   /** Loosened-mode web sources discovered while drafting defenses. */

@@ -60,6 +60,12 @@ export interface RebuttalTurnInput {
   opponentArgumentsPrompt: string;
   /** Renders into the `## EVIDENCE_CORPUS` section. */
   evidenceCorpusPrompt: string;
+  /** Iter-3: optional content appended to the system prompt (e.g.
+   *  round-2 addendum). Default: none. */
+  appendedSystemPrompt?: string;
+  /** Iter-3: optional extra block appended to the user message (e.g.
+   *  rendered `## ROUND_1_ATTACKS_ON_YOU` table). Default: none. */
+  appendedUserBlock?: string;
   /** Schema-binding parameters (opposing arguments, CQ catalog, allowed citation tokens). */
   schemaOpts: Omit<RebuttalSchemaOpts, "advocateRole">;
   cfg: OrchestratorConfig;
@@ -78,18 +84,24 @@ export async function runRebuttalTurn(input: RebuttalTurnInput): Promise<Rebutta
   const promptPath = path.isAbsolute(input.promptPath)
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
-  const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const baseSystemPrompt = readFileSync(promptPath, "utf8");
+  const systemPrompt = input.appendedSystemPrompt
+    ? `${baseSystemPrompt}\n\n${input.appendedSystemPrompt}`
+    : baseSystemPrompt;
+  const model = modelFor(input.cfg, "rebuttal");
 
   const advocateRole: "A" | "B" = input.role === "advocate-a" ? "A" : "B";
   const outputSchema = buildRebuttalOutputSchema({ ...input.schemaOpts, advocateRole });
 
-  const userMessage = renderUserMessage({
+  const baseUserMessage = renderUserMessage({
     framing: input.framing,
     opponentArguments: input.opponentArgumentsPrompt,
     evidence: input.evidenceCorpusPrompt,
     role: input.role,
   });
+  const userMessage = input.appendedUserBlock
+    ? `${baseUserMessage}\n\n${input.appendedUserBlock}`
+    : baseUserMessage;
 
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [
     { role: "user", content: userMessage },

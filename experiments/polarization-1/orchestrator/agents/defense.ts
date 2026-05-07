@@ -93,7 +93,7 @@ export async function runDefenseTurn(input: DefenseTurnInput): Promise<DefenseTu
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
   const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const model = modelFor(input.cfg, "defense");
 
   const advocateRole: "A" | "B" = input.role === "advocate-a" ? "A" : "B";
   const outputSchema = buildDefenseOutputSchema({ ...input.schemaOpts, advocateRole });
