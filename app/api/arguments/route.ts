@@ -356,23 +356,29 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
         }, { status: 409, ...NO_STORE });
       }
       
-      // Create commitment record (if not already exists)
+      // Create commitment record (idempotent on (deliberationId, participantId, proposition))
       try {
-        await prisma.commitment.create({
-          data: {
+        const result = await prisma.commitment.upsert({
+          where: {
+            deliberationId_participantId_proposition: {
+              deliberationId,
+              participantId: String(authorId),
+              proposition: conclusionClaim.text,
+            },
+          },
+          create: {
             deliberationId,
             participantId: String(authorId),
             proposition: conclusionClaim.text,
-          }
+          },
+          update: {},
+          select: { createdAt: true, updatedAt: true },
         });
-        console.log(`[arguments/POST] Created commitment for conclusion: "${conclusionClaim.text}"`);
-      } catch (err: any) {
-        // Ignore if commitment already exists (duplicate key error)
-        if (err.code === 'P2002') {
-          console.log(`[arguments/POST] Commitment already exists for: "${conclusionClaim.text}"`);
-        } else {
-          console.error('[arguments/POST] Failed to create commitment:', err);
+        if (result.createdAt.getTime() === result.updatedAt.getTime()) {
+          console.log(`[arguments/POST] Created commitment for conclusion: "${conclusionClaim.text}"`);
         }
+      } catch (err: any) {
+        console.error('[arguments/POST] Failed to upsert commitment:', err);
       }
     }
   } catch (err) {

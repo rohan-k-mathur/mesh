@@ -89,6 +89,9 @@ import type {
   Phase3CompleteAdvocate,
   Phase3CompleteRebuttal,
   Phase3CompleteCqResponse,
+  Phase3CompleteMethodologist,
+  Phase3CompleteMethodologistRebuttal,
+  Phase3CompleteMethodologistCqResponse,
 } from "../finalize/phase-3-finalize";
 
 // ─────────────────────────────────────────────────────────────────
@@ -219,6 +222,20 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
     "advocate-b": buildOpposingCqRaiseBindings(phase3.advocates.a, ownArgsByRole["advocate-b"]),
   } as const;
 
+  // Methodologist attacks (optional; pre-Methodologist deliberations have
+  // no methodologist record). Filter by targetAdvocateRole and merge into
+  // each advocate's opposing-rebuttal/CQ-raise maps so the validator
+  // accepts defense responses targeting them.
+  const methodologistAttacksByRole = buildMethodologistAttacksByRole(
+    phase3.methodologist,
+    ownArgsByRole,
+  );
+  for (const role of ["advocate-a", "advocate-b"] as const) {
+    const m = methodologistAttacksByRole[role];
+    for (const [id, b] of m.rebuttals) opposingRebuttalsByRole[role].set(id, b);
+    for (const [id, b] of m.cqRaises) opposingCqRaisesByRole[role].set(id, b);
+  }
+
   // 4. Pre-render YOUR_PHASE_2 + OPPONENT_ATTACKS prompts per advocate.
   const yourPhase2PromptByRole = {
     "advocate-a": renderOwnPhase2(phase2.advocates.a, "A", subClaimTextByIndex),
@@ -227,6 +244,18 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
   const opponentAttacksPromptByRole = {
     "advocate-a": renderOpponentAttacks(phase3.advocates.b, "B", ownArgsByRole["advocate-a"]),
     "advocate-b": renderOpponentAttacks(phase3.advocates.a, "A", ownArgsByRole["advocate-b"]),
+  } as const;
+  const methodologistAttacksPromptByRole = {
+    "advocate-a": renderMethodologistAttacks(
+      phase3.methodologist,
+      "A",
+      ownArgsByRole["advocate-a"],
+    ),
+    "advocate-b": renderMethodologistAttacks(
+      phase3.methodologist,
+      "B",
+      ownArgsByRole["advocate-b"],
+    ),
   } as const;
 
   // 5. Resume.
@@ -297,6 +326,7 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
       framing: framing.full,
       yourPhase2ArgumentsPrompt: yourPhase2PromptByRole[role],
       opponentAttacksPrompt: opponentAttacksPromptByRole[role],
+      methodologistAttacksPrompt: methodologistAttacksPromptByRole[role],
       evidenceCorpusPrompt,
       ownArguments: ownArgs,
       opposingRebuttals: oppReb,
@@ -353,6 +383,46 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
     a: buildOpposingCqRaiseMeta(phase3.advocates.b, phase2.advocates.a),
     b: buildOpposingCqRaiseMeta(phase3.advocates.a, phase2.advocates.b),
   };
+  // Merge methodologist attacks into the review-side maps so that
+  // soft-checks recognize defenses targeting methodologist rebuttals/CQs.
+  if (phase3.methodologist) {
+    const meth = phase3.methodologist;
+    const ownConclusionIdx = {
+      a: new Map(phase2.advocates.a.arguments.map((a) => [a.argumentId, a.conclusionClaimIndex] as const)),
+      b: new Map(phase2.advocates.b.arguments.map((a) => [a.argumentId, a.conclusionClaimIndex] as const)),
+    };
+    for (const r of meth.rebuttals) {
+      const role: "a" | "b" = r.targetAdvocateRole === "A" ? "a" : "b";
+      const idx = ownConclusionIdx[role].get(r.targetArgumentId);
+      if (idx === undefined) continue;
+      opposingRebuttalMetaByAdv[role].set(r.rebuttalArgumentId, {
+        rebuttalArgumentId: r.rebuttalArgumentId,
+        targetArgumentId: r.targetArgumentId,
+        targetConclusionClaimIndex: idx,
+        rebuttalAttackType: r.attackType,
+        rebuttalPremiseCount: r.premiseClaimIds.length,
+        rebuttalConclusionText: r.conclusionText,
+        rebuttalPremiseTexts: r.premiseTexts,
+        rebuttalPremiseCitationTokens: r.premiseCitationTokens,
+        cqKey: r.cqKey,
+      });
+    }
+    for (const c of meth.cqResponses) {
+      if (c.action !== "raise") continue;
+      if (c.elidedByRebuttalCqKey) continue;
+      const role: "a" | "b" = c.targetAdvocateRole === "A" ? "a" : "b";
+      const idx = ownConclusionIdx[role].get(c.targetArgumentId);
+      if (idx === undefined) continue;
+      const cqResponseId = `cqraise-meth:${c.targetArgumentId}:${c.cqKey}`;
+      opposingCqMetaByAdv[role].set(cqResponseId, {
+        cqResponseId,
+        targetArgumentId: c.targetArgumentId,
+        targetConclusionClaimIndex: idx,
+        cqKey: c.cqKey,
+        rationale: c.rationale,
+      });
+    }
+  }
   const reviewSourcesLite = ec.sources.map((s: any) => ({
     sourceId: s.sourceId,
     citationToken: s.citationToken,
@@ -440,6 +510,7 @@ interface RunOneAdvocateOpts {
   framing: string;
   yourPhase2ArgumentsPrompt: string;
   opponentAttacksPrompt: string;
+  methodologistAttacksPrompt: string;
   evidenceCorpusPrompt: string;
   ownArguments: ReadonlyMap<string, OwnArgumentBinding>;
   opposingRebuttals: ReadonlyMap<string, OpposingRebuttalBinding>;
@@ -499,6 +570,7 @@ async function runOneAdvocate(opts: RunOneAdvocateOpts): Promise<DefenseRunRecor
       framing: opts.framing,
       yourPhase2ArgumentsPrompt: opts.yourPhase2ArgumentsPrompt,
       opponentAttacksPrompt: opts.opponentAttacksPrompt,
+      methodologistAttacksPrompt: opts.methodologistAttacksPrompt,
       evidenceCorpusPrompt: opts.evidenceCorpusPrompt,
       schemaOpts: {
         opposingRebuttals: schemaOpposingRebuttals,
@@ -662,6 +734,7 @@ async function maybeRunTracker(opts: MaybeRunTrackerOpts): Promise<TrackerRunRec
   const bPhase2Prompt = renderOwnPhase2(opts.phase2.advocates.b, "B", opts.subClaimTextByIndex);
   const aPhase3Prompt = renderPhase3Block(opts.phase3.advocates.a, "A");
   const bPhase3Prompt = renderPhase3Block(opts.phase3.advocates.b, "B");
+  const methodologistPhase3Prompt = renderMethodologistPhase3Block(opts.phase3.methodologist);
   const aPhase4Prompt = renderPhase4Block(opts.results.a!, "A");
   const bPhase4Prompt = renderPhase4Block(opts.results.b!, "B");
 
@@ -685,6 +758,32 @@ async function maybeRunTracker(opts: MaybeRunTrackerOpts): Promise<TrackerRunRec
   const knownAttackIds = new Set<string>();
   for (const r of opts.phase3.advocates.a.rebuttals) knownAttackIds.add(r.rebuttalArgumentId);
   for (const r of opts.phase3.advocates.b.rebuttals) knownAttackIds.add(r.rebuttalArgumentId);
+  if (opts.phase3.methodologist) {
+    for (const r of opts.phase3.methodologist.rebuttals) {
+      knownAttackIds.add(r.rebuttalArgumentId);
+    }
+  }
+  // CQ raises (via cqResponseId) are also legitimate "attacks" the
+  // tracker may reference in successfulDefenses[].againstAttackId.
+  // Re-derive the synthesized cqraise: ids from phase-3 cqResponses
+  // (same format as buildOpposingCqRaiseBindings).
+  for (const advRole of ["a", "b"] as const) {
+    for (const c of opts.phase3.advocates[advRole].cqResponses) {
+      if (c.action !== "raise") continue;
+      if (c.elidedByRebuttalCqKey) continue;
+      knownAttackIds.add(`cqraise:${c.targetArgumentId}:${c.cqKey}`);
+    }
+  }
+  if (opts.phase3.methodologist) {
+    for (const c of opts.phase3.methodologist.cqResponses) {
+      if (c.action !== "raise") continue;
+      knownAttackIds.add(`cqraise-meth:${c.targetArgumentId}:${c.cqKey}`);
+      knownAttackIds.add(`cqraise:${c.targetArgumentId}:${c.cqKey}`);
+    }
+  }
+  // Phase-2 argument ids are also valid "attack" references — the tracker
+  // sometimes cites a defending argument by its own argumentId.
+  for (const id of knownArguments.keys()) knownAttackIds.add(id);
   const knownPhase4ResponseIds = new Set<string>();
   // Tracker references responses by Phase-3 rebuttalArgumentId (drivenBy is
   // a Phase-4 response id which we synthesize: `phase4-{role}-{idx}`).
@@ -717,6 +816,7 @@ async function maybeRunTracker(opts: MaybeRunTrackerOpts): Promise<TrackerRunRec
       advocateBPhase2Prompt: bPhase2Prompt,
       advocateAPhase3Prompt: aPhase3Prompt,
       advocateBPhase3Prompt: bPhase3Prompt,
+      methodologistPhase3Prompt,
       advocateAPhase4Prompt: aPhase4Prompt,
       advocateBPhase4Prompt: bPhase4Prompt,
       evidenceCorpusPrompt: opts.evidenceCorpusPrompt,
@@ -950,7 +1050,7 @@ function buildOpposingCqRaiseMeta(
 // Prompt renderers
 // ─────────────────────────────────────────────────────────────────
 
-function renderOwnPhase2(
+export function renderOwnPhase2(
   own: Phase2CompleteAdvocate,
   letter: "A" | "B",
   subClaimTextByIndex: Record<number, string>,
@@ -971,6 +1071,108 @@ function renderOwnPhase2(
     lines.push(`  warrant: ${a.warrant ? `"${a.warrant}"` : "null"}`);
     lines.push(``);
   }
+  return lines.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Methodologist (Phase-3 third actor) — per-advocate filter, render,
+// and binding helpers.
+// ─────────────────────────────────────────────────────────────────
+
+interface MethodologistAttacksForAdvocate {
+  rebuttals: Map<string, OpposingRebuttalBinding>;
+  cqRaises: Map<string, OpposingCqRaiseBinding>;
+}
+
+function buildMethodologistAttacksByRole(
+  meth: Phase3CompleteMethodologist | undefined,
+  ownArgsByRole: {
+    "advocate-a": ReadonlyMap<string, OwnArgumentBinding>;
+    "advocate-b": ReadonlyMap<string, OwnArgumentBinding>;
+  },
+): {
+  "advocate-a": MethodologistAttacksForAdvocate;
+  "advocate-b": MethodologistAttacksForAdvocate;
+} {
+  const empty = (): MethodologistAttacksForAdvocate => ({
+    rebuttals: new Map(),
+    cqRaises: new Map(),
+  });
+  const out = {
+    "advocate-a": empty(),
+    "advocate-b": empty(),
+  };
+  if (!meth) return out;
+
+  for (const r of meth.rebuttals) {
+    const role: "advocate-a" | "advocate-b" =
+      r.targetAdvocateRole === "A" ? "advocate-a" : "advocate-b";
+    if (!ownArgsByRole[role].has(r.targetArgumentId)) continue;
+    out[role].rebuttals.set(r.rebuttalArgumentId, {
+      rebuttalArgumentId: r.rebuttalArgumentId,
+      targetArgumentId: r.targetArgumentId,
+      rebuttalPremiseCount: r.premiseClaimIds.length,
+      rebuttalPremiseClaimIds: r.premiseClaimIds,
+      rebuttalAttackType: r.attackType,
+      rebuttalTargetPremiseIndex: r.targetPremiseIndex,
+      rebuttalConclusionClaimId: r.conclusionClaimId,
+      cqKey: r.cqKey,
+    });
+  }
+  for (const c of meth.cqResponses) {
+    if (c.action !== "raise") continue;
+    if (c.elidedByRebuttalCqKey) continue;
+    const role: "advocate-a" | "advocate-b" =
+      c.targetAdvocateRole === "A" ? "advocate-a" : "advocate-b";
+    if (!ownArgsByRole[role].has(c.targetArgumentId)) continue;
+    const cqResponseId = `cqraise-meth:${c.targetArgumentId}:${c.cqKey}`;
+    out[role].cqRaises.set(cqResponseId, {
+      cqResponseId,
+      targetArgumentId: c.targetArgumentId,
+      cqKey: c.cqKey,
+    });
+  }
+  return out;
+}
+
+function renderMethodologistAttacks(
+  meth: Phase3CompleteMethodologist | undefined,
+  side: "A" | "B",
+  ownArgs: ReadonlyMap<string, OwnArgumentBinding>,
+): string {
+  if (!meth) return "";
+  const lines: string[] = [];
+  for (const r of meth.rebuttals) {
+    if (r.targetAdvocateRole !== side) continue;
+    if (!ownArgs.has(r.targetArgumentId)) continue;
+    lines.push(
+      `ATTACK ${r.rebuttalArgumentId}  attackType=${r.attackType}  from=methodologist`,
+    );
+    lines.push(
+      `  targets: ARG ${r.targetArgumentId}  premise=${r.targetPremiseIndex ?? "null"}  cqKey=${r.cqKey ?? "null"}`,
+    );
+    lines.push(`  concludes: "${r.conclusionText}"`);
+    lines.push(`  premises (0-indexed):`);
+    for (let i = 0; i < r.premiseTexts.length; i++) {
+      const tok = r.premiseCitationTokens[i];
+      lines.push(`    [${i}] "${r.premiseTexts[i]}"  cite=${tok ?? "null"}`);
+    }
+    lines.push(`  warrant: ${r.warrant ? `"${r.warrant}"` : "null"}`);
+    lines.push(`  scheme: ${r.schemeKey}`);
+    lines.push(``);
+  }
+  for (const c of meth.cqResponses) {
+    if (c.action !== "raise") continue;
+    if (c.elidedByRebuttalCqKey) continue;
+    if (c.targetAdvocateRole !== side) continue;
+    if (!ownArgs.has(c.targetArgumentId)) continue;
+    const cqResponseId = `cqraise-meth:${c.targetArgumentId}:${c.cqKey}`;
+    lines.push(`CQ_RAISE ${cqResponseId}  action=raise  from=methodologist`);
+    lines.push(`  targets: ARG ${c.targetArgumentId}  cqKey=${c.cqKey}`);
+    lines.push(`  rationale: "${c.rationale}"`);
+    lines.push(``);
+  }
+  if (lines.length === 0) return "";
   return lines.join("\n");
 }
 
@@ -1015,7 +1217,7 @@ function renderOpponentAttacks(
   return lines.join("\n");
 }
 
-function renderTopology(opts: {
+export function renderTopology(opts: {
   centralClaim: string;
   subClaimTextByIndex: Record<number, string>;
   hingeIndices: number[];
@@ -1037,7 +1239,7 @@ function renderTopology(opts: {
   return lines.join("\n");
 }
 
-function renderPhase3Block(adv: Phase3CompleteAdvocate, letter: "A" | "B"): string {
+export function renderPhase3Block(adv: Phase3CompleteAdvocate, letter: "A" | "B"): string {
   const lines: string[] = [];
   for (const r of adv.rebuttals) {
     lines.push(`ATTACK ${r.rebuttalArgumentId}  attackType=${r.attackType}`);
@@ -1069,7 +1271,43 @@ function renderPhase3Block(adv: Phase3CompleteAdvocate, letter: "A" | "B"): stri
   return lines.join("\n");
 }
 
-function renderPhase4Block(rec: DefenseRunRecord, letter: "A" | "B"): string {
+export function renderMethodologistPhase3Block(
+  meth: Phase3CompleteMethodologist | undefined,
+): string {
+  if (!meth) return "";
+  const lines: string[] = [];
+  for (const r of meth.rebuttals) {
+    lines.push(
+      `ATTACK ${r.rebuttalArgumentId}  attackType=${r.attackType}  targetAdvocate=${r.targetAdvocateRole}`,
+    );
+    lines.push(
+      `  targets: ARG ${r.targetArgumentId}  premise=${r.targetPremiseIndex ?? "null"}  cqKey=${r.cqKey ?? "null"}`,
+    );
+    lines.push(`  concludes: "${r.conclusionText}"`);
+    lines.push(`  premises:`);
+    for (let i = 0; i < r.premiseTexts.length; i++) {
+      const tok = r.premiseCitationTokens[i];
+      lines.push(`    [${i}] "${r.premiseTexts[i]}"  cite=${tok ?? "null"}`);
+    }
+    lines.push(`  warrant: ${r.warrant ? `"${r.warrant}"` : "null"}`);
+    lines.push(`  scheme: ${r.schemeKey}`);
+    lines.push(``);
+  }
+  for (const c of meth.cqResponses) {
+    if (c.elidedByRebuttalCqKey) continue;
+    const cqResponseId = `cqraise-meth:${c.targetArgumentId}:${c.cqKey}`;
+    lines.push(
+      `CQ_RAISE ${cqResponseId}  action=${c.action}  targetAdvocate=${c.targetAdvocateRole}`,
+    );
+    lines.push(`  targets: ARG ${c.targetArgumentId}  cqKey=${c.cqKey}`);
+    lines.push(`  rationale: "${c.rationale}"`);
+    lines.push(``);
+  }
+  if (lines.length === 0) return "";
+  return lines.join("\n");
+}
+
+export function renderPhase4Block(rec: DefenseRunRecord, letter: "A" | "B"): string {
   if (!rec.llmOutput) {
     return `(Advocate ${letter} did not produce a Phase-4 output.)`;
   }

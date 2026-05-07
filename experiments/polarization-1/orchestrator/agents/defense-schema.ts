@@ -32,34 +32,65 @@ import {
 /** Same premise constraints as Phase-2 / Phase-3. */
 const DefensePremiseZ = z.object({
   text: z
-    .string()
-    .min(1)
-    .max(400)
-    .refine((s) => /^[A-Z(\u201c"\u2018']/.test(s.trim()), {
-      message: "premise text must begin with a capital letter (declarative sentence)",
-    })
-    .refine((s) => /[.!?]\s*$/.test(s.trim()), {
-      message: "premise text must end with a sentence-terminating punctuation mark",
-    })
-    .refine((s) => !/^(and|or|but|so|because|therefore|thus|hence)\b/i.test(s.trim()), {
-      message: "premise text must not begin with a leading conjunction",
-    })
-    .refine((s) => !/\?\s*$/.test(s.trim()), {
-      message: "premise text must be declarative, not a question",
-    }),
-  citationToken: CitationTokenZ.nullable(),
+    .preprocess(
+      (v) => (typeof v === "string" && v.trim() && !/[.!?]\s*$/.test(v.trim()) ? v.trim() + "." : v),
+      z.string(),
+    )
+    .pipe(
+      z
+        .string()
+        .min(1)
+        .max(400)
+        .refine((s) => /^[A-Z(\u201c"\u2018']/.test(s.trim()), {
+          message: "premise text must begin with a capital letter (declarative sentence)",
+        })
+        .refine((s) => /[.!?]\s*$/.test(s.trim()), {
+          message: "premise text must end with a sentence-terminating punctuation mark",
+        })
+        .refine((s) => !/^(and|or|but|so|because|therefore|thus|hence)\b/i.test(s.trim()), {
+          message: "premise text must not begin with a leading conjunction",
+        })
+        .refine((s) => !/\?\s*$/.test(s.trim()), {
+          message: "premise text must be declarative, not a question",
+        }),
+    ),
+  citationToken: z.preprocess(
+    (v) => {
+      if (typeof v !== "string") return v;
+      // If LLM concatenates multiple tokens (comma/space/pipe-separated),
+      // keep only the first well-formed token.
+      const parts = v.split(/[,;\s|]+/).map((s) => s.trim()).filter(Boolean);
+      if (parts.length > 1) return parts[0];
+      return v;
+    },
+    CitationTokenZ.nullable(),
+  ),
 });
 
 const DeclarativeSentenceZ = z
-  .string()
-  .min(1)
-  .max(400)
-  .refine((s) => /^[A-Z(\u201c"\u2018']/.test(s.trim()), {
-    message: "must begin with a capital letter (declarative sentence)",
-  })
-  .refine((s) => /[.!?]\s*$/.test(s.trim()), {
-    message: "must end with a sentence-terminating punctuation mark",
-  });
+  .preprocess(
+    (v) => {
+      if (typeof v !== "string") return v;
+      let s = v.trim();
+      if (!s) return v;
+      if (s.length > 400) s = s.slice(0, 397).trimEnd() + "...";
+      if (!/[.!?]\s*$/.test(s)) s = s + ".";
+      return s;
+    },
+    z.string(),
+  )
+  .pipe(
+    z
+      .string()
+      .min(1)
+      .max(400)
+      .refine((s) => /^[A-Z(\u201c"\u2018']/.test(s.trim()), {
+        message: "must begin with a capital letter (declarative sentence)",
+      })
+      .refine((s) => /[.!?]\s*$/.test(s.trim()), {
+        message: "must end with a sentence-terminating punctuation mark",
+      }),
+  );
 
 /** Defense attack types: same three modes as Phase 3, but here the
  *  defense's `to` argument is the OPPONENT's REBUTTAL (a CA-node),
@@ -98,10 +129,16 @@ const ResponseZ = z.object({
   /** rebuttalArgumentId — the opponent's Phase-3 rebuttal arg this response addresses. */
   targetAttackId: z.string().min(4),
   kind: z.enum(["defend", "concede", "narrow"]),
-  rationale: z.string().min(40).max(600),
-  defense: DefenseArgumentZ.nullable(),
+  rationale: z.preprocess(
+    (v) => (typeof v === "string" && v.length > 600 ? v.slice(0, 597).trimEnd() + "..." : v),
+    z.string().min(40).max(600),
+  ),
+  defense: z.preprocess((v) => (v === undefined ? null : v), DefenseArgumentZ.nullable()),
   /** REQUIRED when kind === "narrow"; null otherwise. The new narrower conclusion claim. */
-  narrowedConclusionText: DeclarativeSentenceZ.nullable(),
+  narrowedConclusionText: z.preprocess(
+    (v) => (v === undefined ? null : v),
+    DeclarativeSentenceZ.nullable(),
+  ),
 });
 export type DefenseResponse = z.infer<typeof ResponseZ>;
 
@@ -115,7 +152,10 @@ const CqAnswerZ = z.object({
   /** cqResponseId — the opponent's Phase-3 cqResponse this answer addresses. */
   targetCqRaiseId: z.string().min(4),
   kind: z.enum(["answer", "concede"]),
-  rationale: z.string().min(40).max(600),
+  rationale: z.preprocess(
+    (v) => (typeof v === "string" && v.length > 600 ? v.slice(0, 597).trimEnd() + "..." : v),
+    z.string().min(40).max(600),
+  ),
 });
 export type CqAnswer = z.infer<typeof CqAnswerZ>;
 
@@ -222,6 +262,38 @@ export function buildDefenseOutputSchema(opts: DefenseSchemaOpts) {
   } = opts;
 
   return DefenseOutputZ.superRefine((data, ctx) => {
+    // 0. Pre-normalize: resolve truncated/prefix attack & cq-raise IDs in-place.
+    {
+      const attackIdByPrefix = new Map<string, string>();
+      for (const id of opposingRebuttals.keys()) {
+        for (let len = 8; len <= id.length; len++) {
+          const p = id.slice(0, len);
+          if (attackIdByPrefix.has(p)) attackIdByPrefix.set(p, "__ambiguous__");
+          else attackIdByPrefix.set(p, id);
+        }
+      }
+      const cqIdByPrefix = new Map<string, string>();
+      for (const id of opposingCqRaises.keys()) {
+        for (let len = 8; len <= id.length; len++) {
+          const p = id.slice(0, len);
+          if (cqIdByPrefix.has(p)) cqIdByPrefix.set(p, "__ambiguous__");
+          else cqIdByPrefix.set(p, id);
+        }
+      }
+      const resolveAttack = (raw: string): string => {
+        if (opposingRebuttals.has(raw)) return raw;
+        const m = attackIdByPrefix.get(raw);
+        return m && m !== "__ambiguous__" ? m : raw;
+      };
+      const resolveCq = (raw: string): string => {
+        if (opposingCqRaises.has(raw)) return raw;
+        const m = cqIdByPrefix.get(raw);
+        return m && m !== "__ambiguous__" ? m : raw;
+      };
+      for (const r of data.responses) r.targetAttackId = resolveAttack(r.targetAttackId);
+      for (const c of data.cqAnswers) c.targetCqRaiseId = resolveCq(c.targetCqRaiseId);
+    }
+
     // 1. advocateRole consistency.
     if (data.advocateRole !== advocateRole) {
       ctx.addIssue({

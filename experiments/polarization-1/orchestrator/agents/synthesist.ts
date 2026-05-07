@@ -1,17 +1,21 @@
 /**
- * agents/tracker.ts
+ * agents/synthesist.ts
  *
- * Phase-4 Concession Tracker agent runner. The tracker is a single-shot
- * judge: it reads the full dialectical record (root claim, topology,
- * Phase-2 from both, Phase-3 from both, Phase-4 from both, evidence
- * corpus) and produces a TrackerVerdict per the §4.1 schema.
+ * Phase-5 Synthesist / Crux-Finder agent runner. Single-shot judge: it
+ * reads the entire dialectical record (Phase 1 topology, Phase 2 from
+ * both, Phase 3 from both, Phase 4 from both, the Concession Tracker
+ * verdict, evidence corpus + web-citation provenance) and produces a
+ * SynthesistVerdict per the §4 schema.
  *
- * Run AFTER both advocates' Phase-4 outputs are minted. Sequential by
- * construction (no parallelism needed — one agent, one call).
+ * Run AFTER Phase 4 is finalized (i.e. after PHASE_4_COMPLETE.json
+ * exists and its `tracker.outcome === "ok"`).
  *
- * Uses the prod model (Opus in prod, Haiku in dev) and an elevated
- * maxTokens budget because the verdict's per-argument rationales plus
- * the central-claim rationale plus advocate-summary rationales add up.
+ * Uses the prod model with an elevated maxTokens budget and a low
+ * temperature — this is a synthesis/judgment task, not generative.
+ *
+ * Mirrors `tracker.ts` structurally; differences are limited to the
+ * input shape (more sources to render), the schema, and the user-message
+ * template.
  */
 
 import { readFileSync } from "fs";
@@ -23,15 +27,15 @@ import type { OrchestratorConfig } from "../config";
 import { modelFor } from "../config";
 import type { RoundLogger } from "../log/round-logger";
 import {
-  buildTrackerVerdictSchema,
-  TrackerRefusalZ,
-  isTrackerRefusal,
-  type TrackerVerdict,
-  type TrackerRefusal,
-  type TrackerSchemaOpts,
-} from "./tracker-schema";
+  buildSynthesistVerdictSchema,
+  SynthesistRefusalZ,
+  isSynthesistRefusal,
+  type SynthesistVerdict,
+  type SynthesistRefusal,
+  type SynthesistSchemaOpts,
+} from "./synthesist-schema";
 
-export class TrackerValidationError extends Error {
+export class SynthesistValidationError extends Error {
   attempts: number;
   rawResponses: string[];
   zodErrors: ZodError[];
@@ -43,12 +47,12 @@ export class TrackerValidationError extends Error {
   }
 }
 
-export interface TrackerTurnInput {
-  /** Path to the tracker system prompt (relative to experimentRoot). */
+export interface SynthesistTurnInput {
+  /** Path to the synthesist system prompt (relative to experimentRoot or absolute). */
   promptPath: string;
   /** Renders into `## FRAMING`. */
   framing: string;
-  /** Renders into `## TOPOLOGY` — central claim, sub-claims, dependency edges, hinges. */
+  /** Renders into `## TOPOLOGY` — central claim, sub-claims, hinge designations. */
   topologyPrompt: string;
   /** Renders into `## ADVOCATE_A_PHASE_2_ARGUMENTS`. */
   advocateAPhase2Prompt: string;
@@ -58,38 +62,41 @@ export interface TrackerTurnInput {
   advocateAPhase3Prompt: string;
   /** Renders into `## ADVOCATE_B_PHASE_3_ATTACKS_ON_A`. */
   advocateBPhase3Prompt: string;
-  /**
-   * Renders into `## METHODOLOGIST_PHASE_3_ATTACKS`. Empty/undefined →
-   * omit the section (pre-Methodologist deliberations remain valid).
-   */
-  methodologistPhase3Prompt?: string;
   /** Renders into `## ADVOCATE_A_PHASE_4_RESPONSES`. */
   advocateAPhase4Prompt: string;
   /** Renders into `## ADVOCATE_B_PHASE_4_RESPONSES`. */
   advocateBPhase4Prompt: string;
-  /** Renders into `## EVIDENCE_CORPUS`. */
+  /** Renders into `## CONCESSION_TRACKER_VERDICT` — the Phase-4 tracker
+   *  output (argument standings + central-claim verdict + advocate
+   *  summaries). The Synthesist treats this as authoritative input on
+   *  per-argument standings; it is NOT re-litigating standings, it is
+   *  building synthesis on top of them. */
+  trackerVerdictPrompt: string;
+  /** Renders into `## EVIDENCE_CORPUS` — both bound corpus sources and
+   *  web-discovered sources materialized during Phase 2-4. */
   evidenceCorpusPrompt: string;
-  /** Schema-binding parameters (known arguments, attack ids, response ids). */
-  schemaOpts: TrackerSchemaOpts;
+  /** Schema-binding parameters (known argument ids, attack ids, response
+   *  ids, sub-claim count, citation tokens). */
+  schemaOpts: SynthesistSchemaOpts;
   cfg: OrchestratorConfig;
   llm: AnthropicClient;
   logger: RoundLogger;
 }
 
-export interface TrackerTurnResult {
-  response: TrackerVerdict | TrackerRefusal;
+export interface SynthesistTurnResult {
+  response: SynthesistVerdict | SynthesistRefusal;
   rawText: string;
   usage: { inputTokens: number; outputTokens: number };
   attempts: number;
 }
 
-export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTurnResult> {
+export async function runSynthesistTurn(input: SynthesistTurnInput): Promise<SynthesistTurnResult> {
   const promptPath = path.isAbsolute(input.promptPath)
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
   const systemPrompt = readFileSync(promptPath, "utf8");
   const model = modelFor(input.cfg);
-  const outputSchema = buildTrackerVerdictSchema(input.schemaOpts);
+  const outputSchema = buildSynthesistVerdictSchema(input.schemaOpts);
 
   const userMessage = renderUserMessage(input);
 
@@ -107,14 +114,17 @@ export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTu
       system: systemPrompt,
       messages,
       model,
-      // Tracker is a judgment task — slightly lower temp than advocates.
-      temperature: 0.2,
-      // Per-arg rationale (≤600) × ~30 args + 2 advocate summaries
-      // (≤400 each) + central rationale (≤1200) + structural overhead
-      // ≈ 24k chars / ~6k tokens. 16k is comfortable headroom.
-      maxTokens: 16000,
+      // Synthesis is a judgment task — slightly higher than tracker (0.2)
+      // because we *want* original framings of cruxes / contributions, but
+      // still constrained.
+      temperature: 0.4,
+      // Up to 20 cruxes × ~600 chars + 25 originalContributions × ~800
+      // chars + 20 agreements × ~500 chars + 20 openQuestions × ~700 chars
+      // + epistemicShift × ~1500 chars ≈ 70k chars / ~18k tokens. 24k is
+      // the budget with overhead.
+      maxTokens: 24000,
       logger: input.logger,
-      agentRole: "tracker",
+      agentRole: "synthesist",
     });
     totalInputTokens += res.usage.inputTokens;
     totalOutputTokens += res.usage.outputTokens;
@@ -126,15 +136,15 @@ export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTu
     } catch (err) {
       const msg = (err as Error).message;
       input.logger.event("agent_validation_failure", {
-        agent: "tracker",
+        agent: "synthesist",
         attempt,
         kind: "json-extract",
-        phase: 4,
+        phase: 5,
         error: msg,
       });
       if (attempt === 3) {
-        throw new TrackerValidationError(
-          `tracker: could not extract JSON after ${attempt} attempts: ${msg}`,
+        throw new SynthesistValidationError(
+          `synthesist: could not extract JSON after ${attempt} attempts: ${msg}`,
           { attempts: attempt, rawResponses, zodErrors },
         );
       }
@@ -145,16 +155,16 @@ export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTu
           `Your last response could not be parsed as JSON: ${msg}\n\n` +
           `Re-emit per the prompt's §4 contract: a single JSON object, optionally inside a \`\`\`json fence, with no prose.`,
       });
-      input.logger.event("agent_retry", { agent: "tracker", attempt: attempt + 1, phase: 4, reason: "json-extract" });
+      input.logger.event("agent_retry", { agent: "synthesist", attempt: attempt + 1, phase: 5, reason: "json-extract" });
       continue;
     }
 
-    const refusalAttempt = TrackerRefusalZ.safeParse(parsed);
+    const refusalAttempt = SynthesistRefusalZ.safeParse(parsed);
     if (refusalAttempt.success) {
       input.logger.event("agent_parsed_output", {
-        agent: "tracker",
+        agent: "synthesist",
         attempt,
-        phase: 4,
+        phase: 5,
         kind: "refusal",
         output: refusalAttempt.data,
       });
@@ -170,14 +180,15 @@ export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTu
     if (validation.success) {
       const v = validation.data;
       input.logger.event("agent_parsed_output", {
-        agent: "tracker",
+        agent: "synthesist",
         attempt,
-        phase: 4,
-        kind: "tracker-verdict",
-        argumentStandingCount: v.argumentStandings.length,
-        verdict: v.centralClaimVerdict.verdict,
-        aSummary: v.advocateSummaries.find((s) => s.advocateRole === "A"),
-        bSummary: v.advocateSummaries.find((s) => s.advocateRole === "B"),
+        phase: 5,
+        kind: "synthesist-verdict",
+        cruxCount: v.cruxes.length,
+        agreementCount: v.agreements.length,
+        originalContributionCount: v.originalContributions.length,
+        openQuestionCount: v.openQuestions.length,
+        netEpistemicValue: v.epistemicShift.netEpistemicValue,
       });
       return {
         response: v,
@@ -189,63 +200,35 @@ export async function runTrackerTurn(input: TrackerTurnInput): Promise<TrackerTu
 
     zodErrors.push(validation.error);
     input.logger.event("agent_validation_failure", {
-      agent: "tracker",
+      agent: "synthesist",
       attempt,
-      phase: 4,
+      phase: 5,
       kind: "zod",
       issues: validation.error.issues,
     });
 
     if (attempt === 3) {
-      throw new TrackerValidationError(
-        `tracker: hard-validation failed after 3 attempts. Last issues:\n${formatZodIssues(validation.error)}`,
+      throw new SynthesistValidationError(
+        `synthesist: hard-validation failed after 3 attempts. Last issues:\n${formatZodIssues(validation.error)}`,
         { attempts: attempt, rawResponses, zodErrors },
       );
     }
     messages.push({ role: "assistant", content: res.text });
     messages.push({ role: "user", content: validationFollowupMessage(validation.error) });
-    input.logger.event("agent_retry", { agent: "tracker", attempt: attempt + 1, phase: 4, reason: "zod" });
+    input.logger.event("agent_retry", { agent: "synthesist", attempt: attempt + 1, phase: 5, reason: "zod" });
   }
 
-  // Unreachable.
-  throw new Error("tracker: unreachable end of retry loop");
+  throw new Error("synthesist: unreachable end of retry loop");
 }
 
-export { isTrackerRefusal };
+export { isSynthesistRefusal };
 
 // ─────────────────────────────────────────────────────────────────
 // Internals
 // ─────────────────────────────────────────────────────────────────
 
-function renderUserMessage(input: TrackerTurnInput): string {
-  // Compute ground-truth counts from schemaOpts.knownArguments so the LLM
-  // can match advocateSummaries totals exactly (off-by-one tally errors are
-  // the leading cause of tracker hard-validation failures).
-  const counts = { A: { total: 0, hinge: 0 }, B: { total: 0, hinge: 0 } } as const;
-  // Recompute (counts is "as const" so mutate via Map iteration into a fresh object).
-  const tally = { A: { total: 0, hinge: 0 }, B: { total: 0, hinge: 0 } };
-  for (const b of input.schemaOpts.knownArguments.values()) {
-    tally[b.advocateRole].total += 1;
-    if (b.isHingeArgument) tally[b.advocateRole].hinge += 1;
-  }
-  void counts;
-  const groundTruthBlock = [
-    "## GROUND_TRUTH_COUNTS",
-    "",
-    "These are the authoritative Phase-2 argument counts. Your `advocateSummaries` MUST match exactly:",
-    "",
-    `- Role A: totalArguments = ${tally.A.total}, hinge arguments = ${tally.A.hinge}`,
-    `- Role B: totalArguments = ${tally.B.total}, hinge arguments = ${tally.B.hinge}`,
-    "",
-    "For each role: `stoodCount + weakenedCount + fallenCount` MUST equal `totalArguments`,",
-    "and `hingeStandings.{stoodCount + weakenedCount + fallenCount}` MUST equal the hinge count above.",
-    "Cross-check: every argumentId in your `argumentStandings` whose `isHingeArgument=true` and `advocateRole=A`",
-    "must contribute to `hingeStandings` for A (same for B). Count carefully — off-by-one errors are the",
-    "single most common failure mode.",
-  ].join("\n");
-  return [
-    groundTruthBlock,
-    "",
+function renderUserMessage(input: SynthesistTurnInput): string {
+  const sections: string[] = [
     "## FRAMING",
     "",
     input.framing.trim(),
@@ -269,14 +252,19 @@ function renderUserMessage(input: TrackerTurnInput): string {
     "## ADVOCATE_B_PHASE_3_ATTACKS_ON_A",
     "",
     input.advocateBPhase3Prompt.trim(),
-    ...((input.methodologistPhase3Prompt ?? "").trim().length > 0
-      ? [
-          "",
-          "## METHODOLOGIST_PHASE_3_ATTACKS",
-          "",
-          input.methodologistPhase3Prompt!.trim(),
-        ]
-      : []),
+  ];
+
+  const methPrompt = (input.methodologistPhase3Prompt ?? "").trim();
+  if (methPrompt.length > 0) {
+    sections.push(
+      "",
+      "## METHODOLOGIST_PHASE_3_ATTACKS",
+      "",
+      methPrompt,
+    );
+  }
+
+  sections.push(
     "",
     "## ADVOCATE_A_PHASE_4_RESPONSES",
     "",
@@ -286,14 +274,20 @@ function renderUserMessage(input: TrackerTurnInput): string {
     "",
     input.advocateBPhase4Prompt.trim(),
     "",
+    "## CONCESSION_TRACKER_VERDICT",
+    "",
+    input.trackerVerdictPrompt.trim(),
+    "",
     "## EVIDENCE_CORPUS",
     "",
     input.evidenceCorpusPrompt.trim(),
     "",
     "## YOUR_TASK",
     "",
-    "You are the Concession Tracker. Produce a TrackerVerdict per §4 of your system prompt. Cite specific argumentIds, premiseIndices, cqKeys, and Phase-4 responseIds when you justify a verdict. Emit a single JSON object only — no prose before, after, or between.",
-  ].join("\n");
+    "You are the Synthesist / Crux-Finder. Per your §4 contract, produce one JSON object characterizing the dialectical state at the END of Phase 4: identified cruxes (with diagnostic status), agreements (including ones the dialectic *revealed* that weren't visible at Phase 1), originalContributions (the originality test from §6), openQuestions (what would actually resolve remaining cruxes), and epistemicShift (a narrative + net rating). Cite specific Phase-2 argumentIds, Phase-3 rebuttalArgumentIds (from advocates AND from the Methodologist when present), and Phase-4 response ids when justifying every claim. Do NOT relitigate the Concession Tracker's per-argument standings — treat them as authoritative input. Emit the JSON object only — no prose before, after, or between.",
+  );
+
+  return sections.join("\n");
 }
 
 function formatZodIssues(err: ZodError): string {
@@ -309,6 +303,6 @@ function validationFollowupMessage(err: ZodError): string {
     "",
     formatZodIssues(err),
     "",
-    "Re-emit the COMPLETE verdict (not a diff) addressing every issue. Same schema, single JSON object, no prose. Recall that every Phase-2 argument from BOTH advocates must appear in `argumentStandings`, and `advocateSummaries` must contain exactly one entry for role A and one for role B with counts that sum correctly.",
+    "Re-emit the COMPLETE verdict (not a diff) addressing every issue. Same schema, single JSON object, no prose. Recall: every id you cite in `keyArgumentIds`, `basisInRecord`, or `contributingIds` must appear in the record (Phase-2 argumentIds, Phase-3 rebuttalArgumentIds, or `phase4-{A|B}-{r|cq}{idx}` response ids). Citation tokens in `evidenceTokens` must be ones some premise actually used. Cross-references between cruxes and openQuestions use array indices, not ids.",
   ].join("\n");
 }

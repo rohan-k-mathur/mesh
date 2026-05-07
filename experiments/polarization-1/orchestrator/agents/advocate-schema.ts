@@ -121,23 +121,54 @@ export const WebCitationZ = z.object({
   }),
   url: z.string().url(),
   title: z.string().min(1).max(500),
-  authors: z.array(z.string().min(1).max(200)).max(20).optional(),
+  // Tolerate the common LLM mistake of returning a single string here;
+  // coerce to a one-element array before validation.
+  authors: z
+    .preprocess(
+      (v) => (typeof v === "string" ? [v] : v),
+      z.array(z.string().min(1).max(200)).max(20),
+    )
+    .optional(),
   publishedAt: z.string().min(4).max(40).optional(),
   /** One-sentence characterization of what the source actually says, ≤ 500 chars. */
   snippet: z.string().min(1).max(500),
   /** Optional methodology tag — mirrors the corpus item shape. */
   methodology: z
-    .enum([
-      "experimental",
-      "quasi-experimental",
-      "observational",
-      "meta-analysis",
-      "systematic-review",
-      "theoretical",
-      "expert-commentary",
-      "internal-data",
-      "other",
-    ])
+    .preprocess(
+      (v) => {
+        if (typeof v !== "string") return v;
+        const m = v.toLowerCase().trim();
+        // Tolerate common LLM variants.
+        const aliases: Record<string, string> = {
+          "commentary": "expert-commentary",
+          "expert commentary": "expert-commentary",
+          "conceptual": "theoretical",
+          "theory": "theoretical",
+          "experiment": "experimental",
+          "field experiment": "experimental",
+          "rct": "experimental",
+          "quasi experimental": "quasi-experimental",
+          "quasi": "quasi-experimental",
+          "natural experiment": "quasi-experimental",
+          "review": "systematic-review",
+          "meta analysis": "meta-analysis",
+          "metaanalysis": "meta-analysis",
+          "internal": "internal-data",
+        };
+        return aliases[m] ?? v;
+      },
+      z.enum([
+        "experimental",
+        "quasi-experimental",
+        "observational",
+        "meta-analysis",
+        "systematic-review",
+        "theoretical",
+        "expert-commentary",
+        "internal-data",
+        "other",
+      ]),
+    )
     .optional(),
 });
 

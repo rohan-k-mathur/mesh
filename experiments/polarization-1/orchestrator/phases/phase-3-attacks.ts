@@ -54,6 +54,16 @@ import type {
   RebuttalRefusal,
   OpposingArgumentBinding,
 } from "../agents/rebuttal-schema";
+import {
+  runMethodologistTurn,
+  isMethodologistRefusal,
+  MethodologistValidationError,
+  METHODOLOGIST_AGENT_ROLE,
+} from "../agents/methodologist";
+import type {
+  MethodologistOutput,
+  MethodologistRefusal,
+} from "../agents/methodologist-schema";
 import type { ExperimentSchemeKey } from "../scheme-catalog";
 import { isAllowedSchemeKey } from "../scheme-catalog";
 import {
@@ -105,6 +115,29 @@ export interface RebuttalRunRecord {
   };
 }
 
+/**
+ * Methodologist runs once per Phase-3 round, as a third actor after
+ * advocates A and B. Same outcome shape as RebuttalRunRecord but typed
+ * to the Methodologist's output/refusal shapes; the mint result is the
+ * same `AttackMintResult` because we reuse `translateRebuttalOutput`.
+ */
+export interface MethodologistRunRecord {
+  role: typeof METHODOLOGIST_AGENT_ROLE;
+  outcome: "ok" | "refused" | "validation-error";
+  attempts: number;
+  tokenUsage: { inputTokens: number; outputTokens: number };
+  llmOutput?: MethodologistOutput;
+  mintResult?: AttackMintResult;
+  refusal?: MethodologistRefusal;
+  refusalPath?: string;
+  validationError?: { message: string; rawResponsesCount: number };
+  artifacts: {
+    promptPath: string;
+    llmOutputPath?: string;
+    roundLogPath: string;
+  };
+}
+
 export interface Phase3PartialFile {
   phase: 3;
   status: "partial";
@@ -117,6 +150,9 @@ export interface Phase3PartialFile {
   /** Subset of CriticalQuestion catalog keyed by schemeId, frozen at run time. */
   cqCatalog: Record<string, { schemeKey: string; cqKeys: string[] }>;
   advocates: { a?: RebuttalRunRecord; b?: RebuttalRunRecord };
+  /** Phase-3 third-actor record (cross-side methodological critic).
+   *  Optional: pre-Methodologist runs and partials remain valid. */
+  methodologist?: MethodologistRunRecord;
   totals: {
     rebuttalsCreated: number;
     edgesCreated: number;
@@ -226,7 +262,7 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     });
   })();
 
-  if (advocatesToRun.length === 0) {
+  if (advocatesToRun.length === 0 && (priorPartial?.methodologist?.outcome === "ok" || opts.onlyAdvocate)) {
     phaseLogger.event("phase_complete", {
       phase: 3,
       outcome: "already-complete",
@@ -243,6 +279,8 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     a: priorPartial?.advocates.a,
     b: priorPartial?.advocates.b,
   };
+  let methodologistResult: MethodologistRunRecord | undefined =
+    priorPartial?.methodologist;
 
   for (const role of advocatesToRun) {
     const opponentKey = role === "advocate-a" ? "a" : "b";
@@ -268,7 +306,51 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     if (role === "advocate-a") results.a = rec;
     else results.b = rec;
 
-    writePartial(partialPath, opts, ec.stack.id, phase2.topologyBinding.hingeIndices, cqCatalogForFile, results, [], undefined);
+    writePartial(partialPath, opts, ec.stack.id, phase2.topologyBinding.hingeIndices, cqCatalogForFile, results, methodologistResult, [], undefined);
+  }
+
+  // 8b. Run the Methodologist (third actor) iff both advocates have ok
+  //     outcomes and (resume) the methodologist hasn't already run.
+  //     `onlyAdvocate` scopes the run to that advocate only — skip the
+  //     methodologist in that case.
+  const methodologistShouldRun =
+    !opts.onlyAdvocate &&
+    results.a?.outcome === "ok" &&
+    results.b?.outcome === "ok" &&
+    methodologistResult?.outcome !== "ok";
+
+  if (methodologistShouldRun) {
+    const methBindings = buildMethodologistBindings(
+      phase2.advocates.a,
+      phase2.advocates.b,
+      phase2.topologyBinding.layerByIndex,
+    );
+    const methPrompt = renderMethodologistPhase2Block(
+      phase2.advocates.a,
+      phase2.advocates.b,
+      cqCatalogByScheme,
+      phase2.topologyBinding.layerByIndex,
+      phase2.indexToText,
+    );
+    methodologistResult = await runMethodologist({
+      cfg: opts.cfg,
+      iso: opts.iso,
+      llm: opts.llm,
+      deliberationId: opts.deliberationId,
+      framing: framing.full,
+      phase2ArgumentsPrompt: methPrompt,
+      evidenceCorpusPrompt,
+      opposingArguments: methBindings,
+      cqKeysByScheme: cqCatalogByScheme,
+      allowedCitationTokens,
+      tokenToSourceId,
+      registry,
+      opposingArgumentSchemeByArgId: buildMethodologistSchemeMap(methBindings),
+      opposingArgumentPremisesByArgId: buildMethodologistPremiseMap(phase2.advocates.a, phase2.advocates.b),
+      opposingArgumentConclusionByArgId: buildMethodologistConclusionMap(phase2.advocates.a, phase2.advocates.b),
+      schemeCatalog,
+    });
+    writePartial(partialPath, opts, ec.stack.id, phase2.topologyBinding.hingeIndices, cqCatalogForFile, results, methodologistResult, [], undefined);
   }
 
   // 9. Soft-track review.
@@ -312,6 +394,7 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     phase2.topologyBinding.hingeIndices,
     cqCatalogForFile,
     results,
+    methodologistResult,
     review.flags,
     review.judgeUsage.calls > 0 ? review.judgeUsage : undefined,
   );
@@ -686,10 +769,11 @@ function writePartial(
   hingeIndices: number[],
   cqCatalog: Phase3PartialFile["cqCatalog"],
   results: { a?: RebuttalRunRecord; b?: RebuttalRunRecord },
+  methodologist: MethodologistRunRecord | undefined,
   reviewFlags: ReviewFlag[],
   judgeUsage: { calls: number; inputTokens: number; outputTokens: number } | undefined,
 ): Phase3PartialFile {
-  const totals = aggregateTotals(results);
+  const totals = aggregateTotals(results, methodologist);
   const partial: Phase3PartialFile = {
     phase: 3,
     status: "partial",
@@ -700,6 +784,7 @@ function writePartial(
     hingeIndices,
     cqCatalog,
     advocates: results,
+    methodologist,
     totals,
     reviewFlags,
     judgeUsage,
@@ -709,10 +794,10 @@ function writePartial(
   return partial;
 }
 
-function aggregateTotals(results: {
-  a?: RebuttalRunRecord;
-  b?: RebuttalRunRecord;
-}): Phase3PartialFile["totals"] {
+function aggregateTotals(
+  results: { a?: RebuttalRunRecord; b?: RebuttalRunRecord },
+  methodologist: MethodologistRunRecord | undefined,
+): Phase3PartialFile["totals"] {
   let rebuttalsCreated = 0;
   let edgesCreated = 0;
   let cqStatusesUpserted = 0;
@@ -721,7 +806,7 @@ function aggregateTotals(results: {
   let citationsAttached = 0;
   let inputTokens = 0;
   let outputTokens = 0;
-  for (const rec of [results.a, results.b]) {
+  for (const rec of [results.a, results.b, methodologist]) {
     if (!rec) continue;
     inputTokens += rec.tokenUsage.inputTokens;
     outputTokens += rec.tokenUsage.outputTokens;
@@ -750,3 +835,287 @@ export class BothAdvocatesRefusedError extends Error {
   partial?: Phase3PartialFile;
   exitCode = 2;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Methodologist (third actor)
+// ─────────────────────────────────────────────────────────────────
+
+interface MethodologistOpposingArgumentBinding extends OpposingArgumentBinding {
+  advocateRole: "A" | "B";
+}
+
+interface RunMethodologistOpts {
+  cfg: OrchestratorConfig;
+  iso: IsonomiaClient;
+  llm: AnthropicClient;
+  deliberationId: string;
+  framing: string;
+  phase2ArgumentsPrompt: string;
+  evidenceCorpusPrompt: string;
+  opposingArguments: ReadonlyMap<string, MethodologistOpposingArgumentBinding>;
+  cqKeysByScheme: ReadonlyMap<ExperimentSchemeKey, ReadonlySet<string>>;
+  allowedCitationTokens: Set<string>;
+  tokenToSourceId: Record<string, string>;
+  registry: ClaimRegistry;
+  opposingArgumentSchemeByArgId: ReadonlyMap<string, string>;
+  opposingArgumentPremisesByArgId: ReadonlyMap<string, readonly string[]>;
+  opposingArgumentConclusionByArgId: ReadonlyMap<string, string>;
+  schemeCatalog: Array<{ id: string; key: string }>;
+}
+
+async function runMethodologist(
+  opts: RunMethodologistOpts,
+): Promise<MethodologistRunRecord> {
+  const round = 3; // round 3 within Phase 3 — A=1, B=2, M=3
+  const logger = RoundLogger.forRound({
+    runtimeDir: opts.cfg.runtimeDir,
+    phase: 3,
+    round,
+    agentRole: METHODOLOGIST_AGENT_ROLE,
+  });
+
+  const promptRel = "prompts/10-methodologist.md";
+  const promptPath = path.join(opts.cfg.experimentRoot, promptRel);
+  const llmDir = path.join(opts.cfg.runtimeDir, PHASE_3_LLM_DIR);
+  const llmOutputPath = path.join(llmDir, `phase-3-methodologist-output.json`);
+  const roundLogPath = path.join(
+    opts.cfg.runtimeDir,
+    "logs",
+    `round-3-${round}-methodologist.jsonl`,
+  );
+  const baseArtifacts = { promptPath, roundLogPath };
+
+  let turn;
+  try {
+    turn = await runMethodologistTurn({
+      promptPath,
+      framing: opts.framing,
+      phase2ArgumentsPrompt: opts.phase2ArgumentsPrompt,
+      evidenceCorpusPrompt: opts.evidenceCorpusPrompt,
+      schemaOpts: {
+        opposingArguments: opts.opposingArguments,
+        cqKeysByScheme: opts.cqKeysByScheme,
+        allowedCitationTokens: opts.allowedCitationTokens,
+      },
+      cfg: opts.cfg,
+      llm: opts.llm,
+      logger,
+    });
+  } catch (err) {
+    if (err instanceof MethodologistValidationError) {
+      logger.event("phase_complete", {
+        phase: 3,
+        round,
+        agent: METHODOLOGIST_AGENT_ROLE,
+        outcome: "validation-error",
+        attempts: err.attempts,
+      });
+      return {
+        role: METHODOLOGIST_AGENT_ROLE,
+        outcome: "validation-error",
+        attempts: err.attempts,
+        tokenUsage: { inputTokens: 0, outputTokens: 0 },
+        validationError: {
+          message: err.message,
+          rawResponsesCount: err.rawResponses.length,
+        },
+        artifacts: baseArtifacts,
+      };
+    }
+    throw err;
+  }
+
+  if (isMethodologistRefusal(turn.response)) {
+    const refusalPath = path.join(
+      opts.cfg.runtimeDir,
+      REFUSALS_DIR,
+      `phase-3-methodologist-refusal.json`,
+    );
+    mkdirSync(path.dirname(refusalPath), { recursive: true });
+    writeFileSync(refusalPath, JSON.stringify(turn.response, null, 2));
+    logger.event("phase_complete", {
+      phase: 3,
+      round,
+      agent: METHODOLOGIST_AGENT_ROLE,
+      outcome: "refused",
+      reason: turn.response.error,
+      refusalPath,
+    });
+    return {
+      role: METHODOLOGIST_AGENT_ROLE,
+      outcome: "refused",
+      attempts: turn.attempts,
+      tokenUsage: turn.usage,
+      refusal: turn.response,
+      refusalPath,
+      artifacts: baseArtifacts,
+    };
+  }
+
+  mkdirSync(llmDir, { recursive: true });
+  writeFileSync(llmOutputPath, JSON.stringify(turn.response, null, 2));
+
+  // The translator only consumes `rebuttals`, `cqResponses`, and
+  // `webCitations` — all three are structurally identical between
+  // RebuttalOutput and MethodologistOutput (Methodologist's per-item
+  // `targetAdvocateRole` field is extra and ignored). We cast to
+  // RebuttalOutput at the boundary to satisfy the translator's static
+  // type without altering its parameterization.
+  const mintResult = await translateRebuttalOutput({
+    output: turn.response as unknown as RebuttalOutput,
+    deliberationId: opts.deliberationId,
+    iso: opts.iso,
+    logger,
+    cfg: opts.cfg,
+    tokenToSourceId: opts.tokenToSourceId,
+    registry: opts.registry,
+    authorRole: METHODOLOGIST_AGENT_ROLE,
+    opposingArgumentSchemeByArgId: opts.opposingArgumentSchemeByArgId,
+    opposingArgumentPremisesByArgId: opts.opposingArgumentPremisesByArgId,
+    opposingArgumentConclusionByArgId: opts.opposingArgumentConclusionByArgId,
+    schemeCatalog: opts.schemeCatalog,
+    stackId: opts.cfg.deliberation.evidenceStackId ?? null,
+  });
+
+  logger.event("phase_complete", {
+    phase: 3,
+    round,
+    agent: METHODOLOGIST_AGENT_ROLE,
+    outcome: "ok",
+    rebuttalsCreated: mintResult.totals.rebuttalsCreated,
+    edgesCreated: mintResult.totals.edgesCreated,
+    cqStatusesUpserted: mintResult.totals.cqStatusesUpserted,
+  });
+
+  return {
+    role: METHODOLOGIST_AGENT_ROLE,
+    outcome: "ok",
+    attempts: turn.attempts,
+    tokenUsage: turn.usage,
+    llmOutput: turn.response,
+    mintResult,
+    artifacts: { ...baseArtifacts, llmOutputPath },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Methodologist helpers — unified bindings + prompt rendering
+// ─────────────────────────────────────────────────────────────────
+
+function buildMethodologistBindings(
+  a: Phase2CompleteAdvocate,
+  b: Phase2CompleteAdvocate,
+  layerByIndex: Record<number, AdvocateLayer>,
+): Map<string, MethodologistOpposingArgumentBinding> {
+  const m = new Map<string, MethodologistOpposingArgumentBinding>();
+  for (const arg of a.arguments) {
+    if (!isAllowedSchemeKey(arg.schemeKey)) continue;
+    const layer = layerByIndex[arg.conclusionClaimIndex] ?? "empirical";
+    m.set(arg.argumentId, {
+      argumentId: arg.argumentId,
+      schemeKey: arg.schemeKey as ExperimentSchemeKey,
+      premiseCount: arg.premiseClaimIds.length,
+      conclusionLayer: layer,
+      advocateRole: "A",
+    });
+  }
+  for (const arg of b.arguments) {
+    if (!isAllowedSchemeKey(arg.schemeKey)) continue;
+    const layer = layerByIndex[arg.conclusionClaimIndex] ?? "empirical";
+    m.set(arg.argumentId, {
+      argumentId: arg.argumentId,
+      schemeKey: arg.schemeKey as ExperimentSchemeKey,
+      premiseCount: arg.premiseClaimIds.length,
+      conclusionLayer: layer,
+      advocateRole: "B",
+    });
+  }
+  return m;
+}
+
+function buildMethodologistSchemeMap(
+  bindings: ReadonlyMap<string, MethodologistOpposingArgumentBinding>,
+): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const [argId, b] of bindings) m.set(argId, b.schemeKey);
+  return m;
+}
+
+function buildMethodologistPremiseMap(
+  a: Phase2CompleteAdvocate,
+  b: Phase2CompleteAdvocate,
+): Map<string, readonly string[]> {
+  const m = new Map<string, readonly string[]>();
+  for (const arg of a.arguments) m.set(arg.argumentId, arg.premiseClaimIds);
+  for (const arg of b.arguments) m.set(arg.argumentId, arg.premiseClaimIds);
+  return m;
+}
+
+function buildMethodologistConclusionMap(
+  a: Phase2CompleteAdvocate,
+  b: Phase2CompleteAdvocate,
+): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const arg of a.arguments) m.set(arg.argumentId, arg.conclusionClaimId);
+  for (const arg of b.arguments) m.set(arg.argumentId, arg.conclusionClaimId);
+  return m;
+}
+
+/**
+ * Render the PHASE_2_ARGUMENTS prompt block — both advocates' arguments
+ * grouped by side (A first, then B), one block per argument with side
+ * label, premises (0-indexed for UNDERMINE.targetPremiseIndex), warrant,
+ * and inline CQ catalog. Mirrors `renderOpponentArguments` but covers
+ * BOTH sides and tags each ARG line with `side=A|B` so the Methodologist
+ * can populate `targetAdvocateRole` correctly.
+ */
+function renderMethodologistPhase2Block(
+  a: Phase2CompleteAdvocate,
+  b: Phase2CompleteAdvocate,
+  cqCatalog: ReadonlyMap<ExperimentSchemeKey, ReadonlySet<string>>,
+  layerByIndex: Record<number, AdvocateLayer>,
+  indexToText: Record<number, string>,
+): string {
+  const sections: string[] = [];
+  for (const [side, advocate] of [["A", a], ["B", b]] as const) {
+    const lines: string[] = [`### Advocate ${side}`, ``];
+    for (const arg of advocate.arguments) {
+      const layer = layerByIndex[arg.conclusionClaimIndex] ?? "empirical";
+      const subClaimText =
+        indexToText[arg.conclusionClaimIndex] ?? "(text unavailable)";
+      lines.push(
+        `ARG ${arg.argumentId}  side=${side}  scheme=${arg.schemeKey}  layer=${layer}`,
+      );
+      lines.push(
+        `  concludes-to: sub-claim #${arg.conclusionClaimIndex} "${subClaimText}"`,
+      );
+      lines.push(`  premises (0-indexed):`);
+      for (let i = 0; i < arg.premiseTexts.length; i++) {
+        const tok = arg.premiseCitationTokens[i];
+        lines.push(`    [${i}] "${arg.premiseTexts[i]}"  cite=${tok ?? "null"}`);
+      }
+      lines.push(`  warrant: ${arg.warrant ? `"${arg.warrant}"` : "null"}`);
+      const cqKeys = isAllowedSchemeKey(arg.schemeKey)
+        ? cqCatalog.get(arg.schemeKey as ExperimentSchemeKey)
+        : undefined;
+      if (cqKeys && cqKeys.size > 0) {
+        lines.push(`  critical-questions for scheme=${arg.schemeKey}:`);
+        for (const cq of [...cqKeys].sort()) {
+          lines.push(`    ${cq}: (see CriticalQuestion catalog)`);
+        }
+      } else {
+        lines.push(
+          `  critical-questions: (none registered for ${arg.schemeKey})`,
+        );
+      }
+      lines.push(``);
+    }
+    if (advocate.arguments.length === 0) {
+      lines.push(`(No arguments — nothing to attack on this side.)`, ``);
+    }
+    sections.push(lines.join("\n"));
+  }
+  return sections.join("\n\n");
+}
+
+export { runMethodologist as _runMethodologistForTesting };

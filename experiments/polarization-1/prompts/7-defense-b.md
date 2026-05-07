@@ -110,6 +110,19 @@ A single user message of the following structure:
      targets: ARG <yourArgumentId>  cqKey=<cq>
      rationale: "<rationale text>">
 
+## METHODOLOGIST_ATTACKS_AGAINST_YOU  (may be absent)
+
+<The Methodologist is a third Phase-3 actor who critiques BOTH advocates'
+   Phase-2 arguments from a methods/evidence-quality standpoint. When
+   present, this block contains the Methodologist's rebuttals and CQ raises
+   filtered to only those targeting YOUR arguments, in the same format as
+   OPPONENT_ATTACKS_AGAINST_YOU but with `from=methodologist` annotated on
+   each ATTACK / CQ_RAISE header. Treat these attacks identically to A's
+   for response purposes: every one must receive exactly one entry in
+   `responses` or `cqAnswers`. The Methodologist is not your opponent in
+   the partisan sense — their attacks are evidentiary critiques you should
+   address on the merits.>
+
 ## EVIDENCE_CORPUS
 
 <the bound evidence corpus, item by item, same format as Phase 2:
@@ -123,7 +136,8 @@ A single user message of the following structure:
 
 You are Advocate B (skeptical position). Produce a DefenseOutput
 per the schema in §4. Every rebuttal and every raised CQ in
-OPPONENT_ATTACKS_AGAINST_YOU must receive exactly one response.
+OPPONENT_ATTACKS_AGAINST_YOU and METHODOLOGIST_ATTACKS_AGAINST_YOU
+(when present) must receive exactly one response.
 ```
 
 You will not see Advocate A's Phase-4 defenses against you while drafting yours. The two advocates write Phase 4 simultaneously and independently — symmetric draft, symmetric reveal.
@@ -195,13 +209,31 @@ Same rules as Phase 2 / Phase 3: copy the literal `<prefix>:<id>` token from `EV
 
 Same contract as Phase 2 §4.5. Declare web-discovered sources once in the top-level `webCitations` array; reference them from defense premises by `web:<slug>` token; the orchestrator materializes them onto the bound evidence stack with provenance. `token` follows `^web:[A-Za-z0-9._-]+$`; tokens are unique within the output; snippets must accurately characterize what the source says (mischaracterizations are flagged identically to corpus mischaracterizations); every declared web citation must be referenced by at least one premise. A defense citing a web source should also be one whose premise specifically addresses what the Phase-3 attack alleged — web citations used to repeat the Phase-2 case are flagged as evidence-shopping.
 
+**The `src:` prefix is RESERVED for the bound `EVIDENCE_CORPUS`. NEVER use `src:` for a web-discovered source.** Web sources MUST use `web:<slug>` and MUST be declared in the top-level `webCitations` array. **Each entry MUST include all of `token`, `url`, `title`, `snippet`. `authors` MUST be a JSON array of strings.** Example:
+
+```json
+"webCitations": [
+  {
+    "token": "web:piccardi-2025-engagement",
+    "url": "https://example.org/piccardi-2025",
+    "title": "Engagement-based ranking and political polarization",
+    "authors": ["Piccardi, T.", "Saveski, M."],
+    "publishedAt": "2025-03-01",
+    "snippet": "Counterfactual ranking experiment showing engagement-based feeds increase out-group hostility relative to chronological order.",
+    "methodology": "experimental"
+  }
+]
+```
+
+**Every `web:` citationToken used in any defense premise MUST be declared in this output's top-level `webCitations` array with full provenance (`url`, `title`, `snippet`). Defenses citing an undeclared `web:` token are auto-rejected.**
+
 ---
 
 ## 5. Hard constraints
 
 These are mechanically validated. Violations are auto-rejected and you are re-prompted with the violation message. A second violation aborts the round.
 
-1. **Every attack receives exactly one response.** `responses.length` must equal the number of distinct rebuttals in OPPONENT_ATTACKS_AGAINST_YOU; `cqAnswers.length` must equal the number of distinct `action: "raise"` CQ entries. Missing responses, duplicate responses to the same attack, and responses targeting attacks not in the input are auto-rejected.
+1. **Every attack receives exactly one response.** `responses.length` must equal the number of distinct rebuttals across OPPONENT_ATTACKS_AGAINST_YOU **plus** METHODOLOGIST_ATTACKS_AGAINST_YOU; `cqAnswers.length` must equal the number of distinct `action: "raise"` CQ entries across both blocks. Missing responses, duplicate responses to the same attack, and responses targeting attacks not in either input block are auto-rejected.
 2. **`kind` consistency.**
     - `kind === "defend"`: `defense` REQUIRED non-null, `narrowedConclusionText` MUST be null.
     - `kind === "concede"`: `defense` MUST be null, `narrowedConclusionText` MUST be null.

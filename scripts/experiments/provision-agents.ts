@@ -40,6 +40,7 @@ const ROLES = [
   { role: "advocate-b", displayName: "Advocate B (bot)" },
   { role: "challenger", displayName: "Challenger (bot)" },
   { role: "concession-tracker", displayName: "Concession Tracker (bot)" },
+  { role: "methodologist", displayName: "Methodologist (bot)" },
 ] as const;
 
 type Role = (typeof ROLES)[number]["role"];

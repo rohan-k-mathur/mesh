@@ -62,6 +62,16 @@ export interface DefenseTurnInput {
   yourPhase2ArgumentsPrompt: string;
   /** Renders into `## OPPONENT_ATTACKS_AGAINST_YOU` (other advocate's Phase-3 attacks targeting THIS advocate). */
   opponentAttacksPrompt: string;
+  /**
+   * Renders into `## METHODOLOGIST_ATTACKS_AGAINST_YOU` (the
+   * Methodologist's Phase-3 attacks targeting THIS advocate's args).
+   * Empty string → omit the section entirely (pre-Methodologist runs
+   * pass "" or default-undefined). The validator's
+   * `schemaOpts.opposingRebuttals` map already includes methodologist
+   * attack ids (the Phase-4 driver merges both opponents into a single
+   * map), so defense responses may target any of them.
+   */
+  methodologistAttacksPrompt?: string;
   /** Renders into `## EVIDENCE_CORPUS`. */
   evidenceCorpusPrompt: string;
   /** Schema-binding parameters (opposing rebuttals, opposing CQ raises, allowed citation tokens). */
@@ -92,6 +102,7 @@ export async function runDefenseTurn(input: DefenseTurnInput): Promise<DefenseTu
     framing: input.framing,
     yourPhase2: input.yourPhase2ArgumentsPrompt,
     opponentAttacks: input.opponentAttacksPrompt,
+    methodologistAttacks: input.methodologistAttacksPrompt ?? "",
     evidence: input.evidenceCorpusPrompt,
     role: input.role,
   });
@@ -228,15 +239,16 @@ function renderUserMessage(opts: {
   framing: string;
   yourPhase2: string;
   opponentAttacks: string;
+  methodologistAttacks: string;
   evidence: string;
   role: DefenseAgentRole;
 }): string {
   const taskLine =
     opts.role === "advocate-a"
-      ? "You are Advocate A (causal-link position). Produce a Phase-4 DefenseOutput per §4 of your system prompt. Every rebuttal in OPPONENT_ATTACKS_AGAINST_YOU must receive exactly one response in `responses`; every CQ_RAISE must receive exactly one entry in `cqAnswers`. Emit a single JSON object only — no prose before, after, or between."
-      : "You are Advocate B (skeptical position). Produce a Phase-4 DefenseOutput per §4 of your system prompt. Every rebuttal in OPPONENT_ATTACKS_AGAINST_YOU must receive exactly one response in `responses`; every CQ_RAISE must receive exactly one entry in `cqAnswers`. Emit a single JSON object only — no prose before, after, or between.";
+      ? "You are Advocate A (causal-link position). Produce a Phase-4 DefenseOutput per §4 of your system prompt. Every rebuttal in OPPONENT_ATTACKS_AGAINST_YOU and METHODOLOGIST_ATTACKS_AGAINST_YOU must receive exactly one response in `responses`; every CQ_RAISE in either block must receive exactly one entry in `cqAnswers`. Emit a single JSON object only — no prose before, after, or between."
+      : "You are Advocate B (skeptical position). Produce a Phase-4 DefenseOutput per §4 of your system prompt. Every rebuttal in OPPONENT_ATTACKS_AGAINST_YOU and METHODOLOGIST_ATTACKS_AGAINST_YOU must receive exactly one response in `responses`; every CQ_RAISE in either block must receive exactly one entry in `cqAnswers`. Emit a single JSON object only — no prose before, after, or between.";
 
-  return [
+  const sections: string[] = [
     "## FRAMING",
     "",
     opts.framing.trim(),
@@ -248,6 +260,18 @@ function renderUserMessage(opts: {
     "## OPPONENT_ATTACKS_AGAINST_YOU",
     "",
     opts.opponentAttacks.trim(),
+  ];
+
+  if (opts.methodologistAttacks.trim().length > 0) {
+    sections.push(
+      "",
+      "## METHODOLOGIST_ATTACKS_AGAINST_YOU",
+      "",
+      opts.methodologistAttacks.trim(),
+    );
+  }
+
+  sections.push(
     "",
     "## EVIDENCE_CORPUS",
     "",
@@ -256,7 +280,9 @@ function renderUserMessage(opts: {
     "## YOUR_TASK",
     "",
     taskLine,
-  ].join("\n");
+  );
+
+  return sections.join("\n");
 }
 
 function formatZodIssues(err: ZodError): string {

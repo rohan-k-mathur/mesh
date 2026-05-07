@@ -26,7 +26,11 @@ import path from "path";
 
 import type { OrchestratorConfig } from "../config";
 import type { IsonomiaClient } from "../isonomia-client";
-import type { Phase3PartialFile, RebuttalRunRecord } from "../phases/phase-3-attacks";
+import type {
+  Phase3PartialFile,
+  RebuttalRunRecord,
+  MethodologistRunRecord,
+} from "../phases/phase-3-attacks";
 import type { ReviewFlag } from "../review/phase-3-checks";
 import { parseReport, reportPathFor } from "../review/report";
 import { prisma } from "@/lib/prismaclient";
@@ -69,6 +73,28 @@ export interface Phase3CompleteAdvocate {
   cqResponses: Phase3CompleteCqResponse[];
 }
 
+/**
+ * Methodologist-specific complete record. Same shape as the advocate
+ * record except every rebuttal and cqResponse carries an explicit
+ * `targetAdvocateRole` ("A" | "B") so downstream phases can route the
+ * Methodologist's attacks to the correct advocate.
+ */
+export interface Phase3CompleteMethodologistRebuttal
+  extends Phase3CompleteRebuttal {
+  targetAdvocateRole: "A" | "B";
+}
+export interface Phase3CompleteMethodologistCqResponse
+  extends Phase3CompleteCqResponse {
+  targetAdvocateRole: "A" | "B";
+}
+export interface Phase3CompleteMethodologist {
+  outcome: "ok";
+  attempts: number;
+  tokenUsage: { inputTokens: number; outputTokens: number };
+  rebuttals: Phase3CompleteMethodologistRebuttal[];
+  cqResponses: Phase3CompleteMethodologistCqResponse[];
+}
+
 export interface Phase3CompleteFile {
   phase: 3;
   status: "complete";
@@ -79,6 +105,10 @@ export interface Phase3CompleteFile {
   hingeIndices: number[];
   cqCatalog: Phase3PartialFile["cqCatalog"];
   advocates: { a: Phase3CompleteAdvocate; b: Phase3CompleteAdvocate };
+  /** Optional Phase-3 third-actor record (cross-side methodological
+   *  critic). Older deliberations finalized before the Methodologist
+   *  was introduced will not have this field. */
+  methodologist?: Phase3CompleteMethodologist;
   totals: Phase3PartialFile["totals"];
   reviewSummary: {
     totalFlags: number;
@@ -124,6 +154,19 @@ export async function finalizePhase3(opts: {
       expectedArgIds.add(r.rebuttalArgumentId);
       expectedEdgeIds.add(r.edgeId);
     }
+  }
+  // Methodologist (optional). If present and ok, audit its mints too.
+  const meth = partial.methodologist;
+  if (meth?.outcome === "ok" && meth.mintResult) {
+    for (const r of meth.mintResult.rebuttals) {
+      expectedArgIds.add(r.rebuttalArgumentId);
+      expectedEdgeIds.add(r.edgeId);
+    }
+  } else if (meth && meth.outcome !== "ok") {
+    throw new Error(
+      `Phase 3 finalize refused: methodologist record present but outcome="${meth.outcome}". ` +
+        `Re-run \`npm run orchestrator -- phase 3 --resume\` to retry the methodologist.`,
+    );
   }
 
   const divergences: string[] = [];
@@ -181,6 +224,8 @@ export async function finalizePhase3(opts: {
       a: buildCompleteAdvocate(a!),
       b: buildCompleteAdvocate(b!),
     },
+    methodologist:
+      meth?.outcome === "ok" ? buildCompleteMethodologist(meth) : undefined,
     totals: partial.totals,
     reviewSummary,
     judgeUsage: partial.judgeUsage,
@@ -288,6 +333,71 @@ function buildCompleteAdvocate(rec: RebuttalRunRecord): Phase3CompleteAdvocate {
       elidedByRebuttalCqKey: m.elidedByRebuttalCqKey,
     };
   });
+
+  return {
+    outcome: "ok",
+    attempts: rec.attempts,
+    tokenUsage: rec.tokenUsage,
+    rebuttals,
+    cqResponses,
+  };
+}
+
+/**
+ * Build the complete-file Methodologist record. Mirrors
+ * `buildCompleteAdvocate` but propagates the per-item `targetAdvocateRole`
+ * field from the LLM output (the translator stripped it; we re-attach
+ * it here from `rec.llmOutput`).
+ */
+function buildCompleteMethodologist(
+  rec: MethodologistRunRecord,
+): Phase3CompleteMethodologist {
+  if (rec.outcome !== "ok" || !rec.mintResult || !rec.llmOutput) {
+    throw new Error(`buildCompleteMethodologist: methodologist not in "ok" state.`);
+  }
+  const inputRebuttals = rec.llmOutput.rebuttals;
+  const inputCqResponses = rec.llmOutput.cqResponses;
+
+  const rebuttals: Phase3CompleteMethodologistRebuttal[] = rec.mintResult.rebuttals.map(
+    (m) => {
+      const orig = inputRebuttals[m.inputIndex];
+      return {
+        inputIndex: m.inputIndex,
+        rebuttalArgumentId: m.rebuttalArgumentId,
+        targetArgumentId: m.targetArgumentId,
+        targetAdvocateRole: orig.targetAdvocateRole,
+        edgeId: m.edgeId,
+        attackType: m.attackType,
+        targetPremiseIndex: m.targetPremiseIndex,
+        targetPremiseClaimId: m.targetPremiseClaimId,
+        schemeKey: m.schemeKey,
+        schemeId: m.schemeId,
+        conclusionClaimId: m.conclusionClaimId,
+        premiseClaimIds: m.premiseClaimIds,
+        premiseTexts: orig.premises.map((p) => p.text),
+        premiseCitationTokens: orig.premises.map((p) => p.citationToken ?? null),
+        warrant: orig.warrant ?? null,
+        cqKey: m.cqKey,
+        conclusionText: orig.conclusionText,
+        citations: m.citations,
+      };
+    },
+  );
+
+  const cqResponses: Phase3CompleteMethodologistCqResponse[] =
+    rec.mintResult.cqResponses.map((m) => {
+      const orig = inputCqResponses[m.inputIndex];
+      return {
+        inputIndex: m.inputIndex,
+        targetArgumentId: m.targetArgumentId,
+        targetAdvocateRole: orig.targetAdvocateRole,
+        cqKey: m.cqKey,
+        action: m.action,
+        rationale: orig.rationale,
+        cqStatusId: m.cqStatusId,
+        elidedByRebuttalCqKey: m.elidedByRebuttalCqKey,
+      };
+    });
 
   return {
     outcome: "ok",

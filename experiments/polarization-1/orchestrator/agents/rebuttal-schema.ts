@@ -226,7 +226,50 @@ export function buildRebuttalOutputSchema(opts: RebuttalSchemaOpts) {
     rebuttalsPerTargetMax = REBUTTAL_PER_TARGET_MAX,
   } = opts;
 
+  // Pre-normalization helpers: tolerate two common LLM mistakes.
+  // (1) cqKey suffix drift: model emits "causal_strength?" but the
+  //     scheme catalog uses "causal_strength" (or vice-versa).
+  // (2) targetArgumentId truncation: model emits a short prefix
+  //     (e.g. "cmoupg0n4") of a real argument id.
+  const argIdByPrefix = new Map<string, string>();
+  for (const id of opposingArguments.keys()) {
+    // Index increasing-length prefixes ≥ 8 chars.
+    for (let n = 8; n <= id.length; n++) {
+      const p = id.slice(0, n);
+      // Only register prefixes that are unambiguous.
+      if (argIdByPrefix.has(p)) argIdByPrefix.set(p, "__ambiguous__");
+      else argIdByPrefix.set(p, id);
+    }
+  }
+  function resolveArgId(raw: string): string {
+    if (opposingArguments.has(raw)) return raw;
+    const hit = argIdByPrefix.get(raw);
+    if (hit && hit !== "__ambiguous__") return hit;
+    return raw;
+  }
+  function normalizeCqKey(raw: string, schemeKey: ExperimentSchemeKey): string {
+    const cqs = cqKeysByScheme.get(schemeKey);
+    if (!cqs) return raw;
+    if (cqs.has(raw)) return raw;
+    // Try toggling trailing "?".
+    const flipped = raw.endsWith("?") ? raw.slice(0, -1) : raw + "?";
+    if (cqs.has(flipped)) return flipped;
+    return raw;
+  }
+
   return RebuttalOutputZ.superRefine((data, ctx) => {
+    // Apply normalizers in place before any downstream checks see the data.
+    for (const c of data.cqResponses) {
+      c.targetArgumentId = resolveArgId(c.targetArgumentId);
+      const target = opposingArguments.get(c.targetArgumentId);
+      if (target) c.cqKey = normalizeCqKey(c.cqKey, target.schemeKey);
+    }
+    for (const r of data.rebuttals) {
+      r.targetArgumentId = resolveArgId(r.targetArgumentId);
+      const target = opposingArguments.get(r.targetArgumentId);
+      if (target && r.cqKey != null) r.cqKey = normalizeCqKey(r.cqKey, target.schemeKey);
+    }
+
     if (data.advocateRole !== advocateRole) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

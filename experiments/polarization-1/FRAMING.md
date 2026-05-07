@@ -8,7 +8,7 @@
 
 ## Central contested claim
 
-> **Algorithmic content curation on major social media platforms has been a significant causal factor in the rise of political polarization in the United States between 2012 and 2024.**
+> **Algorithmic content curation on major social media platforms has functioned as a significant causal factor in rising US political polarization between 2012 and 2024.**
 
 This is the **root claim** of the deliberation. It will be created as the deliberation's representative claim and serve as the conclusion target for every Phase-1 sub-claim.
 

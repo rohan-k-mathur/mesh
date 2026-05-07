@@ -2663,6 +2663,10 @@ model Argument {
   embeddingModel String?
   embeddedAt     DateTime?
 
+  // Back-relations from ConflictApplication FK fields
+  conflictingApplications ConflictApplication[] @relation("ConflictingArgumentApplications")
+  conflictedApplications  ConflictApplication[] @relation("ConflictedArgumentApplications")
+
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
@@ -2909,6 +2913,12 @@ model ConflictApplication {
   // Conflicted element: exactly one of these must be non-null
   conflictedClaimId    String?
   conflictedArgumentId String?
+
+  // Relations to the four FK fields above
+  conflictingClaim    Claim?    @relation("ConflictingClaimApplications", fields: [conflictingClaimId], references: [id], onDelete: Cascade)
+  conflictingArgument Argument? @relation("ConflictingArgumentApplications", fields: [conflictingArgumentId], references: [id], onDelete: Cascade)
+  conflictedClaim     Claim?    @relation("ConflictedClaimApplications", fields: [conflictedClaimId], references: [id], onDelete: Cascade)
+  conflictedArgument  Argument? @relation("ConflictedArgumentApplications", fields: [conflictedArgumentId], references: [id], onDelete: Cascade)
 
   // Optional: keep legacy AF view in sync
   legacyAttackType  String? // 'REBUTS'|'UNDERCUTS'|'UNDERMINES'
@@ -3839,6 +3849,10 @@ model Claim {
   academicFieldId String?
   academicField   AcademicField? @relation(fields: [academicFieldId], references: [id], onDelete: SetNull)
   concepts        FieldConcept[] @relation("ClaimConcepts")
+
+  // Back-relations from ConflictApplication FK fields
+  conflictingApplications ConflictApplication[] @relation("ConflictingClaimApplications")
+  conflictedApplications  ConflictApplication[] @relation("ConflictedClaimApplications")
 
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
