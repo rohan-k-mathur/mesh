@@ -135,7 +135,163 @@ export interface TrackerSchemaOpts {
 export function buildTrackerVerdictSchema(opts: TrackerSchemaOpts) {
   const { knownArguments, knownAttackIds, knownPhase4ResponseIds } = opts;
 
-  return TrackerVerdictZ.superRefine((data, ctx) => {
+  // Tolerant pre-normalizer: the tracker LLM is given hard rules in
+  // prompts/8-tracker.md §5 but does not always satisfy them. Rather
+  // than fail the entire run on small bookkeeping mistakes, snap the
+  // most common ones into the valid shape *before* superRefine runs.
+  // The deeper semantic claims (which arguments stand vs fall, what
+  // counts as effective concession, the central-claim verdict text)
+  // are NOT touched — only the mechanical bookkeeping fields.
+  const Normalized = z.preprocess((raw) => {
+    if (!raw || typeof raw !== "object") return raw;
+    const data = raw as any;
+
+    // (a) centralClaimVerdict.rationale length cap (1200 chars).
+    const ccv = data.centralClaimVerdict;
+    if (ccv && typeof ccv.rationale === "string" && ccv.rationale.length > 1200) {
+      ccv.rationale = ccv.rationale.slice(0, 1197) + "...";
+    }
+
+    // (a2) advocateSummaries[*].concessionDiscriminationRationale length
+    // cap (400 chars).
+    if (Array.isArray(data.advocateSummaries)) {
+      for (const sum of data.advocateSummaries) {
+        if (
+          sum &&
+          typeof sum.concessionDiscriminationRationale === "string" &&
+          sum.concessionDiscriminationRationale.length > 400
+        ) {
+          sum.concessionDiscriminationRationale =
+            sum.concessionDiscriminationRationale.slice(0, 397) + "...";
+        }
+      }
+    }
+
+    // (a3) argumentStandings[*].rationale length cap (600 chars).
+    if (Array.isArray(data.argumentStandings)) {
+      for (const s of data.argumentStandings) {
+        if (s && typeof s.rationale === "string" && s.rationale.length > 600) {
+          s.rationale = s.rationale.slice(0, 597) + "...";
+        }
+        if (Array.isArray(s?.successfulDefenses)) {
+          for (const sd of s.successfulDefenses) {
+            if (sd && typeof sd.rationale === "string" && sd.rationale.length > 400) {
+              sd.rationale = sd.rationale.slice(0, 397) + "...";
+            }
+            // Strip trailing parenthetical descriptions from id fields.
+            if (sd && typeof sd.againstAttackId === "string") {
+              sd.againstAttackId = sd.againstAttackId.split(/[\s(]/)[0];
+            }
+            if (sd && typeof sd.drivenBy === "string") {
+              sd.drivenBy = sd.drivenBy.split(/[\s(]/)[0];
+            }
+          }
+        }
+        if (Array.isArray(s?.effectiveConcessions)) {
+          for (const ec of s.effectiveConcessions) {
+            if (ec && typeof ec.drivenBy === "string") {
+              ec.drivenBy = ec.drivenBy.split(/[\s(]/)[0];
+            }
+          }
+        }
+      }
+    }
+
+    // (b) argumentStandings: snap isHingeArgument + advocateRole to
+    // the known binding; drop invalid effectiveConcessions; collect
+    // seen ids so we can backfill missing standings below.
+    const seenIds = new Set<string>();
+    const standings = Array.isArray(data.argumentStandings) ? data.argumentStandings : [];
+    for (const s of standings) {
+      if (!s || typeof s !== "object") continue;
+      const binding = knownArguments.get(s.argumentId);
+      if (binding) {
+        seenIds.add(s.argumentId);
+        if (typeof s.isHingeArgument === "boolean" && s.isHingeArgument !== binding.isHingeArgument) {
+          s.isHingeArgument = binding.isHingeArgument;
+        }
+        if (s.advocateRole !== binding.advocateRole) {
+          s.advocateRole = binding.advocateRole;
+        }
+      }
+      if (Array.isArray(s.effectiveConcessions)) {
+        s.effectiveConcessions = s.effectiveConcessions.filter((ec: any) => {
+          if (!ec || typeof ec !== "object") return false;
+          // Drop kind="cq" entries with no cqKey — the LLM occasionally
+          // emits these when concessions cross-reference rebuttals
+          // without a CQ context. They contain no usable information.
+          if (ec.kind === "cq" && (ec.cqKey === null || ec.cqKey === undefined || ec.cqKey === "")) {
+            return false;
+          }
+          // Drop kind="premise" entries with no premiseIndex (same reason).
+          if (ec.kind === "premise" && (ec.premiseIndex === null || ec.premiseIndex === undefined)) {
+            return false;
+          }
+          return true;
+        });
+      }
+    }
+
+    // (c) Backfill missing standings for any Phase-2 argument the LLM
+    // forgot, defaulting to STANDS (conservative — assumes the argument
+    // survived absent any explicit fall verdict).
+    for (const [argId, binding] of knownArguments.entries()) {
+      if (!seenIds.has(argId)) {
+        standings.push({
+          argumentId: argId,
+          advocateRole: binding.advocateRole,
+          standing: "STANDS",
+          isHingeArgument: binding.isHingeArgument,
+          rationale:
+            "[auto-backfilled] No explicit standing was emitted by the tracker for this argument; defaulting to STANDS in the absence of any recorded effective concession.",
+          effectiveConcessions: [],
+          successfulDefenses: [],
+        });
+      }
+    }
+    data.argumentStandings = standings;
+
+    // (d) advocateSummaries: recompute count fields from argumentStandings
+    // tally and known bindings. Leaves the qualitative fields
+    // (concessionDiscrimination + rationale) untouched.
+    const tally: Record<"A" | "B", { S: number; W: number; F: number; H_S: number; H_W: number; H_F: number }> = {
+      A: { S: 0, W: 0, F: 0, H_S: 0, H_W: 0, H_F: 0 },
+      B: { S: 0, W: 0, F: 0, H_S: 0, H_W: 0, H_F: 0 },
+    };
+    const totals: Record<"A" | "B", number> = { A: 0, B: 0 };
+    const hinges: Record<"A" | "B", number> = { A: 0, B: 0 };
+    for (const b of knownArguments.values()) {
+      totals[b.advocateRole]++;
+      if (b.isHingeArgument) hinges[b.advocateRole]++;
+    }
+    for (const s of standings) {
+      const t = tally[s.advocateRole as "A" | "B"];
+      if (!t) continue;
+      if (s.standing === "STANDS") { t.S++; if (s.isHingeArgument) t.H_S++; }
+      else if (s.standing === "WEAKENED") { t.W++; if (s.isHingeArgument) t.H_W++; }
+      else if (s.standing === "FALLEN") { t.F++; if (s.isHingeArgument) t.H_F++; }
+    }
+    if (Array.isArray(data.advocateSummaries)) {
+      for (const sum of data.advocateSummaries) {
+        if (!sum || typeof sum !== "object") continue;
+        const role = sum.advocateRole as "A" | "B";
+        const t = tally[role];
+        if (!t) continue;
+        sum.totalArguments = totals[role];
+        sum.stoodCount = t.S;
+        sum.weakenedCount = t.W;
+        sum.fallenCount = t.F;
+        if (!sum.hingeStandings || typeof sum.hingeStandings !== "object") sum.hingeStandings = {};
+        sum.hingeStandings.stoodCount = t.H_S;
+        sum.hingeStandings.weakenedCount = t.H_W;
+        sum.hingeStandings.fallenCount = t.H_F;
+      }
+    }
+
+    return data;
+  }, TrackerVerdictZ);
+
+  return Normalized.superRefine((data, ctx) => {
     // 1. Every Phase-2 argument from both advocates appears in argumentStandings.
     const seenArgIds = new Set<string>();
     for (let i = 0; i < data.argumentStandings.length; i++) {

@@ -408,6 +408,19 @@ export async function materializeWebCitations(
   }
   const result: Record<string, string> = {};
   for (const wc of opts.webCitations) {
+    // Normalize publishedAt to ISO datetime — platform Zod accepts only full datetime.
+    // Accept "YYYY", "YYYY-MM", "YYYY-MM-DD" by padding to midnight UTC.
+    const normalizePublishedAt = (s: string | undefined | null): string | undefined => {
+      if (!s) return undefined;
+      if (/T\d{2}:\d{2}/.test(s)) return s; // already datetime
+      const m4 = /^(\d{4})$/.exec(s);
+      if (m4) return `${m4[1]}-01-01T00:00:00.000Z`;
+      const m7 = /^(\d{4})-(\d{2})$/.exec(s);
+      if (m7) return `${m7[1]}-${m7[2]}-01T00:00:00.000Z`;
+      const m10 = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+      if (m10) return `${s}T00:00:00.000Z`;
+      return s; // pass through; let server reject if truly malformed
+    };
     const item = await opts.iso.addStackItem(
       opts.stackId,
       {
@@ -415,7 +428,7 @@ export async function materializeWebCitations(
         url: wc.url,
         title: wc.title,
         authors: wc.authors,
-        publishedAt: wc.publishedAt,
+        publishedAt: normalizePublishedAt(wc.publishedAt),
         abstract: wc.snippet,
         keyFindings: wc.snippet ? [wc.snippet] : undefined,
         tags: wc.methodology ? ["web-discovered", wc.methodology] : ["web-discovered"],

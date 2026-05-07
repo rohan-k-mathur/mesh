@@ -173,7 +173,25 @@ If a rebuttal exists *because* of a specific critical question on B's argument, 
 
 ### 4.6 Web citations (loosened mode)
 
-Same contract as Phase 2 §4.5. Declare web-discovered sources once in the top-level `webCitations` array; reference them from rebuttal premises by `web:<slug>` token; the orchestrator materializes them onto the bound evidence stack with provenance. `token` follows `^web:[A-Za-z0-9._-]+$`; tokens are unique within the output; snippets must accurately characterize what the source says (mischaracterizations are flagged identically to corpus mischaracterizations); every declared web citation must be referenced by at least one premise.
+Same contract as Phase 2 §4.5. Declare web-discovered sources once in the top-level `webCitations` array; reference them from rebuttal premises by `web:<slug>` token. **Each entry MUST include all of `token`, `url`, `title`, `snippet`. `authors` MUST be a JSON array of strings (use `["Smith, J."]`, not `"Smith, J."`).** Do NOT use shorthand fields like `slug`.
+
+**The `src:` prefix is RESERVED for the bound `EVIDENCE_CORPUS` (existing platform sources). NEVER use `src:` for a web-discovered source.** Every entry in `webCitations` MUST use a token of the form `web:<slug>` matching `^web:[A-Za-z0-9._-]+$`. If you discover a new source via web search, emit a `web:` token even if you previously saw a similar source under `src:`. Example:
+
+```json
+"webCitations": [
+  {
+    "token": "web:gauthier-2026-x-algorithm",
+    "url": "https://example.org/gauthier-2026.pdf",
+    "title": "Political effects of the X recommendation algorithm",
+    "authors": ["Gauthier, P."],
+    "publishedAt": "2026-02-15",
+    "snippet": "Field experiment with 4,965 active US users (2023): 7 weeks exposure to algorithmic vs. chronological feed produced no significant change in affective polarization.",
+    "methodology": "experimental"
+  }
+]
+```
+
+`token` is unique within the output; `url` must be a real, fetchable URL you actually retrieved via web search; `snippet` must accurately characterize what the source says (mischaracterizations are flagged identically to corpus mischaracterizations); every declared web citation must be referenced by at least one premise.
 
 ---
 
@@ -188,7 +206,9 @@ These are mechanically validated. Violations are auto-rejected and you are re-pr
     - REBUT: `targetPremiseIndex` MUST be null.
     - UNDERMINE: `targetPremiseIndex` REQUIRED, in `[0, target.premises.length)`.
     - UNDERCUT: `targetPremiseIndex` MUST be null.
-5. **`targetArgumentId` resolves.** Every `targetArgumentId` (in both `cqResponses` and `rebuttals`) must be one of B's argument IDs from `OPPONENT_ARGUMENTS`. Unknown IDs auto-rejected.
+5. **`targetArgumentId` resolves.** Every `targetArgumentId` (in both `cqResponses` and `rebuttals`) must be one of B's argument IDs from `OPPONENT_ARGUMENTS`, **copied verbatim in full** (e.g. `cmoupglas00bc8cbsqhk9xru9`, not `cmoupglas`). Truncated or invented IDs are auto-rejected.
+
+**Every `web:` citationToken used in any premise MUST be declared in this output's top-level `webCitations` array (§4.6) with full provenance (`url`, `title`, `snippet`). Premises citing an undeclared `web:` token are auto-rejected.**
 6. **`cqKey` resolves.** Every `cqKey` (on `cqResponses` and on `rebuttals` where non-null) must be a valid critical-question key for the target argument's scheme. The catalog is shown inline per-argument in `OPPONENT_ARGUMENTS`.
 7. **Premise count.** `1 ≤ rebuttal.premises.length ≤ 6`. Loosened from 4. Most rebuttals will still have 2–3 premises; use 4–6 only for genuinely multi-step critiques.
 8. **Premises and conclusionText are declarative sentences.** Each capitalized first word, terminating period, no leading conjunction, single main clause. Phrase fragments and questions are rejected.

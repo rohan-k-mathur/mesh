@@ -1,6 +1,6 @@
 {
   "stackName": "Polarization 1 — evidence corpus",
-  "stackVisibility": "private",
+  "stackVisibility": "public_open",
   "_note": "22 sources spanning (a) studies implicating algorithmic curation, (b) null/contrary findings (esp. the 2023 Science series from the US 2020 Facebook & Instagram Election Study), (c) baseline polarization trend studies, (d) mechanism studies (engagement/animosity dynamics, exposure mapping). Tags align with the orchestrator's coverage signals: experimental, observational, metaAnalysis, skeptical, crossNational, plus topical tokens. DOIs were composed from memory — spot-check before running `npm run orchestrator -- setup`.",
   "items": [
     {

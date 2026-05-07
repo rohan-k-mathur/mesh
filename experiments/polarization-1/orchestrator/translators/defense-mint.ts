@@ -73,6 +73,7 @@ import type {
 } from "../agents/defense-schema";
 import { ClaimRegistry, resolvePremiseClaimIds } from "./claim-mint";
 import { materializeWebCitations } from "./argument-mint";
+import { postDialogueMove } from "./dialogue-move-mint";
 import { prisma } from "@/lib/prismaclient";
 
 // ─────────────────────────────────────────────────────────────────
@@ -362,6 +363,7 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
         oppRebuttal,
         inputIndex: i,
         authorId,
+        authorRole: opts.authorRole,
         ctx,
         iso: opts.iso,
         registry: opts.registry,
@@ -410,6 +412,28 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
         retractedCommitmentClaimId = ownArg.conclusionClaimId;
         commitmentsRetracted += retractedCount;
       }
+
+      // Emit RETRACT for the original conclusion claim (the narrow
+      // supersedes it). The narrow-variant Argument's createArgument
+      // call already auto-emitted ASSERT for the narrowed claim.
+      await postDialogueMove({
+        deliberationId: opts.deliberationId,
+        targetType: "claim",
+        targetId: ownArg.conclusionClaimId,
+        kind: "RETRACT",
+        actorId: authorId,
+        signature: `retract:${opts.authorRole}:narrow:${ownArg.argumentId}:${ownArg.conclusionClaimId}`,
+        payload: {
+          reason: "narrow",
+          ownArgumentId: ownArg.argumentId,
+          targetAttackId: r.targetAttackId,
+          narrowedConclusionClaimId,
+          narrowVariantArgumentId,
+        },
+        logger: opts.logger,
+        step: "defense-mint",
+        advocate: opts.authorRole,
+      });
     }
 
     // 3c. concede → retract relevant commitment + mark CQStatus REJECTED if cqKey.
@@ -429,6 +453,50 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
       cqStatusIdRejected = concedeResult.cqStatusIdRejected;
       commitmentsRetracted += concedeResult.commitmentsRetracted;
       if (concedeResult.cqStatusIdRejected) cqStatusesUpserted += 1;
+
+      // Emit CONCEDE on the opposing rebuttal Argument so the dialogue
+      // log shows the advocate accepting the attack.
+      await postDialogueMove({
+        deliberationId: opts.deliberationId,
+        targetType: "argument",
+        targetId: oppRebuttal.rebuttalArgumentId,
+        kind: "CONCEDE",
+        actorId: authorId,
+        signature: `concede:${opts.authorRole}:${oppRebuttal.rebuttalArgumentId}`,
+        payload: {
+          targetAttackId: r.targetAttackId,
+          ownArgumentId: ownArg.argumentId,
+          rebuttalAttackType: oppRebuttal.rebuttalAttackType,
+          cqKey: oppRebuttal.cqKey ?? null,
+          rationale: r.rationale,
+        },
+        logger: opts.logger,
+        step: "defense-mint",
+        advocate: opts.authorRole,
+      });
+
+      // Emit RETRACT on the conceded proposition (REBUT → conclusion;
+      // UNDERMINE → premise). UNDERCUT concedes have no proposition to
+      // retract (the inference rule is what's challenged).
+      if (concedeResult.retractedClaimId) {
+        await postDialogueMove({
+          deliberationId: opts.deliberationId,
+          targetType: "claim",
+          targetId: concedeResult.retractedClaimId,
+          kind: "RETRACT",
+          actorId: authorId,
+          signature: `retract:${opts.authorRole}:concede:${oppRebuttal.rebuttalArgumentId}:${concedeResult.retractedClaimId}`,
+          payload: {
+            reason: "concede",
+            ownArgumentId: ownArg.argumentId,
+            rebuttalArgumentId: oppRebuttal.rebuttalArgumentId,
+            rebuttalAttackType: oppRebuttal.rebuttalAttackType,
+          },
+          logger: opts.logger,
+          step: "defense-mint",
+          advocate: opts.authorRole,
+        });
+      }
     }
 
     responseResults.push({
@@ -472,6 +540,28 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
       targetCqRaiseId: c.targetCqRaiseId,
       kind: c.kind,
       cqStatusId,
+    });
+
+    // Emit GROUNDS (answer) or CONCEDE (concede) DialogueMove on the
+    // own argument that the cq was raised against.
+    await postDialogueMove({
+      deliberationId: opts.deliberationId,
+      targetType: "argument",
+      targetId: binding.targetArgumentId,
+      kind: c.kind === "answer" ? "GROUNDS" : "CONCEDE",
+      actorId: authorId,
+      signature: `${c.kind === "answer" ? "grounds" : "concede"}:${opts.authorRole}:cq:${binding.targetArgumentId}:${binding.cqKey}`,
+      payload: {
+        cqId: binding.cqKey,
+        cqKey: binding.cqKey,
+        schemeKey: ownArg.schemeKey,
+        targetCqRaiseId: c.targetCqRaiseId,
+        rationale: c.rationale,
+        source: "orchestrator-cq-answer",
+      },
+      logger: opts.logger,
+      step: "defense-mint",
+      advocate: opts.authorRole,
     });
   }
 
@@ -575,6 +665,7 @@ interface MintDefenseOpts {
   oppRebuttal: OpposingRebuttalBinding;
   inputIndex: number;
   authorId: string;
+  authorRole: "advocate-a" | "advocate-b";
   ctx: IsonomiaCallContext;
   iso: IsonomiaClient;
   registry: ClaimRegistry;
@@ -688,6 +779,29 @@ async function mintDefenseArgument(opts: MintDefenseOpts): Promise<{
     },
     opts.ctx,
   );
+
+  // 6b. Emit ATTACK DialogueMove for the defense edge (createArgument
+  // already auto-emitted ASSERT for the defense Argument itself).
+  await postDialogueMove({
+    deliberationId: opts.deliberationId,
+    targetType: "argument",
+    targetId: oppRebuttal.rebuttalArgumentId,
+    kind: "ATTACK" as any,
+    actorId: opts.authorId,
+    signature: `attack:${defenseArgumentId}->${oppRebuttal.rebuttalArgumentId}:${edgeId}`,
+    payload: {
+      fromArgumentId: defenseArgumentId,
+      edgeId,
+      attackType: DEFENSE_ATTACK_TYPE_TO_API[defense.attackType],
+      targetScope: DEFENSE_ATTACK_TYPE_TO_SCOPE[defense.attackType],
+      targetClaimId: targetClaimIdField,
+      targetPremiseId: targetPremiseClaimId,
+      role: "defense",
+    },
+    logger: opts.logger,
+    step: "defense-mint",
+    advocate: opts.authorRole,
+  });
 
   return { defenseArgumentId, edgeId, citations };
 }

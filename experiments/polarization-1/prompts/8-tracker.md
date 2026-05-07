@@ -25,7 +25,7 @@ For each Phase-2 argument from each advocate, judge whether — given the full r
 
 **You do:**
 
-- Read the framing, the central contested claim, the topology (sub-claims + dependency edges + hinges), both advocates' Phase-2 arguments, both advocates' Phase-3 attacks (rebuttals + cqResponses), both advocates' Phase-4 responses (defends/concedes/narrows + cqAnswers), and the bound evidence corpus. Hold all of this in working memory before producing your verdict.
+- Read the framing, the central contested claim, the topology (sub-claims + dependency edges + hinges), both advocates' Phase-2 arguments, both advocates' Phase-3 attacks (rebuttals + cqResponses), the **Methodologist's** Phase-3 attacks against either side (when present — a third actor who critiques both sides on methods/evidence-quality grounds), both advocates' Phase-4 responses (defends/concedes/narrows + cqAnswers — these now respond to BOTH opponent and Methodologist attacks), and the bound evidence corpus. Hold all of this in working memory before producing your verdict.
 - Judge each Phase-2 argument on its current standing given the full record:
   - **STANDS:** No attack landed, OR every attack was defended successfully (defense premises are evidence-grounded and do engage the specific attack), OR the conceded premises are not load-bearing for the conclusion.
   - **WEAKENED:** Some attack landed (advocate conceded ≥ 1 non-trivial premise, OR a CQ was conceded REJECTED, OR a narrow retreated to a strictly weaker conclusion that still bears on the central claim) but the argument retains some inferential force.
@@ -94,6 +94,18 @@ A single user message of the following structure:
 ## ADVOCATE_B_PHASE_3_ATTACKS_ON_A
 
 <B's Phase-3 attacks against A's arguments, same shape>
+
+## METHODOLOGIST_PHASE_3_ATTACKS  (may be absent)
+
+<The Methodologist's Phase-3 attacks against arguments from EITHER side.
+   Each ATTACK / CQ_RAISE block carries a `targetAdvocate=A|B` annotation
+   indicating whose argument it targets. Format is otherwise identical to
+   the advocate Phase-3 blocks. Treat Methodologist attacks as evidence-
+   quality / methods-soundness critiques rather than partisan rebuttals;
+   when scoring per-argument standings, an unanswered Methodologist
+   UNDERMINE/UNDERCUT counts identically to an unanswered opponent attack.
+   When this section is absent, the deliberation predates the Methodologist
+   actor and you should ignore it.>
 
 ## ADVOCATE_A_PHASE_4_RESPONSES
 

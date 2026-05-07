@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { getBlockContexts, getBlockConnectionCount } from "@/lib/stacks/stackItemWriter";
 import { prisma } from "@/lib/prismaclient";
+import { jsonSafeStr } from "@/lib/bigintjson";
 
 export async function GET(
   req: NextRequest,
@@ -33,12 +34,12 @@ export async function GET(
     const contexts = await getBlockContexts(blockId, viewerId ?? undefined);
     const totalCount = await getBlockConnectionCount(blockId);
 
-    return NextResponse.json({
+    return NextResponse.json(jsonSafeStr({
       blockId,
       contexts,
       visibleCount: contexts.length,
       totalCount,
-    });
+    }));
   } catch (error: any) {
     console.error("Error fetching block contexts:", error);
     return NextResponse.json(

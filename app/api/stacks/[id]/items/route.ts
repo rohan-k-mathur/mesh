@@ -22,7 +22,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId, getCurrentUserAuthId } from "@/lib/serverutils";
-import { canEditStack } from "@/lib/stacks/permissions";
+import { canAddToStack } from "@/lib/stacks/permissions";
 import { addBlockToStack, isBlockInStack } from "@/lib/stacks/stackItemWriter";
 import { isSafePublicUrl } from "@/lib/unfurl";
 import { upsertSourceFromUrlOrDoi } from "@/lib/sources/upsertSource";
@@ -84,9 +84,11 @@ export async function POST(
     );
   }
 
-  // Auth: must be able to edit the target stack.
-  const canEdit = await canEditStack(stackId, userId);
-  if (!canEdit) {
+  // Auth: must be able to add items to the target stack. For public_open
+  // stacks, any logged-in user qualifies; for other visibilities only the
+  // owner / EDITOR collaborators do.
+  const canAdd = await canAddToStack(stackId, userId);
+  if (!canAdd) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

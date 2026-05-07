@@ -40,6 +40,7 @@ import { finalizePhase1 } from "./finalize/phase-1-finalize";
 import { finalizePhase2 } from "./finalize/phase-2-finalize";
 import { finalizePhase3 } from "./finalize/phase-3-finalize";
 import { finalizePhase4 } from "./finalize/phase-4-finalize";
+import { finalizePhase5 } from "./finalize/phase-5-finalize";
 import { setupDeliberation } from "./setup/setup-deliberation";
 import {
   EXPERIMENT_SCHEME_KEYS,
@@ -324,6 +325,7 @@ function phaseNameFor(n: number): string {
     case 2: return "phase-2-arguments";
     case 3: return "phase-3-attacks";
     case 4: return "phase-4-defenses";
+    case 5: return "phase-5-synthesis";
     default: throw new Error(`Unknown phase ${n}`);
   }
 }
@@ -379,7 +381,7 @@ async function cmdReview(args: ParsedArgs) {
   const tier = (args.flags["model-tier"] as ModelTier) || "dev";
   const root = args.flags["experiment-root"] as string | undefined;
   const phase = Number(args.flags["phase"] ?? 1);
-  if (phase !== 1 && phase !== 2 && phase !== 3 && phase !== 4) throw new Error(`review supports phase 1, 2, 3, or 4; got ${phase}`);
+  if (phase !== 1 && phase !== 2 && phase !== 3 && phase !== 4) throw new Error(`review supports phase 1, 2, 3, or 4 (Phase 5 has no review-flag step — its output is fully validated by the Synthesist Zod schema); got ${phase}`);
 
   const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
   const partialPath = `${cfg.runtimeDir}/PHASE_${phase}_PARTIAL.json`;
@@ -424,7 +426,7 @@ async function cmdFinalize(args: ParsedArgs) {
   const tier = (args.flags["model-tier"] as ModelTier) || "dev";
   const root = args.flags["experiment-root"] as string | undefined;
   const phase = Number(args.flags["phase"] ?? 1);
-  if (phase !== 1 && phase !== 2 && phase !== 3 && phase !== 4) throw new Error(`finalize supports phase 1, 2, 3, or 4; got ${phase}`);
+  if (phase !== 1 && phase !== 2 && phase !== 3 && phase !== 4 && phase !== 5) throw new Error(`finalize supports phase 1, 2, 3, 4, or 5; got ${phase}`);
 
   const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
   const iso = new IsonomiaClient(cfg);
@@ -434,7 +436,9 @@ async function cmdFinalize(args: ParsedArgs) {
       ? await finalizePhase2({ cfg, iso })
       : phase === 3
         ? await finalizePhase3({ cfg, iso })
-        : await finalizePhase4({ cfg, iso });
+        : phase === 4
+          ? await finalizePhase4({ cfg, iso })
+          : await finalizePhase5({ cfg, iso });
   process.stdout.write(JSON.stringify(complete, null, 2) + "\n");
 }
 

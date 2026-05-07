@@ -68,6 +68,7 @@ import type {
 } from "../agents/rebuttal-schema";
 import { ClaimRegistry, resolvePremiseClaimIds } from "./claim-mint";
 import { materializeWebCitations } from "./argument-mint";
+import { postDialogueMove } from "./dialogue-move-mint";
 import { prisma } from "@/lib/prismaclient";
 
 export interface AttackMintResult {
@@ -131,7 +132,7 @@ export interface TranslateRebuttalOpts {
   registry: ClaimRegistry;
 
   /** Author role for write signing. */
-  authorRole: "advocate-a" | "advocate-b";
+  authorRole: "advocate-a" | "advocate-b" | "methodologist";
 
   /**
    * Map of opposing argument id → that argument's scheme key. Needed to
@@ -308,6 +309,7 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
       r,
       inputIndex: i,
       authorId,
+      authorRole: opts.authorRole,
       ctx,
       iso: opts.iso,
       registry: opts.registry,
@@ -365,6 +367,31 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
       cqStatusId,
       elidedByRebuttalCqKey: false,
     });
+
+    // Emit a WHY DialogueMove for every CQ raise that wasn't already
+    // covered by a rebuttal's cqKey (those are emitted alongside the
+    // ATTACK move below). Waives are dialectically silent (the advocate
+    // is declaring the CQ inapplicable, not challenging the argument).
+    if (c.action === "raise") {
+      await postDialogueMove({
+        deliberationId: opts.deliberationId,
+        targetType: "argument",
+        targetId: c.targetArgumentId,
+        kind: "WHY",
+        actorId: authorId,
+        signature: `why:${opts.authorRole}:${c.targetArgumentId}:${c.cqKey}`,
+        payload: {
+          cqId: c.cqKey,
+          cqKey: c.cqKey,
+          schemeKey: opts.opposingArgumentSchemeByArgId.get(c.targetArgumentId) ?? null,
+          rationale: c.rationale,
+          source: "orchestrator-cq-raise",
+        },
+        logger: opts.logger,
+        step: "attack-mint",
+        advocate: opts.authorRole,
+      });
+    }
   }
 
   const sizeAfter = opts.registry.size();
@@ -403,6 +430,7 @@ interface MintOneRebuttalOpts {
   r: RebuttalArgument;
   inputIndex: number;
   authorId: string;
+  authorRole: "advocate-a" | "advocate-b" | "methodologist";
   ctx: IsonomiaCallContext;
   iso: IsonomiaClient;
   registry: ClaimRegistry;
@@ -523,6 +551,53 @@ async function mintOneRebuttal(opts: MintOneRebuttalOpts): Promise<AttackMintRes
     },
     opts.ctx,
   );
+
+  // 7b. Emit an ATTACK DialogueMove for the rebuttal edge (createArgument
+  // already auto-emitted ASSERT for the rebuttal Argument itself).
+  await postDialogueMove({
+    deliberationId: opts.deliberationId,
+    targetType: "argument",
+    targetId: r.targetArgumentId,
+    kind: "ATTACK" as any,
+    actorId: opts.authorId,
+    signature: `attack:${rebuttalArgumentId}->${r.targetArgumentId}:${edgeId}`,
+    payload: {
+      fromArgumentId: rebuttalArgumentId,
+      edgeId,
+      attackType: ATTACK_TYPE_TO_API[r.attackType],
+      targetScope: ATTACK_TYPE_TO_SCOPE[r.attackType],
+      targetClaimId: targetClaimIdField,
+      targetPremiseId: targetPremiseClaimId,
+      cqKey: r.cqKey,
+    },
+    logger: opts.logger,
+    step: "attack-mint",
+    advocate: opts.authorRole,
+  });
+
+  // 7c. If the rebuttal carries a cqKey, the /attacks route auto-marks
+  // that CQ as `answered`. Record the corresponding WHY move so the
+  // dialogue log shows the challenge that the rebuttal answers.
+  if (r.cqKey) {
+    await postDialogueMove({
+      deliberationId: opts.deliberationId,
+      targetType: "argument",
+      targetId: r.targetArgumentId,
+      kind: "WHY",
+      actorId: opts.authorId,
+      signature: `why:rebuttal:${r.targetArgumentId}:${r.cqKey}:${edgeId}`,
+      payload: {
+        cqId: r.cqKey,
+        cqKey: r.cqKey,
+        viaRebuttalArgumentId: rebuttalArgumentId,
+        edgeId,
+        source: "orchestrator-rebuttal-cq",
+      },
+      logger: opts.logger,
+      step: "attack-mint",
+      advocate: opts.authorRole,
+    });
+  }
 
   return {
     inputIndex: opts.inputIndex,
