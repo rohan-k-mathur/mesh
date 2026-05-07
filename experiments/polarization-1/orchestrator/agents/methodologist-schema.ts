@@ -73,9 +73,16 @@ const MethodologistPremiseZ = z.object({
 
 const TargetAdvocateRoleZ = z.enum(["A", "B"]);
 
+/** Iter-3: tag identifying which kind of object `targetArgumentId`
+ *  resolves to. Default `"phase2-arg"` preserves Iter-2 behavior. */
+const MethTargetKindZ = z.enum(["phase2-arg", "round1-rebuttal"]).default("phase2-arg");
+/** Iter-3 round indicator. Default `"1"` preserves Iter-2 behavior. */
+const MethRoundZ = z.enum(["1", "2"]).default("1");
+
 const MethodologistCqResponseZ = z.object({
-  /** Argument-id of the targeted advocate's argument. */
+  /** Argument-id of the targeted advocate's argument (or round-1 rebuttal in Iter-3 round-2). */
   targetArgumentId: z.string().min(4),
+  targetKind: MethTargetKindZ,
   /** Which advocate authored the targeted argument. */
   targetAdvocateRole: TargetAdvocateRoleZ,
   /** Critical-question key from the target argument's scheme. */
@@ -90,6 +97,7 @@ export type MethodologistCqResponse = z.infer<typeof MethodologistCqResponseZ>;
 
 const MethodologistRebuttalZ = z.object({
   targetArgumentId: z.string().min(4),
+  targetKind: MethTargetKindZ,
   targetAdvocateRole: TargetAdvocateRoleZ,
   attackType: AttackTypeZ,
   targetPremiseIndex: z.number().int().nonnegative().nullable(),
@@ -108,6 +116,8 @@ export type MethodologistRebuttal = z.infer<typeof MethodologistRebuttalZ>;
 export const MethodologistOutputZ = z.object({
   phase: z.literal("3-methodologist"),
   advocateRole: z.literal("M"),
+  /** Iter-3 multi-round indicator. Defaults to "1" so Iter-2 outputs validate. */
+  round: MethRoundZ,
   cqResponses: z.array(MethodologistCqResponseZ).default([]),
   rebuttals: z.array(MethodologistRebuttalZ).default([]),
   webCitations: z.array(WebCitationZ).max(40).optional().default([]),

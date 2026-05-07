@@ -76,7 +76,7 @@ export async function runAdvocateTurn(input: AdvocateTurnInput): Promise<Advocat
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
   const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const model = modelFor(input.cfg, "advocate");
 
   const advocateRole: "A" | "B" = input.role === "advocate-a" ? "A" : "B";
   const outputSchema = buildAdvocateOutputSchema({ ...input.schemaOpts, advocateRole });

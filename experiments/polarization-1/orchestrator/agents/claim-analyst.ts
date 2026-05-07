@@ -61,7 +61,7 @@ export { isRefusal };
 export async function runClaimAnalystTurn(input: ClaimAnalystTurnInput): Promise<ClaimAnalystTurnResult> {
   const promptPath = path.join(input.cfg.experimentRoot, "prompts", "1-claim-analyst.md");
   const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const model = modelFor(input.cfg, "claim-analyst");
 
   const userMessage = renderUserMessage({
     framing: input.framing,

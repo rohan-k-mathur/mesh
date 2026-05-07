@@ -135,6 +135,20 @@ export interface TranslateRebuttalOpts {
   authorRole: "advocate-a" | "advocate-b" | "methodologist";
 
   /**
+   * Iter-3 round indicator. Defaults to `"1"` (Iter-2 behavior). When
+   * `"2"`:
+   *   - The orphan guard is skipped (round-1 rebuttals + cqStatuses are
+   *     preserved as valid prior state).
+   *   - The translator's behavior is otherwise identical: the driver is
+   *     responsible for populating `opposingArgumentSchemeByArgId` /
+   *     `opposingArgumentPremisesByArgId` /
+   *     `opposingArgumentConclusionByArgId` with round-1 rebuttal ids
+   *     when those are valid round-2 targets (`targetKind === "round1-rebuttal"`).
+   *   - DialogueMove ATTACK emissions tag `payload.round = 2`.
+   */
+  round?: "1" | "2";
+
+  /**
    * Map of opposing argument id → that argument's scheme key. Needed to
    * compute the `schemeKey` field on CQStatus rows (the unique constraint
    * is `(targetType, targetId, schemeKey, cqKey)`).
@@ -190,46 +204,61 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
   // identify rebuttals (vs. Phase-2 arguments) by the presence of an
   // outgoing ArgumentEdge created by this bot — Phase-2 arguments never
   // have outgoing edges. Cascade deletes the edges.
-  const priorRebuttalIds = await prisma.argument.findMany({
-    where: {
-      deliberationId: opts.deliberationId,
-      authorId,
-      outgoingEdges: {
-        some: { deliberationId: opts.deliberationId, createdById: authorId },
-      },
-    },
-    select: { id: true },
-  });
-  if (priorRebuttalIds.length > 0) {
-    const droppedRebuttals = await prisma.argument.deleteMany({
-      where: { id: { in: priorRebuttalIds.map((r) => r.id) } },
-    });
-    opts.logger.event("orphan_cleanup", {
-      step: "attack-mint",
-      advocate: opts.authorRole,
-      droppedRebuttalArguments: droppedRebuttals.count,
-    });
-  }
-
-  // Delete prior CQStatus rows by this bot pointing at any opposing
-  // argument. The unique constraint is (targetType, targetId, schemeKey,
-  // cqKey) so we can delete by createdById + targetType + targetId-set.
-  const opposingIds = [...opts.opposingArgumentSchemeByArgId.keys()];
-  if (opposingIds.length > 0) {
-    const droppedCq = await prisma.cQStatus.deleteMany({
+  //
+  // Iter-3 round-2: SKIP this guard. Round-1 rebuttals are valid prior
+  // state and must be preserved (round-2 attacks may target them).
+  // Re-running round-2 in-place therefore requires the driver to clean
+  // up prior round-2 attempts itself (or accept duplicates).
+  const skipOrphanGuard =
+    (opts.output as any).round === "2" || opts.round === "2";
+  if (!skipOrphanGuard) {
+    const priorRebuttalIds = await prisma.argument.findMany({
       where: {
-        createdById: authorId,
-        targetType: "argument",
-        targetId: { in: opposingIds },
+        deliberationId: opts.deliberationId,
+        authorId,
+        outgoingEdges: {
+          some: { deliberationId: opts.deliberationId, createdById: authorId },
+        },
       },
+      select: { id: true },
     });
-    if (droppedCq.count > 0) {
+    if (priorRebuttalIds.length > 0) {
+      const droppedRebuttals = await prisma.argument.deleteMany({
+        where: { id: { in: priorRebuttalIds.map((r) => r.id) } },
+      });
       opts.logger.event("orphan_cleanup", {
         step: "attack-mint",
         advocate: opts.authorRole,
-        droppedCqStatuses: droppedCq.count,
+        droppedRebuttalArguments: droppedRebuttals.count,
       });
     }
+
+    // Delete prior CQStatus rows by this bot pointing at any opposing
+    // argument. The unique constraint is (targetType, targetId, schemeKey,
+    // cqKey) so we can delete by createdById + targetType + targetId-set.
+    const opposingIds = [...opts.opposingArgumentSchemeByArgId.keys()];
+    if (opposingIds.length > 0) {
+      const droppedCq = await prisma.cQStatus.deleteMany({
+        where: {
+          createdById: authorId,
+          targetType: "argument",
+          targetId: { in: opposingIds },
+        },
+      });
+      if (droppedCq.count > 0) {
+        opts.logger.event("orphan_cleanup", {
+          step: "attack-mint",
+          advocate: opts.authorRole,
+          droppedCqStatuses: droppedCq.count,
+        });
+      }
+    }
+  } else {
+    opts.logger.event("orphan_cleanup_skipped", {
+      step: "attack-mint",
+      advocate: opts.authorRole,
+      reason: "round-2: preserve round-1 rebuttals + cqStatuses",
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -319,6 +348,7 @@ export async function translateRebuttalOutput(opts: TranslateRebuttalOpts): Prom
       opposingPremisesByArgId: opts.opposingArgumentPremisesByArgId,
       opposingConclusionByArgId: opts.opposingArgumentConclusionByArgId,
       logger: opts.logger,
+      round: ((opts.output as any).round ?? opts.round ?? "1") as "1" | "2",
     });
     rebuttalResults.push(result);
     citationsAttached += result.citations.length;
@@ -440,6 +470,8 @@ interface MintOneRebuttalOpts {
   opposingPremisesByArgId: ReadonlyMap<string, readonly string[]>;
   opposingConclusionByArgId: ReadonlyMap<string, string>;
   logger: RoundLogger;
+  /** Iter-3 round indicator. Defaults to "1". */
+  round?: "1" | "2";
 }
 
 async function mintOneRebuttal(opts: MintOneRebuttalOpts): Promise<AttackMintResult["rebuttals"][number]> {
@@ -569,6 +601,8 @@ async function mintOneRebuttal(opts: MintOneRebuttalOpts): Promise<AttackMintRes
       targetClaimId: targetClaimIdField,
       targetPremiseId: targetPremiseClaimId,
       cqKey: r.cqKey,
+      round: opts.round ?? "1",
+      targetKind: (r as any).targetKind ?? "phase2-arg",
     },
     logger: opts.logger,
     step: "attack-mint",

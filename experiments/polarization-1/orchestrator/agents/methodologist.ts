@@ -62,6 +62,10 @@ export interface MethodologistTurnInput {
    */
   phase2ArgumentsPrompt: string;
   evidenceCorpusPrompt: string;
+  /** Iter-3: optional content appended to system prompt (round-2 addendum). */
+  appendedSystemPrompt?: string;
+  /** Iter-3: optional extra block appended to user message. */
+  appendedUserBlock?: string;
   schemaOpts: MethodologistSchemaOpts;
   cfg: OrchestratorConfig;
   llm: AnthropicClient;
@@ -81,16 +85,22 @@ export async function runMethodologistTurn(
   const promptPath = path.isAbsolute(input.promptPath)
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
-  const systemPrompt = readFileSync(promptPath, "utf8");
-  const model = modelFor(input.cfg);
+  const baseSystemPrompt = readFileSync(promptPath, "utf8");
+  const systemPrompt = input.appendedSystemPrompt
+    ? `${baseSystemPrompt}\n\n${input.appendedSystemPrompt}`
+    : baseSystemPrompt;
+  const model = modelFor(input.cfg, "methodologist");
 
   const outputSchema = buildMethodologistOutputSchema(input.schemaOpts);
 
-  const userMessage = renderUserMessage({
+  const baseUserMessage = renderUserMessage({
     framing: input.framing,
     phase2Arguments: input.phase2ArgumentsPrompt,
     evidence: input.evidenceCorpusPrompt,
   });
+  const userMessage = input.appendedUserBlock
+    ? `${baseUserMessage}\n\n${input.appendedUserBlock}`
+    : baseUserMessage;
 
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [
     { role: "user", content: userMessage },
