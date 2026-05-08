@@ -107,6 +107,17 @@ export interface RunPhase4Opts {
   /** If set, skip the tracker run (e.g. for fast iteration on advocates). */
   skipTracker?: boolean;
   resume?: boolean;
+  /**
+   * Iter-3 sub-round filter for resume granularity.
+   * - undefined: default behavior (sub-round-a then iter3 sub-round-b
+   *   hook if flag set, then tracker).
+   * - "a": run only sub-round-a; skip the iter3 sub-round-b hook AND
+   *   skip the tracker (re-run `--phase 4` later to get the tracker).
+   * - "b": skip sub-round-a actor loop (must be ok in PHASE_4_PARTIAL.json);
+   *   run only the sub-round-b hook AND skip the tracker. Requires
+   *   `cfg.iter3MultiRound`.
+   */
+  roundFilter?: "a" | "b";
 }
 
 export interface DefenseRunRecord {
@@ -271,7 +282,26 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
   }
 
   // 6. Decide which advocates to run.
+  //    Iter-3 `--round b` short-circuits the sub-round-a actor loop entirely:
+  //    sub-round-a must already be complete in PHASE_4_PARTIAL.json.
+  if (opts.roundFilter === "b") {
+    if (!opts.cfg.iter3MultiRound) {
+      throw new Error(
+        "--round b requires ITER3_MULTI_ROUND=1 (set the env var or `iter3MultiRound: true` in agents.json).",
+      );
+    }
+    if (
+      !priorPartial ||
+      priorPartial.advocates.a?.outcome !== "ok" ||
+      priorPartial.advocates.b?.outcome !== "ok"
+    ) {
+      throw new Error(
+        "--round b requires PHASE_4_PARTIAL.json with both sub-round-a advocates `outcome=ok`. Run `--phase 4 --round a` (or `--phase 4`) first.",
+      );
+    }
+  }
   const advocatesToRun: DefenseAgentRole[] = (() => {
+    if (opts.roundFilter === "b") return [];
     if (opts.onlyAdvocate) return [opts.onlyAdvocate];
     const all: DefenseAgentRole[] = ["advocate-a", "advocate-b"];
     if (!priorPartial) return all;
@@ -306,7 +336,7 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
         outcome: "ok",
         attempts: 0,
         tokenUsage: { inputTokens: 0, outputTokens: 0 },
-        llmOutput: { phase: "4", advocateRole: role === "advocate-a" ? "A" : "B", responses: [], cqAnswers: [] },
+        llmOutput: { phase: "4", advocateRole: role === "advocate-a" ? "A" : "B", subRound: "a", responses: [], cqAnswers: [], webCitations: [] },
         artifacts: {
           promptPath: defensePromptPath(opts.cfg, role),
           roundLogPath: roundLogPath(opts.cfg, role),
@@ -351,13 +381,63 @@ export async function runPhase(opts: RunPhase4Opts): Promise<Phase4PartialFile> 
     );
   }
 
+  // 8c. Iter-3 multi-round: run sub-round-b after both sub-round-a
+  //     defenders are ok and the gate flag is set. Sub-round-b mints to
+  //     the DB (translator preserves sub-round-a narrows via subRound:"b")
+  //     and writes its own PHASE_4_SUBROUNDB_PARTIAL.json. Sub-round-a
+  //     partial is untouched.
+  if (
+    opts.cfg.iter3MultiRound &&
+    opts.roundFilter !== "a" &&
+    !opts.onlyAdvocate &&
+    results.a?.outcome === "ok" &&
+    results.b?.outcome === "ok"
+  ) {
+    const phase2ArgSideById = new Map<string, "A" | "B">();
+    for (const arg of phase2.advocates.a.arguments) phase2ArgSideById.set(arg.argumentId, "A");
+    for (const arg of phase2.advocates.b.arguments) phase2ArgSideById.set(arg.argumentId, "B");
+    const schemeIdByKey = new Map<string, string>();
+    for (const s of schemeCatalog) schemeIdByKey.set(s.key, s.id);
+    try {
+      const { runPhase4SubRoundB } = await import("./phase-4-subround-b");
+      await runPhase4SubRoundB({
+        cfg: opts.cfg,
+        iso: opts.iso,
+        llm: opts.llm,
+        deliberationId: opts.deliberationId,
+        framing: framing.full,
+        evidenceCorpusPrompt,
+        allowedCitationTokens,
+        tokenToSourceId,
+        schemeCatalog,
+        registry,
+        subRoundA: { a: results.a!, b: results.b! },
+        phase3,
+        ownArgsByRole,
+        phase2ArgSideById,
+        yourPhase2PromptByRole,
+        schemeIdByKey,
+      });
+    } catch (err) {
+      // Sub-round-b failure must NOT poison sub-round-a partial. Log
+      // and continue to tracker on sub-round-a results.
+      phaseLogger.event("round_summary", {
+        step: "sub-round-b-error",
+        error: (err as Error).message,
+      });
+    }
+  }
+
   // 9. Concession Tracker.
+  //    Iter-3 `--round a|b` skips the tracker so the user can iterate on
+  //    one sub-round at a time; re-running `--phase 4` (no `--round`)
+  //    runs the tracker against whatever sub-round records exist.
   const tracker = await maybeRunTracker({
     cfg: opts.cfg,
     iso: opts.iso,
     llm: opts.llm,
     deliberationId: opts.deliberationId,
-    skipTracker: opts.skipTracker,
+    skipTracker: opts.skipTracker || opts.roundFilter === "a" || opts.roundFilter === "b",
     framing: framing.full,
     subClaimTextByIndex,
     phase2,
@@ -806,6 +886,28 @@ async function maybeRunTracker(opts: MaybeRunTrackerOpts): Promise<TrackerRunRec
     }
   }
 
+  // Iter-3: when the multi-round flag is set AND partial files exist,
+  // augment the tracker inputs with round-2 attacks + sub-round-b
+  // responses. No-op when flag is off or partials missing.
+  let appendedUserBlock: string | undefined;
+  if (opts.cfg.iter3MultiRound) {
+    const { loadIter3Augmentation } = await import("../util/iter3-augment");
+    const aug = loadIter3Augmentation({
+      runtimeDir: opts.cfg.runtimeDir,
+      deliberationId: opts.deliberationId,
+    });
+    if (aug.anyData) {
+      for (const id of aug.round2AttackIds) knownAttackIds.add(id);
+      for (const id of aug.subRoundBResponseIds) knownPhase4ResponseIds.add(id);
+      appendedUserBlock = aug.appendedUserBlock;
+      logger.event("round_summary", {
+        step: "tracker-iter3-augmented",
+        round2AttackIds: aug.round2AttackIds.size,
+        subRoundBResponseIds: aug.subRoundBResponseIds.size,
+      });
+    }
+  }
+
   let turn;
   try {
     turn = await runTrackerTurn({
@@ -820,6 +922,7 @@ async function maybeRunTracker(opts: MaybeRunTrackerOpts): Promise<TrackerRunRec
       advocateAPhase4Prompt: aPhase4Prompt,
       advocateBPhase4Prompt: bPhase4Prompt,
       evidenceCorpusPrompt: opts.evidenceCorpusPrompt,
+      appendedUserBlock,
       schemaOpts: { knownArguments, knownAttackIds, knownPhase4ResponseIds },
       cfg: opts.cfg,
       llm: opts.llm,
@@ -875,7 +978,7 @@ async function maybeRunTracker(opts: MaybeRunTrackerOpts): Promise<TrackerRunRec
 // Loaders
 // ─────────────────────────────────────────────────────────────────
 
-function loadPhase2Complete(runtimeDir: string, deliberationId: string): Phase2CompleteFile {
+export function loadPhase2Complete(runtimeDir: string, deliberationId: string): Phase2CompleteFile {
   const p = path.join(runtimeDir, "PHASE_2_COMPLETE.json");
   if (!existsSync(p)) {
     throw new Error(`Phase 4 prereq missing: ${p}. Run phase 2 + finalize.`);
@@ -892,7 +995,7 @@ function loadPhase2Complete(runtimeDir: string, deliberationId: string): Phase2C
   return raw;
 }
 
-function loadPhase3Complete(runtimeDir: string, deliberationId: string): Phase3CompleteFile {
+export function loadPhase3Complete(runtimeDir: string, deliberationId: string): Phase3CompleteFile {
   const p = path.join(runtimeDir, "PHASE_3_COMPLETE.json");
   if (!existsSync(p)) {
     throw new Error(`Phase 4 prereq missing: ${p}. Run phase 3 + finalize.`);
@@ -909,7 +1012,7 @@ function loadPhase3Complete(runtimeDir: string, deliberationId: string): Phase3C
   return raw;
 }
 
-function loadSubClaimTextByIndex(runtimeDir: string): Record<number, string> {
+export function loadSubClaimTextByIndex(runtimeDir: string): Record<number, string> {
   const p = path.join(runtimeDir, "PHASE_1_COMPLETE.json");
   const out: Record<number, string> = {};
   if (!existsSync(p)) return out;
@@ -928,7 +1031,7 @@ function loadSubClaimTextByIndex(runtimeDir: string): Record<number, string> {
 // Binding builders
 // ─────────────────────────────────────────────────────────────────
 
-function buildOwnArgumentBindings(
+export function buildOwnArgumentBindings(
   own: Phase2CompleteAdvocate,
   schemeCatalog: Array<{ id: string; key: string }>,
   subClaimTextByIndex: Record<number, string>,

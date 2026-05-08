@@ -56,6 +56,7 @@ const DefensePremiseZ = z.object({
     ),
   citationToken: z.preprocess(
     (v) => {
+      if (v == null) return null;
       if (typeof v !== "string") return v;
       // If LLM concatenates multiple tokens (comma/space/pipe-separated),
       // keep only the first well-formed token.
@@ -63,7 +64,7 @@ const DefensePremiseZ = z.object({
       if (parts.length > 1) return parts[0];
       return v;
     },
-    CitationTokenZ.nullable(),
+    CitationTokenZ.nullish().transform((v) => v ?? null),
   ),
 });
 

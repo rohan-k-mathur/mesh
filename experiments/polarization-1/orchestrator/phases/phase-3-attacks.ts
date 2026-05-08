@@ -83,6 +83,7 @@ import type {
   Phase2CompleteArgument,
 } from "../finalize/phase-2-finalize";
 import type { AdvocateLayer } from "../agents/advocate-schema";
+import { runPhase3Round2 } from "./phase-3-round2";
 
 // ─────────────────────────────────────────────────────────────────
 // Public types
@@ -96,6 +97,14 @@ export interface RunPhase3Opts {
   onlyAdvocate?: RebuttalAgentRole;
   resume?: boolean;
   maxRounds?: number;
+  /**
+   * Iter-3 round filter for resume granularity.
+   * - undefined: default behavior (round-1 then iter3 round-2 hook if flag set).
+   * - "1": run only round-1; skip the iter3 round-2 hook even when flag set.
+   * - "2": skip round-1 actor loop (must be ok in PHASE_3_PARTIAL.json);
+   *        run only the round-2 hook. Requires `cfg.iter3MultiRound`.
+   */
+  roundFilter?: "1" | "2";
 }
 
 export interface RebuttalRunRecord {
@@ -252,7 +261,27 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
   }
 
   // 6. Decide which advocates to run.
+  //    Iter-3 `--round 2` short-circuits the round-1 actor loop entirely:
+  //    round-1 must already be complete in PHASE_3_PARTIAL.json.
+  if (opts.roundFilter === "2") {
+    if (!opts.cfg.iter3MultiRound) {
+      throw new Error(
+        "--round 2 requires ITER3_MULTI_ROUND=1 (set the env var or `iter3MultiRound: true` in agents.json).",
+      );
+    }
+    if (
+      !priorPartial ||
+      priorPartial.advocates.a?.outcome !== "ok" ||
+      priorPartial.advocates.b?.outcome !== "ok" ||
+      priorPartial.methodologist?.outcome !== "ok"
+    ) {
+      throw new Error(
+        "--round 2 requires PHASE_3_PARTIAL.json with all 3 round-1 actors `outcome=ok`. Run `--phase 3 --round 1` (or `--phase 3`) first.",
+      );
+    }
+  }
   const advocatesToRun: RebuttalAgentRole[] = (() => {
+    if (opts.roundFilter === "2") return [];
     if (opts.onlyAdvocate) return [opts.onlyAdvocate];
     const all: RebuttalAgentRole[] = ["advocate-a", "advocate-b"];
     if (!priorPartial) return all;
@@ -262,7 +291,24 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     });
   })();
 
-  if (advocatesToRun.length === 0 && (priorPartial?.methodologist?.outcome === "ok" || opts.onlyAdvocate)) {
+  // Iter-3 `--round 2` skips this short-circuit because the round-2 hook
+  // below is the entire point of the run. Iter-3 default also bypasses
+  // when the round-2 partial doesn't yet exist on disk, so re-running
+  // `--phase 3` after round-1 completes still triggers the round-2 hook.
+  const round2PartialExists = existsSync(
+    path.join(opts.cfg.runtimeDir, "PHASE_3_ROUND2_PARTIAL.json"),
+  );
+  const skipShortCircuitForRound2 =
+    opts.roundFilter === "2" ||
+    (opts.cfg.iter3MultiRound &&
+      opts.roundFilter !== "1" &&
+      !opts.onlyAdvocate &&
+      !round2PartialExists);
+  if (
+    !skipShortCircuitForRound2 &&
+    advocatesToRun.length === 0 &&
+    (priorPartial?.methodologist?.outcome === "ok" || opts.onlyAdvocate)
+  ) {
     phaseLogger.event("phase_complete", {
       phase: 3,
       outcome: "already-complete",
@@ -314,6 +360,7 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
   //     `onlyAdvocate` scopes the run to that advocate only — skip the
   //     methodologist in that case.
   const methodologistShouldRun =
+    opts.roundFilter !== "2" &&
     !opts.onlyAdvocate &&
     results.a?.outcome === "ok" &&
     results.b?.outcome === "ok" &&
@@ -353,12 +400,8 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     writePartial(partialPath, opts, ec.stack.id, phase2.topologyBinding.hingeIndices, cqCatalogForFile, results, methodologistResult, [], undefined);
   }
 
-  // 9. Soft-track review.
-  const rebuttalOutputs = {
-    a: results.a?.outcome === "ok" ? results.a.llmOutput : undefined,
-    b: results.b?.outcome === "ok" ? results.b.llmOutput : undefined,
-  };
-  const anyOk = Boolean(rebuttalOutputs.a || rebuttalOutputs.b);
+  // Build EvidenceSourceLite list once — consumed by both the iter-3
+  // round-2 soft-check pass (below) and the round-1 soft-check pass (§9).
   const reviewSourcesLite = ec.sources.map((s: any) => ({
     sourceId: s.sourceId,
     citationToken: s.citationToken,
@@ -369,6 +412,86 @@ export async function runPhase(opts: RunPhase3Opts): Promise<Phase3PartialFile> 
     keyFindings: Array.isArray(s.keyFindings) ? s.keyFindings : [],
     tags: Array.isArray(s.tags) ? s.tags : [],
   }));
+
+  // 8c. Iter-3 multi-round: run round 2 immediately if all 3 round-1
+  //     actors are ok and the gate flag is set. Round-2 mints to the
+  //     DB (translator skips orphan-guard) and writes its own
+  //     PHASE_3_ROUND2_PARTIAL.json. Round-1 partial is untouched.
+  if (
+    opts.cfg.iter3MultiRound &&
+    opts.roundFilter !== "1" &&
+    !opts.onlyAdvocate &&
+    results.a?.outcome === "ok" &&
+    results.b?.outcome === "ok" &&
+    methodologistResult?.outcome === "ok"
+  ) {
+    const methBindings = buildMethodologistBindings(
+      phase2.advocates.a,
+      phase2.advocates.b,
+      phase2.topologyBinding.layerByIndex,
+    );
+    const methPrompt = renderMethodologistPhase2Block(
+      phase2.advocates.a,
+      phase2.advocates.b,
+      cqCatalogByScheme,
+      phase2.topologyBinding.layerByIndex,
+      phase2.indexToText,
+    );
+    const phase2ArgSideById = new Map<string, "A" | "B">();
+    for (const arg of phase2.advocates.a.arguments) phase2ArgSideById.set(arg.argumentId, "A");
+    for (const arg of phase2.advocates.b.arguments) phase2ArgSideById.set(arg.argumentId, "B");
+    try {
+      await runPhase3Round2({
+        cfg: opts.cfg,
+        iso: opts.iso,
+        llm: opts.llm,
+        deliberationId: opts.deliberationId,
+        framing: framing.full,
+        evidenceCorpusPrompt,
+        allowedCitationTokens,
+        tokenToSourceId,
+        schemeCatalog,
+        schemeIdByKey,
+        cqCatalogByScheme,
+        registry,
+        round1: {
+          a: results.a!,
+          b: results.b!,
+          methodologist: methodologistResult!,
+        },
+        phase2OpponentBindings: opponentBindings,
+        phase2OpponentPrompts: opponentPrompts,
+        methodologistPhase2Prompt: methPrompt,
+        methodologistPhase2Bindings: methBindings,
+        phase2PremiseMaps: {
+          a: buildPremiseMap(phase2.advocates.b),
+          b: buildPremiseMap(phase2.advocates.a),
+        },
+        phase2ConclusionMaps: {
+          a: buildConclusionMap(phase2.advocates.b),
+          b: buildConclusionMap(phase2.advocates.a),
+        },
+        methodologistPhase2PremiseMap: buildMethodologistPremiseMap(phase2.advocates.a, phase2.advocates.b),
+        methodologistPhase2ConclusionMap: buildMethodologistConclusionMap(phase2.advocates.a, phase2.advocates.b),
+        phase2ArgSideById,
+        sources: reviewSourcesLite,
+      });
+    } catch (err) {
+      // Round-2 failure must NOT poison round-1 partial. Log and
+      // continue to soft-track review on round-1 results.
+      phaseLogger.event("round_summary", {
+        step: "round-2-error",
+        error: (err as Error).message,
+      });
+    }
+  }
+
+  // 9. Soft-track review.
+  const rebuttalOutputs = {
+    a: results.a?.outcome === "ok" ? results.a.llmOutput : undefined,
+    b: results.b?.outcome === "ok" ? results.b.llmOutput : undefined,
+  };
+  const anyOk = Boolean(rebuttalOutputs.a || rebuttalOutputs.b);
   const review = anyOk
     ? await runPhase3SoftChecks({
         rebuttals: rebuttalOutputs,
@@ -633,7 +756,7 @@ function loadPhase2Complete(runtimeDir: string, deliberationId: string): Phase2C
  * keyed by scheme KEY (not id) so it matches the rebuttal-schema's
  * `cqKeysByScheme` shape.
  */
-async function loadCqCatalog(
+export async function loadCqCatalog(
   usedSchemeKeys: ReadonlySet<string>,
   schemeIdByKey: ReadonlyMap<string, string>,
 ): Promise<Map<ExperimentSchemeKey, Set<string>>> {
@@ -699,19 +822,19 @@ function buildOpponentMetaMap(opp: Phase2CompleteAdvocate): Map<string, Opposing
   return m;
 }
 
-function buildSchemeMap(bindings: ReadonlyMap<string, OpposingArgumentBinding>): Map<string, string> {
+export function buildSchemeMap(bindings: ReadonlyMap<string, OpposingArgumentBinding>): Map<string, string> {
   const m = new Map<string, string>();
   for (const [argId, b] of bindings) m.set(argId, b.schemeKey);
   return m;
 }
 
-function buildPremiseMap(opp: Phase2CompleteAdvocate): Map<string, readonly string[]> {
+export function buildPremiseMap(opp: Phase2CompleteAdvocate): Map<string, readonly string[]> {
   const m = new Map<string, readonly string[]>();
   for (const a of opp.arguments) m.set(a.argumentId, a.premiseClaimIds);
   return m;
 }
 
-function buildConclusionMap(opp: Phase2CompleteAdvocate): Map<string, string> {
+export function buildConclusionMap(opp: Phase2CompleteAdvocate): Map<string, string> {
   const m = new Map<string, string>();
   for (const a of opp.arguments) m.set(a.argumentId, a.conclusionClaimId);
   return m;
@@ -840,7 +963,7 @@ export class BothAdvocatesRefusedError extends Error {
 // Methodologist (third actor)
 // ─────────────────────────────────────────────────────────────────
 
-interface MethodologistOpposingArgumentBinding extends OpposingArgumentBinding {
+export interface MethodologistOpposingArgumentBinding extends OpposingArgumentBinding {
   advocateRole: "A" | "B";
 }
 

@@ -53,7 +53,12 @@ const RebuttalPremiseZ = z.object({
     .refine((s) => !/\?\s*$/.test(s.trim()), {
       message: "premise text must be declarative, not a question",
     }),
-  citationToken: CitationTokenZ.nullable(),
+  // `.nullish().transform(... ?? null)` — accept either an explicit
+  // `null` or a missing field and normalize both to `null`. LLMs
+  // frequently omit the field on premises with no citation; the
+  // post-validation pass still catches every actually-present token
+  // that fails to resolve in EVIDENCE_CORPUS / webCitations.
+  citationToken: CitationTokenZ.nullish().transform((v) => v ?? null),
 });
 
 /** Attack types map onto ArgumentEdge.attackType. */
@@ -291,7 +296,15 @@ export function buildRebuttalOutputSchema(opts: RebuttalSchemaOpts) {
     for (const r of data.rebuttals) {
       r.targetArgumentId = resolveArgId(r.targetArgumentId);
       const target = opposingArguments.get(r.targetArgumentId);
-      if (target && r.cqKey != null) r.cqKey = normalizeCqKey(r.cqKey, target.schemeKey);
+      if (target && r.cqKey != null) {
+        r.cqKey = normalizeCqKey(r.cqKey, target.schemeKey);
+        // If still not a valid CQ for the target's scheme (i.e. the model
+        // picked a key from a DIFFERENT scheme's catalog), null it. The
+        // rebuttal's substantive content is unaffected; only the optional
+        // CQ-link annotation is dropped.
+        const cqs = cqKeysByScheme.get(target.schemeKey);
+        if (cqs && !cqs.has(r.cqKey)) r.cqKey = null;
+      }
     }
 
     if (data.advocateRole !== advocateRole) {
@@ -438,17 +451,15 @@ export function buildRebuttalOutputSchema(opts: RebuttalSchemaOpts) {
         });
       }
 
-      // Optional cqKey on rebuttal: must be a real CQ for the target's scheme.
-      if (r.cqKey !== null) {
-        const cqs = cqKeysByScheme.get(target.schemeKey);
-        if (cqs && !cqs.has(r.cqKey)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `rebuttals[${i}].cqKey "${r.cqKey}" is not a valid CQ for scheme "${target.schemeKey}"`,
-            path: ["rebuttals", i, "cqKey"],
-          });
-        }
-      }
+      // Optional cqKey on rebuttal: should be a real CQ for the target's
+      // scheme, but this is a pure annotation linking the rebuttal to a
+      // critical question on the target. Invalid keys are silently coerced
+      // to null in a post-process transform below; the rebuttal itself
+      // (premises, conclusion, attack-type) is unaffected. Soft-checks may
+      // surface a warning. We do NOT hard-reject here because the rebuttal's
+      // substantive content is independent of this annotation, and Haiku
+      // frequently picks a key from its own scheme's catalog instead of
+      // the target's.
     }
   });
 }

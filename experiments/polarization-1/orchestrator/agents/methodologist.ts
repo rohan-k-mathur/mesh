@@ -273,5 +273,10 @@ function validationFollowupMessage(err: ZodError): string {
     formatZodIssues(err),
     "",
     "Re-emit the entire JSON object with these issues fixed. Do not include any prose outside the JSON.",
+    "",
+    "Common traps to double-check before re-emitting:",
+    "- `targetAdvocateRole` MUST equal the author of `targetArgumentId`, irrespective of which side your attack ultimately defends. For `targetKind: \"phase2-arg\"`, look up the `side=A|B` tag on the ARG line in `## PHASE_2_ARGUMENTS`. For `targetKind: \"round1-rebuttal\"`, set it to the side whose Phase-2 argument that round-1 rebuttal attacked (shown as `side=<X>-defender` in `## ROUND_1_ATTACKS_ALL`).",
+    "- `cqKey` must be copied verbatim from the target argument's own scheme catalog (`critical-questions for scheme=<schemeKey>:`). Do NOT mix keys across schemes; do NOT add or strip a trailing `?`.",
+    "- `citationToken` must include its prefix (e.g. `src:bail2018`, `block:cmoq...`, `web:<slug>`) and match `^[a-z]+:[A-Za-z0-9._-]+$`. A bare cuid is hard-rejected.",
   ].join("\n");
 }

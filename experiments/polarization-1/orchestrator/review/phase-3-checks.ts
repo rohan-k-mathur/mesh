@@ -60,6 +60,10 @@ import type { ReviewFlag, EvidenceSourceLite } from "./phase-2-checks";
 
 export type { ReviewFlag, EvidenceSourceLite };
 
+/** Role keys for soft-check iteration. Round 1 uses {"a","b"}; Iter-3
+ *  round 2 adds "methodologist" as a third actor. */
+export type SoftCheckRole = "a" | "b" | "methodologist";
+
 export interface OpposingArgumentMeta {
   argumentId: string;
   /** Sub-claim index this argument concludes to. */
@@ -176,11 +180,108 @@ export async function runPhase3SoftChecks(opts: Phase3SoftCheckOpts): Promise<Ph
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Iter-3 round-2 entry
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Iter-3 round-2 soft-check options. Round 2 has THREE actors (A, B,
+ * methodologist) and a wider opponent set per actor (Phase-2 args ∪
+ * round-1 rebuttals filed against own args). We deliberately SKIP two
+ * round-1 checks here:
+ *
+ *   - `mutual_rebut`: round-2 attacks frequently target round-1 rebuttals,
+ *     not the symmetric a-vs-b Phase-2 args; the same-hinge factual-
+ *     disagreement semantics don't apply cleanly.
+ *   - `hinge_attack_concentration`: targets are a mix of Phase-2 args
+ *     (with conclusionClaimIndex) and round-1 rebuttals (free-form
+ *     conclusions — `conclusionClaimIndex` is a sentinel `-1`); the
+ *     hinge-share denominator is no longer meaningful.
+ *
+ * The remaining checks (`attack_targeting`, `scheme_cq_validity`,
+ * `scheme_appropriateness`, `evidence_fidelity`) all run per-actor.
+ *
+ * Methodologist outputs are structurally compatible with `RebuttalOutput`
+ * (rebuttals[] + cqResponses[] with the same field names the checks
+ * read); call sites cast at the boundary.
+ */
+export interface Phase3Round2SoftCheckOpts {
+  /** Per-actor round-2 outputs. Any may be undefined (refusal/error). */
+  outputs: {
+    a?: RebuttalOutput;
+    b?: RebuttalOutput;
+    methodologist?: RebuttalOutput;
+  };
+
+  /**
+   * Per-actor opponent maps. For each actor, the keys are every
+   * `argumentId` that the actor was permitted to target in round 2:
+   * opponent's Phase-2 args + round-1 rebuttals filed against own args
+   * (methodologist sees BOTH sides' Phase-2 args + ALL round-1
+   * rebuttals). Round-1 rebuttal entries should set
+   * `conclusionClaimIndex = -1` (they don't sit at a hinge sub-claim).
+   */
+  opponentByActor: {
+    a: ReadonlyMap<string, OpposingArgumentMeta>;
+    b: ReadonlyMap<string, OpposingArgumentMeta>;
+    methodologist: ReadonlyMap<string, OpposingArgumentMeta>;
+  };
+
+  /** Same shape as Phase 2 — used by the LLM judge. */
+  sources: EvidenceSourceLite[];
+
+  llm?: AnthropicClient;
+  cfg?: OrchestratorConfig;
+  logger?: RoundLogger;
+  judgeModel?: string;
+  judgeTimeoutMs?: number;
+}
+
+export async function runPhase3Round2SoftChecks(
+  opts: Phase3Round2SoftCheckOpts,
+): Promise<Phase3SoftCheckResult> {
+  const flags: ReviewFlag[] = [];
+  const judgeUsage = { calls: 0, inputTokens: 0, outputTokens: 0 };
+
+  const roles: SoftCheckRole[] = ["a", "b", "methodologist"];
+  const sourceByToken = opts.llm && opts.cfg
+    ? new Map(opts.sources.map((s) => [s.citationToken, s] as const))
+    : null;
+
+  for (const role of roles) {
+    const out = opts.outputs[role];
+    if (!out) continue;
+    const opponent = opts.opponentByActor[role];
+    flags.push(...checkAttackTargeting(role, out, opponent));
+    flags.push(...checkSchemeCqValidity(role, out, opponent));
+    flags.push(...checkRebuttalSchemeAppropriateness(role, out));
+
+    if (sourceByToken && opts.llm && opts.cfg) {
+      const judged = await judgeRebuttalEvidenceFidelity({
+        role,
+        out,
+        sourceByToken,
+        llm: opts.llm,
+        cfg: opts.cfg,
+        logger: opts.logger,
+        judgeModel: opts.judgeModel,
+        judgeTimeoutMs: opts.judgeTimeoutMs,
+      });
+      flags.push(...judged.flags);
+      judgeUsage.calls += judged.usage.calls;
+      judgeUsage.inputTokens += judged.usage.inputTokens;
+      judgeUsage.outputTokens += judged.usage.outputTokens;
+    }
+  }
+
+  return { flags, judgeUsage };
+}
+
+// ─────────────────────────────────────────────────────────────────
 // 1. attack_targeting (defensive)
 // ─────────────────────────────────────────────────────────────────
 
 function checkAttackTargeting(
-  role: "a" | "b",
+  role: SoftCheckRole,
   out: RebuttalOutput,
   opponent: ReadonlyMap<string, OpposingArgumentMeta>,
 ): ReviewFlag[] {
@@ -227,7 +328,7 @@ function checkAttackTargeting(
 // ─────────────────────────────────────────────────────────────────
 
 function checkSchemeCqValidity(
-  role: "a" | "b",
+  role: SoftCheckRole,
   out: RebuttalOutput,
   opponent: ReadonlyMap<string, OpposingArgumentMeta>,
 ): ReviewFlag[] {
@@ -355,7 +456,7 @@ const CAUSAL_LANG = /\b(cause|caused|causes|causing|causal|increase[ds]?|decreas
 const POWER_LANG = /\b(powered|sample size|n\s*=\s*\d|pre-?registered|95% (CI|confidence)|effect size|null finding|did not detect)\b/i;
 const EXPERT_ASSERTION_LANG = /\b(argues?|contends?|concludes?|holds?|maintains?|asserts?|recommends?|warns?)\b/i;
 
-function checkRebuttalSchemeAppropriateness(role: "a" | "b", out: RebuttalOutput): ReviewFlag[] {
+function checkRebuttalSchemeAppropriateness(role: SoftCheckRole, out: RebuttalOutput): ReviewFlag[] {
   const flags: ReviewFlag[] = [];
   for (let i = 0; i < out.rebuttals.length; i++) {
     const r = out.rebuttals[i];
@@ -416,7 +517,7 @@ Output ONLY a JSON object of shape:
 No prose before or after. premiseIndex is 0-based and matches the order in the input.`;
 
 interface JudgeOpts {
-  role: "a" | "b";
+  role: SoftCheckRole;
   out: RebuttalOutput;
   sourceByToken: Map<string, EvidenceSourceLite>;
   llm: AnthropicClient;
@@ -520,7 +621,7 @@ async function judgeRebuttalEvidenceFidelity(opts: JudgeOpts): Promise<JudgeBatc
 }
 
 function renderJudgePrompt(
-  role: "a" | "b",
+  role: SoftCheckRole,
   rebuttalIndex: number,
   r: RebuttalArgument,
   pairs: Array<{ premiseIndex: number; premiseText: string; citationToken: string; source: EvidenceSourceLite }>,

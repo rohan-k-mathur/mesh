@@ -74,6 +74,19 @@ export interface DefenseTurnInput {
   methodologistAttacksPrompt?: string;
   /** Renders into `## EVIDENCE_CORPUS`. */
   evidenceCorpusPrompt: string;
+  /**
+   * Optional Iter-3 sub-round-b addendum content. When present, appended
+   * verbatim to the base system prompt (after a blank line). Iter-2 and
+   * sub-round-a code paths leave this undefined and behavior is unchanged.
+   */
+  appendedSystemPrompt?: string;
+  /**
+   * Optional Iter-3 sub-round-b user-message addendum (e.g. the
+   * `## ROUND_2_ATTACKS_AGAINST_YOU` block). When present, appended to
+   * the rendered user message between `## EVIDENCE_CORPUS` and
+   * `## YOUR_TASK`.
+   */
+  appendedUserBlock?: string;
   /** Schema-binding parameters (opposing rebuttals, opposing CQ raises, allowed citation tokens). */
   schemaOpts: Omit<DefenseSchemaOpts, "advocateRole">;
   cfg: OrchestratorConfig;
@@ -92,7 +105,11 @@ export async function runDefenseTurn(input: DefenseTurnInput): Promise<DefenseTu
   const promptPath = path.isAbsolute(input.promptPath)
     ? input.promptPath
     : path.join(input.cfg.experimentRoot, input.promptPath);
-  const systemPrompt = readFileSync(promptPath, "utf8");
+  const baseSystemPrompt = readFileSync(promptPath, "utf8");
+  const systemPrompt =
+    input.appendedSystemPrompt && input.appendedSystemPrompt.trim().length > 0
+      ? `${baseSystemPrompt}\n\n${input.appendedSystemPrompt.trim()}\n`
+      : baseSystemPrompt;
   const model = modelFor(input.cfg, "defense");
 
   const advocateRole: "A" | "B" = input.role === "advocate-a" ? "A" : "B";
@@ -104,6 +121,7 @@ export async function runDefenseTurn(input: DefenseTurnInput): Promise<DefenseTu
     opponentAttacks: input.opponentAttacksPrompt,
     methodologistAttacks: input.methodologistAttacksPrompt ?? "",
     evidence: input.evidenceCorpusPrompt,
+    appendedUserBlock: input.appendedUserBlock ?? "",
     role: input.role,
   });
 
@@ -241,6 +259,7 @@ function renderUserMessage(opts: {
   opponentAttacks: string;
   methodologistAttacks: string;
   evidence: string;
+  appendedUserBlock: string;
   role: DefenseAgentRole;
 }): string {
   const taskLine =
@@ -276,6 +295,13 @@ function renderUserMessage(opts: {
     "## EVIDENCE_CORPUS",
     "",
     opts.evidence.trim(),
+  );
+
+  if (opts.appendedUserBlock.trim().length > 0) {
+    sections.push("", opts.appendedUserBlock.trim());
+  }
+
+  sections.push(
     "",
     "## YOUR_TASK",
     "",

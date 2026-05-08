@@ -259,6 +259,10 @@ async function cmdPhase(phaseNum: number, args: ParsedArgs) {
   const tier = (args.flags["model-tier"] as ModelTier) || "dev";
   const root = args.flags["experiment-root"] as string | undefined;
 
+  // Validate `--round` early (before preflight network calls) so users get
+  // fast feedback on bad CLI invocations.
+  const roundFilter = parseRoundFilter(phaseNum, args.flags["round"]);
+
   const pre = await runPreflight({
     modelTier: tier,
     experimentRoot: root,
@@ -313,6 +317,7 @@ async function cmdPhase(phaseNum: number, args: ParsedArgs) {
     deliberationId: delib.deliberationId,
     maxRounds: args.flags["max-rounds"] ? Number(args.flags["max-rounds"]) : undefined,
     resume: args.flags["resume"] === true || args.flags["resume"] === "true",
+    roundFilter,
   });
 
   logger.event("phase_complete", { phase: phaseNum, result });
@@ -328,6 +333,39 @@ function phaseNameFor(n: number): string {
     case 5: return "phase-5-synthesis";
     default: throw new Error(`Unknown phase ${n}`);
   }
+}
+
+/**
+ * Iter-3 `--round` flag for resume granularity. Maps the raw flag value
+ * to the per-phase enum the phase module accepts.
+ *
+ * - `--phase 3 --round 1|2`: gates Phase-3 round-1 vs round-2 hook.
+ * - `--phase 4 --round a|b`: gates Phase-4 sub-round-a vs sub-round-b hook.
+ *
+ * Other phases reject `--round`. Returns undefined when not set.
+ */
+function parseRoundFilter(
+  phaseNum: number,
+  raw: string | true | undefined,
+): "1" | "2" | "a" | "b" | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === true) {
+    throw new Error(`--round requires a value (e.g. --round 2 for phase 3, --round b for phase 4).`);
+  }
+  const v = String(raw).trim().toLowerCase();
+  if (phaseNum === 3) {
+    if (v !== "1" && v !== "2") {
+      throw new Error(`--phase 3 --round expects "1" or "2"; got "${v}".`);
+    }
+    return v;
+  }
+  if (phaseNum === 4) {
+    if (v !== "a" && v !== "b") {
+      throw new Error(`--phase 4 --round expects "a" or "b"; got "${v}".`);
+    }
+    return v;
+  }
+  throw new Error(`--round is only meaningful for --phase 3 (1|2) or --phase 4 (a|b); got phase ${phaseNum}.`);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -480,7 +518,9 @@ function usage(): string {
     "  state                          Print composed deliberation state JSON (no LLM calls)",
     "  setup [--force] [--stack-id ID] [--stack-name S] [--experiment-mode] [--role R]",
     "                                 Create stack + deliberation + bind evidence; writes runtime/deliberation.json",
-    "  phase <N> [--max-rounds N] [--resume]  Run phase N",
+    "  phase <N> [--max-rounds N] [--resume] [--round R]  Run phase N",
+    "                                                      --round 1|2 (phase 3) or a|b (phase 4)",
+    "                                                      gates Iter-3 multi-round halves for resume.",
     "  review --phase N [--apply] [--force]    Produce or apply phase-N review report",
     "  finalize --phase N             Validate platform state and write PHASE_N_COMPLETE.json",
     "",

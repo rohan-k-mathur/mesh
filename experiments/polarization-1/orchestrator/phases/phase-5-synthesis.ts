@@ -221,6 +221,23 @@ export async function runPhase(opts: RunPhase5Opts): Promise<Phase5PartialFile> 
     knownPhase4ResponseIds.add(`phase4-B-cq${i}`);
   }
 
+  // Iter-3: when the multi-round flag is set AND partial files exist,
+  // augment the synthesist inputs with round-2 attacks + sub-round-b
+  // responses. No-op when flag is off or partials missing.
+  let appendedUserBlock: string | undefined;
+  if (opts.cfg.iter3MultiRound) {
+    const { loadIter3Augmentation } = await import("../util/iter3-augment");
+    const aug = loadIter3Augmentation({
+      runtimeDir: opts.cfg.runtimeDir,
+      deliberationId: opts.deliberationId,
+    });
+    if (aug.anyData) {
+      for (const id of aug.round2AttackIds) knownAttackIds.add(id);
+      for (const id of aug.subRoundBResponseIds) knownPhase4ResponseIds.add(id);
+      appendedUserBlock = aug.appendedUserBlock;
+    }
+  }
+
   // 7. Run the synthesist.
   const round = 0;
   const logger = RoundLogger.forRound({
@@ -251,6 +268,7 @@ export async function runPhase(opts: RunPhase5Opts): Promise<Phase5PartialFile> 
       advocateBPhase4Prompt: bPhase4Prompt,
       trackerVerdictPrompt,
       evidenceCorpusPrompt,
+      appendedUserBlock,
       schemaOpts: {
         knownArgumentIds,
         knownAttackIds,

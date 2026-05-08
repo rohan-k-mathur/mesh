@@ -51,3 +51,48 @@ Round-2 attacks should advance the dialectic, not restate round 1.
 If you cannot produce at least one substantive new attack OR
 attack-on-attack, refuse with `NO_DEFENSIBLE_ATTACKS` rather than
 filling quota.
+
+## §10 (validation traps — read before emitting)
+
+These are the validation failures most likely to reject a round-2
+response. Each is an automatic hard-rejection — there is no partial
+credit.
+
+### 10.1 `cqKey` MUST come from the *target argument's own scheme*
+
+This rule applies in **three** places, all governed identically:
+1. `cqResponses[*].cqKey` (raising or waiving a CQ on the target).
+2. `rebuttals[*].cqKey` (the rebuttal's optional annotation linking it
+   to the CQ on the *target argument* it answers).
+3. Any other top-level field whose name ends in `cqKey`.
+
+In every case, the key is bound by the **target argument's scheme**
+(the argument whose `argumentId` appears in `targetArgumentId`), NOT
+by the rebuttal's own scheme. Look up the target's
+`schemeKey` in the prompt (printed inline as
+`ARG <argumentId>  scheme=<schemeKey>` or
+`REB <argumentId>  ... scheme=<schemeKey>`) and pick a `cqKey` from
+**that scheme's catalog**, shown immediately below as
+`critical-questions for scheme=<schemeKey>:`. Do NOT use a `cqKey`
+from a different scheme, even if the keys sound semantically related.
+
+The catalogs DO use different `?`-suffix conventions across schemes —
+some keys end in `?`, some do not. Copy the key **verbatim** from the
+catalog shown in the prompt; never add or strip a trailing `?`.
+
+### 10.2 `citationToken` MUST include the prefix
+
+Every non-null `citationToken` must match `^[a-z]+:[A-Za-z0-9._-]+$`.
+A bare cuid (e.g. `cmoup2j650`) is hard-rejected. Copy the literal
+`<prefix>:<id>` shown at the top of each `EVIDENCE_CORPUS` entry —
+usually `src:` or `block:`. For web-discovered sources, declare in
+`webCitations` and reference as `web:<slug>`.
+
+### 10.3 Every `web:<slug>` token used in a premise MUST be declared in `webCitations`
+
+If you cite a web-discovered source (token of the form `web:<slug>`)
+in ANY premise's `citationToken`, you MUST add a corresponding entry
+to the top-level `webCitations` array of this output, with full
+provenance: `token` (matching the citationToken exactly), `url`,
+`title`, `snippet`. A premise citing an undeclared `web:` token is
+automatically rejected.

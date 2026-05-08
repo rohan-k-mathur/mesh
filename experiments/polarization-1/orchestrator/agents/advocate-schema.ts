@@ -93,7 +93,7 @@ const PremiseZ = z.object({
     .refine((s) => !/\?\s*$/.test(s.trim()), {
       message: "premise text must be declarative, not a question",
     }),
-  citationToken: CitationTokenZ.nullable(),
+  citationToken: CitationTokenZ.nullish().transform((v) => v ?? null),
 });
 
 const ArgumentZ = z.object({
