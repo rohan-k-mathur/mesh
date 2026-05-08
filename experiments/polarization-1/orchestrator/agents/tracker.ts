@@ -69,6 +69,14 @@ export interface TrackerTurnInput {
   advocateBPhase4Prompt: string;
   /** Renders into `## EVIDENCE_CORPUS`. */
   evidenceCorpusPrompt: string;
+  /**
+   * Optional Iter-3 multi-round addendum block. When present, appended
+   * to the rendered user message between `## EVIDENCE_CORPUS` and
+   * `## YOUR_TASK`. Driver uses this to surface
+   * `## ROUND_2_ATTACKS` + `## SUB_ROUND_B_RESPONSES` sections.
+   * Iter-2 path leaves this undefined and behavior is unchanged.
+   */
+  appendedUserBlock?: string;
   /** Schema-binding parameters (known arguments, attack ids, response ids). */
   schemaOpts: TrackerSchemaOpts;
   cfg: OrchestratorConfig;
@@ -289,6 +297,9 @@ function renderUserMessage(input: TrackerTurnInput): string {
     "## EVIDENCE_CORPUS",
     "",
     input.evidenceCorpusPrompt.trim(),
+    ...((input.appendedUserBlock ?? "").trim().length > 0
+      ? ["", input.appendedUserBlock!.trim()]
+      : []),
     "",
     "## YOUR_TASK",
     "",

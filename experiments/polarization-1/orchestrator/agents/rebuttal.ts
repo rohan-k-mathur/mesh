@@ -274,5 +274,10 @@ function validationFollowupMessage(err: ZodError): string {
     formatZodIssues(err),
     "",
     "Re-emit the COMPLETE response (not a diff) addressing every issue. Same schema, single JSON object, no prose.",
+    "",
+    "Common traps to double-check before re-emitting:",
+    "- `cqKey` must be copied verbatim from the target argument's own scheme catalog shown inline as `critical-questions for scheme=<schemeKey>:` — do NOT use a key from a different scheme, and do NOT add or strip a trailing `?`.",
+    "- `citationToken` must include its prefix (e.g. `src:bail2018`, `block:cmoq...`, `web:<slug>`) and match `^[a-z]+:[A-Za-z0-9._-]+$`. A bare cuid is hard-rejected.",
+    "- If you are running round 2 and target a round-1 rebuttal, set `targetKind: \"round1-rebuttal\"` and use the rebuttal's `rebuttalArgumentId` as `targetArgumentId`.",
   ].join("\n");
 }

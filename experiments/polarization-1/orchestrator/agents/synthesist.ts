@@ -75,6 +75,14 @@ export interface SynthesistTurnInput {
   /** Renders into `## EVIDENCE_CORPUS` — both bound corpus sources and
    *  web-discovered sources materialized during Phase 2-4. */
   evidenceCorpusPrompt: string;
+  /**
+   * Optional Iter-3 multi-round addendum block. When present, appended
+   * to the rendered user message between `## EVIDENCE_CORPUS` and
+   * `## YOUR_TASK`. Driver uses this to surface
+   * `## ROUND_2_ATTACKS` + `## SUB_ROUND_B_RESPONSES` sections.
+   * Iter-2 path leaves this undefined and behavior is unchanged.
+   */
+  appendedUserBlock?: string;
   /** Schema-binding parameters (known argument ids, attack ids, response
    *  ids, sub-claim count, citation tokens). */
   schemaOpts: SynthesistSchemaOpts;
@@ -281,6 +289,14 @@ function renderUserMessage(input: SynthesistTurnInput): string {
     "## EVIDENCE_CORPUS",
     "",
     input.evidenceCorpusPrompt.trim(),
+  );
+
+  const appended = (input.appendedUserBlock ?? "").trim();
+  if (appended.length > 0) {
+    sections.push("", appended);
+  }
+
+  sections.push(
     "",
     "## YOUR_TASK",
     "",

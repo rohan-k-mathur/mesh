@@ -31,6 +31,7 @@ import type {
   RebuttalRunRecord,
   MethodologistRunRecord,
 } from "../phases/phase-3-attacks";
+import type { Phase3Round2PartialFile } from "../phases/phase-3-round2";
 import type { ReviewFlag } from "../review/phase-3-checks";
 import { parseReport, reportPathFor } from "../review/report";
 import { prisma } from "@/lib/prismaclient";
@@ -103,6 +104,24 @@ export interface Phase3CompleteMethodologist {
   cqResponses: Phase3CompleteMethodologistCqResponse[];
 }
 
+/** Iter-3: per-actor summary of the round-2 pass, recorded on
+ *  `Phase3CompleteFile.round2` for audit. Mints are merged inline. */
+export interface Round2ActorSummary {
+  outcome: string;
+  attempts: number;
+  rebuttalsMerged: number;
+  cqResponsesMerged: number;
+  tokenUsage: { inputTokens: number; outputTokens: number };
+}
+
+/** Iter-3 task #6: round-2 soft-check coverage summary. Aggregates
+ *  per-rule flag counts produced by `runPhase3Round2SoftChecks`. */
+export interface Round2ReviewSummary {
+  totalFlags: number;
+  flagsByRule: Record<string, number>;
+  judgeUsage?: { calls: number; inputTokens: number; outputTokens: number };
+}
+
 export interface Phase3CompleteFile {
   phase: 3;
   status: "complete";
@@ -118,6 +137,22 @@ export interface Phase3CompleteFile {
    *  was introduced will not have this field. */
   methodologist?: Phase3CompleteMethodologist;
   totals: Phase3PartialFile["totals"];
+  /** Iter-3: per-actor outcome summary for the round-2 attack-on-attack
+   *  pass. Absent when `iter3MultiRound` is off or the round-2 driver
+   *  never ran. Mints from "ok" actors are merged inline into
+   *  `advocates.{a,b}.rebuttals`/`cqResponses` and
+   *  `methodologist.rebuttals`/`cqResponses` tagged `round: "2"`;
+   *  non-"ok" actors are recorded here for audit only. */
+  round2?: {
+    a?: Round2ActorSummary;
+    b?: Round2ActorSummary;
+    methodologist?: Round2ActorSummary;
+    totals: Phase3Round2PartialFile["totals"];
+    /** Iter-3 task #6: round-2 soft-check flag counts (merged into the
+     *  unified `reviewSummary` for human review; surfaced separately
+     *  here for audit of the round-2 deterministic+judge pass). */
+    review?: Round2ReviewSummary;
+  };
   reviewSummary: {
     totalFlags: number;
     accepted: number;
@@ -138,6 +173,15 @@ export async function finalizePhase3(opts: {
     throw new Error(`PHASE_3_PARTIAL.json not found. Run \`npm run orchestrator -- phase 3\` first.`);
   }
   const partial = JSON.parse(readFileSync(partialPath, "utf8")) as Phase3PartialFile;
+
+  // ── Iter-3: load round-2 partial when present + flag enabled ──
+  let round2: Phase3Round2PartialFile | null = null;
+  if (opts.cfg.iter3MultiRound) {
+    const round2Path = path.join(opts.cfg.runtimeDir, "PHASE_3_ROUND2_PARTIAL.json");
+    if (existsSync(round2Path)) {
+      round2 = JSON.parse(readFileSync(round2Path, "utf8")) as Phase3Round2PartialFile;
+    }
+  }
 
   // ── 1. Both advocates must have outcome === "ok" ──
   const a = partial.advocates.a;
@@ -175,6 +219,22 @@ export async function finalizePhase3(opts: {
       `Phase 3 finalize refused: methodologist record present but outcome="${meth.outcome}". ` +
         `Re-run \`npm run orchestrator -- phase 3 --resume\` to retry the methodologist.`,
     );
+  }
+
+  // Iter-3: include round-2 "ok" actor mints in the audit set.
+  if (round2) {
+    const round2Actors = [
+      round2.actors.a,
+      round2.actors.b,
+      round2.actors.methodologist,
+    ] as const;
+    for (const rec of round2Actors) {
+      if (!rec || rec.outcome !== "ok" || !rec.mintResult) continue;
+      for (const r of rec.mintResult.rebuttals) {
+        expectedArgIds.add(r.rebuttalArgumentId);
+        expectedEdgeIds.add(r.edgeId);
+      }
+    }
   }
 
   const divergences: string[] = [];
@@ -216,9 +276,100 @@ export async function finalizePhase3(opts: {
   }
 
   // ── 3. Review-flag gating ──
+  // Round-1 reviewFlags participate in the human-review report.
+  // Iter-3 round-2 reviewFlags are surfaced separately on
+  // `complete.round2.review` for analyst inspection and do NOT gate
+  // finalization (they are diagnostic — the round-2 mints are
+  // already validated by the same Zod + per-mint checks as round 1).
   const reviewSummary = await buildReviewSummary(opts.cfg, partial.reviewFlags);
 
   // ── 4. Build complete file ──
+  const completeA = buildCompleteAdvocate(a!);
+  const completeB = buildCompleteAdvocate(b!);
+  const completeMeth =
+    meth?.outcome === "ok" ? buildCompleteMethodologist(meth) : undefined;
+
+  // Iter-3: merge round-2 mints into the round-1 records (per-item
+  // `round` field discriminates). Non-"ok" actors contribute nothing
+  // but are summarized in `round2.{a,b,methodologist}`.
+  let round2Summary: Phase3CompleteFile["round2"] | undefined;
+  if (round2) {
+    const summarize = (
+      rec:
+        | RebuttalRunRecord
+        | MethodologistRunRecord
+        | undefined,
+      mergedRebuttals: number,
+      mergedCqs: number,
+    ): Round2ActorSummary | undefined =>
+      rec
+        ? {
+            outcome: rec.outcome,
+            attempts: rec.attempts,
+            rebuttalsMerged: mergedRebuttals,
+            cqResponsesMerged: mergedCqs,
+            tokenUsage: rec.tokenUsage,
+          }
+        : undefined;
+
+    const r2a = round2.actors.a;
+    if (r2a?.outcome === "ok" && r2a.mintResult && r2a.llmOutput) {
+      const built = buildCompleteAdvocate(r2a);
+      completeA.rebuttals.push(...built.rebuttals);
+      completeA.cqResponses.push(...built.cqResponses);
+      completeA.attempts += r2a.attempts;
+      completeA.tokenUsage.inputTokens += r2a.tokenUsage.inputTokens;
+      completeA.tokenUsage.outputTokens += r2a.tokenUsage.outputTokens;
+    }
+    const r2b = round2.actors.b;
+    if (r2b?.outcome === "ok" && r2b.mintResult && r2b.llmOutput) {
+      const built = buildCompleteAdvocate(r2b);
+      completeB.rebuttals.push(...built.rebuttals);
+      completeB.cqResponses.push(...built.cqResponses);
+      completeB.attempts += r2b.attempts;
+      completeB.tokenUsage.inputTokens += r2b.tokenUsage.inputTokens;
+      completeB.tokenUsage.outputTokens += r2b.tokenUsage.outputTokens;
+    }
+    const r2m = round2.actors.methodologist;
+    if (r2m?.outcome === "ok" && r2m.mintResult && r2m.llmOutput && completeMeth) {
+      const built = buildCompleteMethodologist(r2m);
+      completeMeth.rebuttals.push(...built.rebuttals);
+      completeMeth.cqResponses.push(...built.cqResponses);
+      completeMeth.attempts += r2m.attempts;
+      completeMeth.tokenUsage.inputTokens += r2m.tokenUsage.inputTokens;
+      completeMeth.tokenUsage.outputTokens += r2m.tokenUsage.outputTokens;
+    }
+
+    round2Summary = {
+      a: summarize(
+        r2a,
+        r2a?.outcome === "ok" ? (r2a.mintResult?.rebuttals.length ?? 0) : 0,
+        r2a?.outcome === "ok" ? (r2a.mintResult?.cqResponses.length ?? 0) : 0,
+      ),
+      b: summarize(
+        r2b,
+        r2b?.outcome === "ok" ? (r2b.mintResult?.rebuttals.length ?? 0) : 0,
+        r2b?.outcome === "ok" ? (r2b.mintResult?.cqResponses.length ?? 0) : 0,
+      ),
+      methodologist: summarize(
+        r2m,
+        r2m?.outcome === "ok" ? (r2m.mintResult?.rebuttals.length ?? 0) : 0,
+        r2m?.outcome === "ok" ? (r2m.mintResult?.cqResponses.length ?? 0) : 0,
+      ),
+      totals: round2.totals,
+      review: round2.reviewFlags
+        ? {
+            totalFlags: round2.reviewFlags.length,
+            flagsByRule: round2.reviewFlags.reduce<Record<string, number>>((acc, f) => {
+              acc[f.ruleId] = (acc[f.ruleId] ?? 0) + 1;
+              return acc;
+            }, {}),
+            judgeUsage: round2.judgeUsage,
+          }
+        : undefined,
+    };
+  }
+
   const complete: Phase3CompleteFile = {
     phase: 3,
     status: "complete",
@@ -228,13 +379,10 @@ export async function finalizePhase3(opts: {
     evidenceStackId: partial.evidenceStackId,
     hingeIndices: partial.hingeIndices,
     cqCatalog: partial.cqCatalog,
-    advocates: {
-      a: buildCompleteAdvocate(a!),
-      b: buildCompleteAdvocate(b!),
-    },
-    methodologist:
-      meth?.outcome === "ok" ? buildCompleteMethodologist(meth) : undefined,
+    advocates: { a: completeA, b: completeB },
+    methodologist: completeMeth,
     totals: partial.totals,
+    round2: round2Summary,
     reviewSummary,
     judgeUsage: partial.judgeUsage,
   };

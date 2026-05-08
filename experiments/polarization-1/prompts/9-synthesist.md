@@ -20,6 +20,8 @@ The framing document attached as `FRAMING.md` is the ground truth on what is in 
 
 Identify the cruxes, agreements, original contributions, and open questions that the dialectic exposed — and rate the deliberation's net epistemic value relative to a careful surface-level literature review on the same central claim.
 
+> **Multi-round note (Iter-3):** When the deliberation runs in multi-round mode you will see TWO rounds of Phase 3 (round-1 attacks against Phase-2 args; round-2 attacks against either Phase-2 args or round-1 rebuttals) under `## ROUND_2_ATTACKS`, and TWO sub-rounds of Phase 4 (sub-round-a defends round-1 attacks; sub-round-b defends round-2 attacks) under `## SUB_ROUND_B_RESPONSES`. Treat all rounds as part of the full record — round-2 exchanges that resolve a round-1 crux are first-class candidates for `agreements` (kind: revealed-by-dialectic) and for `originalContributions` attributable to "joint" or to the Methodologist. When those sections are absent the deliberation ran single-round and you should ignore them.
+
 ---
 
 ## 2. Your scope (do this / do not do that)
@@ -113,6 +115,26 @@ A single user message of the following structure:
 ## EVIDENCE_CORPUS
 
 <the bound evidence corpus AND web-discovered sources materialized during Phases 2-4, with provenance.>
+
+## ROUND_2_ATTACKS  (may be absent)
+
+<Iter-3 multi-round Phase 3 produced a SECOND round of attacks. Each
+   actor (Advocate A, Advocate B, Methodologist) filed (a) NEW direct
+   attacks on opponent's Phase-2 args (`targetKind=phase2-arg`), or
+   (b) attacks-on-attacks targeting round-1 rebuttals filed against
+   the actor's own side (`targetKind=round1-rebuttal`). Format mirrors
+   the Phase-3 attack blocks above with explicit `round=2` and
+   `targetKind` annotations. Round-2 exchanges that resolve a round-1
+   crux are first-class candidates for `agreements` and `originalContributions`.
+   When this section is absent the deliberation ran single-round.>
+
+## SUB_ROUND_B_RESPONSES  (may be absent)
+
+<Iter-3 multi-round Phase 4 produced a SECOND sub-round of defenses
+   responding to ROUND_2_ATTACKS above. Format mirrors the Phase-4
+   response blocks. Cite sub-round-b response ids as `phase4b-A-r0`,
+   `phase4b-B-cq2`, etc. when discussing what the second exchange
+   accomplished.>
 
 ## YOUR_TASK
 

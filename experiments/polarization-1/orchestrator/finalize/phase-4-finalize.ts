@@ -33,6 +33,7 @@ import type {
   DefenseRunRecord,
   TrackerRunRecord,
 } from "../phases/phase-4-defenses";
+import type { Phase4SubRoundBPartialFile } from "../phases/phase-4-subround-b";
 import type { ReviewFlag } from "../review/phase-4-checks";
 import { parseReport, reportPathFor } from "../review/report";
 import { prisma } from "@/lib/prismaclient";
@@ -44,6 +45,11 @@ import { recomputeGroundedForDelib } from "@/lib/ceg/grounded";
 
 export interface Phase4CompleteResponse {
   inputIndex: number;
+  /** Iter-3: which sub-round the response was filed in. "a" =
+   *  sub-round-a (Iter-2 default), "b" = sub-round-b (defends round-2
+   *  attacks). Items merged from `PHASE_4_SUBROUNDB_PARTIAL.json`
+   *  carry `"b"`. */
+  subRound: "a" | "b";
   targetAttackId: string;
   kind: "defend" | "concede" | "narrow";
   rationale: string;
@@ -69,6 +75,8 @@ export interface Phase4CompleteResponse {
 
 export interface Phase4CompleteCqAnswer {
   inputIndex: number;
+  /** Iter-3: which sub-round the cqAnswer was filed in. */
+  subRound: "a" | "b";
   targetCqRaiseId: string;
   kind: "answer" | "concede";
   rationale: string;
@@ -85,6 +93,15 @@ export interface Phase4CompleteAdvocate {
   cqAnswers: Phase4CompleteCqAnswer[];
 }
 
+/** Iter-3: per-advocate summary of the sub-round-b pass. */
+export interface SubRoundBAdvocateSummary {
+  outcome: string;
+  attempts: number;
+  responsesMerged: number;
+  cqAnswersMerged: number;
+  tokenUsage: { inputTokens: number; outputTokens: number };
+}
+
 export interface Phase4CompleteFile {
   phase: 4;
   status: "complete";
@@ -96,6 +113,17 @@ export interface Phase4CompleteFile {
   advocates: { a: Phase4CompleteAdvocate; b: Phase4CompleteAdvocate };
   tracker: TrackerRunRecord;
   totals: Phase4PartialFile["totals"];
+  /** Iter-3: per-advocate summary for the sub-round-b pass. Absent when
+   *  `iter3MultiRound` is off or the sub-round-b driver never ran.
+   *  Mints from "ok" advocates are merged inline into
+   *  `advocates.{a,b}.responses` / `cqAnswers` (each tagged
+   *  `subRound: "b"`); non-"ok" advocates are recorded here for audit
+   *  only. */
+  subRoundB?: {
+    a?: SubRoundBAdvocateSummary;
+    b?: SubRoundBAdvocateSummary;
+    totals: Phase4SubRoundBPartialFile["totals"];
+  };
   reviewSummary: {
     totalFlags: number;
     accepted: number;
@@ -123,6 +151,15 @@ export async function finalizePhase4(opts: {
     throw new Error(`PHASE_4_PARTIAL.json not found. Run \`npm run orchestrator -- phase 4\` first.`);
   }
   const partial = JSON.parse(readFileSync(partialPath, "utf8")) as Phase4PartialFile;
+
+  // ── Iter-3: load sub-round-b partial when present + flag enabled ──
+  let subRoundB: Phase4SubRoundBPartialFile | null = null;
+  if (opts.cfg.iter3MultiRound) {
+    const subbPath = path.join(opts.cfg.runtimeDir, "PHASE_4_SUBROUNDB_PARTIAL.json");
+    if (existsSync(subbPath)) {
+      subRoundB = JSON.parse(readFileSync(subbPath, "utf8")) as Phase4SubRoundBPartialFile;
+    }
+  }
 
   // ── 1. Both advocates must have outcome === "ok" + tracker must have run ──
   const a = partial.advocates.a;
@@ -162,6 +199,24 @@ export async function finalizePhase4(opts: {
     }
     for (const c of rec.mintResult.cqAnswers) {
       if (c.cqStatusId) expectedCqStatusIds.add(c.cqStatusId);
+    }
+  }
+
+  // Iter-3: include sub-round-b "ok" advocate mints in the audit set.
+  if (subRoundB) {
+    const subActors = [subRoundB.advocates.a, subRoundB.advocates.b] as const;
+    for (const rec of subActors) {
+      if (!rec || rec.outcome !== "ok" || !rec.mintResult) continue;
+      for (const r of rec.mintResult.responses) {
+        if (r.defenseArgumentId) expectedDefenseArgIds.add(r.defenseArgumentId);
+        if (r.defenseEdgeId) expectedDefenseEdgeIds.add(r.defenseEdgeId);
+        if (r.narrowVariantArgumentId) expectedNarrowArgIds.add(r.narrowVariantArgumentId);
+        if (r.retractedCommitmentClaimId) expectedRetractedClaimIds.add(r.retractedCommitmentClaimId);
+        if (r.cqStatusIdRejected) expectedCqStatusIds.add(r.cqStatusIdRejected);
+      }
+      for (const c of rec.mintResult.cqAnswers) {
+        if (c.cqStatusId) expectedCqStatusIds.add(c.cqStatusId);
+      }
     }
   }
 
@@ -265,6 +320,62 @@ export async function finalizePhase4(opts: {
   }
 
   // ── 5. Build complete file ──
+  const completeA = buildCompleteAdvocate(a!);
+  const completeB = buildCompleteAdvocate(b!);
+
+  // Iter-3: merge sub-round-b mints into the sub-round-a records
+  // (per-item `subRound` field discriminates).
+  let subRoundBSummary: Phase4CompleteFile["subRoundB"] | undefined;
+  if (subRoundB) {
+    const summarize = (
+      rec: DefenseRunRecord | undefined,
+      mergedResponses: number,
+      mergedCqs: number,
+    ): SubRoundBAdvocateSummary | undefined =>
+      rec
+        ? {
+            outcome: rec.outcome,
+            attempts: rec.attempts,
+            responsesMerged: mergedResponses,
+            cqAnswersMerged: mergedCqs,
+            tokenUsage: rec.tokenUsage,
+          }
+        : undefined;
+
+    const sbA = subRoundB.advocates.a;
+    if (sbA?.outcome === "ok" && sbA.mintResult && sbA.llmOutput) {
+      const built = buildCompleteAdvocate(sbA);
+      completeA.responses.push(...built.responses);
+      completeA.cqAnswers.push(...built.cqAnswers);
+      completeA.attempts += sbA.attempts;
+      completeA.tokenUsage.inputTokens += sbA.tokenUsage.inputTokens;
+      completeA.tokenUsage.outputTokens += sbA.tokenUsage.outputTokens;
+    }
+    const sbB = subRoundB.advocates.b;
+    if (sbB?.outcome === "ok" && sbB.mintResult && sbB.llmOutput) {
+      const built = buildCompleteAdvocate(sbB);
+      completeB.responses.push(...built.responses);
+      completeB.cqAnswers.push(...built.cqAnswers);
+      completeB.attempts += sbB.attempts;
+      completeB.tokenUsage.inputTokens += sbB.tokenUsage.inputTokens;
+      completeB.tokenUsage.outputTokens += sbB.tokenUsage.outputTokens;
+    }
+
+    subRoundBSummary = {
+      a: summarize(
+        sbA,
+        sbA?.outcome === "ok" ? (sbA.mintResult?.responses.length ?? 0) : 0,
+        sbA?.outcome === "ok" ? (sbA.mintResult?.cqAnswers.length ?? 0) : 0,
+      ),
+      b: summarize(
+        sbB,
+        sbB?.outcome === "ok" ? (sbB.mintResult?.responses.length ?? 0) : 0,
+        sbB?.outcome === "ok" ? (sbB.mintResult?.cqAnswers.length ?? 0) : 0,
+      ),
+      totals: subRoundB.totals,
+    };
+  }
+
   const complete: Phase4CompleteFile = {
     phase: 4,
     status: "complete",
@@ -273,12 +384,10 @@ export async function finalizePhase4(opts: {
     modelTier: partial.modelTier,
     evidenceStackId: partial.evidenceStackId,
     hingeIndices: partial.hingeIndices,
-    advocates: {
-      a: buildCompleteAdvocate(a!),
-      b: buildCompleteAdvocate(b!),
-    },
+    advocates: { a: completeA, b: completeB },
     tracker: partial.tracker,
     totals: partial.totals,
+    subRoundB: subRoundBSummary,
     reviewSummary,
     judgeUsage: partial.judgeUsage,
     standingsRecompute: {
@@ -354,11 +463,13 @@ function buildCompleteAdvocate(rec: DefenseRunRecord): Phase4CompleteAdvocate {
   }
   const inputResponses = rec.llmOutput.responses;
   const inputCqAnswers = rec.llmOutput.cqAnswers;
+  const subRound: "a" | "b" = rec.llmOutput.subRound ?? "a";
 
   const responses: Phase4CompleteResponse[] = rec.mintResult.responses.map((m) => {
     const orig = inputResponses[m.inputIndex];
     return {
       inputIndex: m.inputIndex,
+      subRound,
       targetAttackId: m.targetAttackId,
       kind: m.kind,
       rationale: orig.rationale,
@@ -388,6 +499,7 @@ function buildCompleteAdvocate(rec: DefenseRunRecord): Phase4CompleteAdvocate {
     const orig = inputCqAnswers[m.inputIndex];
     return {
       inputIndex: m.inputIndex,
+      subRound,
       targetCqRaiseId: m.targetCqRaiseId,
       kind: m.kind,
       rationale: orig.rationale,
@@ -398,7 +510,7 @@ function buildCompleteAdvocate(rec: DefenseRunRecord): Phase4CompleteAdvocate {
   return {
     outcome: "ok",
     attempts: rec.attempts,
-    subRound: rec.llmOutput!.subRound ?? "a",
+    subRound,
     tokenUsage: rec.tokenUsage,
     responses,
     cqAnswers,

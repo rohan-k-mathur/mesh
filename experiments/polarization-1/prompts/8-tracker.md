@@ -19,6 +19,8 @@ The framing document attached as `FRAMING.md` is the ground truth on what is in 
 
 For each Phase-2 argument from each advocate, judge whether — given the full record of attacks, defenses, concessions, narrows, and CQ outcomes — it currently STANDS, is WEAKENED, or has FALLEN; then synthesize a top-level verdict on the central claim.
 
+> **Multi-round note (Iter-3):** When the deliberation runs in multi-round mode you will see TWO rounds of Phase 3 (round-1 attacks against Phase-2 args; round-2 attacks against either Phase-2 args or round-1 rebuttals) under `## ROUND_2_ATTACKS`, and TWO sub-rounds of Phase 4 (sub-round-a defends round-1 attacks; sub-round-b defends round-2 attacks) under `## SUB_ROUND_B_RESPONSES`. Treat all rounds as part of the full record when scoring per-argument standings. When those sections are absent the deliberation ran single-round and you should ignore them.
+
 ---
 
 ## 2. Your scope (do this / do not do that)
@@ -127,6 +129,24 @@ A single user message of the following structure:
 ## EVIDENCE_CORPUS
 
 <the bound evidence corpus, item by item.>
+
+## ROUND_2_ATTACKS  (may be absent)
+
+<Iter-3 multi-round Phase 3 produced a SECOND round of attacks. Each
+   actor (Advocate A, Advocate B, Methodologist) filed (a) NEW direct
+   attacks on opponent's Phase-2 args (`targetKind=phase2-arg`), or
+   (b) attacks-on-attacks targeting round-1 rebuttals filed against
+   the actor's own side (`targetKind=round1-rebuttal`). Format mirrors
+   the Phase-3 attack blocks above with explicit `round=2` and
+   `targetKind` annotations. Treat these as part of the full record.
+   When this section is absent the deliberation ran single-round.>
+
+## SUB_ROUND_B_RESPONSES  (may be absent)
+
+<Iter-3 multi-round Phase 4 produced a SECOND sub-round of defenses
+   responding to ROUND_2_ATTACKS above. Format mirrors the Phase-4
+   response blocks. Score these alongside sub-round-a responses when
+   judging per-argument standings.>
 
 ## YOUR_TASK
 

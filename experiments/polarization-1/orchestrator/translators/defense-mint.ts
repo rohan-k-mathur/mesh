@@ -211,6 +211,17 @@ export interface TranslateDefenseOpts {
    * carries `webCitations`. See materializeWebCitations() in argument-mint.
    */
   stackId?: string | null;
+
+  /**
+   * Iter-3 sub-round identifier. Defaults to "a" (sub-round-a / Iter-2
+   * behavior unchanged). When set to "b", the orphan-guard's
+   * narrow-variant cleanup branch is skipped so sub-round-a's narrow
+   * variants are preserved. The defense-edge cleanup branch is keyed
+   * by `opposingRebuttalArgIds` (sub-round-b passes round-2 attack
+   * ids), so it correctly only deletes any prior sub-round-b defense
+   * edges on resume and never touches sub-round-a edges.
+   */
+  subRound?: "a" | "b";
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -250,6 +261,7 @@ export async function translateDefenseOutput(opts: TranslateDefenseOpts): Promis
     opposingRebuttalArgIds: [...opts.opposingRebuttals.keys()],
     logger: opts.logger,
     advocate: opts.authorRole,
+    skipNarrowVariantCleanup: opts.subRound === "b",
   });
 
   // ─────────────────────────────────────────────────────────────────
@@ -607,6 +619,7 @@ async function orphanGuard(opts: {
   opposingRebuttalArgIds: string[];
   logger: RoundLogger;
   advocate: "advocate-a" | "advocate-b";
+  skipNarrowVariantCleanup?: boolean;
 }) {
   // (a) Defense Arguments: this bot's args with an outgoing edge whose
   // toArgumentId is one of the opposing rebuttals.
@@ -640,6 +653,15 @@ async function orphanGuard(opts: {
   // (b) Narrow-variant Arguments: this bot's args whose text starts
   // with the narrow-variant marker. These have no outgoing edges but
   // do have ASSERT moves attached. Cascade handles related rows.
+  // Skipped under sub-round-b so we don't wipe sub-round-a narrows.
+  if (opts.skipNarrowVariantCleanup) {
+    opts.logger.event("orphan_cleanup_skipped", {
+      step: "defense-mint",
+      advocate: opts.advocate,
+      reason: "sub-round-b: preserve sub-round-a narrow variants",
+    });
+    return;
+  }
   const droppedNarrows = await prisma.argument.deleteMany({
     where: {
       deliberationId: opts.deliberationId,
