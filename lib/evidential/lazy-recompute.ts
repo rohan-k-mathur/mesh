@@ -7,6 +7,8 @@
 
 import { prisma } from "@/lib/prismaclient";
 import { recomputeArgumentStrength } from "./recompute-strength";
+import { computeArrowTags } from "@/lib/argumentation/eccAdapter";
+import type { AssumptionId, AssumptionStatus } from "@/lib/argumentation/ecc";
 
 const RECOMPUTE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -118,5 +120,82 @@ export async function batchLazyRecompute(
   // Wait for all recomputations to complete
   await Promise.all(promises);
 
+  // Sprint B3 — write-time tagging hook. Tags are non-blocking metadata used
+  // by the typed pipeline (Sprint B2) and the UI badges (Sprint B4); failure
+  // here MUST NOT mask a successful recompute.
+  await tagSupportsForArguments(argumentIds).catch((err) => {
+    console.error("ECC tag write failed:", err);
+  });
+
   return results;
+}
+
+/**
+ * Compute and persist `metaJson.{simple,entire,selected,logical}` on every
+ * `ArgumentSupport` row backing the given arguments. Pure additive write —
+ * other `metaJson` keys are preserved.
+ *
+ * Sprint B3 contract: this is the only write hook that touches the ECC
+ * tags. The backfill script `scripts/ecc-backfill-tags.ts` calls this same
+ * helper so the two paths stay consistent.
+ */
+export async function tagSupportsForArguments(argumentIds: string[]): Promise<number> {
+  if (argumentIds.length === 0) return 0;
+
+  const supports = await prisma.argumentSupport.findMany({
+    where: { argumentId: { in: argumentIds } },
+    select: { id: true, argumentId: true, claimId: true, metaJson: true } as any,
+  }) as Array<{ id: string; argumentId: string; claimId: string; metaJson: any }>;
+
+  if (supports.length === 0) return 0;
+
+  const supportIds = supports.map((s) => s.id);
+  const derivAssumps = await prisma.derivationAssumption.findMany({
+    where: { derivationId: { in: supportIds } },
+    select: { derivationId: true, assumptionId: true, weight: true },
+  });
+  const assumIds = Array.from(new Set(derivAssumps.map((d) => d.assumptionId)));
+  const assumStatusRows = assumIds.length
+    ? await prisma.assumptionUse.findMany({
+        where: { id: { in: assumIds } },
+        select: { id: true, status: true },
+      })
+    : [];
+  const statusMap = new Map<AssumptionId, AssumptionStatus>(
+    assumStatusRows.map((r) => [r.id, (r.status as any) ?? "PROPOSED"])
+  );
+
+  // For per-row tagging we need the set of derivation ids backing each
+  // (argumentId, claimId) pair — typically a singleton.
+  const derivsByPair = new Map<string, string[]>();
+  for (const s of supports) {
+    const key = `${s.argumentId}|${s.claimId}`;
+    const list = derivsByPair.get(key) ?? [];
+    list.push(s.id);
+    derivsByPair.set(key, list);
+  }
+
+  let written = 0;
+  for (const s of supports) {
+    const key = `${s.argumentId}|${s.claimId}`;
+    const derivIds = derivsByPair.get(key) ?? [s.id];
+    const tags = computeArrowTags({
+      argumentId: s.argumentId,
+      derivationIds: derivIds,
+      derivationAssumptions: derivAssumps.filter((d) => derivIds.includes(d.derivationId)).map((d) => ({
+        derivationId: d.derivationId,
+        assumptionId: d.assumptionId,
+        weight: d.weight,
+      })),
+      assumptionStatus: statusMap,
+    });
+    const existing = (s.metaJson && typeof s.metaJson === "object") ? s.metaJson as Record<string, any> : {};
+    const nextMeta = { ...existing, ...tags };
+    await prisma.argumentSupport.update({
+      where: { id: s.id },
+      data: { metaJson: nextMeta as any },
+    });
+    written++;
+  }
+  return written;
 }

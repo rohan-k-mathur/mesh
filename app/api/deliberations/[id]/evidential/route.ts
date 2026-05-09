@@ -3,9 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { DEFAULT_ARGUMENT_CONFIDENCE, DEFAULT_PREMISE_BASE } from "@/lib/config/confidence";
 import { batchLazyRecompute } from "@/lib/evidential/lazy-recompute";
+import {
+  evaluateEvidentialTyped,
+  type EvidentialInputs,
+  type Mode as TypedMode,
+} from "@/lib/argumentation/eccAdapter";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+// Sprint B2: feature flag — when set, route the math through the typed
+// `lib/argumentation/eccAdapter.ts` pipeline instead of the inline scalar
+// reducers below. The two paths are byte-identical for the same Prisma
+// inputs (asserted by `tests/eccAdapter.test.ts` parity suite).
+const ECC_TYPED_PIPELINE = process.env.ECC_TYPED_PIPELINE === "1";
 
 type Mode = 'product'|'min'|'ds';
 const clamp01 = (x:number) => Math.max(0, Math.min(1, x));
@@ -192,6 +203,76 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       list.push(nm.negatedClaimId);
       negationMappings.set(nm.claimId, list);
     }
+  }
+
+  // ── Sprint B2: typed pipeline branch ──────────────────────────────────
+  if (ECC_TYPED_PIPELINE) {
+    // Collect AssumptionUse status for the strict `logical` predicate.
+    const usesForStatus = await prisma.assumptionUse.findMany({
+      where: { argumentId: { in: realArgIds } },
+      select: { id: true, status: true },
+    }).catch(() => [] as Array<{ id: string; status: string }>);
+    const assumptionStatus = new Map<string, "PROPOSED" | "ACCEPTED" | "CHALLENGED" | "RETRACTED">();
+    for (const u of usesForStatus) {
+      assumptionStatus.set(u.id, (u.status as any) ?? "PROPOSED");
+    }
+
+    const negationEdges = mode === "ds"
+      ? Array.from(negationMappings.entries()).flatMap(([cid, list]) =>
+          list.map((nid) => ({ claimId: cid, negatedClaimId: nid }))
+        )
+      : [];
+
+    const inputs: EvidentialInputs = {
+      claims,
+      concludingArgumentByClaim: conclByClaim,
+      localSupports: localSupports.map((s) => ({
+        id: s.id,
+        claimId: s.claimId,
+        argumentId: s.argumentId,
+        base: clamp01(s.base ?? DEFAULT_ARGUMENT_CONFIDENCE),
+        isImported: (s.provenanceJson as any)?.kind === "import",
+      })),
+      virtualSupports: virtualAdds,
+      premiseEdges: edges.map((e) => ({
+        fromArgumentId: e.fromArgumentId,
+        toArgumentId: e.toArgumentId,
+      })),
+      derivationAssumptions: derivAssumptions.map((da) => ({
+        derivationId: da.derivationId,
+        assumptionId: da.assumptionId,
+        weight: clamp01(da.weight),
+      })),
+      assumptionStatus,
+      legacyAssumptionsByArg: legacyAssump,
+      negationMap: negationEdges,
+      defaultArgumentConfidence: DEFAULT_ARGUMENT_CONFIDENCE,
+      defaultPremiseBase: DEFAULT_PREMISE_BASE,
+    };
+
+    const typed = evaluateEvidentialTyped(inputs, mode as TypedMode);
+    const argumentsMeta = await prisma.argument.findMany({
+      where: { id: { in: Array.from(realArgIds) } },
+      select: { id: true, text: true, quantifier: true, modality: true },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      deliberationId,
+      mode,
+      pipeline: "typed",
+      support: typed.support,
+      ...(mode === "ds" ? { dsSupport: typed.dsSupport } : {}),
+      hom: typed.hom,
+      nodes: typed.nodes,
+      arguments: argumentsMeta,
+      meta: {
+        claims: claims.length,
+        supports: allSupports.length,
+        edges: edges.length,
+        conclusions: conclusions.length,
+      },
+    }, { headers: { 'Cache-Control': 'no-store' } });
   }
 
   const nodes = claims.map(c => {

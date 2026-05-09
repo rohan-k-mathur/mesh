@@ -745,22 +745,42 @@ async function mintDefenseArgument(opts: MintDefenseOpts): Promise<{
   // 4. Attach citations (one per source per arg, dedup as in attack-mint).
   const citations: Array<{ sourceId: string; citationId: string; citationToken: string }> = [];
   const seenSourceIds = new Set<string>();
-  for (const premise of defense.premises) {
+  for (let p = 0; p < defense.premises.length; p++) {
+    const premise = defense.premises[p];
     if (!premise.citationToken) continue;
     const sourceId = opts.tokenToSourceId[premise.citationToken];
     if (seenSourceIds.has(sourceId)) continue;
     seenSourceIds.add(sourceId);
-    const { citationId } = await opts.iso.attachCitation(
-      {
-        targetType: "argument",
-        targetId: defenseArgumentId,
-        sourceId,
-        quote: premise.text.length <= 280 ? premise.text : premise.text.slice(0, 277) + "...",
-        intent: "supports",
-      },
-      opts.ctx,
-    );
-    citations.push({ sourceId, citationId, citationToken: premise.citationToken });
+    try {
+      const { citationId } = await opts.iso.attachCitation(
+        {
+          targetType: "argument",
+          targetId: defenseArgumentId,
+          sourceId,
+          quote: premise.text.length <= 280 ? premise.text : premise.text.slice(0, 277) + "...",
+          intent: "supports",
+        },
+        opts.ctx,
+      );
+      citations.push({ sourceId, citationId, citationToken: premise.citationToken });
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      // Soft-degrade FK violations on stale evidence-context source IDs:
+      // log+skip, keep the defense argument. A single bad source must not
+      // abort the whole phase. Same pattern as attack-mint / argument-mint.
+      if (msg.includes("Citation_sourceId_fkey")) {
+        opts.logger.event("citation_attach_fk_skip", {
+          step: "defense-mint",
+          targetRebuttalArgumentId: oppRebuttal.rebuttalArgumentId,
+          premiseIndex: p,
+          sourceId,
+          citationToken: premise.citationToken,
+          message: msg,
+        });
+        continue;
+      }
+      throw err;
+    }
   }
 
   // 5. Resolve edge targeting fields against the OPPOSING REBUTTAL.

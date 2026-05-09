@@ -153,10 +153,22 @@ export async function finalizePhase2(opts: {
         hardDivergences.map((d) => `- ${d}`).join("\n") + "\n\n" +
         `Likely causes:\n` +
         `  - Phase 1 was re-run and produced new claim IDs after Phase 2 minted against the old ones.\n` +
-        `  - A claim was manually retracted or deleted between phase 2 and finalize.\n\n` +
+        `  - A claim was manually retracted or deleted between phase 2 and finalize.\n` +
+        `  - Global MOID dedup bound a premise text to a claim row already attached to a\n` +
+        `    *different* deliberation; the Argument/edge was still created successfully but\n` +
+        `    the premise claim doesn't appear in this deliberation's claim listing.\n\n` +
+        `Set FINALIZE_SOFT_DIVERGENCE=1 to log+continue (treat as soft warning) when the\n` +
+        `divergence is benign (e.g. cross-deliberation MOID dedup).\n\n` +
         `Resolve by re-running \`npm run orchestrator -- phase 2\` against the current Phase 1 topology.\n`,
     );
-    throw new Error(`Phase 2 finalize refused: ${hardDivergences.length} claim divergence(s). See ${divPath}.`);
+    if (process.env.FINALIZE_SOFT_DIVERGENCE === "1") {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[finalize-phase2] FINALIZE_SOFT_DIVERGENCE=1 → continuing despite ${hardDivergences.length} claim divergence(s); see ${divPath}.`,
+      );
+    } else {
+      throw new Error(`Phase 2 finalize refused: ${hardDivergences.length} claim divergence(s). See ${divPath}.`);
+    }
   }
 
   // ── 3. Review-flag gating ──
@@ -254,9 +266,11 @@ async function buildReviewSummary(
     };
   }
 
-  if (reviewFlags.length > 0) {
+  // Info-severity flags are advisory and don't gate finalize.
+  const gating = reviewFlags.filter((f) => f.severity !== "info");
+  if (gating.length > 0) {
     throw new Error(
-      `Phase 2 finalize refused: PHASE_2_PARTIAL.json has ${reviewFlags.length} review flag(s) but no review report exists at ${reportPath}. ` +
+      `Phase 2 finalize refused: PHASE_2_PARTIAL.json has ${gating.length} non-info review flag(s) but no review report exists at ${reportPath}. ` +
         `Generate it with \`npm run orchestrator -- review --phase 2\`, fill in verdicts, then \`--apply\`.`,
     );
   }

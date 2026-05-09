@@ -281,3 +281,527 @@ export function derivationsUsingAssumption<A,B>(
   }
   return result;
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sprint A — refined ECC surface
+// All additions are pure (no I/O, no Prisma). They are designed to be reused
+// by `evidential/route.ts`, the transport worker, and the MCP server.
+// Citations refer to Ambler 1996 ("A Categorical Approach to the Theory of
+// Argumentation"); see `Development and Ideation Documents/ARCHITECTURE/AMBLER_PAPER.md`.
+// Settled design contracts live in `ECC_REFINEMENT_AND_MCP_INTEGRATION_PLAN.md §4`.
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── §A1.1 Symmetric monoidal product ⊗ (Ambler §2.1, Def. 3) ───────────────
+
+/**
+ * Tensor product of two arrows: conjoin premises into a compound source.
+ *
+ * Categorical semantics: the symmetric monoidal product `⊗` on hom-sets.
+ * If `f: A→B` and `g: C→D`, then `tensor(f,g): A⊗C → B⊗D` whose derivations
+ * are ordered pairs `(d_f, d_g)` and whose assumptions are unioned per pair.
+ *
+ * @invariant Assumption-additivity: for the pair `(d_f, d_g)`, the resulting
+ *   assumption set equals `assumptions(f, d_f) ∪ assumptions(g, d_g)`. (Ambler §2.1.)
+ * @invariant Functoriality of ⊗ on composition: when both sides compose,
+ *   `tensor(compose(g2,g1), compose(f2,f1)) = compose(tensor(g2,f2), tensor(g1,f1))`
+ *   on minimal assumptions (Ambler Lemma 5).
+ */
+export function tensor<A,B,C,D>(
+  f: Arrow<A,B>,
+  g: Arrow<C,D>
+): Arrow<[A,C],[B,D]> {
+  const out: Arrow<[A,C],[B,D]> = {
+    from: [f.from, g.from],
+    to: [f.to, g.to],
+    derivs: new Set<DerivationId>(),
+    assumptions: new Map<DerivationId, Set<AssumptionId>>(),
+  };
+  for (const df of f.derivs) {
+    for (const dg of g.derivs) {
+      const id = `${df}⊗${dg}`;
+      out.derivs.add(id);
+      const aF = f.assumptions.get(df) ?? new Set<AssumptionId>();
+      const aG = g.assumptions.get(dg) ?? new Set<AssumptionId>();
+      out.assumptions.set(id, new Set<AssumptionId>([...aF, ...aG]));
+    }
+  }
+  return out;
+}
+
+// ── §A1.2 Internal hom = warrant (Ambler §2.4, Λ adjunction) ───────────────
+
+/**
+ * Internal hom object `[A,B]`: the warrant for an inference from A to B,
+ * reified as a first-class claim that may itself be undercut.
+ *
+ * In Mesh, `warrantClaimId` points at the `Claim` that materializes the
+ * warrant; undercut attacks target it via `EdgeType.undercut`.
+ *
+ * @invariant Aggregation is monotone (Ambler p. 171): undercut never lowers
+ *   numerical support inside the algebra. It propagates only by retracting
+ *   the warrant claim's assumptions, which then flips `isLogical` off.
+ */
+export type Warrant<A=string,B=string> = {
+  kind: "warrant";
+  from: A;
+  to: B;
+  warrantClaimId: string;
+};
+
+export function internalHom<A,B>(
+  from: A,
+  to: B,
+  warrantClaimId: string
+): Warrant<A,B> {
+  return { kind: "warrant", from, to, warrantClaimId };
+}
+
+// ── §A1.3 Structural predicates (Ambler Def. 8 + Def. 17) ──────────────────
+
+/** Author provenance for an argument backing a derivation (ECC plan §4 row 3). */
+export type AuthorKind = "HUMAN" | "AI" | "HYBRID";
+
+/** Status of an `AssumptionUse` row in Mesh's Prisma schema. */
+export type AssumptionStatus = "PROPOSED" | "ACCEPTED" | "CHALLENGED" | "RETRACTED";
+
+/** Optional per-derivation provenance consulted by `isLogical`. */
+export interface DerivationProvenance {
+  authorKind?: AuthorKind;
+  /** True iff a HUMAN has explicitly ratified an AI/HYBRID-authored derivation. */
+  humanRatified?: boolean;
+}
+
+/** Structural metadata derived from the algebra (Ambler Def. 8). */
+export interface ArrowMeta {
+  simple: boolean;
+  entire: boolean;
+  selected: boolean;
+}
+
+/**
+ * `simple` (Ambler Def. 8): the hom-set acts like a singleton — the
+ * comonoid duplication law `Δ_Y ∘ f = (f⊗f) ∘ Δ_X` holds *with equality*
+ * rather than the lax inequality. In our materialization that is `|derivs| ≤ 1`
+ * (the empty hom-set is vacuously simple).
+ */
+export function isSimple<A,B>(arrow: Arrow<A,B>): boolean {
+  return arrow.derivs.size <= 1;
+}
+
+/**
+ * `entire` (Ambler Def. 8): the hom-set is non-empty — at least one
+ * derivation exists, so `t_X = t_Y ∘ f` rather than the lax `t_X ≥ t_Y ∘ f`.
+ */
+export function isEntire<A,B>(arrow: Arrow<A,B>): boolean {
+  return arrow.derivs.size >= 1;
+}
+
+/**
+ * `selected` (Ambler Def. 8): `simple ∧ entire` — exactly one canonical
+ * derivation. Selected arrows satisfy projection/duplication with equality.
+ *
+ * @invariant `isSelected(arrow) ⇒ |arrow.derivs| === 1`.
+ */
+export function isSelected<A,B>(arrow: Arrow<A,B>): boolean {
+  return arrow.derivs.size === 1;
+}
+
+export function arrowMeta<A,B>(arrow: Arrow<A,B>): ArrowMeta {
+  const simple = isSimple(arrow);
+  const entire = isEntire(arrow);
+  return { simple, entire, selected: simple && entire };
+}
+
+/**
+ * `logical` (Ambler Def. 17): the smallest class of arrows containing
+ * identities and the structural maps `l, r, a, t, ε`, closed under `⊗`,
+ * `∘`, and `Λ`. In Mesh's defeasible setting we interpret this as:
+ * **at least one derivation in the arrow is fully closed** — every
+ * assumption it depends on has `status === ACCEPTED`, and (per ECC plan
+ * §4 row 3) any AI/HYBRID-authored derivation is also `humanRatified`.
+ *
+ * @invariant Strict (ECC plan §4 row 1): a derivation whose closure
+ *   contains *any* `AssumptionUse` with status ∈ `{PROPOSED, CHALLENGED,
+ *   RETRACTED}` does NOT count as logical. Only ACCEPTED counts.
+ * @invariant AI gating (ECC plan §4 row 3): a derivation whose
+ *   provenance reports `authorKind ∈ {AI, HYBRID}` and `!humanRatified`
+ *   never counts as logical regardless of assumption closure.
+ * @invariant Lemma 23.1 corollary: `isLogical(arrow) ⇒ confidence(arrow, m)
+ *   === m.top` for every monoid `m`, when the monoid honours its own
+ *   contract that `m.base(d) === m.top` for logical derivations.
+ */
+export function isLogical<A,B>(
+  arrow: Arrow<A,B>,
+  ctx: {
+    assumptionStatus: (id: AssumptionId) => AssumptionStatus;
+    derivationProvenance?: (id: DerivationId) => DerivationProvenance | undefined;
+  }
+): boolean {
+  for (const d of arrow.derivs) {
+    if (isDerivationLogical(arrow, d, ctx)) return true;
+  }
+  return false;
+}
+
+/** Per-derivation variant of `isLogical`. Useful for confidence base steps. */
+export function isDerivationLogical<A,B>(
+  arrow: Arrow<A,B>,
+  d: DerivationId,
+  ctx: {
+    assumptionStatus: (id: AssumptionId) => AssumptionStatus;
+    derivationProvenance?: (id: DerivationId) => DerivationProvenance | undefined;
+  }
+): boolean {
+  const prov = ctx.derivationProvenance?.(d);
+  if (prov && (prov.authorKind === "AI" || prov.authorKind === "HYBRID") && !prov.humanRatified) {
+    return false;
+  }
+  const assums = arrow.assumptions.get(d) ?? new Set<AssumptionId>();
+  for (const a of assums) {
+    if (ctx.assumptionStatus(a) !== "ACCEPTED") return false;
+  }
+  return true;
+}
+
+// ── §A1.4 Confidence monoid (Ambler §3 + Lemma 26, Theorem 30) ─────────────
+
+/**
+ * Confidence measure interface: `c: Hom(A,B) → ℳ` valued in a commutative
+ * monoid ℳ in `(SLat, ⊗, I)` whose multiplicative identity coincides with
+ * the top of the order (Ambler §3). The registry is closed by default
+ * (ECC plan §4 row 5) — only `MIN_MONOID`, `PRODUCT_MONOID`, `DS_MONOID`
+ * are seeded; admins extend via `registerConfidenceMonoid` (server-only).
+ *
+ * @invariant `combine(top, x) === x` (identity).
+ * @invariant `combine` is associative + commutative; `join` is idempotent
+ *   + associative + commutative; `top` is the absorbing element of `join`
+ *   in this presentation (top = identity = order top).
+ * @invariant `base(d)` MUST return `top` whenever the caller knows the
+ *   derivation is logical — this is the contract that backs Lemma 23.1.
+ */
+export interface ConfidenceMonoid<M = number> {
+  key: string;
+  top: M;
+  combine: (x: M, y: M) => M;
+  join: (x: M, y: M) => M;
+  base: (d: DerivationId) => M;
+}
+
+/**
+ * Compute `c(arrow)`: join over derivations of the combined base values.
+ *
+ * For a derivation `d` we currently treat its score as the monoid's
+ * `base(d)` directly; a later refinement may walk the per-derivation
+ * assumption set and combine `base(λ)` across assumptions. This is sound
+ * for the present pipeline because `evidential/route.ts` materializes one
+ * scalar per `ArgumentSupport` row.
+ *
+ * @invariant `confidence(zero(A,B), m) === m.top` is FALSE in general —
+ *   the empty join is the bottom of the order, not the top. We model
+ *   bottom as `m.combine(m.top, m.top)` only when the caller asks for it
+ *   via a non-empty arrow. Empty hom-sets must be checked by `isEntire`
+ *   before reading confidence.
+ * @invariant Theorem 30 soundness (DS monoid): when `m === DS_MONOID`,
+ *   `confidence(arrow, m).bel ≤ confidence(arrow, m).pl`.
+ */
+export function confidence<M>(arrow: Arrow, m: ConfidenceMonoid<M>): M {
+  let acc: M | undefined;
+  for (const d of arrow.derivs) {
+    const v = m.base(d);
+    acc = acc === undefined ? v : m.join(acc, v);
+  }
+  // Empty hom-set: caller responsibility to check isEntire first; we return
+  // the monoid identity (top) as a defensive default rather than throwing.
+  return acc === undefined ? m.top : acc;
+}
+
+// — Built-in monoids (Ambler Examples 25/27/28, Theorem 30) ─────────────────
+
+const _baseFromMap = (scores?: ReadonlyMap<DerivationId, number>): ((d: DerivationId) => number) =>
+  (d) => scores?.get(d) ?? 1;
+
+/**
+ * `min` weakest-link monoid (Ambler Examples 25 + 27).
+ * combine = min, join = max, top = 1, base from caller-supplied per-derivation map.
+ * To inject per-derivation scores, call `withMinScores(scores)` to get a fresh monoid.
+ */
+export const MIN_MONOID: ConfidenceMonoid<number> = {
+  key: "min",
+  top: 1,
+  combine: (x, y) => Math.min(x, y),
+  join: (x, y) => Math.max(x, y),
+  base: _baseFromMap(),
+};
+
+export function withMinScores(scores: ReadonlyMap<DerivationId, number>): ConfidenceMonoid<number> {
+  return { ...MIN_MONOID, base: _baseFromMap(scores) };
+}
+
+/**
+ * `product` monoid (Ambler Example 28): `w: 𝒟 → ([0,1], *, 1)`.
+ * combine = *, join = noisy-OR `1 - ∏(1 - x)`, top = 1.
+ */
+export const PRODUCT_MONOID: ConfidenceMonoid<number> = {
+  key: "product",
+  top: 1,
+  combine: (x, y) => x * y,
+  join: (x, y) => 1 - (1 - x) * (1 - y),
+  base: _baseFromMap(),
+};
+
+export function withProductScores(scores: ReadonlyMap<DerivationId, number>): ConfidenceMonoid<number> {
+  return { ...PRODUCT_MONOID, base: _baseFromMap(scores) };
+}
+
+/**
+ * `ds` Dempster-Shafer monoid (Ambler Theorem 30).
+ * Carrier is `{bel, pl}`; combine = pointwise product, join = pointwise
+ * noisy-OR, top = `{bel: 1, pl: 1}`.
+ *
+ * @invariant Theorem 30 hypothesis: caller MUST supply a probability
+ *   valuation `p` on a distributive lattice `𝒟`. The default `base` returns
+ *   `top` so a caller that forgets to inject scores gets a defensible
+ *   "no information" reading rather than a silent zero.
+ */
+export type DSValue = { bel: number; pl: number };
+
+export const DS_MONOID: ConfidenceMonoid<DSValue> = {
+  key: "ds",
+  top: { bel: 1, pl: 1 },
+  combine: (x, y) => ({ bel: x.bel * y.bel, pl: x.pl * y.pl }),
+  join: (x, y) => ({
+    bel: 1 - (1 - x.bel) * (1 - y.bel),
+    pl: 1 - (1 - x.pl) * (1 - y.pl),
+  }),
+  base: () => ({ bel: 1, pl: 1 }),
+};
+
+export function withDsScores(
+  scores: ReadonlyMap<DerivationId, DSValue>
+): ConfidenceMonoid<DSValue> {
+  return { ...DS_MONOID, base: (d) => scores.get(d) ?? { bel: 1, pl: 1 } };
+}
+
+// — Closed registry with admin extension path (ECC plan §4 row 5) ──────────
+
+const _registry: Map<string, ConfidenceMonoid<any>> = new Map([
+  [MIN_MONOID.key, MIN_MONOID as ConfidenceMonoid<any>],
+  [PRODUCT_MONOID.key, PRODUCT_MONOID as ConfidenceMonoid<any>],
+  [DS_MONOID.key, DS_MONOID as ConfidenceMonoid<any>],
+]);
+
+/**
+ * Look up a monoid by key. The MCP surface MUST take a closed enum
+ * `"min" | "product" | "ds"` (ECC plan §4 row 5). HTTP routes must NOT
+ * accept caller-supplied monoid keys without an allow-list check.
+ */
+export function getConfidenceMonoid(key: string): ConfidenceMonoid<any> | undefined {
+  return _registry.get(key);
+}
+
+/**
+ * Server-only admin path for registering an additional monoid (e.g. the
+ * `−log r` work-cost monoid from Ambler Example 28). Must NOT be wired to
+ * any HTTP path; adding a monoid is a code-review-gated change.
+ */
+export function registerConfidenceMonoid<M>(monoid: ConfidenceMonoid<M>): void {
+  _registry.set(monoid.key, monoid as ConfidenceMonoid<any>);
+}
+
+// ── §A1.5 Transport along a RoomFunctor (Isonomia extension; §0.5.7) ───────
+
+/**
+ * Object-level functor between deliberation categories. Backed at the data
+ * layer by `RoomFunctor.claimMapJson` (one-hop only, ECC plan §4 row 2).
+ */
+export interface Functor {
+  mapClaim(id: string): string | null;
+}
+
+/**
+ * Transport an arrow along a functor `F: 𝒟_A → 𝒟_B`. Returns `null` if
+ * either endpoint has no image under `F` (the functor is partial).
+ *
+ * @invariant Composition preservation (one-hop): `transport(F, compose(g,f))`
+ *   has the same minimal-assumption set as `compose(transport(F,g), transport(F,f))`
+ *   when both sides are defined. This is checked in `tests/ecc.test.ts`.
+ * @invariant Multi-hop transport (A→B→C) is intentionally NOT supported
+ *   (ECC plan §4 row 2). MCP tool descriptions must say so explicitly.
+ */
+export function transport<A extends string, B extends string>(
+  F: Functor,
+  arrow: Arrow<A, B>
+): Arrow<string, string> | null {
+  const fromImg = F.mapClaim(arrow.from as string);
+  const toImg = F.mapClaim(arrow.to as string);
+  if (fromImg === null || toImg === null) return null;
+  return {
+    from: fromImg,
+    to: toImg,
+    derivs: new Set(arrow.derivs),
+    assumptions: new Map(
+      Array.from(arrow.assumptions, ([d, a]) => [d, new Set(a)] as const)
+    ),
+  };
+}
+
+/**
+ * Multi-room aggregation:
+ *   `Hom_B(I,ψ) = Hom_B^local(I,ψ) ∨ ⋁_F F(Hom_A(I,φ))`
+ *
+ * Transports each remote arrow through its (one-hop) functor, then joins
+ * the results into the local arrow. Remotes that fail to transport (no
+ * image for an endpoint) are silently skipped.
+ *
+ * @invariant Joins are commutative + associative — order of `imported`
+ *   does not change the result.
+ * @invariant Type safety: every successfully-transported remote MUST land
+ *   on the same `(local.from, local.to)` pair; mismatched remotes are
+ *   skipped (rather than thrown) to keep the worker idempotent.
+ */
+export function aggregateAcrossRooms(
+  local: Arrow<string, string>,
+  imported: ReadonlyArray<{ functor: Functor; remote: Arrow<string, string> }>
+): Arrow<string, string> {
+  let acc: Arrow<string, string> = local;
+  for (const { functor, remote } of imported) {
+    const t = transport(functor, remote);
+    if (t === null) continue;
+    if (t.from !== local.from || t.to !== local.to) continue;
+    acc = join(acc, t);
+  }
+  return acc;
+}
+
+// ── §A1.6 Belief revision: culprit sets (Ambler §4) ────────────────────────
+
+/**
+ * A candidate retraction set, ranked for Sprint D's "Suggested retractions"
+ * panel (ECC plan §4 row 4: inline nudges only).
+ */
+export interface CulpritSet {
+  assumptions: Set<AssumptionId>;
+  /** Number of derivations in `rejected` killed by retracting these assumptions. */
+  badConclusionsExplained: number;
+  /** Set size — used as a primary tiebreaker (smaller is cheaper). */
+  retractionCost: number;
+}
+
+/**
+ * Candidate retractions for an `OUT`-labelled arrow.
+ *
+ * Algorithm (Ambler §4 verbatim): for each derivation `d` in `rejected`,
+ * its assumption set is a culprit candidate (retracting any subset of
+ * those assumptions that hits `d` removes that derivation). We emit the
+ * per-derivation full assumption set, then rank by:
+ *   1. coverage (`badConclusionsExplained`) descending,
+ *   2. cost (`retractionCost = |assumptions|`) ascending,
+ *   3. lexicographic on the assumption ids for determinism.
+ *
+ * @invariant Coverage monotonicity: a culprit set `S₂ ⊇ S₁` has
+ *   `S₂.badConclusionsExplained ≥ S₁.badConclusionsExplained`. Tested.
+ * @invariant Empty arrow ⇒ empty result (nothing to retract).
+ */
+export function culpritSets(rejected: Arrow): CulpritSet[] {
+  // Collect distinct assumption sets, recording how many derivations each
+  // would kill (a candidate kills derivation `d` iff candidate ∩
+  // assumptions(d) ≠ ∅).
+  const candidates: Set<AssumptionId>[] = [];
+  const seen = new Set<string>();
+  for (const d of rejected.derivs) {
+    const a = rejected.assumptions.get(d);
+    if (!a || a.size === 0) continue;
+    const key = Array.from(a).sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    candidates.push(new Set(a));
+  }
+  const ranked: CulpritSet[] = candidates.map((cand) => {
+    let coverage = 0;
+    for (const d of rejected.derivs) {
+      const a = rejected.assumptions.get(d);
+      if (!a) continue;
+      let hits = false;
+      for (const x of cand) {
+        if (a.has(x)) { hits = true; break; }
+      }
+      if (hits) coverage++;
+    }
+    return { assumptions: cand, badConclusionsExplained: coverage, retractionCost: cand.size };
+  });
+  ranked.sort((x, y) => {
+    if (y.badConclusionsExplained !== x.badConclusionsExplained) {
+      return y.badConclusionsExplained - x.badConclusionsExplained;
+    }
+    if (x.retractionCost !== y.retractionCost) {
+      return x.retractionCost - y.retractionCost;
+    }
+    const xs = Array.from(x.assumptions).sort().join("|");
+    const ys = Array.from(y.assumptions).sort().join("|");
+    return xs < ys ? -1 : xs > ys ? 1 : 0;
+  });
+  return ranked;
+}
+
+// ── §A1.7 Enthymeme detection (Sprint D3) ──────────────────────────────────
+
+/** Minimal scheme spec consumed by `detectEnthymemes`. */
+export interface SchemeSpec {
+  key: string;
+  /** Roles the scheme requires authors to fill, e.g. `["warrant","background"]`. */
+  requiredRoles: string[];
+}
+export interface SchemeCatalog {
+  get(key: string): SchemeSpec | undefined;
+}
+
+/** Per-derivation metadata used to detect missing roles. */
+export interface DerivationSchemeMeta {
+  schemeKey?: string;
+  argumentId?: string;
+  rolesPresent?: string[];
+}
+
+export interface EnthymemeNudge {
+  argumentId: string;
+  derivationId: DerivationId;
+  schemeKey: string;
+  missingPremiseRoles: string[];
+  /** LLM-filled at the call site; the algebra leaves this empty. */
+  suggestedWarrantText: string;
+}
+
+/**
+ * Emit nudges for derivations whose backing argument is missing a role
+ * the scheme requires. Pure structural check — the LLM-friendly suggestion
+ * text is left blank for the composer/MCP layer to fill.
+ *
+ * @invariant Idempotent on `arrow`; calling twice yields the same nudges.
+ * @invariant A derivation with no `schemeKey` or whose scheme is unknown
+ *   produces no nudge (fail-quiet rather than fail-loud — the composer is
+ *   the source of truth for whether a scheme assignment is required).
+ */
+export function detectEnthymemes(
+  arrow: Arrow,
+  schemes: SchemeCatalog,
+  metaFor: (d: DerivationId) => DerivationSchemeMeta | undefined
+): EnthymemeNudge[] {
+  const out: EnthymemeNudge[] = [];
+  for (const d of arrow.derivs) {
+    const meta = metaFor(d);
+    if (!meta?.schemeKey || !meta.argumentId) continue;
+    const spec = schemes.get(meta.schemeKey);
+    if (!spec) continue;
+    const present = new Set(meta.rolesPresent ?? []);
+    const missing = spec.requiredRoles.filter((r) => !present.has(r));
+    if (missing.length === 0) continue;
+    out.push({
+      argumentId: meta.argumentId,
+      derivationId: d,
+      schemeKey: meta.schemeKey,
+      missingPremiseRoles: missing,
+      suggestedWarrantText: "",
+    });
+  }
+  return out;
+}

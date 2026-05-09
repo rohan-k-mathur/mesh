@@ -118,10 +118,15 @@ export async function finalizePhase1(opts: {
     } catch (parseErr) {
       throw new Error(`Phase 1 finalize: review report at ${reportPath} could not be parsed: ${(parseErr as Error).message}`);
     }
-  } else if (partial.reviewFlags.length > 0) {
-    throw new Error(
-      `Phase 1 finalize refused: PHASE_1_PARTIAL.json has ${partial.reviewFlags.length} review flag(s) but no review report exists. Generate it with \`npm run orchestrator -- review --phase 1 --produce-report\`, fill in verdicts, then \`--apply\`.`,
-    );
+  } else {
+    // Info-severity flags are advisory and don't gate finalize. Only
+    // warn/blocker flags require a human-reviewed report.
+    const gating = partial.reviewFlags.filter((f) => f.severity !== "info");
+    if (gating.length > 0) {
+      throw new Error(
+        `Phase 1 finalize refused: PHASE_1_PARTIAL.json has ${gating.length} non-info review flag(s) but no review report exists. Generate it with \`npm run orchestrator -- review --phase 1 --produce-report\`, fill in verdicts, then \`--apply\`.`,
+      );
+    }
   }
 
   // Build complete file.
