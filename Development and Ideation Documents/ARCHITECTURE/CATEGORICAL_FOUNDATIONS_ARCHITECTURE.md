@@ -1122,9 +1122,13 @@ const score = clamp01(compose([b, premFactor], mode) * assumpFactor);
 | Composition (g∘f) | ✅ Complete | Premise chains, `composed` flag | A |
 | Join (f∨g) | ✅ Complete | `join()` function | A |
 | Zero Morphism (∅) | ✅ Complete | Empty hom-set | A |
-| Internal Hom [A,B] | ✅ Complete | `Inference` + undercut attacks | A |
+| Internal Hom [A,B] | ✅ Complete | `Inference` + undercut attacks; MCP `propose_warrant` materializes Λ-adjunction | A |
 | Tensor Product (⊗) | ✅ Complete | `ArgumentPremise` collection | A |
 | Comonoid (Δ, t) | ⚠️ Implicit | Premise reuse allowed | B+ |
+| Strict `isLogical` predicate (Ambler Def. 17) | ✅ Complete | `lib/argumentation/ecc.ts`; ECC plan §4 row 1 | A |
+| AI/HYBRID provenance gate (ECC plan §4 row 3) | ✅ Complete | `Argument.authorKind`, `aiProvenance`, `derivationProvenance` | A |
+| Belief revision (Ambler §4) | ✅ Complete | `culpritSets()`; cached `BeliefRevisionProposal` rows on grounded-OUT | A |
+| Enthymeme detection | ✅ Complete | `detectEnthymemes()` against `ArgumentScheme.slotHints` | A |
 
 ### 13.2 Confidence Measures
 
@@ -1151,7 +1155,9 @@ const score = clamp01(compose([b, premFactor], mode) * assumpFactor);
 | Plexus 5-edge network | ✅ Complete | Network API | A |
 | Edge visualization | ✅ Complete | Colored arrows | A |
 | Transport UI | ✅ Complete | `TransportComposer` | B+ |
-| Functor composition (A→B→C) | ❌ Missing | — | — |
+| One-hop transport snapshots | ✅ Complete | `RoomTransportSnapshot`, `workers/transport-aggregator.ts` (ECC plan §4 row 2) | A |
+| `aggregateAcrossRooms` band | ✅ Complete | `lib/argumentation/ecc.ts` + `/api/v3/deliberations/[id]/ecc/aggregate` | A |
+| Functor composition (A→B→C) | ⛔ Intentionally absent | One-hop only by contract (ECC plan §4 row 2) | n/a |
 
 ### 13.4 Neighborhoods and Views
 
@@ -1169,12 +1175,40 @@ const score = clamp01(compose([b, premFactor], mode) * assumpFactor);
 
 | Gap | Priority | Description |
 |-----|----------|-------------|
-| Functor composition | Medium | Chain A→B→C mappings |
+| Functor composition | Closed (⛔) | One-hop transport is a contract, not a gap (ECC plan §4 row 2) |
 | Semantic identity resolution | Medium | Beyond fingerprint matching |
 | Plexus evolution timeline | Low | Track edge appearance over time |
 | Visual import distinction | Medium | Badge imported args in UI |
 | Provenance in ArgumentPopout | Medium | Show source deliberation |
 | AF projection overlay | Low | Skeptical/credulous labels on DebateSheet |
+| Explicit warrant ratification record | Medium | Today AI/HYBRID warrants flip to logical only when the host `AssumptionUse` is ACCEPTED — a dedicated `WarrantRatification` table would make the audit trail first-class |
+
+### 13.6 MCP Surface (Sprint E)
+
+The typed ECC algebra is exposed verbatim to LLM agents via the MCP server
+(`packages/isonomia-mcp/src/server.ts`) and the matching v3 routes under
+`app/api/v3/deliberations/[id]/ecc/*`. All `mode` parameters are closed
+enums; transport tools are one-hop only; `propose_warrant` writes
+`authorKind = AI` and the resulting derivation is non-logical until a
+HUMAN ratifies (ECC plan §4 row 3).
+
+| MCP tool | Backing route | Algebra | Grade |
+|----------|---------------|---------|-------|
+| `ecc_arrow` | `GET .../ecc/arrow` | `Hom(I, claim)` + Ambler Def. 8/17 meta | A |
+| `ecc_culprits` | `GET .../ecc/culprits` | Ambler §4 belief revision | A |
+| `ecc_confidence` | `GET .../ecc/confidence` | `confidence(arrow, monoid)` (closed enum) | A |
+| `ecc_enthymemes` | `GET .../ecc/enthymemes` | `detectEnthymemes()` per scheme | A |
+| `ecc_transport` | `GET .../ecc/transport` | Read `RoomTransportSnapshot` (one-hop) | A |
+| `ecc_aggregate` | `GET .../ecc/aggregate` | `{ local, imported, total }` band per claim | A |
+| `ecc_evidential` | `GET .../ecc/evidential` | Whole-delib typed evidential projection | A |
+| `ecc_belief_revision_proposals` | `GET .../ecc/belief-revision` | Cached `BeliefRevisionProposal` rows (Sprint D1) | A |
+| `propose_warrant` | `POST .../ecc/propose-warrant` | Internal-hom write; AI-flagged + non-logical until ratified | A |
+
+Determinism contract verified by
+[tests/ecc-culprits-roundtrip.test.ts](../../../tests/ecc-culprits-roundtrip.test.ts):
+the canonical demo question — *what would I have to retract to reject
+claim X?* — produces bit-identical JSON across repeated invocations on
+the same fixture, with no LLM in the loop.
 
 ---
 

@@ -36,6 +36,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Coerce/validate userId early so a bad session id surfaces as 400, not 500.
+    let createdByIdBigInt: bigint;
+    try {
+      createdByIdBigInt = BigInt(String(userId));
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid session user id" },
+        { status: 400 }
+      );
+    }
+
     // Validation 2: Self-contrary check
     if (claimId === contraryId) {
       return NextResponse.json(
@@ -74,13 +85,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validation 4: Check for duplicate (either direction)
-    const existingContrary = await prisma.claimContrary.findFirst({
-      where: {
-        OR: [
+    // Validation 4: Check for duplicate.
+    // - Symmetric requests collide with any existing ACTIVE row in either direction.
+    // - Asymmetric requests only collide with an ACTIVE row in the same direction
+    //   (or with an existing ACTIVE symmetric row in the reverse direction, which
+    //   already covers the asymmetric meaning).
+    const duplicateOr = isSymmetric
+      ? [
           { claimId, contraryId },
           { claimId: contraryId, contraryId: claimId },
-        ],
+        ]
+      : [
+          { claimId, contraryId },
+          { claimId: contraryId, contraryId: claimId, isSymmetric: true },
+        ];
+
+    const existingContrary = await prisma.claimContrary.findFirst({
+      where: {
+        OR: duplicateOr,
         status: "ACTIVE",
       },
     });
@@ -88,28 +110,31 @@ export async function POST(req: NextRequest) {
     if (existingContrary) {
       return NextResponse.json(
         { error: "Contrary relationship already exists between these claims" },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
     // Validation 5: Well-formedness check - cannot target axioms (Phase B)
-    const contraryPremises = await prisma.argumentPremise.findMany({
+    // Scoped by deliberation; checks both endpoints when the relation is symmetric
+    // (a symmetric contrary effectively targets both claims).
+    const axiomTargets = isSymmetric ? [claimId, contraryId] : [contraryId];
+    const axiomPremises = await prisma.argumentPremise.findMany({
       where: {
-        claimId: contraryId,
-      },
-      select: {
+        claimId: { in: axiomTargets },
         isAxiom: true,
+        argument: { deliberationId },
       },
+      select: { claimId: true },
     });
 
-    // Phase B: Axioms cannot be targeted by contraries (well-formedness)
-    const isAxiom = contraryPremises.some((p) => p.isAxiom);
-    if (isAxiom) {
+    if (axiomPremises.length > 0) {
+      const offending = Array.from(new Set(axiomPremises.map((p) => p.claimId)));
       return NextResponse.json(
         {
           error: "Cannot create contrary to an axiom",
           details:
-            "Well-formedness violation: Contraries cannot target axioms (K_n). The target claim is used as an axiom in one or more arguments.",
+            "Well-formedness violation: Contraries cannot target axioms (K_n) within this deliberation.",
+          axiomClaimIds: offending,
         },
         { status: 400 }
       );
@@ -122,7 +147,7 @@ export async function POST(req: NextRequest) {
         claimId,
         contraryId,
         isSymmetric,
-        createdById: BigInt(userId),
+        createdById: createdByIdBigInt,
         status: "ACTIVE",
         reason,
       },

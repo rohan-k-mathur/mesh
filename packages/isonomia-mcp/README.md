@@ -34,6 +34,20 @@ bearer token, and is safe to run on any developer laptop.
 | `get_cross_context`               | Cross-deliberation projection (canonical-claim families, plexus edges, sibling-room scheme reuse)            | none |
 | `get_deliberation_evidence_context` | Evidence corpus pre-bound to the deliberation (the source pool participants were given)                    | bearer token |
 
+### ECC-scope (Sprint E — typed categorical algebra over a deliberation, deterministic, no LLM in loop)
+
+| Tool                              | Purpose                                                                                                      | Auth |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---- |
+| `ecc_arrow`                       | Typed `Hom(I, claim)` arrow + Ambler 1996 Def. 8/17 meta `{ simple, entire, selected, logical }`             | none |
+| `ecc_culprits`                    | **The canonical demo tool.** Ambler §4 belief-revision: ranked retraction candidates per claim, hydrated | none |
+| `ecc_confidence`                  | `confidence(arrow, monoid)` per claim with `mode ∈ {min, product, ds}` (closed enum, ECC plan §4 row 5)     | none |
+| `ecc_enthymemes`                  | `detectEnthymemes()` per argument or per deliberation — names missing premise roles by scheme key           | none |
+| `ecc_transport`                   | Read cached `RoomTransportSnapshot` rows; **one-hop only** by contract (ECC plan §4 row 2)                   | none |
+| `ecc_aggregate`                   | `{ local, imported, total }` band per claim (Isonomia construction, ECC plan §0.5.7)                         | none |
+| `ecc_evidential`                  | Whole-deliberation typed evidential projection; bypasses the `ECC_TYPED_PIPELINE` env feature flag           | none |
+| `ecc_belief_revision_proposals`   | Cached `BeliefRevisionProposal` rows from the grounded-OUT hook (Sprint D1) — same algebra, pre-computed   | none |
+| `propose_warrant`                 | Materialize a warrant claim `[A, B]` (Ambler §2.4 internal hom). AI-flagged + non-logical until human-ratified | bearer token |
+
 Prefer `get_synthetic_readout` over the narrow slices — it returns all five
 projections in one round trip plus pre-hydrated argument summaries that
 eliminate ~25 follow-up `get_argument` calls.
@@ -74,7 +88,7 @@ or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 }
 ```
 
-Restart Claude Desktop. The six tools should appear under the 🛠 menu.
+Restart Claude Desktop. The 24 tools should appear under the 🛠 menu.
 
 ## Configure Cursor / Cline / Continue
 
@@ -87,8 +101,10 @@ locations.
 | Var                  | Default                  | Purpose                                              |
 | -------------------- | ------------------------ | ---------------------------------------------------- |
 | `ISONOMIA_BASE_URL`  | `https://isonomia.app`   | API origin to call                                   |
-| `ISONOMIA_API_TOKEN` | _(unset)_                | Bearer token for `propose_argument`                  |
+| `ISONOMIA_API_TOKEN` | _(unset)_                | Bearer token for `propose_argument` and `propose_warrant` |
 | `ISONOMIA_TIMEOUT_MS`| `30000`                  | Per-request timeout                                  |
+| `MCP_API_TOKEN`      | _(unset, server-side)_   | Bearer token the **Next.js server** accepts as a valid MCP caller (server-side env on the Isonomia deploy, not the MCP client) |
+| `MCP_AUTHOR_USER_ID` | `mcp-bot`                | User id the server records as the author when an MCP-tokened request creates rows (e.g. `propose_warrant`) |
 
 ## Local dev
 
@@ -112,3 +128,31 @@ to exercise every tool over a stdio pipe.
   message into `{isError: true, content: [...]}`. The client surfaces the
   error to the user without crashing the server.
 - **Stdout is the protocol stream.** All logging happens on stderr.
+
+## Categorical algebra (Sprint E)
+
+The `ecc_*` tools and `propose_warrant` expose Isonomia's typed
+implementation of Ambler 1996, *An Evidential Category of Claims*. Every
+row below is a contract the MCP surface honors and that callers can rely
+on without re-deriving:
+
+| Equational law / contract | Where it lives | Surfaced as |
+|---------------------------|----------------|-------------|
+| `Arrow<A, B> = { from, to, derivs, assumptions }` (Ambler §2) | `lib/argumentation/ecc.ts` | `ecc_arrow` |
+| `f ∨ g` is the join in the hom-semilattice (Ambler Lemma 26) | `join()` | implicit in every ECC tool |
+| `g ∘ f` carries the union of assumption sets (Ambler §2.3) | `compose()` | `ecc_arrow.derivations[].assumptionIds` |
+| Internal hom Λ: `[A, B] ≃ Hom(A ⊗ —, B)` (Ambler §2.4) | `internalHom()` + `propose_warrant` route | `propose_warrant` write |
+| `confidence(arrow, monoid)` is a closed-monoid fold (Ambler Thm. 30) | `confidence()` | `ecc_confidence`, `ecc_aggregate`, `ecc_evidential` |
+| **Strict** `isLogical`: ACCEPTED-only AND HUMAN-or-ratified (ECC plan §4 row 1) | `isLogical()` | `meta.logical` on every ECC payload |
+| **One-hop** transport: chained A→B→C is intentionally not supported (ECC plan §4 row 2) | `RoomTransportSnapshot` aggregator | `ecc_transport`, `ecc_aggregate` |
+| **AI/HYBRID** warrants are non-logical until a HUMAN ratifies (ECC plan §4 row 3) | `derivationProvenance.humanRatified` | `propose_warrant` returns `awaitingHumanRatification: true` |
+| **Closed monoid registry**: callers cannot supply ad-hoc monoids (ECC plan §4 row 5) | `MIN_MONOID`, `PRODUCT_MONOID`, `DS_MONOID` | `mode` is a closed enum on every confidence-bearing tool |
+| Ambler §4 belief revision is deterministic | `culpritSets()` + `BeliefRevisionProposal` cache | `ecc_culprits`, `ecc_belief_revision_proposals` |
+
+The canonical demo question — **"what would I have to retract to reject
+claim X in this deliberation?"** — is answered by `ecc_culprits` (live
+over the algebra) or `ecc_belief_revision_proposals` (cached, written by
+the grounded-recompute hook when a claim transitions to OUT). Both paths
+are graph-derived, deterministic, and verified by
+[`tests/ecc-culprits-roundtrip.test.ts`](../../tests/ecc-culprits-roundtrip.test.ts)
+(bit-identical JSON across repeated invocations).

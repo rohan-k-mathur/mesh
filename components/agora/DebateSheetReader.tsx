@@ -214,7 +214,8 @@ export default function DebateSheetReader({
       return { kind: 'ds', bel: arg.support.bel, pl: arg.support.pl };
     }
     const s = typeof arg.support === 'number' ? arg.support : arg.support?.bel ?? 0;
-    return { kind: 'scalar', s };
+    // Sprint C4: pass cross-room transport band through when present.
+    return { kind: 'scalar', s, ...(arg.supportBand ? { band: arg.supportBand } : {}) };
   };
 
   // Build support lookup by claim (from arguments' conclusion claims)

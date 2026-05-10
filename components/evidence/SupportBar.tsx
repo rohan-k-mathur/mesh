@@ -11,6 +11,13 @@ import {
 interface SupportBarProps {
   value: number;
   upperBound?: number; // plausibility for DS mode
+  /**
+   * Cross-room transport band (Sprint C4). When present and `upperBound`
+   * is not set, the bar renders `local` as a solid fill and the imported
+   * delta (`total - local`) as a hatched overlay so users can see how
+   * much of the score comes from other rooms via `RoomFunctor` mappings.
+   */
+  band?: { local: number; imported: number; total: number };
   label?: string;
   claimId?: string;
   deliberationId?: string;
@@ -21,6 +28,7 @@ interface SupportBarProps {
 export function SupportBar({ 
   value, 
   upperBound,
+  band,
   label, 
   claimId,
   deliberationId,
@@ -29,6 +37,9 @@ export function SupportBar({
 }: SupportBarProps) {
   const v = Math.max(0, Math.min(1, value ?? 0));
   const pl = upperBound !== undefined ? Math.max(0, Math.min(1, upperBound)) : undefined;
+  const bandLocal = band ? Math.max(0, Math.min(1, band.local)) : undefined;
+  const bandTotal = band ? Math.max(0, Math.min(1, band.total)) : undefined;
+  const showBand = pl === undefined && band !== undefined && bandTotal! > bandLocal!;
   const [explain, setExplain] = React.useState<ExplainData | null>(null);
   const [loading, setLoading] = React.useState(false);
 
@@ -65,6 +76,10 @@ export function SupportBar({
         <span>{label ?? "Support"}</span>
         {pl !== undefined ? (
           <span>[{(v * 100).toFixed(0)}%, {(pl * 100).toFixed(0)}%]</span>
+        ) : showBand ? (
+          <span title={`local ${(bandLocal! * 100).toFixed(0)}% + imported ${(band!.imported * 100).toFixed(0)}%`}>
+            {(bandLocal! * 100).toFixed(0)}% + {(band!.imported * 100).toFixed(0)}% → {(bandTotal! * 100).toFixed(0)}%
+          </span>
         ) : (
           <span>{(v * 100).toFixed(0)}%</span>
         )}
@@ -82,6 +97,25 @@ export function SupportBar({
               className="h-2 bg-emerald-300/50 absolute top-0" 
               style={{ left: `${v * 100}%`, width: `${(pl - v) * 100}%` }}
               title={`Plausibility range: ${(v * 100).toFixed(1)}% - ${(pl * 100).toFixed(1)}%`}
+            />
+          </>
+        ) : showBand ? (
+          <>
+            {/* Sprint C4: local fill + hatched imported overlay */}
+            <div
+              className="h-2 rounded-l bg-emerald-500"
+              style={{ width: `${bandLocal! * 100}%` }}
+              title={`Local support: ${(bandLocal! * 100).toFixed(1)}%`}
+            />
+            <div
+              className="h-2 absolute top-0 bg-sky-400/70"
+              style={{
+                left: `${bandLocal! * 100}%`,
+                width: `${(bandTotal! - bandLocal!) * 100}%`,
+                backgroundImage:
+                  "repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 2px, transparent 2px 5px)",
+              }}
+              title={`Imported (cross-room): +${((bandTotal! - bandLocal!) * 100).toFixed(1)}% (raw imported ${(band!.imported * 100).toFixed(1)}%)`}
             />
           </>
         ) : (

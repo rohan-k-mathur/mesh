@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { Activity, Link as LinkIcon, Tag, Swords, ChevronDown, Users, Maximize2 } from "lucide-react";
 import { InlineCommitmentCount } from "@/components/aif/CommitmentBadge";
 import { ClaimContraryManager } from "@/components/claims/ClaimContraryManager";
+import { ContraryBadge } from "@/components/claims/contraryBadge/ContraryBadge";
 import { AttackCreationModal } from "@/components/aspic/AttackCreationModal";
 import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
 import { mutate } from "swr";
@@ -12,6 +13,7 @@ import { current } from "immer";
 import { GroupedCitationList, EvidenceBalanceBar } from "@/components/citations/GroupedCitationList";
 import { EvidencePanel } from "@/components/citations/EvidencePanel";
 import { TypologyAxisStrip } from "@/components/typology/TypologyAxisStrip";
+import { SuggestedRetractionsPanel } from "@/components/claims/SuggestedRetractionsPanel";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -195,6 +197,14 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
               ].filter(Boolean).join(", ")}
             </span>
           )}
+          {!expanded && (
+            <ContraryBadge
+              deliberationId={deliberationId}
+              claimId={claimId}
+              claimText={claimText || cegNode?.text}
+              size="xs"
+            />
+          )}
          
         </span>
       </button>
@@ -208,6 +218,13 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
             targetId={claimId}
             className="px-3"
           />
+
+          {/* Sprint D — Belief revision: suggested retractions when this claim is OUT (Ambler §4) */}
+          {label === "OUT" && (
+            <div className="px-3">
+              <SuggestedRetractionsPanel claimId={claimId} />
+            </div>
+          )}
 
           {/* Show message if no content yet */}
           {!hasContent && (
@@ -326,6 +343,7 @@ export function ClaimDetailPanel({ claimId, deliberationId, className = "", clai
               deliberationId={deliberationId}
               claimId={claimId}
               claimText={claimText || cegNode?.text || ""}
+              currentUserId={currentUserId}
             />
           </div>
 <div className="inline-flex w-full ">

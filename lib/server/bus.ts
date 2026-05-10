@@ -47,9 +47,47 @@ bus.setMaxListeners(50);
 export default bus;
 
 /* --------------------------------- Helpers --------------------------------- */
+
+/**
+ * Fire-and-forget durable write of an event envelope to AgoraOutbox.
+ *
+ * The in-memory ring buffer in `app/api/events/route.ts` remains the hot path
+ * for SSE delivery; AgoraOutbox is a persistent shadow log used for replay,
+ * audit, and (eventually) cross-instance fanout. Failures are swallowed so
+ * the live event path is never affected.
+ *
+ * Disable with `MESH_AGORA_OUTBOX=off`.
+ */
+async function persistOutbox(env: BusEnvelope<any>): Promise<void> {
+  if (process.env.MESH_AGORA_OUTBOX === "off") return;
+  try {
+    // Lazy import to avoid pulling Prisma into edge bundles or test setup
+    // that may not have the client initialized at module load time.
+    const { prisma } = await import("@/lib/prismaclient");
+    const p: any = (env as any) ?? {};
+    await (prisma as any).agoraOutbox.create({
+      data: {
+        ts: new Date(typeof p.ts === "number" ? p.ts : Date.now()),
+        topic: String(env.type),
+        roomId: typeof p.roomId === "string" ? p.roomId : null,
+        deliberationId:
+          typeof p.deliberationId === "string" ? p.deliberationId : null,
+        targetType: typeof p.targetType === "string" ? p.targetType : null,
+        targetId: typeof p.targetId === "string" ? p.targetId : null,
+        payload: env as any,
+        delivered: true, // in-process subscribers received it synchronously below
+      },
+    });
+  } catch {
+    // Swallow — outbox is best-effort. Never break the live bus.
+  }
+}
+
 export function emitBus<T extends BusEvent>(type: T, payload: BusPayload<T>): BusEnvelope<T> {
   const env = { type, ts: Date.now(), ...(payload || {}) } as BusEnvelope<T>;
   bus.emit(type, env);
+  // Fire-and-forget durable write; do not await.
+  void persistOutbox(env);
   return env;
 }
 

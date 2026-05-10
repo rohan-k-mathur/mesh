@@ -25,6 +25,17 @@
  *   • summarize_debate             — wrapper for the readout
  *   • get_deliberation_evidence_context — pre-bound source corpus (B2)
  *
+ *   Sprint E ECC tools (typed-algebra, deterministic, no LLM in loop):
+ *   • ecc_arrow                       — typed `Hom(I, claim)` + Ambler Def. 8/17 meta
+ *   • ecc_culprits                    — Ambler §4 retraction candidates per claim
+ *   • ecc_confidence                  — confidence(arrow, monoid), closed enum
+ *   • ecc_enthymemes                  — detectEnthymemes() per arg or per delib
+ *   • ecc_transport                   — read RoomTransportSnapshot rows (one-hop)
+ *   • ecc_aggregate                   — { local, imported, total } band per claim
+ *   • ecc_evidential                  — typed evidential projection per delib
+ *   • ecc_belief_revision_proposals   — cached BeliefRevisionProposal rows (Sprint D1)
+ *   • propose_warrant                 — internal-hom write (AI-authored, awaiting ratification)
+ *
  * Run:
  *   ISONOMIA_BASE_URL=https://isonomia.app \
  *   ISONOMIA_API_TOKEN=...                 \
@@ -143,6 +154,68 @@ const FrontierInput = z.object({
         .optional()
         .default("loadBearingness")
         .describe("Order of returned items. 'loadBearingness' (default) ranks by frontier impact; 'severity' surfaces scheme-required items first; 'recency' uses argument creation order."),
+});
+// ── Sprint E (ECC) — typed-algebra tools backed by /api/v3/deliberations/[id]/ecc/* ──
+const EccDelibClaimInput = z.object({
+    deliberationId: z.string().min(1).describe("Deliberation id (cuid)"),
+    claimId: z.string().min(1).describe("Claim id (cuid) within that deliberation"),
+});
+const EccDelibClaimModeInput = EccDelibClaimInput.extend({
+    mode: z
+        .enum(["min", "product", "ds"])
+        .optional()
+        .default("product")
+        .describe("Confidence monoid (closed enum, ECC plan \u00a74 row 5). 'min' = weakest-link (Ambler Ex. 25); 'product' = noisy-OR (Ambler Ex. 28); 'ds' = Dempster-Shafer {bel,pl} (Ambler Thm. 30). No caller-supplied monoids."),
+});
+const EccEnthymemesInput = z.object({
+    deliberationId: z.string().min(1),
+    argumentId: z
+        .string()
+        .optional()
+        .describe("When supplied, runs detectEnthymemes against this single argument. When omitted, scans every argument with a primary scheme assignment in the deliberation."),
+});
+const EccTransportInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .describe("Destination deliberation (where imported support lands)."),
+    fromRoomId: z
+        .string()
+        .optional()
+        .describe("Source deliberation. Omit to return every cached snapshot landing on the destination."),
+});
+const EccAggregateInput = EccDelibClaimInput.extend({
+    mode: z
+        .enum(["min", "product"])
+        .optional()
+        .default("product")
+        .describe("Aggregation monoid. DS-mode aggregation is not cached and is therefore not supported here; ask the local /confidence tool for ds."),
+});
+const EccEvidentialInput = z.object({
+    deliberationId: z.string().min(1),
+    mode: z.enum(["min", "product", "ds"]).optional().default("product"),
+    imports: z
+        .enum(["off", "materialized", "virtual", "all"])
+        .optional()
+        .default("off")
+        .describe("Whether to fold transported support from other rooms into the result. 'materialized' uses the cached `RoomTransportSnapshot` rows; 'virtual' uses live `ArgumentImport` rows; 'all' uses both."),
+});
+const EccDelibIdInput = z.object({
+    deliberationId: z.string().min(1),
+});
+const ProposeWarrantInput = z.object({
+    deliberationId: z.string().min(1),
+    argumentId: z.string().min(1).describe("Host argument id; the warrant attaches as an AssumptionUse on this argument."),
+    warrantText: z.string().min(1).max(2000).describe("The proposed warrant text. Will become a new Claim + AI-authored Argument."),
+    authorKind: z
+        .enum(["AI", "HYBRID"])
+        .optional()
+        .default("AI")
+        .describe("Provenance flag. Both AI and HYBRID warrants are non-logical until a HUMAN explicitly ratifies (ECC plan \u00a74 row 3)."),
+    model: z.string().optional().describe("Model identifier (e.g. 'claude-opus-4.7'). Stored under aiProvenance.model."),
+    promptHash: z.string().optional(),
+    sourceUrls: z.array(z.string().url()).optional(),
+    hint: z.string().optional(),
 });
 const tools = [
     {
@@ -446,6 +519,112 @@ const tools = [
         async handler(args) {
             const input = DeliberationIdInput.parse(args);
             return await isoFetch(`/api/deliberations/${encodeURIComponent(input.deliberationId)}/evidence-context`, { authenticated: true });
+        },
+    },
+    // ── Sprint E (ECC) ─────────────────────────────────────────────
+    // Typed-algebra tools backed by `app/api/v3/deliberations/[id]/ecc/*`.
+    // These give an MCP client deterministic, graph-derived answers to
+    // categorical-algebra questions (Ambler 1996) without putting an LLM
+    // in the loop. All `mode` parameters are CLOSED enums (ECC plan
+    // \u00a74 row 5); transport tools are ONE-HOP only (ECC plan \u00a74 row 2);
+    // `propose_warrant` writes `authorKind = AI` and the resulting arrow
+    // is non-logical until a HUMAN ratifies (ECC plan \u00a74 row 3).
+    // ───────────────────────────────────────────────────────────────
+    {
+        name: "ecc_arrow",
+        description: "Use this when you need the structural skeleton of `Hom(I, claim)` for one claim — the typed ECC `Arrow` (Ambler 1996 \u00a72) materialized from Prisma. Returns `arrow.derivations` (each ArgumentSupport row as one derivation, with its `argumentText`, `base`, `authorKind`, and `assumptionIds`) plus `meta = { simple, entire, selected, logical }` from Ambler Def. 8 + Def. 17. The `logical` flag is STRICT (ECC plan \u00a74 row 1): a derivation is logical iff every `AssumptionUse` it depends on has `status === 'ACCEPTED'` AND its argument is HUMAN-authored (or AI/HYBRID + ratified). HONEST-EMPTY: a claim with no support rows returns `{ arrow: null, reason: '\u2026' }` rather than synthesizing a 0-derivation arrow.",
+        inputSchema: zodToJsonSchema(EccDelibClaimInput),
+        async handler(args) {
+            const input = EccDelibClaimInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/arrow?claimId=${encodeURIComponent(input.claimId)}`);
+        },
+    },
+    {
+        name: "ecc_culprits",
+        description: "THE CANONICAL E-DEMO TOOL. Use this when the user asks 'what would I have to retract to reject claim X?' Implements Ambler 1996 \u00a74 belief-revision over the per-claim arrow: each derivation's assumption set is a candidate culprit, ranked by (1) `badConclusionsExplained` desc, (2) `retractionCost = |assumptions|` asc, (3) lexicographic on assumption ids. Each candidate is hydrated with `AssumptionUse.text`, `assumptionClaimId`, and current `status` so the answer is human-readable in one round-trip. HONEST-EMPTY: a claim with no derivations, or whose derivations carry no assumptions, returns `culprits: []` (nothing to retract). For the COMPOSED 'these proposals are already cached because the claim was just labelled OUT' answer, prefer `ecc_belief_revision_proposals` instead \u2014 same algebra, but pre-computed by the grounded-recompute hook in Sprint D1.",
+        inputSchema: zodToJsonSchema(EccDelibClaimInput),
+        async handler(args) {
+            const input = EccDelibClaimInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/culprits?claimId=${encodeURIComponent(input.claimId)}`);
+        },
+    },
+    {
+        name: "ecc_confidence",
+        description: "Use this when you need a single confidence value for one claim under one named monoid. Computes `confidence(arrow, monoid)` (Ambler \u00a73 + Lemma 26) where `arrow = Hom(I, claim)`. `mode` is a CLOSED enum (ECC plan \u00a74 row 5): 'min' (weakest-link, Ambler Ex. 25 \u2014 returns the largest of the smallest-link products), 'product' (noisy-OR over derivation join, Ambler Ex. 28), 'ds' (Dempster-Shafer `{bel, pl}` pair, Ambler Thm. 30 \u2014 caller MUST treat this as a pair, not a scalar). HONEST-EMPTY: a claim with no derivations returns `confidence: null`. For the whole-deliberation projection use `ecc_evidential` instead \u2014 it returns `support[claimId]` for every claim in one call.",
+        inputSchema: zodToJsonSchema(EccDelibClaimModeInput),
+        async handler(args) {
+            const input = EccDelibClaimModeInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/confidence?claimId=${encodeURIComponent(input.claimId)}&mode=${encodeURIComponent(input.mode)}`);
+        },
+    },
+    {
+        name: "ecc_enthymemes",
+        description: "Use this when you suspect an argument (or a whole deliberation) is missing structurally-required premise roles \u2014 the algebra-side analogue of `get_missing_moves`, but operating on `ArgumentScheme.slotHints.premises[].role` rather than the catalog of critical questions. Wraps `detectEnthymemes()` from `lib/argumentation/ecc.ts` (\u00a7A1.7). Returns `nudges: [{ argumentId, schemeKey, missingPremiseRoles }]`. HONEST-EMPTY: an argument without a primary scheme assignment, or whose scheme has no required roles, contributes zero nudges \u2014 a structural pass, not an absence to warn about. Pass `argumentId` for a single-argument check; omit it for a deliberation-wide scan (slower; the scan loads every scheme-bearing argument's premises in one query).",
+        inputSchema: zodToJsonSchema(EccEnthymemesInput),
+        async handler(args) {
+            const input = EccEnthymemesInput.parse(args);
+            const qs = input.argumentId ? `?argumentId=${encodeURIComponent(input.argumentId)}` : "";
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/enthymemes${qs}`);
+        },
+    },
+    {
+        name: "ecc_transport",
+        description: "Use this when you want to inspect what cross-room support has been transported INTO a deliberation. Returns the cached `RoomTransportSnapshot` rows (computed by `workers/transport-aggregator.ts` on `RoomFunctor` upserts); each row carries `payloadJson.byClaim[toClaimId] = { sources: [{ fromClaimId, fromDelibId, score }] }`. CONTRACT (ECC plan \u00a74 row 2): one-hop transport ONLY. Chained transport (A\u2192B\u2192C) is intentionally NOT supported \u2014 if a payload mentions room B, it cannot also have walked to room C in the same hop. Pass `fromRoomId` to scope to a single source; omit it to enumerate every snapshot. HONEST-EMPTY: a deliberation with no inbound functors returns `snapshots: []`.",
+        inputSchema: zodToJsonSchema(EccTransportInput),
+        async handler(args) {
+            const input = EccTransportInput.parse(args);
+            const qs = input.fromRoomId ? `?fromRoomId=${encodeURIComponent(input.fromRoomId)}` : "";
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/transport${qs}`);
+        },
+    },
+    {
+        name: "ecc_aggregate",
+        description: "Use this when you need the cross-room band `{ local, imported, total }` for one claim \u2014 the per-claim version of `aggregateAcrossRooms` (Ambler 1996 + Isonomia transport extension, ECC plan \u00a70.5.7: 'Isonomia construction, consistent with but not from Ambler'). Combines the local `confidence(arrow, monoid)` with the noisy-OR (or min) of every cached `RoomTransportSnapshot` payload landing on the claim. `mode` is restricted to {'min', 'product'} \u2014 DS-mode aggregation is NOT cached; ask `ecc_confidence` with mode='ds' for the local DS pair instead. ONE-HOP only (ECC plan \u00a74 row 2). The `importedContributions` array names each source room and its reduced score so the aggregate is auditable.",
+        inputSchema: zodToJsonSchema(EccAggregateInput),
+        async handler(args) {
+            const input = EccAggregateInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/aggregate?claimId=${encodeURIComponent(input.claimId)}&mode=${encodeURIComponent(input.mode)}`);
+        },
+    },
+    {
+        name: "ecc_evidential",
+        description: "Use this for the WHOLE-DELIBERATION evidential projection: `support[claimId]` (scalar), `dsSupport[claimId]` ({bel,pl} when mode='ds'), `hom['I|claimId'].args[]`, `nodes[]` (with strict `logical` + `selected` flags per claim), and \u2014 when `imports='materialized'` or `'all'` \u2014 a `supportBand[claimId] = { local, imported, total }` map with cross-room transport folded in. Bypasses the `ECC_TYPED_PIPELINE` env feature flag so MCP clients always see the typed-pipeline output. `mode` is the closed monoid enum; `imports` controls whether materialized RoomTransportSnapshot rows and/or live ArgumentImport rows are folded in. HONEST-EMPTY: a deliberation with no claims returns empty maps.",
+        inputSchema: zodToJsonSchema(EccEvidentialInput),
+        async handler(args) {
+            const input = EccEvidentialInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/evidential?mode=${encodeURIComponent(input.mode)}&imports=${encodeURIComponent(input.imports)}`);
+        },
+    },
+    {
+        name: "ecc_belief_revision_proposals",
+        description: "Use this AFTER `ecc_evidential` or any tool that surfaced a claim as `OUT` to retrieve the cached, deterministic culprit candidates the grounded-labeller wrote when the claim transitioned to OUT (Sprint D1, fire-and-forget hook in `lib/ceg/grounded.ts`). Same algebra as `ecc_culprits` (Ambler \u00a74), but pre-computed and idempotent on `(claimId, argumentId)`; never overwrites APPLIED proposals, re-opens DISMISSED. Returns `proposals[]` with `candidatesJson` and `assumptions[]` (hydrated `AssumptionUse` rows referenced by the candidates). HONEST-EMPTY: a claim that is currently IN/UNDEC, or one whose grounded-recompute hasn't run yet (race), returns `proposals: []`. Combine with the `claim_id`-scoped read so a downstream client can present 'retract assumption X to flip claim Y from OUT to IN' as a one-click action.",
+        inputSchema: zodToJsonSchema(EccDelibClaimInput),
+        async handler(args) {
+            const input = EccDelibClaimInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ecc/belief-revision?claimId=${encodeURIComponent(input.claimId)}`);
+        },
+    },
+    {
+        name: "propose_warrant",
+        description: "Use this to materialize a warrant claim `[A, B]` (Ambler \u00a72.4 internal hom \u2014 the \u039b adjunction) for an existing argument. Creates a new `Claim` (text = warrantText), a new AI-authored backing `Argument` (`authorKind = 'AI'` or `'HYBRID'`, with `aiProvenance.{model, promptHash, sourceUrls, hint}`), and an `AssumptionUse` row attached to the host argument with `role: 'warrant'` and `status: 'PROPOSED'`. CONTRACT (ECC plan \u00a74 row 3): the resulting derivation is NEVER logical until a HUMAN explicitly ratifies the warrant (i.e. flips the AssumptionUse to ACCEPTED via the standard UI). The strict `isLogical` predicate refuses to lift the host arrow until then; the UI surfaces an 'AI-drafted, awaiting human ratification' pill on the warrant claim. REQUIRES auth: server must have MCP_API_TOKEN + MCP_AUTHOR_USER_ID env vars set, OR the request must carry a session cookie. Use `model` to record the calling model id; the route stores `aiProvenance.via = 'mcp:propose_warrant'` automatically.",
+        inputSchema: zodToJsonSchema(ProposeWarrantInput),
+        async handler(args) {
+            if (!API_TOKEN) {
+                throw new Error("propose_warrant requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set to a valid Isonomia bearer token.");
+            }
+            const input = ProposeWarrantInput.parse(args);
+            const { deliberationId, argumentId, warrantText, authorKind, model, promptHash, sourceUrls, hint } = input;
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(deliberationId)}/ecc/propose-warrant`, {
+                method: "POST",
+                authenticated: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    argumentId,
+                    warrantText,
+                    authorKind,
+                    aiProvenance: { model, promptHash, sourceUrls, hint },
+                }),
+            });
         },
     },
 ];

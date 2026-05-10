@@ -8,6 +8,8 @@ import {
   getClaimEmbedUrl,
   generateClaimIframeCode,
 } from "@/lib/citations/claimPermalinkService";
+import { GET as stancesGET } from "@/app/api/v3/claims/[moid]/stances/route";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +129,43 @@ export default async function ClaimPage({ params }: PageProps) {
   const challengeCount = claim._count.attacksReceived;
   const argumentCount = claim._count.arguments;
 
+  // Phase 6 — fetch dual-stance view (for/against) so the claim page
+  // doesn't visually present only the supporting side. Failure is
+  // non-fatal: the existing supporters section still renders and the
+  // dual-column block is simply omitted.
+  type StanceResult = {
+    argumentId: string;
+    shortCode: string;
+    permalink: string;
+    text: string;
+    conclusion: { text: string } | null;
+    standingState: string;
+    dialecticalFitness?: number;
+  };
+  let stancesData:
+    | { for: StanceResult[]; against: StanceResult[] }
+    | null = null;
+  try {
+    const stancesReq = new NextRequest(
+      `http://localhost/api/v3/claims/${encodeURIComponent(moid)}/stances?limit=10&sort=dialectical_fitness`,
+    );
+    const stancesRes = await stancesGET(stancesReq, {
+      params: Promise.resolve({ moid }),
+    });
+    if (stancesRes.ok) {
+      const body = (await stancesRes.json()) as {
+        for?: StanceResult[];
+        against?: StanceResult[];
+      };
+      stancesData = {
+        for: Array.isArray(body.for) ? body.for : [],
+        against: Array.isArray(body.against) ? body.against : [],
+      };
+    }
+  } catch {
+    stancesData = null;
+  }
+
   // JSON-LD
   const jsonLd = {
     "@context": "https://schema.org",
@@ -240,6 +279,71 @@ export default async function ClaimPage({ params }: PageProps) {
                 </a>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Phase 6 — Dialectical view (dual columns: for / against) */}
+        {stancesData && (stancesData.for.length > 0 || stancesData.against.length > 0) && (
+          <section className="card-section">
+            <h3 className="card-section-title">Dialectical view</h3>
+            <p className="stances-hint">
+              Public arguments concluding to this claim, and structural counter-arguments
+              that contest it. Each side may be empty — that is honest, not absent.
+            </p>
+            <div className="stances-grid">
+              <div className="stances-col stances-for">
+                <h4 className="stances-col-title">
+                  Arguments for{" "}
+                  <span className="stances-count">({stancesData.for.length})</span>
+                </h4>
+                {stancesData.for.length === 0 ? (
+                  <p className="stances-empty">No public arguments concluding to this claim are on file.</p>
+                ) : (
+                  <ul className="stances-list">
+                    {stancesData.for.map((r) => (
+                      <li key={r.argumentId} className="stances-item">
+                        <a href={`${BASE_URL}/a/${r.shortCode}`} className="stances-link">
+                          {(r.conclusion?.text ?? r.text ?? "").slice(0, 200)}
+                        </a>
+                        <span className={`stances-standing tone-${r.standingState}`}>
+                          {r.standingState}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="stances-col stances-against">
+                <h4 className="stances-col-title">
+                  Arguments against{" "}
+                  <span className="stances-count">({stancesData.against.length})</span>
+                </h4>
+                {stancesData.against.length === 0 ? (
+                  <p className="stances-empty">No structural counter-arguments are on file.</p>
+                ) : (
+                  <ul className="stances-list">
+                    {stancesData.against.map((r) => (
+                      <li key={r.argumentId} className="stances-item">
+                        <a href={`${BASE_URL}/a/${r.shortCode}`} className="stances-link">
+                          {(r.conclusion?.text ?? r.text ?? "").slice(0, 200)}
+                        </a>
+                        <span className={`stances-standing tone-${r.standingState}`}>
+                          {r.standingState}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <p className="stances-foot">
+              <a
+                href={`${BASE_URL}/search/arguments?against=${encodeURIComponent(moid)}`}
+                className="stances-more"
+              >
+                Browse all counter-arguments to this claim →
+              </a>
+            </p>
           </section>
         )}
 
@@ -638,5 +742,79 @@ function pageStyles(): string {
 
     .footer-sep { color: #e2e8f0; }
     .footer-meta { color: #94a3b8; }
+
+    /* Phase 6 — dialectical view (dual columns) */
+    .stances-hint {
+      color: #64748b;
+      font-size: 13px;
+      margin: 0 0 16px 0;
+    }
+    .stances-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 720px) {
+      .stances-grid { grid-template-columns: 1fr; }
+    }
+    .stances-col {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fafbfc;
+    }
+    .stances-for { border-left: 3px solid #16a34a; }
+    .stances-against { border-left: 3px solid #dc2626; }
+    .stances-col-title {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .stances-count { color: #94a3b8; font-weight: 400; }
+    .stances-empty {
+      color: #94a3b8;
+      font-size: 13px;
+      font-style: italic;
+      margin: 0;
+    }
+    .stances-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .stances-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 10px;
+      background: #ffffff;
+      border: 1px solid #f1f5f9;
+      border-radius: 6px;
+    }
+    .stances-link {
+      color: #1e293b;
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .stances-link:hover { color: #6366f1; text-decoration: underline; }
+    .stances-standing {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .stances-foot { margin: 16px 0 0 0; }
+    .stances-more {
+      color: #6366f1;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .stances-more:hover { text-decoration: underline; }
   `;
 }

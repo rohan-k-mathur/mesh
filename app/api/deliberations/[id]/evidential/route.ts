@@ -8,6 +8,11 @@ import {
   type EvidentialInputs,
   type Mode as TypedMode,
 } from "@/lib/argumentation/eccAdapter";
+import {
+  reduceImportedScores,
+  combineLocalAndImported,
+  type TransportSnapshotPayload,
+} from "@/lib/argumentation/transportAggregator";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -256,12 +261,44 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       select: { id: true, text: true, quantifier: true, modality: true },
     });
 
+    // ── Sprint C3: cross-room transport band ─────────────────────────────
+    // When `imports=materialized|all` (the default for the UI's "show
+    // imports" mode), fold cached `RoomTransportSnapshot` rows whose
+    // `toRoomId === deliberationId` into a `{ local, imported, total }`
+    // band. The flat `support` map keeps the **total** so existing readers
+    // that ignore the band stay correct (band-aware UIs read `supportBand`).
+    const supportBand: Record<string, { local: number; imported: number; total: number }> = {};
+    if (includeMat && (mode === "min" || mode === "product")) {
+      const snapshots = await prisma.roomTransportSnapshot.findMany({
+        where: { toRoomId: deliberationId },
+        select: { payloadJson: true },
+      }).catch(() => [] as Array<{ payloadJson: any }>);
+      const importedByClaim = new Map<string, number[]>();
+      for (const snap of snapshots) {
+        const payload = snap.payloadJson as TransportSnapshotPayload | null;
+        if (!payload || typeof payload !== "object" || !payload.byClaim) continue;
+        for (const [toClaimId, slot] of Object.entries(payload.byClaim)) {
+          const list = importedByClaim.get(toClaimId) ?? [];
+          for (const src of slot.sources) list.push(src.score);
+          importedByClaim.set(toClaimId, list);
+        }
+      }
+      for (const c of claims) {
+        const local = typed.support[c.id] ?? 0;
+        const imp = reduceImportedScores(importedByClaim.get(c.id) ?? [], mode as "min" | "product");
+        const total = combineLocalAndImported(local, imp, mode as "min" | "product");
+        supportBand[c.id] = { local: +local.toFixed(4), imported: +imp.toFixed(4), total: +total.toFixed(4) };
+        typed.support[c.id] = +total.toFixed(4);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       deliberationId,
       mode,
       pipeline: "typed",
       support: typed.support,
+      ...(Object.keys(supportBand).length ? { supportBand } : {}),
       ...(mode === "ds" ? { dsSupport: typed.dsSupport } : {}),
       hom: typed.hom,
       nodes: typed.nodes,
@@ -323,8 +360,35 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const hom: Record<string,{ args:string[] }> = {};
   for (const [claimId, list] of argsByClaim) hom[`I|${claimId}`] = { args: Array.from(new Set(list)) };
 
+  // Sprint C3 (legacy branch parity): apply transport snapshots so the
+  // band is available regardless of `ECC_TYPED_PIPELINE`.
+  const supportBand: Record<string, { local: number; imported: number; total: number }> = {};
+  if (includeMat && (mode === "min" || mode === "product")) {
+    const snapshots = await prisma.roomTransportSnapshot.findMany({
+      where: { toRoomId: deliberationId },
+      select: { payloadJson: true },
+    }).catch(() => [] as Array<{ payloadJson: any }>);
+    const importedByClaim = new Map<string, number[]>();
+    for (const snap of snapshots) {
+      const payload = snap.payloadJson as TransportSnapshotPayload | null;
+      if (!payload || typeof payload !== "object" || !payload.byClaim) continue;
+      for (const [toClaimId, slot] of Object.entries(payload.byClaim)) {
+        const list = importedByClaim.get(toClaimId) ?? [];
+        for (const src of slot.sources) list.push(src.score);
+        importedByClaim.set(toClaimId, list);
+      }
+    }
+    for (const c of claims) {
+      const local = support[c.id] ?? 0;
+      const imp = reduceImportedScores(importedByClaim.get(c.id) ?? [], mode as "min" | "product");
+      const total = combineLocalAndImported(local, imp, mode as "min" | "product");
+      supportBand[c.id] = { local: +local.toFixed(4), imported: +imp.toFixed(4), total: +total.toFixed(4) };
+      support[c.id] = +total.toFixed(4);
+    }
+  }
+
   return NextResponse.json({
-    ok:true, deliberationId, mode, support, ...(mode==='ds' ? { dsSupport } : {}),
+    ok:true, deliberationId, mode, support, ...(Object.keys(supportBand).length ? { supportBand } : {}), ...(mode==='ds' ? { dsSupport } : {}),
     hom, nodes, arguments: argumentsMeta,
     meta: { claims: claims.length, supports: allSupports.length, edges: edges.length, conclusions: conclusions.length }
   }, { headers: { 'Cache-Control':'no-store' } });

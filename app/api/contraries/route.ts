@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { getCurrentUserId } from "@/lib/serverutils";
+import { isRoomModerator } from "@/lib/cqs/permissions";
+
+const CONTRARY_STATUSES = new Set(["ACTIVE", "RETRACTED"]);
 
 /**
  * GET /api/contraries?deliberationId=xxx&claimId=yyy
@@ -24,18 +28,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (!CONTRARY_STATUSES.has(status)) {
+      return NextResponse.json(
+        {
+          error: `Invalid status "${status}"; expected one of ${Array.from(CONTRARY_STATUSES).join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
     // Build where clause
     const where: any = {
       deliberationId,
       status,
     };
 
-    // If claimId provided, find contraries of that specific claim
-    // (either as claimId or contraryId)
+    // If claimId provided, find all contraries involving that claim
+    // (either as the source claimId, or as the target contraryId regardless
+    // of isSymmetric). The UI distinguishes outgoing vs incoming by inspecting
+    // claimId/contraryId on each row.
     if (claimId) {
       where.OR = [
         { claimId },
-        { contraryId: claimId, isSymmetric: true }, // Include symmetric contraries
+        { contraryId: claimId },
       ];
     }
 
@@ -93,13 +108,19 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * DELETE /api/contraries?contraryId=xxx
- * Remove a contrary relationship (creator only)
+ * DELETE /api/contraries?deliberationId=xxx&contraryId=yyy
+ * Soft-delete a contrary relationship (creator or moderator/admin only)
  */
 export async function DELETE(req: NextRequest) {
   try {
+    const userId = await getCurrentUserId().catch(() => null);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const contraryId = searchParams.get("contraryId");
+    const deliberationId = searchParams.get("deliberationId");
 
     if (!contraryId) {
       return NextResponse.json(
@@ -107,9 +128,39 @@ export async function DELETE(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!deliberationId) {
+      return NextResponse.json(
+        { error: "Missing required parameter: deliberationId" },
+        { status: 400 }
+      );
+    }
 
-    // TODO: Add auth check - only creator or moderator can delete
-    // For now, just set status to RETRACTED
+    const existing = await prisma.claimContrary.findUnique({
+      where: { id: contraryId },
+      select: { id: true, createdById: true, deliberationId: true, status: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Contrary not found" }, { status: 404 });
+    }
+    if (existing.deliberationId !== deliberationId) {
+      // Don't reveal cross-deliberation existence
+      return NextResponse.json({ error: "Contrary not found" }, { status: 404 });
+    }
+
+    const isOwner = existing.createdById.toString() === String(userId);
+    // isRoomModerator currently performs a global moderator/admin role check;
+    // pass deliberationId for forward-compatibility when scoped roles land.
+    const isMod = isOwner ? false : await isRoomModerator(String(userId), deliberationId).catch(() => false);
+
+    if (!isOwner && !isMod) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (existing.status === "RETRACTED") {
+      return NextResponse.json({ success: true, contraryId: existing.id, alreadyRetracted: true });
+    }
+
     const updated = await prisma.claimContrary.update({
       where: { id: contraryId },
       data: { status: "RETRACTED" },

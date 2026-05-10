@@ -50,6 +50,10 @@ export type HybridFilter = {
   argumentIds?: string[];
   /** Only return arguments with a public permalink. */
   permalinkRequired?: boolean;
+  /** Restrict to arguments created on or after this date (Phase 2). */
+  since?: Date | null;
+  /** Restrict to arguments created on or before this date (Phase 2). */
+  until?: Date | null;
 };
 
 export type HybridSearchResult = {
@@ -90,6 +94,12 @@ async function sparseCandidates(
   }
   if (filter.argumentIds) {
     where.id = { in: filter.argumentIds };
+  }
+  if (filter.since || filter.until) {
+    where.createdAt = {
+      ...(filter.since ? { gte: filter.since } : {}),
+      ...(filter.until ? { lte: filter.until } : {}),
+    };
   }
   if (tokens.length > 0) {
     where.OR = tokens.flatMap((tok) => [
@@ -173,6 +183,14 @@ async function denseCandidates(
     if (filter.argumentIds.length === 0) return [];
     params.push(filter.argumentIds);
     wheres.push(`a.id = ANY($${params.length}::text[])`);
+  }
+  if (filter.since) {
+    params.push(filter.since);
+    wheres.push(`a."createdAt" >= $${params.length}`);
+  }
+  if (filter.until) {
+    params.push(filter.until);
+    wheres.push(`a."createdAt" <= $${params.length}`);
   }
 
   params.push(k);

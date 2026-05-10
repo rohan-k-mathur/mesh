@@ -72,32 +72,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1c: Fetch explicit ClaimContrary records
+    // Pass these rows directly to aifToASPIC, which expects an array of
+    // { claimId, contraryId, isSymmetric, claim:{text}, contrary:{text} }.
     const explicitContrariesList = await prisma.claimContrary.findMany({
       where: {
         deliberationId,
         status: "ACTIVE",
       },
       include: {
-        claim: true,
-        contrary: true,
+        claim: { select: { id: true, text: true } },
+        contrary: { select: { id: true, text: true } },
       },
     });
-
-    // Build contraries map
-    const explicitContraries: { [key: string]: string[] } = {};
-    for (const contrary of explicitContrariesList) {
-      if (!explicitContraries[contrary.claimId]) {
-        explicitContraries[contrary.claimId] = [];
-      }
-      explicitContraries[contrary.claimId].push(contrary.contraryId);
-
-      if (contrary.isSymmetric) {
-        if (!explicitContraries[contrary.contraryId]) {
-          explicitContraries[contrary.contraryId] = [];
-        }
-        explicitContraries[contrary.contraryId].push(contrary.claimId);
-      }
-    }
 
     // Step 2: Build minimal AIF graph for translation
     const aifGraph: AIFGraph = {
@@ -263,7 +249,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 3: Translate to ASPIC+
-    const theory = aifToASPIC(aifGraph, explicitContraries as any);
+    const theory = aifToASPIC(aifGraph, explicitContrariesList);
 
     console.log(`[Transposition Generate] Found ${theory.strictRules.length} strict rules`);
 

@@ -6,6 +6,7 @@ import "@/workers/scrollRealtime";
 
 import "@/workers/decayConfidenceJob";
 import "@/workers/computeSharedAuthorEdges";
+import "@/workers/transport-aggregator";
 
 // ─────────────────────────────────────────────────────────
 // Phase 3.1: Source Trust Infrastructure workers

@@ -25,6 +25,17 @@
  *   • summarize_debate             — wrapper for the readout
  *   • get_deliberation_evidence_context — pre-bound source corpus (B2)
  *
+ *   Sprint E ECC tools (typed-algebra, deterministic, no LLM in loop):
+ *   • ecc_arrow                       — typed `Hom(I, claim)` + Ambler Def. 8/17 meta
+ *   • ecc_culprits                    — Ambler §4 retraction candidates per claim
+ *   • ecc_confidence                  — confidence(arrow, monoid), closed enum
+ *   • ecc_enthymemes                  — detectEnthymemes() per arg or per delib
+ *   • ecc_transport                   — read RoomTransportSnapshot rows (one-hop)
+ *   • ecc_aggregate                   — { local, imported, total } band per claim
+ *   • ecc_evidential                  — typed evidential projection per delib
+ *   • ecc_belief_revision_proposals   — cached BeliefRevisionProposal rows (Sprint D1)
+ *   • propose_warrant                 — internal-hom write (AI-authored, awaiting ratification)
+ *
  * Run:
  *   ISONOMIA_BASE_URL=https://isonomia.app \
  *   ISONOMIA_API_TOKEN=...                 \

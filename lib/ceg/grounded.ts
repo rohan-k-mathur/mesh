@@ -1,5 +1,6 @@
 // lib/ceg/grounded.ts
 import { prisma } from '@/lib/prismaclient';
+import { writeBeliefRevisionProposals } from './beliefRevision';
 
 type Edge = { from: string; to: string; isAttack: boolean };
 type Label = 'IN' | 'OUT' | 'UNDEC';
@@ -191,7 +192,15 @@ export async function recomputeGroundedForDelib(deliberationId?: string | null) 
     return { claimId, label: lab, explainJson: explain };
   });
 
-  // Upsert ClaimLabel (unique on claimId)
+  // Upsert ClaimLabel (unique on claimId) — fetch the prior labels first so
+  // the Sprint D belief-revision hook can detect transitions to OUT.
+  const priorLabels = new Map<string, string>(
+    (await prisma.claimLabel.findMany({
+      where: { claimId: { in: toUpsert.map((r) => r.claimId) } },
+      select: { claimId: true, label: true },
+    })).map((r) => [r.claimId, String(r.label)])
+  );
+
   for (const row of toUpsert) {
     await prisma.claimLabel.upsert({
       where: { claimId: row.claimId },
@@ -211,6 +220,20 @@ export async function recomputeGroundedForDelib(deliberationId?: string | null) 
         ...(deliberationId ? { deliberationId } : {}),
       },
     });
+  }
+
+  // Sprint D1 — fire belief-revision proposal hook for any claim whose
+  // grounded label transitioned **into** OUT this run. Failures here are
+  // isolated; a missing proposal must never block a label commit.
+  if (deliberationId) {
+    const flippedToOut = toUpsert
+      .filter((r) => r.label === 'OUT' && (priorLabels.get(r.claimId) ?? null) !== 'OUT')
+      .map((r) => r.claimId);
+    if (flippedToOut.length > 0) {
+      writeBeliefRevisionProposals(deliberationId, flippedToOut).catch((err) => {
+        console.error('[grounded] belief-revision hook failed:', err);
+      });
+    }
   }
 
   return { count: ids.length };

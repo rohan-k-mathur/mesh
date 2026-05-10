@@ -2964,8 +2964,10 @@ model ClaimContrary {
   createdById BigInt
   createdAt   DateTime @default(now())
 
-  // Status for future challenge/moderation system
-  status String @default("ACTIVE") // "ACTIVE" | "PROPOSED" | "DISPUTED" | "RETRACTED"
+  // Status: simplified lifecycle (Phase D-1, Task 14 Option A).
+  // ACTIVE   = the relation is in force
+  // RETRACTED = the relation was deleted (soft-delete; row preserved for audit)
+  status String @default("ACTIVE") // "ACTIVE" | "RETRACTED"
 
   // Optional metadata
   reason String? @db.Text // User's explanation for why these are contrary
@@ -3910,6 +3912,29 @@ model ClaimLabel {
   claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@index([deliberationId])
+}
+
+/// Sprint D1 — written by the `recomputeGroundedForDelib` hook whenever a
+/// claim's grounded label transitions to `OUT`. Each row is a per-argument
+/// candidate retraction list ranked by Ambler §4 culprit-set semantics
+/// (see `lib/argumentation/ecc.ts#culpritSets`). Read by the
+/// "Suggested retractions" panel on the claim detail (Sprint D2). Status
+/// flips to `APPLIED` when the user retracts an `AssumptionUse` from the
+/// list, or `DISMISSED` if they explicitly close the proposal.
+model BeliefRevisionProposal {
+  id             String   @id @default(cuid())
+  deliberationId String
+  claimId        String   // the claim that flipped to OUT
+  argumentId     String   // an argument concluding `claimId` whose support is rejected
+  /// `[{ assumptionIds: string[], badConclusionsExplained: number, retractionCost: number }]`
+  candidatesJson Json
+  /// 'OPEN' | 'APPLIED' | 'DISMISSED'
+  status         String   @default("OPEN")
+  computedAt     DateTime @default(now())
+
+  @@unique([claimId, argumentId])
+  @@index([deliberationId, status])
+  @@index([claimId])
 }
 
 model ClaimCitation {
@@ -6780,6 +6805,31 @@ model RoomFunctor {
 
   @@unique([fromRoomId, toRoomId])
   @@index([fromRoomId, toRoomId])
+}
+
+/// Sprint C1 — denormalized cache of the imported contribution to a target
+/// room's evidential payload, hash-keyed for idempotency. Recomputed by
+/// `workers/transport-aggregator.ts` on `RoomFunctor` upserts and on
+/// `ArgumentSupport` writes in source rooms. Read by
+/// `app/api/deliberations/[id]/evidential/route.ts` to produce the
+/// `{ local, imported, total }` band per claim. One-hop only (ECC plan §4 row 2).
+model RoomTransportSnapshot {
+  id             String   @id @default(cuid())
+  /// Destination deliberation (where the imported support lands).
+  toRoomId       String
+  /// Source deliberation (the one being transported from).
+  fromRoomId     String
+  /// SHA-1 of the `RoomFunctor.claimMapJson` plus the source-side
+  /// `(claimId, argumentId, base)` triples used to compute this snapshot.
+  /// A re-run of the worker that produces the same hash is a no-op.
+  claimMapHash   String
+  /// `{ [toClaimId]: { score: number; sources: Array<{ fromClaimId, fromDelibId, score }> } }`
+  payloadJson    Json
+  computedAt     DateTime @default(now())
+
+  @@unique([toRoomId, fromRoomId], name: "transport_snapshot_pair")
+  @@index([toRoomId])
+  @@index([claimMapHash])
 }
 
 // ---------- Knowledge Base (Phase A) ----------
