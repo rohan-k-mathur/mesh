@@ -35,6 +35,9 @@ export interface SupportValue {
   s?: number; // scalar value
   bel?: number; // DS belief
   pl?: number; // DS plausibility
+  /** Sprint C4: cross-room transport band. When present, the scalar bar
+   *  splits into a local fill + a hatched imported overlay. */
+  band?: { local: number; imported: number; total: number };
 }
 
 export interface ArgumentNetworkCardProps {
@@ -172,20 +175,52 @@ export function ArgumentNetworkCard({
           </div>
         )}
 
-        {typeof supportScore === "number" && (
-          <div className="mt-2">
-            <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
-              <span>Support</span>
-              <span>{(supportScore * 100).toFixed(0)}%</span>
+        {typeof supportScore === "number" && (() => {
+          const band = supportValue?.kind === "scalar" ? supportValue.band : undefined;
+          const showBand = !!band && band.total > band.local;
+          const localPct = showBand ? Math.max(0, Math.min(1, band!.local)) * 100 : 0;
+          const totalPct = showBand ? Math.max(0, Math.min(1, band!.total)) * 100 : 0;
+          return (
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
+                <span>Support{showBand ? " (local + imported)" : ""}</span>
+                {showBand ? (
+                  <span title={`local ${localPct.toFixed(0)}% + imported delta ${(totalPct - localPct).toFixed(0)}%`}>
+                    {localPct.toFixed(0)}% + {(totalPct - localPct).toFixed(0)}% → {totalPct.toFixed(0)}%
+                  </span>
+                ) : (
+                  <span>{(supportScore * 100).toFixed(0)}%</span>
+                )}
+              </div>
+              <div className="h-1.5 bg-neutral-200 rounded relative overflow-hidden mt-1.5">
+                {showBand ? (
+                  <>
+                    <div
+                      className="h-1.5 rounded-l bg-emerald-500 transition-all"
+                      style={{ width: `${localPct}%` }}
+                      title={`Local: ${localPct.toFixed(1)}%`}
+                    />
+                    <div
+                      className="h-1.5 absolute top-0 bg-sky-400/70"
+                      style={{
+                        left: `${localPct}%`,
+                        width: `${totalPct - localPct}%`,
+                        backgroundImage:
+                          "repeating-linear-gradient(45deg, rgba(255,255,255,0.55) 0 2px, transparent 2px 5px)",
+                      }}
+                      title={`Imported (cross-room): +${(totalPct - localPct).toFixed(1)}% (raw imported ${(band!.imported * 100).toFixed(1)}%)`}
+                    />
+                  </>
+                ) : (
+                  <div
+                    className="h-1.5 rounded bg-emerald-500 transition-all"
+                    style={{ width: `${Math.max(0, Math.min(1, supportScore)) * 100}%` }}
+                  />
+                )}
+              </div>
             </div>
-            <div className="h-1.5 bg-neutral-200 rounded">
-              <div
-                className="h-1.5 mt-1.5 rounded bg-emerald-500 transition-all"
-                style={{ width: `${Math.max(0, Math.min(1, supportScore)) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Action links */}
         <div className="justify-end items-end align-end mt-auto text-xs flex gap-3">

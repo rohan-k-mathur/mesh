@@ -1,0 +1,875 @@
+--What is the best way to handle the algebra of arguments, connectives, entailment trees and so on from a data structure and user flow/ ui/ux perspective -- what is the best way to actually design the concrete affordances that allow for the chaining and construction of complex "discourse objects" as structures made up of claims, entailments, warrants, connectives etc (the evidence atoms, and what emerges as a result of applying logical actions upon them and connecting them with other atoms etc)
+
+--Below is a concrete, *file‑aware* blueprint for handling the **algebra of arguments**—connectives, entailment trees, warrants, attacks/undercuts—and turning them into precise data structures and smooth UI/UX flows that let users *compose* complex “discourse objects” and *reason with them*. I anchor each piece to the research and to components you already have (or have planned), so it’s buildable without guessing.
+
+---
+
+## 0) One‑line architecture
+
+Treat **each deliberation as a small evidential closed category**:
+
+* **Objects = claims (propositions).**
+* **Morphisms A→B = sets of arguments** establishing “from A, infer B.” These hom‑sets form a **join‑semilattice** (accrue multiple reasons by ∨), composition chains reasons, and the **internal hom [A,B]** stands for the **warrant** you can *undercut*. This gives you algebraic operations for ∧, ∨, →, ¬, ∀, ∃ and a principled way to score confidence. 
+
+Your own planning already frames this as “**room as category**” (deliberation = category; DebateSheet = a view over it; Plexus = the category of rooms). Build on that. 
+
+---
+
+## 1) Data model (atoms → algebra → derived views)
+
+### 1.1 Core objects (storage)
+
+* **Claim** `{id, text, canonicalId?, tags[], quantifier?, modality?}`
+  Canonical IDs let different phrasings unify; quantifier/modality feed shape‑aware challenges. 
+
+* **ArgumentDiagram** (the *inside* of a reason)
+
+  ```
+  { id, atoms: [{id,type:'premise'|'claim'|'exception'}...],
+    inferences: [{id, from:[atomIds], to:atomId, connective:'∧'|'∨'|'→'|'¬'|'∀'|'∃', scheme?, cqKeys[] }] }
+  ```
+
+  This is the morphism’s internal geometry; inferences represent connectives/warrants you can later *undercut*. 
+
+* **ClaimEdge** `{fromClaimId, toClaimId, type:'supports'|'rebuts', attackType:'SUPPORTS'|'REBUTS'|'UNDERCUTS'|'UNDERMINES', targetScope:'premise'|'inference'|'conclusion'}`
+  *Supports/Rebuts* target nodes; *Undercuts* target the **inference** ([A,B]). You already expose this in your API and recompute AF labels on write. 
+
+* **Evidence** (citations / web annotations)
+  API endpoints exist; they should be first‑class in composer and DebateSheet. 
+
+* **DialogueMove** (ASSERT | WHY | GROUNDS | RETRACT | CONCEDE | CLOSE)
+  Moves synthesize **acts** (polarity + locus), support † (daimon) termination, and are already wired through the stepper.
+
+* **(Add)** `ArgumentSupport` and `AssumptionUse`
+  Two light helper tables: (i) materialize the membership of a morphism A→B as a set of argument IDs (fast joins for ∨/∘ and scoring), (ii) track *assumptions/free variables* used by an argument for principled belief revision. (Proposed in your category integration notes.)
+
+> The DB scaffolding is compatible with your Prisma layout and AF overlay. 
+
+### 1.2 Algebra (what the system can *do*)
+
+* **Accrual (∨)**: hom‑sets are **join‑semilattices**—add reasons by union; 0 is the empty set. (This is the “pile up GROUNDS to answer a WHY” operation.) 
+* **Composition (∘)**: chain arguments along intermediate claims to build **entailment trees**. 
+* **Conjunction (⊗ / ∧)**, **Disjunction (⊕ / ∨)**, **Implication (→)**, **Negation (¬)**, **Quantifiers (∀, ∃)**: use **dialogical particle rules** to gate legal challenges/defences per connective; this is exactly what your “legal moves” menu can surface. 
+* **Internal hom [A,B]** = the **warrant** “A ⇒ B”. Targeting `[A,B]` with an undercut implements “challenge warrant” in the UI. 
+* **Confidence measure**: a per‑room rule telling you how to score a morphism from constituent arguments:
+
+  * **min** (“weakest link” on a chain), **product** (independent reasons reinforce), or **Dempster–Shafer** (belief/plausibility). Make it a room preset with a small switch in the composer panel. 
+
+> You already expose UI hooks for confidence mode (knobs) and AF thresholds; keep that contract.
+
+### 1.3 Derived views
+
+* **AF overlays** (grounded/preferred/stable labels) on top of the micro‑arguments—existing in your Dialogical Panel. 
+* **Ludics‑style traces** (LociTree, TraceRibbon, † closability), already prototyped in *LudicsPanel*. These make stage/termination visible.
+
+---
+
+## 2) Composer UX: concrete affordances that match the algebra
+
+**A. Two‑level canvas.** Users work in a **DebateSheet** (debate‑level graph) and can **pop‑out** any node to see/edit its **ArgumentDiagram** (premises, inferences, connectives). This answers the “keep debate‑level arc readable without losing internal detail” problem.
+
+**B. Connectives palette** (operator‑aware drafting).
+When the user adds an inference, show a small palette:
+
+* **∧** Add another premise (⊗)
+* **∨** Present alternative branches (⊕)
+* **→** Insert warrant (internal hom)
+* **¬** Flip polarity
+* **∀ / ∃** Insert binder; prompt for challenge choices (instantiate vs choose)
+
+The “WHY…” buttons beneath should be **connective‑aware** (particle rules), e.g. `WHY (choose left)`, `WHY (instantiate with a)`—a direct mapping of dialogical rules to UI labels. 
+
+**C. Scope toggle** (*attack the node or the link*).
+A pill‑switch: **Challenge claim** (rebut) vs **Challenge warrant** (undercut the inference) vs **Challenge premise** (undermine). Wire it to `targetScope` and `attackType`. You already have the API shape; make it first‑class in the composer. 
+
+**D. CQ inspector** (scheme‑driven “WHY”).
+Surface the scheme’s **Critical Questions** as ready‑made WHYs; ticking them off binds GROUNDS to specific CQs and updates completeness. This exists in your `CriticalQuestions` component; keep the “satisfied” badge and quick‑attach flows to answer open CQs.
+
+**E. Legal‑move chips with **force**.
+Show move options as chips tagged **ATTACK / SURRENDER / NEUTRAL**; grey out *unlikely* attacks when loci are closed. This matches your planned `/legal-moves` enrichment.
+
+**F. Evidence panel (inline web‑annotation → citation).**
+Attach snippets/DOIs to premises or to the whole morphism. Use your `/citations` and `/evidence` endpoints and display provenance chips inline. 
+
+**G. Confidence & acceptance knobs.**
+Room‑level mode = `min|product|ds`, plus a threshold τ. You already render these and gate AF summaries; keep the same affordances in the DebateSheet side‑rail.
+
+**H. Back‑channel for structure negotiation.**
+A small “Suggest improvement” thread per node/warrant so people can negotiate the map without polluting the formal graph—**critical for adoption** (LiteMap/Kialo lesson).
+
+---
+
+## 3) Entailment trees & dialogue: how plays become proofs
+
+* **Seed an entailment check**: from any text, “Check entailment → seed dialogue.” The system P‑ASSERTs premises, adds an O‑WHY on the hypothesis, and steps until † (close) or STUCK, then offers to persist the Dialogue → Sheet. This is already in your roadmap; productize it in the UI.
+* **Dialogical particle/structural rules** enforce what moves appear and when (e.g., Last‑Duty‑First, repetition ranks, copy‑cat SR2). These rules provide *precise* legal‑move menus for each connective. 
+* **Ludics layer** (acts, loci, daimon). Your *LudicsPanel* shows step traces and †‑closability; keep it as an “advanced” tab for scholars and for audits.
+
+---
+
+## 4) Debate‑level & cross‑debate UX
+
+* **DebateSheet** (reader/editor): a curated, two‑level “debate document” with status badges (skeptical/credulous acceptance), unresolved CQs, and an outcome card. (This is your durable, citable unit.)
+
+* **TopicCanvas** (graph‑of‑sheets): curators connect many DebateSheets (support/rebut/refine/generalize), surface **representative viewpoints** and consensus points. (Knowledge fabric, not throwaway threads.)
+
+* **Plexus board**: network of rooms/sheets with meta‑edges (xref / overlap / imports / shared_author) and a **Transport** action to carry structures responsibly between debates. The UI hook (`openTransport`) is there.
+
+* **Knowledge Base pages**: let authors embed live/pinned *Claim*, *Argument*, *Sheet*, *Transport* blocks with provenance chips—so research briefs stay readable but traceable. 
+
+> This multi‑view approach (outline, two‑column, network) is the adoption pattern from argument‑tools research; pair it with back‑channels and web annotation.
+
+---
+
+## 5) Move legality & auditability (make the algebra feel safe)
+
+* **Pre‑insert validator**: block self‑replies, invalid shapes, attacks after surrender, duplicate replies, and “concede when you must accept argument” (R7). Your route sketches already show where to plug this. The UI should explain *why* a move is illegal.
+* **Legal‑move inspector**: for any locus, list legal moves, with the connective‑specific reason (e.g., “you played ∃; now choose a witness”). 
+* **Trace/audit**: show which preconditions fired and which commitment updates occurred; the *LudicsPanel* badges and decisive indices are the right pattern.
+
+---
+
+## 6) Minimal payloads (so frontends/backends align)
+
+**Create an undercut on a warrant** (attack `[A,B]`):
+
+```json
+POST /api/claims/{attackerId}/edges
+{
+  "toClaimId": "<B>",
+  "type": "rebuts",
+  "attackType": "UNDERCUTS",
+  "targetScope": "inference",
+  "targetInferenceId": "<diagram inference id>"
+}
+```
+
+Uses your existing route; add `targetInferenceId` to pinpoint the internal hom the user picked. 
+
+**Score settings (room ruleset)**
+
+```json
+PATCH /api/deliberations/{id}/ruleset
+{ "confidence": { "mode": "min" }, "accrual": { "join": "max" }, "tau": 0.6 }
+```
+
+Switches “weakest link” vs “independent reinforcement” vs DS; UI knobs already exist.  
+
+---
+
+## 7) Why this is the “best way”
+
+* It gives you a **real algebra** (∨, ∘, [A,B], ⊗/⊕/→/¬/∀/∃) with **public semantics**—no hidden beliefs—so scholarly users can audit what happened and why. 
+* It maps **exactly** to UI affordances users understand: “challenge claim vs **challenge warrant**,” “answer the **open CQ**,” “add another **premise (∧)**,” “**choose** a disjunct,” “**instantiate** a universal,” etc. 
+* It matches adoption research: multi‑view editing, back‑channels for structure negotiation, and **web annotation** for evidence.
+* It plugs into your existing panels/components (CriticalQuestions, Dialogical/AF overlays, Ludics traces), minimizing refactor risk while upgrading rigor.  
+
+---
+
+## 8) Acceptance checks (what “done” looks like)
+
+1. **Composer can undercut a warrant**: clicking “Challenge warrant” produces an *inference‑targeted* edge; the DebateSheet highlights the attacked link. (Backed by `targetScope:'inference'`.) 
+2. **Open CQs fall**: posting GROUNDS with a `cqKey` marks that CQ satisfied; the CQ inspector’s completeness rises.
+3. **Confidence modes matter**: switching `min ↔ product` changes acceptance badges for some conclusions, visible in AF overlays and Sheet summaries. 
+4. **Legal‑move chips are connective‑aware**: after `∧`, users see “attack left/right conjunct”; after `∃`, “choose witness,” etc., per dialogical rules. 
+5. **Trace to †**: in the advanced tab, users can replay the move‑by‑move interaction; † shows which loci are closable and why.
+
+---
+
+### Pinned references you’re building on
+
+* Ambler’s **evidential closed categories** → the algebra and scoring. 
+* Your **room‑as‑category** contract (Deliberation ↔ DebateSheet ↔ Room/Plexus). 
+* **Dialogical logic** cheat‑sheet → particle/structural rules → “legal moves” UX. 
+* **Ludics** UI (acts, loci, †) → trace & termination affordances.
+* **CQ** components and scheme plumbing → targeted WHY/GROUNDS.
+* **Edges API** with `attackType`/`targetScope` → rebut vs undercut vs undermine. 
+* **Adoption research**: multi‑view + back‑channels + web annotation.
+
+If you want, I can turn this into a one‑week “thin slice” plan (which screens, which routes, which tests) that adds *just* the warrant‑undercut workflow + CQ inspector and toggled confidence—enough for scholars to feel the algebra under their fingertips.
+
+
+--Below is a **plain‑English, system‑designer’s map** of your current deliberation schema. I’ve grouped models and enums by function, explained what each record “means” cognitively in the product, and called out the most important relations, invariants, and typical flows. Treat this as your **canonical snapshot** of how discourse objects hang together today; you can drop it into the repo as `/docs/agora-schema-map.md`.
+
+---
+
+## 0) Mental model: what a deliberation “is”
+
+> **One deliberation = one bounded debate with structure and memory.**
+> People contribute **claims** and **arguments**; they **link** them (support/rebut/undercut); they **diagram** inferences; they attach **evidence** and **schemes & CQs**; cluster tools surface **viewpoints**; moderators and panels issue **receipts**; authors publish **briefs**; outcomes can be **voted**; deeper **dialogical/ludics** traces exist for proof‑style play; and the whole thing plugs into a larger **graph‑of‑graphs** (rooms, imports, functors).
+
+At a glance:
+
+```
+Deliberation
+ ├─ Claims & Edges (Claim, ClaimEdge, ClaimLabel, ClaimEvidence/Citation, CanonicalClaim)
+ ├─ Arguments & Edges (Argument, ArgumentEdge, ArgumentApproval, ArgumentSupport, AssumptionUse)
+ ├─ Argument internals (ArgumentDiagram, Statement, Inference, InferencePremise)
+ ├─ Schemes & CQs (ArgumentScheme, SchemeInstance, CQStatus, CriticalQuestion)
+ ├─ Evidence (EvidenceNode, EvidenceLink)
+ ├─ Sheet-level maps (DebateSheet, DebateNode, DebateEdge, LocusStatus, SheetAcceptance, UnresolvedCQ, Outcome)
+ ├─ Clusters & Viewpoints (Cluster, UserCluster, ArgumentCluster, ViewpointSelection, ViewpointArgument, BridgeRequest/Assignment)
+ ├─ Governance & panels (ContentStatus, DecisionReceipt, RoomLogbook, Panel, Panelist)
+ ├─ Dialogue & Ludics (DialogueMove; Ludic* models; LudicDecisionReceipt)
+ ├─ Voting (VoteSession, VoteBallot)
+ ├─ Works/Knowledge (TheoryWork + Work* children, Rule, ReasonPair, KnowledgeEdge, NLILink, EristicMark)
+ ├─ Briefs & Issues (Brief, BriefVersion, BriefLink; Issue, IssueLink)
+ ├─ Inter-room graph (StackReference, ArgumentImport, SharedAuthorRoomEdge, RoomFunctor, AgoraOutbox, AgoraFollow)
+ ├─ KB & Wiki (KbSpace/Page/Block/Snapshot; WikiPage/Revision)
+ └─ Social discussion substrate (Discussion*, Forum*, etc.)
+```
+
+---
+
+## 1) Deliberation (core container)
+
+**`Deliberation`** — one concrete debate instance.
+Fields: host `(hostType, hostId)`, governance `rule,k`, ownership/room, audit timestamps; arrays of related objects (cards, arguments, claims, edges, clusters, etc.); `proofMode` (dialogue burden: `symmetric|asymmetric`).
+**Cognitive role:** the canon for a debate’s structured memory and semantics.
+
+**Auxiliary anchors & roles**
+
+* `DeliberationAnchor` — Pins content (web fragment, media time‑slice, etc.) to this debate (W3C selectors).
+* `DeliberationRole` — People & roles (author, methodologist, etc.).
+* `DeliberationCall` — Open calls for collaboration (rolesNeeded, deadline).
+* `DeliberationPref` — Thresholds for relevance/sufficiency/acceptability (profile = community|policy|scientific).
+
+---
+
+## 2) Claims and their graph
+
+**`Claim`** — an atomic proposition. Links: to optional `Deliberation`, to `DeliberationCard`s (longform), to `ClaimWarrant` (textual warrant), to `ClaimEvidence`/`ClaimCitation`s, to `CanonicalClaim` (global family), and negation linking (`negates/negatedBy`). Also attached `ClaimLabel` (grounded semantics label IN/OUT/UNDEC) and per‑delib `ClaimStats`.
+**Cognitive role:** the object‑level “things people assert”.
+
+**`ClaimEdge`** — relation between claims inside a deliberation: `type = supports|rebuts`; `attackType` refines (SUPPORTS|REBUTS|UNDERCUTS|UNDERMINES); `targetScope` (premise|inference|conclusion).
+**Cognitive role:** how claims compose into argumentation at the claim level; **undercut** targets a warrant/inference, not just a conclusion.
+
+**Evidence to claims**
+
+* `ClaimEvidence` — light citation list (uri, title, citation, addedBy).
+* `ClaimCitation` — heavier bibliographic/locator fields, excerpt hashes, snapshots.
+
+**Families & IDs**
+
+* `CanonicalClaim` — cross‑room “family” handle.
+* `Urn` — stable URN for (claim|card|brief_version).
+
+**Stats & labeling**
+
+* `ClaimStats` — counts per delib (approvals/supports/rebuts/undercuts).
+* `ClaimLabel` — choice of abstract labeling semantics (e.g., grounded extension) with `GroundLabel` (IN|OUT|UNDEC) and optional explanation JSON.
+
+---
+
+## 3) Arguments and their graph
+
+**`Argument`** — authored line of reasoning. Text + optional sources JSON + confidence; metadata: `quantifier`(∈Quantifier), `modality`(∈Modality), media fields; optional link to a `Claim` it supports; backrefs to edges, approvals, debate nodes, etc.
+**Cognitive role:** the narrative unit people write; can be linked to claim(s) and diagram internals.
+
+**`ArgumentEdge`** — link between two arguments, typed by `EdgeType (support|rebut|undercut|concede)` with optional `ArgumentAttackSubtype` (e.g., UNDERCUT/REBUT/UNDERMINE) and `targetScope` (conclusion|premise|inference). `targetInferenceId` lets an undercut point at a **specific inference** inside the target argument (fine‑grain).
+**Cognitive role:** argument‑to‑argument relations, including warrant attacks.
+
+**Other argument relations**
+
+* `ArgumentApproval` — per‑user approvals (unique per argument/user).
+* `ArgumentSupport` — numeric strength of a given argument for a claim in a deliberation (mode snapshot, composed flag; provenance if imported).
+* `AssumptionUse` — tracks explicit/implicit assumptions a given argument relies upon (claim or free‑text, with role/weight/confidence).
+
+**Defaults & imports**
+
+* `DefaultRule` — compact defeasible rule triplet (antecedent α, justification β, consequent γ) bound to an argument.
+* `ArgumentImport` — when arguments/claims are imported between deliberations (keeps from/to ids, mapping and fingerprint).
+
+---
+
+## 4) Argument internals (statements, inferences, diagrams)
+
+**`ArgumentDiagram`** — a diagram (micro‑graph) capturing statements and inferences for one argument; optional CQ status snapshot and evidence links.
+
+* `Statement` — text with role `StatementRole (premise|intermediate|conclusion|assumption|question)` and tags.
+* `Inference` — an inferential step: `kind` `InferenceKind (deductive|inductive|abductive|defeasible|analogy)`; references exactly **one** `conclusion` Statement; **N** premises via `InferencePremise` join; optional `schemeKey`; CQs.
+* `InferencePremise` — join table (inferenceId, statementId).
+
+**Cognitive role:** lets you **target warrants** (inferences), represent logical shape, and attach evidence at the right granularity. Pairs with `ArgumentEdge.targetInferenceId` to model undercuts precisely.
+
+---
+
+## 5) Schemes & Critical Questions (CQs)
+
+**`ArgumentScheme`** — library of schemes (key/title/summary, CQ JSON).
+**`SchemeInstance`** — apply a scheme to a target (`card|claim`) with slot‑filling data; backrefs to `CriticalQuestion`s.
+**`CQStatus`** — per‑target per‑scheme CQ satisfaction (boolean), with `TargetType (claim|card|warrant|rebuttal)`.
+**`CriticalQuestion`** — persisted “open question/attack” entries linked to a scheme instance (attackKind UNDERMINES|UNDERCUTS|REBUTS; status open|addressed|counter‑posted).
+
+**Cognitive role:** CQs make **attack surfaces** explicit and machine‑trackable; undercuts are “attack the inference” rather than the conclusion.
+
+---
+
+## 6) Evidence as first‑class
+
+**`EvidenceNode`** — a distinct resource (url, title, citation, kind, reliability).
+**`EvidenceLink`** — attaches a resource to a **target** (argument|claim|sheet) with selectors/notes/snapshot; may also link to an `ArgumentDiagram`.
+
+**Cognitive role:** uniform provenance objects you can re‑use, filter, and cite across the platform.
+
+---
+
+## 7) Sheet‑level mapping (graph view of a debate)
+
+**`DebateSheet`** — curated or computed map of one debate (title/scope/rules, optional link to `Deliberation` and to `AgoraRoom`), plus node/edge lists and status:
+
+* `DebateNode` — sheet node; can link to internal `Argument` or `Claim` and to an `ArgumentDiagram`.
+* `DebateEdge` — typed relation between nodes (`DebateEdgeKind supports|rebuts|objects|undercuts|refines|restates|clarifies|depends_on`) with thread id / order / rationale.
+* `LocusStatus` — which loci (sub‑addresses) are open/closable.
+* `SheetAcceptance` — labels for nodes under a chosen semantics (`grounded|preferred|hybrid`).
+* `UnresolvedCQ` — unresolved critical questions per node.
+* `Outcome` — pointers to structured outcomes with summary.
+
+**Cognitive role:** the **readable, navigable debate map** (zoomable two‑level: debate nodes ↔ internal argument diagrams).
+
+---
+
+## 8) Clusters, viewpoints, and bridges
+
+**`Cluster`** — typed `topic|affinity` cluster per deliberation; `UserCluster`, `ArgumentCluster` assign members with scores.
+**`ViewpointSelection`** — snapshot of k‑viewpoint extraction under a `RepresentationRule (utilitarian|harmonic|maxcov)` with coverage metrics; `ViewpointArgument` maps arguments to slots 0..k‑1.
+**Bridge Builder** — `BridgeRequest` targets a `Cluster`; `BridgeAssignment` assigns creators and ties to a resulting `DeliberationCard` summary with rewards.
+
+**Cognitive role:** helps people **see camps**, pick **representatives**, and **bridge** between camps with incentives.
+
+---
+
+## 9) Governance, moderation, and audit
+
+**Enums:**
+
+* `ModerationStatus (OK|NEEDS_SOURCES|WORKSHOP|OFF_TOPIC_REDIRECT|DUPLICATE_MERGE|DISPUTED|OUT_OF_BOUNDS)`
+* `ContentTargetType (article|post|room_thread|deliberation|argument|card|claim|brief|brief_version)`
+* `PanelistRole (member|chair|observer)`
+* `PanelDecisionType (APPROVE|WORKSHOP|REDIRECT)`
+* `LogEntryType (STATUS_CHANGE|PANEL_OPEN|PANEL_CLOSE|PANEL_DECISION|POLICY_CHANGE|NOTE)`
+
+**Records:**
+
+* `ContentStatus` — latest moderation status per (room?, targetType, targetId).
+* `DecisionReceipt` — append‑only receipts for actions (status change, panel decision), linking to panels/policies and targets.
+* `RoomLogbook` — narrative log entries.
+* `Panel` & `Panelist` — review panels with membership and lifecycle.
+
+**Cognitive role:** **traceable decisions** and status across polymorphic content, suitable for scholarly audit.
+
+---
+
+## 10) Briefs & issues
+
+**`Brief`** — a publishable, versioned synthesis bound to a room; `BriefVersion` holds compiled sections and citations; `BriefLink` tracks source atoms (card/argument/post/claim).
+**`Issue`** — tracked problems or questions in a deliberation (label/description/state); `IssueLink` connects to arguments with roles (related|evidence|…).
+
+**Cognitive role:** from **debate → publication**; issues collect and route technical debt or open problems.
+
+---
+
+## 11) Dialogue moves and burden modes
+
+**`DialogueMove`** — dialogue‑game events tied to a target (argument|claim) and a move kind (`ASSERT|WHY|GROUNDS|RETRACT`, etc.). Optional threading (`replyToMoveId`, `replyTarget`) and polarity `P|O`, locus addressing, daimon flag, and a uniqueness `signature`.
+**`ProofMode`** (on `Deliberation`) — `symmetric|asymmetric` (burden differences).
+
+**Cognitive role:** formal turn‑taking & legality checking for “ask‑why / give‑grounds / concede / close” workflows.
+
+---
+
+## 12) Ludics (deep dialogical traces)
+
+**Core models:**
+
+* `LudicLocus` (address tree), `LudicDesign` (participant’s strategy tree), `LudicAct` (acts with polarity and ramification), `LudicChronicle` (chronological record), `LudicTrace` (interaction trace between Proponent and Opponent designs), `LudicCommitmentElement/State` (commitment store), `LudicFaxMap` (address mappings), `LudicBehaviour` & `LudicMaterialDesign` (incarnation sets), `LudicDecisionReceipt` (outcomes).
+  **Enums:** `LudicPolarity (P|O)`, `LudicActKind (PROPER|DAIMON)`, `LudicTraceStatus (ONGOING|CONVERGENT|DIVERGENT)`.
+
+**Cognitive role:** **proof‑style** interaction substrate for precise argumentative gameplay and commitment tracking.
+
+---
+
+## 13) Voting
+
+**`VoteSession`** — approval or ranked‑choice voting over a subject (`option|view|claim`), quorum thresholds, close times, tally and winner; `VoteBallot` stores ballots (unique per voter/session).
+**Cognitive role:** decision procedures layered over debates and viewpoints.
+
+---
+
+## 14) Works (theory frames) & knowledge links
+
+**`TheoryWork`** — longform works tied to a deliberation and theory type (`PhilosophyTheoryType DN|IH|TC|OP`). One‑to‑one children capture each thesis structure:
+
+* `WorkDNStructure`, `WorkIHTheses`, `WorkTCTheses`, `WorkOPTheses` (structured slots for each thesis type).
+* Project wrappers: `WorkDnProject`, `WorkIhProject`, `WorkTcProject`, `WorkOpProject`.
+* Practical models: `WorkPracticalJustification` (+ `WorkPracticalRevision` history), `WorkHermeneuticProject`, `WorkPascalModel`.
+* `Rule` and `ReasonPair` — formal rule entries and reason pairings (LA/logic of argumentation notions).
+
+**Knowledge graph edges**
+
+* `KnowledgeEdge` — typed: SUPPLIES_PREMISE, SUPPORTS, REBUTS, UNDERCUTS, EVALUATES, ENTAILS, etc., across Works and Claims within a deliberation.
+* `NLILink` — external NLI relationships (relation + score).
+* `EristicMark` — detected rhetorical/eristic tactics on targets (with detector, strength).
+
+**Cognitive role:** explicit **theory scaffolds** and **knowledge edges** so debates connect to scholarship and methods.
+
+---
+
+## 15) Social discussion substrate & upgrades
+
+**`Discussion`** — forum thread with optional link to chat conversation; can be **upgraded** to a `Deliberation` via `DiscussionDeliberation`.
+**`ForumComment`**, `ForumVote`, `ForumSave` — comment threads with votes and saves.
+**`DiscussionMessage`/`Reaction`/`Participant`** — thread messages, reactions, participation.
+
+**Cognitive role:** light‑weight discourse that can **promote** into structured deliberations.
+
+---
+
+## 16) Inter‑room / cross‑debate graph
+
+**`AgoraRoom`** — social/organizational container; hosts sheets (`RoomSheets` relation) and deliberations.
+**`StackReference`** — edges when a stack in room A references/embeds/cites room B; optional `stackId`.
+**`ArgumentImport`** — import/restatement edges between rooms for arguments/claims (see §3).
+**`SharedAuthorRoomEdge`** — weak ties for shared authors across rooms.
+**`RoomFunctor`** — claimed mapping (functor) from one deliberation/room to another (maps claim ids).
+**`AgoraFollow`** — user following of rooms/tags.
+**`AgoraOutbox`** — event outbox for broadcasting changes.
+
+**Cognitive role:** the **graph‑of‑graphs** that lets work travel and compose across rooms while preserving provenance.
+
+---
+
+## 17) Knowledge Base & Wiki
+
+**KB (curated pages with live transclusions)**
+
+* `KbSpace` (personal/team/org/project), `KbSpaceMember`(role).
+* `KbPage` (slug/title/summary/tags/frontmatter, visibility + authorship).
+* `KbBlock` — typed blocks (`text|image|link|claim|claim_set|argument|sheet|room_summary|transport|evidence_list|cq_tracker|plexus_tile`) with **live vs pinned** payloads and citations; orderable and versioned.
+* `KbSnapshot` — snapshot of a page with frozen block manifest.
+
+**Wiki**
+
+* `WikiPage` + current `WikiRevision`, plus `AllRevs` history.
+
+**Cognitive role:** narrative, citable **knowledge pages** that embed live debate artifacts or pinned snapshots.
+
+---
+
+## 18) Brief governance & economy
+
+**`Bounty`/`BountySubmission`** — bounty programs with rewards for syntheses, sources, replications, bridges.
+**`CareLedger`** — “care” credits for recognized work.
+**`AudiencePreference`** — value ordering per owner (user/room/cohort).
+**`Value` & `ClaimValue`** — annotate claims with values and weights (normative axis).
+**`Commitment`** — per‑participant commitments (propositions + retractions).
+
+---
+
+## 19) Enums (quick glossary)
+
+* **Argument/claim relations:**
+  `EdgeType (support|rebut|undercut|concede)`; `ArgumentAttackSubtype (SUPPORT_ATTACK|CONSEQUENCE_ATTACK|JUSTIFICATION_ATTACK|UNDERMINE|REBUT|UNDERCUT|OVERCUT)`;
+  `ClaimEdgeType (supports|rebuts)`; `ClaimAttackType (SUPPORTS|REBUTS|UNDERCUTS|UNDERMINES)`;
+  `TargetScope (conclusion|premise|inference)`.
+
+* **Logic & modality:**
+  `StatementRole (premise|intermediate|conclusion|assumption|question)`; `InferenceKind (deductive|inductive|abductive|defeasible|analogy)`;
+  `Quantifier (SOME|MANY|MOST|ALL)`; `Modality (COULD|LIKELY|NECESSARY)`.
+
+* **Media & visibility:**
+  `MediaType (text|image|video|audio)`; `Visibility (public|unlisted|room_only)`; `KbVisibility (public|org|followers|private)`.
+
+* **Representation & selection:**
+  `RepresentationRule (utilitarian|harmonic|maxcov)`.
+
+* **Delib hosts:**
+  `DeliberationHostType (article|post|room_thread|library_stack|site|inbox_thread)`.
+
+* **KB:**
+  `KbRole (owner|editor|commenter|reader)`; `KbSpaceKind (personal|team|org|project)`; `KbBlockType` as listed in §17.
+
+* **Ludics:**
+  `LudicPolarity (P|O)`; `LudicActKind (PROPER|DAIMON)`; `LudicTraceStatus (ONGOING|CONVERGENT|DIVERGENT)`.
+
+* **Knowledge edges:**
+  `KnowledgeEdgeKind` (SUPPLIES_PREMISE|REVISES|CHALLENGES|SUPPORTS|REBUTS|UNDERCUTS|UNDERMINES|ALTERNATIVE_TO|EVALUATES|REASON_FOR|REASON_AGAINST|NOT_REASON_FOR|NOT_REASON_AGAINST|CONCLUSIVE_ABOUT|INCONCLUSIVE_ABOUT|ENTAILS).
+
+---
+
+## 20) Typical flows (cognitive & data paths)
+
+1. **Start a debate** → create `Deliberation`; add `DeliberationAnchor`s to source texts.
+2. **Add claims** (with citations/evidence) → `Claim`, `ClaimCitation`/`ClaimEvidence`.
+3. **Write arguments** and link to claims → `Argument` with `ArgumentSupport` to `Claim`; compose `ArgumentDiagram` with `Statement` + `Inference`; if attacking a warrant, create `ArgumentEdge` with `type=undercut` and set `targetInferenceId`.
+4. **Link claims** to each other → `ClaimEdge (supports/rebuts)`; run labeling → `ClaimLabel` (IN/OUT/UNDEC).
+5. **Apply schemes & answer CQs** → `SchemeInstance`, `CQStatus`, `CriticalQuestion`; address CQs with WHY/GROUNDS `DialogueMove`s.
+6. **Map the debate** → auto/saved `DebateSheet` with `DebateNode/Edge`, `SheetAcceptance`, unresolved CQs.
+7. **Cluster viewpoints** → `Cluster`, `ViewpointSelection` & `ViewpointArgument`; launch `BridgeRequest` to connect clusters.
+8. **Moderate** → status via `ContentStatus`; panels via `Panel`/`DecisionReceipt`.
+9. **Publish** → compile to `Brief`/`BriefVersion` with `BriefLink`s.
+10. **Decide** → optionally run `VoteSession` (approval/RCV).
+11. **Propagate** → cross‑room `StackReference`, `ArgumentImport`, or define `RoomFunctor` mappings; curate in `KbPage` with `KbBlock`s, live or pinned.
+
+---
+
+## 21) Integrity & idempotency highlights
+
+* Unique guards to prevent duplicates:
+  `ArgumentApproval @@unique(argumentId,userId)`;
+  `ClaimEdge @@unique(fromClaimId,toClaimId,type,attackType)`;
+  `DebateEdge @@unique(sheetId,fromId,toId,kind,thread)`;
+  `DialogueMove @@unique(deliberationId,signature)`;
+  `ArgumentSupport @@unique(claimId,argumentId,mode)`;
+  `DiscussionDeliberation @@unique(discussionId,deliberationId)`;
+  `ArgumentImport.fingerprint @unique` (and composite unique across from/to/kind).
+
+* On‑delete policies: core graphs generally **Cascade**, cross‑references often **SetNull** (to preserve provenance without breaking graphs).
+
+* Time‑sorted indexes on most content (`createdAt`) for efficient feeds and audits.
+
+---
+
+## 22) Where to be especially mindful (design notes)
+
+* **Undercuts**: prefer targeting **inferences** (`targetInferenceId`) to keep rebut vs undercut analytically clean.
+* **Labeling semantics**: `ClaimLabel.semantics` allows multiple semantics; don’t assume grounded only.
+* **Imports & provenance**: always record `ArgumentSupport.provenanceJson` and `ArgumentImport.metaJson` so rooms can choose to include/exclude imported lines.
+* **CQ coverage**: treat `CQStatus` as the ground truth for “open questions” dashboards; ensure `DebateSheet.unresolved` mirrors it.
+* **KB blocks**: use **pinned** snapshots for briefs/journal‑grade outputs; **live** for internal wikis.
+* **Values**: `Value`/`ClaimValue` let you project debates into a value space (for value‑aware views or audience preferences).
+
+---
+
+## 23) Quick cross‑reference (what to use when)
+
+* **You want to show a rigorous, navigable map** → `DebateSheet` (+ nodes/edges; expand nodes to `ArgumentDiagram`).
+* **You want to assert “which claims stand”** → `ClaimLabel` with chosen semantics; surface `ClaimStats`.
+* **You want to trace how/why** → `Argument` + `ArgumentDiagram` + `EvidenceLink`s; use `AssumptionUse` to expose hidden premises.
+* **You want to organize camps** → `Cluster`, `ViewpointSelection`; use `BridgeRequest` to spur syntheses.
+* **You’re publishing** → `Brief`/`BriefVersion`; cite sources via `BriefLink`.
+* **You need formal moves/audit** → `DialogueMove`, `DecisionReceipt`, `RoomLogbook`, `Panel`.
+* **You need proof‑style play** → Ludics (`Ludic*`) with traces and commitments.
+* **You want to share across rooms** → `StackReference`, `ArgumentImport`, `RoomFunctor`.
+
+---
+
+### Final note
+
+This map is intentionally **product‑oriented**: it tells you what each object means to the user and how it composes cognitively. If you’d like, I can generate an **ASCII ER diagram** per section or produce **TypeScript types** mirroring the Prisma models for API contracts.
+
+
+--awesome thanks for the report -- I am liking this paper and its implications for the platform lets do another deepdive into it so we can prepare for the writing of the optimal dev roadmap and implementation plan especially using the research to inform new and innovative argument composer ui/ux flows and components that involve composing threaded, nested proofs and arguments with different connectives/ branches etc -- also could you read through the category theory semantics paper again to take another look at it thanks
+
+--Love it—this paper + the categorical semantics give us exactly the raw material to design a scholar‑grade argument composer with **nested, connective‑aware proof threads** and engine rules you can audit. Below is a deep dive and a concrete, build‑ready plan.
+
+---
+
+## 1) Deep dive — Pavese on argument connectives (“therefore/thus/so/…”)
+
+**What the paper actually says (key technical claims):**
+
+1. **Argument connectives are not the proof bar.** Natural‑language “therefore” et al. are *not* the same as the horizontal inference line. They are **anaphoric** (require explicit prior material) and **mood‑sensitive**, and they appear in **deductive, inductive, abductive, causal, and practical** arguments (so we can’t give them a single “deductive only” truth‑functional meaning). Examples (inductive/abductive/causal/practical) are spelled out in the text.
+
+2. **Presupposition‑like behavior and projectivity.** “Therefore” carries **Target Content** (roughly, ‘premises support the conclusion’) that behaves like a **presupposition**: it projects under negation, questions, antecedents of conditionals, and modals—unlike a normal assertion. 
+
+3. **Dynamic‑semantics account (“therefore” is a test).** In a dynamic model of information states, “∴” **tests** that the context *already updated with the premises* supports the conclusion; if the test passes, it returns the same updated context; if it fails, it is **undefined** (distinct from modals like “must,” which return ∅ when false). This cleanly captures stacking of “therefore … therefore …” in discourse.
+
+4. **Unifying perspective on discourse relations.** “Therefore” can be captured as **(possibly enthymematic) entailment** constrained by background laws or defaults (RESULT/nomological entailment for causal cases; classical/relevantist for deductive; prudential/moral for practical). The paper argues for treating these as context‑restricted entailments that the “∴” test checks.
+
+**Implications for our platform:**
+
+* We should **treat connective tokens** (Therefore/Thus/So/Hence) as **operators over a visible premises set** with an explicit *presupposition check* (are premises present and explicit?) and a *dynamic test* (does the current knowledge/commitments actually support the conclusion?). That suggests an explicit **“Connective Test”** service and an **anaphoric resolver** in the composer.
+* The composer must let authors **label the *mode*** of the “therefore” (deductive/causal/practical/inductive/abductive) so the engine can pick the **right warrant checker** (proof checker, default/nomological rule set, decision/welfare rule set, or inductive/abductive heuristics). 
+
+---
+
+## 2) Deep dive — Ambler’s categorical semantics (evidential categories)
+
+Ambler gives a **compositional semantics of evidence**: morphisms are *evidence arrows*, hom‑sets are **join‑semilattices** (SLat‑enriched), and there is a symmetric monoidal structure (⊗) called the **evidential product** for *conjoining* evidence; a subcategory of **selected maps** (simple+entire) behaves cartesian, recovering products and projection/pairing as equalities on the selected fragment. This is a principled foundation for *aggregating and re‑using* reasons.
+
+* **Definition (evidential category).** A symmetric monoidal SLat‑category with a designated comonoid structure on each object; intuitively, *evidence for A and B together* is built via ⊗; duplication/elimination of hypotheses is governed by the comonoid. 
+* **Selected maps** (simple ∧ entire) give a cartesian subcategory: on this subcategory, pairing and projections satisfy equalities, so product‑like reasoning holds exactly there. This is the safe fragment for UI affordances like “duplicate premise,” “project reason,” etc. 
+
+**Implications for our platform:**
+
+* Treat each argument step as an **arrow of evidence**; composing reasons is ⊗; *strength/labels* live in the hom‑set’s join order. This cleanly generalizes our “combine reasons” and “split/duplicate” operations in the composer, and it supports **formal aggregation** of multiple reasons. 
+
+---
+
+## 3) What we build — Argument Composer 2.0 (UI/UX + engine)
+
+### A. Composer surfaces & flows
+
+1. **Premise Stack + Connective Rail**
+
+   * Drag premises into a **Premise Stack**; pick a connective chip (**∴ Therefore**, **Thus**, **So**).
+   * A **Mode selector** (Deductive / Causal / Practical / Inductive / Abductive) drives which **warrant checker** runs. 
+
+2. **Dynamic “∴ Test” badge**
+
+   * Live indicator next to the connective: **Pass / Undefined / Needs premises**. Hover explains:
+
+     * *Anaphora missing* (no explicit premises in the stack),
+     * *Presupposition check* (connective requires explicit premise mentions),
+     * *Support check* (does the updated context support the conclusion?).
+
+3. **Threaded, nested proof blocks**
+
+   * Block types: **Conjunction (⊗)**, **Disjunction (⊕)**, **Case split**, **Sub‑argument**, **Assumption** (for proofs by cases), **Therefore** blocks.
+   * Blocks nest; each block shows its **local context** (what has been “introduced” and is available to the dynamic test). 
+
+4. **Anaphora assistant**
+
+   * When the user types “Therefore,” the assistant offers to **link preceding sentences** as explicit premises (or surface them as numbered premises). If a premise is only implied, the assistant proposes adding it as an **enthymeme** with a citation/warrant. 
+
+5. **Mode‑specific sub‑panels**
+
+   * **Deductive:** Fitch‑style subproofs (→‑intro/elimination; ∧/∨ rules), full proof tree export.
+   * **Causal:** library of **default/nomological** rules for RESULT; lets author select applicable laws (e.g., “Push ⇒ Fall, ceteris paribus”) and see whether the test passes. 
+   * **Practical:** value/rule pickers (prudential/moral norms) and a mini decision‑worksheet. 
+   * **Inductive/Abductive:** hypothesis generator + support score, but still run the “∴ test” with appropriate standards (plausibility threshold). 
+
+6. **Evidence merge (⊗) and projection**
+
+   * Visual **chips for ⊗** to conjoin grounds; “Split/Project” turns a bundle into components using selected‑map behavior; duplicates are flagged so users can **reuse** evidence safely. (This mirrors Ambler’s ⊗, projections, and selected subcategory.)
+
+7. **Dialogical handoff**
+
+   * One click to “Open in Dialogue”: we publish an initial **design** whose positive acts mirror the composer’s proof blocks; opponents can attach **WHY**/rebut/undercut at any locus. (This bridges monological structure to our Ludics dialogue spine.)
+
+---
+
+### B. Engine contracts (minimal, auditable)
+
+**B1. Connective Test service**
+`POST /api/connective-test`
+Input: `{ premises: [...], conclusion, mode, roomContextId }`
+Output: `{ status: 'pass'|'undefined'|'missing-premises', checks: { anaphora, presupposition, support }, trace }`
+
+* **Anaphora**: are premises explicitly present? (Pavese’s explicit‑occurrence requirement.) 
+* **Presupposition**: connectives require explicit antecedents. 
+* **Support**: run mode‑specific checker on the **context updated with the premises**; return **the same context** on success (dynamic “test” contract).
+
+**B2. Warrant checkers (by mode)**
+
+* **Deductive**: ND/Sequent proof engine; “∴” passes iff Γ ⊢ ψ.
+* **Causal**: RESULT as **nomological/default entailment** with a curated rule base; defeasible unifiers allowed (enthymemes install background laws). 
+* **Practical**: prudential/moral rule base; export a value‑trace (if used alongside our values/preferences).
+* **Inductive/Abductive**: minimal plausibility scorer + explanation trace; still exposed through the “test” interface (pass iff threshold met). 
+
+**B3. Evidence algebra (Ambler layer)**
+
+* Internally model reasons as **arrows** in an SLat‑enriched category:
+
+  * **combine(a,b)** = a ⊗ b (conjunction of evidence);
+  * **join(a,b)** = a ∨ b in the hom‑set (choose strongest or aggregate);
+  * track **selected** subfragment for exact projection/duplication laws.
+
+---
+
+## 4) Implementation plan (5 sprints, testable end‑points)
+
+**Sprint 1 — Connective core (dynamic “∴ test”)**
+
+* Build `/api/connective-test` (scaffold deductive mode only; anaphora + presupposition + support checks).
+* Composer UI: **Connective Rail**, Premise Stack, live **∴ badge**.
+* **Acceptance**:
+
+  * “Therefore” with no explicit premises → `missing-premises`. 
+  * Add premises that entail ψ → `pass` and context unchanged except for added premises (dynamic test). 
+  * Negated forms still presuppose support (projectivity demo). 
+
+**Sprint 2 — Modes & warrants (causal/practical/inductive/abductive)**
+
+* Add **mode** switch and plug in:
+
+  * **Causal** RESULT checker over a small rule base (nomological/default). 
+  * **Practical** checker over a prudential rule base. 
+  * **Inductive/Abductive** threshold scorer + explanation trace. 
+* **Acceptance**: the five example types from the paper classify and test as expected (pass/undefined) with transparent traces. 
+
+**Sprint 3 — Evidence algebra (Ambler)**
+
+* Implement `evidence.ts` with ⊗, joins, projections, and a **selected** flag; surface **Combine (⊗)** and **Project** UI actions.
+* **Acceptance**: projection/pairing laws hold on selected arrows (equalities), and ⊗ respects monoidal coherence in traces. 
+
+**Sprint 4 — Nested proof blocks + dialogical handoff**
+
+* Add block types (⊗, ⊕, Sub‑argument, Case split, Therefore).
+* Export to Dialogue: seed a Ludics **design** mirroring block loci; opponents can target exact loci with WHY/REBUT/UNDERCUT. 
+* **Acceptance**: a nested proof becomes a locus‑labeled dialogue tree with legal move affordances and †‑closable branches.
+
+**Sprint 5 — Scholarly features & audit**
+
+* **Explainability panes**: anaphora resolution; presupposition log; mode‑specific proof/warrant traces; Ambler arrows and ⊗ steps.
+* **Exports**: print‑ready proof tree (PDF), JSON (arguments, connectives, tests), plus Dialogue export.
+* **Acceptance**: all checks link to their logs; exports round‑trip.
+
+---
+
+## 5) Data & APIs (lean schema changes)
+
+* `ArgumentStep`: `{ id, kind: 'premise'|'therefore'|'subproof'|'tensor'|'plus'|..., mode?, children[] }`
+* `ConnectiveTestRun`: `{ id, stepId, mode, status, checks:{...}, trace }`
+* `EvidenceArrow`: `{ id, from, to, selected?: boolean, combine?: [ids], joinOf?: [ids] }`
+  (“Selected” arrows enable exact projection behavior in the UI—Ambler’s cartesian subcategory.) 
+
+---
+
+## 6) Why this is the “optimal” roadmap
+
+* **Tight correspondence to the research**: we operationalize the two central claims—**dynamic test** semantics for “therefore” (with anaphora/presupposition) and **compositional evidence algebra**—as first‑class engine services and UI affordances.
+* **Scholarly rigor with audit**: every “∴ pass” is justified by a reproducible trace (proof, rule base hit, or threshold calculation), and every ⊗/projection step is logged against categorical laws. 
+* **Bridges monological ↔ dialogical**: authors compose nested proofs; opponents get precise loci for challenges in the dialogue engine. 
+
+---
+
+## 7) A glimpse at UX copy and micro‑interactions
+
+* **“Add ‘∴ Therefore’”** → badge reads **Missing premises** (explain: *therefore is anaphoric; add explicit premises*). 
+* After adding premises: badge turns **Pass**; clicking shows **Dynamic Test**:
+
+  * Context ← Premises (Γ)
+  * Check Γ ⊢ ψ (or RESULT/Practical/Inductive checker) → **Pass**
+  * Context returned unchanged (dynamic contract). 
+* **Combine reasons (⊗)** → status line: *Conjoined evidence created* (monoidal step); **Project** → *Selected arrow projection applied; law holds*. 
+
+---
+
+### Optional next extensions
+
+* **Values & confidence**: if you later want numeric/qualitative aggregation, Fox/Krause’s LA + argumentation theorem prover sit neatly over the SLat layer (labels in hom‑sets; flattening/aggregation).
+* **Dialogue analytics**: surface presupposition challenges and “∴ test” failures as **WHY** targets in the room.
+
+---
+
+If you want, I can start with a small **vertical slice**: Composer with “∴” chip + `/api/connective-test` (deductive mode), including anaphora/presupposition checks and a minimal ND proof checker; then add ⊗ and the causal/practical modes in the next sprint.
+
+
+--Here’s a focused read‑out on the paper you uploaded:
+
+**Carlotta Pavese — “The Semantics and Pragmatics of Argumentation” (PAVTSA‑2v2)**
+
+---
+
+## 1) What the paper is about (in one paragraph)
+
+Pavese surveys and synthesizes recent linguistics/philosophy work that treats **arguments as a kind of discourse** with its own semantics and pragmatics—crucially tied to *argument connectives* like **therefore/so/thus/hence/then**. She argues these connectives have a distinctive, largely **dynamic** meaning across uses (deductive, causal, practical, inductive), and their behavior is **anaphoric** and **context‑updating**: to model real arguments we need labeled, nested contexts (for suppositions, sub‑cases, etc.), not just single sentences. A central proposal (developed with Kocurek) is that **‘therefore’ works like a presuppositional test** that *checks* whether, in the current discourse state, the premises support the conclusion; the same connective’s *utterance force* determines whether a stretch of discourse functions as an **argument** or an **explanation**.
+
+---
+
+## 2) Core technical claims (and why they matter)
+
+1. **Arguments are *discourse‑level* objects, not just single sentences.**
+   Argument connectives cue multi‑sentence constructions like “P₁,…,Pₙ. Therefore, C.” and “Suppose P₁,…,Pₙ. Then, C.”, which must be analyzed with **discourse semantics** rather than only sentence semantics. This motivates modeling **sequences of labeled sentences** and **nested suppositions** (proof by cases, conditional proofs).
+
+2. **Anaphora + layered contexts.**
+   Argument connectives behave anaphorically: they pick up the right bundle of prior information (premises, hypotheticals). Doing this well requires **tree‑like, layered contexts** rather than a flat “set of worlds”—i.e., different “information states” for different suppositions/cases must be tracked in parallel.
+
+3. **Dynamic (presuppositional) test analysis.**
+   On the Kocurek–Pavese account, ‘therefore’ (and kin) **tests** that the **current context plus the premises** *supports* the conclusion. If the test fails, the discourse “crashes”; if it passes, the context is updated. This explains why ‘therefore’ can sometimes be *informative* via **presupposition accommodation** (the context adjusts to satisfy the test). 
+
+4. **Same *conventional* meaning across uses; *utterance* force differentiates argument vs explanation.**
+   The connective’s conventional force is stable: it signals a support test. Whether the stretch of discourse counts as **arguing** or **explaining** depends on utterance‑level force/pragmatics, not on a change of the connective’s core semantics. This directly addresses the common “is this an argument or an explanation?” boundary case.
+
+5. **Non‑declarative conclusions are possible (imperatives, interrogatives).**
+   The support test generalizes: for **imperatives**, the context must include preference/goal structure; for **interrogatives**, the context is a **partition** over possibilities (issues/QUD). This gives a clean way to model arguments concluding with “So, close the window!” or “So, who called?” within one semantic engine. 
+
+6. **Explains felicity oddities for logically valid but infelicitous ‘therefore’ cases.**
+   Some classically valid inferences (“Paris is in France. Therefore, p∨¬p.”) sound bad; Pavese suggests this points to a relevance‑sensitive notion of support at the discourse level—raising the prospect that argument connectives **test for relevantist support**, not just classical entailment. 
+
+7. **Open problems that are productive for tooling.**
+   The paper closes with concrete research questions: how to define **support** precisely, how to distinguish argument vs explanation at a computational level, how to **type** contexts so nested suppositions and mixed moods (decl/imp/int) remain tractable. 
+
+---
+
+## 3) What we can *use* in the Digital Agora (actionable)
+
+Below are direct, buildable implications for the platform. I’ve grouped them by layer.
+
+### A. Parsing & representation (argument‑as‑discourse)
+
+* **Connective‑aware parser.** Detect *argument connectives* (`therefore/so/thus/hence/then`), split the user’s text into **labeled sentences** (P₁…Pₙ / C) and **supposition frames** (“Suppose…” blocks become nested contexts). Store an **ArgumentDiscourse** with:
+
+  * `segments[]`: `{ id, text, role: premise|conclusion|suppose, scopeId }`
+  * `scopes[]`: a tree of **SuppositionFrames** (proof‑by‑cases becomes siblings; conditional proof becomes parent→child). This is exactly the “labeled sequences” + layered context the paper demands.
+
+* **Non‑declarative conclusion types.** Tag conclusion segments as `decl|imperative|interrogative` and route them to the right *support* checker (see B below). 
+
+### B. Semantics “test” service (the presupposition‑style checker)
+
+Implement a small, pluggable **SupportTest** service that the editor/engine calls whenever a user writes “Therefore, C”.
+
+* **API**
+  `POST /support-test` with payload `{ premises: [φ…], conclusion: ψ, mode: 'logical'|'causal'|'norm'|'prob', conclusionType: 'decl'|'imp'|'int', scopeContext: {...} } → { pass: boolean, why: Evidence[], suggestions?: BridgePremise[] }`
+
+* **Backends (choose per room or per sheet):**
+
+  * `logical`: AF/ABF or ruleset‑based entailment for declaratives; *relevantist* plugin to capture the infelicity cases Pavese flags. 
+  * `norm`: for **imperatives**, evaluate against a goals/preferences context (e.g., simple priority vectors or value‑based argumentation). 
+  * `prob`: **probabilistic support** (“premises raise credence of C above τ”), used in empirical debates; mirror the “support test” spirit even when not strictly deductive. 
+  * `QUD`: for **interrogatives**, treat context as a **partition**; test that adding `?φ` would *not* further refine the current partition (i.e., the issue is already supported/resolved by P). 
+
+* **Accommodation helper.** If a test fails but is “nearby,” suggest **bridge premises** (“To license ‘therefore’, you need X”), operationalizing presupposition accommodation at the UI level. 
+
+### C. UX affordances that match the theory
+
+* **Supposition rail.** A breadcrumb/rail showing the **active supposition stack** (e.g., *Case A* ▸ *Assume p* ▸ *Then…*) with quick toggles to open/close cases. This makes the layered contexts visible and editable. 
+* **‘Therefore’ badge.** When a conclusion is typed after a connective, run the SupportTest; show **PASS/FAIL/NEAR** with an explainer and “Add Bridge Premise” one‑click fix. 
+* **Argument vs Explanation toggle.** Since the connective’s conventional meaning is constant but **utterance force** varies, let authors **label** the stretch as *argument* or *explanation* (default: “argument”). Readers can filter and the engine can apply different relevance/schematic expectations. 
+* **Felicity checker.** Gently flag classically valid but **relevance‑odd** patterns (e.g., “therefore p∨¬p”) with a “Likely irrelevant conclusion” hint. 
+
+### D. Minimal data‑model additions (small, additive)
+
+* `SuppositionFrame { id, parentId, label, openedBy, closedBy }`
+* `DiscourseSegment { id, scopeId, role, text, mood }`
+* `SupportTestResult { segmentId, mode, pass, details }`
+
+These are thin tables/views layered on your existing **Claim/Argument/Edge** models; they let the editor keep a **discourse‑faithful** shape while still compiling down to your argument graph.
+
+---
+
+## 4) Quick evaluation plan (unit tests from the paper)
+
+1. **Basic deductive use**
+   “John is in Pittsburgh. Therefore, John is in Pennsylvania.” → PASS; allow **accommodation** if “Pittsburgh ∈ Pennsylvania” is missing, suggesting it as a bridge premise. 
+
+2. **Odd but valid**
+   “Paris is in France. Therefore, p∨¬p.” → Valid (logical), **flag as pragmatically infelicitous** under relevance semantics. 
+
+3. **Proof by cases / nested suppositions**
+   “Suppose A… Then C. Suppose ¬A… Then C. Therefore, C.” → Requires two sibling **SuppositionFrames** and a *merge* step.
+
+4. **Imperative conclusion**
+   “It’s going to rain. Therefore, take an umbrella!” → PASS only if **preferences/goals** license the directive. 
+
+5. **Interrogative conclusion**
+   “If the alert fired, the server rebooted. Therefore, which node rebooted?” → Model with **QUD partition**; PASS if premises settle the issue. 
+
+---
+
+## 5) Why this helps us hit academic‑grade rigor
+
+* We stop treating “therefore” as mere punctuation and **compute what it asserts** about the state of the debate. 
+* We get **proper handling of arguments with suppositions** and **non‑declarative conclusions**—cases that show up constantly in real scholarship. 
+* We can productively **separate conventional vs utterance force**, letting curators mark stretches as explanation vs argument without fighting the connective’s semantics. 
+
+---
+
+## 6) Open questions to keep in view (per Pavese)
+
+* Precisely characterizing the **support relation** tested by connectives (classical, relevantist, causal, probabilistic?). 
+* Formal criteria for **argument vs explanation** at scale; where to encode that distinction in the pipeline. 
+* Best representation for **labeled sequences** so nested suppositions remain tractable in long debates. 
+
+---
+
+## 7) Suggested next steps (bite‑sized)
+
+1. **Add connective detection** to the editor and render a **‘Therefore’ badge** with PASS/FAIL via a stub SupportTest (start with simple propositional entailment + a relevance heuristic).
+2. **Introduce SuppositionFrames** in the editor UI (scoped blocks), persist as lightweight metadata; compile to your existing argument graph.
+3. **Ship an “imperative conclusion” plugin** that uses a simple preference/goal check to license “Therefore, do X!” cases. 
+
+If you want, I can sketch the SupportTest API and a minimal “relevance” heuristic next; otherwise I’ll fold these into the dialogue engine and sheet views you already have in progress.
+

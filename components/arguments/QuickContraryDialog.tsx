@@ -1,13 +1,14 @@
 // components/arguments/QuickContraryDialog.tsx
 "use client";
 import * as React from "react";
-import { AlertCircle, AlertTriangle, CheckCircle, Split } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle, Split, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
+import { useContraryCount } from "@/components/claims/contraryBadge/useContraryCount";
 
 interface QuickContraryDialogProps {
   open: boolean;
@@ -17,6 +18,10 @@ interface QuickContraryDialogProps {
     id: string;
     text: string;
   };
+  /** Current user id (string form). Used to gate the inline Delete button on existing contraries. Server-side authorization still applies. */
+  currentUserId?: string | null;
+  /** Moderator flag for the host room/deliberation. Allows deleting contraries created by other users. */
+  isModerator?: boolean;
   onContraryCreated?: () => void;
 }
 
@@ -25,6 +30,8 @@ export function QuickContraryDialog({
   onOpenChange,
   deliberationId,
   sourceClaim,
+  currentUserId = null,
+  isModerator = false,
   onContraryCreated
 }: QuickContraryDialogProps) {
   const [selectedContrary, setSelectedContrary] = React.useState<{ id: string; text: string } | null>(null);
@@ -33,6 +40,17 @@ export function QuickContraryDialog({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const [lastCreated, setLastCreated] = React.useState<{
+    contraryText: string;
+    isSymmetric: boolean;
+    reason: string | null;
+  } | null>(null);
+
+  // Existing contraries for this source claim (live-refetches on contraries:changed).
+  const { items: existingContraries, refetch: refetchExisting, loading: loadingExisting } =
+    useContraryCount({ deliberationId, claimId: sourceClaim.id, enabled: open });
 
   // Reset state when dialog closes
   React.useEffect(() => {
@@ -41,8 +59,38 @@ export function QuickContraryDialog({
       setIsSymmetric(true);
       setReason("");
       setError(null);
+      setDeleteError(null);
+      setDeletingId(null);
+      setLastCreated(null);
     }
   }, [open]);
+
+  const handleDeleteExisting = async (contraryRowId: string) => {
+    if (!contraryRowId) return;
+    setDeleteError(null);
+    setDeletingId(contraryRowId);
+    try {
+      const res = await fetch(
+        `/api/contraries?id=${encodeURIComponent(contraryRowId)}&deliberationId=${encodeURIComponent(deliberationId)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to delete (${res.status})`);
+      }
+      window.dispatchEvent(
+        new CustomEvent("contraries:changed", {
+          detail: { deliberationId, claimId: sourceClaim.id },
+        })
+      );
+      refetchExisting();
+      onContraryCreated?.(); // reuse parent refresh hook
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete contrary");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleCreateContrary = async () => {
     if (!selectedContrary) {
@@ -81,11 +129,23 @@ export function QuickContraryDialog({
         detail: { deliberationId, claimId: sourceClaim.id }
       }));
 
+      // Show inline success state (Task 13: provenance + reason in post-create)
+      // Keep dialog open so user can verify and/or create another.
+      const createdReason = reason.trim() || null;
+      const createdSymmetric = isSymmetric;
+      const createdContraryText = selectedContrary.text;
+      setLastCreated({
+        contraryText: createdContraryText,
+        isSymmetric: createdSymmetric,
+        reason: createdReason,
+      });
+      // Reset the form for a follow-up create.
+      setSelectedContrary(null);
+      setReason("");
+      setError(null);
+
       // Notify parent
       onContraryCreated?.();
-
-      // Close dialog
-      onOpenChange(false);
     } catch (err) {
       console.error("Failed to create contrary:", err);
       setError(err instanceof Error ? err.message : "Failed to create contrary");
@@ -118,6 +178,89 @@ export function QuickContraryDialog({
               <p className="text-sm text-sky-900">{sourceClaim.text}</p>
             </div>
           </div>
+
+          {/* Existing contraries (Phase D-1: manage in-place) */}
+          {(existingContraries.length > 0 || loadingExisting) && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-700">
+                Existing contraries ({existingContraries.length}):
+              </label>
+              <ul
+                className="space-y-1.5 max-h-44 overflow-auto rounded-lg border border-rose-200 bg-rose-50/40 p-2"
+                data-testid="quick-contrary-existing-list"
+              >
+                {existingContraries.map((row) => {
+                  const ownerId = row.createdBy?.id != null ? String(row.createdBy.id) : null;
+                  const isOwner =
+                    !!currentUserId && !!ownerId && String(currentUserId) === ownerId;
+                  const canDelete = isOwner || isModerator;
+                  const arrow = row.isSymmetric
+                    ? "\u2194"
+                    : row.direction === "outgoing"
+                    ? "\u2192"
+                    : "\u2190";
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex items-start gap-2 px-2 py-1 rounded bg-white border border-rose-200"
+                      data-direction={row.direction}
+                      data-symmetric={row.isSymmetric ? "true" : "false"}
+                    >
+                      <span
+                        className="font-mono text-rose-500 text-sm pt-0.5"
+                        aria-hidden="true"
+                        title={
+                          row.isSymmetric
+                            ? "symmetric (mutual)"
+                            : row.direction === "outgoing"
+                            ? "this \u2192 other"
+                            : "other \u2192 this"
+                        }
+                      >
+                        {arrow}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-rose-900 break-words">{row.otherText}</p>
+                        {(row.createdBy?.username || row.createdBy?.name) && (
+                          <p className="text-[10px] text-rose-700/70 mt-0.5">
+                            by{" "}
+                            <span className="font-medium">
+                              @{row.createdBy.username || row.createdBy.name}
+                            </span>
+                          </p>
+                        )}
+                        {row.reason && (
+                          <p className="text-[10px] text-rose-700/80 italic mt-0.5">
+                            &ldquo;{row.reason}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                      {canDelete && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1 text-rose-700 hover:bg-rose-100"
+                          disabled={deletingId === row.id}
+                          onClick={() => handleDeleteExisting(row.id)}
+                          aria-label="Delete contrary"
+                          title="Delete contrary"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+                {loadingExisting && existingContraries.length === 0 && (
+                  <li className="text-[11px] text-rose-700/70 italic px-1 py-0.5">Loading…</li>
+                )}
+              </ul>
+              {deleteError && (
+                <p className="text-[11px] text-red-700">{deleteError}</p>
+              )}
+            </div>
+          )}
 
           {/* Contrary Claim Picker */}
           <div className="space-y-2">
@@ -210,6 +353,28 @@ export function QuickContraryDialog({
             </Alert>
           )}
 
+          {/* Phase D-1: Post-create success banner with provenance + reason */}
+          {lastCreated && !selectedContrary && (
+            <Alert className="border-emerald-500 bg-emerald-50" data-testid="contrary-create-success">
+              <CheckCircle className="h-4 w-4 text-emerald-600" />
+              <AlertDescription className="text-xs text-emerald-900">
+                <strong>Created.</strong>{" "}
+                <span className="font-mono">
+                  {lastCreated.isSymmetric ? "↔" : "→"}
+                </span>{" "}
+                &ldquo;{lastCreated.contraryText}&rdquo;
+                {lastCreated.reason && (
+                  <span className="block mt-0.5 italic text-emerald-800/80">
+                    Reason: &ldquo;{lastCreated.reason}&rdquo;
+                  </span>
+                )}
+                <span className="block mt-0.5 text-[10px] text-emerald-700/80">
+                  You can add another contrary or click Done below.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Error Display */}
           {error && (
             <Alert className="border-red-500 bg-red-50">
@@ -227,7 +392,7 @@ export function QuickContraryDialog({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            Cancel
+            {lastCreated && !selectedContrary ? "Done" : "Cancel"}
           </Button>
           <Button
             onClick={handleCreateContrary}
@@ -239,7 +404,7 @@ export function QuickContraryDialog({
             ) : (
               <>
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Create Contrary
+                {lastCreated ? "Create Another" : "Create Contrary"}
               </>
             )}
           </Button>
@@ -250,11 +415,16 @@ export function QuickContraryDialog({
       {pickerOpen && (
         <ClaimPicker
           deliberationId={deliberationId}
+          open={pickerOpen}
           onPick={(claim) => {
-            setSelectedContrary({ id: claim.id, text: claim.text });
+            // Disallow self-contrary at the UI layer; server still validates.
+            if (claim.id !== sourceClaim.id) {
+              setSelectedContrary({ id: claim.id, text: claim.text });
+            }
             setPickerOpen(false);
           }}
           onClose={() => setPickerOpen(false)}
+          allowCreate={true}
         />
       )}
     </Dialog>

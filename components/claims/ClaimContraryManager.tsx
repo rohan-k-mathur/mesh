@@ -11,7 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
-import { Loader2, Plus, Trash2, AlertCircle, Info } from "lucide-react";
+import { Loader2, Plus, Trash2, AlertCircle, Info, ExternalLink } from "lucide-react";
+import { focusAspicForClaim } from "@/components/aspic/focusClaim";
 
 interface Contrary {
   id: string;
@@ -40,15 +41,18 @@ interface ClaimContraryManagerProps {
   deliberationId: string;
   claimId: string;
   claimText: string;
-  /** Optional: User ID for permissions (future use) */
-  userId?: string;
+  /** Current logged-in user ID; used to gate the delete control to row owners. */
+  currentUserId?: string;
+  /** Set true if the viewer has moderator/admin powers; allows deleting any row. */
+  isModerator?: boolean;
 }
 
 export function ClaimContraryManager({
   deliberationId,
   claimId,
   claimText,
-  userId,
+  currentUserId,
+  isModerator = false,
 }: ClaimContraryManagerProps) {
   const [contraries, setContraries] = useState<Contrary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -258,7 +262,7 @@ export function ClaimContraryManager({
                   }
                   setPickerOpen(false);
                 }}
-                allowCreate={false}
+                allowCreate={true}
               />
 
               {/* Symmetric toggle */}
@@ -366,40 +370,62 @@ export function ClaimContraryManager({
 
       {!loading && activeContraries.length > 0 && (
         <div className="space-y-2">
-          {activeContraries.map((contrary) => (
+          {activeContraries.map((contrary) => {
+            const isOwner =
+              !!currentUserId &&
+              String(contrary.createdBy?.id) === String(currentUserId);
+            const canDelete = isOwner || isModerator;
+            const direction: "outgoing" | "incoming" =
+              contrary.claimId === claimId ? "outgoing" : "incoming";
+            const otherText =
+              direction === "outgoing"
+                ? contrary.contrary?.text
+                : contrary.claim?.text;
+            // Arrow & label vary by direction (and by symmetry):
+            //   outgoing symmetric: ↔ contradicts
+            //   outgoing one-way:   → is contrary to
+            //   incoming symmetric: ↔ contradicts (mutual; visually identical)
+            //   incoming one-way:   ← contradicted by
+            const arrow =
+              contrary.isSymmetric
+                ? "↔"
+                : direction === "outgoing"
+                ? "→"
+                : "←";
+            const directionLabel = contrary.isSymmetric
+              ? "Contradictory (symmetric)"
+              : direction === "outgoing"
+              ? "Contrary (one-way, this → other)"
+              : "Contrary (one-way, other → this)";
+            return (
             <div
               key={contrary.id}
               className="p-3 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors"
+              data-direction={direction}
             >
               {/* Contrary claim */}
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex-1">
                   <div className="text-sm text-gray-900">
-                    {contrary.contrary.text}
+                    {otherText ?? "Unknown claim"}
                   </div>
-                  {contrary.isSymmetric && (
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <span className="font-mono">↔</span>
-                      <span>Contradictory (symmetric)</span>
-                    </div>
-                  )}
-                  {!contrary.isSymmetric && (
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <span className="font-mono">→</span>
-                      <span>Contrary (one-way)</span>
-                    </div>
-                  )}
+                  <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <span className="font-mono">{arrow}</span>
+                    <span>{directionLabel}</span>
+                  </div>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteContrary(contrary.id)}
-                  className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
-                  title="Remove contrary"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {canDelete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteContrary(contrary.id)}
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                    title={isOwner ? "Remove contrary" : "Remove contrary (moderator)"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
 
               {/* Provenance */}
@@ -434,8 +460,25 @@ export function ClaimContraryManager({
                   </div>
                 </div>
               )}
+
+              {/* Phase D-1: jump to ASPIC results focused on this claim */}
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() =>
+                    focusAspicForClaim({ claimId, claimText })
+                  }
+                  className="inline-flex items-center gap-1 text-[11px] text-rose-700 hover:text-rose-900 underline-offset-2 hover:underline"
+                  data-testid="contrary-row-view-in-aspic"
+                  title="Jump to the ASPIC+ extension view filtered by this claim"
+                >
+                  View in ASPIC results
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

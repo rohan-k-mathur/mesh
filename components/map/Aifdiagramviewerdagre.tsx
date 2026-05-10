@@ -14,6 +14,7 @@ import { AifDiagramSearch, useGraphSearch } from './Aifdiagramsearch';
 import { AifDiagramExportMenu } from './Aifdiagramexport';
 import { ZoomAwareAifNode } from './Enhancedaifnodes';
 import { useDagreLayout, LAYOUT_PRESETS } from './Aifdagrelayout';
+import { useDeliberationContraries } from '@/components/claims/contraryBadge/useDeliberationContraries';
 
 // ---------------- Edge Styling ----------------
 function getEdgeStyle(role: AifEdgeRole): {
@@ -609,6 +610,11 @@ export function AifDiagramViewerDagre({
                 </g>
               );
             })}
+            {/* Phase D-1: Contrary overlay edges (rose, dashed) — only when both endpoints are visible. */}
+            <ContraryOverlayEdges
+              deliberationId={deliberationId}
+              nodePositions={nodePositions}
+            />
             {/* Nodes - render non-CA nodes first, then CA nodes so CA appears on top */}
           {filteredGraph.nodes
             .filter(node => node.kind !== 'CA') // Render RA, I, PA nodes first
@@ -814,5 +820,75 @@ export function AifDiagramViewerDagre({
       
      
     </div>
+  );
+}
+
+// ---------------- Contrary Overlay Edges (Phase D-1) ----------------
+/**
+ * Renders dashed rose lines between every pair of I-nodes that are explicit
+ * contraries within the current deliberation, when both endpoints are present
+ * in the layout. Symmetric pairs render with double arrows (markerStart +
+ * markerEnd); asymmetric pairs render with a single arrow (claim → contrary).
+ *
+ * Note: kept deliberately simple (per-pair straight line, no routing). The
+ * Dagre layout does not place these in the graph; they are a pure visual
+ * overlay on top of the existing AIF wiring.
+ */
+function ContraryOverlayEdges({
+  deliberationId,
+  nodePositions,
+}: {
+  deliberationId?: string;
+  nodePositions: Map<string, { x: number; y: number; width: number; height: number }>;
+}) {
+  const { pairs } = useDeliberationContraries(deliberationId, !!deliberationId);
+  if (!deliberationId || pairs.length === 0) return null;
+
+  const ROSE = '#e11d48';
+
+  return (
+    <g data-layer="contrary-overlay" pointerEvents="none">
+      <defs>
+        <marker
+          id="contrary-arrow-end"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={ROSE} />
+        </marker>
+      </defs>
+      {pairs.map((p) => {
+        const fromId = `I:${p.claimId}`;
+        const toId = `I:${p.contraryId}`;
+        const from = nodePositions.get(fromId);
+        const to = nodePositions.get(toId);
+        if (!from || !to) return null;
+        return (
+          <g key={`contrary:${p.id}`}>
+            <line
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              stroke={ROSE}
+              strokeWidth={1.5}
+              strokeDasharray="6,4"
+              strokeOpacity={0.7}
+              markerEnd="url(#contrary-arrow-end)"
+              markerStart={p.isSymmetric ? 'url(#contrary-arrow-end)' : undefined}
+            >
+              <title>
+                {p.isSymmetric ? 'Symmetric contrary (mutual)' : 'One-way contrary'}
+                {p.reason ? ` — ${p.reason}` : ''}
+              </title>
+            </line>
+          </g>
+        );
+      })}
+    </g>
   );
 }

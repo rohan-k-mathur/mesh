@@ -45,6 +45,8 @@ import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetai
 import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 import { ClaimDetailPanel } from "@/components/claims/ClaimDetailPanel";
+import { useContraryCount } from "@/components/claims/contraryBadge/useContraryCount";
+import { ContraryBadge } from "@/components/claims/contraryBadge/ContraryBadge";
 import { TypologyAxisStrip } from "@/components/typology/TypologyAxisStrip";
 import { Button } from "@/components/ui/button";
 import { GlossaryText } from "@/components/glossary/GlossaryText";
@@ -482,10 +484,7 @@ export function ArgumentCardV2({
   const [showNetBuilder, setShowNetBuilder] = React.useState(false); // Phase 4 Feature #4: Net builder
   const [showContraryDialog, setShowContraryDialog] = React.useState(false); // Phase 1d.2: Quick contrary dialog
   
-  // Phase 1d.1: Fetch contraries for conclusion claim
-  const [contraries, setContraries] = React.useState<any[]>([]);
-  const [loadingContraries, setLoadingContraries] = React.useState(false);
-  
+  // Phase 1d.1 (refactored): contrary fetch is centralized in useContraryCount.
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
   const [selectedDialogueMoveId, setSelectedDialogueMoveId] = React.useState<string | null>(null);
@@ -651,57 +650,15 @@ export function ArgumentCardV2({
     return () => { cancel = true; };
   }, [id]);
 
-  // Phase 1d.1: Fetch contraries for conclusion claim
-  React.useEffect(() => {
-    if (!conclusion?.id || !deliberationId) return;
-    
-    let cancel = false;
-    (async () => {
-      setLoadingContraries(true);
-      try {
-        const response = await fetch(
-          `/api/contraries?deliberationId=${deliberationId}&claimId=${conclusion.id}`,
-          { cache: "no-store" }
-        );
-        if (!cancel && response.ok) {
-          const data = await response.json();
-          setContraries(data.contraries || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch contraries:", err);
-      } finally {
-        if (!cancel) setLoadingContraries(false);
-      }
-    })();
-    
-    return () => { cancel = true; };
-  }, [conclusion?.id, deliberationId]);
-
-  // Phase 1d.1: Listen for contrary changes
-  React.useEffect(() => {
-    const handler = () => {
-      if (conclusion?.id && deliberationId) {
-        // Refetch contraries
-        (async () => {
-          try {
-            const response = await fetch(
-              `/api/contraries?deliberationId=${deliberationId}&claimId=${conclusion.id}`,
-              { cache: "no-store" }
-            );
-            if (response.ok) {
-              const data = await response.json();
-              setContraries(data.contraries || []);
-            }
-          } catch (err) {
-            console.error("Failed to refresh contraries:", err);
-          }
-        })();
-      }
-    };
-    
-    window.addEventListener("contraries:changed", handler);
-    return () => window.removeEventListener("contraries:changed", handler);
-  }, [conclusion?.id, deliberationId]);
+  // Phase 1d.1: Centralized contrary fetch + live updates via useContraryCount.
+  const {
+    items: contraries,
+    count: contraryCount,
+  } = useContraryCount({
+    deliberationId,
+    claimId: conclusion?.id ?? null,
+  });
+  const hasContraries = contraryCount > 0;
 
   // Listen for citation changes
   React.useEffect(() => {
@@ -901,9 +858,7 @@ export function ArgumentCardV2({
   const totalAttacks = attacks.length;
 
   // Phase 1d.1: Compute contrary display data
-  const contraryCount = contraries.length;
-  const hasContraries = contraryCount > 0;
-  const contraryClaimTexts = contraries.map((c: any) => c.contrary?.text || c.contraryText || "Unknown claim");
+  const contraryClaimTexts = contraries.map((c) => c.otherText);
 
   return (
     <TooltipProvider>
@@ -911,7 +866,7 @@ export function ArgumentCardV2({
         className="argument-card-v2 border-2 border-slate-300 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
         data-has-contraries={hasContraries}
         data-contrary-count={contraryCount}
-        data-contrary-ids={JSON.stringify(contraries.map((c: any) => c.contraryId))}
+        data-contrary-ids={JSON.stringify(contraries.map((c) => c.otherId))}
       >
       {/* Header - Always Visible */}
       <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
@@ -1128,33 +1083,11 @@ export function ArgumentCardV2({
 
               {/* Phase 1d.1: Contraries Badge */}
               {hasContraries && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge 
-                      variant="outline" 
-                      className="border-rose-500 text-rose-600 bg-rose-50 hover:bg-rose-100 cursor-help transition-colors"
-                    >
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                      {contraryCount} {contraryCount === 1 ? "Contrary" : "Contraries"}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-xs font-semibold mb-2">
-                      This argument&apos;s conclusion has {contraryCount} contrary claim{contraryCount !== 1 ? "s" : ""}.
-                    </p>
-                    <p className="text-xs text-gray-400 mb-2">
-                      Arguments with these conclusions may rebut or be rebutted by this argument:
-                    </p>
-                    <ul className="text-xs text-gray-300 space-y-1 list-disc list-inside">
-                      {contraryClaimTexts.slice(0, 5).map((text: string, idx: number) => (
-                        <li key={idx}>{text}</li>
-                      ))}
-                      {contraryClaimTexts.length > 5 && (
-                        <li className="italic">...and {contraryClaimTexts.length - 5} more</li>
-                      )}
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
+                <ContraryBadge
+                  deliberationId={deliberationId}
+                  claimId={conclusion?.id ?? null}
+                  claimText={conclusion?.text}
+                />
               )}
 
               {/* Phase 2 Week 2: Ludics Badges */}
@@ -1819,6 +1752,7 @@ export function ArgumentCardV2({
           id: conclusion.id,
           text: conclusion.text
         }}
+        currentUserId={currentUserId}
         onContraryCreated={() => {
           // Dialog will dispatch contraries:changed event
           // ArgumentCardV2 will auto-refresh via existing listener

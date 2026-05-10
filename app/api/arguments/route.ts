@@ -416,5 +416,54 @@ try {
   }
 } catch {}
 
-  return NextResponse.json({ ok:true, argumentId: argId }, NO_STORE);
+  // Sprint D3 — enthymeme nudges. Inspect the freshly created argument
+  // against its scheme's required roles and return any structural gaps so
+  // the composer can render an inline "you might want to add a warrant"
+  // hint. Failures here never block the publish response.
+  let enthymemeNudges: Array<{
+    argumentId: string;
+    schemeKey: string;
+    missingPremiseRoles: string[];
+  }> = [];
+  try {
+    if (schemeId) {
+      const scheme = await prisma.argumentScheme.findUnique({
+        where: { id: schemeId },
+        select: { key: true, slotHints: true },
+      });
+      const requiredRoles: string[] = (() => {
+        const sh: any = scheme?.slotHints;
+        if (!sh || typeof sh !== "object") return [];
+        const arr = Array.isArray(sh.premises) ? sh.premises : [];
+        return arr.map((p: any) => String(p?.role ?? "")).filter(Boolean);
+      })();
+      const presentRoles: string[] = (() => {
+        const fromPremises = Array.isArray(b?.premises)
+          ? b.premises.map((p: any) => String(p?.groupKey ?? "")).filter(Boolean)
+          : [];
+        const warrant = b?.implicitWarrant ? [] : ["warrant"];
+        return Array.from(new Set([...fromPremises, ...warrant]));
+      })();
+      const { checkComposerEnthymemes } = await import(
+        "@/lib/argumentation/composerEnthymemeCheck"
+      );
+      enthymemeNudges = checkComposerEnthymemes({
+        argumentId: argId,
+        schemeKey: scheme?.key ?? "",
+        requiredRoles,
+        rolesPresent: presentRoles,
+      }).map((n) => ({
+        argumentId: n.argumentId,
+        schemeKey: n.schemeKey,
+        missingPremiseRoles: n.missingPremiseRoles,
+      }));
+    }
+  } catch (err) {
+    console.error("[POST /api/arguments] enthymeme check failed:", err);
+  }
+
+  return NextResponse.json(
+    { ok: true, argumentId: argId, ...(enthymemeNudges.length ? { enthymemeNudges } : {}) },
+    NO_STORE
+  );
 }

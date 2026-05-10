@@ -90,10 +90,11 @@ export interface LoadConfigOptions {
 }
 
 export function loadConfig(opts: LoadConfigOptions = {}): OrchestratorConfig {
-  const experimentRoot =
+  const experimentRoot = path.resolve(
     opts.experimentRoot ??
-    process.env.EXPERIMENT_ROOT ??
-    path.resolve(__dirname, "..");
+      process.env.EXPERIMENT_ROOT ??
+      path.resolve(__dirname, ".."),
+  );
   const runtimeDir = path.join(experimentRoot, "runtime");
 
   const agentsPath = path.join(runtimeDir, "agents.json");
@@ -149,8 +150,13 @@ export function loadConfig(opts: LoadConfigOptions = {}): OrchestratorConfig {
  *  - `MODEL_TIER_TRACKER`
  *  - `MODEL_TIER_SYNTHESIST`
  *
- *  Convenience preset: `MODEL_TIER_PRESET=opus-critical` is equivalent
- *  to setting Synthesist + Methodologist + Tracker to `prod`.
+ *  Convenience presets:
+ *  - `MODEL_TIER_PRESET=opus-critical`      → Synthesist + Methodologist + Tracker on `prod`.
+ *  - `MODEL_TIER_PRESET=opus-critical-plus` → opus-critical, plus Advocate +
+ *      Rebuttal + Defense on `prod`. Bakes in iter-3 E2E learning that Haiku
+ *      4.5 hallucinates CQ keys (e.g. `relevant_sims`, `alternative_explanation`)
+ *      and truncates 10-char source-id citation tokens; the dialectical actors
+ *      need prod-tier reasoning for publication-grade runs.
  */
 function parseRoleTierOverrides(): Partial<Record<AgentTierRole, ModelTier>> {
   const out: Partial<Record<AgentTierRole, ModelTier>> = {};
@@ -159,10 +165,16 @@ function parseRoleTierOverrides(): Partial<Record<AgentTierRole, ModelTier>> {
     if (v === "prod" || v === "dev") out[role] = v;
   }
   // Apply preset first; explicit env vars below can still override.
-  if (process.env.MODEL_TIER_PRESET === "opus-critical") {
+  const preset = process.env.MODEL_TIER_PRESET;
+  if (preset === "opus-critical" || preset === "opus-critical-plus") {
     out.synthesist = "prod";
     out.methodologist = "prod";
     out.tracker = "prod";
+  }
+  if (preset === "opus-critical-plus") {
+    out.advocate = "prod";
+    out.rebuttal = "prod";
+    out.defense = "prod";
   }
   pick("MODEL_TIER_CLAIM_ANALYST", "claim-analyst");
   pick("MODEL_TIER_ADVOCATE", "advocate");

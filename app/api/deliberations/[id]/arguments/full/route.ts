@@ -6,6 +6,11 @@ import { PaginationQuery, makePage } from "@/lib/server/pagination";
 import type { TargetType } from "@prisma/client";
 import { DEFAULT_ARGUMENT_CONFIDENCE, DEFAULT_PREMISE_BASE } from "@/lib/config/confidence";
 import { batchLazyRecompute } from "@/lib/evidential/lazy-recompute";
+import {
+  reduceImportedScores,
+  combineLocalAndImported,
+  type TransportSnapshotPayload,
+} from "@/lib/argumentation/transportAggregator";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -448,6 +453,43 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
   }
 
+  // ── Sprint C3/C4: cross-room transport band ────────────────────────────
+  // Fold cached `RoomTransportSnapshot` rows into a `{ local, imported, total }`
+  // band per claim. The flat `supportByClaimId` is rewritten to `total` so
+  // existing readers get the combined value; band-aware UIs read `bandByClaimId`.
+  // One-hop only (ECC plan §4 row 2). Skipped for DS mode (band semantics
+  // for belief intervals will land in Sprint D).
+  const bandByClaimId: Record<string, { local: number; imported: number; total: number }> = {};
+  if (includeMat && (confidenceMode === "min" || confidenceMode === "product") && allClaimIds.length > 0) {
+    const snapshots = await prisma.roomTransportSnapshot.findMany({
+      where: { toRoomId: params.id },
+      select: { payloadJson: true },
+    }).catch(() => [] as Array<{ payloadJson: any }>);
+    const importedByClaim = new Map<string, number[]>();
+    for (const snap of snapshots) {
+      const payload = snap.payloadJson as TransportSnapshotPayload | null;
+      if (!payload || typeof payload !== "object" || !payload.byClaim) continue;
+      for (const [toClaimId, slot] of Object.entries(payload.byClaim)) {
+        if (!allClaimIds.includes(toClaimId)) continue;
+        const list = importedByClaim.get(toClaimId) ?? [];
+        for (const src of slot.sources) list.push(src.score);
+        importedByClaim.set(toClaimId, list);
+      }
+    }
+    for (const claimId of allClaimIds) {
+      const local = supportByClaimId[claimId] ?? 0;
+      const imp = reduceImportedScores(importedByClaim.get(claimId) ?? [], confidenceMode);
+      if (imp === 0) continue;
+      const total = combineLocalAndImported(local, imp, confidenceMode);
+      bandByClaimId[claimId] = {
+        local: +local.toFixed(4),
+        imported: +imp.toFixed(4),
+        total: +total.toFixed(4),
+      };
+      supportByClaimId[claimId] = +total.toFixed(4);
+    }
+  }
+
   // Determine acceptance label for each argument based on conclusion support
   const getAcceptanceLabel = (conclusionClaimId: string | null): "accepted" | "rejected" | "undecided" => {
     if (!conclusionClaimId) return "undecided";
@@ -480,6 +522,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const conclusionDsSupport = confidenceMode === "ds" && conclusionClaimId 
       ? dsSupportByClaimId[conclusionClaimId] 
       : undefined;
+    const conclusionBand = conclusionClaimId ? bandByClaimId[conclusionClaimId] : undefined;
 
     return {
       id: r.id,
@@ -491,6 +534,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       
       // Evidential support
       support: confidenceMode === "ds" ? conclusionDsSupport : conclusionSupport,
+      ...(conclusionBand ? { supportBand: conclusionBand } : {}),
       acceptance: getAcceptanceLabel(conclusionClaimId),
       
       // AIF metadata

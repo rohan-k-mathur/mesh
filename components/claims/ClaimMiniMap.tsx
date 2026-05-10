@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import React from 'react';
 import { GlossaryText } from '@/components/glossary/GlossaryText';
 import { InlineCommitmentCount } from '@/components/aif/CommitmentBadge';
+import { ContraryBadge } from '@/components/claims/contraryBadge/ContraryBadge';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
   import {
@@ -568,6 +569,14 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       
                       {/* Attack types */}
                       <AttackBadges attacks={c.attacks} />
+
+                      {/* Explicit contraries (Phase D-1) */}
+                      <ContraryBadge
+                        deliberationId={deliberationId}
+                        claimId={c.id}
+                        claimText={c.text}
+                        size="xs"
+                      />
                       
                       {/* Dialogical status */}
                       <DialogicalStatus moves={c.moves} />

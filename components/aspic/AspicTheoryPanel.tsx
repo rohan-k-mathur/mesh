@@ -1,12 +1,17 @@
 // components/aspic/AspicTheoryPanel.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AspicTheoryViewer } from "./AspicTheoryViewer";
 import { GroundedExtensionPanel } from "./GroundedExtensionPanel";
 import { RationalityChecklist } from "./RationalityChecklist";
+import {
+  ASPIC_FOCUS_EVENT,
+  readFocusClaimIdFromHash,
+  type AspicFocusDetail,
+} from "./focusClaim";
 // import { AttackGraphVisualization } from "./AttackGraphVisualization"; // Chunk 2
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -21,6 +26,30 @@ export function AspicTheoryPanel({
   initialView = "theory",
 }: AspicTheoryPanelProps) {
   const [view, setView] = useState<"theory" | "graph" | "extension" | "rationality">(initialView);
+  const [focusedClaimText, setFocusedClaimText] = useState<string | null>(null);
+
+  // Phase D-1: respond to "View in ASPIC results" requests dispatched by
+  // ContraryBadge / contrary manager. Switches to the Extension view and
+  // seeds the search filter with the focused claim's text.
+  useEffect(() => {
+    function onFocus(e: Event) {
+      const detail = (e as CustomEvent).detail as AspicFocusDetail | undefined;
+      if (!detail?.claimText) return;
+      setFocusedClaimText(detail.claimText);
+      setView("extension");
+    }
+    window.addEventListener(ASPIC_FOCUS_EVENT, onFocus as EventListener);
+    return () =>
+      window.removeEventListener(ASPIC_FOCUS_EVENT, onFocus as EventListener);
+  }, []);
+
+  // Phase D-1: pick up deep-links on mount (e.g. user follows a link with
+  // #aspic-claim=<id>). We switch to the extension view; resolving id → text
+  // would require an extra fetch and is intentionally out of scope here.
+  useEffect(() => {
+    const id = readFocusClaimIdFromHash();
+    if (id) setView("extension");
+  }, []);
 
   // Fetch ASPIC+ theory and semantics
   const { data, error, isLoading, mutate } = useSWR(
@@ -113,6 +142,7 @@ export function AspicTheoryPanel({
           <GroundedExtensionPanel
             arguments={data.semantics.arguments}
             semantics={data.semantics}
+            highlightClaimText={focusedClaimText}
           />
         )}
         

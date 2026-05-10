@@ -55,6 +55,8 @@ ${BASE_URL}/a/{shortCode}@{sha256}
 
 ## Key endpoints
 
+- \`GET /search/arguments?q=...\` — human-facing search page; same
+  query params as the API below.
 - \`GET /api/v3/search/arguments?q=...&sort=dialectical_fitness\` — public
   argument search; the \`dialectical_fitness\` sort re-ranks by tested-
   and-survived signals.

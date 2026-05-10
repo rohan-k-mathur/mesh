@@ -1,7 +1,7 @@
 // components/aspic/GroundedExtensionPanel.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,13 +42,27 @@ interface GroundedExtensionPanelProps {
     groundedExtension: string[];
     justificationStatus: JustificationStatus;
   };
+  /**
+   * Phase D-1: when set, seeds the search box with this text so the user
+   * lands on attacks/arguments involving the focused claim.
+   */
+  highlightClaimText?: string | null;
 }
 
-export function GroundedExtensionPanel({ arguments: args, semantics }: GroundedExtensionPanelProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export function GroundedExtensionPanel({ arguments: args, semantics, highlightClaimText }: GroundedExtensionPanelProps) {
+  const [searchQuery, setSearchQuery] = useState(highlightClaimText ?? "");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(["in", "out"])
   );
+
+  // Phase D-1: react to external focus changes (deep-link or badge click).
+  React.useEffect(() => {
+    if (highlightClaimText) {
+      setSearchQuery(highlightClaimText);
+      setExpandedSections(new Set(["in", "out", "undec"]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightClaimText]);
 
   // Debug logging
   console.log("[GroundedExtensionPanel] Received data:", {

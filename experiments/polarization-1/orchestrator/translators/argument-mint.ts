@@ -308,19 +308,39 @@ async function mintOneArgument(opts: MintOneOpts): Promise<ArgumentMintResult["a
     }
     seenSourceIds.add(sourceId);
 
-    const { citationId } = await opts.iso.attachCitation(
-      {
-        targetType: "argument",
-        targetId: argumentId,
-        sourceId,
-        // Truncate quote to fit the API's 280-char cap; use the premise text
-        // as the quote so the human reviewer sees what the citation supports.
-        quote: premise.text.length <= 280 ? premise.text : premise.text.slice(0, 277) + "...",
-        intent: "supports",
-      },
-      opts.ctx,
-    );
-    citations.push({ sourceId, citationId, citationToken: premise.citationToken });
+    try {
+      const { citationId } = await opts.iso.attachCitation(
+        {
+          targetType: "argument",
+          targetId: argumentId,
+          sourceId,
+          // Truncate quote to fit the API's 280-char cap; use the premise text
+          // as the quote so the human reviewer sees what the citation supports.
+          quote: premise.text.length <= 280 ? premise.text : premise.text.slice(0, 277) + "...",
+          intent: "supports",
+        },
+        opts.ctx,
+      );
+      citations.push({ sourceId, citationId, citationToken: premise.citationToken });
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      // Soft-degrade FK violations on stale evidence-context source IDs:
+      // log+skip, treat the premise as uncited, and keep the argument.
+      // A single bad source must not abort the whole phase.
+      if (msg.includes("Citation_sourceId_fkey")) {
+        opts.logger.event("citation_attach_fk_skip", {
+          step: "argument-mint",
+          argumentIndex: opts.inputIndex,
+          premiseIndex: p,
+          sourceId,
+          citationToken: premise.citationToken,
+          message: msg,
+        });
+        uncitedPremiseTexts.push(premise.text);
+        continue;
+      }
+      throw err;
+    }
   }
 
   return {

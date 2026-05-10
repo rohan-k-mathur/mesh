@@ -12,12 +12,10 @@ import { TopBar } from "./TopBar";
 import { useFollowing } from "@/lib/client/useFollowing";
 import { useStackFollowing } from "@/lib/client/useStackFollowing";
 import DebateSheetReader from "@/components/agora/DebateSheetReader";
-import Plexus from "@/components/agora/Plexus"; // <-- rename + import
 // import SheetPicker from '@/components/agora/SheetPicker';
 import { RoomPicker, DebatePicker, SheetPicker } from '@/components/agora/RoomAndDebatePickers';
 import ConfidenceControls from '@/components/agora/ConfidenceControls';
-import PlexusBoard from "@/components/agora/PlexusBoard";
-import PlexusMatrix from "@/components/agora/PlexusMatrix";
+import { PlexusShell } from "./PlexusShell";
 import { NewKbButton } from "@/components/kb/NewKbButton";
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
@@ -182,31 +180,6 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
   return [ev, ...prev];
 }
 
-
-export function PlexusShell({ scope='public' }: { scope?: 'public'|'following' }) {
-  const [view, setView] = React.useState<'graph'|'board'|'matrix'>('board'); // make Board the default
-
-  return (
-    <div className="space-y-2 p-2 ">
-      <div className="flex w-full items-center gap-2">
-        <div className="text-md px-2 font-semibold">Mode</div>
-        <div className="ml-1 flex items-center gap-0">
-          {(['board','graph','matrix'] as const).map(v => (
-            <button key={v}
-              onClick={()=>setView(v)}
-              className={`px-4 py-1 text-[12px]  border border-indigo-300 ${view===v?'bg-slate-900 text-white':'bg-white hover:bg-slate-50'}`}>
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {view==='board'  && <PlexusBoard scope={scope} />}
-      {view==='graph'  && <Plexus scope={scope} />}
-      {view==='matrix' && <PlexusMatrix scope={scope} />}
-    </div>
-  );
-}
 
 /* ------------------------------ component ---------------------------- */
 export default function Agora({

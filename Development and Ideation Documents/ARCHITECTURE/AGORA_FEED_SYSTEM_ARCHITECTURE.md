@@ -172,10 +172,10 @@ The Agora interface offers three distinct view modes:
 4. UI UPDATE                                  ▼
    ┌─────────────────────────────────────────────────────────────────┐
    │                      Agora Component                            │
-   │  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐     │
-   │  │ Filter Events │   │ Render Cards  │   │ Update State  │     │
-   │  │ (tab/search)  │   │ (EventCard)   │   │ (selection)   │     │
-   │  └───────────────┘   └───────────────┘   └───────────────┘     │
+   │  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐      │
+   │  │ Filter Events │   │ Render Cards  │   │ Update State  │      │
+   │  │ (tab/search)  │   │ (EventCard)   │   │ (selection)   │      │
+   │  └───────────────┘   └───────────────┘   └───────────────┘      │
    └─────────────────────────────────────────────────────────────────┘
 ```
 

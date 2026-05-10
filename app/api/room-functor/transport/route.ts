@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
+import { recomputeSnapshotForFunctor } from "@/workers/transport-aggregator";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -42,5 +43,18 @@ export async function POST(req: NextRequest) {
   // OPTIONAL: emit a signal; later you might copy/import edges or arguments
   try { (globalThis as any).dispatchEvent?.(new CustomEvent("roomFunctor:changed")); } catch {}
 
-  return NextResponse.json({ ok: true, id: row.id, fromId, toId, claimMap: nextMap });
+  // Sprint C2: refresh the cached transport snapshot for this (from → to) pair
+  // so the destination room's `evidential` payload sees the new mapping on the
+  // next read. Failures are isolated and never block the upsert response.
+  let snapshot: { snapshotId?: string; unchanged?: boolean; error?: string } = {};
+  try {
+    const r = await recomputeSnapshotForFunctor(fromId, toId);
+    snapshot = r.ok
+      ? { snapshotId: r.snapshotId, unchanged: r.unchanged }
+      : { error: r.reason };
+  } catch (err: any) {
+    snapshot = { error: String(err?.message ?? err) };
+  }
+
+  return NextResponse.json({ ok: true, id: row.id, fromId, toId, claimMap: nextMap, snapshot });
 }

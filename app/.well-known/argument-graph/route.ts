@@ -89,9 +89,16 @@ const MANIFEST = {
         scheme: "argumentation scheme key",
         against: "claim moid (returns counter-arguments)",
         sort: ["recent", "dialectical_fitness"],
+        mode: ["lexical", "hybrid", "vector"],
       },
       description:
-        "Public argument search. Use sort=dialectical_fitness for tested-and-survived re-ranking.",
+        "Public argument search. Use sort=dialectical_fitness for tested-and-survived re-ranking. Default mode is hybrid (pgvector cosine + lexical OR-tokens fused via RRF). Human-readable equivalent: GET /search/arguments.",
+    },
+    humanSearchPage: {
+      url: `${BASE_URL}/search/arguments`,
+      method: "GET",
+      description:
+        "Human-facing search UI rendered server-side over the same /api/v3/search/arguments engine. Supports the same query params (q, scheme, sort, mode, against, limit) and emits <link rel=\"alternate\" type=\"application/json\"> pointing back at the API form for crawlers.",
     },
     proposeArgument: {
       url: `${BASE_URL}/api/arguments/quick`,
@@ -138,6 +145,63 @@ const MANIFEST = {
       method: "GET",
       description:
         "Track AI-EPI Pt. 4 §7 — canonical-claim families across rooms, plexus-edge counts (ArgumentImport), sibling-room scheme reuse. aggregateAcceptance is a deterministic fold over localStatus enums.",
+    },
+    eccArrow: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/arrow?claimId={claimId}`,
+      method: "GET",
+      description:
+        "Sprint E — typed ECC `Hom(I, claim)` arrow + Ambler 1996 Def. 8/17 meta (simple, entire, selected, logical). The `logical` predicate is strict (ECC plan §4 row 1).",
+    },
+    eccCulprits: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/culprits?claimId={claimId}`,
+      method: "GET",
+      description:
+        "Sprint E — Ambler §4 retraction candidates per claim, hydrated with AssumptionUse text/status. Answers 'what would I have to retract to reject claim X?'",
+    },
+    eccConfidence: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/confidence?claimId={claimId}&mode=min|product|ds`,
+      method: "GET",
+      description:
+        "Sprint E — `confidence(arrow, monoid)` per claim. Closed-enum monoid (ECC plan §4 row 5).",
+    },
+    eccEnthymemes: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/enthymemes`,
+      method: "GET",
+      query: { argumentId: "optional; omit for delib-wide scan" },
+      description:
+        "Sprint E — `detectEnthymemes()` per argument or per deliberation. Names missing premise roles by scheme key.",
+    },
+    eccTransport: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/transport`,
+      method: "GET",
+      query: { fromRoomId: "optional source delib id" },
+      description:
+        "Sprint E — cached RoomTransportSnapshot rows landing on this deliberation. One-hop only (ECC plan §4 row 2).",
+    },
+    eccAggregate: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/aggregate?claimId={claimId}&mode=min|product`,
+      method: "GET",
+      description:
+        "Sprint E — `{ local, imported, total }` band per claim via aggregateAcrossRooms. Isonomia construction (ECC plan §0.5.7).",
+    },
+    eccEvidential: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/evidential?mode=min|product|ds&imports=off|materialized|virtual|all`,
+      method: "GET",
+      description:
+        "Sprint E — typed evidential projection for the whole deliberation (bypasses the ECC_TYPED_PIPELINE feature flag). Returns support, dsSupport, hom, nodes, plus supportBand when imports are folded in.",
+    },
+    eccBeliefRevision: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/belief-revision?claimId={claimId}`,
+      method: "GET",
+      description:
+        "Sprint E — cached BeliefRevisionProposal rows (Sprint D1) for an OUT-labelled claim, hydrated with referenced AssumptionUse rows.",
+    },
+    eccProposeWarrant: {
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/propose-warrant`,
+      method: "POST",
+      auth: "bearer",
+      description:
+        "Sprint E — internal-hom write. Materializes a warrant claim + AI-authored backing argument + AssumptionUse on the host argument. Per ECC plan §4 row 3, the resulting derivation is non-logical until a HUMAN ratifies.",
     },
   },
   citation: {
@@ -242,6 +306,51 @@ const MANIFEST = {
         description:
           "Pt. 4 wrapper — forces deliberation summaries through the synthetic-readout primitive instead of free synthesis from search hits.",
       },
+      {
+        name: "ecc_arrow",
+        description:
+          "Sprint E — typed `Hom(I, claim)` ECC arrow + structural meta (Ambler 1996 Def. 8/17).",
+      },
+      {
+        name: "ecc_culprits",
+        description:
+          "Sprint E — Ambler §4 belief-revision: ranked retraction candidates per claim. The canonical 'what would I have to retract to reject claim X?' tool.",
+      },
+      {
+        name: "ecc_confidence",
+        description:
+          "Sprint E — confidence(arrow, monoid) with mode in {min, product, ds} (closed enum, ECC plan §4 row 5).",
+      },
+      {
+        name: "ecc_enthymemes",
+        description:
+          "Sprint E — detectEnthymemes() per argument or per deliberation; names missing premise roles by scheme key.",
+      },
+      {
+        name: "ecc_transport",
+        description:
+          "Sprint E — read RoomTransportSnapshot rows (one-hop only, ECC plan §4 row 2).",
+      },
+      {
+        name: "ecc_aggregate",
+        description:
+          "Sprint E — { local, imported, total } band per claim. Isonomia construction (ECC plan §0.5.7).",
+      },
+      {
+        name: "ecc_evidential",
+        description:
+          "Sprint E — typed evidential projection for the whole deliberation; emits supportBand when imports are folded in.",
+      },
+      {
+        name: "ecc_belief_revision_proposals",
+        description:
+          "Sprint E — cached BeliefRevisionProposal rows (Sprint D1) for an OUT claim.",
+      },
+      {
+        name: "propose_warrant",
+        description:
+          "Sprint E — internal-hom write. AI-authored warrants are non-logical until a HUMAN ratifies (ECC plan §4 row 3).",
+      },
     ],
   },
   schemas: {
@@ -291,6 +400,10 @@ const MANIFEST = {
     chainExposure: true,
     syntheticReadoutWithRefusalSurface: true,
     crossDeliberationContext: true,
+    eccTypedAlgebra: true,
+    eccBeliefRevision: true,
+    eccCrossRoomTransportOneHop: true,
+    eccProposeWarrantAiFlagged: true,
   },
   meta: {
     generatedAt: new Date().toISOString().slice(0, 10),

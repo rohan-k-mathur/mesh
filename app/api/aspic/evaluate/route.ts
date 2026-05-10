@@ -265,7 +265,6 @@ export async function GET(req: NextRequest) {
     if (DEBUG_ASPIC) console.log(`[ASPIC API] Fetched ${assumptionsList.length} ACCEPTED AssumptionUse records for deliberation ${deliberationId}`);
 
     // Step 1d: Fetch explicit ClaimContrary records (Phase D-1)
-    // @ts-ignore - ClaimContrary model exists but TypeScript server hasn't refreshed
     const explicitContraries = await prisma.claimContrary.findMany({
       where: {
         deliberationId,

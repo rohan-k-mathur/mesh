@@ -533,17 +533,38 @@ async function mintOneRebuttal(opts: MintOneRebuttalOpts): Promise<AttackMintRes
     if (seenSourceIds.has(sourceId)) continue;
     seenSourceIds.add(sourceId);
 
-    const { citationId } = await opts.iso.attachCitation(
-      {
-        targetType: "argument",
-        targetId: rebuttalArgumentId,
-        sourceId,
-        quote: premise.text.length <= 280 ? premise.text : premise.text.slice(0, 277) + "...",
-        intent: "supports",
-      },
-      opts.ctx,
-    );
-    citations.push({ sourceId, citationId, citationToken: premise.citationToken });
+    try {
+      const { citationId } = await opts.iso.attachCitation(
+        {
+          targetType: "argument",
+          targetId: rebuttalArgumentId,
+          sourceId,
+          quote: premise.text.length <= 280 ? premise.text : premise.text.slice(0, 277) + "...",
+          intent: "supports",
+        },
+        opts.ctx,
+      );
+      citations.push({ sourceId, citationId, citationToken: premise.citationToken });
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      // Soft-degrade FK violations on stale evidence-context source IDs:
+      // log+skip, treat the premise as uncited, and keep the rebuttal.
+      // The mint failing for one bad source must not abort the whole phase.
+      if (msg.includes("Citation_sourceId_fkey")) {
+        opts.logger.event("citation_attach_fk_skip", {
+          step: "attack-mint",
+          advocate: opts.authorRole,
+          rebuttalIndex: opts.inputIndex,
+          premiseIndex: p,
+          sourceId,
+          citationToken: premise.citationToken,
+          message: msg,
+        });
+        uncitedPremiseTexts.push(premise.text);
+        continue;
+      }
+      throw err;
+    }
   }
 
   // 6. Resolve targeting fields.

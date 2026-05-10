@@ -18,6 +18,31 @@
  *                  -1.0 per inbound conflict-application
  *                  +0.25 per piece of evidence with a contentSha256
  *                Tied scores fall back to recency.
+ *
+ *   --- Phase 5: counter-citation discovery ---
+ *   include_strongest_counter — "1"/"true" → for each of the top K
+ *                       results (default K=10), look up structural
+ *                       contesters (rebut/undercut edges + conflict
+ *                       applications targeting the conclusion claim) and
+ *                       attach a `strongestCounter` block with the best
+ *                       contester (most-engaged-then-recent). Self-counters
+ *                       are excluded by MOID. Honest-empty: results with no
+ *                       structural contester get `strongestCounter: null`.
+ *   strongest_counter_k — integer 1..50; how many top results to enrich
+ *                       with strongestCounter (default 10).
+ *
+ *   --- Phase 2: quality filters ---
+ *   tested_only       — "1"/"true" → only return arguments whose computed
+ *                       standingState is one of tested-attacked /
+ *                       tested-undermined / tested-survived.
+ *   min_cq_satisfied  — integer ≥ 0; only return args with at least N
+ *                       SATISFIED (or PARTIALLY_SATISFIED) critical-question
+ *                       statuses recorded.
+ *   min_evidence      — integer ≥ 0; only return args whose conclusion has
+ *                       at least N evidence rows with a contentSha256
+ *                       (i.e. provenance-anchored evidence).
+ *   since / until     — ISO-8601 dates or datetimes; filters createdAt range.
+ *                       Pushed into the DB query (cheap).
  *   mode       — "lexical" (default) | "hybrid" | "vector"
  *                "hybrid"/"vector" runs pgvector cosine top-K + sparse
  *                token retrieval and fuses with Reciprocal Rank Fusion
@@ -55,23 +80,94 @@ function parseLimit(raw: string | null): number {
   return Math.min(50, n);
 }
 
+function parseNonNegInt(raw: string | null): number | null {
+  if (raw == null || raw.trim() === "") return null;
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
+function parseBool(raw: string | null): boolean {
+  if (raw == null) return false;
+  const v = raw.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+/** Accepts ISO-8601 date or datetime; returns Date or null on bad input. */
+function parseIsoDate(raw: string | null): Date | null {
+  if (raw == null || raw.trim() === "") return null;
+  const d = new Date(raw.trim());
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const q = (sp.get("q") ?? "").trim();
   const limit = parseLimit(sp.get("limit"));
   const scheme = (sp.get("scheme") ?? "").trim().toLowerCase() || null;
   const against = (sp.get("against") ?? "").trim() || null;
+  // Phase 6 — "for" stance discovery. Restricts results to arguments
+  // whose conclusion claim has the given MOID. Honest definition of
+  // "arguments concluding to this claim." Symmetric to `against`.
+  const conclusionMoid = (sp.get("conclusion_moid") ?? "").trim() || null;
   const sort = (sp.get("sort") ?? "recent").trim().toLowerCase();
   const wantFitness = sort === "dialectical_fitness";
   const modeRaw = (sp.get("mode") ?? "lexical").trim().toLowerCase();
   const mode: "lexical" | "hybrid" | "vector" =
     modeRaw === "hybrid" || modeRaw === "vector" ? (modeRaw as any) : "lexical";
 
+  // Phase 2 — quality filters.
+  const testedOnly = parseBool(sp.get("tested_only"));
+  const minCqSatisfied = parseNonNegInt(sp.get("min_cq_satisfied"));
+  const minEvidence = parseNonNegInt(sp.get("min_evidence"));
+  const since = parseIsoDate(sp.get("since"));
+  const until = parseIsoDate(sp.get("until"));
+  const qualityActive =
+    testedOnly ||
+    (minCqSatisfied != null && minCqSatisfied > 0) ||
+    (minEvidence != null && minEvidence > 0);
+
+  // Phase 5 — counter-citation discovery (opt-in).
+  const includeStrongestCounter = parseBool(sp.get("include_strongest_counter"));
+  const strongestCounterKRaw = parseNonNegInt(sp.get("strongest_counter_k"));
+  const strongestCounterK =
+    strongestCounterKRaw != null && strongestCounterKRaw > 0
+      ? Math.min(50, strongestCounterKRaw)
+      : 10;
+
+  // Echoed back in every response so consumers can see what was applied
+  // (and so MCP clients can replay queries).
+  const echoQuery = () => ({
+    q,
+    limit,
+    scheme,
+    against,
+    conclusionMoid: conclusionMoid || undefined,
+    sort: wantFitness ? "dialectical_fitness" : "recent",
+    mode,
+    testedOnly: testedOnly || undefined,
+    minCqSatisfied: minCqSatisfied ?? undefined,
+    minEvidence: minEvidence ?? undefined,
+    since: since ? since.toISOString() : undefined,
+    until: until ? until.toISOString() : undefined,
+    includeStrongestCounter: includeStrongestCounter || undefined,
+    strongestCounterK: includeStrongestCounter ? strongestCounterK : undefined,
+  });
+
   // Build query. We restrict to arguments that have a permalink (i.e. have
   // been surfaced publicly) and that are not in private deliberations.
   const where: any = {
     permalink: { isNot: null },
   };
+
+  // since/until are cheap to push to the DB; do it before the candidate fetch.
+  if (since || until) {
+    where.createdAt = {
+      ...(since ? { gte: since } : {}),
+      ...(until ? { lte: until } : {}),
+    };
+  }
 
   // Text matching across argument text and conclusion claim text.
   // Tokenize on whitespace and require AT LEAST ONE token to appear in
@@ -112,6 +208,12 @@ export async function GET(req: NextRequest) {
     where.argumentSchemes = {
       some: { scheme: { key: scheme } },
     };
+  }
+
+  // Phase 6 — restrict to arguments concluding to a specific claim
+  // (the "for" stance). Pushed to the DB via a Prisma relation filter.
+  if (conclusionMoid) {
+    where.conclusion = { moid: conclusionMoid };
   }
 
   // "against" mode: arguments that dialectically contest the target claim.
@@ -169,7 +271,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(
           {
             ok: true,
-            query: { q, limit, scheme, against, againstClaimText, sort: wantFitness ? "dialectical_fitness" : "recent", mode },
+            query: { ...echoQuery(), againstClaimText },
             count: 0,
             results: [],
           },
@@ -184,9 +286,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // For dialectical-fitness sort we pull a wider candidate pool, then
-  // re-rank in app code. For "recent" we just take the limit directly.
-  const candidateLimit = wantFitness
+  // For dialectical-fitness sort, hybrid mode, or any active quality
+  // filter (tested_only / min_cq_satisfied / min_evidence) we pull a wider
+  // candidate pool so post-fetch filtering doesn't underfill the page.
+  const needsWidePool = wantFitness || qualityActive;
+  const candidateLimit = needsWidePool
     ? Math.min(FITNESS_CANDIDATE_CAP, limit * FITNESS_CANDIDATE_FACTOR)
     : limit;
 
@@ -207,6 +311,8 @@ export async function GET(req: NextRequest) {
         schemeKey: scheme,
         argumentIds: argumentIdsConstraint,
         permalinkRequired: true,
+        since,
+        until,
       },
     });
     const hybridIds = hybridResults.map((r) => r.id);
@@ -214,15 +320,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           ok: true,
-          query: {
-            q,
-            limit,
-            scheme,
-            against,
-            againstClaimText,
-            sort: wantFitness ? "dialectical_fitness" : "recent",
-            mode,
-          },
+          query: { ...echoQuery(), againstClaimText },
           count: 0,
           results: [],
         },
@@ -277,6 +375,8 @@ export async function GET(req: NextRequest) {
     attackEdges: number;
     attackCAs: number;
     cqRequired: number;
+    /** Number of evidence rows on the conclusion claim with a contentSha256 (provenance-anchored). */
+    evidenceWithProvenance: number;
     /** Number of distinct query tokens (post-stop-word filter) found in argument text or conclusion text. 0 when q was empty. */
     lexicalCoverage: number;
   }> = rows
@@ -300,6 +400,7 @@ export async function GET(req: NextRequest) {
         attackEdges: 0,
         attackCAs: 0,
         cqRequired: 0,
+        evidenceWithProvenance: 0,
         lexicalCoverage,
       };
     });
@@ -340,6 +441,7 @@ export async function GET(req: NextRequest) {
       const evidenceWithProvenance = (entry.row.conclusion?.ClaimEvidence ?? []).filter(
         (e: any) => !!e?.contentSha256
       ).length;
+      entry.evidenceWithProvenance = evidenceWithProvenance;
       // Single-source-of-truth fitness math — same weights, same formula
       // as the attestation envelope (Track AI-EPI Pt. 3 §1).
       const breakdown = computeFitnessBreakdown({
@@ -353,6 +455,24 @@ export async function GET(req: NextRequest) {
       entry.fitnessBreakdown = breakdown;
     })
   );
+
+  // Phase 2 quality filters — applied AFTER counters are known. Truncation
+  // to `limit` happens in the sort blocks below, so we filter first to keep
+  // pagination honest (users get up to `limit` results that pass the bar,
+  // not `limit` results pre-filter that may then collapse to <limit).
+  if (qualityActive) {
+    withFitness = withFitness.filter((entry) => {
+      if (testedOnly) {
+        const isTested =
+          entry.cqAnswered >= 2 ||
+          (entry.attackEdges + entry.attackCAs >= 1 && entry.supportEdges >= 1);
+        if (!isTested) return false;
+      }
+      if (minCqSatisfied != null && entry.cqAnswered < minCqSatisfied) return false;
+      if (minEvidence != null && entry.evidenceWithProvenance < minEvidence) return false;
+      return true;
+    });
+  }
 
   if (wantFitness) {
     withFitness.sort((a, b) => {
@@ -392,12 +512,24 @@ export async function GET(req: NextRequest) {
       return bd - ad;
     });
     withFitness = withFitness.slice(0, limit);
+  } else if (needsWidePool) {
+    // We widened the candidate pool for fitness or quality filtering.
+    // No query and no hybrid → already in DB recency order; just truncate.
+    withFitness = withFitness.slice(0, limit);
   }
 
   const hybridById = new Map<string, HybridSearchResult>();
   if (hybridResults) {
     for (const h of hybridResults) hybridById.set(h.id, h);
   }
+
+  // Phase 5 — strongestCounter discovery. Opt-in. Single-fanout: one
+  // edge query + one conflictApplication query covering ALL top-K
+  // conclusion claim ids, then a single argument.findMany to fetch the
+  // contester rows. Avoids per-result N+1.
+  const strongestCounterById = includeStrongestCounter
+    ? await fetchStrongestCounters(withFitness.slice(0, strongestCounterK))
+    : new Map<string, StrongestCounter>();
 
   const results = withFitness.map((entry) => {
     const r = entry.row;
@@ -456,13 +588,16 @@ export async function GET(req: NextRequest) {
             fitnessBreakdown: entry.fitnessBreakdown,
           }
         : {}),
+      ...(includeStrongestCounter
+        ? { strongestCounter: strongestCounterById.get(r.id) ?? null }
+        : {}),
     };
   });
 
   return NextResponse.json(
     {
       ok: true,
-      query: { q, limit, scheme, against, againstClaimText, sort: wantFitness ? "dialectical_fitness" : "recent", mode },
+      query: { ...echoQuery(), againstClaimText },
       // Self-describing fitness formula — lets clients (and verifiers) read
       // the weights without round-tripping to source. (Pt. 3 §1.)
       fitnessFormula: wantFitness ? FITNESS_WEIGHTS : undefined,
@@ -476,4 +611,159 @@ export async function GET(req: NextRequest) {
       },
     }
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Phase 5 — strongestCounter helper
+// ─────────────────────────────────────────────────────────────────────
+
+type StrongestCounter = {
+  argumentId: string;
+  shortCode: string;
+  permalink: string;
+  attestationUrl: string;
+  conclusion: { claimId: string; moid: string | null; text: string } | null;
+  /** How the contester relates to the original. */
+  source: "edge" | "conflict" | "edge+conflict";
+};
+
+/**
+ * For each result row, find the "strongest" structural contester to its
+ * conclusion claim. v0 ranking is `permalink.accessCount desc, createdAt
+ * desc` — a community-engagement-then-recency proxy. A future iteration
+ * should rank by dialectical fitness once that computation is cheap
+ * enough to fan out across K results without blowing the request budget.
+ *
+ * Single-fanout: 2 prisma queries to find contester ids across all top-K
+ * conclusion claim ids, then 1 prisma query to fetch the contester
+ * argument rows. No N+1.
+ *
+ * Self-counters (same conclusion MOID as the original) are excluded.
+ * Only public args (with a permalink) are returned.
+ */
+async function fetchStrongestCounters(
+  rows: Array<{
+    row: {
+      id: string;
+      conclusion?: { id: string; moid: string | null; text: string } | null;
+    };
+  }>,
+): Promise<Map<string, StrongestCounter>> {
+  const out = new Map<string, StrongestCounter>();
+  const claimIdToOriginalArgId = new Map<string, string>();
+  const originalMoidByArgId = new Map<string, string | null>();
+  for (const r of rows) {
+    const cid = r.row.conclusion?.id;
+    if (!cid) continue;
+    claimIdToOriginalArgId.set(cid, r.row.id);
+    originalMoidByArgId.set(r.row.id, r.row.conclusion?.moid ?? null);
+  }
+  const claimIds = Array.from(claimIdToOriginalArgId.keys());
+  if (claimIds.length === 0) return out;
+
+  const [edges, conflicts] = await Promise.all([
+    prisma.argumentEdge.findMany({
+      where: {
+        type: { in: ["rebut", "undercut"] as any },
+        to: { conclusionClaimId: { in: claimIds } },
+      },
+      select: {
+        fromArgumentId: true,
+        to: { select: { conclusionClaimId: true } },
+      },
+      take: 500,
+    }),
+    prisma.conflictApplication.findMany({
+      where: { conflictedClaimId: { in: claimIds } },
+      select: {
+        conflictingArgumentId: true,
+        conflictedClaimId: true,
+      } as any,
+      take: 500,
+    }),
+  ]);
+
+  // claimId → contester argId → which structural source(s) found it.
+  const contestersByClaim = new Map<string, Map<string, "edge" | "conflict" | "edge+conflict">>();
+  function record(claimId: string, argId: string, kind: "edge" | "conflict") {
+    if (!contestersByClaim.has(claimId)) contestersByClaim.set(claimId, new Map());
+    const m = contestersByClaim.get(claimId)!;
+    const prior = m.get(argId);
+    if (!prior) m.set(argId, kind);
+    else if (prior !== kind) m.set(argId, "edge+conflict");
+  }
+  for (const e of edges) {
+    const cid = e.to?.conclusionClaimId;
+    if (!cid || !e.fromArgumentId) continue;
+    record(cid, e.fromArgumentId, "edge");
+  }
+  for (const c of conflicts as any[]) {
+    const cid = c?.conflictedClaimId;
+    const aid = c?.conflictingArgumentId;
+    if (!cid || !aid) continue;
+    record(cid, aid, "conflict");
+  }
+
+  const allContesterIds = Array.from(
+    new Set(
+      Array.from(contestersByClaim.values()).flatMap((m) => Array.from(m.keys())),
+    ),
+  );
+  if (allContesterIds.length === 0) return out;
+
+  const argRows = await prisma.argument.findMany({
+    where: { id: { in: allContesterIds }, permalink: { isNot: null } },
+    select: {
+      id: true,
+      createdAt: true,
+      conclusion: { select: { id: true, moid: true, text: true } },
+      permalink: { select: { shortCode: true, accessCount: true } },
+    },
+  });
+  const argById = new Map(argRows.map((a) => [a.id, a]));
+
+  for (const r of rows) {
+    const cid = r.row.conclusion?.id;
+    if (!cid) continue;
+    const candidates = contestersByClaim.get(cid);
+    if (!candidates) continue;
+    const originalMoid = originalMoidByArgId.get(r.row.id) ?? null;
+    const ranked = Array.from(candidates.entries())
+      .map(([argId, source]) => ({ arg: argById.get(argId), source }))
+      .filter(
+        (c): c is { arg: NonNullable<typeof c.arg>; source: typeof c.source } =>
+          !!c.arg &&
+          !!c.arg.permalink &&
+          // Honesty rule: same conclusion MOID is not a counter.
+          (originalMoid == null || c.arg.conclusion?.moid !== originalMoid),
+      )
+      .sort((a, b) => {
+        const ac = a.arg.permalink!.accessCount ?? 0;
+        const bc = b.arg.permalink!.accessCount ?? 0;
+        if (ac !== bc) return bc - ac;
+        const at = a.arg.createdAt ? +new Date(a.arg.createdAt) : 0;
+        const bt = b.arg.createdAt ? +new Date(b.arg.createdAt) : 0;
+        return bt - at;
+      });
+
+    const best = ranked[0];
+    if (!best) continue;
+    const sc = best.arg.permalink!.shortCode;
+    out.set(r.row.id, {
+      argumentId: best.arg.id,
+      shortCode: sc,
+      permalink: `${BASE_URL}/a/${sc}`,
+      attestationUrl: `${BASE_URL}/api/a/${sc}/aif?format=attestation`,
+      conclusion: best.arg.conclusion
+        ? {
+            claimId: best.arg.conclusion.id,
+            moid: best.arg.conclusion.moid ?? null,
+            text: best.arg.conclusion.text,
+          }
+        : null,
+      source: best.source,
+    });
+  }
+
+  return out;
 }
