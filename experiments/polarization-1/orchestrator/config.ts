@@ -71,7 +71,9 @@ export type AgentTierRole =
   | "methodologist"
   | "defense"
   | "tracker"
-  | "synthesist";
+  | "synthesist"
+  | "chain-architect"
+  | "challenger";
 
 const DEFAULT_DEV_MODEL = "claude-haiku-4-5-20251001";
 // Bumped from Opus 4.5 → Opus 4.6 for the loosened, web-search-enabled
@@ -170,6 +172,13 @@ function parseRoleTierOverrides(): Partial<Record<AgentTierRole, ModelTier>> {
     out.synthesist = "prod";
     out.methodologist = "prod";
     out.tracker = "prod";
+    // Phase 6 chain-architect is a synthesis-class judgment task; matches
+    // synthesist tier under either preset.
+    out["chain-architect"] = "prod";
+    // Phase 7 challenger is a structural pattern-match (CQ catalog ×
+    // load-bearing argument set) but the prompt benefits from prod-tier
+    // judgment when picking which CQs are most-applicable per target.
+    out.challenger = "prod";
   }
   if (preset === "opus-critical-plus") {
     out.advocate = "prod";
@@ -183,6 +192,8 @@ function parseRoleTierOverrides(): Partial<Record<AgentTierRole, ModelTier>> {
   pick("MODEL_TIER_DEFENSE", "defense");
   pick("MODEL_TIER_TRACKER", "tracker");
   pick("MODEL_TIER_SYNTHESIST", "synthesist");
+  pick("MODEL_TIER_CHAIN_ARCHITECT", "chain-architect");
+  pick("MODEL_TIER_CHALLENGER", "challenger");
   return out;
 }
 

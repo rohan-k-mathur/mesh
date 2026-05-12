@@ -56,6 +56,35 @@ export interface DeliberationFingerprint {
   depthDistribution: Record<StandingConfidence, number>;
   /** Median number of distinct challengers per argument. */
   medianChallengerCount: number;
+  /**
+   * Mean number of distinct challengers per argument. Reported alongside
+   * the median because in long-tailed graphs (many leaf-position arguments
+   * with zero inbound traffic, a few load-bearing nodes with several
+   * challengers) the median collapses to 0 and hides real challenge
+   * density. The mean answers "on average, how many distinct authors
+   * have pushed back on each argument?" and is the more informative
+   * statistic for orchestrator-seeded graphs. Rounded to three decimals.
+   */
+  meanChallengerCount: number;
+  /**
+   * Fraction of arguments that have at least one distinct challenger
+   * (inbound attack edge author OR ConflictApplication creator). The
+   * complement of "% of arguments still sitting at the leaves with
+   * nobody pushing back". Rounded to three decimals; 0 when there are
+   * no arguments. This is the headline coverage metric — `medianChallengerCount`
+   * collapses to 0 in tree-shaped graphs as soon as leaf count exceeds
+   * 50%, but `challengerCoverage` degrades smoothly.
+   */
+  challengerCoverage: number;
+  /**
+   * Median number of distinct challengers, computed only over the
+   * subset of arguments that have at least one challenger (i.e.
+   * conditioned on being in the dialectical fray at all). Answers
+   * "when an argument is being challenged, how many distinct authors
+   * typically push back?". 0 when no arguments have challengers.
+   * Read together with `challengerCoverage` (breadth) — this is depth.
+   */
+  medianChallengerCountAmongChallenged: number;
   cqCoverage: {
     answered: number;
     partial: number;
@@ -112,6 +141,28 @@ function median(values: number[]): number {
 
 /** Threshold for `articulationOnly`: < 0.1 human engagements per AI seed in the rolling window. */
 const ARTICULATION_ONLY_ENGAGEMENT_FLOOR = 0.1;
+
+/**
+ * Code-version stamp mixed into `contentHash`. Bump this string whenever
+ * the *shape* of `DeliberationFingerprint` or `SyntheticReadout` changes
+ * (new fields, renamed fields, changed semantics for an existing field).
+ * The shape change invalidates every cached payload in
+ * `DeliberationFingerprintCache` automatically because the new hash will
+ * not collide with any existing row's `contentHash`. Pure projection
+ * changes that only depend on the graph (args/edges/cas/schemes) do
+ * NOT require a bump — the underlying ids already drive cache key
+ * variance.
+ *
+ * Bump log:
+ *   v1 — original schema (pre-meanChallengerCount)
+ *   v2 — added meanChallengerCount, challengerCoverage,
+ *        medianChallengerCountAmongChallenged (2026-05-11)
+ *   v3 — added standingDepth + challengerCount/reviewerCount per
+ *        topArguments / mostContested entry in syntheticReadout (2026-05-11)
+ *   v4 — added refusalSurface[i].blockerSummaries; chainFitness now
+ *        weights inbound attacks by attacker standing (2026-05-11)
+ */
+const FINGERPRINT_VERSION = "v4";
 
 // ============================================================
 // MAIN BUILDER
@@ -234,6 +285,7 @@ export async function computeDeliberationFingerprint(
   ].sort();
 
   const hashInput = JSON.stringify({
+    v: FINGERPRINT_VERSION,
     deliberationId,
     args: sortedArgIds,
     edges: sortedEdgeIds,
@@ -519,6 +571,25 @@ export async function computeDeliberationFingerprint(
     standingDistribution,
     depthDistribution,
     medianChallengerCount: median(challengerCounts),
+    meanChallengerCount:
+      challengerCounts.length === 0
+        ? 0
+        : Math.round(
+            (challengerCounts.reduce((s, n) => s + n, 0) /
+              challengerCounts.length) *
+              1000,
+          ) / 1000,
+    challengerCoverage:
+      challengerCounts.length === 0
+        ? 0
+        : Math.round(
+            (challengerCounts.filter((n) => n > 0).length /
+              challengerCounts.length) *
+              1000,
+          ) / 1000,
+    medianChallengerCountAmongChallenged: median(
+      challengerCounts.filter((n) => n > 0),
+    ),
     cqCoverage,
     evidenceCoverage,
     chainCount,

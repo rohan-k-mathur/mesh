@@ -1,8 +1,8 @@
 # Argument Chain System - Deep Technical Review
 
-**Date:** January 2025  
+**Date:** January 2025 (initial), refreshed May 2026  
 **Purpose:** Comprehensive system map for understanding architecture before integration work  
-**Status:** Complete Review
+**Status:** Complete Review — see §11 for post-audit changes
 
 ---
 
@@ -151,12 +151,17 @@ model ArgumentScope {
 ```
 app/api/argument-chains/
 ├── route.ts                           # GET (list by deliberation), POST (create)
+├── from-prong/
+│   └── route.ts                       # POST — create chain from a prong/branch (added post-audit)
 ├── [chainId]/
 │   ├── route.ts                       # GET (full chain with includes)
 │   ├── analyze/
 │   │   └── route.ts                   # POST (run analysis)
+│   ├── attack-edge/
+│   │   └── route.ts                   # POST — recursive attack on an edge (added post-audit)
 │   ├── export/
-│   │   └── route.ts                   # POST (prose/essay/markdown export)
+│   │   ├── aif/route.ts               # POST — AIF JSON-LD export (split out post-audit)
+│   │   └── essay/route.ts             # POST — essay export (split out post-audit)
 │   ├── nodes/
 │   │   ├── route.ts                   # GET (list), POST (create)
 │   │   └── [nodeId]/
@@ -169,7 +174,12 @@ app/api/argument-chains/
 │       ├── route.ts                   # GET (list), POST (create)
 │       └── [scopeId]/
 │           └── route.ts               # GET, PATCH, DELETE
+
+app/api/deliberations/[id]/chains/
+└── route.ts                           # GET — list chains scoped to a deliberation (added post-audit)
 ```
+
+> Note: The single `export/route.ts` mentioned in the original audit no longer exists. AIF and essay exports are now distinct endpoints; markdown/prose generation runs client-side via `lib/chains/*` generators.
 
 ### 2.2 Key API Behaviors
 
@@ -467,22 +477,43 @@ GET /api/arguments/[id]/aif-neighborhood
 - `lib/utils/chainLayoutUtils.ts` - Auto-layout algorithms
 
 ### 8.5 UI Components
+
+**Canvas (graph) view:**
 - `components/chains/ArgumentChainCanvas.tsx` - Main canvas (1293 lines)
-- `components/chains/ArgumentChainNode.tsx` - Node renderer (373 lines)
-- `components/chains/ArgumentChainEdge.tsx` - Edge renderer
-- `components/chains/ChainAnalysisPanel.tsx` - Analysis sidebar (457 lines)
-- `components/chains/ScopeBoundary.tsx` - Scope visual
-- `components/chains/ChainArgumentComposer.tsx` - In-context composer
+- `components/chains/ArgumentChainNode.tsx` - Node renderer (372 lines)
+- `components/chains/ArgumentChainEdge.tsx` - Edge renderer (142 lines)
+- `components/chains/ChainAnalysisPanel.tsx` - Analysis sidebar (456 lines)
+- `components/chains/ScopeBoundary.tsx` - Scope visual (371 lines)
+- `components/chains/ScopeDialogs.tsx` - Create/edit scope modals (375 lines)
+- `components/chains/ScopesPanel.tsx` - Scope management panel (449 lines)
+- `components/chains/EnablerPanel.tsx` - Enablers analysis (329 lines)
+- `components/chains/ChainArgumentComposer.tsx` - In-context composer (455 lines)
+- `components/chains/ConnectionEditor.tsx` - Edge creation modal (218 lines)
+- `components/chains/AddNodeButton.tsx` - Add argument to chain (333 lines)
+- `components/chains/ChainMetadataPanel.tsx` - Edit chain metadata (186 lines)
+
+**Thread/list/prose views (added post-audit):**
+- `components/chains/ArgumentChainThread.tsx` - Linear thread renderer (317 lines)
+- `components/chains/ChainThreadHeader.tsx` - Header for thread view (222 lines)
+- `components/chains/ThreadNode.tsx` - Single node in thread + orphan node (478 lines)
+- `components/chains/ThreadAttackOverlay.tsx` - Attack overlay UI (358 lines)
+- `components/chains/ChainListPanel.tsx` - Browseable list of chains (506 lines)
+- `components/chains/ChainProseView.tsx` - Legal-brief prose renderer (383 lines)
+- `components/chains/ChainEssayView.tsx` - Academic essay renderer (444 lines)
+- `components/chains/ChainExportButton.tsx` - Export menu (384 lines)
+- `components/chains/EpistemicStatusBadge.tsx` - Status badge (210 lines)
+- `components/chains/ChainParticipationBadge.tsx` - Participation badge (294 lines)
 
 ### 8.6 Export Generators
-- `lib/chains/proseGenerator.ts` - Legal brief prose (2128 lines)
-- `lib/chains/essayGenerator.ts` - Academic essay
-- `lib/chains/narrativeGenerator.ts` - Story narrative
-- `lib/chains/markdownFormatter.ts` - Markdown export
+- `lib/chains/proseGenerator.ts` - Legal brief prose (2127 lines)
+- `lib/chains/essayGenerator.ts` - Academic essay (1618 lines)
+- `lib/chains/narrativeGenerator.ts` - Story narrative (928 lines)
+- `lib/chains/markdownFormatter.ts` - Markdown export (781 lines)
+- `lib/chains/chainToThread.ts` - Chain → thread structure (468 lines, post-audit)
 
 ### 8.7 Consumer Components
-- `components/deepdive/v3/tabs/ChainsTab.tsx` - Tab integration (661 lines)
-- `components/deepdive/v3/sections/ChainsSection.tsx` - Section integration
+- `components/deepdive/v3/tabs/ChainsTab.tsx` - Tab integration (660 lines). Now supports `viewMode: "list" | "thread" | "canvas" | "prose" | "essay"` plus full action-modal flow (View Details, Preview Network, Reply, Support, Attack with `AttackArgumentWizard`).
+- `components/deepdive/v3/sections/ChainsSection.tsx` - Section integration (363 lines)
 
 ---
 
@@ -522,3 +553,61 @@ GET /api/arguments/[id]/aif-neighborhood
 ---
 
 *This document provides a complete technical map of the Argument Chain system for integration planning.*
+
+---
+
+## 11. Post-Audit Changes (May 2026 refresh)
+
+The following changes have landed since the original January 2025 audit. The body of the doc above has been updated in place; this section summarizes what changed so reviewers can scan diffs quickly.
+
+### 11.1 New view modes beyond the ReactFlow canvas
+The system is no longer canvas-only. `ChainsTab` now exposes five mutually exclusive view modes:
+
+| Mode | Component | Purpose |
+|------|-----------|---------|
+| `list` | `ChainListPanel` | Browse all chains in a deliberation, expand to inspect nodes/edges |
+| `thread` | `ArgumentChainThread` | Linear, scroll-friendly rendering of a single chain (root → leaves) |
+| `canvas` | `ArgumentChainCanvas` | Original ReactFlow editor |
+| `prose` | `ChainProseView` | Legal-brief / academic / summary prose, copy + download |
+| `essay` | `ChainEssayView` | Full essay with deliberative / academic / persuasive tone, audience level, scheme + CQ toggles, markdown download |
+
+`ArgumentChainThread` has its own data shape (`ChainThread`) produced by `lib/chains/chainToThread.ts`, which assigns an ordering, computes `maxDepth`, and surfaces orphan/disconnected nodes separately.
+
+### 11.2 Per-argument actions wired through every view
+`ChainsTab` now centralizes the same action-modal flow used in `ThreadedDiscussionTab`:
+- View Details → `ArgumentCardV2` (via `/api/arguments/[id]/aif`)
+- Preview Network → `MiniNeighborhoodPreview` (via `/api/arguments/[id]/aif-neighborhood?depth=1`)
+- Reply → `PropositionComposerPro`
+- Support → `AIFArgumentWithSchemeComposer`
+- Attack → `AttackSuggestions` → `AttackArgumentWizard`
+
+Each child view (`ChainListPanel`, `ArgumentChainThread`, plus the canvas) accepts the same `onView/onPreview/onReply/onSupport/onAttack` callbacks, so behavior is consistent across modes.
+
+### 11.3 New API routes
+- `POST /api/argument-chains/from-prong` — create a chain from an argument prong/branch.
+- `POST /api/argument-chains/[chainId]/attack-edge` — first-class endpoint for recursive edge attacks (previously implied by the `targetType: EDGE` node trick alone).
+- `POST /api/argument-chains/[chainId]/export/aif` — AIF JSON-LD export.
+- `POST /api/argument-chains/[chainId]/export/essay` — essay export.
+- `GET  /api/deliberations/[id]/chains` — list chains for a deliberation, used by `ChainListPanel`.
+
+The single combined `export/route.ts` referenced in the original audit no longer exists.
+
+### 11.4 New chain components
+In addition to the view-mode renderers above:
+- `ChainThreadHeader`, `ThreadNode` (+ `OrphanNode`), `ThreadAttackOverlay` — thread internals.
+- `ChainExportButton` — promoted from inline panel control to a standalone component (384 lines).
+- `EpistemicStatusBadge`, `ChainParticipationBadge` — extracted reusable badges.
+- `ScopeDialogs` — create/edit scope modals split out of the canvas.
+
+### 11.5 No-change confirmations
+The following remain accurate as of the refresh and required no edits:
+- Prisma data model (`ArgumentChain`, `ArgumentChainNode`, `ArgumentChainEdge`, `ArgumentScope`) and all enums.
+- Zustand store shape (`lib/stores/chainEditorStore.ts`, 182 lines).
+- Analysis engine (`lib/utils/chainAnalysisUtils.ts`, 938 lines) — WWAW formula, cycle detection, Wei & Prakken structure typing all unchanged.
+- Edge type taxonomy and constants (`lib/constants/chainEdgeTypes.ts`, 131 lines).
+- Phase 1–5 / C / D status table.
+
+### 11.6 Still-open items
+- `ArgumentChainCanvas.tsx` is still 1293 lines — the refactor flagged in §10.3 has not happened.
+- `proseGenerator.ts` is still ~2127 lines — modularization flagged in §10.3 has not happened.
+- An inline TODO at `ArgumentChainCanvas.tsx:1217` still references future recursive-attack work, even though `attack-edge` is now a real endpoint — the canvas UI for it should be revisited.

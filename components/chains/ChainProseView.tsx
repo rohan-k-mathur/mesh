@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { generateProse, ProseOptions, ProseResult } from "@/lib/chains/proseGenerator";
 import { ArgumentChainWithRelations } from "@/lib/types/argumentChain";
+import ChainRefusalBanner from "./ChainRefusalBanner";
 
 // ===== Types =====
 
@@ -205,6 +206,18 @@ export function ChainProseView({
 
   return (
     <div className="flex flex-col h-full">
+      {/* T1.4 — surface deliberation refusalSurface for blocked conclusions */}
+      {chainData.deliberation?.id && (
+        <div className={cn(compact ? "mb-2" : "mb-3")}>
+          <ChainRefusalBanner
+            deliberationId={chainData.deliberation.id}
+            chainConclusionClaimIds={chainData.nodes
+              .map((n: any) => n.argument?.conclusion?.id)
+              .filter((x: any): x is string => Boolean(x))}
+            compact={compact}
+          />
+        </div>
+      )}
       {/* Header */}
       <div className={cn(
         "flex items-center justify-between gap-4 pb-4 border-b border-slate-200",

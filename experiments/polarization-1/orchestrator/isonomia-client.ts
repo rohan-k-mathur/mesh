@@ -493,4 +493,200 @@ export class IsonomiaClient {
     }
     return { edgeId: id };
   }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Argument Chains (Phase 6 — chain-architect)
+  // ─────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/argument-chains — create a top-level ArgumentChain row.
+   * Phase-6 chain-architect mints one chain per hinge sub-claim
+   * (chainType=TREE) using the methodologist agent's bearer token.
+   */
+  async createArgumentChain(
+    body: {
+      deliberationId: string;
+      name: string;
+      description?: string;
+      purpose?: string;
+      chainType: "SERIAL" | "CONVERGENT" | "DIVERGENT" | "TREE" | "GRAPH";
+      isPublic?: boolean;
+      isEditable?: boolean;
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ chainId: string }> {
+    const r = await this.raw("POST", "/api/argument-chains", { body, ctx });
+    const j = r.bodyJson as { chain?: { id?: string } } | null;
+    const id = j?.chain?.id;
+    if (!id) {
+      throw new Error(
+        `createArgumentChain: missing chain.id in response (got ${JSON.stringify(j).slice(0, 200)})`,
+      );
+    }
+    return { chainId: id };
+  }
+
+  /**
+   * POST /api/argument-chains/{chainId}/nodes — bind an existing Argument
+   * to the chain with optional role + epistemic-status annotations.
+   */
+  async addChainNode(
+    chainId: string,
+    body: {
+      argumentId: string;
+      role?: "PREMISE" | "EVIDENCE" | "CONCLUSION" | "OBJECTION" | "REBUTTAL" | "QUALIFIER" | "COMMENT";
+      positionX?: number;
+      positionY?: number;
+      epistemicStatus?:
+        | "ASSERTED"
+        | "HYPOTHETICAL"
+        | "COUNTERFACTUAL"
+        | "CONDITIONAL"
+        | "QUESTIONED"
+        | "DENIED"
+        | "SUSPENDED";
+      scopeId?: string;
+      dialecticalRole?:
+        | "THESIS"
+        | "ANTITHESIS"
+        | "SYNTHESIS"
+        | "OBJECTION"
+        | "RESPONSE"
+        | "CONCESSION";
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ nodeId: string }> {
+    const r = await this.raw(
+      "POST",
+      `/api/argument-chains/${encodeURIComponent(chainId)}/nodes`,
+      { body, ctx },
+    );
+    const j = r.bodyJson as { node?: { id?: string }; nodeId?: string } | null;
+    const id = j?.node?.id ?? j?.nodeId;
+    if (!id) {
+      throw new Error(
+        `addChainNode: missing node.id in response (got ${JSON.stringify(j).slice(0, 200)})`,
+      );
+    }
+    return { nodeId: id };
+  }
+
+  /**
+   * POST /api/argument-chains/{chainId}/edges — link two existing chain
+   * nodes with a typed edge. edgeType must match the prisma
+   * `ArgumentChainEdgeType` enum (10 members incl. ASPIC+ attack types).
+   */
+  async addChainEdge(
+    chainId: string,
+    body: {
+      sourceNodeId: string;
+      targetNodeId: string;
+      edgeType:
+        | "SUPPORTS"
+        | "ENABLES"
+        | "PRESUPPOSES"
+        | "REFUTES"
+        | "QUALIFIES"
+        | "EXEMPLIFIES"
+        | "GENERALIZES"
+        | "REBUTS"
+        | "UNDERCUTS"
+        | "UNDERMINES";
+      strength?: number;
+      description?: string;
+      slotMapping?: Record<string, string>;
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ edgeId: string }> {
+    const r = await this.raw(
+      "POST",
+      `/api/argument-chains/${encodeURIComponent(chainId)}/edges`,
+      { body, ctx },
+    );
+    const j = r.bodyJson as { edge?: { id?: string }; edgeId?: string } | null;
+    const id = j?.edge?.id ?? j?.edgeId;
+    if (!id) {
+      throw new Error(
+        `addChainEdge: missing edge.id in response (got ${JSON.stringify(j).slice(0, 200)})`,
+      );
+    }
+    return { edgeId: id };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // CQ raise (Phase 7 — challenger)
+  // ─────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/arguments/{argumentId}/cqs/{cqKey}/ask — open a critical
+   * question against a target argument. Side-effects on the platform:
+   *   1. Upserts a `CQStatus` row keyed on (argumentId, cqKey) with
+   *      status = "open" (no-op if a non-open row already exists for
+   *      this cqKey on this argument; resets to "open" otherwise).
+   *   2. Creates a WHY `DialogueMove` authored by the calling agent,
+   *      targeting the argument.
+   *
+   * Phase 7 (T2.1) calls this for every (target, schemeKey, cqKey)
+   * tuple the challenger raises. The CQStatus row is the substrate the
+   * fingerprint's `cqCoverage` aggregate reads; the WHY DialogueMove is
+   * the substrate `challengerCoverage` reads (via per-argument distinct
+   * challenger authors, once that index includes WHY-move authors).
+   */
+  async raiseCq(
+    targetArgumentId: string,
+    cqKey: string,
+    body: { deliberationId: string; authorId: string },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ ok: true }> {
+    await this.raw(
+      "POST",
+      `/api/arguments/${encodeURIComponent(targetArgumentId)}/cqs/${encodeURIComponent(cqKey)}/ask`,
+      { body, ctx },
+    );
+    return { ok: true };
+  }
+
+  /**
+   * POST /api/ca — create a `ConflictApplication` row binding a
+   * conflicting (challenger-voice) argument to a conflicted (target)
+   * argument. Phase 7 (T2.1) uses this to anchor the CQ-raise as a
+   * countable challenger event in `challengerCoverage` (the
+   * fingerprint's `challengerAuthorsByArg` set credits CA-createdBy).
+   *
+   * Important behavioural note: the route auto-marks the matching
+   * `CQStatus` row as `answered` when both `schemeKey` and `cqKey`
+   * are passed at the **top level** of the body. Phase 7 wants the CQ
+   * to remain `open` (the challenger is *raising* the CQ, not
+   * answering it), so the schemeKey + cqKey are passed only inside
+   * `metaJson` and the top-level `cqKey` is intentionally omitted.
+   * The accompanying `raiseCq` call (which fires before this one) is
+   * what creates the `CQStatus` row in `open` state.
+   */
+  async createConflictApplication(
+    body: {
+      deliberationId: string;
+      conflictingArgumentId: string;
+      conflictedArgumentId: string;
+      legacyAttackType: "REBUTS" | "UNDERCUTS" | "UNDERMINES";
+      legacyTargetScope: "conclusion" | "inference" | "premise";
+      metaJson: {
+        schemeKey: string;
+        cqKey: string;
+        cqText?: string;
+        cqContext?: string;
+        source?: string;
+      };
+    },
+    ctx: IsonomiaCallContext,
+  ): Promise<{ caId: string }> {
+    const r = await this.raw("POST", "/api/ca", { body, ctx });
+    const j = r.bodyJson as { id?: string; caId?: string } | null;
+    const id = j?.id ?? j?.caId;
+    if (!id) {
+      throw new Error(
+        `createConflictApplication: missing id in response (got ${JSON.stringify(j).slice(0, 200)})`,
+      );
+    }
+    return { caId: id };
+  }
 }

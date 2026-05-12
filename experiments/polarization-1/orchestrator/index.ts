@@ -41,6 +41,8 @@ import { finalizePhase2 } from "./finalize/phase-2-finalize";
 import { finalizePhase3 } from "./finalize/phase-3-finalize";
 import { finalizePhase4 } from "./finalize/phase-4-finalize";
 import { finalizePhase5 } from "./finalize/phase-5-finalize";
+import { finalizePhase6 } from "./finalize/phase-6-finalize";
+import { finalizePhase7 } from "./finalize/phase-7-finalize";
 import { setupDeliberation } from "./setup/setup-deliberation";
 import {
   EXPERIMENT_SCHEME_KEYS,
@@ -331,6 +333,8 @@ function phaseNameFor(n: number): string {
     case 3: return "phase-3-attacks";
     case 4: return "phase-4-defenses";
     case 5: return "phase-5-synthesis";
+    case 6: return "phase-6-chains";
+    case 7: return "phase-7-cq-raise";
     default: throw new Error(`Unknown phase ${n}`);
   }
 }
@@ -464,7 +468,7 @@ async function cmdFinalize(args: ParsedArgs) {
   const tier = (args.flags["model-tier"] as ModelTier) || "dev";
   const root = args.flags["experiment-root"] as string | undefined;
   const phase = Number(args.flags["phase"] ?? 1);
-  if (phase !== 1 && phase !== 2 && phase !== 3 && phase !== 4 && phase !== 5) throw new Error(`finalize supports phase 1, 2, 3, 4, or 5; got ${phase}`);
+  if (phase !== 1 && phase !== 2 && phase !== 3 && phase !== 4 && phase !== 5 && phase !== 6 && phase !== 7) throw new Error(`finalize supports phase 1, 2, 3, 4, 5, 6, or 7; got ${phase}`);
 
   const cfg = loadConfig({ modelTier: tier, experimentRoot: root });
   const iso = new IsonomiaClient(cfg);
@@ -476,7 +480,11 @@ async function cmdFinalize(args: ParsedArgs) {
         ? await finalizePhase3({ cfg, iso })
         : phase === 4
           ? await finalizePhase4({ cfg, iso })
-          : await finalizePhase5({ cfg, iso });
+          : phase === 5
+            ? await finalizePhase5({ cfg, iso })
+            : phase === 6
+              ? await finalizePhase6({ cfg, iso })
+              : await finalizePhase7({ cfg, iso });
   process.stdout.write(JSON.stringify(complete, null, 2) + "\n");
 }
 

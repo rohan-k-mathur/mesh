@@ -40,6 +40,7 @@ import {
   type CrossDeliberationContext,
 } from "@/lib/deliberation/crossContext";
 import type { StandingState } from "@/lib/citations/argumentAttestation";
+import type { StandingConfidence } from "@/config/standingThresholds";
 
 /**
  * Compact per-argument summary for the top of `loadBearingnessRanking`.
@@ -67,6 +68,17 @@ export interface TopArgumentSummary {
   primarySchemeKey: string | null;
   /** 5-bucket standing label. Match other endpoints' semantics. */
   standing: StandingState;
+  /**
+   * How much deliberative pressure the standing verdict has actually
+   * faced. Disambiguates "tested-undermined by 1 reviewer" from "by 10".
+   * Pair with `standing` whenever rendering a verdict. Tunable thresholds
+   * live in `config/standingThresholds.ts`.
+   */
+  standingDepth: StandingConfidence;
+  /** Distinct challenger authors backing `standingDepth`. */
+  challengerCount: number;
+  /** Distinct independent-reviewer authors backing `standingDepth`. */
+  reviewerCount: number;
   /** Catalog CQ answered / required for the primary scheme. */
   cqAnswered: number;
   cqRequired: number;
@@ -102,6 +114,14 @@ export interface RefusalSurfaceEntry {
     | "depth-thin";
   /** Argument or edge ids the consumer can drill into. */
   blockerIds: string[];
+  /**
+   * Hydrated one-sentence preview of each blocker, parallel-indexed to
+   * `blockerIds`. Lets a synthesis client name *why* a conclusion is
+   * blocked without making one `get_argument` round-trip per blocker.
+   * Each entry is the source argument's `text` truncated to ~160 chars
+   * (or the empty string if the argument is missing/has no prose).
+   */
+  blockerSummaries: string[];
 }
 
 export interface SyntheticReadout {
@@ -276,6 +296,7 @@ async function _computeSyntheticReadoutUncached(
         blockerIds: blockingUndercuts
           .map((u) => u.challengerArgumentId)
           .filter((x): x is string => !!x),
+        blockerSummaries: [],
       });
     }
     if (blockingUndermines.length > 0) {
@@ -286,6 +307,7 @@ async function _computeSyntheticReadoutUncached(
         blockerIds: blockingUndermines
           .map((u) => u.challengerArgumentId)
           .filter((x): x is string => !!x),
+        blockerSummaries: [],
       });
     }
   }
@@ -300,7 +322,39 @@ async function _computeSyntheticReadoutUncached(
       conclusionClaimId: "",
       blockedBy: "depth-thin",
       blockerIds: [],
+      blockerSummaries: [],
     });
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // Hydrate refusalSurface blocker ids with one-sentence previews.
+  // Saves a `get_argument` round-trip per blocker for the consumer
+  // (~30 calls on Arm B). Truncated to ~160 chars, parallel-indexed.
+  // ────────────────────────────────────────────────────────────
+  const allBlockerIds = [
+    ...new Set(refusalEntries.flatMap((r) => r.blockerIds)),
+  ];
+  if (allBlockerIds.length > 0) {
+    const blockerRows = await prisma.argument.findMany({
+      where: { id: { in: allBlockerIds } },
+      select: { id: true, text: true },
+    });
+    const BLOCKER_TRUNC = 160;
+    const blockerTextById = new Map(
+      blockerRows.map((r) => {
+        const txt = r.text ?? "";
+        const summary =
+          txt.length > BLOCKER_TRUNC
+            ? txt.slice(0, BLOCKER_TRUNC) + "…"
+            : txt;
+        return [r.id, summary] as const;
+      }),
+    );
+    for (const entry of refusalEntries) {
+      entry.blockerSummaries = entry.blockerIds.map(
+        (id) => blockerTextById.get(id) ?? "",
+      );
+    }
   }
 
   // ────────────────────────────────────────────────────────────
@@ -366,8 +420,9 @@ async function _computeSyntheticReadoutUncached(
         conclusionText: truncate(r.conclusion?.text),
         argumentText: truncate(r.text),
         primarySchemeKey: primaryScheme?.scheme?.key ?? null,
-        standing: m?.standing ?? "untested-default",
-        cqAnswered: m?.cqAnswered ?? 0,
+        standing: m?.standing ?? "untested-default",      standingDepth: m?.standingDepth ?? "thin",
+      challengerCount: m?.challengerCount ?? 0,
+      reviewerCount: m?.reviewerCount ?? 0,        cqAnswered: m?.cqAnswered ?? 0,
         cqRequired: m?.cqRequired ?? 0,
         fitness: m?.fitness.total ?? 0,
       };
@@ -401,8 +456,11 @@ async function _computeSyntheticReadoutUncached(
         )
       : 0;
   const honestyLine =
-    `This deliberation has ${fingerprint.argumentCount} argument(s), ` +
-    `${fingerprint.medianChallengerCount} median challenger(s) per argument, and ` +
+    `This deliberation has ${fingerprint.argumentCount} argument(s); ` +
+    `${Math.round(fingerprint.challengerCoverage * 100)}% have at least one ` +
+    `challenger (median ${fingerprint.medianChallengerCountAmongChallenged} ` +
+    `distinct challenger(s) when challenged, ` +
+    `${fingerprint.meanChallengerCount.toFixed(2)} mean across all). ` +
     `${cqPct}% catalog-CQ coverage. ` +
     `${fingerprint.chainCount} chain(s) on file; ` +
     `${refusalCount} potential conclusion(s) are not licensed by the current graph.`;

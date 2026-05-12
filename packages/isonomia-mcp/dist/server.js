@@ -79,7 +79,45 @@ const SearchInput = z.object({
         .enum(["lexical", "hybrid", "vector"])
         .optional()
         .default("hybrid")
-        .describe("Retrieval mode. 'hybrid' (default for MCP) fuses pgvector cosine recall with lexical OR-token recall via Reciprocal Rank Fusion (K=60) — best for natural-language and paraphrased queries. 'lexical' is exact-vocabulary substring matching — best when you already know corpus terminology and want deterministic recall. 'vector' is pure semantic / embedding similarity — best when surface vocabulary is unlikely to match. Each result carries a `hybrid` block (`rrfScore`, `sparseRank`, `denseRank`, `denseDistance`) so confidence is auditable."),
+        .describe("Retrieval mode. 'hybrid' (default for MCP) fuses pgvector cosine recall with lexical OR-token recall via Reciprocal Rank Fusion (K=60) — best for natural-language and paraphrased queries. 'lexical' is exact-vocabulary substring matching — best when you already know corpus terminology and want deterministic recall. 'vector' is pure semantic / embedding similarity — best when surface vocabulary is unlikely to match. Each result carries a `hybrid` block (`rrfScore`, `sparseRank`, `denseRank`, `denseDistance`) so confidence is auditable."), tested_only: z
+        .boolean()
+        .optional()
+        .describe("Phase 2 quality filter. When true, only return arguments whose computed standingState is one of tested-attacked, tested-undermined, or tested-survived \u2014 i.e. that have actually been challenged in the graph. Use this when the caller wants 'arguments with skin in the game,' not arguments-as-stated."),
+    min_cq_satisfied: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Phase 2 quality filter. Minimum number of SATISFIED (or PARTIALLY_SATISFIED) critical-question statuses recorded against the argument. Higher values surface arguments whose scheme-typical CQs have been actively answered."),
+    min_evidence: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Phase 2 quality filter. Minimum count of evidence rows on the conclusion claim with a contentSha256 (provenance-anchored evidence). Use min_evidence=1 to demand at least one citable source."),
+    since: z
+        .string()
+        .optional()
+        .describe("ISO-8601 date or datetime; lower bound on argument createdAt."),
+    until: z
+        .string()
+        .optional()
+        .describe("ISO-8601 date or datetime; upper bound on argument createdAt."),
+    conclusion_moid: z
+        .string()
+        .optional()
+        .describe("Phase 6 — claim MOID. When set, restricts results to arguments whose conclusion is this claim (the 'for' stance). Symmetric to the `find_counterarguments` tool but inline in search."),
+    include_strongest_counter: z
+        .boolean()
+        .optional()
+        .describe("Phase 5 counter-citation discovery. When true, each result is enriched with a `strongestCounter` block (or `null` when none on file) pointing at the most-engaged structural contester to its conclusion claim. Self-counters (same conclusion MOID) are excluded so an absence is honest."),
+    strongest_counter_k: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("How many top results to enrich with strongestCounter (default 10). Only meaningful when include_strongest_counter=true."),
 });
 const GetArgumentInput = z.object({
     permalink: z
@@ -94,6 +132,26 @@ const GetArgumentInput = z.object({
 });
 const GetClaimInput = z.object({
     moid: z.string().min(1).describe("Claim MOID (content-derived id)"),
+});
+const GetClaimStancesInput = z.object({
+    moid: z.string().min(1).describe("Claim MOID (content-derived id)."),
+    limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .optional()
+        .default(10)
+        .describe("Max results per stance."),
+    sort: z
+        .enum(["recent", "dialectical_fitness"])
+        .optional()
+        .default("dialectical_fitness")
+        .describe("Per-stance ordering. Default re-ranks each list by tested-and-survived (answered CQs + supports + provenance, minus open attacks)."),
+    include_strongest_counter: z
+        .boolean()
+        .optional()
+        .describe("When true, attach a `strongestCounter` block to each result on both sides \u2014 useful for one-shot dual-column rendering."),
 });
 const FindCounterargumentsInput = z.object({
     claim_moid: z
@@ -110,6 +168,15 @@ const FindCounterargumentsInput = z.object({
         .optional()
         .default("hybrid")
         .describe("Retrieval mode for the candidate pool. 'hybrid' (default) fuses pgvector cosine + lexical via RRF — best when the counter-argument may not share surface vocabulary with the target claim. See `search_arguments` for a fuller description of each mode."),
+    within_deliberation: z
+        .string()
+        .optional()
+        .describe("Anchor deliberation id. When supplied, every result is tagged `scope: 'within' | 'cross'` against this anchor and the response carries a `scopeBreakdown` count, so intra-deliberation hits are visually distinguishable from cross-deliberation analogies. Without this, no scope tagging is performed and behaviour matches the legacy global search."),
+    scope: z
+        .enum(["within", "cross", "both"])
+        .optional()
+        .default("both")
+        .describe("How to filter against `within_deliberation`. 'within' = only intra-deliberation hits; 'cross' = only OTHER deliberations; 'both' (default) = both, with intra-deliberation results stable-sorted ahead of cross hits inside the active sort key. Has no effect when `within_deliberation` is unset."),
 });
 const CiteArgumentInput = z.object({
     permalink: z.string().min(1).describe("Argument permalink URL or shortCode"),
@@ -220,7 +287,7 @@ const ProposeWarrantInput = z.object({
 const tools = [
     {
         name: "search_arguments",
-        description: "Search Isonomia for public arguments, claims, and counter-arguments by free-text query. Use this as the first step for any debate, controversy, position, objection, rebuttal, supporting reason, or evidence question. Returns ranked permalinks with scheme, conclusion, and an attestation URL. Defaults to mode='hybrid' (pgvector cosine + lexical OR-tokens fused via RRF, K=60) so paraphrased queries hit semantically related arguments even when surface vocabulary differs; pass mode='lexical' for deterministic substring matching or mode='vector' for pure embedding similarity. Supports sort='dialectical_fitness' to rank by tested-and-survived (answered CQs, supports, evidence with provenance, minus open attacks). When sort='dialectical_fitness' is used, each result also carries a `fitnessBreakdown` object decomposing the score into its weighted components (cqAnswered, supportEdges, attackEdges, attackCAs, evidenceWithProvenance) plus the formula weights, so the score is auditable rather than opaque. When mode is hybrid or vector, each result also carries a `hybrid` block (rrfScore, sparseRank, denseRank, denseDistance) so retrieval confidence is auditable.",
+        description: "Search Isonomia for public arguments, claims, and counter-arguments by free-text query. Use this as the first step for any debate, controversy, position, objection, rebuttal, supporting reason, or evidence question. Returns ranked permalinks with scheme, conclusion, and an attestation URL. Defaults to mode='hybrid' (pgvector cosine + lexical OR-tokens fused via RRF, K=60) so paraphrased queries hit semantically related arguments even when surface vocabulary differs; pass mode='lexical' for deterministic substring matching or mode='vector' for pure embedding similarity. Supports sort='dialectical_fitness' to rank by tested-and-survived (answered CQs, supports, evidence with provenance, minus open attacks). When sort='dialectical_fitness' is used, each result also carries a `fitnessBreakdown` object decomposing the score into its weighted components (cqAnswered, supportEdges, attackEdges, attackCAs, evidenceWithProvenance) plus the formula weights, so the score is auditable rather than opaque. When mode is hybrid or vector, each result also carries a `hybrid` block (rrfScore, sparseRank, denseRank, denseDistance) so retrieval confidence is auditable. Phase 2 quality filters \u2014 tested_only (only arguments that have been challenged in the graph), min_cq_satisfied (minimum answered critical-questions), min_evidence (minimum provenance-anchored evidence rows on the conclusion), and since/until (ISO-8601 date range on createdAt) \u2014 narrow results to arguments that meet a higher quality bar.",
         inputSchema: zodToJsonSchema(SearchInput),
         async handler(args) {
             const input = SearchInput.parse(args);
@@ -228,7 +295,15 @@ const tools = [
                 `&limit=${input.limit}` +
                 (input.scheme ? `&scheme=${encodeURIComponent(input.scheme)}` : "") +
                 (input.sort ? `&sort=${encodeURIComponent(input.sort)}` : "") +
-                (input.mode ? `&mode=${encodeURIComponent(input.mode)}` : "");
+                (input.mode ? `&mode=${encodeURIComponent(input.mode)}` : "") +
+                (input.tested_only ? `&tested_only=1` : "") +
+                (input.min_cq_satisfied != null ? `&min_cq_satisfied=${input.min_cq_satisfied}` : "") +
+                (input.min_evidence != null ? `&min_evidence=${input.min_evidence}` : "") +
+                (input.since ? `&since=${encodeURIComponent(input.since)}` : "") +
+                (input.until ? `&until=${encodeURIComponent(input.until)}` : "") +
+                (input.conclusion_moid ? `&conclusion_moid=${encodeURIComponent(input.conclusion_moid)}` : "") +
+                (input.include_strongest_counter ? `&include_strongest_counter=1` : "") +
+                (input.strongest_counter_k != null ? `&strongest_counter_k=${input.strongest_counter_k}` : "");
             return await isoFetch(url);
         },
     },
@@ -252,8 +327,23 @@ const tools = [
         },
     },
     {
+        name: "get_claim_stances",
+        description: "Phase 6 \u2014 stance retrieval. Given a claim MOID, return two ranked lists of public arguments: `for` (arguments whose conclusion is the claim) and `against` (structural contesters: rebut/undercut argument-edges + conflict-applications). Both lists carry the full search-result shape (standingState, dialecticalFitness, attestationUrl, hybrid block) so any client that already understands a search result understands a stance result. Self-counters are excluded by MOID. Honest-empty: an empty list means no public arguments are on file for that side, not a 404. Pass include_strongest_counter=true to additionally attach a `strongestCounter` block to each result on both sides \u2014 useful for showing 'argument X (best counter to it: Y)' on a claim page. The killer query for any debate UI: one call gives you the dual-column 'arguments for / arguments against' view.",
+        inputSchema: zodToJsonSchema(GetClaimStancesInput),
+        async handler(args) {
+            const input = GetClaimStancesInput.parse(args);
+            const params = new URLSearchParams();
+            params.set("limit", String(input.limit));
+            if (input.sort)
+                params.set("sort", input.sort);
+            if (input.include_strongest_counter)
+                params.set("include_strongest_counter", "1");
+            return await isoFetch(`/api/v3/claims/${encodeURIComponent(input.moid)}/stances?${params.toString()}`);
+        },
+    },
+    {
         name: "find_counterarguments",
-        description: "Find counter-arguments, objections, rebuttals, attacks, and dissenting positions against a target claim. Accepts a MOID (preferred) or free text. Returns arguments whose conclusion contests the target; arguments with the same conclusion MOID are excluded so an empty result is honestly empty (no false counters). Defaults to mode='hybrid' so candidate counter-arguments don't have to share surface vocabulary with the target claim (e.g. 'Odgers' shows up against a 'Haidt'-style claim even though the words don't overlap). v0 uses textual stance heuristics; a true negation/contradiction index ships with Track C.2.",
+        description: "Find counter-arguments, objections, rebuttals, attacks, and dissenting positions against a target claim. Accepts a MOID (preferred) or free text. Returns arguments whose conclusion contests the target; arguments with the same conclusion MOID are excluded so an empty result is honestly empty (no false counters). Defaults to mode='hybrid' so candidate counter-arguments don't have to share surface vocabulary with the target claim (e.g. 'Odgers' shows up against a 'Haidt'-style claim even though the words don't overlap). **When you are summarising a single deliberation, ALWAYS pass `within_deliberation=<that-deliberation-id>` so each result carries `scope: 'within' | 'cross'` and the response includes a `scopeBreakdown` count.** Cross-deliberation hits are NOT noise — they are the graph-of-graphs cross-pollination signal that surfaces structurally analogous arguments from sibling debates (e.g. specification-curve methodology imported from the adolescent-mental-health debate into a polarization debate). Use `scope='within'` only when you explicitly want to ignore cross-context analogies. v0 uses textual stance heuristics; a true negation/contradiction index ships with Track C.2.",
         inputSchema: zodToJsonSchema(FindCounterargumentsInput),
         async handler(args) {
             const input = FindCounterargumentsInput.parse(args);
@@ -268,6 +358,10 @@ const tools = [
                 params.set("q", input.claim_text);
             if (input.mode)
                 params.set("mode", input.mode);
+            if (input.within_deliberation)
+                params.set("within_deliberation", input.within_deliberation);
+            if (input.scope)
+                params.set("scope", input.scope);
             return await isoFetch(`/api/v3/search/arguments?${params.toString()}`);
         },
     },
@@ -451,7 +545,7 @@ const tools = [
     // ───────────────────────────────────────────────────────────────
     {
         name: "get_deliberation_fingerprint",
-        description: "NARROW SLICE — returns ONLY the statistical summary (argumentCount, schemeDistribution, standingDistribution, depthDistribution, medianChallengerCount, cqCoverage, etc.). Prefer `get_synthetic_readout` as your first call: it returns the same fingerprint *plus* frontier, missing moves, chains, refusalSurface, and a hydrated `topArguments` list, all in one round trip. Use this individual tool only when you need the raw fingerprint without paying for the larger composite payload (e.g. quick honesty-check on a different deliberation). The returned `contentHash` is the cache key for every other Pt. 4 readout. A deliberation with `depthDistribution.thin === argumentCount` is articulation-only; do not summarize it as if it were a tested debate.",
+        description: "NARROW SLICE — returns ONLY the statistical summary (argumentCount, schemeDistribution, standingDistribution, depthDistribution, medianChallengerCount, meanChallengerCount, challengerCoverage, medianChallengerCountAmongChallenged, cqCoverage, etc.). Prefer `get_synthetic_readout` as your first call: it returns the same fingerprint *plus* frontier, missing moves, chains, refusalSurface, and a hydrated `topArguments` list, all in one round trip. Use this individual tool only when you need the raw fingerprint without paying for the larger composite payload (e.g. quick honesty-check on a different deliberation). The returned `contentHash` is the cache key for every other Pt. 4 readout. A deliberation with `depthDistribution.thin === argumentCount` is articulation-only; do not summarize it as if it were a tested debate.",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);
@@ -460,7 +554,7 @@ const tools = [
     },
     {
         name: "get_contested_frontier",
-        description: "NARROW SLICE — returns ONLY the open-edges projection. Prefer `get_synthetic_readout` first; it includes this same frontier object as `frontier.*` *and* hydrates the heads of both rankings (`topArguments` from loadBearingness, `mostContested` from contestedness). Use this tool only if you've already pulled a synthetic readout and need to re-fetch the frontier alone (rare). Returns: unansweredUndercuts (with `schemeTypical` flag — true when the catalog expects this undercut and no challenger has raised it; false when actively raised but not yet rebutted), unansweredUndermines (premise-level attacks with no counter), unansweredCqs (catalog CQs with no answer), terminalLeaves (un-attacked nodes downstream of attack chains), `loadBearingnessRanking` (degree-based, surfaces foundational arguments), and `contestednessRanking` (counts of unanswered actively-raised attacks per target argument — surfaces tested-undermined material). DO NOT produce 'somewhere between' or 'emerging middle ground' synthesis without naming the specific unanswered moves; the presence of structured unanswered moves makes centrist closure structurally dishonest.",
+        description: "NARROW SLICE — returns ONLY the open-edges projection. Prefer `get_synthetic_readout` first; it includes this same frontier object as `frontier.*` *and* hydrates the heads of both rankings (`topArguments` from loadBearingness, `mostContested` from contestedness). Use this tool only if you've already pulled a synthetic readout and need to re-fetch the frontier alone (rare). Returns: unansweredUndercuts (with `schemeTypical` flag — true when the catalog expects this undercut and no challenger has raised it; false when actively raised but not yet rebutted), unansweredUndermines (premise-level attacks with no counter), unansweredCqs (catalog CQs with no answer), terminalLeaves (un-attacked nodes downstream of attack chains), `loadBearingnessRanking` (degree-based; **lists every argument in the deliberation ordered by `(supportOut + main-conclusion-bonus − attackIn)` with oldest-first tiebreak — empty *only* when the deliberation has zero arguments, never as a 'minimum density' gate**, so an empty array means no graph data, not 'data withheld'), and `contestednessRanking` (counts of unanswered actively-raised attacks per target argument — surfaces tested-undermined material). DO NOT produce 'somewhere between' or 'emerging middle ground' synthesis without naming the specific unanswered moves; the presence of structured unanswered moves makes centrist closure structurally dishonest.",
         inputSchema: zodToJsonSchema(FrontierInput),
         async handler(args) {
             const input = FrontierInput.parse(args);
@@ -478,7 +572,7 @@ const tools = [
     },
     {
         name: "get_chains",
-        description: "NARROW SLICE — returns ONLY the ArgumentChain projection. Prefer `get_synthetic_readout` first; it includes this same object as `chains.*`. Returns ordered argument traversals with chainStanding (worst-link), chainFitness (aggregated breakdown), weakestLink (argument id + reason), plus uncoveredClaims — top-level conclusions with no chain reaching them. NOTE: many deliberations have zero `ArgumentChain` rows because chains are an editor-authored object, not auto-derived from attack/support edges; if `chains.chains` is empty the deliberation is unchained, not unstructured — fall back to `frontier` + `topArguments` from the synthetic readout. Reference chains by id and weakestLink when summarizing; do not invent identifiers.",
+        description: "NARROW SLICE — returns ONLY the ArgumentChain projection. Prefer `get_synthetic_readout` first; it includes this same object as `chains.*`. Returns ordered argument traversals with chainStanding (worst-link), chainFitness (aggregated breakdown — **inbound attacks weighted by attacker standing: refuted attackers contribute ≈0, unanswered contribute full weight, so a chain whose attackers are themselves undermined no longer reads as catastrophically fragile**), weakestLink (argument id + reason), plus uncoveredClaims — top-level conclusions with no chain reaching them. NOTE: many deliberations have zero `ArgumentChain` rows because chains are an editor-authored object, not auto-derived from attack/support edges; if `chains.chains` is empty the deliberation is unchained, not unstructured — fall back to `frontier` + `topArguments` from the synthetic readout. Reference chains by id and weakestLink when summarizing; do not invent identifiers.",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);
@@ -487,7 +581,7 @@ const tools = [
     },
     {
         name: "get_synthetic_readout",
-        description: "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy and blockerIds), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), and `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view). Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause).",
+        description: "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy, blockerIds, **and parallel-indexed `blockerSummaries` — ~160-char preview of each blocker's argument text so you can name the obstacle without a `get_argument` round-trip per blocker**), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), and `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view). Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, **standingDepth (thin|moderate|dense, with challengerCount + reviewerCount)** so 'tested-undermined by 1' is not read as 'tested-undermined by 10', cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause).",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);

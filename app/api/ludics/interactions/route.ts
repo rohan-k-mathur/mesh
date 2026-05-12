@@ -25,7 +25,7 @@ import {
 } from "@/packages/ludics-core/dds/arena/client";
 import type { LudicsGame, GamePlayState } from "@/packages/ludics-core/dds/game";
 import type { UniversalArena } from "@/packages/ludics-core/dds/arena/client";
-import { arenaById } from "../arenas/route";
+import { arenaById } from "../arenas/store";
 import { 
   interactionStore, 
   interactionsByArena, 

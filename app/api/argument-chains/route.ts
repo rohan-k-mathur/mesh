@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromCookies } from "@/lib/serverutils";
+import { getUserFromCookies, getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { z } from "zod";
 
@@ -88,8 +88,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUserFromCookies();
-    if (!user || !user.userId) {
+    const cookieUser = await getUserFromCookies();
+    const userIdStr =
+      cookieUser?.userId ?? (await getCurrentUserId())?.toString() ?? null;
+    if (!userIdStr) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
         { status: 401, ...NO_STORE }
@@ -122,7 +124,7 @@ export async function POST(req: NextRequest) {
         chainType: validatedData.chainType,
         isPublic: validatedData.isPublic,
         isEditable: validatedData.isEditable,
-        createdBy: BigInt(user.userId),
+        createdBy: BigInt(userIdStr),
       },
       include: {
         creator: {

@@ -16,25 +16,7 @@ import {
   createArenaFromDesigns,
 } from "@/packages/ludics-core/dds/arena/client";
 import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena/client";
-
-// In-memory arena storage for demo/development
-// Maps deliberationId -> arenas[]
-const arenaStore: Map<string, Array<{
-  id: string;
-  name: string;
-  deliberationId: string;
-  arena: UniversalArena;
-  createdAt: Date;
-  metadata?: {
-    sourceDesignIds?: string[];
-    scope?: string;
-    maxDepth?: number;
-    maxRamification?: number;
-  };
-}>> = new Map();
-
-// Global arena lookup by ID
-const arenaById: Map<string, UniversalArena & { name?: string; deliberationId?: string; createdAt?: Date }> = new Map();
+import { arenaStore, arenaById } from "./store";
 
 /**
  * POST /api/ludics/arenas
