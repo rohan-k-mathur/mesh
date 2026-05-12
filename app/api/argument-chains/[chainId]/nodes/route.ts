@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromCookies } from "@/lib/serverutils";
+import { getUserFromCookies, getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { z } from "zod";
 
@@ -137,8 +137,10 @@ export async function POST(
   { params }: { params: { chainId: string } }
 ) {
   try {
-    const user = await getUserFromCookies();
-    if (!user || !user.userId) {
+    const cookieUser = await getUserFromCookies();
+    const userIdStr =
+      cookieUser?.userId ?? (await getCurrentUserId())?.toString() ?? null;
+    if (!userIdStr) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
         { status: 401, ...NO_STORE }
@@ -165,7 +167,7 @@ export async function POST(
     }
 
     // Check permissions
-    const isCreator = chain.createdBy === BigInt(user.userId);
+    const isCreator = chain.createdBy === BigInt(userIdStr);
     const canEdit = isCreator || chain.isEditable;
 
     if (!canEdit) {
@@ -220,11 +222,11 @@ export async function POST(
         role: validatedData.role,
         positionX: validatedData.positionX,
         positionY: validatedData.positionY,
-        addedBy: BigInt(user.userId),
         // Phase 4: Epistemic status fields
         epistemicStatus: validatedData.epistemicStatus || "ASSERTED",
         scopeId: validatedData.scopeId || null,
         dialecticalRole: validatedData.dialecticalRole || null,
+        addedBy: BigInt(userIdStr),
       },
       include: {
         argument: {

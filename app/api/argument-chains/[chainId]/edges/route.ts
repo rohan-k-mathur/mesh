@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromCookies } from "@/lib/serverutils";
+import { getUserFromCookies, getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { z } from "zod";
 
@@ -8,6 +8,10 @@ const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 const createEdgeSchema = z.object({
   sourceNodeId: z.string(),
   targetNodeId: z.string(),
+  // Must mirror prisma `enum ArgumentChainEdgeType` (10 members incl. ASPIC+
+  // attack types REBUTS / UNDERCUTS / UNDERMINES). Earlier 7-member subset
+  // dropped the attack types and prevented chain-architect agents from
+  // recording per-edge attack semantics.
   edgeType: z.enum([
     "SUPPORTS",
     "ENABLES",
@@ -16,6 +20,9 @@ const createEdgeSchema = z.object({
     "QUALIFIES",
     "EXEMPLIFIES",
     "GENERALIZES",
+    "REBUTS",
+    "UNDERCUTS",
+    "UNDERMINES",
   ]),
   strength: z.number().min(0).max(1).default(1.0),
   description: z.string().optional(),
@@ -27,8 +34,10 @@ export async function POST(
   { params }: { params: { chainId: string } }
 ) {
   try {
-    const user = await getUserFromCookies();
-    if (!user || !user.userId) {
+    const cookieUser = await getUserFromCookies();
+    const userIdStr =
+      cookieUser?.userId ?? (await getCurrentUserId())?.toString() ?? null;
+    if (!userIdStr) {
       return NextResponse.json(
         { ok: false, error: "Unauthorized" },
         { status: 401, ...NO_STORE }
@@ -52,7 +61,7 @@ export async function POST(
     }
 
     // Check permissions
-    const isCreator = chain.createdBy === BigInt(user.userId);
+    const isCreator = chain.createdBy === BigInt(userIdStr);
     const canEdit = isCreator || chain.isEditable;
 
     if (!canEdit) {

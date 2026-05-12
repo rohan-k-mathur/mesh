@@ -16,7 +16,10 @@ import {
   type StandingState,
   type FitnessBreakdown,
 } from "@/lib/citations/argumentAttestation";
-import { classifyStandingConfidence } from "@/config/standingThresholds";
+import {
+  classifyStandingConfidence,
+  type StandingConfidence,
+} from "@/config/standingThresholds";
 
 export interface ChainEdgeProjection {
   from: string;
@@ -64,6 +67,34 @@ const STANDING_RANK: Record<StandingState, number> = {
   "tested-undermined": 3,
   "tested-survived": 4,
 };
+
+/**
+ * Credibility multiplier for an attacking argument when aggregating
+ * chain-level fitness. The previous flat −0.7 per attack edge
+ * over-penalised chains whose attackers had themselves been refuted
+ * — e.g. Chain-3 in the polarization deliberation published a
+ * `chainFitness.total` of −7.0 even though several attack edges
+ * originate from `tested-undermined` arguments. The downweighting
+ * mirrors the intuition the user repeatedly asked for: "refuted
+ * attacks contribute ≈ 0; unanswered contribute full weight."
+ *
+ * Per-argument fitness in `computeFitnessBreakdown` keeps flat
+ * counting; this weighting is *only* applied during chain aggregation
+ * so individual argument scores remain comparable across deliberations.
+ */
+function attackerCredibility(standing: StandingState): number {
+  switch (standing) {
+    case "tested-undermined":
+      return 0.1; // attacker is itself refuted
+    case "tested-attacked":
+      return 0.5; // attacker is contested but not refuted
+    case "tested-survived":
+    case "untested-supported":
+    case "untested-default":
+    default:
+      return 1.0; // unanswered → full weight
+  }
+}
 
 function collapseChainEdgeType(
   raw: string,
@@ -127,6 +158,50 @@ export async function computeChainExposure(
     deliberationId,
   );
 
+  // ────────────────────────────────────────────────────────────
+  // Attacker-credibility lookup for chain fitness aggregation.
+  // For each inbound attack edge to a chain node, look up the source
+  // argument's standing and discount the attack's contribution if the
+  // source is itself refuted. (Per-arg fitness keeps flat counting;
+  // this weighting only applies to the chain rollup.)
+  // ────────────────────────────────────────────────────────────
+  const inboundAttackEdges =
+    referencedArgIds.length > 0
+      ? await prisma.argumentEdge.findMany({
+          where: {
+            deliberationId,
+            toArgumentId: { in: referencedArgIds },
+            type: { in: ["rebut", "undercut"] },
+          },
+          select: { toArgumentId: true, fromArgumentId: true },
+        })
+      : [];
+  const distinctAttackerIds = [
+    ...new Set(
+      inboundAttackEdges
+        .map((e) => e.fromArgumentId)
+        .filter((id) => !referencedArgIds.includes(id)),
+    ),
+  ];
+  const attackerMetrics =
+    distinctAttackerIds.length > 0
+      ? await computeArgumentMetricsBatch(distinctAttackerIds, deliberationId)
+      : new Map<string, ArgMetrics>();
+  const attackerStandingById = new Map<string, StandingState>();
+  for (const [id, m] of argMetrics) attackerStandingById.set(id, m.standing);
+  for (const [id, m] of attackerMetrics) attackerStandingById.set(id, m.standing);
+  // Per-target weighted attack-edge total.
+  const weightedInboundByTarget = new Map<string, number>();
+  for (const e of inboundAttackEdges) {
+    const standing =
+      attackerStandingById.get(e.fromArgumentId) ?? "untested-default";
+    const weight = attackerCredibility(standing);
+    weightedInboundByTarget.set(
+      e.toArgumentId,
+      (weightedInboundByTarget.get(e.toArgumentId) ?? 0) + weight,
+    );
+  }
+
   const projections: ChainProjection[] = chains.map((c) => {
     const nodeIdToArgId = new Map(c.nodes.map((n) => [n.id, n.argumentId] as const));
     const argIds = c.nodes.map((n) => n.argumentId);
@@ -152,6 +227,8 @@ export async function computeChainExposure(
     if (argIds.length === 0) worstStanding = "untested-default";
 
     // aggregated fitness: sum component counts, then re-derive contributions.
+    // attackEdges uses the per-target *weighted* count so refuted attackers
+    // contribute near-zero rather than the full −0.7 penalty.
     const summed = {
       cqAnswered: 0,
       supportEdges: 0,
@@ -164,7 +241,7 @@ export async function computeChainExposure(
       if (!m) continue;
       summed.cqAnswered += m.fitness.components.cqAnswered.count;
       summed.supportEdges += m.fitness.components.supportEdges.count;
-      summed.attackEdges += m.fitness.components.attackEdges.count;
+      summed.attackEdges += weightedInboundByTarget.get(a) ?? 0;
       summed.attackCAs += m.fitness.components.attackCAs.count;
       summed.evidenceWithProvenance +=
         m.fitness.components.evidenceWithProvenance.count;
@@ -257,6 +334,19 @@ export interface ArgMetrics {
   standing: StandingState;
   cqAnswered: number;
   cqRequired: number;
+  /**
+   * How much deliberative pressure the standing verdict has actually
+   * faced. "thin" = 0 or 1 distinct challenger/reviewer (cold-start);
+   * "moderate" = ≥2 of either; "dense" = ≥5 of both. Disambiguates
+   * "tested-undermined by 1 reviewer" from "tested-undermined by 10".
+   * Mirrors `DeliberationFingerprint.depthDistribution` at the
+   * per-argument level.
+   */
+  standingDepth: StandingConfidence;
+  /** Distinct challenger authors (attack edges + CAs). Backs `standingDepth`. */
+  challengerCount: number;
+  /** Distinct independent-reviewer authors (support edges). Backs `standingDepth`. */
+  reviewerCount: number;
 }
 
 export async function computeArgumentMetricsBatch(
@@ -291,7 +381,11 @@ export async function computeArgumentMetricsBatch(
 
   const edges = await prisma.argumentEdge.findMany({
     where: { deliberationId, toArgumentId: { in: argIds } },
-    select: { type: true, toArgumentId: true },
+    select: {
+      type: true,
+      toArgumentId: true,
+      from: { select: { authorId: true } },
+    },
   });
 
   const conclusionIds = args
@@ -313,6 +407,7 @@ export async function computeArgumentMetricsBatch(
     select: {
       conflictedArgumentId: true,
       conflictedClaimId: true,
+      createdById: true,
     },
   });
 
@@ -342,11 +437,35 @@ export async function computeArgumentMetricsBatch(
       (e) => e.type === "rebut" || e.type === "undercut",
     ).length;
 
-    const argCas = cas.filter(
+    const matchingCas = cas.filter(
       (c) =>
         c.conflictedArgumentId === a.id ||
         (c.conflictedClaimId && claimToArg.get(c.conflictedClaimId) === a.id),
-    ).length;
+    );
+    const argCas = matchingCas.length;
+
+    // Distinct-author tallies for standingDepth (Pt. 3 §3 thresholds).
+    // Authors are the originators of the attacking/supporting argument,
+    // matching fingerprint's depthDistribution semantics.
+    const challengerAuthors = new Set<string>();
+    for (const e of argEdges) {
+      if (e.type !== "rebut" && e.type !== "undercut") continue;
+      const author = e.from?.authorId;
+      if (author) challengerAuthors.add(author);
+    }
+    for (const c of matchingCas) {
+      if (c.createdById) challengerAuthors.add(c.createdById);
+    }
+    const reviewerAuthors = new Set<string>();
+    for (const e of argEdges) {
+      if (e.type !== "support") continue;
+      const author = e.from?.authorId;
+      if (author) reviewerAuthors.add(author);
+    }
+    const standingDepth = classifyStandingConfidence({
+      challengers: challengerAuthors.size,
+      independentReviewers: reviewerAuthors.size,
+    });
 
     const evidenceWithProvenance =
       a.conclusion?.ClaimEvidence?.filter(
@@ -376,11 +495,11 @@ export async function computeArgumentMetricsBatch(
       standing,
       cqAnswered,
       cqRequired,
+      standingDepth,
+      challengerCount: challengerAuthors.size,
+      reviewerCount: reviewerAuthors.size,
     });
   }
-
-  // Silence unused-import warning for classifyStandingConfidence.
-  void classifyStandingConfidence;
 
   return out;
 }

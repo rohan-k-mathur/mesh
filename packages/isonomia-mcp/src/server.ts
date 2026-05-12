@@ -202,6 +202,19 @@ const FindCounterargumentsInput = z.object({
     .describe(
       "Retrieval mode for the candidate pool. 'hybrid' (default) fuses pgvector cosine + lexical via RRF — best when the counter-argument may not share surface vocabulary with the target claim. See `search_arguments` for a fuller description of each mode."
     ),
+  within_deliberation: z
+    .string()
+    .optional()
+    .describe(
+      "Anchor deliberation id. When supplied, every result is tagged `scope: 'within' | 'cross'` against this anchor and the response carries a `scopeBreakdown` count, so intra-deliberation hits are visually distinguishable from cross-deliberation analogies. Without this, no scope tagging is performed and behaviour matches the legacy global search.",
+    ),
+  scope: z
+    .enum(["within", "cross", "both"])
+    .optional()
+    .default("both")
+    .describe(
+      "How to filter against `within_deliberation`. 'within' = only intra-deliberation hits; 'cross' = only OTHER deliberations; 'both' (default) = both, with intra-deliberation results stable-sorted ahead of cross hits inside the active sort key. Has no effect when `within_deliberation` is unset.",
+    ),
 });
 
 const CiteArgumentInput = z.object({
@@ -420,7 +433,7 @@ const tools: ToolSpec[] = [
   {
     name: "find_counterarguments",
     description:
-      "Find counter-arguments, objections, rebuttals, attacks, and dissenting positions against a target claim. Accepts a MOID (preferred) or free text. Returns arguments whose conclusion contests the target; arguments with the same conclusion MOID are excluded so an empty result is honestly empty (no false counters). Defaults to mode='hybrid' so candidate counter-arguments don't have to share surface vocabulary with the target claim (e.g. 'Odgers' shows up against a 'Haidt'-style claim even though the words don't overlap). v0 uses textual stance heuristics; a true negation/contradiction index ships with Track C.2.",
+      "Find counter-arguments, objections, rebuttals, attacks, and dissenting positions against a target claim. Accepts a MOID (preferred) or free text. Returns arguments whose conclusion contests the target; arguments with the same conclusion MOID are excluded so an empty result is honestly empty (no false counters). Defaults to mode='hybrid' so candidate counter-arguments don't have to share surface vocabulary with the target claim (e.g. 'Odgers' shows up against a 'Haidt'-style claim even though the words don't overlap). **When you are summarising a single deliberation, ALWAYS pass `within_deliberation=<that-deliberation-id>` so each result carries `scope: 'within' | 'cross'` and the response includes a `scopeBreakdown` count.** Cross-deliberation hits are NOT noise — they are the graph-of-graphs cross-pollination signal that surfaces structurally analogous arguments from sibling debates (e.g. specification-curve methodology imported from the adolescent-mental-health debate into a polarization debate). Use `scope='within'` only when you explicitly want to ignore cross-context analogies. v0 uses textual stance heuristics; a true negation/contradiction index ships with Track C.2.",
     inputSchema: zodToJsonSchema(FindCounterargumentsInput),
     async handler(args) {
       const input = FindCounterargumentsInput.parse(args);
@@ -432,6 +445,9 @@ const tools: ToolSpec[] = [
       if (input.claim_moid) params.set("against", input.claim_moid);
       if (input.claim_text) params.set("q", input.claim_text);
       if (input.mode) params.set("mode", input.mode);
+      if (input.within_deliberation)
+        params.set("within_deliberation", input.within_deliberation);
+      if (input.scope) params.set("scope", input.scope);
       return await isoFetch(`/api/v3/search/arguments?${params.toString()}`);
     },
   },
@@ -645,7 +661,7 @@ const tools: ToolSpec[] = [
   {
     name: "get_deliberation_fingerprint",
     description:
-      "NARROW SLICE — returns ONLY the statistical summary (argumentCount, schemeDistribution, standingDistribution, depthDistribution, medianChallengerCount, cqCoverage, etc.). Prefer `get_synthetic_readout` as your first call: it returns the same fingerprint *plus* frontier, missing moves, chains, refusalSurface, and a hydrated `topArguments` list, all in one round trip. Use this individual tool only when you need the raw fingerprint without paying for the larger composite payload (e.g. quick honesty-check on a different deliberation). The returned `contentHash` is the cache key for every other Pt. 4 readout. A deliberation with `depthDistribution.thin === argumentCount` is articulation-only; do not summarize it as if it were a tested debate.",
+      "NARROW SLICE — returns ONLY the statistical summary (argumentCount, schemeDistribution, standingDistribution, depthDistribution, medianChallengerCount, meanChallengerCount, challengerCoverage, medianChallengerCountAmongChallenged, cqCoverage, etc.). Prefer `get_synthetic_readout` as your first call: it returns the same fingerprint *plus* frontier, missing moves, chains, refusalSurface, and a hydrated `topArguments` list, all in one round trip. Use this individual tool only when you need the raw fingerprint without paying for the larger composite payload (e.g. quick honesty-check on a different deliberation). The returned `contentHash` is the cache key for every other Pt. 4 readout. A deliberation with `depthDistribution.thin === argumentCount` is articulation-only; do not summarize it as if it were a tested debate.",
     inputSchema: zodToJsonSchema(DeliberationIdInput),
     async handler(args) {
       const input = DeliberationIdInput.parse(args);
@@ -657,7 +673,7 @@ const tools: ToolSpec[] = [
   {
     name: "get_contested_frontier",
     description:
-      "NARROW SLICE — returns ONLY the open-edges projection. Prefer `get_synthetic_readout` first; it includes this same frontier object as `frontier.*` *and* hydrates the heads of both rankings (`topArguments` from loadBearingness, `mostContested` from contestedness). Use this tool only if you've already pulled a synthetic readout and need to re-fetch the frontier alone (rare). Returns: unansweredUndercuts (with `schemeTypical` flag — true when the catalog expects this undercut and no challenger has raised it; false when actively raised but not yet rebutted), unansweredUndermines (premise-level attacks with no counter), unansweredCqs (catalog CQs with no answer), terminalLeaves (un-attacked nodes downstream of attack chains), `loadBearingnessRanking` (degree-based, surfaces foundational arguments), and `contestednessRanking` (counts of unanswered actively-raised attacks per target argument — surfaces tested-undermined material). DO NOT produce 'somewhere between' or 'emerging middle ground' synthesis without naming the specific unanswered moves; the presence of structured unanswered moves makes centrist closure structurally dishonest.",
+      "NARROW SLICE — returns ONLY the open-edges projection. Prefer `get_synthetic_readout` first; it includes this same frontier object as `frontier.*` *and* hydrates the heads of both rankings (`topArguments` from loadBearingness, `mostContested` from contestedness). Use this tool only if you've already pulled a synthetic readout and need to re-fetch the frontier alone (rare). Returns: unansweredUndercuts (with `schemeTypical` flag — true when the catalog expects this undercut and no challenger has raised it; false when actively raised but not yet rebutted), unansweredUndermines (premise-level attacks with no counter), unansweredCqs (catalog CQs with no answer), terminalLeaves (un-attacked nodes downstream of attack chains), `loadBearingnessRanking` (degree-based; **lists every argument in the deliberation ordered by `(supportOut + main-conclusion-bonus − attackIn)` with oldest-first tiebreak — empty *only* when the deliberation has zero arguments, never as a 'minimum density' gate**, so an empty array means no graph data, not 'data withheld'), and `contestednessRanking` (counts of unanswered actively-raised attacks per target argument — surfaces tested-undermined material). DO NOT produce 'somewhere between' or 'emerging middle ground' synthesis without naming the specific unanswered moves; the presence of structured unanswered moves makes centrist closure structurally dishonest.",
     inputSchema: zodToJsonSchema(FrontierInput),
     async handler(args) {
       const input = FrontierInput.parse(args);
@@ -681,7 +697,7 @@ const tools: ToolSpec[] = [
   {
     name: "get_chains",
     description:
-      "NARROW SLICE — returns ONLY the ArgumentChain projection. Prefer `get_synthetic_readout` first; it includes this same object as `chains.*`. Returns ordered argument traversals with chainStanding (worst-link), chainFitness (aggregated breakdown), weakestLink (argument id + reason), plus uncoveredClaims — top-level conclusions with no chain reaching them. NOTE: many deliberations have zero `ArgumentChain` rows because chains are an editor-authored object, not auto-derived from attack/support edges; if `chains.chains` is empty the deliberation is unchained, not unstructured — fall back to `frontier` + `topArguments` from the synthetic readout. Reference chains by id and weakestLink when summarizing; do not invent identifiers.",
+      "NARROW SLICE — returns ONLY the ArgumentChain projection. Prefer `get_synthetic_readout` first; it includes this same object as `chains.*`. Returns ordered argument traversals with chainStanding (worst-link), chainFitness (aggregated breakdown — **inbound attacks weighted by attacker standing: refuted attackers contribute ≈0, unanswered contribute full weight, so a chain whose attackers are themselves undermined no longer reads as catastrophically fragile**), weakestLink (argument id + reason), plus uncoveredClaims — top-level conclusions with no chain reaching them. NOTE: many deliberations have zero `ArgumentChain` rows because chains are an editor-authored object, not auto-derived from attack/support edges; if `chains.chains` is empty the deliberation is unchained, not unstructured — fall back to `frontier` + `topArguments` from the synthetic readout. Reference chains by id and weakestLink when summarizing; do not invent identifiers.",
     inputSchema: zodToJsonSchema(DeliberationIdInput),
     async handler(args) {
       const input = DeliberationIdInput.parse(args);
@@ -693,7 +709,7 @@ const tools: ToolSpec[] = [
   {
     name: "get_synthetic_readout",
     description:
-      "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy and blockerIds), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), and `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view). Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause).",
+      "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy, blockerIds, **and parallel-indexed `blockerSummaries` — ~160-char preview of each blocker's argument text so you can name the obstacle without a `get_argument` round-trip per blocker**), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), and `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view). Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, **standingDepth (thin|moderate|dense, with challengerCount + reviewerCount)** so 'tested-undermined by 1' is not read as 'tested-undermined by 10', cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause).",
     inputSchema: zodToJsonSchema(DeliberationIdInput),
     async handler(args) {
       const input = DeliberationIdInput.parse(args);

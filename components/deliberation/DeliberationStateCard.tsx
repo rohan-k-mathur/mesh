@@ -162,8 +162,13 @@ export function DeliberationStateCard({
           testId="stat-participants"
         />
         <Stat
+          label="challenger coverage"
+          value={`${Math.round(fp.challengerCoverage * 100)}%`}
+          testId="stat-challenger-coverage"
+        />
+        <Stat
           label="median challengers"
-          value={fp.medianChallengerCount}
+          value={`${fp.medianChallengerCountAmongChallenged} (when challenged)`}
           testId="stat-median-challengers"
         />
         <Stat

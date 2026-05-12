@@ -136,6 +136,27 @@ export async function GET(req: NextRequest) {
       ? Math.min(50, strongestCounterKRaw)
       : 10;
 
+  // T1.3 — deliberation-scope tagging. Three modes:
+  //   - `scope=within` + `within_deliberation=<id>`  → only intra-deliberation
+  //     hits. Caller wants to stay inside one debate.
+  //   - `scope=cross` + `within_deliberation=<id>`   → only OTHER deliberations.
+  //     Caller wants the cross-pollination signal explicitly.
+  //   - `scope=both` (default when `within_deliberation` is set) → both, with
+  //     each result tagged `scope: "within" | "cross"` and intra-deliberation
+  //     results sorted first inside the active sort key.
+  // The bug we're fixing (per external Claude-Desktop feedback): users could
+  // not distinguish intra- from inter-deliberation results in `find_counter‐
+  // arguments`, which made cross-pollination noise look like in-context
+  // results. Tagging preserves the cross-graph signal that justifies the
+  // graph-of-graphs architecture rather than scoping it away.
+  const withinDeliberation =
+    (sp.get("within_deliberation") ?? "").trim() || null;
+  const scopeRaw = (sp.get("scope") ?? "").trim().toLowerCase();
+  const scope: "within" | "cross" | "both" =
+    scopeRaw === "within" || scopeRaw === "cross" || scopeRaw === "both"
+      ? scopeRaw
+      : "both";
+
   // Echoed back in every response so consumers can see what was applied
   // (and so MCP clients can replay queries).
   const echoQuery = () => ({
@@ -153,6 +174,8 @@ export async function GET(req: NextRequest) {
     until: until ? until.toISOString() : undefined,
     includeStrongestCounter: includeStrongestCounter || undefined,
     strongestCounterK: includeStrongestCounter ? strongestCounterK : undefined,
+    withinDeliberation: withinDeliberation || undefined,
+    scope: withinDeliberation ? scope : undefined,
   });
 
   // Build query. We restrict to arguments that have a permalink (i.e. have
@@ -202,6 +225,16 @@ export async function GET(req: NextRequest) {
         { conclusion: { text: { contains: tok, mode: "insensitive" } } },
       ]);
     }
+  }
+
+  // T1.3 — deliberation-scope filter. Default (`scope=both`) keeps the
+  // candidate set unrestricted but tags each result downstream. Explicit
+  // `within` / `cross` push the constraint into the DB so we don't waste
+  // post-filter cycles.
+  if (withinDeliberation && scope === "within") {
+    where.deliberationId = withinDeliberation;
+  } else if (withinDeliberation && scope === "cross") {
+    where.deliberationId = { not: withinDeliberation };
   }
 
   if (scheme) {
@@ -344,6 +377,8 @@ export async function GET(req: NextRequest) {
       id: true,
       text: true,
       createdAt: true,
+      deliberationId: true,
+      deliberation: { select: { id: true, title: true } },
       conclusion: {
         select: {
           id: true,
@@ -488,7 +523,6 @@ export async function GET(req: NextRequest) {
       const bd = b.row.createdAt ? +new Date(b.row.createdAt) : 0;
       return bd - ad;
     });
-    withFitness = withFitness.slice(0, limit);
   } else if (hybridResults) {
     // Hybrid mode without fitness — preserve RRF order from the fusion
     // step. Use a rank lookup so we don't re-sort by anything else.
@@ -499,7 +533,6 @@ export async function GET(req: NextRequest) {
       const rb = rankById.get(b.row.id) ?? Number.MAX_SAFE_INTEGER;
       return ra - rb;
     });
-    withFitness = withFitness.slice(0, limit);
   } else if (queryTokens.length > 0) {
     // Recency sort + a query: still re-rank by coverage so high-coverage
     // results aren't pushed off the page by older but less-relevant ones.
@@ -511,12 +544,27 @@ export async function GET(req: NextRequest) {
       const bd = b.row.createdAt ? +new Date(b.row.createdAt) : 0;
       return bd - ad;
     });
-    withFitness = withFitness.slice(0, limit);
   } else if (needsWidePool) {
     // We widened the candidate pool for fitness or quality filtering.
-    // No query and no hybrid → already in DB recency order; just truncate.
-    withFitness = withFitness.slice(0, limit);
+    // No query and no hybrid → already in DB recency order; nothing to do
+    // here — the unified within-first reorder + truncation runs below.
   }
+
+  // T1.3 — stable within-first reorder when caller anchored a deliberation
+  // and asked for both scopes. Preserves the active sort within each
+  // partition; just lifts intra-deliberation hits ahead of cross hits so
+  // they aren't pushed off the page by an older / lower-fitness within
+  // result.
+  if (withinDeliberation && scope === "both") {
+    const within = withFitness.filter(
+      (e) => e.row.deliberationId === withinDeliberation,
+    );
+    const cross = withFitness.filter(
+      (e) => e.row.deliberationId !== withinDeliberation,
+    );
+    withFitness = [...within, ...cross];
+  }
+  withFitness = withFitness.slice(0, limit);
 
   const hybridById = new Map<string, HybridSearchResult>();
   if (hybridResults) {
@@ -545,12 +593,24 @@ export async function GET(req: NextRequest) {
       incomingSupports: entry.supportEdges,
     });
     const h = hybridById.get(r.id);
+    // T1.3 — derive `scope` against the caller's anchor deliberation, when
+    // one was supplied. Always emit `deliberation` so the consumer can
+    // group / route results regardless of mode.
+    const resultScope: "within" | "cross" | null = withinDeliberation
+      ? r.deliberationId === withinDeliberation
+        ? "within"
+        : "cross"
+      : null;
     return {
       argumentId: r.id,
       permalink: `${BASE_URL}/a/${sc}`,
       shortCode: sc,
       version: r.permalink!.version,
       text: r.text,
+      deliberation: r.deliberation
+        ? { id: r.deliberation.id, title: r.deliberation.title ?? null }
+        : { id: r.deliberationId, title: null },
+      ...(resultScope ? { scope: resultScope } : {}),
       conclusion: r.conclusion
         ? { claimId: r.conclusion.id, moid: r.conclusion.moid, text: r.conclusion.text }
         : null,
@@ -602,6 +662,17 @@ export async function GET(req: NextRequest) {
       // the weights without round-tripping to source. (Pt. 3 §1.)
       fitnessFormula: wantFitness ? FITNESS_WEIGHTS : undefined,
       count: results.length,
+      // T1.3 — in `scope=both` mode, surface the within/cross split so the
+      // consumer can see at a glance whether the cross-pollination signal
+      // is even present in the result set.
+      ...(withinDeliberation && scope === "both"
+        ? {
+            scopeBreakdown: {
+              within: results.filter((r: any) => r.scope === "within").length,
+              cross: results.filter((r: any) => r.scope === "cross").length,
+            },
+          }
+        : {}),
       results,
     },
     {

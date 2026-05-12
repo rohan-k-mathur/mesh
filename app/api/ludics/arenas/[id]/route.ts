@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { arenaById } from "../route";
+import { arenaById } from "../store";
 // Use client-safe imports to avoid pulling in Prisma
 import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena/client";
 

@@ -17,7 +17,7 @@ import {
   createArenaMove,
 } from "@/packages/ludics-core/dds/arena";
 import type { UniversalArena, ArenaMove } from "@/packages/ludics-core/dds/arena";
-import { arenaStore, arenaById } from "../route";
+import { arenaStore, arenaById } from "../store";
 
 /**
  * POST /api/ludics/arenas/from-deliberation

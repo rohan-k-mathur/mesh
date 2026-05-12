@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { generateEssay, EssayOptions, EssayResult } from "@/lib/chains/essayGenerator";
 import { ArgumentChainWithRelations } from "@/lib/types/argumentChain";
 import ReactMarkdown from "react-markdown";
+import ChainRefusalBanner from "./ChainRefusalBanner";
 
 // ===== Types =====
 
@@ -231,6 +232,16 @@ export function ChainEssayView({
 
   return (
     <div className={cn("flex flex-col gap-4", compact && "gap-2")}>
+      {/* T1.4 — surface deliberation refusalSurface for blocked conclusions */}
+      {chainData.deliberation?.id && (
+        <ChainRefusalBanner
+          deliberationId={chainData.deliberation.id}
+          chainConclusionClaimIds={chainData.nodes
+            .map((n) => n.argument?.conclusion?.id)
+            .filter((x): x is string => Boolean(x))}
+          compact={compact}
+        />
+      )}
       {/* Header with controls */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
