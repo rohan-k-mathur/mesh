@@ -90,8 +90,10 @@ export interface MintCqRaisesOpts {
   deliberationId: string;
   /** Plans grouped by the agent that produced them. */
   plansByAgent: Array<{ agentRole: ChallengerRole; plan: ChallengerPlan }>;
-  /** Pre-existing CQStatus keys, `${argId}::${cqKey}`. Translator
-   *  skips raises whose key is already present. */
+  /** Pre-existing per-agent CA dedup keys, `${createdById}::${argId}::${cqKey}`.
+   *  Translator skips raises whose key matches a CA the same agent has
+   *  already minted (so re-runs of finalize after a partial failure
+   *  remain idempotent without blocking unrelated agents). */
   existingCqStateKeys: ReadonlySet<string>;
   logger: RoundLogger;
 }
@@ -116,7 +118,7 @@ export async function mintCqRaises(opts: MintCqRaisesOpts): Promise<RaiseMintRep
     requestedTotal += plan.raises.length;
 
     for (const raise of plan.raises) {
-      const dedupKey = `${raise.targetArgumentId}::${raise.cqKey}`;
+      const dedupKey = `${agent.userId}::${raise.targetArgumentId}::${raise.cqKey}`;
       if (mintedKeys.has(dedupKey)) {
         agentPreFiltered++;
         preFilteredTotal++;
@@ -135,7 +137,11 @@ export async function mintCqRaises(opts: MintCqRaisesOpts): Promise<RaiseMintRep
         await opts.iso.raiseCq(
           raise.targetArgumentId,
           raise.cqKey,
-          { deliberationId: opts.deliberationId, authorId: agent.userId },
+          {
+            deliberationId: opts.deliberationId,
+            authorId: agent.userId,
+            schemeKey: raise.schemeKey,
+          },
           ctx,
         );
       } catch (err) {

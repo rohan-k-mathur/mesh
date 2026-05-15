@@ -47,7 +47,8 @@
   .head-sub-text {
     @apply text-heading2-semibold text-light-1;
   }
-/* ---- Universal Mesh Button v2 ---- */
+
+/* ---- Universal Button v2 ---- */
 .btnv2 {
   /* theming hooks */
   --btn-accent: 99,102,241;           /* indigo-500 (R,G,B) */
@@ -87,7 +88,7 @@
   cursor: pointer;
 }
 .btnv2:hover {
-  transform: translateY(-.5px);
+  transform: translateY(-.25px);
   /* tasteful inset “press-in” feel */
   box-shadow:
     inset 0 1px 2px rgba(2,6,23,.08),
@@ -456,6 +457,393 @@
   padding: 0px;
   position: relative;
 }
+
+
+/* === Glass Panel v2 (Main variant - Radial Shimmer) === */
+.panelv2 {
+  /* Theme hooks (RGB) - same as btnv2 */
+  --panel-accent: 239, 219, 248;
+  --panel-lite: 230, 230, 248;
+  --panel-heavy: 210, 200, 248;
+  --panel-border: 155, 163, 192;
+  --panel-outline: 199, 210, 248;
+  --panel-text: 30, 41, 59;
+  --panel-top: 255, 255, 255;
+  --panel-bot: 255, 255, 255;
+  
+  /* Ring gradient - radial burst from corners */
+  --panel-ring: conic-gradient(
+    from 45deg at 50% 50%,
+    rgba(var(--panel-heavy), 0.65) 0deg,
+    rgba(var(--panel-lite), .85) 45deg,
+    rgba(var(--panel-top), .80) 90deg,
+    rgba(var(--panel-heavy), .45) 135deg,
+    rgba(var(--panel-lite), .75) 180deg,
+    rgba(var(--panel-top), .75) 225deg,
+    rgba(var(--panel-heavy), .60) 270deg,
+    rgba(var(--panel-lite), .60) 315deg,
+    rgba(var(--panel-heavy), .65) 360deg
+  );
+  
+  /* Fill gradient */
+  --panel-fill: linear-gradient(
+    180deg,
+    rgba(var(--panel-top), .55) 0%,
+    rgba(var(--panel-lite), .14) 25%,
+    rgba(var(--panel-lite), .25) 50%,
+    rgba(var(--panel-lite), .10) 75%,
+    rgba(var(--panel-top), .45) 100%
+  );
+  
+  --ring-w: 1.5px;
+  
+  position: relative;
+  padding: 1.25rem;
+  border: none;
+  border-radius: 14px;
+  
+  /* Inner rim */
+  outline: 1px solid rgba(var(--panel-heavy), .45);
+  outline-offset: -2.5px;
+  
+  color: rgb(var(--panel-text));
+  background: var(--panel-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 6px rgba(51, 57, 82, 0.1),
+    0 14px 28px -14px rgba(98, 101, 114, 0.22);
+  backdrop-filter: saturate(2) blur(6px);
+  
+  transition: box-shadow .18s ease, transform .12s ease;
+}
+
+.panelv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--panel-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+.panelv2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .35),
+    0 2px 8px rgba(2, 6, 23, .08),
+    0 16px 32px -16px rgba(2, 6, 23, .18);
+
+}
+
+
+/* === Panel v2 - Chevron (V-shaped pattern) === */
+.panelv2--nohover {
+  --ring-w: 1.75px;
+}
+
+.panelv2--nohover:hover {
+box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 6px rgba(51, 57, 82, 0.1),
+    0 14px 28px -14px rgba(98, 101, 114, 0.22);
+  transform: none;
+}
+.panelv2--chevron::before {
+  background: 
+    linear-gradient(45deg, 
+      transparent 0%,
+      transparent 45%,
+      rgba(var(--panel-heavy), .90) 50%,
+      transparent 55%,
+      transparent 100%
+    ),
+    linear-gradient(-45deg, 
+      transparent 0%,
+      transparent 45%,
+      rgba(var(--panel-heavy), .90) 50%,
+      transparent 55%,
+      transparent 100%
+    ),
+    linear-gradient(90deg,
+      rgba(var(--panel-lite), .75) 0%,
+      rgba(var(--panel-top), .85) 25%,
+      rgba(var(--panel-heavy), .70) 50%,
+      rgba(var(--panel-top), .85) 75%,
+      rgba(var(--panel-lite), .75) 100%
+    );
+  background-size: 100% 100%;
+}
+
+/* === Card Panel v2 (Subtle variant for cards) === */
+.cardv2 {
+  --card-accent: 129, 140, 248;
+  --card-lite: 200, 210, 248;
+  --card-heavy: 170, 180, 238;
+    --card-med: 225, 215, 231;
+
+  --card-top: 255, 255, 255;
+  --card-bot: 255, 255, 255;
+  
+  --card-ring: linear-gradient(
+   360deg,
+    rgba(var(--card-heavy), 0.6) 0%,
+    rgba(var(--card-top), .65) 25%,
+    rgba(var(--card-lite), .75) 50%,
+    rgba(var(--card-med), .65) 75%,
+    rgba(var(--card-heavy), .55) 100%
+  );
+  
+  --card-fill: linear-gradient(
+    180deg,
+    rgba(var(--card-top), .65) 0%,
+    rgba(var(--card-lite), .12) 30%,
+    rgba(var(--card-lite), .18) 50%,
+    rgba(var(--card-lite), .08) 70%,
+    rgba(var(--card-top), .55) 100%
+  );
+  
+  --ring-w: 1.25px;
+  
+  position: relative;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  
+  outline: 0.75px solid rgba(var(--card-heavy), .35);
+  outline-offset: -2px;
+  
+  color: rgb(30, 41, 59);
+  background: var(--card-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .50),
+    0 1px 4px rgba(51, 57, 82, 0.08),
+    0 10px 20px -12px rgba(98, 101, 114, 0.18);
+  backdrop-filter: saturate(1.8) blur(5px);
+  
+  transition: box-shadow .15s ease, transform .1s ease;
+}
+
+.cardv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--card-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+.cardv2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .40),
+    0 2px 6px rgba(2, 6, 23, .10),
+    0 12px 24px -14px rgba(2, 6, 23, .20);
+  transform: translateY(-0.5px);
+}
+
+/* === Modal Panel v2 (Elevated variant) === */
+.modalv2 {
+  --modal-accent: 129, 140, 248;
+  --modal-lite: 200, 210, 248;
+  --modal-heavy: 170, 180, 238;
+  --modal-top: 255, 255, 255;
+  --modal-bot: 255, 255, 255;
+  
+  --modal-ring: linear-gradient(
+    360deg,
+    rgba(var(--modal-heavy), 0.80) 0%,
+    rgba(var(--modal-top), .80) 20%,
+    rgba(var(--modal-heavy), 1.0) 50%,
+    rgba(var(--modal-top), .80) 70%,
+    rgba(var(--modal-heavy), .70) 100%
+  );
+  
+  --modal-fill: linear-gradient(
+    180deg,
+    rgba(var(--modal-top), .70) 0%,
+    rgba(var(--modal-lite), .18) 25%,
+    rgba(var(--modal-lite), .30) 50%,
+    rgba(var(--modal-lite), .15) 75%,
+    rgba(var(--modal-top), .60) 100%
+  );
+  
+  --ring-w: 1.75px;
+  
+  position: relative;
+  padding: 1.5rem;
+  border: none;
+  border-radius: 16px;
+  
+  outline: 1.25px solid rgba(var(--modal-heavy), .50);
+  outline-offset: -3px;
+  
+  color: rgb(30, 41, 59);
+  background: var(--modal-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .55),
+    0 4px 12px rgba(51, 57, 82, 0.12),
+    0 20px 40px -20px rgba(98, 101, 114, 0.28);
+  backdrop-filter: saturate(2.2) blur(8px);
+  
+  transition: box-shadow .2s ease;
+}
+
+.modalv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--modal-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+/* === Sidebar Panel v2 === */
+.sidebarv2 {
+  --sidebar-accent: 129, 140, 248;
+  --sidebar-lite: 225, 235, 248;
+  --sidebar-heavy: 205, 205, 228;
+  --sidebar-top: 255, 255, 255;
+  --sidebar-bot: 255, 255, 255;
+  
+  --sidebar-ring: linear-gradient(
+    90deg,
+    rgba(var(--sidebar-lite), 0.70) 0%,
+    rgba(var(--sidebar-accent), .70) 25%,
+    rgba(var(--sidebar-lite), .90) 50%,
+    rgba(var(--sidebar-heavy), .70) 75%,
+    rgba(var(--sidebar-top), .60) 100%
+  );
+  
+  --sidebar-fill: linear-gradient(
+    360deg,
+    rgba(var(--sidebar-top), .50) 0%,
+    rgba(var(--sidebar-lite), .26) 30%,
+   
+    rgba(var(--sidebar-top), .50) 100%
+  );
+  
+  --ring-w: 1.5px;
+  
+  position: relative;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  
+  color: rgb(30, 41, 59);
+  background: var(--sidebar-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 6px rgba(51, 57, 82, 0.10),
+    0 12px 24px -14px rgba(98, 101, 114, 0.20);
+  backdrop-filter: saturate(1.9) blur(6px);
+}
+
+.sidebarv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--sidebar-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+/* === Compact Panel v2 (For tight spaces) === */
+.panelv2--compact {
+  padding: 0.75rem;
+  border-radius: 10px;
+}
+
+/* === Wide Panel v2 (Full width containers) === */
+.panelv2--wide {
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+}
+
+/* === Surface v2 (Flat minimal variant) === */
+.surfacev2 {
+  --surface-accent: 129, 140, 248;
+  --surface-lite: 215, 220, 248;
+    --surface-accent: 235, 240, 248;
+
+  --surface-top: 255, 255, 255;
+  
+  position: relative;
+  padding: 1rem;
+  border: 1px solid rgba(var(--surface-accent), .22);
+  border-radius: 12px;
+  
+  background: linear-gradient(
+    90deg,
+    rgba(var(--surface-top), .55) 0%,
+    rgba(var(--surface-lite), .40) 25%,
+        rgba(var(--surface-accent), .40) 50%,
+    rgba(var(--surface-lite), .40) 75%,
+
+    rgba(var(--surface-top), .75) 100%
+  );
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .50),
+    0 1px 3px rgba(51, 57, 82, 0.08),
+    0 8px 16px -10px rgba(98, 101, 114, 0.15);
+  backdrop-filter: saturate(1.6) blur(4px);
+  
+  transition: box-shadow .15s ease;
+}
+
+.surfacev2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+}
+
 .img-feed-frame {
   display: flex;
   width: auto;
@@ -2280,7 +2668,6 @@ font-size: large;
 
   
 
-  /* Fill (you can keep tweaking this variable in :hover/dark) */
   --btn-fill: linear-gradient(
     180deg,
     rgba(var(--btn-top), .55) 0%,
@@ -2384,16 +2771,17 @@ font-size: large;
 
 /* Hover / active / focus */
 .btnv2:hover {
+  
   --btn-fill: linear-gradient(
     180deg,
-    rgba(var(--btn-top), .05) 0%,
-    rgba(var(--btn-lite), .10) 25%,
-    rgba(var(--btn-lite), .35) 50%,
+    rgba(var(--btn-top), .55) 0%,
+    rgba(var(--btn-lite), .14) 25%,
+    rgba(var(--btn-heavy), .05) 50%,
     rgba(var(--btn-lite), .10) 75%,
-    rgba(var(--btn-top),  .05) 100%
+    rgba(var(--btn-top),  .45) 100%
   );
 
-  transform: translateY(-.5px);
+ 
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.35),
     0 1px 2px rgba(2,6,23,.06),

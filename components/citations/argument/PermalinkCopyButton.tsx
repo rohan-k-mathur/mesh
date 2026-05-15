@@ -188,24 +188,28 @@ export function PermalinkCopyButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          
+        <button
+          type="button"
           disabled={isLoading || !permalink}
-        className="rounded-full px-2 py-2 bg-slate-100 hover:bg-slate-200 "
+          title="Cite this argument"
+          className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer text-xs font-medium text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed",
+            className
+          )}
         >
           {copiedFormat ? (
             <>
-              <Check className="w-4 h-4 text-green-500" />
+              <Check className="w-3 h-3 text-emerald-600" />
               Copied!
             </>
           ) : (
             <>
-              <Link2 className="w-4 h-4" />
+              <Link2 className="w-3 h-3" />
               Cite
             </>
           )}
-          <ChevronDown className="w-3 h-3 ml-0.5" />
-        </Button>
+          <ChevronDown className="w-3 h-3 -ml-0.5 opacity-70" />
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Copy as...</DropdownMenuLabel>

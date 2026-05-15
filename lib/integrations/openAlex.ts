@@ -8,7 +8,10 @@
  */
 
 const OPENALEX_BASE = "https://api.openalex.org";
-const OPENALEX_EMAIL = process.env.OPENALEX_EMAIL || "contact@mesh.app";
+const OPENALEX_EMAIL =
+  process.env.OPENALEX_POLITE_EMAIL ||
+  process.env.OPENALEX_EMAIL ||
+  "contact@mesh.app";
 
 // ─────────────────────────────────────────────────────────
 // Types

@@ -23,7 +23,7 @@ import type { OrchestratorConfig, AgentIdentity } from "./config";
 import { agentByRole } from "./config";
 import type { RoundLogger } from "./log/round-logger";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_RETRIES = 3;
 
 export interface IsonomiaCallContext {
@@ -635,7 +635,7 @@ export class IsonomiaClient {
   async raiseCq(
     targetArgumentId: string,
     cqKey: string,
-    body: { deliberationId: string; authorId: string },
+    body: { deliberationId: string; authorId: string; schemeKey?: string },
     ctx: IsonomiaCallContext,
   ): Promise<{ ok: true }> {
     await this.raw(

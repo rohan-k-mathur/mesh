@@ -31,7 +31,12 @@ const PUBLIC_API = [
   /^\/api\/v3\/deliberations\/[^/]+\/(fingerprint|frontier|missing-moves|chains|synthetic-readout|cross-context)\/?$/,
   // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
   /^\/api\/v3\/openapi\.json$/,
-  /^\/api\/v3\/docs\/?$/,];
+  /^\/api\/v3\/docs\/?$/,
+  // MCP read primer for the structured-argument write tools.
+  // Returns the argumentation-scheme catalog — read-only, no PII.
+  // Required so `list_schemes` works without a bearer token.
+  /^\/api\/schemes\/?$/,
+  ];
 
 // Public pages that must be reachable without auth (Phase 1 of the
 // embeddable-widget roadmap + Track A of the AI-epistemic-infrastructure

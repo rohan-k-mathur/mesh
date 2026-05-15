@@ -47,15 +47,34 @@ import { prisma } from '@/lib/prismaclient';
 
 export async function POST(req: Request, { params }: { params: { id: string; cqKey: string } }) {
   const body = await req.json().catch(()=> ({}));
-  const { authorId, deliberationId } = body ?? {};
+  const { authorId, deliberationId, schemeKey: bodySchemeKey } = body ?? {};
   const arg = await prisma.argument.findUnique({ where: { id: params.id }, include: { scheme:true } });
   if (!arg || !arg.scheme) return NextResponse.json({ ok:false, error:'Argument/scheme not found' }, { status:404 });
 
-  const existing = await prisma.cQStatus.findFirst({ where: { argumentId: arg.id, cqKey: params.cqKey } });
+  const schemeKey: string = String(bodySchemeKey ?? arg.scheme.key ?? '');
+  if (!schemeKey) return NextResponse.json({ ok:false, error:'schemeKey missing on argument and request' }, { status:400 });
+
+  const existing = await prisma.cQStatus.findFirst({
+    where: {
+      OR: [
+        { argumentId: arg.id, cqKey: params.cqKey },
+        { targetType: 'argument', targetId: arg.id, schemeKey, cqKey: params.cqKey },
+      ],
+    },
+  });
   if (existing) {
-    await prisma.cQStatus.update({ where: { id: existing.id }, data: { status: 'open' } });
+    await prisma.cQStatus.update({
+      where: { id: existing.id },
+      data: {
+        status: 'open',
+        statusEnum: 'OPEN',
+        // backfill argumentId on legacy rows that pre-date the column
+        ...(existing.argumentId ? {} : { argumentId: arg.id }),
+      },
+    });
   } else {
-    await prisma.cQStatus.create({ data: { argumentId: arg.id, cqKey: params.cqKey, status:'open' } });
+    if (!authorId) return NextResponse.json({ ok:false, error:'authorId required to create CQStatus' }, { status:400 });
+    await prisma.cQStatus.create({ data: { argumentId: arg.id, cqKey: params.cqKey, status:'open', statusEnum: 'OPEN', targetType: 'argument', targetId: arg.id, schemeKey, createdById: String(authorId) } });
   }
 
   if (authorId && deliberationId) {

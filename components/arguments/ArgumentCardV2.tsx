@@ -1040,8 +1040,6 @@ export function ArgumentCardV2({
               <QuickCiteButton
                 citingArgumentId={id}
                 citingArgumentText={conclusion.text}
-                variant="ghost"
-                className="btnv2 rounded-xl "
               />
               
               {argCqStatus && (

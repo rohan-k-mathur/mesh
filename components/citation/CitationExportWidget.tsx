@@ -95,10 +95,10 @@ export default function CitationExportWidget(
           </code>
           <a
             href={props.isoUrl}
-            className="citation-iso-link"
+            className="citation-iso-copy citation-iso-link"
             rel="noopener noreferrer"
           >
-            resolve ↗
+            Resolve ↗
           </a>
           <button
             type="button"
@@ -136,10 +136,10 @@ export default function CitationExportWidget(
           >
             <textarea
               id={`citation-body-${tab.key}`}
-              className="citation-body"
+              className="citation-body custom-scrollbar"
               readOnly
               value={props.citations[tab.key]}
-              rows={tab.key === "csl" ? 12 : tab.key === "bibtex" || tab.key === "ris" ? 8 : 3}
+              rows={tab.key === "csl" ? 12 : tab.key === "bibtex" || tab.key === "ris" ? 8 : 5}
               spellCheck={false}
             />
             <div className="citation-actions">

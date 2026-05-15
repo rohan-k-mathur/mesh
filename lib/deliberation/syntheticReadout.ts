@@ -41,6 +41,10 @@ import {
 } from "@/lib/deliberation/crossContext";
 import type { StandingState } from "@/lib/citations/argumentAttestation";
 import type { StandingConfidence } from "@/config/standingThresholds";
+import {
+  buildWritingConstraints,
+  type WritingConstraints,
+} from "@/lib/deliberation/writingConstraints";
 
 /**
  * Compact per-argument summary for the top of `loadBearingnessRanking`.
@@ -163,6 +167,14 @@ export interface SyntheticReadout {
    * function of the fingerprint alone — same contentHash → same string.
    */
   honestyLine: string;
+  /**
+   * Pre-rendered compliance contract for synthesis clients. Lets a
+   * consumer follow refusal-surface / standing / depth rules by
+   * mechanical substitution rather than interpretation. Derived
+   * deterministically from the fields above; see
+   * `lib/deliberation/writingConstraints.ts`.
+   */
+  writingConstraints: WritingConstraints;
 }
 
 export async function computeSyntheticReadout(
@@ -187,7 +199,14 @@ export async function computeSyntheticReadout(
       select: { payload: true },
     });
     if (cached?.payload) {
-      return cached.payload as unknown as SyntheticReadout;
+      const payload = cached.payload as unknown as SyntheticReadout;
+      // Backfill writingConstraints for cached entries written before
+      // this field existed. Pure-derived from the rest of the payload,
+      // so safe to recompute at read-time without invalidating cache.
+      if (!payload.writingConstraints) {
+        payload.writingConstraints = buildWritingConstraints(payload);
+      }
+      return payload;
     }
   }
 
@@ -465,7 +484,7 @@ async function _computeSyntheticReadoutUncached(
     `${fingerprint.chainCount} chain(s) on file; ` +
     `${refusalCount} potential conclusion(s) are not licensed by the current graph.`;
 
-  return {
+  const partial: Omit<SyntheticReadout, "writingConstraints"> = {
     deliberationId,
     contentHash: fingerprint.contentHash,
     fingerprint,
@@ -477,5 +496,12 @@ async function _computeSyntheticReadoutUncached(
     topArguments,
     mostContested,
     honestyLine,
+  };
+
+  return {
+    ...partial,
+    writingConstraints: buildWritingConstraints(
+      partial as SyntheticReadout,
+    ),
   };
 }
