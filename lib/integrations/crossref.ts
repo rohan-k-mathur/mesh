@@ -10,7 +10,10 @@
 import { SourceIdentifierType } from "@prisma/client";
 
 const CROSSREF_BASE = "https://api.crossref.org/works";
-const POLITE_POOL_EMAIL = process.env.CROSSREF_EMAIL || "contact@mesh.app";
+const POLITE_POOL_EMAIL =
+  process.env.CROSSREF_POLITE_EMAIL ||
+  process.env.CROSSREF_EMAIL ||
+  "contact@mesh.app";
 
 // ─────────────────────────────────────────────────────────
 // Types

@@ -160,13 +160,21 @@ export async function finalizePhase7(opts: {
 async function loadExistingCqStateKeys(targetArgIds: string[]): Promise<Set<string>> {
   const out = new Set<string>();
   if (targetArgIds.length === 0) return out;
-  const rows = await prisma.cQStatus.findMany({
-    where: { argumentId: { in: targetArgIds } },
-    select: { argumentId: true, cqKey: true },
+  // Dedup against ConflictApplications previously minted by Phase 7
+  // (or any source that records cqKey in metaJson). A bare CQStatus
+  // row is *not* a duplicate: the orchestrator may have opened the CQ
+  // in a prior aborted finalize but failed to mint the anchoring CA,
+  // and re-running finalize must mint the CA on retry. The per-agent
+  // dedup key is `${createdById}::${argId}::${cqKey}`; the translator
+  // composes the same key when checking.
+  const cas = await prisma.conflictApplication.findMany({
+    where: { conflictedArgumentId: { in: targetArgIds } },
+    select: { conflictedArgumentId: true, createdById: true, metaJson: true },
   });
-  for (const r of rows) {
-    if (!r.cqKey) continue;
-    out.add(`${r.argumentId}::${r.cqKey}`);
+  for (const r of cas) {
+    const meta = (r.metaJson ?? {}) as { cqKey?: string };
+    if (!meta.cqKey || !r.conflictedArgumentId || !r.createdById) continue;
+    out.add(`${r.createdById}::${r.conflictedArgumentId}::${meta.cqKey}`);
   }
   return out;
 }

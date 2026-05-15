@@ -1,0 +1,530 @@
+/**
+ * POST /api/arguments/quick-structured
+ *
+ * Structured-argument write surface for the MCP `propose_structured_argument`
+ * tool. Mints a conclusion `Claim`, mints N premise `Claim`s, creates the
+ * `Argument` + `ArgumentPremise[]` + (optional) `ArgumentSchemeInstance`
+ * in one transaction. Mirrors `app/api/arguments/quick/route.ts` for auth,
+ * rate-limiting, evidence handling, and provenance enrichment, and adds the
+ * inference-structure pieces from the full UI POST in `app/api/arguments/route.ts`
+ * (scheme inference, composition marking, support-record creation).
+ *
+ * See: docs/MCP_STRUCTURED_ARGUMENT_ROADMAP.md
+ *
+ * v1 deferred (per roadmap §4):
+ *   • Per-premise evidence       → all evidence lands on the conclusion claim
+ *   • Slot/role binding by name  → missing required slots emit `missing_slot`
+ *                                  warnings instead of throwing 500s
+ *   • Eager CQ row creation      → CQs remain lazy
+ *   • DialogueMove ASSERT        → kept off for parity with `quick` (back-port
+ *                                  is a separate item)
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prismaclient";
+import { resolveCitationCallerUserId, isMcpBearer } from "@/lib/citation/mcpAuth";
+import { mintClaimMoid } from "@/lib/ids/mintMoid";
+import { getOrCreatePermalink } from "@/lib/citations/permalinkService";
+import { isSafePublicUrl, getOrFetchLinkPreview } from "@/lib/unfurl";
+import { enrichEvidenceProvenanceInBackground } from "@/lib/citations/evidenceProvenance";
+import { inferAndAssignScheme } from "@/lib/argumentation/schemeInference";
+import { ensureArgumentSupportInTx } from "@/lib/arguments/ensure-support";
+import { markArgumentAsComposedInTx } from "@/lib/arguments/detect-composition";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+export const dynamic = "force-dynamic";
+
+// ─── Rate limiter ────────────────────────────────────────────────────────────
+// OQ7: shared `rl:quick_arg` budget with `propose_argument` — 20 writes/h
+// across both bare + structured tools.
+const redisClient = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+const ratelimit = new Ratelimit({
+  redis: redisClient,
+  limiter: Ratelimit.fixedWindow(20, "1 h"),
+  prefix: "rl:quick_arg",
+});
+
+// ─── Input schema ─────────────────────────────────────────────────────────────
+const EvidenceItem = z
+  .object({
+    url: z.string().url(),
+    title: z.string().max(500).optional(),
+    quote: z.string().max(2000).optional(),
+    summary: z.string().max(2000).optional(),
+  })
+  .transform((ev) => ({
+    ...ev,
+    citationText: ev.summary ?? ev.quote,
+  }));
+
+const PremiseItem = z.object({
+  text: z
+    .string()
+    .min(1, "Premise text is required")
+    .max(1000, "Premise must be 1000 characters or fewer")
+    .transform((s) => s.replace(/<[^>]*>/g, "").trim()),
+  isAxiom: z.boolean().optional().default(false),
+});
+
+const QuickStructuredArgSchema = z.object({
+  conclusion: z
+    .string()
+    .min(1, "Conclusion is required")
+    .max(2000, "Conclusion must be 2000 characters or fewer")
+    .transform((s) => s.replace(/<[^>]*>/g, "").trim()),
+  premises: z
+    .array(PremiseItem)
+    .min(1, "At least one premise is required")
+    .max(10, "At most 10 premises allowed"),
+  reasoning: z
+    .string()
+    .max(5000)
+    .optional()
+    .transform((s) => s?.replace(/<[^>]*>/g, "").trim()),
+  schemeKey: z.string().min(1).max(100).optional(),
+  ruleType: z.enum(["STRICT", "DEFEASIBLE"]).optional().default("DEFEASIBLE"),
+  ruleName: z.string().max(200).optional(),
+  implicitWarrant: z
+    .string()
+    .max(2000)
+    .optional()
+    .transform((s) => s?.replace(/<[^>]*>/g, "").trim()),
+  evidence: z.array(EvidenceItem).max(10).optional().default([]),
+  isPublic: z.boolean().optional().default(true),
+  deliberationId: z.string().optional(),
+});
+
+// ─── "My Arguments" deliberation helper (mirrors quick/route.ts) ─────────────
+const MY_ARGUMENTS_HOST_PREFIX = "standalone-my-arguments-";
+
+async function getOrCreateMyArgumentsDeliberation(userId: string): Promise<string> {
+  const hostId = `${MY_ARGUMENTS_HOST_PREFIX}${userId}`;
+  const existing = await prisma.deliberation.findFirst({
+    where: { hostType: "free", hostId },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.deliberation.create({
+    data: {
+      hostType: "free",
+      hostId,
+      createdById: userId,
+      title: "My Arguments",
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+// ─── Embed code builders (mirrors quick/route.ts) ────────────────────────────
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://isonomia.app";
+
+function buildEmbedCodes(shortCode: string, claimText: string) {
+  const link = `${BASE_URL}/a/${shortCode}`;
+  const embedSrc = `${BASE_URL}/embed/argument/${shortCode}?theme=auto`;
+  const iframe = `<iframe src="${embedSrc}" width="600" height="400" frameborder="0" allow="clipboard-read; clipboard-write" loading="lazy" title="Isonomia Argument"></iframe>`;
+  const truncated = claimText.length > 120 ? claimText.slice(0, 120) + "…" : claimText;
+  const markdown = `**Claim:** ${truncated}\n\n[View full argument on Isonomia](${link})`;
+  const plainText = `CLAIM: ${claimText}\n\nLink: ${link}`;
+  return { link, iframe, markdown, plainText };
+}
+
+// ─── Non-throwing slot-presence check ────────────────────────────────────────
+// Replaces `validateSlotsAgainstScheme` (which throws). v1 surfaces missing
+// required slots as response warnings; v1.1 will accept slot bindings as input.
+type WarningCode = "missing_slot" | "premise_deduped" | "scheme_inferred";
+type Warning = { code: WarningCode; detail: string };
+
+async function collectMissingSlotWarnings(schemeId: string | null): Promise<Warning[]> {
+  if (!schemeId) return [];
+  const sc = await prisma.argumentScheme.findUnique({
+    where: { id: schemeId },
+    select: { key: true, validators: true },
+  });
+  const slotsValidator: Record<string, { required?: boolean }> | undefined =
+    (sc?.validators as any)?.slots;
+  if (!slotsValidator) return [];
+  const warnings: Warning[] = [];
+  for (const [role, rule] of Object.entries(slotsValidator)) {
+    if (rule?.required) {
+      warnings.push({
+        code: "missing_slot",
+        detail: `Scheme '${sc?.key}' expects a required slot '${role}'. Slot binding will be supported in v1.1; for now this is informational.`,
+      });
+    }
+  }
+  return warnings;
+}
+
+// ─── Handler ──────────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  // Auth: cookie/Firebase first, then MCP shared-secret bearer.
+  const userId = await resolveCitationCallerUserId(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userIdStr = userId;
+  const viaMcp = isMcpBearer(req);
+
+  // Rate limit (shared budget with /quick)
+  const { success: withinLimit } = await ratelimit.limit(userIdStr);
+  if (!withinLimit) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded — max 20 quick arguments per hour" },
+      { status: 429 }
+    );
+  }
+
+  // Parse body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = QuickStructuredArgSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const {
+    conclusion,
+    premises,
+    reasoning,
+    schemeKey,
+    ruleType,
+    ruleName,
+    implicitWarrant,
+    evidence,
+    deliberationId,
+  } = parsed.data;
+
+  // SSRF guard on evidence URLs
+  for (const ev of evidence) {
+    if (!isSafePublicUrl(ev.url)) {
+      return NextResponse.json(
+        { error: `Unsafe or non-public URL: ${ev.url}` },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Validate deliberationId if provided
+  if (deliberationId) {
+    const delib = await prisma.deliberation.findUnique({
+      where: { id: deliberationId },
+      select: { id: true },
+    });
+    if (!delib) {
+      return NextResponse.json(
+        { error: "Deliberation not found" },
+        { status: 400 }
+      );
+    }
+  }
+
+  // ─── Scheme resolution (pre-transaction) ───────────────────────────────────
+  // OQ1: explicit `schemeKey` wins; otherwise infer from reasoning ?? premises
+  // joined ?? conclusion. Wrong-but-present scheme is preferable to null
+  // because it surfaces CQs the LLM can react to.
+  const warnings: Warning[] = [];
+  let schemeId: string | null = null;
+  let schemeMeta: { id: string; key: string; name: string } | null = null;
+
+  if (schemeKey) {
+    const row = await prisma.argumentScheme.findUnique({
+      where: { key: schemeKey },
+      select: { id: true, key: true, name: true },
+    });
+    if (!row) {
+      return NextResponse.json(
+        {
+          error: `Unknown schemeKey '${schemeKey}'`,
+          hint: "Call `list_schemes` (MCP) or GET /api/schemes for the catalog.",
+        },
+        { status: 400 }
+      );
+    }
+    schemeId = row.id;
+    schemeMeta = row;
+  } else {
+    const inferenceText =
+      (reasoning && reasoning.length > 0 && reasoning) ||
+      premises.map((p) => p.text).join(" ; ") ||
+      conclusion;
+    schemeId = await inferAndAssignScheme(inferenceText, conclusion);
+    if (schemeId) {
+      const row = await prisma.argumentScheme.findUnique({
+        where: { id: schemeId },
+        select: { id: true, key: true, name: true },
+      });
+      if (row) {
+        schemeMeta = row;
+        warnings.push({
+          code: "scheme_inferred",
+          detail: `Scheme '${row.key}' (${row.name}) was inferred server-side. Pass an explicit \`schemeKey\` to override; call \`list_schemes\` to browse the catalog.`,
+        });
+      }
+    }
+  }
+
+  // OQ3: collect missing-slot warnings without throwing
+  warnings.push(...(await collectMissingSlotWarnings(schemeId)));
+
+  try {
+    // Resolve target deliberation
+    const targetDelibId =
+      deliberationId ?? (await getOrCreateMyArgumentsDeliberation(userIdStr));
+
+    // ─── Mint conclusion claim ────────────────────────────────────────────────
+    const conclusionMoid = mintClaimMoid(conclusion);
+    const conclusionClaim = await prisma.claim.upsert({
+      where: { moid: conclusionMoid },
+      create: {
+        text: conclusion,
+        moid: conclusionMoid,
+        createdById: userIdStr,
+        deliberationId: targetDelibId,
+      },
+      update: {},
+      select: { id: true, text: true, moid: true },
+    });
+
+    // ─── Mint premise claims (dedup by moid) ──────────────────────────────────
+    // If two premise texts produce the same moid (or collide with the
+    // conclusion), they collapse to a single Claim row. We surface this as
+    // a `premise_deduped` warning so callers know the response.premises[]
+    // length may be less than the request's.
+    const premiseMoids = premises.map((p) => ({
+      text: p.text,
+      moid: mintClaimMoid(p.text),
+      isAxiom: p.isAxiom,
+    }));
+
+    const seenMoids = new Set<string>();
+    const dedupedPremises: typeof premiseMoids = [];
+    for (const p of premiseMoids) {
+      if (seenMoids.has(p.moid)) {
+        warnings.push({
+          code: "premise_deduped",
+          detail: `Premise text '${p.text.slice(0, 80)}…' collapsed to an existing claim by content hash.`,
+        });
+        continue;
+      }
+      if (p.moid === conclusionMoid) {
+        warnings.push({
+          code: "premise_deduped",
+          detail: `Premise text matches the conclusion by content hash and was dropped to avoid a self-loop.`,
+        });
+        continue;
+      }
+      seenMoids.add(p.moid);
+      dedupedPremises.push(p);
+    }
+
+    if (dedupedPremises.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "All premises collapsed to the conclusion or to each other. Provide at least one distinct premise.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const premiseClaims = await Promise.all(
+      dedupedPremises.map((p) =>
+        prisma.claim.upsert({
+          where: { moid: p.moid },
+          create: {
+            text: p.text,
+            moid: p.moid,
+            createdById: userIdStr,
+            deliberationId: targetDelibId,
+          },
+          update: {},
+          select: { id: true, text: true, moid: true },
+        })
+      )
+    );
+    const premiseClaimById = new Map(premiseClaims.map((c) => [c.moid, c]));
+
+    // ─── Auto-unfurl evidence titles where missing ────────────────────────────
+    const enrichedEvidence = await Promise.all(
+      evidence.map(async (ev) => {
+        if (ev.title) return ev;
+        try {
+          const preview = await getOrFetchLinkPreview(ev.url);
+          return { ...ev, title: preview.title ?? undefined };
+        } catch {
+          return ev;
+        }
+      })
+    );
+
+    // ─── Create ClaimEvidence on conclusion (v1: conclusion-only) ────────────
+    let provenancePending = false;
+    if (enrichedEvidence.length > 0) {
+      await prisma.claimEvidence.createMany({
+        data: enrichedEvidence.map((ev) => ({
+          claimId: conclusionClaim.id,
+          uri: ev.url,
+          title: ev.title ?? null,
+          citation: ev.citationText ?? null,
+          addedById: userIdStr,
+        })),
+        skipDuplicates: true,
+      });
+
+      try {
+        const created = await prisma.claimEvidence.findMany({
+          where: {
+            claimId: conclusionClaim.id,
+            uri: { in: enrichedEvidence.map((e) => e.url) },
+          },
+          select: { id: true },
+        });
+        enrichEvidenceProvenanceInBackground(created.map((c) => c.id));
+        provenancePending = created.length > 0;
+      } catch {
+        // best-effort
+      }
+    }
+
+    // ─── Argument + premises + scheme-instance in one transaction ────────────
+    const created = await prisma.$transaction(async (tx) => {
+      const argument = await tx.argument.create({
+        data: {
+          deliberationId: targetDelibId,
+          authorId: userIdStr,
+          conclusionClaimId: conclusionClaim.id,
+          schemeId: schemeId ?? null,
+          implicitWarrant: implicitWarrant ?? null,
+          // Argument.text holds the reasoning gloss when present. UI/fitness
+          // code keys on conclusionClaim.text for the actual conclusion.
+          text: reasoning ?? "",
+          ...(viaMcp
+            ? {
+                authorKind: "AI" as const,
+                aiProvenance: {
+                  via: "mcp",
+                  tool: "propose_structured_argument",
+                  createdAt: new Date().toISOString(),
+                },
+              }
+            : {}),
+        },
+        select: { id: true, text: true, confidence: true },
+      });
+
+      // ArgumentSupport (required for evidential API)
+      await ensureArgumentSupportInTx(tx, {
+        argumentId: argument.id,
+        claimId: conclusionClaim.id,
+        deliberationId: targetDelibId,
+        base: 0.7,
+      });
+
+      // ArgumentPremise rows
+      await tx.argumentPremise.createMany({
+        data: premiseClaims.map((c, idx) => ({
+          argumentId: argument.id,
+          claimId: c.id,
+          groupKey: null,
+          isImplicit: false,
+          isAxiom: dedupedPremises[idx]?.isAxiom ?? false,
+        })),
+        skipDuplicates: true,
+      });
+
+      // Mark composed (premise-bearing args MUST be marked composed)
+      await markArgumentAsComposedInTx(
+        tx,
+        argument.id,
+        "Composed via propose_structured_argument"
+      );
+
+      // ArgumentSchemeInstance if scheme resolved (explicit or inferred)
+      let schemeInstanceId: string | null = null;
+      if (schemeId) {
+        const inst = await (tx as any).argumentSchemeInstance.create({
+          data: {
+            argumentId: argument.id,
+            schemeId,
+            role: "primary",
+            explicitness: "explicit",
+            confidence: 1.0,
+            isPrimary: true,
+            order: 0,
+            ruleType,
+            ruleName: ruleName ?? null,
+          },
+          select: { id: true },
+        });
+        schemeInstanceId = inst.id;
+      }
+
+      return { argument, schemeInstanceId };
+    });
+
+    // Permalink + embed codes
+    const permalink = await getOrCreatePermalink(created.argument.id);
+    const embedCodes = buildEmbedCodes(permalink.shortCode, conclusion);
+
+    return NextResponse.json({
+      ok: true,
+      argument: {
+        id: created.argument.id,
+        text: created.argument.text,
+        confidence: created.argument.confidence,
+      },
+      claim: {
+        id: conclusionClaim.id,
+        text: conclusionClaim.text,
+        moid: conclusionClaim.moid,
+      },
+      premises: premiseClaims.map((c) => ({
+        id: c.id,
+        text: c.text,
+        moid: c.moid,
+      })),
+      schemeInstance:
+        created.schemeInstanceId && schemeMeta
+          ? {
+              id: created.schemeInstanceId,
+              schemeId: schemeMeta.id,
+              schemeKey: schemeMeta.key,
+              schemeName: schemeMeta.name,
+            }
+          : null,
+      warnings,
+      permalink: {
+        shortCode: permalink.shortCode,
+        slug: permalink.slug,
+        url: embedCodes.link,
+      },
+      embedCodes,
+      provenancePending,
+      retryAfterMs: provenancePending ? 60_000 : 0,
+      // Parity note: DialogueMove ASSERT and commitment-contradiction checks
+      // are intentionally NOT created here (matches behavior of /quick).
+      // Tracked as a follow-up in MCP_STRUCTURED_ARGUMENT_ROADMAP.md §3.1.
+    });
+  } catch (e: any) {
+    console.error("[POST /api/arguments/quick-structured]", e);
+    return NextResponse.json(
+      { error: e?.message ?? "Failed to create structured argument" },
+      { status: 500 }
+    );
+  }
+}

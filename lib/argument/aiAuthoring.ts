@@ -22,6 +22,27 @@
 
 import { prisma } from "@/lib/prismaclient";
 import { mintClaimMoid } from "@/lib/ids/mintMoid";
+import { resolveAll, type ResolvedCitationRecord } from "@/lib/citation/resolveAll";
+
+/**
+ * Schemes whose pragma-validity *requires* an empirical anchor — i.e.
+ * an AI draft tagged with one of these and one or more `sources` MUST
+ * resolve at least one of those sources to a non-`none` citation, or
+ * the draft is rejected before it lands in the review queue.
+ *
+ * Conservative list intentionally: practical-reasoning schemes (e.g.
+ * means-end, value-based) are excluded — their warrant is normative,
+ * not empirical, and demanding a citation for them is a category error.
+ */
+const EMPIRICAL_SCHEME_KEYS = new Set<string>([
+  "expert_opinion",
+  "cause_to_effect",
+  "correlation_to_cause",
+  "sign",
+  "analogy",
+  "statistical",
+  "evidence_to_hypothesis",
+]);
 
 export interface AiDraftSource {
   url: string;
@@ -63,6 +84,15 @@ export interface AiDraftResult {
   initialStanding: "untested-default";
   /** Whether the row is awaiting human approval. */
   awaitingReview: boolean;
+  /** Phase 4: per-source resolution outcome (UI shows green/yellow/red chips). */
+  citations?: Array<{
+    sourceId: string | null;
+    inputUrl: string;
+    confidence: "high" | "medium" | "low" | "none";
+    resolvedFrom: string;
+    title?: string | null;
+    doi?: string | null;
+  }>;
 }
 
 /**
@@ -87,6 +117,26 @@ export async function createAiDraft(req: AiDraftRequest): Promise<AiDraftResult>
   const conclusionText = req.generated.conclusion.trim();
   const moid = mintClaimMoid(conclusionText);
 
+  // ── Auto-Citation Engine (Phase 4) ───────────────────────
+  // Resolve every supplied source URL up-front so we can (a) reject the
+  // draft when an empirical scheme has zero usable citations and (b)
+  // attach a durable provenance trail keyed by Source.id rather than
+  // by the raw URLs the model produced.
+  const sourceUrls = req.sources.map((s) => s.url).filter(Boolean);
+  const citations: ResolvedCitationRecord[] = sourceUrls.length
+    ? await resolveAll(sourceUrls, { userId: req.initiatedByAuthId, concurrency: 3 })
+    : [];
+
+  if (
+    EMPIRICAL_SCHEME_KEYS.has(req.schemeKey) &&
+    sourceUrls.length > 0 &&
+    citations.every((c) => c.confidence === "none")
+  ) {
+    throw new Error(
+      `AI draft rejected: scheme '${req.schemeKey}' requires at least one resolvable citation, but ${sourceUrls.length} URL(s) returned confidence='none'.`,
+    );
+  }
+
   const claim = await prisma.claim.upsert({
     where: { moid },
     create: {
@@ -106,6 +156,17 @@ export async function createAiDraft(req: AiDraftRequest): Promise<AiDraftResult>
     generatedAt: new Date().toISOString(),
     hint: req.hint ?? null,
     schemeKey: req.schemeKey,
+    // Phase 4: durable, Source.id-keyed citation provenance.
+    citations: citations.map((c) => ({
+      sourceId: c.sourceId,
+      inputUrl: c.inputUrl,
+      canonicalUrl: c.canonicalUrl,
+      doi: c.doi ?? null,
+      title: c.title ?? null,
+      resolvedFrom: c.resolvedFrom,
+      enrichedBy: c.enrichedBy,
+      confidence: c.confidence,
+    })),
   };
 
   const argument = await prisma.argument.create({
@@ -157,6 +218,14 @@ export async function createAiDraft(req: AiDraftRequest): Promise<AiDraftResult>
     authorKind: "AI",
     initialStanding: "untested-default",
     awaitingReview: true, // no permalink yet
+    citations: citations.map((c) => ({
+      sourceId: c.sourceId,
+      inputUrl: c.inputUrl,
+      confidence: c.confidence,
+      resolvedFrom: c.resolvedFrom,
+      title: c.title ?? null,
+      doi: c.doi ?? null,
+    })),
   };
 }
 

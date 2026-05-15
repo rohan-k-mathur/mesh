@@ -16,8 +16,8 @@ import { prisma } from "@/lib/prismaclient";
 import { resolveDOI, normalizeDOI, isValidDOI } from "@/lib/integrations/crossref";
 import { enrichFromOpenAlex } from "@/lib/integrations/openAlex";
 import { onSourceCreated } from "@/lib/triggers/knowledgeGraphTriggers";
+import { generateFingerprint } from "@/lib/citation/fingerprint";
 import { z } from "zod";
-import crypto from "crypto";
 
 // ─────────────────────────────────────────────────────────
 // Request Schemas
@@ -46,25 +46,6 @@ const CreateSourceSchema = z.union([
   CreateSourceFromDOISchema,
   CreateSourceManualSchema,
 ]);
-
-// ─────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────
-
-/**
- * Generate fingerprint for source deduplication
- */
-function generateFingerprint(url?: string, doi?: string, title?: string): string {
-  const canonical = [
-    doi?.toLowerCase(),
-    url?.toLowerCase().replace(/^https?:\/\//, ""),
-    title?.toLowerCase().replace(/[^\w\s]/g, "").trim(),
-  ]
-    .filter(Boolean)
-    .join("|");
-
-  return crypto.createHash("sha1").update(canonical).digest("hex");
-}
 
 // ─────────────────────────────────────────────────────────
 // POST: Create Source

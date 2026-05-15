@@ -21,6 +21,17 @@ import {
 } from "@/lib/citation/formats";
 import CitationExportWidget from "@/components/citation/CitationExportWidget";
 import { prisma } from "@/lib/prismaclient";
+import {
+  Scale,
+  ArrowRight,
+  ArrowUpRight,
+  Sparkles,
+  BookOpen,
+  Code,
+  Layers,
+  ExternalLink,
+  Circle,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -194,12 +205,23 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
 
   if (!argument) {
     return (
-      <main className="page">
-        <style>{pageStyles()}</style>
-        <div className="not-found">
-          <h1>Argument not found</h1>
-          <p>This argument may have been removed or the link is invalid.</p>
-          <Link href={BASE_URL}>← Back to Isonomia</Link>
+      <main className="min-h-screen bg-slate-50">
+        <div className="max-w-md mx-auto px-6 py-32 text-center">
+          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200 mb-4">
+            <Scale className="w-6 h-6 text-slate-400" />
+          </div>
+          <h1 className="text-xl font-semibold text-slate-900 mb-2">
+            Argument not found
+          </h1>
+          <p className="text-sm text-slate-500 mb-6">
+            This argument may have been removed or the link is invalid.
+          </p>
+          <Link
+            href={BASE_URL}
+            className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            ← Back to Isonomia
+          </Link>
         </div>
       </main>
     );
@@ -236,9 +258,7 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
   const iframeEmbed = `<iframe src="${embedUrl}" width="600" height="400" frameborder="0" style="border:1px solid #e5e7eb;border-radius:8px;" title="Isonomia Argument" loading="lazy"></iframe>`;
 
   return (
-    <main className="page">
-      <style>{pageStyles()}</style>
-
+    <main className="min-h-screen  bg-gradient-to-b from-slate-50 via-white to-slate-50">
       {/* JSON-LD (rich composite: Schema.org + AIF + attestation envelope) */}
       <script
         type="application/ld+json"
@@ -250,7 +270,7 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         <meta key={tag.name} name={tag.name} content={tag.content} />
       ))}
 
-      {/* Track A.1 \u2014 alternate machine-citable representations */}
+      {/* Track A.1 — alternate machine-citable representations */}
       <link
         rel="alternate"
         type="application/ld+json"
@@ -291,35 +311,47 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
       />
 
       {/* Nav bar */}
-      <nav className="topnav">
-        <a href={BASE_URL} className="brand">
-          <span className="brand-mesh">Isonomia</span>
-          <span className="brand-sub">Digital Agora</span>
-        </a>
-        <div className="nav-actions">
-          <a
-            href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
-            className="btn btn-ghost"
-          >
-            View deliberation
+      <nav className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-indigo-300/70">
+        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+          <a href={BASE_URL} className="flex items-center gap-2 group">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-xs">I</span>
+            </div>
+            <span className="font-bold text-slate-900 text-[24px] group-hover:text-indigo-600 transition-colors">
+              Isonomia
+            </span>
           </a>
-          <a href={`${BASE_URL}/signup`} className="btn btn-primary">
-            Join & respond
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm  text-indigo-600 border-indigo-600 hover:text-indigo-800 hover:bg-slate-100 transition-colors btnv2--ghost"
+            >
+              View deliberation
+            </a>
+            <a
+              href={`${BASE_URL}/signup`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm  text-white bg-indigo-600 hover:bg-indigo-800 transition-all btnv2--ghost"
+            >
+              Join & respond
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       </nav>
 
-      <div className="content">
-
+      <div className="max-w-4xl mx-auto px-6 py-6 pb-12">
         {/* Breadcrumb / context */}
-        <div className="breadcrumb">
-          <span className="badge-type">Argument</span>
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-widest uppercase bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-700 border border-indigo-500/20">
+            <Scale className="w-3 h-3" />
+            Argument
+          </span>
           {argument.deliberation.title && (
             <>
-              <span className="breadcrumb-sep">·</span>
+              <span className="text-slate-300">·</span>
               <a
                 href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
-                className="breadcrumb-link"
+                className="text-xs text-slate-500 hover:text-indigo-600 transition-colors"
               >
                 {argument.deliberation.title}
               </a>
@@ -329,28 +361,40 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
 
         {/* Conclusion claim (hero) */}
         {argument.conclusion && (
-          <section className="conclusion-hero">
-            <p className="conclusion-label">Conclusion</p>
-            <h1 className="conclusion-text">{argument.conclusion.text}</h1>
+          <section className="mb-6">
+            <p className="text-[10px] font-bold tracking-[0.12em] uppercase text-slate-400 mb-2">
+              Conclusion
+            </p>
+            <h1 className="text-2xl sm:text-[28px] font-bold leading-tight text-slate-900 mb-3 tracking-tight">
+              {argument.conclusion.text}
+            </h1>
             {argument.conclusion.moid && (
               <a
                 href={`${BASE_URL}/c/${argument.conclusion.moid}`}
-                className="claim-link"
+                className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
               >
-                View claim page →
+                View claim page
+                <ArrowUpRight className="w-3.5 h-3.5" />
               </a>
             )}
           </section>
         )}
 
         {/* Argument core */}
-        <section className="argument-section">
-          <div className="section-header">
-            <h2 className="section-title">Argument</h2>
+        <section className="rounded-2xl  p-6 mb-4  panelv2">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500/10 to-violet-500/15 text-indigo-600">
+                <Layers className="w-3.5 h-3.5" />
+              </div>
+              <h2 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+                Argument
+              </h2>
+            </div>
             {confidence !== null && (
-              <div className="confidence-pill">
-                <div
-                  className="confidence-dot"
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                <span
+                  className="w-2 h-2 rounded-full"
                   style={{
                     background:
                       confidence >= 70
@@ -366,24 +410,26 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
           </div>
 
           {confidence !== null && (
-            <div className="confidence-bar">
+            <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-4">
               <div
-                className="confidence-fill"
+                className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
                 style={{ width: `${confidence}%` }}
               />
             </div>
           )}
 
-          <p className="argument-text">{argument.text}</p>
+          <p className="text-[15px] leading-relaxed text-slate-700 mb-4">
+            {argument.text}
+          </p>
 
           {primaryScheme && (
-            <div className="scheme-badge">
-              <span className="scheme-icon">⟨⟩</span>
-              <span className="scheme-name">
+            <div className="flex items-baseline gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+              <span className="text-indigo-600 font-bold text-xs">⟨⟩</span>
+              <span className="font-semibold text-slate-700">
                 {primaryScheme.scheme.name || primaryScheme.scheme.title}
               </span>
               {primaryScheme.scheme.summary && (
-                <span className="scheme-summary">
+                <span className="text-slate-500 text-xs">
                   — {primaryScheme.scheme.summary.slice(0, 120)}
                 </span>
               )}
@@ -393,23 +439,36 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
 
         {/* Premises */}
         {argument.premises.length > 0 && (
-          <section className="card-section">
-            <h3 className="card-section-title">
-              Premises ({argument.premises.length})
-            </h3>
-            <ul className="premise-list">
+        <section className="rounded-2xl  p-6 mb-4  panelv2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/15 text-emerald-600">
+                <Circle className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+                Premises ({argument.premises.length})
+              </h3>
+            </div>
+            <ul className="flex flex-col gap-2">
               {argument.premises.map(({ claim, isImplicit }) => (
-                <li key={claim.id} className="premise-item">
+                <li
+                  key={claim.id}
+                  className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 hover:bg-slate-100/70 rounded-lg transition-colors"
+                >
                   {isImplicit && (
-                    <span className="implicit-tag">unstated</span>
+                    <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                      unstated
+                    </span>
                   )}
-                  <span className="premise-text">{claim.text}</span>
+                  <span className="text-sm text-slate-700 flex-1 leading-relaxed">
+                    {claim.text}
+                  </span>
                   {claim.moid && (
                     <a
                       href={`${BASE_URL}/c/${claim.moid}`}
-                      className="claim-mini-link"
+                      className="text-indigo-500 hover:text-indigo-700 flex-shrink-0 mt-0.5"
+                      aria-label="View claim page"
                     >
-                      ↗
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                     </a>
                   )}
                 </li>
@@ -421,26 +480,38 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         {/* Evidence */}
         {argument.conclusion?.ClaimEvidence &&
           argument.conclusion.ClaimEvidence.length > 0 && (
-            <section className="card-section">
-              <h3 className="card-section-title">
-                Supporting evidence ({argument.conclusion.ClaimEvidence.length})
-              </h3>
-              <div className="evidence-grid">
+        <section className="rounded-2xl  p-6 mb-4  panelv2">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-sky-500/10 to-blue-500/15 text-sky-600">
+                  <BookOpen className="w-3.5 h-3.5" />
+                </div>
+                <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+                  Supporting evidence ({argument.conclusion.ClaimEvidence.length})
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 gap-2.5">
                 {argument.conclusion.ClaimEvidence.map((ev) => (
                   <a
                     key={ev.id}
                     href={ev.uri}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="evidence-card"
+                    className="group block px-4 py-3 bg-slate-50 hover:bg-white border border-slate-200 hover:border-sky-400 hover:shadow-sm rounded-xl  min-w-0"
                   >
-                    <div className="evidence-title">
-                      {ev.title || ev.uri}
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="text-sm font-semibold text-slate-800 group-hover:text-sky-700 leading-snug break-words flex-1">
+                        {ev.title || ev.uri}
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-500 flex-shrink-0 mt-0.5 transition-colors" />
                     </div>
                     {ev.citation && (
-                      <div className="evidence-citation">{ev.citation}</div>
+                      <div className="text-xs text-slate-600 leading-relaxed mb-1.5 break-words">
+                        {ev.citation}
+                      </div>
                     )}
-                    <div className="evidence-uri">{ev.uri}</div>
+                    <div className="text-[11px] text-sky-600/80 font-mono truncate">
+                      {ev.uri}
+                    </div>
                   </a>
                 ))}
               </div>
@@ -448,25 +519,32 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
           )}
 
         {/* CTA section */}
-        <section className="cta-section">
-          <div className="cta-inner">
-            <div className="cta-text">
-              <h3 className="cta-heading">Join the deliberation on Isonomia</h3>
-              <p className="cta-sub">
+        <section className="my-6">
+          <div className="rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 p-6 sm:p-7 flex items-center gap-6 flex-wrap shadow-sm">
+            <div className="flex-1 min-w-[200px]">
+              <h3 className="text-lg font-bold text-indigo-950 mb-1 tracking-tight">
+                Join the deliberation on Isonomia
+              </h3>
+              <p className="text-sm text-indigo-900/70 leading-relaxed">
                 Support, challenge, or extend this argument with structured
-                reasoning in the Digital Agora.
+                reasoning in Isonomia.
               </p>
             </div>
-            <div className="cta-buttons">
-              <a href={`${BASE_URL}/signup`} className="btn btn-primary cta-btn">
-                Respond on Isonomia
-              </a>
-              <a
+            <div className="flex gap-2 flex-wrap">
+                            <a
                 href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
-                className="btn btn-ghost cta-btn"
+                className="inline-flex items-center px-4 py-3 rounded-xl text-[14px] font-semibold text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200 whitespace-nowrap transition-all btnv2"
               >
                 View full deliberation
               </a>
+              <a
+                href={`${BASE_URL}/signup`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[14px] font-semibold bg-indigo-600 text-white btnv2"
+              >
+                Respond on Isonomia
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+
             </div>
           </div>
         </section>
@@ -490,27 +568,39 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         )}
 
         {/* Embed code */}
-        <section className="embed-section">
-          <h3 className="card-section-title">Embed this argument</h3>
-          <pre className="embed-code">{iframeEmbed}</pre>
-          <p className="embed-hint">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 mb-6 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-slate-500/10 to-slate-600/15 text-slate-600">
+              <Code className="w-3.5 h-3.5" />
+            </div>
+            <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+              Embed this argument
+            </h3>
+          </div>
+          <pre className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs font-mono text-slate-700 whitespace-pre-wrap break-all mb-2">
+            {iframeEmbed}
+          </pre>
+          <p className="text-xs text-slate-400">
             Copy and paste into any website or forum that supports HTML.
           </p>
         </section>
 
         {/* Footer */}
-        <footer className="page-footer">
-          <a href={BASE_URL} className="footer-brand">
+        <footer className="flex items-center gap-2 text-xs text-slate-400 pt-6 border-t border-slate-200/70">
+          <a
+            href={BASE_URL}
+            className="font-semibold text-indigo-600 hover:text-indigo-700"
+          >
             Isonomia
           </a>
-          <span className="footer-sep">·</span>
-          <span className="footer-meta">
+          <span className="text-slate-300">·</span>
+          <span>
             Argument #{argument.permalink?.shortCode ?? argument.id.slice(0, 8)}
           </span>
           {argument.permalink?.accessCount != null && (
             <>
-              <span className="footer-sep">·</span>
-              <span className="footer-meta">
+              <span className="text-slate-300">·</span>
+              <span>
                 {argument.permalink.accessCount} view
                 {argument.permalink.accessCount !== 1 ? "s" : ""}
               </span>
@@ -522,464 +612,3 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
   );
 }
 
-function pageStyles(): string {
-  return `
-    *, *::before, *::after { box-sizing: border-box; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      margin: 0;
-      padding: 0;
-      background: #f8fafc;
-      color: #0f172a;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    a { color: inherit; }
-
-    .page { min-height: 100vh; }
-
-    /* Nav */
-    .topnav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      background: #fff;
-      border-bottom: 1px solid #e2e8f0;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      text-decoration: none;
-    }
-
-    .brand-mesh {
-      font-size: 18px;
-      font-weight: 800;
-      color: #6366f1;
-      letter-spacing: -0.03em;
-    }
-
-    .brand-sub {
-      font-size: 13px;
-      color: #94a3b8;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: #475569;
-    }
-
-    .btn-ghost:hover {
-      background: #f1f5f9;
-      color: #1e293b;
-    }
-
-    .btn-primary {
-      background: #6366f1;
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: #4f46e5;
-    }
-
-    /* Content wrapper */
-    .content {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
-
-    /* Breadcrumb */
-    .breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-
-    .badge-type {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: #eef2ff;
-      color: #4338ca;
-    }
-
-    .breadcrumb-sep {
-      color: #cbd5e1;
-    }
-
-    .breadcrumb-link {
-      font-size: 13px;
-      color: #64748b;
-      text-decoration: none;
-    }
-
-    .breadcrumb-link:hover {
-      color: #6366f1;
-      text-decoration: underline;
-    }
-
-    /* Conclusion hero */
-    .conclusion-hero {
-      margin-bottom: 32px;
-    }
-
-    .conclusion-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #94a3b8;
-      margin: 0 0 8px 0;
-    }
-
-    .conclusion-text {
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1.3;
-      margin: 0 0 12px 0;
-      color: #0f172a;
-    }
-
-    .claim-link {
-      font-size: 13px;
-      color: #6366f1;
-      text-decoration: none;
-    }
-
-    .claim-link:hover {
-      text-decoration: underline;
-    }
-
-    /* Argument section */
-    .argument-section {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .section-title {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #94a3b8;
-      margin: 0;
-    }
-
-    .confidence-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #64748b;
-      font-weight: 600;
-    }
-
-    .confidence-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .confidence-bar {
-      height: 3px;
-      background: #e0e7ff;
-      border-radius: 2px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-
-    .confidence-fill {
-      height: 100%;
-      background: #6366f1;
-      border-radius: 2px;
-    }
-
-    .argument-text {
-      font-size: 16px;
-      line-height: 1.7;
-      color: #1e293b;
-      margin: 0 0 16px 0;
-    }
-
-    .scheme-badge {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      padding: 10px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 13px;
-    }
-
-    .scheme-icon {
-      color: #6366f1;
-      font-weight: 700;
-    }
-
-    .scheme-name {
-      font-weight: 600;
-      color: #374151;
-    }
-
-    .scheme-summary {
-      color: #6b7280;
-      font-size: 12px;
-    }
-
-    /* Premises & evidence cards */
-    .card-section {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 16px;
-    }
-
-    .card-section-title {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #94a3b8;
-      margin: 0 0 14px 0;
-    }
-
-    .premise-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .premise-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 10px 12px;
-      background: #f8fafc;
-      border-radius: 8px;
-    }
-
-    .implicit-tag {
-      flex-shrink: 0;
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #9ca3af;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-
-    .premise-text {
-      font-size: 14px;
-      color: #374151;
-      flex: 1;
-    }
-
-    .claim-mini-link {
-      color: #6366f1;
-      text-decoration: none;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-
-    .evidence-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 8px;
-    }
-
-    .evidence-card {
-      display: block;
-      padding: 12px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: border-color 0.15s;
-    }
-
-    .evidence-card:hover {
-      border-color: #6366f1;
-    }
-
-    .evidence-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: #1e293b;
-      margin-bottom: 2px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .evidence-citation {
-      font-size: 12px;
-      color: #6b7280;
-      margin-bottom: 2px;
-    }
-
-    .evidence-uri {
-      font-size: 11px;
-      color: #94a3b8;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* Not found */
-    .not-found {
-      max-width: 480px;
-      margin: 120px auto;
-      padding: 0 24px;
-      text-align: center;
-    }
-
-    .not-found h1 { font-size: 22px; margin-bottom: 8px; }
-    .not-found p { color: #64748b; margin-bottom: 20px; }
-    .not-found a { color: #6366f1; text-decoration: none; }
-
-    /* CTA */
-    .cta-section {
-      margin: 24px 0;
-    }
-
-    .cta-inner {
-      background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%);
-      border: 1px solid #c7d2fe;
-      border-radius: 16px;
-      padding: 28px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    .cta-text { flex: 1; min-width: 200px; }
-
-    .cta-heading {
-      font-size: 18px;
-      font-weight: 700;
-      margin: 0 0 6px 0;
-      color: #1e1b4b;
-    }
-
-    .cta-sub {
-      font-size: 14px;
-      color: #4c1d95;
-      opacity: 0.7;
-      margin: 0;
-    }
-
-    .cta-buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .cta-btn {
-      white-space: nowrap;
-    }
-
-    /* Embed code */
-    .embed-section {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 24px;
-    }
-
-    .embed-code {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 12px;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      white-space: pre-wrap;
-      word-break: break-all;
-      color: #374151;
-      margin: 0 0 10px 0;
-    }
-
-    .embed-hint {
-      font-size: 12px;
-      color: #94a3b8;
-      margin: 0;
-    }
-
-    /* Footer */
-    .page-footer {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 12px;
-      color: #94a3b8;
-      padding-top: 24px;
-    }
-
-    .footer-brand {
-      color: #6366f1;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .footer-sep { color: #e2e8f0; }
-
-    .footer-meta { color: #94a3b8; }
-  `;
-}

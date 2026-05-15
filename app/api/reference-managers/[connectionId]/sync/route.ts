@@ -14,25 +14,10 @@ import {
   zoteroItemToSource,
   createZoteroClientFromConnection,
 } from "@/lib/sources/referenceManagers/zotero";
-import crypto from "crypto";
+import { generateFingerprint } from "@/lib/citation/fingerprint";
 
 interface RouteContext {
   params: Promise<{ connectionId: string }>;
-}
-
-/**
- * Generate fingerprint for deduplication
- */
-function generateFingerprint(url?: string, doi?: string, title?: string): string {
-  const canonical = [
-    doi?.toLowerCase(),
-    url?.toLowerCase().replace(/^https?:\/\//, ""),
-    title?.toLowerCase().replace(/[^\w\s]/g, "").trim(),
-  ]
-    .filter(Boolean)
-    .join("|");
-
-  return crypto.createHash("sha1").update(canonical).digest("hex");
 }
 
 /**

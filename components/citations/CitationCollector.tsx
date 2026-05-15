@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import LibrarySearchModal from "@/components/citations/LibrarySearchModal";
+import ResolvedCitationChip from "@/components/citations/ResolvedCitationChip";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Link as LinkIcon, BookOpen } from "lucide-react";
 
@@ -179,46 +180,52 @@ export default function CitationCollector({
 
           {/* Tab bodies */}
           {tab === "url" && (
-            <div className="mb-2 flex items-center gap-2">
-              <input
-                className="w-full border rounded px-2 py-1 text-sm"
-                placeholder="https://…"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
-              {!!url && (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] underline text-slate-600"
-                  title="Open link"
-                >
-                  Open
-                </a>
-              )}
+            <div className="mb-2 space-y-1">
+              <div className="flex items-center gap-2">
+                <input
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  placeholder="https://…"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                />
+                {!!url && (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] underline text-slate-600"
+                    title="Open link"
+                  >
+                    Open
+                  </a>
+                )}
+              </div>
+              <ResolvedCitationChip url={url} />
             </div>
           )}
 
           {tab === "doi" && (
-            <div className="mb-2 flex items-center gap-2">
-              <input
-                className="w-full border rounded px-2 py-1 text-sm"
-                placeholder="10.xxxx/xxxxxxx"
-                value={doi}
-                onChange={(e) => setDoi(e.target.value)}
-              />
-              {!!doi && (
-                <a
-                  href={`https://doi.org/${doi}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[11px] underline text-slate-600"
-                  title="Open DOI"
-                >
-                  Open
-                </a>
-              )}
+            <div className="mb-2 space-y-1">
+              <div className="flex items-center gap-2">
+                <input
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  placeholder="10.xxxx/xxxxxxx"
+                  value={doi}
+                  onChange={(e) => setDoi(e.target.value)}
+                />
+                {!!doi && (
+                  <a
+                    href={`https://doi.org/${doi}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] underline text-slate-600"
+                    title="Open DOI"
+                  >
+                    Open
+                  </a>
+                )}
+              </div>
+              <ResolvedCitationChip url={doi.trim() ? `https://doi.org/${doi.trim()}` : ""} />
             </div>
           )}
 

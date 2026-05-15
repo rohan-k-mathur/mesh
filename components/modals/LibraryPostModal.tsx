@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCreateLibraryPost } from "@/lib/hooks/useCreateLibraryPost";
 import { useCreateFeedPost } from "@/lib/hooks/useCreateFeedPost";
+import { bulkResolveCitations } from "@/lib/citation/bulkResolve";
 import { useRouter } from "next/navigation";
 
 type Props = { onOpenChange: (v: boolean) => void; stackId?: string };
@@ -223,6 +224,17 @@ const result = await createLibraryPost({
   isPublic, caption, stackId,
   ...(stackId ? {} : { stackName: "Untitled Stack" }),
 });
+
+// Phase 7 — fire-and-forget Auto-Citation resolution for URL imports.
+// We don't await: the LibraryPost rows are already created; the
+// resolver fills `Source` rows in the background and the chip will
+// hydrate on next render. Errors are intentionally swallowed.
+if (tab === "url") {
+  const importedUrls = urls.split("\n").map((s) => s.trim()).filter(Boolean);
+  if (importedUrls.length) {
+    bulkResolveCitations(importedUrls).catch(() => {});
+  }
+}
 
 
       // result MUST be { postIds: string[], stackId?: string }

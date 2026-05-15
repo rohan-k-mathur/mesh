@@ -16,7 +16,7 @@ import {
   searchResultToSourceData,
   AcademicSearchResult,
 } from "@/lib/sources/academicSearch";
-import crypto from "crypto";
+import { generateFingerprint } from "@/lib/citation/fingerprint";
 
 interface ImportRequest {
   // Either provide the search result directly
@@ -31,21 +31,6 @@ interface ImportRequest {
 
   // Optional: skip if already exists with same DOI
   skipIfExists?: boolean;
-}
-
-/**
- * Generate fingerprint for deduplication
- */
-function generateFingerprint(url?: string, doi?: string, title?: string): string {
-  const canonical = [
-    doi?.toLowerCase(),
-    url?.toLowerCase().replace(/^https?:\/\//, ""),
-    title?.toLowerCase().replace(/[^\w\s]/g, "").trim(),
-  ]
-    .filter(Boolean)
-    .join("|");
-
-  return crypto.createHash("sha1").update(canonical).digest("hex");
 }
 
 /**

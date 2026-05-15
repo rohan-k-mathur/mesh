@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
-import { getCurrentUserId } from "@/lib/serverutils";
+import { resolveCitationCallerUserId, isMcpBearer } from "@/lib/citation/mcpAuth";
 import { mintClaimMoid } from "@/lib/ids/mintMoid";
 import { getOrCreatePermalink } from "@/lib/citations/permalinkService";
 import { isSafePublicUrl, getOrFetchLinkPreview } from "@/lib/unfurl";
@@ -34,11 +34,24 @@ const ratelimit = new Ratelimit({
 });
 
 // ─── Input schema ─────────────────────────────────────────────────────────────
-const EvidenceItem = z.object({
-  url: z.string().url(),
-  title: z.string().max(500).optional(),
-  quote: z.string().max(2000).optional(),
-});
+const EvidenceItem = z
+  .object({
+    url: z.string().url(),
+    title: z.string().max(500).optional(),
+    // `quote` = verbatim excerpt from the source (preferred for direct
+    // quotation). `summary` = a paraphrased claim about what the source
+    // shows (preferred when recording a position rather than excerpting).
+    // Exactly one is typical; if both are provided, `summary` wins.
+    // Either form is stored on `ClaimEvidence.citation` so the fitness
+    // scorer (which keys on contentSha256, not text) treats them
+    // identically.
+    quote: z.string().max(2000).optional(),
+    summary: z.string().max(2000).optional(),
+  })
+  .transform((ev) => ({
+    ...ev,
+    citationText: ev.summary ?? ev.quote,
+  }));
 
 const QuickArgSchema = z.object({
   claim: z
@@ -98,12 +111,19 @@ function buildEmbedCodes(shortCode: string, claimText: string) {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  // Auth
-  const userId = await getCurrentUserId();
+  // Auth — accept either a browser session/Firebase ID token *or*
+  // the MCP shared-secret bearer (resolves to `MCP_AUTHOR_USER_ID`,
+  // default `"mcp-bot"`). Mirrors the citation-route auth pattern so
+  // `propose_argument` works from Claude Desktop / other MCP clients.
+  const userId = await resolveCitationCallerUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userIdStr = String(userId);
+  const userIdStr = userId;
+  // Track AI-EPI Pt.3 §5 — arguments written via the MCP shared-secret
+  // bearer are AI-authored. Standing system holds them at
+  // `untested-default` until a human engages.
+  const viaMcp = isMcpBearer(req);
 
   // Rate limit
   const { success: withinLimit } = await ratelimit.limit(userIdStr);
@@ -190,6 +210,11 @@ export async function POST(req: NextRequest) {
       })
     );
 
+    // Track whether async provenance enrichment was kicked off, so the
+    // response can advise the caller (e.g. an MCP client) to delay any
+    // follow-up `get_argument` read until contentSha256 is populated.
+    let provenancePending = false;
+
     // Create ClaimEvidence records
     if (enrichedEvidence.length > 0) {
       await prisma.claimEvidence.createMany({
@@ -197,7 +222,7 @@ export async function POST(req: NextRequest) {
           claimId: claimRecord.id,
           uri: ev.url,
           title: ev.title ?? null,
-          citation: ev.quote ?? null,
+          citation: ev.citationText ?? null,
           addedById: userIdStr,
         })),
         skipDuplicates: true,
@@ -216,6 +241,7 @@ export async function POST(req: NextRequest) {
           select: { id: true },
         });
         enrichEvidenceProvenanceInBackground(created.map((c) => c.id));
+        provenancePending = created.length > 0;
       } catch {
         // best-effort; failure here doesn't break the create flow
       }
@@ -230,6 +256,16 @@ export async function POST(req: NextRequest) {
         conclusionClaimId: claimRecord.id,
         // If reasoning is provided, store it as the argument text alongside the claim
         ...(reasoning ? { text: reasoning } : {}),
+        ...(viaMcp
+          ? {
+              authorKind: "AI" as const,
+              aiProvenance: {
+                via: "mcp",
+                tool: "propose_argument",
+                createdAt: new Date().toISOString(),
+              },
+            }
+          : {}),
       },
       select: { id: true, text: true, confidence: true },
     });
@@ -257,6 +293,10 @@ export async function POST(req: NextRequest) {
         url: embedCodes.link,
       },
       embedCodes,
+      // Track A.4 — surfaces background enrichment to MCP/AI callers so
+      // they know fitness will rise after the URL is fetched and hashed.
+      provenancePending,
+      retryAfterMs: provenancePending ? 60_000 : 0,
     });
   } catch (e: any) {
     console.error("[POST /api/arguments/quick]", e);

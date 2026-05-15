@@ -1482,6 +1482,13 @@ model Source {
   pdfUrl         String? // Direct PDF URL if available
   pdfHash        String? // SHA256 hash for deduplication
 
+  // ─────────────────────────────────────────────────────────
+  // Auto-Citation Engine (docs/AUTO_CITATION_ENGINE_ROADMAP.md, Phase 2)
+  // ─────────────────────────────────────────────────────────
+  lastResolveAttemptAt DateTime? // last time the URL→Source resolver tried this source
+  resolveError         String?   // last resolver error (null on success)
+  resolverVersion      String?   // semver of the resolver that produced this row; null = legacy/manual
+
   // Relations
   citations       Citation[]
   ratings         SourceRating[]
