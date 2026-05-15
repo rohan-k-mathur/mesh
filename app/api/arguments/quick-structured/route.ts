@@ -11,8 +11,17 @@
  *
  * See: docs/MCP_STRUCTURED_ARGUMENT_ROADMAP.md
  *
- * v1 deferred (per roadmap §4):
- *   • Per-premise evidence       → all evidence lands on the conclusion claim
+ * v1.1 (per roadmap §9.1):
+ *   • Per-premise evidence       → premises[].evidence[] attaches to that
+ *                                  premise's minted Claim row. Top-level
+ *                                  evidence still attaches to the conclusion.
+ *                                  When a premise is deduped (collapses into
+ *                                  another premise or into the conclusion),
+ *                                  its evidence is merged into the surviving
+ *                                  claim and a `premise_evidence_merged`
+ *                                  warning is emitted.
+ *
+ * Still deferred (per roadmap §4 / §9.2):
  *   • Slot/role binding by name  → missing required slots emit `missing_slot`
  *                                  warnings instead of throwing 500s
  *   • Eager CQ row creation      → CQs remain lazy
@@ -69,6 +78,10 @@ const PremiseItem = z.object({
     .max(1000, "Premise must be 1000 characters or fewer")
     .transform((s) => s.replace(/<[^>]*>/g, "").trim()),
   isAxiom: z.boolean().optional().default(false),
+  // v1.1 — per-premise evidence. Each item attaches to the premise's
+  // minted Claim row (not the conclusion). Capped at 5 per premise to
+  // keep total per-request evidence in line with the conclusion cap.
+  evidence: z.array(EvidenceItem).max(5).optional().default([]),
 });
 
 const QuickStructuredArgSchema = z.object({
@@ -138,8 +151,15 @@ function buildEmbedCodes(shortCode: string, claimText: string) {
 // ─── Non-throwing slot-presence check ────────────────────────────────────────
 // Replaces `validateSlotsAgainstScheme` (which throws). v1 surfaces missing
 // required slots as response warnings; v1.1 will accept slot bindings as input.
-type WarningCode = "missing_slot" | "premise_deduped" | "scheme_inferred";
+type WarningCode =
+  | "missing_slot"
+  | "premise_deduped"
+  | "scheme_inferred"
+  | "premise_evidence_merged";
 type Warning = { code: WarningCode; detail: string };
+
+// Inferred input shape for an evidence item after zod transform.
+type NormalizedEvidence = z.infer<typeof EvidenceItem>;
 
 async function collectMissingSlotWarnings(schemeId: string | null): Promise<Warning[]> {
   if (!schemeId) return [];
@@ -209,8 +229,12 @@ export async function POST(req: NextRequest) {
     deliberationId,
   } = parsed.data;
 
-  // SSRF guard on evidence URLs
-  for (const ev of evidence) {
+  // SSRF guard on every evidence URL (top-level + per-premise).
+  const allEvidenceForGuard: NormalizedEvidence[] = [
+    ...evidence,
+    ...premises.flatMap((p) => p.evidence ?? []),
+  ];
+  for (const ev of allEvidenceForGuard) {
     if (!isSafePublicUrl(ev.url)) {
       return NextResponse.json(
         { error: `Unsafe or non-public URL: ${ev.url}` },
@@ -304,12 +328,21 @@ export async function POST(req: NextRequest) {
     // If two premise texts produce the same moid (or collide with the
     // conclusion), they collapse to a single Claim row. We surface this as
     // a `premise_deduped` warning so callers know the response.premises[]
-    // length may be less than the request's.
+    // length may be less than the request's. Per-premise evidence on a
+    // deduped premise is merged into the surviving claim and surfaced as a
+    // `premise_evidence_merged` warning so per-source provenance survives.
     const premiseMoids = premises.map((p) => ({
       text: p.text,
       moid: mintClaimMoid(p.text),
       isAxiom: p.isAxiom,
+      evidence: p.evidence ?? [],
     }));
+
+    // Map of claim-moid → evidence to attach to that claim. Pre-populated
+    // with conclusion-level evidence so a premise that collapses onto the
+    // conclusion can merge into the same bucket.
+    const evidenceByMoid = new Map<string, NormalizedEvidence[]>();
+    evidenceByMoid.set(conclusionMoid, [...evidence]);
 
     const seenMoids = new Set<string>();
     const dedupedPremises: typeof premiseMoids = [];
@@ -319,6 +352,14 @@ export async function POST(req: NextRequest) {
           code: "premise_deduped",
           detail: `Premise text '${p.text.slice(0, 80)}…' collapsed to an existing claim by content hash.`,
         });
+        if (p.evidence.length > 0) {
+          const existing = evidenceByMoid.get(p.moid) ?? [];
+          evidenceByMoid.set(p.moid, [...existing, ...p.evidence]);
+          warnings.push({
+            code: "premise_evidence_merged",
+            detail: `${p.evidence.length} evidence item(s) from the deduped premise '${p.text.slice(0, 80)}…' were merged into the surviving claim.`,
+          });
+        }
         continue;
       }
       if (p.moid === conclusionMoid) {
@@ -326,9 +367,18 @@ export async function POST(req: NextRequest) {
           code: "premise_deduped",
           detail: `Premise text matches the conclusion by content hash and was dropped to avoid a self-loop.`,
         });
+        if (p.evidence.length > 0) {
+          const existing = evidenceByMoid.get(conclusionMoid) ?? [];
+          evidenceByMoid.set(conclusionMoid, [...existing, ...p.evidence]);
+          warnings.push({
+            code: "premise_evidence_merged",
+            detail: `${p.evidence.length} evidence item(s) from the premise that collapsed onto the conclusion were merged into the conclusion claim.`,
+          });
+        }
         continue;
       }
       seenMoids.add(p.moid);
+      evidenceByMoid.set(p.moid, [...p.evidence]);
       dedupedPremises.push(p);
     }
 
@@ -357,27 +407,60 @@ export async function POST(req: NextRequest) {
         })
       )
     );
-    const premiseClaimById = new Map(premiseClaims.map((c) => [c.moid, c]));
 
     // ─── Auto-unfurl evidence titles where missing ────────────────────────────
-    const enrichedEvidence = await Promise.all(
-      evidence.map(async (ev) => {
-        if (ev.title) return ev;
-        try {
-          const preview = await getOrFetchLinkPreview(ev.url);
-          return { ...ev, title: preview.title ?? undefined };
-        } catch {
-          return ev;
-        }
-      })
-    );
+    // Run unfurls once per unique URL across all evidence buckets so we
+    // don't pay the network round-trip twice if the same URL appears under
+    // both the conclusion and a premise.
+    const unfurlCache = new Map<string, string | undefined>();
+    async function unfurlTitle(
+      ev: NormalizedEvidence
+    ): Promise<NormalizedEvidence> {
+      if (ev.title) return ev;
+      if (unfurlCache.has(ev.url)) {
+        return { ...ev, title: unfurlCache.get(ev.url) };
+      }
+      try {
+        const preview = await getOrFetchLinkPreview(ev.url);
+        const title = preview.title ?? undefined;
+        unfurlCache.set(ev.url, title);
+        return { ...ev, title };
+      } catch {
+        unfurlCache.set(ev.url, undefined);
+        return ev;
+      }
+    }
 
-    // ─── Create ClaimEvidence on conclusion (v1: conclusion-only) ────────────
+    // ─── Create ClaimEvidence per claim (conclusion + per-premise) ───────────
+    // ClaimEvidence has no (claimId, uri) unique constraint, so we dedup
+    // by URL within each claim's bucket before writing. Premise evidence
+    // attaches to the premise's minted Claim row (v1.1 — roadmap §9.1).
     let provenancePending = false;
-    if (enrichedEvidence.length > 0) {
+    const allCreatedEvidenceIds: string[] = [];
+
+    type ClaimWriteTarget = { claimId: string; moid: string };
+    const writeTargets: ClaimWriteTarget[] = [
+      { claimId: conclusionClaim.id, moid: conclusionMoid },
+      ...premiseClaims.map((c) => ({ claimId: c.id, moid: c.moid })),
+    ];
+
+    for (const { claimId, moid } of writeTargets) {
+      const bucket = evidenceByMoid.get(moid) ?? [];
+      if (bucket.length === 0) continue;
+
+      // Dedup by URL within this claim's bucket (first-write wins).
+      const seenUrls = new Set<string>();
+      const uniqueBucket = bucket.filter((ev) => {
+        if (seenUrls.has(ev.url)) return false;
+        seenUrls.add(ev.url);
+        return true;
+      });
+
+      const enriched = await Promise.all(uniqueBucket.map(unfurlTitle));
+
       await prisma.claimEvidence.createMany({
-        data: enrichedEvidence.map((ev) => ({
-          claimId: conclusionClaim.id,
+        data: enriched.map((ev) => ({
+          claimId,
           uri: ev.url,
           title: ev.title ?? null,
           citation: ev.citationText ?? null,
@@ -389,16 +472,22 @@ export async function POST(req: NextRequest) {
       try {
         const created = await prisma.claimEvidence.findMany({
           where: {
-            claimId: conclusionClaim.id,
-            uri: { in: enrichedEvidence.map((e) => e.url) },
+            claimId,
+            uri: { in: enriched.map((e) => e.url) },
           },
           select: { id: true },
         });
-        enrichEvidenceProvenanceInBackground(created.map((c) => c.id));
-        provenancePending = created.length > 0;
+        if (created.length > 0) {
+          allCreatedEvidenceIds.push(...created.map((c) => c.id));
+          provenancePending = true;
+        }
       } catch {
         // best-effort
       }
+    }
+
+    if (allCreatedEvidenceIds.length > 0) {
+      enrichEvidenceProvenanceInBackground(allCreatedEvidenceIds);
     }
 
     // ─── Argument + premises + scheme-instance in one transaction ────────────

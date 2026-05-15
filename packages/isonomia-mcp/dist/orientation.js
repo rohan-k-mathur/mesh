@@ -25,7 +25,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.3.0";
+export const ORIENTATION_VERSION = "1.4.0";
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
  * Target: ~400 tokens. Keep tight; the long form lives in
@@ -150,12 +150,12 @@ Use this whenever the user states a position, says "log this claim / save this a
 2. (Optional) \`resolve_citation\` for any DOI / arXiv id / publisher URL the user gave — the resolved canonical URL goes into \`evidence[].url\`.
 3. \`propose_structured_argument({ conclusion, premises[], reasoning?, schemeKey?, ruleType?, evidence?[], deliberationId? })\`:
    - \`conclusion\` (required) — the sentence the argument supports.
-   - \`premises[]\` (required, 1–10) — each \`{ text, isAxiom? }\`. Each premise is committed as its own Claim row, so attackers can later undermine specific premises rather than the whole argument.
+   - \`premises[]\` (required, 1–10) — each \`{ text, isAxiom?, evidence?[] }\`. Each premise is committed as its own Claim row, so attackers can later undermine specific premises rather than the whole argument. **Per-premise evidence (recommended):** when each premise has its own distinct source (e.g. a multi-source policy argument), attach it via \`premises[i].evidence[]\` (≤ 5 per premise). The evidence lands on that premise's minted Claim row, so per-source provenance maps onto per-premise standing rather than being collapsed onto the conclusion.
    - \`reasoning\` (optional) — narrative gloss tying premises to conclusion; stored on \`Argument.text\`.
    - \`schemeKey\` (optional) — from \`list_schemes\`. Omit and the server infers one (response includes a \`scheme_inferred\` warning).
-   - \`evidence[]\` (optional, up to 10) — v1 attaches all evidence to the conclusion claim; per-premise evidence ships in v1.1.
+   - \`evidence[]\` (optional, up to 10) — top-level evidence attaches to the **conclusion** claim. Use this only for sources that back the overall argument rather than one specific premise; otherwise prefer per-premise \`premises[i].evidence[]\`.
    - \`deliberationId\` (optional) — omit for "My Arguments".
-4. The response gives \`{ argument, claim, premises[], schemeInstance, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }\`. **Read \`warnings[]\`** — \`scheme_inferred\` means the server picked the scheme (announce that to the user), \`missing_slot\` lists scheme-required slots not yet bound (mention as "v1.1 will let you bind the \`expert\` slot explicitly"), \`premise_deduped\` means duplicate-text premises collapsed.
+4. The response gives \`{ argument, claim, premises[], schemeInstance, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }\`. **Read \`warnings[]\`** — \`scheme_inferred\` means the server picked the scheme (announce that to the user), \`missing_slot\` lists scheme-required slots not yet bound (mention as "v1.2 will let you bind the \`expert\` slot explicitly"), \`premise_deduped\` means duplicate-text premises collapsed into one Claim, \`premise_evidence_merged\` means a deduped premise's evidence was merged into the surviving claim (so no source is lost).
 5. **Verify the round-trip** with \`get_argument(argumentId)\` (after \`retryAfterMs\` if \`provenancePending: true\`). The result should show all premises in the "Premises" section (no "bare assertion" warning), the assigned scheme, and any critical questions.
 6. Do not invent ids, permalinks, or hashes — only echo values the write tool returned.
 

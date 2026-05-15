@@ -329,4 +329,209 @@ describe("POST /api/arguments/quick-structured", () => {
     expect(premiseRows.length).toBe(2);
     expect(premiseRows[1].isAxiom).toBe(true);
   });
+
+  // ─── v1.1 §9.1: per-premise evidence ────────────────────────────────────────
+
+  describe("per-premise evidence (v1.1 §9.1)", () => {
+    it("attaches one evidence item per premise to that premise's Claim row", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      // Echo created ClaimEvidence rows back as ids derived from claimId+url
+      // so the test can verify which claim each evidence row landed on.
+      prismaMock.claimEvidence.findMany.mockImplementation(
+        async ({ where }: any) => {
+          const urls: string[] = where?.uri?.in ?? [];
+          return urls.map((u: string, i: number) => ({
+            id: `ev_${where.claimId}_${i}`,
+          }));
+        },
+      );
+
+      const res = await POST(
+        makeReq({
+          conclusion: "Caffeine is bad for adolescents",
+          premises: [
+            {
+              text: "Sleep disruption",
+              evidence: [{ url: "https://plos.example/sleep" }],
+            },
+            {
+              text: "Cardio risk",
+              evidence: [{ url: "https://riley.example/cardio" }],
+            },
+            {
+              text: "Behavioral harms",
+              evidence: [{ url: "https://jah.example/behavior" }],
+            },
+            {
+              text: "Regulatory gap",
+              evidence: [{ url: "https://biorxiv.example/aap" }],
+            },
+            {
+              text: "Neurocognitive interference",
+              evidence: [{ url: "https://abcd.example/neuro" }],
+            },
+          ],
+        }),
+      );
+      expect(res.status).toBe(200);
+
+      // One createMany call per claim that has evidence: 5 premise calls,
+      // 0 conclusion calls (no top-level evidence supplied).
+      const calls = prismaMock.claimEvidence.createMany.mock.calls;
+      expect(calls.length).toBe(5);
+
+      // Each call should target a distinct premise claim id and carry
+      // exactly one row.
+      const rowsByClaim = new Map<string, string[]>();
+      for (const [{ data }] of calls) {
+        for (const row of data) {
+          if (!rowsByClaim.has(row.claimId)) rowsByClaim.set(row.claimId, []);
+          rowsByClaim.get(row.claimId)!.push(row.uri);
+        }
+      }
+      expect(rowsByClaim.size).toBe(5);
+      // Conclusion claim should NOT appear in the write set.
+      expect(rowsByClaim.has("claim_moid_caffeine is bad for adolescents")).toBe(
+        false,
+      );
+
+      // Each premise claim got exactly one URL.
+      for (const urls of rowsByClaim.values()) {
+        expect(urls.length).toBe(1);
+      }
+
+      // Provenance enrichment fired with all 5 created EvidenceLink ids.
+      expect(enrichEvidenceProvenanceInBackgroundMock).toHaveBeenCalledTimes(1);
+      const enqueuedIds: string[] =
+        enrichEvidenceProvenanceInBackgroundMock.mock.calls[0][0];
+      expect(enqueuedIds.length).toBe(5);
+
+      const body = await res.json();
+      expect(body.provenancePending).toBe(true);
+      expect(body.retryAfterMs).toBe(60_000);
+    });
+
+    it("merges evidence onto the surviving claim when premises dedup, with premise_evidence_merged warning", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      prismaMock.claimEvidence.findMany.mockImplementation(
+        async ({ where }: any) => {
+          const urls: string[] = where?.uri?.in ?? [];
+          return urls.map((u: string, i: number) => ({
+            id: `ev_${where.claimId}_${i}`,
+          }));
+        },
+      );
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [
+            {
+              text: "duplicate premise",
+              evidence: [{ url: "https://a.example/one" }],
+            },
+            {
+              text: "duplicate premise",
+              evidence: [{ url: "https://b.example/two" }],
+            },
+          ],
+        }),
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+
+      // Only one premise survives.
+      expect(body.premises.length).toBe(1);
+      const survivingClaimId = body.premises[0].id;
+
+      // Both evidence URLs land on the surviving claim in a single
+      // createMany call (one per claim).
+      const calls = prismaMock.claimEvidence.createMany.mock.calls;
+      expect(calls.length).toBe(1);
+      const rows = calls[0][0].data;
+      expect(rows.length).toBe(2);
+      expect(rows.every((r: any) => r.claimId === survivingClaimId)).toBe(true);
+      expect(rows.map((r: any) => r.uri).sort()).toEqual([
+        "https://a.example/one",
+        "https://b.example/two",
+      ]);
+
+      const codes = body.warnings.map((w: any) => w.code);
+      expect(codes).toEqual(
+        expect.arrayContaining(["premise_deduped", "premise_evidence_merged"]),
+      );
+    });
+
+    it("merges premise evidence onto the conclusion when the premise collapses to the conclusion", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      prismaMock.claimEvidence.findMany.mockImplementation(
+        async ({ where }: any) => {
+          const urls: string[] = where?.uri?.in ?? [];
+          return urls.map((u: string, i: number) => ({
+            id: `ev_${where.claimId}_${i}`,
+          }));
+        },
+      );
+
+      const res = await POST(
+        makeReq({
+          // The first premise text matches the conclusion → collapses.
+          // The second premise carries no evidence and is the survivor.
+          conclusion: "shared text",
+          premises: [
+            {
+              text: "shared text",
+              evidence: [{ url: "https://shared.example/dropped" }],
+            },
+            { text: "distinct premise" },
+          ],
+          evidence: [{ url: "https://top.example/conclusion" }],
+        }),
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+
+      // The premise that collapsed contributed its evidence to the
+      // conclusion bucket; conclusion now writes 2 rows in one call.
+      const calls = prismaMock.claimEvidence.createMany.mock.calls;
+      const conclusionCalls = calls.filter(([{ data }]: any) =>
+        data.every((r: any) => r.claimId === "claim_moid_shared text"),
+      );
+      expect(conclusionCalls.length).toBe(1);
+      const conclusionUris = conclusionCalls[0][0].data
+        .map((r: any) => r.uri)
+        .sort();
+      expect(conclusionUris).toEqual([
+        "https://shared.example/dropped",
+        "https://top.example/conclusion",
+      ]);
+
+      const codes = body.warnings.map((w: any) => w.code);
+      expect(codes).toEqual(
+        expect.arrayContaining(["premise_deduped", "premise_evidence_merged"]),
+      );
+    });
+
+    it("keeps backward-compat: top-level evidence still attaches to the conclusion only", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      prismaMock.claimEvidence.findMany.mockResolvedValueOnce([{ id: "ev-top" }]);
+
+      await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ text: "P1" }, { text: "P2" }],
+          evidence: [{ url: "https://top-only.example/paper" }],
+        }),
+      );
+
+      // Exactly one createMany — for the conclusion. No premise has
+      // its own evidence array.
+      const calls = prismaMock.claimEvidence.createMany.mock.calls;
+      expect(calls.length).toBe(1);
+      const rows = calls[0][0].data;
+      expect(rows.length).toBe(1);
+      expect(rows[0].claimId).toBe("claim_moid_c");
+      expect(rows[0].uri).toBe("https://top-only.example/paper");
+    });
+  });
 });
