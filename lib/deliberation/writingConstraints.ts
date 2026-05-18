@@ -48,6 +48,22 @@ export interface WritingConstraints {
     /** Pre-rendered refusal caveat; null when the graph licenses every
      *  conclusion it has been asked about. */
     refusalNotice: string | null;
+    /**
+     * Topology cautions surfaced from `readout.topology.ambiguity`.
+     * Each entry is a deterministic, pre-rendered sentence covering a
+     * structural-shape hazard (multiple co-equal hubs, diffuse hub
+     * structure, premise cascade-concentration, no load-bearing
+     * structure). Empty when the topology is unambiguous. Consumers
+     * must include these verbatim when synthesising — otherwise the
+     * resulting prose lies about a structured field.
+     */
+    structuralCautions: string[];
+    /**
+     * Honest disclosure for hierarchical-mode briefings (very-large
+     * deliberations whose sub-region detail is omitted). `null` when
+     * the briefing is fully hydrated.
+     */
+    sizeDisclosure: string | null;
   };
   /** Conclusions the agent MUST NOT assert as established.
    *  Derived from `refusalSurface.cannotConcludeBecause`. */
@@ -255,6 +271,8 @@ export function buildWritingConstraints(
     mustInclude: {
       honestyLine: readout.honestyLine,
       refusalNotice,
+      structuralCautions: readout.topology?.ambiguity?.cautions ?? [],
+      sizeDisclosure: readout.topology?.sizeTier?.disclosure ?? null,
     },
     mustNotAssert,
     shouldHedge,

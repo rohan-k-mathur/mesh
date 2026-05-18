@@ -85,7 +85,7 @@ export default function CitationExportWidget(
   );
 
   return (
-    <section className="citation-widget" aria-label="Cite this argument">
+    <section className="citation-widget search-surface" aria-label="Cite this argument">
       <div className="citation-widget-header">
         <h3 className="citation-widget-title">Cite this argument</h3>
 
@@ -139,7 +139,7 @@ export default function CitationExportWidget(
               className="citation-body custom-scrollbar"
               readOnly
               value={props.citations[tab.key]}
-              rows={tab.key === "csl" ? 12 : tab.key === "bibtex" || tab.key === "ris" ? 8 : 5}
+              rows={tab.key === "csl" ? 12 : tab.key === "bibtex" || tab.key === "ris" ? 12 : 8}
               spellCheck={false}
             />
             <div className="citation-actions">
@@ -179,9 +179,8 @@ export default function CitationExportWidget(
         .citation-widget {
           margin: 2rem 0;
           padding: 1.25rem 1.5rem 1.5rem;
-          border: 1px solid #e5e7eb;
           border-radius: 12px;
-          background: #fafafa;
+          background: #f0f0f4bc;
         }
         .citation-widget-header {
           display: flex;

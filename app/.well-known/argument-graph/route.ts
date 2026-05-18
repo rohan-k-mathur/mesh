@@ -138,7 +138,7 @@ const MANIFEST = {
       url: `${BASE_URL}/api/v3/deliberations/{id}/synthetic-readout`,
       method: "GET",
       description:
-        "Track AI-EPI Pt. 4 §5 — editorial primitive. Composes fingerprint + frontier + missing-moves + chains and exposes refusalSurface.cannotConcludeBecause: a structured enumeration of conclusions the graph will not currently license. Consumers that close on a refused conclusion lie about a structured field.",
+        "Track AI-EPI Pt. 4 §5 — editorial primitive. Composes fingerprint + frontier + missing-moves + chains + topology (hub set with multiplicity, load-bearing premises, calibrated ambiguity, size tier + hierarchical-mode disclosure) and exposes refusalSurface.cannotConcludeBecause: a structured enumeration of conclusions the graph will not currently license. Consumers that close on a refused conclusion, name a single hub when topology.hubs.shape !== 'single-dominant', or omit sizeDisclosure when hierarchicalMode is true lie about a structured field.",
     },
     deliberationCrossContext: {
       url: `${BASE_URL}/api/v3/deliberations/{id}/cross-context`,

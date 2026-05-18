@@ -48,7 +48,12 @@
     "seed:test-chain": "tsx --env-file=.env scripts/seed-test-chain.ts",
     "provision:agents": "tsx --env-file=.env scripts/experiments/provision-agents.ts",
     "refresh:agents": "tsx --env-file=.env scripts/experiments/refresh-agent-tokens.ts",
-    "orchestrator": "tsx --env-file=.env experiments/polarization-1/orchestrator/index.ts"
+    "orchestrator": "tsx --env-file=.env experiments/polarization-1/orchestrator/index.ts",
+    "eval:phase1": "tsx --env-file=.env eval/ai-epi/runRegression.ts --client mock --strict",
+    "eval:phase1:openai": "tsx --env-file=.env eval/ai-epi/runRegression.ts --client openai:gpt-4o-mini --corpus all",
+    "eval:phase1:empty": "tsx --env-file=.env eval/ai-epi/runRegression.ts --client empty",
+    "eval:phase2:premise": "tsx --env-file=.env eval/ai-epi/premise-extraction/runRegression.ts --client mock",
+    "eval:phase2:premise:openai": "tsx --env-file=.env eval/ai-epi/premise-extraction/runRegression.ts --client openai:gpt-4o-mini"
   },
   "size-limit": [
     {

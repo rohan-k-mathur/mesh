@@ -5,6 +5,8 @@
  * Google should not see the full app chrome. SEO + LCP win, per the
  * roadmap's locked Q1 decision.
  */
+import "@/app/globals.css";
+
 export const metadata = {
   title: "Search arguments — Isonomia",
   description:

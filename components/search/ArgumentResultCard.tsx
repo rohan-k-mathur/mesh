@@ -8,6 +8,22 @@
  * intentionally absent.
  */
 import Link from "next/link";
+import {
+  ShieldCheck,
+  AlertTriangle,
+  ShieldOff,
+  Circle,
+  HelpCircle,
+  Layers,
+  Activity,
+  Sparkles,
+  Cross,
+  ArrowUpRight,
+  Swords,
+  FileSignature,
+  CrosshairIcon,
+  Columns2,
+} from "lucide-react";
 import type { StandingState } from "@/lib/citations/argumentAttestation";
 
 export type SearchResult = {
@@ -46,12 +62,33 @@ export type SearchResult = {
   } | null;
 };
 
-const STANDING_LABELS: Record<StandingState, { label: string; tone: string }> = {
-  "tested-survived": { label: "Tested · Survived", tone: "good" },
-  "tested-attacked": { label: "Tested · Under attack", tone: "warn" },
-  "tested-undermined": { label: "Tested · Undermined", tone: "bad" },
-  "untested-supported": { label: "Untested · Supported", tone: "neutral" },
-  "untested-default": { label: "Untested", tone: "muted" },
+type Tone = "good" | "warn" | "bad" | "neutral" | "muted";
+
+const STANDING_LABELS: Record<
+  StandingState,
+  { label: string; tone: Tone; Icon: typeof ShieldCheck }
+> = {
+  "tested-survived": { label: "Tested · Survived", tone: "good", Icon: ShieldCheck },
+  "tested-attacked": { label: "Tested · Under attack", tone: "warn", Icon: AlertTriangle },
+  "tested-undermined": { label: "Tested · Undermined", tone: "bad", Icon: ShieldOff },
+  "untested-supported": { label: "Untested · Supported", tone: "neutral", Icon: Circle },
+  "untested-default": { label: "Untested", tone: "muted", Icon: HelpCircle },
+};
+
+const STANDING_TONE_CLASSES: Record<Tone, string> = {
+  good: "bg-emerald-50 border-emerald-200 text-emerald-700",
+  warn: "bg-amber-50 border-amber-200 text-amber-700",
+  bad: "bg-rose-50 border-rose-200 text-rose-700",
+  neutral: "bg-sky-50 border-sky-200 text-sky-700",
+  muted: "bg-slate-50 border-slate-200 text-slate-600",
+};
+
+const CARD_HOVER_BORDER: Record<Tone, string> = {
+  good: "hover:border-emerald-300",
+  warn: "hover:border-amber-300",
+  bad: "hover:border-rose-300",
+  neutral: "hover:border-sky-300",
+  muted: "hover:border-indigo-300",
 };
 
 function truncate(s: string, n: number): string {
@@ -65,7 +102,9 @@ export default function ArgumentResultCard({
 }: {
   result: SearchResult;
 }) {
-  const standing = STANDING_LABELS[result.standingState] ?? STANDING_LABELS["untested-default"];
+  const standing =
+    STANDING_LABELS[result.standingState] ?? STANDING_LABELS["untested-default"];
+  const StandingIcon = standing.Icon;
   const conclusionText = result.conclusion?.text ?? null;
   const argumentText = result.text;
   const moid = result.conclusion?.moid ?? null;
@@ -74,101 +113,134 @@ export default function ArgumentResultCard({
     : null;
 
   return (
-    <article className={`result-card tone-${standing.tone}`}>
-      <header className="card-head">
-        <span className={`standing-badge tone-${standing.tone}`}>
+    <article
+      className={`group relative rounded-2xl result-surface hover:border-indigo-600 transition-all p-5 ${CARD_HOVER_BORDER[standing.tone]}`}
+    >
+      {/* Badge row */}
+      <header className="flex flex-wrap items-center gap-2 mb-3">
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-[0.08em] uppercase ${STANDING_TONE_CLASSES[standing.tone]}`}
+        >
+          <StandingIcon className="w-3 h-3" />
           {standing.label}
         </span>
         {result.scheme?.key ? (
-          <span className="scheme-badge" title={result.scheme.title ?? undefined}>
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-[11px] font-medium text-indigo-700"
+            title={result.scheme.title ?? undefined}
+          >
+            <Layers className="w-3 h-3" />
             {result.scheme.title || result.scheme.name || result.scheme.key}
           </span>
         ) : null}
         {typeof result.dialecticalFitness === "number" ? (
           <span
-            className="fitness-chip"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-200 text-[11px] font-medium text-violet-700"
             title="Dialectical fitness — CQs answered + supports − attacks − conflicts + provenance"
           >
+            <Activity className="w-3 h-3" />
             fitness {result.dialecticalFitness.toFixed(2)}
           </span>
         ) : null}
         {result.hybrid ? (
           <span
-            className="hybrid-chip"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-[10px] font-medium text-slate-600"
             title={`RRF ${result.hybrid.rrfScore.toFixed(3)} · sparse #${result.hybrid.sparseRank ?? "—"} · dense #${result.hybrid.denseRank ?? "—"}`}
           >
+            <Columns2 className="w-2.5 h-2.5" />
             hybrid
           </span>
         ) : null}
       </header>
 
       {conclusionText ? (
-        <Link href={`/a/${result.shortCode}`} className="conclusion-link">
-          <h2 className="conclusion">{truncate(conclusionText, 240)}</h2>
+        <Link href={`/a/${result.shortCode}`} className="block group/link">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900 group-hover/link:text-indigo-600 leading-snug tracking-tight transition-colors">
+            {truncate(conclusionText, 240)}
+            <ArrowUpRight className="inline-block w-4 h-4 ml-1 -mt-1 text-slate-300 group-hover/link:text-indigo-500 transition-colors" />
+          </h2>
         </Link>
       ) : null}
 
       {argumentText && argumentText !== conclusionText ? (
-        <p className="argument-text">{truncate(argumentText, 320)}</p>
+        <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+          {truncate(argumentText, 320)}
+        </p>
       ) : null}
 
       {result.strongestCounter !== undefined ? (
         result.strongestCounter ? (
           <aside
-            className="strongest-counter"
+            className="mt-3 w-full flex items-start gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200/70"
             title={`Structural contester (${result.strongestCounter.source})`}
           >
-            <span className="sc-label">Strongest counter:</span>{" "}
-            <Link
-              href={`/a/${result.strongestCounter.shortCode}`}
-              className="sc-link"
-            >
-              {truncate(
-                result.strongestCounter.conclusion?.text ??
-                  `/a/${result.strongestCounter.shortCode}`,
-                200,
-              )}
-            </Link>
+            <CrosshairIcon className="w-3.5 h-3.5 text-rose-600 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0 w-full  text-xs leading-relaxed">
+              <span className="font-bold tracking-wide uppercase text-[10px] text-rose-700 mr-1.5 whitespace-nowrap">
+                Strongest counter:
+              </span>
+              <Link
+                href={`/a/${result.strongestCounter.shortCode}`}
+                className="text-slate-700 hover:text-rose-700 hover:underline underline-offset-2"
+              >
+                {truncate(
+                  result.strongestCounter.conclusion?.text ??
+                    `/a/${result.strongestCounter.shortCode}`,
+                  200,
+                )}
+              </Link>
+            </div>
           </aside>
         ) : (
-          <aside className="strongest-counter empty" title="No structural contester on file">
-            <span className="sc-label">Strongest counter:</span>{" "}
-            <span className="sc-empty">none on file</span>
+          <aside
+            className="mt-3 w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/70 text-[11px] text-slate-500"
+            title="No structural contester on file"
+          >
+            <CrosshairIcon className="w-3 h-3 shrink-0" />
+            <span className="font-bold tracking-wide uppercase text-[10px] text-slate-500 whitespace-nowrap">
+              Strongest counter:
+            </span>
+            <span className="italic">none on file</span>
           </aside>
         )
       ) : null}
 
-      <footer className="card-foot">
-        <Link href={`/a/${result.shortCode}`} className="permalink">
+      <footer className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+        <Link
+          href={`/a/${result.shortCode}`}
+          className="font-mono text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-2"
+        >
           /a/{result.shortCode}
         </Link>
-        <span className="meta-sep">·</span>
-        <span className="meta">v{result.version}</span>
-        <span className="meta-sep">·</span>
+        <span className="text-slate-300">·</span>
+        <span>v{result.version}</span>
+        <span className="text-slate-300">·</span>
         <a
           href={result.attestationUrl}
-          className="attestation-link"
           rel="nofollow noopener"
           title="Compact citation envelope (JSON)"
+          className="inline-flex items-center gap-1 text-slate-600 hover:text-indigo-600 hover:underline underline-offset-2"
         >
+          <FileSignature className="w-3 h-3" />
           attestation
         </a>
         {counterHref ? (
           <>
-            <span className="meta-sep">·</span>
+            <span className="text-slate-300">·</span>
             <Link
               href={counterHref}
-              className="counter-link"
               title="Search arguments that contest this conclusion"
+              className="inline-flex items-center gap-1 text-slate-600 hover:text-rose-600 hover:underline underline-offset-2"
             >
+              <Swords className="w-3 h-3" />
               counter-arguments
             </Link>
           </>
         ) : null}
         {result.lexicalCoverage ? (
           <>
-            <span className="meta-sep">·</span>
-            <span className="meta">
+            <span className="text-slate-300">·</span>
+            <span>
               {result.lexicalCoverage.matched}/{result.lexicalCoverage.outOf} terms
             </span>
           </>

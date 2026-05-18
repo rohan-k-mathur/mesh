@@ -39,6 +39,10 @@ import {
   computeCrossDeliberationContext,
   type CrossDeliberationContext,
 } from "@/lib/deliberation/crossContext";
+import {
+  computeDeliberationTopology,
+  type DeliberationTopology,
+} from "@/lib/deliberation/topology";
 import type { StandingState } from "@/lib/citations/argumentAttestation";
 import type { StandingConfidence } from "@/config/standingThresholds";
 import {
@@ -143,6 +147,14 @@ export interface SyntheticReadout {
    * links".
    */
   cross: CrossDeliberationContext | null;
+  /**
+   * Structural-shape signals (Phase 1 hardening): hub set with
+   * multiplicity, load-bearing premises (cascade-exposure), calibrated
+   * topology-ambiguity markers, and explicit size tier + hierarchical-
+   * mode disclosure. Built from `frontier.loadBearingnessScores` plus a
+   * small premise→argument query. See `lib/deliberation/topology.ts`.
+   */
+  topology: DeliberationTopology;
   refusalSurface: {
     cannotConcludeBecause: RefusalSurfaceEntry[];
   };
@@ -200,13 +212,22 @@ export async function computeSyntheticReadout(
     });
     if (cached?.payload) {
       const payload = cached.payload as unknown as SyntheticReadout;
-      // Backfill writingConstraints for cached entries written before
-      // this field existed. Pure-derived from the rest of the payload,
-      // so safe to recompute at read-time without invalidating cache.
-      if (!payload.writingConstraints) {
-        payload.writingConstraints = buildWritingConstraints(payload);
+      // Old cached payloads may pre-date the `topology` field. Those
+      // can't be safely backfilled at read-time (requires the
+      // load-bearingness scores from a fresh frontier pass plus a
+      // premise→argument query), so treat them as cache misses and let
+      // the uncached path recompute + overwrite.
+      if (!payload.topology) {
+        // fall through to recompute
+      } else {
+        // Backfill writingConstraints for cached entries written before
+        // this field existed. Pure-derived from the rest of the payload,
+        // so safe to recompute at read-time without invalidating cache.
+        if (!payload.writingConstraints) {
+          payload.writingConstraints = buildWritingConstraints(payload);
+        }
+        return payload;
       }
-      return payload;
     }
   }
 
@@ -249,6 +270,12 @@ async function _computeSyntheticReadoutUncached(
     computeCrossDeliberationContext(deliberationId).catch(() => null),
   ]);
   if (!frontier || !missingMoves || !chains) return null;
+
+  const topology = await computeDeliberationTopology(
+    deliberationId,
+    frontier,
+    fingerprint.argumentCount,
+  );
 
   // ────────────────────────────────────────────────────────────
   // refusalSurface: any conclusion that the graph cannot currently
@@ -492,6 +519,7 @@ async function _computeSyntheticReadoutUncached(
     missingMoves,
     chains,
     cross,
+    topology,
     refusalSurface: { cannotConcludeBecause: refusalEntries },
     topArguments,
     mostContested,
