@@ -2,7 +2,7 @@
 
 ## Complete Platform Overview
 
-Isonomia is a social platform with a formal reasoning layer. The social layer — forums, feed, messaging, rooms, articles, shared libraries, user profiles — provides the space where communities gather. The reasoning layer — a deliberation engine implementing formal argumentation theory, interactive proof theory, and evidence aggregation — provides the infrastructure that preserves what the gathering produces. The two layers share a single data model and a continuous spectrum of formality: any conversation can become a structured deliberation, and any deliberation exists within a social context.
+Isonomia is a social platform with a formal reasoning layer. The social layer (forums, feed, messaging, rooms, articles, shared libraries, user profiles) provides the space where communities gather. The reasoning layer, a deliberation engine implementing formal argumentation theory, interactive proof theory, and evidence aggregation, provides the infrastructure that preserves what the gathering produces. The two layers share a single data model and a continuous spectrum of formality: any conversation can become a structured deliberation, and any deliberation exists within a social context.
 
 The platform is open-source, self-hostable, and designed as public infrastructure. There is no advertising, no algorithmic feed optimization, no data harvesting, and no engagement metrics. The data belongs to the community that produces it. The code is public. The architecture enforces these commitments at the protocol level rather than the policy level.
 
@@ -12,13 +12,11 @@ The platform is open-source, self-hostable, and designed as public infrastructur
 
 ### The Two Layers
 
-The platform operates across two layers that share a unified interface and data model:
-
 **The Social Layer (MESH)** provides the features of a general-purpose community platform: a chronological feed with multiple post types, direct and group messaging, persistent rooms and lounges, user profiles with friend and follow systems, shared document libraries, long-form article publishing, and spatial canvas environments. This layer is complete and functional as a standalone social platform. It requires no engagement with the reasoning layer.
 
-**The Reasoning Layer (Isonomia)** provides formal deliberation infrastructure: argumentation schemes with auto-generated critical questions, typed dialogue moves with protocol enforcement, commitment stores, evidence management with executable citations, Ludics game-theoretic evaluation, confidence scoring, and a cross-context transport network. This layer is accessible from any point in the social layer through a single upgrade action — a discussion can become a deliberation, a comment can become a claim, an annotation can become a proposition — and the transition is reversible.
+**The Reasoning Layer (Isonomia)** provides formal deliberation infrastructure: argumentation schemes with auto-generated critical questions, typed dialogue moves with protocol enforcement, commitment stores, evidence management with executable citations, Ludics game-theoretic evaluation, confidence scoring, and a cross-context transport network. This layer is accessible from any point in the social layer through a single upgrade action (a discussion can become a deliberation, a comment can become a claim, an annotation can become a proposition), and the transition is reversible.
 
-The relationship between the layers is not hierarchical. The social layer is not a simplified reasoning layer, and the reasoning layer is not an advanced social layer. They are two modes of the same platform, addressing two different moments in a community's life: the moment of gathering and the moment of deciding. Most communities spend most of their time gathering. The reasoning layer exists for those moments when the gathering needs structure.
+The two layers are coordinate, not hierarchical: not a simplified version and an advanced version of one thing, but two modes of the same platform addressing two moments in a community's life, the moment of gathering and the moment of deciding. Most communities spend most of their time gathering. The reasoning layer exists for those moments when the gathering needs structure.
 
 ### The Spectrum
 
@@ -36,13 +34,13 @@ Every feature on the platform exists at a position on a continuous spectrum from
 
 **Cross-context.** Cross-posting (informal) → shared references (structured) → transport functors with SHA-1 fingerprinted provenance and confidence gating (formal).
 
-The transition between any two adjacent points on the spectrum is a single user action. No transition requires specialized knowledge. No transition is irreversible. Communities move along the spectrum as their needs dictate, and the platform supports every position with a consistent interface and a shared data model.
+The transition between any two adjacent points on the spectrum is a single user action. No transition requires specialized knowledge. No transition is irreversible. Communities move along the spectrum as their needs dictate, and the platform supports every position with a consistent interface.
 
 ### The Knowledge Production Pipeline
 
 When a community's work moves from informal to formal, the platform models the trajectory as a pipeline:
 
-Informal discussion generates propositions. Propositions are workshopped into claims. Claims are structured into arguments through formal schemes. Arguments are challenged through protocol-enforced dialogue moves. Moves accrue in commitment stores. Commitment stores are analyzed by the Ludics engine, which produces convergence and divergence determinations. Determinations feed into confidence scores. Confidence scores gate the Plexus network. Room functors transport arguments across rooms with fingerprinted provenance. At every stage, the reasoning is addressable, citable, challengeable, and durable.
+Informal discussion surfaces propositions, which are workshopped into claims and structured into arguments through formal schemes. Arguments are challenged through protocol-enforced dialogue moves; the moves accrue in commitment stores, which the Ludics engine analyzes for convergence and divergence. Those determinations feed confidence scores, which in turn gate the Plexus network: room functors transport arguments across rooms with fingerprinted provenance. At every stage, the reasoning is addressable, citable, challengeable, and durable.
 
 Not every community will traverse the full pipeline. Most will operate at the early stages most of the time. The pipeline exists in its entirety so that the infrastructure is present when the community's reasoning reaches a point of complexity that warrants it.
 
@@ -54,16 +52,16 @@ Not every community will traverse the full pipeline. Most will operate at the ea
 
 The main feed is chronological: content appears in the order it was posted by the people and communities the user follows. There is no algorithmic ranking, no engagement optimization, no promoted content, and no "suggested" posts from accounts the user did not choose to follow.
 
-The platform supports eight post types, each rendered with a dedicated component:
+The platform supports eight post types:
 
-- **Text** — plain text posts
-- **Image** — image uploads
-- **Audio** — audio player embed
-- **Gallery** — multi-image carousel
-- **Article** — long-form writing 
-- **Library** — PDF stacks and collections
-- **Thread** — threaded discussion
-- **Document** — PDF/document embed
+- **Text** — plain text posts.
+- **Image** — image uploads.
+- **Audio** — audio player embed.
+- **Gallery** — multi-image carousel.
+- **Article** — long-form writing.
+- **Library** — PDF stacks and collections.
+- **Thread** — threaded discussion.
+- **Document** — PDF/document embed.
 
 Post creation uses a composer UI with a type selector and dedicated creation modals for each type. Posts support upvotes/downvotes, comments, sharing, timestamping, and deletion.
 
@@ -75,11 +73,11 @@ The social graph is owned by the user: exportable in open formats, portable, nev
 
 ### Rooms and Lounges
 
-Persistent spaces for communities, groups, projects, and organizations. Rooms are the primary organizational unit of the platform — each room has its own feed, discussions, shared library, member management, and (when the community is ready) its own deliberation space.
+Persistent spaces for communities, groups, projects, and organizations. Rooms are the primary organizational unit of the platform: each room has its own feed, discussions, shared library, member management, and (when the community is ready) its own deliberation space.
 
-**Lounges** are lighter-weight social spaces — open or invite-only — for casual gathering, conversation, and ambient connection.
+**Lounges** are lighter-weight social spaces (open or invite-only) for casual gathering, conversation, and ambient connection.
 
-**Spatial Canvas Rooms** allow freeform arrangement of content — posts, images, documents, links, embeds — in a two-dimensional navigable space. The canvas can be collaboratively edited and annotated. Canvas rooms serve as visual workspaces, mood boards, reference collections, and spatial brainstorming environments.
+**Spatial Canvas Rooms** allow freeform arrangement of content (posts, images, documents, links, embeds) in a two-dimensional navigable space. The canvas can be collaboratively edited and annotated. Canvas rooms serve as visual workspaces, mood boards, reference collections, and spatial brainstorming environments.
 
 Rooms and lounges are governed by their members. The platform provides infrastructure; the community provides governance. Moderation controls are local to the room.
 
@@ -87,7 +85,7 @@ Rooms and lounges are governed by their members. The platform provides infrastru
 
 Real-time messaging with direct messages, group conversations, and room-level chat.
 
-**Message Layers.** The messaging system implements sheaf-based access control: each conversation has explicitly defined audience layers, each with its own sharing policy that determines what is visible to whom. The stratified communication that users already practice informally — what is public, what is group-only, what is private — is handled architecturally through defined layers rather than left to the uncertainty of informal norms.
+**Message Layers.** The messaging system implements sheaf-based access control: each conversation has explicitly defined audience layers, each with its own sharing policy that determines what is visible to whom. The stratified communication that users already practice informally (what is public, what is group-only, what is private) is handled architecturally through defined layers rather than left to the uncertainty of informal norms.
 
 **Drifts.** Side conversations that branch from any anchor message, creating a threaded sub-conversation that preserves context from the parent message without disrupting the main flow.
 
@@ -95,9 +93,9 @@ Real-time messaging with direct messages, group conversations, and room-level ch
 
 **Polls.** Inline polls with two modes: multi-choice (select one or more options) and temperature check (gauge group sentiment on a spectrum). Polls can be embedded in any conversation.
 
-**Read Receipts and Acknowledgments.** Optional and transparent. Message forwarding with access-control validation — the platform checks whether the forwarding target has permission to see the forwarded content before allowing the forward.
+**Read Receipts and Acknowledgments.** Optional and transparent. Message forwarding with access-control validation: the platform checks whether the forwarding target has permission to see the forwarded content before allowing the forward.
 
-
+---
 
 ## III. The Reasoning Layer
 
@@ -107,7 +105,7 @@ The core formal system. When a discussion is upgraded to a deliberation, the fol
 
 **Claims** are addressable objects with stable identifiers, version history, and authorship attribution. A claim can be in one of several statuses: proposed, accepted, challenged, defended, retracted, or resolved.
 
-**Arguments** instantiate formally recognized reasoning patterns. The platform implements over sixty argumentation schemes from the Walton taxonomy — Argument from Expert Opinion, Argument from Analogy, Argument from Sign, Argument from Cause to Effect, and so on. Each scheme has a defined structure (premises, conclusion, inference rule) and auto-generated critical questions that identify the specific points where the argument could fail.
+**Arguments** instantiate formally recognized reasoning patterns. The platform implements over sixty argumentation schemes from the Walton taxonomy: Argument from Expert Opinion, Argument from Analogy, Argument from Sign, Argument from Cause to Effect, and so on. Each scheme has a defined structure (premises, conclusion, inference rule) and auto-generated critical questions that identify the specific points where the argument could fail.
 
 **Dialogue Moves** are typed speech acts governed by protocol: Assert, Challenge, Defend, Concede, Retract, Request Clarification, and others. Each move creates specific obligations and permissions for the moves that follow it. The protocol ensures that challenges cannot be silently ignored: an unanswered challenge is itself a recorded datum.
 
@@ -117,7 +115,7 @@ The core formal system. When a discussion is upgraded to a deliberation, the fol
 
 **The Deliberation Dictionary** allows key terms to be formally defined, contested, and versioned within a deliberation. When a dispute turns on the meaning of a term, the term is entered in the dictionary with its proposed definition; the definition itself then becomes available for challenge and refinement through the same dialogue protocol.
 
-**ASPIC+ Evaluation.** The platform computes grounded extensions — the maximal sets of mutually consistent arguments that can be simultaneously defended — using the ASPIC+ framework for structured argumentation. This provides a formal determination of which arguments survive challenge given the current state of the deliberation.
+**ASPIC+ Evaluation.** The platform computes grounded extensions (the maximal sets of mutually consistent arguments that can be simultaneously defended) using the ASPIC+ framework for structured argumentation. This provides a formal determination of which arguments survive challenge given the current state of the deliberation.
 
 **Ludics Evaluation.** The entire deliberation can be modeled as an interactive game between Proponent and Opponent designs under Girard's Ludics semantics. Strategic landscapes can be heat-mapped to identify decisive positions (where the game is determined), turning positions (where a single move changes the outcome), and bottleneck positions (where progress depends on resolving a specific sub-argument).
 
@@ -125,21 +123,36 @@ The core formal system. When a discussion is upgraded to a deliberation, the fol
 
 Document management integrated with the deliberation engine.
 
-**Document Storage.** Upload, organize, and share PDFs, papers, reports, and other source materials. Documents are stored in Stacks — themed collections that can be shared across rooms or kept private.
+**Document Storage.** Upload, organize, and share PDFs, papers, reports, and other source materials. Documents are stored in Stacks: themed collections that can be shared across rooms or kept private.
 
-**Executable Citations.** Four anchor types for linking evidence to arguments: page-level, passage-level, figure-level, and section-level. Each citation is executable — clicking it navigates to the exact location in the source document. Citations carry intent labels: supports, challenges, provides context, provides evidence, qualifies, or extends.
+**Executable Citations.** Four anchor types for linking evidence to arguments: page-level, passage-level, figure-level, and section-level. Each citation is executable: clicking it navigates to the exact location in the source document. Citations carry intent labels: supports, challenges, provides context, provides evidence, qualifies, or extends.
 
-**Annotation and Promotion.** Source documents can be annotated in the library. Annotations are conversations — threaded discussions attached to specific passages. Any annotation can be promoted into the deliberation graph: a marginal note becomes a proposition, which can be workshopped into a claim, which can be structured into an argument.
+**Annotation and Promotion.** Source documents can be annotated in the library. Annotations are conversations: threaded discussions attached to specific passages. Any annotation can be promoted into the deliberation graph: a marginal note becomes a proposition, which can be workshopped into a claim, which can be structured into an argument.
 
 **Knowledge Graph.** Sources, claims, arguments, and deliberations are connected in a navigable knowledge graph. Cross-deliberation source discovery identifies cases where the same document has been cited in multiple contexts, enabling communities to find related reasoning.
 
-**Auto-Citation Engine.** Any URL or DOI pasted into the citation composer is resolved automatically into a verified bibliographic record — no manual entry of title, authors, or year. The resolver runs a waterfall in priority order: arXiv API for preprints, Crossref for DOIs (detected directly in the URL or surfaced by page scraping), Highwire / Dublin Core / OpenGraph metadata for academic pages, OpenAlex enrichment for abstracts and Open Access PDFs, GPT-4o-mini extraction as a low-confidence fallback for pages with no structured metadata, and the Internet Archive (Wayback) as a last-ditch lookup for unreachable URLs. Successful resolutions are also enriched with a stable Wayback snapshot when one exists, so the cited evidence remains addressable even if the live URL rots. Each resolution carries an explicit confidence tier — **high** (Crossref or arXiv canonical record), **medium** (page metadata only), **low** (LLM-extracted; flagged in the UI for verification), or **none** (URL kept as-is, retried after 24h). AI-authored arguments with empirical schemes are gated on having at least one non-`none` citation. Bulk paste of up to 200 URLs into the New Library modal resolves in the background and hydrates citation chips as results arrive. Per-host rate limits, circuit breakers, polite-pool compliance for Crossref and OpenAlex, and a 30-day success / 24-hour failure cache keep the engine well-behaved against external services.
+**Auto-Citation Engine.** Any URL or DOI pasted into the citation composer is resolved automatically into a verified bibliographic record, with no manual entry of title, authors, or year.
+
+The resolver runs a waterfall in priority order:
+
+1. **arXiv API** for preprints.
+2. **Crossref** for DOIs, detected directly in the URL or surfaced by page scraping.
+3. **Highwire / Dublin Core / OpenGraph metadata** for academic pages.
+4. **OpenAlex** enrichment for abstracts and Open Access PDFs.
+5. **GPT-4o-mini extraction** as a low-confidence fallback for pages with no structured metadata.
+6. **Internet Archive (Wayback)** as a last-ditch lookup for unreachable URLs.
+
+Successful resolutions are also enriched with a stable Wayback snapshot when one exists, so the cited evidence remains addressable even if the live URL rots.
+
+Each resolution carries an explicit confidence tier: **high** (Crossref or arXiv canonical record), **medium** (page metadata only), **low** (LLM-extracted; flagged in the UI for verification), or **none** (URL kept as-is, retried after 24h). AI-authored arguments with empirical schemes are gated on having at least one non-`none` citation.
+
+Bulk paste of up to 200 URLs into the New Library modal resolves in the background and hydrates citation chips as results arrive. Per-host rate limits, circuit breakers, polite-pool compliance for Crossref and OpenAlex, and a 30-day success / 24-hour failure cache keep the engine well-behaved against external services.
 
 ### The Article System
 
 A full-featured publishing system integrated with the social and reasoning layers.
 
-**Editor.** Rich text editing powered by TipTap with custom nodes (image, pull-quote, callout, KaTeX math block, code, embed, deliberation block) and a slash-command menu for fast block insertion. An advanced toolbar exposes the full formatting surface; paste sanitization safely handles content from external sources; a 20k character limit is tracked live.
+**Editor.** Rich text editing powered by TipTap with custom nodes (image, pull-quote, callout, KaTeX math block, code, embed, deliberation block) and a slash-command menu for fast block insertion. An advanced toolbar exposes the full formatting surface; paste sanitization safely handles content from external sources; a 20,000-character limit is tracked live.
 
 **Templates.** Three article templates govern layout and reader chrome: **Standard** (clean minimal layout for most articles), **Feature** (magazine-style with hero image and large title), and **Interview** (Q&A format with speaker attribution).
 
@@ -147,13 +160,13 @@ A full-featured publishing system integrated with the social and reasoning layer
 
 **Anchored Comments.** Comment threads attach to specific passages in the article, with collision resolution when multiple comment threads target overlapping text ranges. A sidebar comment rail surfaces all threads in document order. Readers engage with the article at the level of the sentence rather than at the level of the page.
 
-**Rhetoric Analysis Overlays.** Visual overlays that surface the article's persuasive strategies — hedges, intensifiers, absolutes, analogies, metaphors — color-coded inline so readers (and authors) can see the rhetorical architecture beneath the prose alongside claim density, evidence distribution, and argument structure indicators.
+**Rhetoric Analysis Overlays.** Visual overlays that surface the article's persuasive strategies (hedges, intensifiers, absolutes, analogies, metaphors), color-coded inline so readers and authors can see the rhetorical architecture beneath the prose alongside claim density, evidence distribution, and argument structure indicators.
 
 **Proposition Composer.** Annotations and comments can be promoted directly into the deliberation engine through a composition interface that guides the user from informal observation to structured claim. The deliberation panel embeds the full deliberation system inside the article reader.
 
 ### The Discussion System
 
-The lightweight informal layer — forums, topic-based conversations, and loose exchanges. The discussion system is the most common entry point for community interaction and the starting point of the knowledge production pipeline.
+The lightweight informal layer: forums, topic-based conversations, and loose exchanges. The discussion system is the most common entry point for community interaction and the starting point of the knowledge production pipeline.
 
 **Upgrade Paths.** Any discussion can be upgraded to a structured deliberation when the conversation warrants it. The upgrade preserves the discussion's content and participants while adding the formal infrastructure of the deliberation engine. The upgrade is a single action. It does not require the participants to have prior experience with the formal tools.
 
@@ -161,9 +174,9 @@ The lightweight informal layer — forums, topic-based conversations, and loose 
 
 The durable, public-facing output of the reasoning process.
 
-**Publishable Pages.** Knowledge base pages combine prose narrative with live deliberation blocks — embedded views of argument graphs, claim statuses, confidence scores, and evidence summaries that reflect the current state of the underlying deliberation. The pages are stable and citable: each has a permanent URL and a versioned reference.
+**Publishable Pages.** Knowledge base pages combine prose narrative with live deliberation blocks: embedded views of argument graphs, claim statuses, confidence scores, and evidence summaries that reflect the current state of the underlying deliberation. The pages are stable and citable: each has a permanent URL and a versioned reference.
 
-**Live Deliberation Blocks.** Embedded components that render the current state of a deliberation within a knowledge base page. If the underlying deliberation is updated — new evidence, new challenges, revised confidence scores — the blocks update accordingly. The knowledge base is not a snapshot. It is a live view.
+**Live Deliberation Blocks.** Embedded components that render the current state of a deliberation within a knowledge base page. If the underlying deliberation is updated (new evidence, new challenges, revised confidence scores), the blocks update accordingly. The knowledge base is not a snapshot. It is a live view.
 
 ### The Plexus Network
 
@@ -179,7 +192,7 @@ The cross-context layer that connects deliberation rooms into a network.
 4. **Cross-References** — a deliberation in one room explicitly references a determination in another.
 5. **Institutional Links** — rooms operated by the same organization or community are structurally connected.
 
-**Room Functors.** Arguments are transported between rooms through functors that preserve inferential structure. When an argument is imported, it carries its provenance — its origin room, its challenge history, its confidence score, its evidence links — with SHA-1 fingerprinted integrity. The receiving room can verify that the imported argument has not been altered in transit.
+**Room Functors.** Arguments are transported between rooms through functors that preserve inferential structure. When an argument is imported, it carries its provenance (its origin room, its challenge history, its confidence score, its evidence links) with SHA-1 fingerprinted integrity. The receiving room can verify that the imported argument has not been altered in transit.
 
 **Confidence Gating.** Each room can set a confidence threshold for incoming arguments: only arguments that meet the threshold (based on their evaluation in the source room) are eligible for import. Three scoring modes:
 
@@ -197,11 +210,11 @@ Arguments and claims produced on the platform are exposed beyond the platform th
 
 ### Permalinks and Embeds
 
-**Permalink Pages.** Every claim and every argument resolves to a permanent URL that renders a standalone public page — no account required — showing the conclusion, premises, scheme, evidence list, confidence score, challenge history, and current standing. This is the public face of a structured argument.
+**Permalink Pages.** Every claim and every argument resolves to a permanent URL that renders a standalone public page (no account required) showing the conclusion, premises, scheme, evidence list, confidence score, challenge history, and current standing. This is the public face of a structured argument.
 
-**Social Cards.** When an Isonomia link is shared on external platforms — Twitter, Reddit, Slack, Hacker News, Discord — it unfurls as a rich preview card showing the argument's structure: conclusion, premise count, evidence count, confidence score, scheme, and challenge status.
+**Social Cards.** When an Isonomia link is shared on external platforms (Twitter, Reddit, Slack, Hacker News, Discord), it unfurls as a rich preview card showing the argument's structure: conclusion, premise count, evidence count, confidence score, scheme, and challenge status.
 
-**Iframe Embeds.** Any argument or claim can be embedded in an external website through a standard iframe tag. The embed renders as an interactive card that can be expanded, navigated, and — if the viewer has an account — challenged directly without leaving the host page.
+**Iframe Embeds.** Any argument or claim can be embedded in an external website through a standard iframe tag. The embed renders as an interactive card that can be expanded, navigated, and (if the viewer has an account) challenged directly without leaving the host page.
 
 **oEmbed Discovery.** Standard oEmbed protocol support for automatic embed rendering by platforms and content management systems that consume oEmbed.
 
@@ -209,9 +222,9 @@ Arguments and claims produced on the platform are exposed beyond the platform th
 
 ### Creation and Sharing
 
-**Share Modals.** Tabbed share surfaces — link, embed, markdown, plain text — with a live preview of the social card, accessible from the action row of every argument and claim.
+**Share Modals.** Tabbed share surfaces (link, embed, markdown, plain text) with a live preview of the social card, accessible from the action row of every argument and claim.
 
-**Quick Argument Builder.** A lightweight composer for constructing a structured argument — claim, premises, evidence — and generating a shareable link in under sixty seconds. It is the on-ramp that turns a person with an argument into a person with a *structured* argument. A user's first quick argument automatically creates a personal deliberation, so every individually authored argument still lives inside the deliberation infrastructure with no setup overhead.
+**Quick Argument Builder.** A lightweight composer for constructing a structured argument (claim, premises, evidence) and generating a shareable link in under sixty seconds. It is the on-ramp that turns a person with an argument into a person with a *structured* argument. A user's first quick argument automatically creates a personal deliberation, so every individually authored argument still lives inside the deliberation infrastructure with no setup overhead. The same write primitive is exposed to model-context-protocol agents as `propose_structured_argument`; an agent that omits `deliberationId` lands in the caller's personal deliberation just as a human user would, so the human-facing builder and the agent-facing tool are two surfaces of one substrate.
 
 **URL Unfurl.** A safe URL metadata extractor (title, favicon, site name) used by the builder to enrich evidence URLs.
 
@@ -229,7 +242,7 @@ The embed primitive lifts from a single argument to an entire deliberation: a st
 
 ### Public Argument Search and Discovery
 
-Isonomia exposes the public corpus as a crawlable, machine-citable search surface — "Google for arguments" — reachable identically by humans, search engines, and language-model agents.
+Isonomia exposes the public corpus as a crawlable, machine-citable search surface ("Google for arguments") reachable identically by humans, search engines, and language-model agents.
 
 **Consumer search page.** A server-rendered search page renders ranked results as substrate-first cards: a standing badge (tested-survived, tested-attacked, and so on), a scheme chip, a dialectical-fitness chip, a hybrid-retrieval chip, an attestation link, a deep link to counter-argument discovery, and a lexical-coverage indicator. The same URL serves humans and crawlers, with alternate links exposing JSON and JSON-LD representations of the same results. Empty states are reported honestly: no query intent, no results, an against-mode query with no counters on file, and API failure are surfaced as four distinct conditions rather than collapsed into a generic "nothing found."
 
@@ -237,40 +250,52 @@ Isonomia exposes the public corpus as a crawlable, machine-citable search surfac
 
 **Quality filters.** Filters narrow results to dialectically tested, evidence-bearing arguments: tested-only, a minimum threshold of critical-question satisfaction, a minimum count of provenance-anchored evidence, and an ISO date range. The filters surface in the page UI as a collapsible quality-filters panel and as parameters in both the public API and the model context protocol tools.
 
-**Counter-citation discovery.** Each result can be enriched with the most-engaged structural contester to its conclusion — rebut and undercut edges, plus conflict applications, with self-counters excluded. When nothing is on file, the result is honestly null. The consumer page opts in by default, so every visible card displays either the strongest known counter or "none on file." There is no one-sided ranking.
+**Counter-citation discovery.** Each result can be enriched with the most-engaged structural contester to its conclusion: rebut and undercut edges, plus conflict applications, with self-counters excluded. When nothing is on file, the result is honestly null. The lookup is a bounded single-fanout across the top-K results (one edge query, one conflict-application query, one argument fetch, no N+1), so the consumer page opts in by default and every visible card displays either the strongest known counter or "none on file." There is no one-sided ranking.
 
-**Stance retrieval.** A claim-stances endpoint returns "for" and "against" arguments in a single call — the killer query for any debate UI. "For" arguments conclude to the claim; "against" arguments are structural contesters of it. Both lists carry the full search-result shape, so any client that understands a search result already understands a stance result. The claim page renders the dual-column dialectical view inline.
+**Stance retrieval.** A claim-stances endpoint returns "for" and "against" arguments in a single call: the killer query for any debate UI. "For" arguments conclude to the claim; "against" arguments are structural contesters of it. Both lists carry the full search-result shape (and can carry the strongest-counter enrichment when requested), so any client that understands a search result already understands a stance result. A missing claim is reported as a 404 with an explicit error code; an empty side is reported as an empty list, not as absence. The claim page renders the dual-column dialectical view inline.
 
 **SEO surface.** A sitemap covers argument and claim permalinks together with canonical scheme search topics; a robots policy allows the public discovery surfaces while disallowing internal admin, cron, and authentication routes. Search-result preview cards generate live result counts together with sort and mode chips, so a social-platform unfurl shows the actual result count for the query rather than a generic placeholder.
 
 ### The AI-Epistemic Primitive
 
-Layered on top of the embeddable surface is the **AI-citation primitive**: every permalink is treated as a machine-citable, dialectically attested, content-hashed epistemic artifact, exposed over content-negotiated HTTP and over a model context protocol. The primitive is organized around seven commitments.
+Layered on top of the embeddable surface is the **AI-Epistemic Primitive**: every permalink is treated as a machine-citable, dialectically attested, content-hashed epistemic artifact, exposed over content-negotiated HTTP and over a model context protocol. The primitive is organized around seven commitments.
 
-**Machine-citable structured arguments.** Every permalink resolves to a structured argument subgraph — claim, premises, scheme, evidence — not just prose. Content negotiation returns the same artifact as HTML, structured data, a formal argument graph, or a compact citation envelope, depending on what the requester asks for.
+**Machine-citable structured arguments.** Every permalink resolves to a structured argument subgraph (claim, premises, scheme, evidence), not just prose. Content negotiation returns the same artifact as HTML, structured data, a formal argument graph, or a compact citation envelope, depending on what the requester asks for.
 
-**Verifiable provenance, end-to-end.** At the argument level, a content hash is computed over the canonical argument, and every artifact is reachable at an immutable, hash-anchored URL. At the evidence level, server-side fetch hashes, archive-snapshot URLs, fetch timestamps, and content types are recorded. At the premise level, counters surface unattested premises honestly rather than concealing them.
+**Verifiable provenance, end-to-end.** At the argument level, a content hash is computed over the canonical argument, and every artifact is reachable at an immutable, hash-anchored URL. At the evidence level, server-side fetch hashes, archive-snapshot URLs, fetch timestamps, and content types are recorded. Per-premise evidence is attested through the same pipeline as conclusion-level evidence: each premise's `EvidenceLink` rows carry their own fetch hash and archive snapshot, so per-source provenance maps cleanly onto per-premise standing rather than being collapsed onto the conclusion. At the premise level, counters surface unattested premises honestly rather than concealing them.
 
-**Dialectical honesty by construction.** Citations ship with their opposition attached. The strongest known objection is surfaced alongside the citation by default, and the public search surface exposes the symmetric flag so every search result carries either its strongest known counter or an honest null when none is on file. Standing is reported as a classified state — untested-default, untested-supported, tested-attacked, tested-undermined, tested-survived — rather than as an opaque float. Counterargument lookup, the search surface's against mode, and the strongest-counter helper all exclude same-conclusion self-counters by contract. Result rankings can be re-sorted by tested-and-survived (dialectical-fitness) status, and a claim-stances endpoint together with its matching model-context tool returns the dual for-and-against view in a single call.
+**Dialectical honesty by construction.** Citations ship with their opposition attached. The strongest known objection is surfaced alongside the citation by default, and the public search surface exposes the symmetric flag so every search result carries either its strongest known counter or an honest null when none is on file. Standing is reported as a classified state (untested-default, untested-supported, tested-attacked, tested-undermined, tested-survived) rather than as an opaque float. Counterargument lookup, the search surface's against mode, and the strongest-counter helper all exclude same-conclusion self-counters by contract. Result rankings can be re-sorted by tested-and-survived (dialectical-fitness) status, and a claim-stances endpoint together with its matching model-context tool returns the dual for-and-against view in a single call. Authorship is honest at the row level: every argument minted by a model-context-protocol agent is flagged `authorKind: "AI"` with `aiProvenance` recording the originating tool (`propose_argument`, `propose_structured_argument`, `propose_warrant`), so consumers can distinguish AI-authored, human-authored, and ratified-AI material wherever the artifact is cited.
 
-**Standards-grounded interoperability.** The system speaks the established formats of the argumentation and web-data communities: the Argument Interchange Format, structured linked data, fact-check schema, and a model context protocol surface. There are no bespoke serializations. The model-context surface also exposes citation resolution itself — `resolve_citation` and `resolve_citations_bulk` — so an external agent can pre-mint verified `Source` records (with full waterfall provenance and Wayback fallback) before proposing arguments, rather than handing the platform unchecked URL strings.
+**Standards-grounded interoperability.** The system speaks the established formats of the argumentation and web-data communities: the Argument Interchange Format, structured linked data, fact-check schema, and a model context protocol surface. There are no bespoke serializations.
+
+The model-context surface is bidirectional.
+
+*Read side.* It exposes deliberation-scope readouts, argument lookup, counterargument discovery, claim stances, and citation resolution itself (`resolve_citation` and `resolve_citations_bulk`), so an external agent can pre-mint verified `Source` records (with full waterfall provenance and Wayback fallback) before proposing arguments, rather than handing the platform unchecked URL strings.
+
+*Write side.* It exposes `propose_argument` (bare assertion), `propose_structured_argument` (explicit premises + scheme + per-premise evidence, with a four-code warning surface for inferred schemes, deduped premises, merged evidence, and missing required slots), `propose_warrant` (attach an inference-license warrant to an existing argument), and `list_schemes` (browse the Walton catalog before picking a scheme key).
+
+*Orientation.* Every session begins with a single `get_orientation` call that returns a versioned, hash-cached contract (`ORIENTATION_VERSION`) covering the ontology, write-tool selection rules, and the recipes for moving between read and write. An agent caches the platform's epistemic contract once and re-uses it across sessions rather than re-discovering it.
 
 **Shippable on existing infrastructure.** The primitive is built directly on the production argument graph, scheme catalog, and permalinks. There is no second source of truth and no migration: what users see is what citers cite.
 
 **Deliberation-scope readiness and honesty.** Above the per-argument primitive sits a deliberation-scope substrate that refuses to summarize prematurely:
 
 - A **fingerprint** capturing counts, depth, critical-question coverage, and the AI-versus-human extraction split.
-- A **contested frontier** surfacing unanswered undercuts, undermines, critical questions, and terminal leaves — the live edge of the deliberation.
+- A **contested frontier** surfacing unanswered undercuts, undermines, critical questions, and terminal leaves: the live edge of the deliberation.
 - A **missing-move report** with per-argument and rollup views, plus a **chain-exposure** projection identifying the weakest link in any inference chain.
-- A **synthetic readout** that emits an explicit honesty line and a refusal surface (with references to real graph elements) when the deliberation is too immature to summarize.
+- A **synthetic readout** that emits an explicit honesty line and a refusal surface (with references to real graph elements) when the deliberation is too immature to summarize. The readout also emits `writingConstraints`, a pre-rendered compliance contract consumable by humans and agents alike: `mustInclude.honestyLine` (verbatim caveat keyed on the deliberation's content hash), `mustNotAssert[]` (conclusions the graph will not currently license), `shouldHedge[]` (per-argument hedge phrasings keyed to standing), and `framing.stage` (articulation, deliberation, or matured). Compliance is contract-as-data rather than free-form guidance.
 - **AI-engagement telemetry** that distinguishes genuine reasoning from articulation-only contribution.
 - **Cross-deliberation aggregation** with a consistent IN / OUT / contested / undecided rule.
 
-**Typed categorical algebra, deterministic and graph-derived.** A typed implementation of an evidential category of claims is exposed verbatim to language-model agents. Each claim has a typed evidence arrow; each derivation carries its assumption set; a closed monoid — minimum, product, or Dempster-Shafer — folds confidence over the arrow; and culprit-set computation answers the canonical question, *what would I have to retract to reject this claim?*, with a deterministic ranking. Model-context tools give a language-model client graph-derived answers with no language model in the loop, and a contract test asserts bit-identical output across repeated invocations on the same fixture. Three contracts the surface honors:
+**Typed categorical algebra, deterministic and graph-derived.** A typed implementation of an evidential category of claims is exposed verbatim to language-model agents. The structure is straightforward: each claim has a typed evidence arrow, each derivation carries its assumption set, and a closed monoid (minimum, product, or Dempster-Shafer) folds confidence over the arrow. Culprit-set computation answers the canonical question, *what would I have to retract to reject this claim?*, with a deterministic ranking.
+
+Model-context tools give a language-model client graph-derived answers with no language model in the loop, and a contract test asserts bit-identical output across repeated invocations on the same fixture.
+
+Three contracts the surface honors:
 
 - **Strict logicality.** A derivation counts as logical only when every dependent assumption is accepted *and* the backing argument is human-authored (or AI- or hybrid-authored and subsequently ratified).
 - **AI-flagged warrants are non-logical until ratified.** A "propose warrant" action materializes an internal-hom warrant as an AI-authored argument together with a proposed assumption use; the resulting derivation never lifts to logical until a human ratifies the warrant text.
-- **One-hop cross-room transport.** Transport snapshots written by the transport-aggregator carry one-hop transport only, by contract — chained transport across three or more rooms is intentionally unsupported, so the aggregated band of *local*, *imported*, and *total* counts for any claim remains auditable to a single source room.
+- **One-hop cross-room transport.** Transport snapshots written by the transport-aggregator carry one-hop transport only, by contract: chained transport across three or more rooms is intentionally unsupported, so the aggregated band of *local*, *imported*, and *total* counts for any claim remains auditable to a single source room.
 
 Taken together, these surfaces let an external system — human or model — cite a unit rather than a webpage, prove what it cited and when, and surface the strongest known objection alongside the citation. An empty result is honestly empty rather than a false positive.
 
@@ -284,11 +309,11 @@ Isonomia treats long-form scholarly and policy outputs as **living documents** w
 
 A thesis is a rich text document whose embedded claim, argument, proposition, and citation elements read live state from the deliberation graph rather than holding a frozen copy of it. Several capabilities sit on top of that live binding.
 
-**Live Binding.** Every embedded element — a claim cited in the introduction, an argument quoted in a footnote, a proposition lifted from a marginal annotation — reads its support count, attack count, evidence count, and current standing label from the deliberation in real time. The thesis updates as the underlying reasoning updates.
+**Live Binding.** Every embedded element (a claim cited in the introduction, an argument quoted in a footnote, a proposition lifted from a marginal annotation) reads its support count, attack count, evidence count, and current standing label from the deliberation in real time. The thesis updates as the underlying reasoning updates.
 
 **Inspector.** A single right-side drawer opens for any embedded element and shows its full lineage: where it came from, the evidence supporting it, the attacks against it, and the satisfied and unsatisfied critical questions associated with it.
 
-**Attack Register.** A sticky panel lists every attack on every thesis element, grouped by status — undefended, defended, conceded — and filterable and sortable by attack type: undercuts, undermines, rebuts. Authors and readers can see at a glance where the document is exposed and where it has held.
+**Attack Register.** A sticky panel lists every attack on every thesis element, grouped by status (undefended, defended, conceded) and filterable and sortable by attack type: undercuts, undermines, rebuts. Authors and readers can see at a glance where the document is exposed and where it has held.
 
 **Confidence.** Per-prong and per-thesis confidence scores are computed from explicit, weighted inputs. A hover-card on every confidence badge discloses each input, its weight, and its contribution to the total: the score is auditable rather than opaque.
 
@@ -302,7 +327,7 @@ A thesis is a rich text document whose embedded claim, argument, proposition, an
 
 The peer review system uses the same dialogue moves as deliberations and runs across three coordinated capabilities.
 
-**Review structure.** Configurable review templates define criteria sets and a multi-phase structure — for example, initial review, author response, revision. Reviews support blind and open modes and discriminate among target types: paper, preprint, thesis, and grant. Reviewer assignments carry roles, accept/decline workflows, and reviewer commitments scoped to specific issues with resolution tracking. Author responses flow as structured dialogue moves — concede, rebut, clarify, revise — each linked to the commitment it addresses. The review lifecycle advances through phases with editorial decisions (accept, revise, reject), progress and timeline visualization, and per-phase outcomes.
+**Review structure.** Configurable review templates define criteria sets and a multi-phase structure (for example, initial review, author response, revision). Reviews support blind and open modes and discriminate among target types: paper, preprint, thesis, and grant. Reviewer assignments carry roles, accept/decline workflows, and reviewer commitments scoped to specific issues with resolution tracking. Author responses flow as structured dialogue moves (concede, rebut, clarify, revise), each linked to the commitment it addresses. The review lifecycle advances through phases with editorial decisions (accept, revise, reject), progress and timeline visualization, and per-phase outcomes.
 
 **Argumentation-based reputation.** Scholarly reputation is derived from argumentation outcomes rather than from citation counts or journal prestige. Contribution tracking records distinct contribution types together with quality multipliers, verification status, and deliberation scope. Scholar statistics aggregate defense success rate, attack precision, consensus rate, and downstream citation count. Topic expertise runs on a graded scale from novice to authority, with per-topic scoring, expert discovery by topic area, and a reputation leaderboard. Reviewer recognition tracks completion and quality metrics, timeliness, blocking-concern resolution rate, and topic specializations.
 
@@ -310,7 +335,7 @@ The peer review system uses the same dialogue moves as deliberations and runs ac
 
 ### Fork and Merge
 
-Deliberations and theses can be forked — creating a parallel version that explores an alternative line of argument — and merged when the parallel lines converge. The model is borrowed from version control and applied to reasoning itself.
+Deliberations and theses can be forked (creating a parallel version that explores an alternative line of argument) and merged when the parallel lines converge. The model is borrowed from version control and applied to reasoning itself.
 
 ---
 
@@ -326,7 +351,7 @@ Pathways move a deliberation's outputs into the formal record of an institution 
 - **Role Gating and Public Redaction.** Uniform admin, host, and facilitator gates, with public redaction rules so the audit log is publishable without leaking participant identities.
 - **Open Pathway.** A deliberation's recommendations are forwarded to a registered institution as a packet with a defined channel and target.
 - **Hash-Chained Audit Log.** Every pathway action is recorded as an event in a tamper-evident chain anchored at a draft-opened genesis event.
-- **Recommendation Packets.** Versioned, freezable bundles of claims, arguments, cards, and notes — the unit of submission to an institution.
+- **Recommendation Packets.** Versioned, freezable bundles of claims, arguments, cards, and notes: the unit of submission to an institution.
 - **Submission Channels.** Packets can be sent in-platform, by email, by API, or as manually logged external submissions; the channel and its hints are recorded.
 - **Institutional Responses.** Institutions reply with per-item dispositions, with coverage tracking that surfaces which packet items remain unaddressed.
 - **Plexus Visualization.** Pathway connections render on the cross-context Plexus graph, so a deliberation's downstream institutional fate is visible at a glance.
@@ -337,7 +362,7 @@ Facilitation provides the live operational surface for facilitators running stru
 
 - **Cockpit and Question Authoring.** A facilitator-only cockpit organizes the live session: the active facilitation question, the parent context, session status, and quick-action controls. Facilitation questions can be authored, scoped to specific arguments or claims, and rotated through the session.
 - **Equity Surface.** A real-time equity panel tracks who has spoken, who has not, and how participation distributes across constituencies. Facilitators can see when intervention is warranted before participation imbalances calcify.
-- **Timeline and Interventions.** A session timeline records every facilitator intervention as a typed, attributed event — redirect off-topic, surface minority view, reframe — as part of the audit log.
+- **Timeline and Interventions.** A session timeline records every facilitator intervention as a typed, attributed event (redirect off-topic, surface minority view, reframe) as part of the audit log.
 - **Handoff.** A formal handoff flow when one facilitator passes control to another mid-session, preserving session state and acknowledging context transfer.
 - **Pending Banner and Report.** A pending-action banner surfaces queued moderator decisions; an end-of-session report compiles the timeline, equity metrics, and interventions for sharing with participants and institutional sponsors.
 - **Analytics and Canonical Export.** Aggregate analytics readouts and a canonical session export are available for inspection, archival, and external review.
@@ -356,7 +381,7 @@ The platform's reasoning layer is grounded in formally studied frameworks:
 
 **Evidence Theory.** Dempster-Shafer theory handles the combination and aggregation of evidence from multiple sources with varying degrees of reliability, producing belief functions that represent the state of evidential support more precisely than binary true/false or simple probability.
 
-**Category-Theoretic Models.** Ambler's compositional semantics of evidence — evidential categories, SLat-enriched categories with symmetric monoidal structure — provides the mathematical foundation for the evidence algebra and for the Plexus transport mechanism. Morphisms are evidence arrows. The tensor product (⊗) conjoins evidence. The join operation (∨) aggregates within hom-sets. Selected maps (simple ∧ entire) provide the cartesian subcategory where projection and pairing laws hold exactly — the mathematically safe fragment for operations like "duplicate premise" and "project reason." A typed evidence-arrow implementation carries per-derivation assumption sets, drives a strict logicality predicate, and exposes belief-revision (culprit-set) computation and a closed monoid registry to both the in-app pipeline and the model-context protocol surface.
+**Category-Theoretic Models.** Ambler's compositional semantics of evidence (evidential categories, SLat-enriched categories with symmetric monoidal structure) provides the mathematical foundation for the evidence algebra and for the Plexus transport mechanism. Morphisms are evidence arrows. The tensor product (⊗) conjoins evidence. The join operation (∨) aggregates within hom-sets. Selected maps (simple ∧ entire) provide the cartesian subcategory where projection and pairing laws hold exactly: the mathematically safe fragment for operations like "duplicate premise" and "project reason." A typed evidence-arrow implementation carries per-derivation assumption sets, drives a strict logicality predicate, and exposes belief-revision (culprit-set) computation and a closed monoid registry to both the in-app pipeline and the model-context protocol surface.
 
 **Formal Dialogue Systems.** The dialogue protocol draws on the tradition of formal dialogue games (Hamblin, 1970; Walton & Krabbe, 1995), implementing typed speech acts with defined obligations and permissions.
 
@@ -392,14 +417,13 @@ These foundations are fully implemented and operational. They are also fully inv
 
 **Open Source.** The entire codebase is public. Contributions are welcome. The platform's architecture, including the formal argumentation engine, is available for inspection, audit, and extension by any party.
 
-
 **Sustainability Model.** The platform is free for all users. Sustainability is pursued through grants (NEH, NSF, foundation funding), institutional partnerships (universities, policy organizations, civic institutions), and optional hosted enterprise services for organizations that require managed infrastructure with SLA guarantees.
 
 ---
 
 ## XI. Applications
 
-**Community organizations** use the social layer for ongoing community engagement — forums, rooms, messaging, shared documents — and the reasoning layer when participatory input needs structure: planning processes, budget deliberations, program evaluations, needs assessments. The platform preserves the reasoning behind community decisions, not just the decisions themselves.
+**Community organizations** use the social layer for ongoing community engagement (forums, rooms, messaging, shared documents) and the reasoning layer when participatory input needs structure: planning processes, budget deliberations, program evaluations, needs assessments. The platform preserves the reasoning behind community decisions, not just the decisions themselves.
 
 **Research teams and reading groups** use the social layer for discussion and shared libraries. When a research question crystallizes or an interpretive disagreement becomes substantive, the reasoning layer provides infrastructure for structured synthesis. Evidence is linked to claims at the source level. The synthesis is collaborative, living, and navigable as a graph.
 
@@ -413,7 +437,7 @@ These foundations are fully implemented and operational. They are also fully inv
 
 **Academic publication and peer review** uses the Living Peer Review system for public, structured, credited review processes that improve on the opacity and inefficiency of traditional anonymous review.
 
-**Individuals and informal communities** use the social layer as a social platform — posting, sharing, discussing, connecting — with the knowledge that the reasoning layer is available when they need it and invisible when they don't.
+**Individuals and informal communities** use the social layer as a social platform (posting, sharing, discussing, connecting) with the knowledge that the reasoning layer is available when they need it and invisible when they don't.
 
 ---
 

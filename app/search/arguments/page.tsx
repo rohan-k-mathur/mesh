@@ -14,6 +14,7 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import SearchControls from "@/components/search/SearchControls";
 import ArgumentResultCard, {
   type SearchResult,
@@ -22,6 +23,29 @@ import ArgumentResultCard, {
 export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://isonomia.app";
+
+/**
+ * Resolve the base URL for server-side internal fetches.
+ * Prefer the incoming request's host/proto so dev (localhost), preview, and
+ * production all hit themselves instead of the hard-coded prod fallback.
+ * Falls back to NEXT_PUBLIC_APP_URL / isonomia.app for contexts where the
+ * headers helper is unavailable (e.g. generateMetadata in some edge cases).
+ */
+function resolveRequestBaseUrl(): string {
+  try {
+    const h = headers();
+    const host = h.get("x-forwarded-host") || h.get("host");
+    if (host) {
+      const proto =
+        h.get("x-forwarded-proto") ||
+        (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+      return `${proto}://${host}`;
+    }
+  } catch {
+    // headers() can throw outside a request scope; fall through to BASE_URL.
+  }
+  return BASE_URL;
+}
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 50;
 
@@ -80,8 +104,8 @@ function parseQuery(sp: RawSearchParams | undefined): ParsedQuery {
   return { q, scheme, sort, mode, against, limit, testedOnly, minCq, minEvidence, since, until };
 }
 
-function buildApiUrl(parsed: ParsedQuery): string {
-  const u = new URL(`${BASE_URL}/api/v3/search/arguments`);
+function buildApiUrl(parsed: ParsedQuery, baseUrl: string = BASE_URL): string {
+  const u = new URL(`${baseUrl}/api/v3/search/arguments`);
   if (parsed.q) u.searchParams.set("q", parsed.q);
   if (parsed.scheme) u.searchParams.set("scheme", parsed.scheme);
   if (parsed.sort !== "recent") u.searchParams.set("sort", parsed.sort);
@@ -132,9 +156,12 @@ type ApiResponse = {
   results: SearchResult[];
 };
 
-async function runSearch(parsed: ParsedQuery): Promise<ApiResponse | null> {
+async function runSearch(
+  parsed: ParsedQuery,
+  baseUrl: string,
+): Promise<ApiResponse | null> {
   try {
-    const res = await fetch(buildApiUrl(parsed), {
+    const res = await fetch(buildApiUrl(parsed, baseUrl), {
       // Server-side fetch within the same Next deployment. Cache-friendly
       // because the API itself sets s-maxage=30.
       cache: "no-store",
@@ -205,6 +232,9 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 export default async function ArgumentSearchPage({ searchParams }: PageProps) {
   const sp = (await searchParams) || {};
   const parsed = parseQuery(sp);
+  const requestBaseUrl = resolveRequestBaseUrl();
+  // Public-facing URLs (alternates, programmatic-access link) stay on the
+  // canonical BASE_URL so shared/canonical links don't leak preview hosts.
   const apiUrl = buildApiUrl(parsed);
   const canonical = buildCanonical(parsed);
 
@@ -220,7 +250,7 @@ export default async function ArgumentSearchPage({ searchParams }: PageProps) {
     parsed.since ||
     parsed.until
   );
-  const response = hasIntent ? await runSearch(parsed) : null;
+  const response = hasIntent ? await runSearch(parsed, requestBaseUrl) : null;
   const results = response?.results ?? [];
   const againstText = response?.query?.againstClaimText ?? null;
 
@@ -236,7 +266,7 @@ export default async function ArgumentSearchPage({ searchParams }: PageProps) {
 
   return (
     <main className="page">
-      <style>{pageStyles()}</style>
+      <style dangerouslySetInnerHTML={{ __html: pageStyles() }} />
 
       {/* Discovery alternates so LLM agents and standards-aware crawlers
           can reach the canonical JSON / JSON-LD form of this query. */}

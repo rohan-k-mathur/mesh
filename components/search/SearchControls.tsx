@@ -12,6 +12,7 @@
  */
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Search, SlidersHorizontal, Loader2 } from "lucide-react";
 
 export type SearchControlsProps = {
   /** Initial query string. */
@@ -33,6 +34,11 @@ export type SearchControlsProps = {
   /** Phase 2 — ISO date upper bound on createdAt. */
   initialUntil?: string;
 };
+
+const FILTER_LABEL =
+  "text-[10px] font-bold tracking-[0.08em] uppercase text-slate-500";
+const FILTER_INPUT =
+  "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-900 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-400";
 
 export default function SearchControls({
   initialQ,
@@ -81,30 +87,50 @@ export default function SearchControls({
   }
 
   return (
-    <form onSubmit={submit} className="search-controls" role="search">
-      <div className="row primary-row">
-        <input
-          type="search"
-          name="q"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search arguments — try 'social media adolescent depression'"
-          aria-label="Search query"
-          className="q-input"
-          autoFocus
-        />
+    <form
+      onSubmit={submit}
+      role="search"
+      className="flex flex-col gap-3 mb-6 "
+    >
+      {/* Primary search row */}
+      <div className="flex gap-4 flex-wrap ">
+        <div className="relative flex-1 min-w-[280px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <input
+            type="search"
+            autoComplete="off"
+            name="q"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search arguments by conclusion, premise, or general text"
+            aria-label="Search query"
+            autoFocus
+            className="w-full pl-10 pr-4 py-3 text-[15px] border border-indigo-300 rounded-2xl bg-white text-slate-900 articlesearchfield"
+          />
+        </div>
         <button
           type="submit"
-          className="submit-btn"
           disabled={isPending}
+          className="inline-flex items-center gap-1.5 px-5 py-2 tracking-wide rounded-2xl text-sm font-semibold text-indigo-800  cardv2 hover:shadow-none"
         >
-          {isPending ? "Searching…" : "Search"}
+          {isPending ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Searching…
+            </>
+          ) : (
+            <>
+              <Search className="w-3.5 h-3.5" />
+              Search
+            </>
+          )}
         </button>
       </div>
 
-      <div className="row filters-row">
-        <label className="filter">
-          <span className="filter-label">Scheme</span>
+      {/* Filters row */}
+      <div className="grid mt-3 bg-white/40 grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl border border-indigo-300/70">
+        <label className="flex flex-col gap-1.5">
+          <span className={FILTER_LABEL}>Scheme</span>
           <input
             type="text"
             name="scheme"
@@ -112,8 +138,8 @@ export default function SearchControls({
             onChange={(e) => setScheme(e.target.value)}
             placeholder="any"
             aria-label="Argumentation scheme key"
-            className="filter-input"
             list="known-schemes"
+            className={FILTER_INPUT}
           />
           <datalist id="known-schemes">
             <option value="expert_opinion" />
@@ -127,14 +153,14 @@ export default function SearchControls({
           </datalist>
         </label>
 
-        <label className="filter">
-          <span className="filter-label">Sort</span>
+        <label className="flex flex-col gap-1.5">
+          <span className={FILTER_LABEL}>Sort</span>
           <select
             name="sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as typeof initialSort)}
-            className="filter-input"
             aria-label="Sort order"
+            className={FILTER_INPUT}
           >
             <option value="recent">Most recent</option>
             <option value="dialectical_fitness">
@@ -143,14 +169,14 @@ export default function SearchControls({
           </select>
         </label>
 
-        <label className="filter">
-          <span className="filter-label">Mode</span>
+        <label className="flex flex-col gap-1.5">
+          <span className={FILTER_LABEL}>Mode</span>
           <select
             name="mode"
             value={mode}
             onChange={(e) => setMode(e.target.value as typeof initialMode)}
-            className="filter-input"
             aria-label="Retrieval mode"
+            className={FILTER_INPUT}
           >
             <option value="hybrid">Hybrid (recommended)</option>
             <option value="lexical">Match exact words</option>
@@ -159,19 +185,28 @@ export default function SearchControls({
         </label>
       </div>
 
-      <details className="quality-details">
-        <summary>Quality filters</summary>
-        <div className="row filters-row">
-          <label className="filter checkbox-filter">
+      {/* Advanced quality filters */}
+      <details className="group rounded-xl border border-indigo-300/70 mt-3 bg-white/40 px-4 py-2 [&[open]]:pb-4">
+        <summary className="flex items-center gap-2 cursor-pointer text-[11px] font-bold tracking-[0.08em] uppercase text-slate-600 hover:text-slate-900 transition-colors py-1.5 list-none [&::-webkit-details-marker]:hidden">
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          Quality filters
+          <span className="ml-auto text-[10px] text-slate-400 group-open:hidden">show</span>
+          <span className="ml-auto text-[10px] text-slate-400 hidden group-open:inline">hide</span>
+        </summary>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+          <label className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-indigo-300 transition-colors">
             <input
               type="checkbox"
               checked={testedOnly}
               onChange={(e) => setTestedOnly(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400"
             />
-            <span>Only tested arguments</span>
+            <span className="text-xs font-medium text-slate-700">
+              Only tested arguments
+            </span>
           </label>
-          <label className="filter">
-            <span className="filter-label">Min answered CQs</span>
+          <label className="flex flex-col gap-1.5">
+            <span className={FILTER_LABEL}>Min answered CQs</span>
             <input
               type="number"
               inputMode="numeric"
@@ -179,12 +214,12 @@ export default function SearchControls({
               value={minCq}
               onChange={(e) => setMinCq(e.target.value)}
               placeholder="0"
-              className="filter-input"
               aria-label="Minimum SATISFIED critical questions"
+              className={FILTER_INPUT}
             />
           </label>
-          <label className="filter">
-            <span className="filter-label">Min evidence (with provenance)</span>
+          <label className="flex flex-col gap-1.5">
+            <span className={FILTER_LABEL}>Min evidence (with provenance)</span>
             <input
               type="number"
               inputMode="numeric"
@@ -192,131 +227,32 @@ export default function SearchControls({
               value={minEvidence}
               onChange={(e) => setMinEvidence(e.target.value)}
               placeholder="0"
-              className="filter-input"
               aria-label="Minimum provenance-anchored evidence rows"
+              className={FILTER_INPUT}
             />
           </label>
-          <label className="filter">
-            <span className="filter-label">Since</span>
+          <label className="flex flex-col gap-1.5">
+            <span className={FILTER_LABEL}>Since</span>
             <input
               type="date"
               value={since}
               onChange={(e) => setSince(e.target.value)}
-              className="filter-input"
               aria-label="Created on or after"
+              className={FILTER_INPUT}
             />
           </label>
-          <label className="filter">
-            <span className="filter-label">Until</span>
+          <label className="flex flex-col gap-1.5">
+            <span className={FILTER_LABEL}>Until</span>
             <input
               type="date"
               value={until}
               onChange={(e) => setUntil(e.target.value)}
-              className="filter-input"
               aria-label="Created on or before"
+              className={FILTER_INPUT}
             />
           </label>
         </div>
       </details>
-
-      <style>{`
-        .search-controls {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          margin-bottom: 24px;
-        }
-        .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: stretch; }
-        .primary-row { gap: 8px; }
-        .q-input {
-          flex: 1 1 320px;
-          min-width: 0;
-          padding: 12px 14px;
-          font-size: 15px;
-          border: 1px solid #cbd5e1;
-          border-radius: 8px;
-          background: #fff;
-          color: #0f172a;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .q-input:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-        }
-        .submit-btn {
-          padding: 12px 20px;
-          font-size: 14px;
-          font-weight: 600;
-          color: #fff;
-          background: #6366f1;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-        .submit-btn:hover { background: #4f46e5; }
-        .submit-btn:disabled { background: #94a3b8; cursor: wait; }
-
-        .filters-row {
-          background: #f8fafc;
-          padding: 12px;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-        }
-        .filter {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          flex: 1 1 180px;
-          min-width: 0;
-        }
-        .filter-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        .filter-input {
-          padding: 8px 10px;
-          font-size: 13px;
-          border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          background: #fff;
-          color: #0f172a;
-          outline: none;
-        }
-        .filter-input:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-        }
-        .quality-details {
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          background: #f8fafc;
-          padding: 8px 12px;
-        }
-        .quality-details summary {
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 700;
-          color: #475569;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 4px 0;
-        }
-        .quality-details[open] summary { margin-bottom: 8px; }
-        .quality-details .filters-row { background: transparent; border: none; padding: 0; }
-        .checkbox-filter {
-          flex-direction: row;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: #0f172a;
-        }
-        .checkbox-filter input { margin: 0; }
-      `}</style>
     </form>
   );
 }

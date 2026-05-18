@@ -844,6 +844,142 @@ box-shadow:
     0 10px 20px -12px rgba(2, 6, 23, .18);
 }
 
+
+.search-surface {
+  --surface-heavy: 129, 140, 248;
+  --surface-lite: 215, 220, 248;
+    --surface-accent: 235, 230, 248;
+
+  --surface-top: 255, 255, 255;
+  
+  position: relative;
+  padding: 1rem;
+  border: 1px solid rgba(var(--surface-heavy), .92);
+  border-radius: 22px;
+  
+
+
+
+  background: linear-gradient(
+    90deg,
+    rgba(var(--surface-top), .55) 0%,
+    rgba(var(--surface-lite), .40) 25%,
+        rgba(var(--surface-accent), .40) 50%,
+    rgba(var(--surface-lite), .40) 75%,
+
+    rgba(var(--surface-top), .75) 100%
+  );
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+  backdrop-filter: saturate(1.6) blur(4px);
+  
+
+}
+
+.search-surface:hover {
+
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+}
+
+
+.conclusion-surface {
+  --surface-heavy: 129, 140, 248;
+  --surface-lite: 215, 220, 248;
+    --surface-accent: 235, 230, 248;
+
+  --surface-top: 255, 255, 255;
+    --conclusion-lite: 240, 245, 253;
+
+  position: relative;
+  padding: 1rem;
+  border: 1px solid rgba(var(--surface-heavy), .92);
+  border-radius: 22px;
+  
+
+
+
+  background: linear-gradient(
+    720deg,
+    rgba(var(--conclusion-lite), 1.0) 0%,
+    rgba(var(--conclusion-lite), .40) 25%,
+        rgba(var(--conclusion-lite), .80) 50%,
+    rgba(var(--conclusion-lite), .40) 75%,
+
+    rgba(var(--conclusion-lite), 1.0) 100%
+  );
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+  backdrop-filter: saturate(1.6) blur(4px);
+  
+
+}
+
+.conclusion-surface:hover {
+
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+}
+
+
+
+.result-surface {
+  --surface-heavy: 129, 140, 248;
+  --surface-lite: 215, 220, 248;
+    --surface-accent: 235, 230, 248;
+
+  --surface-top: 255, 255, 255;
+  
+  position: relative;
+  padding: 1rem;
+  border: 1px solid rgba(var(--surface-heavy), .92);
+  border-radius: 22px;
+  
+
+
+
+  background: linear-gradient(
+    45deg,
+    rgba(var(--surface-top), .55) 0%,
+    rgba(var(--surface-lite), .20) 25%,
+    rgba(var(--surface-top), .30) 55%,
+
+    rgba(var(--surface-lite), .20) 75%,
+
+    rgba(var(--surface-top), .35) 100%
+  );
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+
+  
+
+}
+
+.result-surface:hover {
+
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+}
+
+
 .img-feed-frame {
   display: flex;
   width: auto;

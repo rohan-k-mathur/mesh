@@ -5,7 +5,7 @@
 This document provides comprehensive technical documentation for the Mesh platform's **Commitment System** — a dual-layer architecture that tracks participant commitments in formal dialogues. The system implements both **Dialogue Commitments** (tracking public debate claims) and **Ludics Commitments** (tracking formal proof obligations with game-theoretic semantics).
 
 **Document Version**: 1.0  
-**Last Updated**: December 2024  
+**Last Updated**: December 2025  
 **Related Documents**: `ASPIC_SYSTEM_ARCHITECTURE.md`, `ARGUMENTS_TAB_ARCHITECTURE.md`, `NCR_ISSUES_PROPOSITIONS_ARCHITECTURE.md`
 
 ---

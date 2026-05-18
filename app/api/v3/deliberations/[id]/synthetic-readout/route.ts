@@ -44,6 +44,7 @@ function toCompactReadout(readout: SyntheticReadout): SyntheticReadout {
       })) as SyntheticReadout["frontier"]["unansweredCqs"],
     terminalLeaves: readout.frontier.terminalLeaves.slice(0, 10),
     loadBearingnessRanking: [] as string[],
+    loadBearingnessScores: {} as Record<string, number>,
   };
 
   const perArg = readout.missingMoves.perArgument as Record<string, unknown>;

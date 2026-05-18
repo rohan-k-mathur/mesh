@@ -31,6 +31,7 @@ import {
   Layers,
   ExternalLink,
   Circle,
+  ListTree,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ function prefersJsonLd(acceptHeader: string | null): boolean {
 }
 
 function parseFormatParam(
-  raw: string | string[] | undefined
+  raw: string | string[] | undefined,
 ): "aif" | "jsonld" | "attestation" | null {
   const v = (Array.isArray(raw) ? raw[0] : raw || "").toLowerCase();
   if (v === "aif") return "aif";
@@ -71,7 +72,9 @@ function parseFormatParam(
   return null;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { identifier } = await params;
 
   const resolved = await resolvePermalink(identifier);
@@ -108,7 +111,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: canonicalUrl,
       types: {
-        "application/json+oembed": `${BASE_URL}/api/oembed?url=${encodeURIComponent(embedUrl)}`,
+        "application/json+oembed": `${BASE_URL}/api/oembed?url=${encodeURIComponent(
+          embedUrl,
+        )}`,
         "application/ld+json": `${aifUrl}?format=aif`,
         "application/json": `${aifUrl}?format=attestation`,
       },
@@ -137,7 +142,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ArgumentPage({ params, searchParams }: PageProps) {
+export default async function ArgumentPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { identifier } = await params;
   const sp = (await searchParams) || {};
 
@@ -183,20 +191,34 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
       premises: {
         select: {
           isImplicit: true,
-          claim: { select: { id: true, text: true, moid: true } },
+          claim: {
+            select: {
+              id: true,
+              text: true,
+              moid: true,
+              ClaimEvidence: {
+                select: { id: true, title: true, uri: true, citation: true },
+                take: 5,
+              },
+            },
+          },
         },
         take: 10,
       },
       argumentSchemes: {
         select: {
           isPrimary: true,
-          scheme: { select: { id: true, name: true, title: true, summary: true } },
+          scheme: {
+            select: { id: true, name: true, title: true, summary: true },
+          },
         },
         orderBy: [{ isPrimary: "desc" }, { order: "asc" }],
         take: 3,
       },
       deliberation: { select: { id: true, title: true } },
-      permalink: { select: { shortCode: true, permalinkUrl: true, accessCount: true } },
+      permalink: {
+        select: { shortCode: true, permalinkUrl: true, accessCount: true },
+      },
     },
   });
 
@@ -232,7 +254,8 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
       ? Math.round(argument.confidence * 100)
       : null;
 
-  const primaryScheme = argument.argumentSchemes.find((s) => s.isPrimary) ||
+  const primaryScheme =
+    argument.argumentSchemes.find((s) => s.isPrimary) ||
     argument.argumentSchemes[0];
 
   // ---- Track A.2: rich composite JSON-LD via attestation envelope ----
@@ -312,7 +335,7 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
 
       {/* Nav bar */}
       <nav className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-indigo-300/70">
-        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href={BASE_URL} className="flex items-center gap-2 group">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
               <span className="text-white font-bold text-xs">I</span>
@@ -339,7 +362,7 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-6 pb-12">
+      <div className="max-w-5xl mx-auto px-6 py-6 pb-12">
         {/* Breadcrumb / context */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-widest uppercase bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-700 border border-indigo-500/20">
@@ -351,7 +374,7 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
               <span className="text-slate-300">·</span>
               <a
                 href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
-                className="text-xs text-slate-500 hover:text-indigo-600 transition-colors"
+                className="text-xs text-slate-600 hover:text-indigo-600 transition-colors"
               >
                 {argument.deliberation.title}
               </a>
@@ -361,11 +384,17 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
 
         {/* Conclusion claim (hero) */}
         {argument.conclusion && (
-          <section className="mb-6">
-            <p className="text-[10px] font-bold tracking-[0.12em] uppercase text-slate-400 mb-2">
-              Conclusion
-            </p>
-            <h1 className="text-2xl sm:text-[28px] font-bold leading-tight text-slate-900 mb-3 tracking-tight">
+          <section className="mb-6  bg-white conclusion-surface rounded-2xl p-6 ">
+            <div className="flex items-center mb-2 gap-2">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500/10 to-violet-500/15 text-indigo-600">
+                <Circle className="w-3.5 h-3.5" />
+              </div>
+
+              <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-slate-700 ">
+                Conclusion
+              </h2>
+            </div>
+            <h1 className="text-xl  font-semibold text-slate-900 mb-2 tracking-tight">
               {argument.conclusion.text}
             </h1>
             {argument.conclusion.moid && (
@@ -381,13 +410,13 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         )}
 
         {/* Argument core */}
-        <section className="rounded-2xl  p-6 mb-4  panelv2">
+        <section className="rounded-2xl  p-6 mb-6  panelv2">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500/10 to-violet-500/15 text-indigo-600">
+              <div className="p-1.5 rounded-lg bg-gradient-to-br from-sky-500/10 to-indigo-500/15 text-sky-600">
                 <Layers className="w-3.5 h-3.5" />
               </div>
-              <h2 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+              <h2 className="text-[12px] font-bold tracking-[0.1em] uppercase text-slate-700">
                 Argument
               </h2>
             </div>
@@ -418,19 +447,19 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
             </div>
           )}
 
-          <p className="text-[15px] leading-relaxed text-slate-700 mb-4">
+          <p className="text-[16px] font-medium rounded-lg p-2.5 border border-indigo-200 leading-relaxed text-slate-900 mb-3">
             {argument.text}
           </p>
 
           {primaryScheme && (
-            <div className="flex items-baseline gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm">
-              <span className="text-indigo-600 font-bold text-xs">⟨⟩</span>
+            <div className="flex items-baseline gap-2 px-2.5 py-2.5 bg-slate-50 border border-indigo-200 rounded-lg text-sm">
+              <span className="text-indigo-600 font-bold ">⟨ ⟩</span>
               <span className="font-semibold text-slate-700">
                 {primaryScheme.scheme.name || primaryScheme.scheme.title}
               </span>
               {primaryScheme.scheme.summary && (
-                <span className="text-slate-500 text-xs">
-                  — {primaryScheme.scheme.summary.slice(0, 120)}
+                <span className="text-slate-600 text-xs">
+                  {primaryScheme.scheme.summary.slice(0, 120)}
                 </span>
               )}
             </div>
@@ -439,40 +468,81 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
 
         {/* Premises */}
         {argument.premises.length > 0 && (
-        <section className="rounded-2xl  p-6 mb-4  panelv2">
-            <div className="flex items-center gap-2 mb-4">
+          <section className="rounded-2xl  p-6 mb-6  panelv2">
+            <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/15 text-emerald-600">
-                <Circle className="w-3.5 h-3.5" />
+                <ListTree className="w-3.5 h-3.5" />
               </div>
-              <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+              <h3 className="text-[12px] font-bold tracking-[0.1em] uppercase text-slate-700">
                 Premises ({argument.premises.length})
               </h3>
             </div>
-            <ul className="flex flex-col gap-2">
-              {argument.premises.map(({ claim, isImplicit }) => (
-                <li
-                  key={claim.id}
-                  className="flex items-start gap-2 px-3 py-2.5 bg-slate-50 hover:bg-slate-100/70 rounded-lg transition-colors"
-                >
-                  {isImplicit && (
-                    <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
-                      unstated
-                    </span>
-                  )}
-                  <span className="text-sm text-slate-700 flex-1 leading-relaxed">
-                    {claim.text}
-                  </span>
-                  {claim.moid && (
-                    <a
-                      href={`${BASE_URL}/c/${claim.moid}`}
-                      className="text-indigo-500 hover:text-indigo-700 flex-shrink-0 mt-0.5"
-                      aria-label="View claim page"
-                    >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </li>
-              ))}
+            <ul className="flex flex-col gap-4">
+              {argument.premises.map(({ claim, isImplicit }) => {
+                const premiseEvidence = claim.ClaimEvidence ?? [];
+                return (
+                  <li
+                    key={claim.id}
+                    className="border-[2px] border-indigo-200 bg-slate-50  rounded-lg transition-colors"
+                  >
+                    <div className="flex items-start gap-2 px-3 py-2.5">
+                      {isImplicit && (
+                        <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                          unstated
+                        </span>
+                      )}
+                      <span className="text-sm font-medium text-slate-900 flex-1 leading-relaxed">
+                        {claim.text}
+                      </span>
+                      {claim.moid && (
+                        <a
+                          href={`${BASE_URL}/c/${claim.moid}`}
+                          className="text-indigo-500 hover:text-indigo-700 flex-shrink-0 mt-0.5"
+                          aria-label="View claim page"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    {premiseEvidence.length > 0 && (
+                      <div className="px-3 pb-3 pt-2 border-t border-indigo-200/80">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <BookOpen className="w-3 h-3 text-sky-600/80" />
+                          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-600">
+                            Evidence for this premise ({premiseEvidence.length})
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {premiseEvidence.map((ev) => (
+                            <a
+                              key={ev.id}
+                              href={ev.uri}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group block px-3 py-2 bg-white hover:bg-sky-50/40 border border-slate-300 hover:border-sky-400 rounded-md min-w-0"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-[14px] font-semibold text-slate-800 group-hover:text-sky-700 leading-snug break-words flex-1">
+                                  {ev.title || ev.uri}
+                                </div>
+                                <ExternalLink className="w-3 h-3 text-slate-300 group-hover:text-sky-500 flex-shrink-0 mt-0.5 transition-colors" />
+                              </div>
+                              {ev.citation && (
+                                <div className="text-[11px] text-slate-600 leading-relaxed mt-1 break-words">
+                                  {ev.citation}
+                                </div>
+                              )}
+                              <div className="text-[10px] text-sky-600/80 font-mono truncate mt-0.5">
+                                {ev.uri}
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}
@@ -480,13 +550,14 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         {/* Evidence */}
         {argument.conclusion?.ClaimEvidence &&
           argument.conclusion.ClaimEvidence.length > 0 && (
-        <section className="rounded-2xl  p-6 mb-4  panelv2">
+            <section className="rounded-2xl  p-6 mb-6  panelv2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-sky-500/10 to-blue-500/15 text-sky-600">
                   <BookOpen className="w-3.5 h-3.5" />
                 </div>
-                <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
-                  Supporting evidence ({argument.conclusion.ClaimEvidence.length})
+                <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-600">
+                  Supporting evidence for the conclusion (
+                  {argument.conclusion.ClaimEvidence.length})
                 </h3>
               </div>
               <div className="grid grid-cols-1 gap-2.5">
@@ -518,37 +589,6 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
             </section>
           )}
 
-        {/* CTA section */}
-        <section className="my-6">
-          <div className="rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 p-6 sm:p-7 flex items-center gap-6 flex-wrap shadow-sm">
-            <div className="flex-1 min-w-[200px]">
-              <h3 className="text-lg font-bold text-indigo-950 mb-1 tracking-tight">
-                Join the deliberation on Isonomia
-              </h3>
-              <p className="text-sm text-indigo-900/70 leading-relaxed">
-                Support, challenge, or extend this argument with structured
-                reasoning in Isonomia.
-              </p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-                            <a
-                href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
-                className="inline-flex items-center px-4 py-3 rounded-xl text-[14px] font-semibold text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200 whitespace-nowrap transition-all btnv2"
-              >
-                View full deliberation
-              </a>
-              <a
-                href={`${BASE_URL}/signup`}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[14px] font-semibold bg-indigo-600 text-white btnv2"
-              >
-                Respond on Isonomia
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-
-            </div>
-          </div>
-        </section>
-
         {/* Track AI-EPI E.1 — citation export widget */}
         {attestation && (
           <CitationExportWidget
@@ -568,12 +608,12 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
         )}
 
         {/* Embed code */}
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 mb-6 mt-4">
+        <section className="rounded-2xl search-surface p-6 mb-6 mt-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-slate-500/10 to-slate-600/15 text-slate-600">
               <Code className="w-3.5 h-3.5" />
             </div>
-            <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-500">
+            <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-slate-600">
               Embed this argument
             </h3>
           </div>
@@ -583,6 +623,36 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
           <p className="text-xs text-slate-400">
             Copy and paste into any website or forum that supports HTML.
           </p>
+        </section>
+
+        {/* CTA section */}
+        <section className="my-6">
+          <div className="rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 p-6 sm:p-7 flex items-center gap-6 flex-wrap shadow-sm">
+            <div className="flex-1 min-w-[200px]">
+              <h3 className="text-lg font-bold text-indigo-950 mb-1 tracking-tight">
+                Join the deliberation on Isonomia
+              </h3>
+              <p className="text-sm text-indigo-900/70 leading-relaxed">
+                Support, challenge, or extend this argument with structured
+                reasoning in Isonomia.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <a
+                href={`${BASE_URL}/deliberations/${argument.deliberation.id}`}
+                className="inline-flex items-center px-4 py-3 rounded-xl text-[14px] font-semibold text-indigo-700 bg-white/70 hover:bg-white border border-indigo-200 whitespace-nowrap transition-all btnv2"
+              >
+                View full deliberation
+              </a>
+              <a
+                href={`${BASE_URL}/signup`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[14px] font-semibold bg-indigo-700 text-white btnv2"
+              >
+                Respond on Isonomia
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
         </section>
 
         {/* Footer */}
@@ -611,4 +681,3 @@ export default async function ArgumentPage({ params, searchParams }: PageProps) 
     </main>
   );
 }
-

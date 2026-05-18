@@ -86,6 +86,19 @@ export interface ContestedFrontier {
     argumentId: string;
     unansweredAttackCount: number;
   }>;
+  /**
+   * Per-argument load-bearingness scores keyed by argument id.
+   *
+   * Same heuristic that produces `loadBearingnessRanking`:
+   *   score = (#arguments this one supports)
+   *         + (2 if its conclusion is on the main-conclusion path else 0)
+   *         − (#inbound attacks)
+   *
+   * Exposed so downstream consumers (e.g. `lib/deliberation/topology.ts`)
+   * can detect near-co-equal hubs without re-walking the graph.
+   * Additive — pre-existing consumers can ignore this field.
+   */
+  loadBearingnessScores: Record<string, number>;
 }
 
 export async function computeContestedFrontier(
@@ -306,24 +319,29 @@ export async function computeContestedFrontier(
     }
   }
 
-  const ranked = [...argRows].sort((a, b) => {
-    const scoreA =
+  const scoreById = new Map<string, number>();
+  for (const a of argRows) {
+    const score =
       (supportOutByArg.get(a.id) ?? 0) +
       (a.conclusionClaimId && mainConclusionClaimIds.has(a.conclusionClaimId)
         ? 2
         : 0) -
       (attackInByArg.get(a.id) ?? 0);
-    const scoreB =
-      (supportOutByArg.get(b.id) ?? 0) +
-      (b.conclusionClaimId && mainConclusionClaimIds.has(b.conclusionClaimId)
-        ? 2
-        : 0) -
-      (attackInByArg.get(b.id) ?? 0);
+    scoreById.set(a.id, score);
+  }
+
+  const ranked = [...argRows].sort((a, b) => {
+    const scoreA = scoreById.get(a.id) ?? 0;
+    const scoreB = scoreById.get(b.id) ?? 0;
     if (scoreB !== scoreA) return scoreB - scoreA;
     // Tie-break: oldest first (more time to accrete dialectical traffic).
     return a.createdAt.getTime() - b.createdAt.getTime();
   });
   const loadBearingnessRanking = ranked.map((a) => a.id);
+  const loadBearingnessScores: Record<string, number> = {};
+  for (const [id, score] of scoreById.entries()) {
+    loadBearingnessScores[id] = score;
+  }
 
   // ────────────────────────────────────────────────────────────
   // contestednessRanking: count unanswered *actively-raised* attacks
@@ -380,5 +398,6 @@ export async function computeContestedFrontier(
     terminalLeaves,
     loadBearingnessRanking,
     contestednessRanking,
+    loadBearingnessScores,
   };
 }
