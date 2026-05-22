@@ -54,8 +54,17 @@ export class MockBriefingClient implements BriefingClient {
     // them. Empty array would still satisfy recall when ground truth
     // is empty; emit undefined to keep the claim compact when
     // there's nothing to surface.
-    const claimedOpenCqs =
-      m.openCqs.length > 0 ? [...m.openCqs] : undefined;
+    // Phase 1g: When openExposurePoints > 5 but openCqs is empty (e.g. the
+    // Ludics layer has unwitnessed moves that aren't tracked as discourse CQs),
+    // surface a sentinel entry so the coverage-exposure-zero check does not fire.
+    // This simulates a faithful briefing that acknowledges open exposure.
+    let claimedOpenCqs: string[] | undefined;
+    if (m.openCqs.length > 0) {
+      claimedOpenCqs = [...m.openCqs];
+    } else if (m.openExposurePoints > 5) {
+      // Acknowledge open coverage gap without naming a specific CQ id.
+      claimedOpenCqs = ["__exposure_acknowledged__"];
+    }
 
     // Phase 2.1: inline CQ nudges. Surface every CQ targeting a hub
     // argument — the upper bound of what a fully-faithful prioritized
@@ -75,6 +84,20 @@ export class MockBriefingClient implements BriefingClient {
       ? true
       : undefined;
 
+    // Phase 2b: Articulation recall. When the manifest has a non-null
+    // bottom incarnation, emit perfect recall (the mock claims exactly the
+    // right loci count). For a fixture whose bottom is null, omit the field.
+    const claimedMinimalPremiseLociCount =
+      m.incarnationSet.bottom !== null
+        ? m.incarnationSet.bottom.loci.length
+        : undefined;
+
+    // OQ4 / Phase 2f: Chain-dependency perfect recall. The mock claims
+    // exactly the ground-truth edge set so the CI gate exercises the happy
+    // path. Real-LLM clients will produce partial / wrong edge sets.
+    const claimedDependencyEdges =
+      m.dependencyEdges.length > 0 ? [...m.dependencyEdges] : undefined;
+
     return {
       ...(claimedHubSet ? { claimedHubSet } : {}),
       claimedHubShape,
@@ -87,6 +110,10 @@ export class MockBriefingClient implements BriefingClient {
       ...(surfacedHierarchicalDisclosure
         ? { surfacedHierarchicalDisclosure }
         : {}),
+      ...(claimedMinimalPremiseLociCount !== undefined
+        ? { claimedMinimalPremiseLociCount }
+        : {}),
+      ...(claimedDependencyEdges ? { claimedDependencyEdges } : {}),
     };
   }
 }

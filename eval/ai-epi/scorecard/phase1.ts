@@ -19,7 +19,10 @@
 
 import type {
   BriefingClaim,
+  ChainDependencyScore,
   ConfidentMisstatement,
+  CoverageExposureScore,
+  ArticulationRecallScore,
   Manifest,
   Phase1ScorecardReport,
   PrecisionRecall,
@@ -161,6 +164,53 @@ function detectConfidentMisstatements(
     }
   }
 
+  // Phase 1g: Coverage-exposure zero. Release-blocking when the manifest
+  // has >5 open exposure points but the briefing named zero open CQs
+  // (per §3.3 metrics table: threshold is openExposurePoints > 5).
+  if (manifest.openExposurePoints > 5 && (claim.claimedOpenCqs?.length ?? 0) === 0) {
+    out.push({
+      kind: "coverage-exposure-zero",
+      detail: `Briefing named 0 open CQs but manifest has openExposurePoints=${manifest.openExposurePoints} unaddressed structural objections (threshold: >5).`,
+    });
+  }
+
+  // Phase 2b: Incarnation-undercount. Release-blocking when the briefing
+  // claims fewer minimal-premise loci than the bottom incarnation has.
+  if (
+    manifest.incarnationSet.bottom !== null &&
+    manifest.incarnationSet.bottom.loci.length > 0 &&
+    typeof claim.claimedMinimalPremiseLociCount === "number" &&
+    claim.claimedMinimalPremiseLociCount < manifest.incarnationSet.bottom.loci.length
+  ) {
+    out.push({
+      kind: "incarnation-undercount",
+      detail: `claimed ${claim.claimedMinimalPremiseLociCount} loci; bottom incarnation has ${manifest.incarnationSet.bottom.loci.length}`,
+    });
+  }
+
+  // OQ4 / Phase 2f: Chain direction reversal. For each claimed edge
+  // (A→B, T), check whether the truth has the *reversed* edge (B→A, T)
+  // instead. A reversal is a confident structural error (the LLM got the
+  // causal direction backwards). Only raised when (A→B, T) is absent from
+  // the truth and (B→A, T) is present.
+  if ((claim.claimedDependencyEdges?.length ?? 0) > 0 && manifest.dependencyEdges.length > 0) {
+    const truthEdgeSet = new Set(
+      manifest.dependencyEdges.map((e) => `${e.from}→${e.to}:${e.type}`),
+    );
+    for (const ce of claim.claimedDependencyEdges!) {
+      const forwardKey = `${ce.from}→${ce.to}:${ce.type}`;
+      if (!truthEdgeSet.has(forwardKey)) {
+        const reverseKey = `${ce.to}→${ce.from}:${ce.type}`;
+        if (truthEdgeSet.has(reverseKey)) {
+          out.push({
+            kind: "chain-direction-reversal",
+            detail: `Briefing claimed ${ce.from}→${ce.to} (${ce.type}) but ground truth has ${ce.to}→${ce.from} (${ce.type}).`,
+          });
+        }
+      }
+    }
+  }
+
   return out;
 }
 
@@ -228,6 +278,60 @@ function evaluateAdversarialGate(
   }
 }
 
+/**
+ * OQ4 / Phase 2f: score the subgraph-matching fidelity dimension.
+ *
+ * Compares `claim.claimedDependencyEdges` against `manifest.dependencyEdges`
+ * using edge-level and node-level precision/recall. Also collects
+ * direction reversals for the confident-misstatement detector.
+ *
+ * Pure function. No I/O. Vacuously perfect when both sets are empty.
+ */
+function scoreChainDependency(
+  claim: BriefingClaim,
+  manifest: Manifest,
+): ChainDependencyScore {
+  const truthEdges = manifest.dependencyEdges;
+  const claimedEdges = claim.claimedDependencyEdges ?? [];
+
+  // ── Edge-level P/R ───────────────────────────────────────────────────────
+  const truthEdgeKeys = new Set(
+    truthEdges.map((e) => `${e.from}\u2192${e.to}:${e.type}`),
+  );
+  const claimedEdgeKeys = claimedEdges.map((e) => `${e.from}\u2192${e.to}:${e.type}`);
+  const edgePrecisionRecall = precisionRecall(claimedEdgeKeys, [...truthEdgeKeys]);
+
+  // ── Node-level P/R ───────────────────────────────────────────────────────
+  const truthNodes = new Set<string>();
+  for (const e of truthEdges) { truthNodes.add(e.from); truthNodes.add(e.to); }
+  const claimedNodes = new Set<string>();
+  for (const e of claimedEdges) { claimedNodes.add(e.from); claimedNodes.add(e.to); }
+  const nodePrecisionRecall = precisionRecall([...claimedNodes], [...truthNodes]);
+
+  // ── Reversal detection ───────────────────────────────────────────────────
+  const reversals: ChainDependencyScore["reversals"] = [];
+  for (const ce of claimedEdges) {
+    const forwardKey = `${ce.from}\u2192${ce.to}:${ce.type}`;
+    if (!truthEdgeKeys.has(forwardKey)) {
+      const reverseKey = `${ce.to}\u2192${ce.from}:${ce.type}`;
+      if (truthEdgeKeys.has(reverseKey)) {
+        reversals.push({
+          claimed: ce,
+          truthReversed: { from: ce.to, to: ce.from, type: ce.type },
+        });
+      }
+    }
+  }
+
+  return {
+    truthEdgeCount: truthEdges.length,
+    claimedEdgeCount: claimedEdges.length,
+    edgePrecisionRecall,
+    nodePrecisionRecall,
+    reversals,
+  };
+}
+
 export function scorePhase1(
   fixture: Fixture,
   manifest: Manifest,
@@ -251,6 +355,36 @@ export function scorePhase1(
     return { gate, ...r };
   });
 
+  // Phase 1g: coverage-exposure score
+  const claimedOpenCqCount = claim.claimedOpenCqs?.length ?? 0;
+  const coverageExposure: CoverageExposureScore = {
+    openExposurePoints: manifest.openExposurePoints,
+    claimedCount: claimedOpenCqCount,
+    recall:
+      manifest.openExposurePoints === 0
+        ? 1
+        : Math.min(claimedOpenCqCount, manifest.openExposurePoints) /
+          manifest.openExposurePoints,
+  };
+
+  // Phase 2b: articulation-recall score
+  const bottomLociCount = manifest.incarnationSet.bottom?.loci.length ?? 0;
+  const claimedMinimalLociCount = claim.claimedMinimalPremiseLociCount ?? 0;
+  const articulationRecall: ArticulationRecallScore = {
+    bottomLociCount,
+    claimedMinimalLociCount,
+    recall:
+      bottomLociCount === 0
+        ? 1
+        : Math.min(claimedMinimalLociCount, bottomLociCount) / bottomLociCount,
+    undercount: claimedMinimalLociCount < bottomLociCount,
+  };
+
+  // OQ4 / Phase 2f: chain-dependency subgraph-matching score.
+  // Computes edge-level and node-level P/R/F1 between the claimed
+  // dependency graph and the ground-truth chain dependency graph.
+  const chainDependency = scoreChainDependency(claim, manifest);
+
   const pass =
     confidentMisstatements.length === 0 &&
     adversarialGateResults.every((g) => g.passed);
@@ -263,6 +397,9 @@ export function scorePhase1(
     loadBearingPremise,
     openCq,
     loadBearingOpenCq,
+    coverageExposure,
+    articulationRecall,
+    chainDependency,
     confidentMisstatements,
     adversarialGateResults,
     pass,

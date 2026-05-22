@@ -9,7 +9,47 @@
  * Pure function. No I/O. No prose. Same input → same manifest.
  */
 
-import type { Fixture, Manifest } from "./types";
+import type { Fixture, Manifest, IncarnationSetManifest, DependencyEdge } from "./types";
+
+const EMPTY_INCARNATION_SET: IncarnationSetManifest = {
+  bottom: null,
+  minimals: [],
+  totalIncarnations: 0,
+};
+
+/**
+ * Build the incarnation-set manifest field.
+ *
+ * For authored corpus fixtures the value is taken directly from
+ * `fixture.manifestFields.incarnationSet` (no DB round-trip needed).
+ * When absent, a zero-default is returned so downstream scoring is safe.
+ */
+function buildIncarnationSetManifest(fixture: Fixture): IncarnationSetManifest {
+  return fixture.manifestFields?.incarnationSet ?? EMPTY_INCARNATION_SET;
+}
+
+/**
+ * Extract dependency edges from the fixture's chain projections.
+ *
+ * OQ4 / Phase 2f: builds the ground-truth directed edge set for the
+ * subgraph-matching fidelity dimension. Each chain projection may carry
+ * multiple edges; we deduplicate by (from, to, type) key.
+ */
+function buildDependencyEdges(fixture: Fixture): DependencyEdge[] {
+  const chains = fixture.readout.chains?.chains ?? [];
+  const seen = new Set<string>();
+  const edges: DependencyEdge[] = [];
+  for (const chain of chains) {
+    for (const edge of chain.edges ?? []) {
+      const key = `${edge.from}\u2192${edge.to}:${edge.type}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        edges.push({ from: edge.from, to: edge.to, type: edge.type });
+      }
+    }
+  }
+  return edges;
+}
 
 /** Premises are "load-bearing" iff `topology.loadBearingPremises[]` includes them. */
 export function generateManifest(fixture: Fixture): Manifest {
@@ -52,5 +92,13 @@ export function generateManifest(fixture: Fixture): Manifest {
     refusedConclusionIds,
     hierarchicalMode,
     argumentCount: r.fingerprint?.argumentCount ?? 0,
+    // Phase 1g: Ludics-layer manifest fields
+    openExposurePoints: fixture.manifestFields?.openExposurePoints ?? 0,
+    coverageRatio: fixture.manifestFields?.coverageRatio ?? 0,
+    fossilCount: fixture.manifestFields?.fossilCount ?? 0,
+    // Phase 2b: incarnation-set
+    incarnationSet: buildIncarnationSetManifest(fixture),
+    // OQ4 / Phase 2f: dependency-graph edges
+    dependencyEdges: buildDependencyEdges(fixture),
   };
 }

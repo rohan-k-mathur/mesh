@@ -30,6 +30,18 @@
       "path": "fixtures/small-single-hub-db.json",
       "description": "DB-snapshot fixture: small (4 args) deliberation with one clearly dominant hub, one shared load-bearing premise, and one unanswered CQ.",
       "contentHash": "sha256:bc46f5157b01d3ad29a10d7a697d632ceacfe218801a53499fbbfd1410d997ce"
+    },
+    {
+      "id": "synthesis-join-db",
+      "path": "fixtures/synthesis-join-db.json",
+      "description": "Phase 2c fixture: small (4 args) deliberation with two designs where one is a superset of the other. Their articulation join is trivially the larger design (closureSteps: 0). Validates happy-path synthesis workflow.",
+      "contentHash": "sha256:synthesis-join-db-content-hash-placeholder-00000000000000000000000"
+    },
+    {
+      "id": "synthesis-delocation-db",
+      "path": "fixtures/synthesis-delocation-db.json",
+      "description": "Phase 2c fixture: small (5 args) deliberation with two designs with non-overlapping loci. Their articulation join triggers the delocation path (newLoci.length > 0, wasNontrivial=true).",
+      "contentHash": "sha256:synthesis-delocation-db-content-hash-placeholder-0000000000000000"
     }
   ]
 }

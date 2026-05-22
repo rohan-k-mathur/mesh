@@ -2,6 +2,28 @@
   "id": "small-diffuse-hubs-db",
   "description": "DB-snapshot fixture: small (12 args) deliberation with six co-equal hub arguments. Tests diffuse hub shape + high hub ambiguity.",
   "adversarialGates": ["diffuse-topology-not-named-as-hub"],
+  "manifestFields": {
+    "openExposurePoints": 8,
+    "coverageRatio": 0.25,
+    "fossilCount": 0,
+    "incarnationSet": {
+      "bottom": {
+        "designId": "fixture-small-diffuse-hubs-bottom",
+        "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3"],
+        "moveCount": 4,
+        "rank": 0
+      },
+      "minimals": [
+        {
+          "designId": "fixture-small-diffuse-hubs-bottom",
+          "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3"],
+          "moveCount": 4,
+          "rank": 0
+        }
+      ],
+      "totalIncarnations": 5
+    }
+  },
   "readout": {
     "deliberationId": "fix-small-diffuse-hubs-db",
     "contentHash": "sha256:3bfcb6aec762870ff65cee0148570067aea684e7e10575864bc93e8232903e35",

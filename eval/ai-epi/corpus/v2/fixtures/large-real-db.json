@@ -5,6 +5,28 @@
     "diffuse-topology-not-named-as-hub",
     "refusal-not-overridden"
   ],
+  "manifestFields": {
+    "openExposurePoints": 35,
+    "coverageRatio": 0.255,
+    "fossilCount": 5,
+    "incarnationSet": {
+      "bottom": {
+        "designId": "fixture-large-real-db-bottom",
+        "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3","\u22a2A.4","\u22a2A.5","\u22a2A.6","\u22a2A.7","\u22a2A.8","\u22a2A.9","\u22a2A.10","\u22a2A.11"],
+        "moveCount": 12,
+        "rank": 0
+      },
+      "minimals": [
+        {
+          "designId": "fixture-large-real-db-bottom",
+          "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3","\u22a2A.4","\u22a2A.5","\u22a2A.6","\u22a2A.7","\u22a2A.8","\u22a2A.9","\u22a2A.10","\u22a2A.11"],
+          "moveCount": 12,
+          "rank": 0
+        }
+      ],
+      "totalIncarnations": 8
+    }
+  },
   "readout": {
     "deliberationId": "fix-large-real-db",
     "contentHash": "sha256:583d35e01c11304924246942b18233f7eaef465235690d7f5b01e7262f3f2d38",

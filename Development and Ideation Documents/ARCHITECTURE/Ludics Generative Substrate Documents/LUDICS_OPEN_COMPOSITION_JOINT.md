@@ -1,5 +1,7 @@
 # Open Behaviours, Composition Algebra, and Joint Saturation — Time, Joining, and Closure for the Generative Substrate
 
+> **Post-review status (CORRECTED post-2e/2f, 2026-05-21).** The composition-algebra (0d) and joint-saturation (0e) sections assume the C1/C3 framing in which both sides of the bridge are join-semilattices of derivations. Per the Phase 2e OQ-JSL proof, the substrate-side $\mathsf{Inc}(B)$ is an antichain, not a JSL; the JSL structure lives **per cone** $C_i$ where $\vee$ = literal chronicle-set union (Phase 2f Reading A). The convolution / joint-saturation arguments therefore decompose along the cone partition rather than over a single global lattice. See [LUDICS_OQ_JSL_PROOF.md](./LUDICS_OQ_JSL_PROOF.md), the **OQ-JSL-Ambler** entry in [LUDICS_CONSOLIDATION_AND_DEV_READINESS.md](./LUDICS_CONSOLIDATION_AND_DEV_READINESS.md), and [LUDICS_ORDER_RELATION_DEFINITION.md](./LUDICS_ORDER_RELATION_DEFINITION.md) for the cone-decomposed normative form.
+
 **Sessions:** 0c, 0d, 0e (Conceptual)
 **Date:** 2026-05-17
 **Track:** Conceptual / pre-product
@@ -101,6 +103,27 @@ but the current dialectical layer no longer needs that response. Surfacing
 this is essentially a *fossil-record* read: "you walked this objection, but
 the position has since shifted so the objection no longer applies — would
 you like to re-articulate against the current position?"
+
+**Closest pre-existing analog.** The deployed **warrant-mcp** server
+(jayden-chmod, glama.ai, 2025–2026) exposes Prakken-style `retract` as one
+move in `dialogue_move`: an attributed speech act removes the commitment
+from the active store while preserving the original `claim φ` and the
+following `retract φ` in the transcript. The fossil-record read is a
+structural superset of that pattern along two axes. **(i) Locus back-pointer.**
+Prakken-`retract` records the speech act but does not tag the retracted
+move with a back-pointer to the specific Ludics locus it was answering;
+the witnessing tuple in $\mathsf{Witness}$ does (the $m$ field). **(ii)
+"No longer applies to current $D_P$" flag.** Prakken-`retract` removes the
+commitment but does not surface the dialectical fact that *the locus the
+objection answered has itself moved*; the fossil-record read computes this
+as $w.m \notin \sigma(D_P)^\perp$ at the current $t$. The broader
+argumentation-dynamics literature (Cayrol–de Saint-Cyr–Lagasquie-Schiex,
+JAIR 2010; Baumann 2012; Baumann–Gabbay–Rodrigues, AAAI 2020 "Forgetting
+an argument") is forward-only: contraction produces a new framework and
+does not preserve the contracted argument in an attribution layer flagged
+as fossil. The fossil-record read is therefore best framed as
+"Prakken-`retract` with a Ludics-locus back-pointer plus a current-$D_P$
+relevance flag," not as a new construct from scratch.
 
 ## 0c.4 T5 closer — what an open lattice exposes that a fixed one cannot
 
@@ -216,9 +239,16 @@ the standard derivation-pasting operation. In Ludics terms: a minimal
 incarnation of the child becomes a *premise-component* in the minimal
 incarnations of the parent that consume the child's conclusion. The
 articulation lattice of the composite is built by **convolving** the two
-component lattices through the shared interface, a construction that is
-well-defined precisely because both sides are join-semilattices of
-derivations.
+component lattices through the shared interface, a construction that was
+assumed well-defined because both sides are join-semilattices of derivations.
+
+> **Phase 2e caveat (C1 corrected).** $(\mathsf{Inc}(B), \leq_\subseteq,
+> \vee_{\perp\perp})$ is not a JSL — $\mathsf{Inc}(B)$ is an antichain and
+> $(B, \leq_\subseteq)$ decomposes into disjoint cones. The convolution
+> construction above assumes a single JSL across all incarnations; under the
+> corrected picture it is per-cone. Whether per-cone convolution still supports
+> the cross-room Plexus transport use case is open (**OQ-JSL-Ambler**).
+> See `LUDICS_OQ_JSL_PROOF.md` §7.
 
 Transport: $f$ induces a *lax functor* between articulation lattices (lax
 because some equivalences in the source need not survive the rewrite).
@@ -407,3 +437,16 @@ discipline build, post-tools), and the deeper Section-D / Section-E
 question deck items from the brainstorm. A literature-review pass
 (scoped separately) is now both possible and useful, since the conceptual
 scaffolding is stable enough to absorb external sources without distortion.
+
+**N-C25 (Round 2, original-to-track).** Phase 5 of the AI roadmap
+proposes an explicit "what is deliberately not computed" list
+(per-participant scoring, participation-quality scores, reading tracking,
+sentiment analysis, predictive churn) as a first-class governance
+artifact, with the property that future additions require explicit
+principle-level justification. The philosophical antecedent is Suchman's
+*located accountability* stance (*Located Accountabilities in Technology
+Production*, Scandinavian J. Information Systems 14(2):91–105, 2002),
+which frames the political and epistemic positioning of design boundaries
+as accountable practice. The operationalization of this stance as a
+concrete deliverable list shipped alongside a deliberation platform is
+original to this track.

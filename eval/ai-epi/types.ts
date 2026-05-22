@@ -53,6 +53,50 @@ export interface Fixture {
   adversarialGates: AdversarialGate[];
   /** Authored partial readout. */
   readout: FixtureReadout;
+  /**
+   * Phase 1g: Ludics-layer manifest fields. Authored for synthetic fixtures;
+   * computed from the DB for DB-snapshot fixtures.
+   * Required for coverage-exposure and fossil-count scorecard dimensions.
+   */
+  manifestFields?: {
+    /** Count of unwitnessed moves in the witnessable + latent strata. */
+    openExposurePoints: number;
+    /** walkedLoci / locusCount. */
+    coverageRatio: number;
+    /** Count of retracted WitnessRecord rows for this deliberation. */
+    fossilCount: number;
+    /** Phase 2b: authored incarnation-set for this fixture's root locus. */
+    incarnationSet?: IncarnationSetManifest;
+  };
+}
+
+// ────────────────────────────────────────────────────────────
+// Phase 2b: Incarnation-set manifest types
+// ────────────────────────────────────────────────────────────
+
+/**
+ * A single Design incarnation summary inside an IncarnationSetManifest.
+ */
+export interface DesignSummary {
+  designId: string;
+  /** Locus addresses this design spans. */
+  loci: string[];
+  moveCount: number;
+  /** 0 = minimal (bottom); higher = larger incarnation. */
+  rank: number;
+}
+
+/**
+ * The set of incarnations for a Behaviour — the poset bottom plus all
+ * co-equal minima (usually just [bottom] unless the behaviour has a split
+ * bottom with two non-comparable minima).
+ */
+export interface IncarnationSetManifest {
+  /** Girard incarnation |B|; null when the behaviour has no Designs. */
+  bottom: DesignSummary | null;
+  /** Co-equal minima (usually just [bottom]). */
+  minimals: DesignSummary[];
+  totalIncarnations: number;
 }
 
 export type AdversarialGate =
@@ -90,6 +134,33 @@ export interface Manifest {
   hierarchicalMode: boolean;
   /** Argument count (for context in scorecard reports). */
   argumentCount: number;
+  /**
+   * Phase 1g: Count of unwitnessed moves in the witnessable + latent strata.
+   * Ground truth for coverage-exposure scoring. 0 when manifestFields absent.
+   */
+  openExposurePoints: number;
+  /**
+   * Phase 1g: walkedLoci / locusCount. Informational; not used in scoring
+   * directly but surfaced in scorecard reports for human review.
+   */
+  coverageRatio: number;
+  /**
+   * Phase 1g: Count of retracted WitnessRecord rows.
+   * Informational; reported alongside coverage metrics.
+   */
+  fossilCount: number;
+  /**
+   * Phase 2b: Incarnation-set for the root-locus behaviour.
+   * Zero-default when fixture has no authored incarnationSet.
+   */
+  incarnationSet: IncarnationSetManifest;
+  /**
+   * OQ4 / Phase 2f: Directed dependency edges extracted from all
+   * chain projections in the fixture's `SyntheticReadout.chains`.
+   * Each edge is a `(from, to, type)` triple. Empty array for fixtures
+   * that have no chain data.
+   */
+  dependencyEdges: DependencyEdge[];
 }
 
 // ────────────────────────────────────────────────────────────
@@ -142,6 +213,19 @@ export interface BriefingClaim {
    * misstatement. See Phase 1 "Calibration" in the roadmap.
    */
   expressedTopologyUncertainty?: boolean;
+  /**
+   * Phase 2b: How many distinct loci the LLM identifies as part of the
+   * minimum-commitment position. Graded against incarnationSet.bottom.loci.length.
+   */
+  claimedMinimalPremiseLociCount?: number;
+  /**
+   * OQ4 / Phase 2f: The dependency edges the LLM asserts exist in the
+   * deliberation graph. Parsed from the LLM response by the extractor;
+   * scored against `Manifest.dependencyEdges` by the scorecard.
+   * Omission = did not claim = recall miss; wrong direction = confident
+   * misstatement (`chain-direction-reversal`).
+   */
+  claimedDependencyEdges?: DependencyEdge[];
 }
 
 // ────────────────────────────────────────────────────────────
@@ -164,12 +248,124 @@ export type ConfidentMisstatementKind =
   | "named-single-hub-when-coequal"
   | "named-single-hub-when-diffuse"
   | "false-confidence-on-ambiguous-topology"
-  | "cq-priority-inversion";
+  | "cq-priority-inversion"
+  /** Phase 1g: briefing named zero open CQs when openExposurePoints > 0. */
+  | "coverage-exposure-zero"
+  /** Phase 2b: LLM identifies fewer loci than the bottom incarnation. */
+  | "incarnation-undercount"
+  /**
+   * OQ4 / Phase 2f: briefing claimed an edge A→B but the ground-truth
+   * graph has the reversed edge B→A (same type). A direction reversal is
+   * a confident structural error — the LLM asserted a specific causal
+   * direction that is structurally backwards in the deliberation.
+   */
+  | "chain-direction-reversal";
 
 export interface ConfidentMisstatement {
   kind: ConfidentMisstatementKind;
   /** Human-readable detail for review. */
   detail: string;
+}
+
+// ────────────────────────────────────────────────────────────
+// OQ4 / Phase 2f: Dependency-graph types
+// ────────────────────────────────────────────────────────────
+
+/**
+ * A single directed dependency edge in the deliberation graph.
+ * Mirrors `ChainEdgeProjection` from `lib/deliberation/chainExposure`
+ * but is a standalone, import-free type usable in authored fixtures.
+ */
+export interface DependencyEdge {
+  /** Source argumentId. */
+  from: string;
+  /** Target argumentId. */
+  to: string;
+  /** Semantic type of the dependency. */
+  type: "PRESUPPOSES" | "ENABLES" | "ATTACKS";
+}
+
+/**
+ * Subgraph-fidelity score (OQ4 / Phase 2f).
+ *
+ * Measures whether the LLM correctly described the *dependency structure*
+ * of the deliberation graph, not just which nodes are present.
+ * This is the GraphEval-comparable dimension: edge-level P/R/F1 over
+ * the (from, to, type) triples extracted from all chain projections.
+ *
+ * Graph-edit-distance interpretation:
+ *   - falsePositives = edges the LLM hallucinated
+ *   - falseNegatives = real edges the LLM missed
+ *   - `reversals` = edges cited in the wrong direction (also counted in
+ *     falsePositives, and surfaced as `chain-direction-reversal` misstatements)
+ */
+export interface ChainDependencyScore {
+  /** Ground-truth edge count from all chain projections. */
+  truthEdgeCount: number;
+  /** Claimed edge count from BriefingClaim.claimedDependencyEdges. */
+  claimedEdgeCount: number;
+  /**
+   * P/R/F1 over edge keys `"${from}→${to}:${type}"`.
+   * Vacuously 1.0 when truthEdgeCount === 0.
+   */
+  edgePrecisionRecall: PrecisionRecall;
+  /**
+   * P/R/F1 over argument node IDs mentioned in edge endpoints.
+   * Captures whether the LLM named the right argument participants
+   * regardless of exact edge direction.
+   */
+  nodePrecisionRecall: PrecisionRecall;
+  /**
+   * Direction reversals: cases where the LLM claimed (A→B, T) but the
+   * ground truth has (B→A, T) and NOT (A→B, T). Each reversal also
+   * appears as a `chain-direction-reversal` in confidentMisstatements.
+   */
+  reversals: Array<{ claimed: DependencyEdge; truthReversed: DependencyEdge }>;
+}
+
+// ────────────────────────────────────────────────────────────
+// Phase 2b: Articulation-recall score
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Articulation-recall dimension (Phase 2b).
+ * Measures whether the LLM correctly identified the minimum-commitment
+ * position (the bottom incarnation loci count).
+ */
+export interface ArticulationRecallScore {
+  /** incarnationSet.bottom.loci.length; 0 when bottom is null. */
+  bottomLociCount: number;
+  /** From claimedMinimalPremiseLociCount; 0 when absent. */
+  claimedMinimalLociCount: number;
+  /**
+   * min(claimedMinimalLociCount, bottomLociCount) / bottomLociCount.
+   * 1.0 when bottomLociCount === 0 (vacuously perfect).
+   */
+  recall: number;
+  /** true when claimedMinimalLociCount < bottomLociCount. */
+  undercount: boolean;
+}
+
+// ────────────────────────────────────────────────────────────
+// Phase 1g: Coverage-exposure score
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Coverage-exposure dimension (Phase 1g).
+ * Measures how many of the unaddressed structural objections the
+ * briefing named. A recall of 0.0 when openExposurePoints > 0
+ * is a confidentMisstatement (`coverage-exposure-zero`).
+ */
+export interface CoverageExposureScore {
+  /** Ground-truth unwitnessed exposure points (from manifest). */
+  openExposurePoints: number;
+  /** Number of open CQs named by the briefing (claimedOpenCqs.length). */
+  claimedCount: number;
+  /**
+   * min(claimedCount, openExposurePoints) / openExposurePoints.
+   * 1.0 when openExposurePoints === 0 (vacuously fully covered).
+   */
+  recall: number;
 }
 
 export interface Phase1ScorecardReport {
@@ -188,6 +384,24 @@ export interface Phase1ScorecardReport {
    * exhaustive `claimedOpenCqs` list.
    */
   loadBearingOpenCq: PrecisionRecall;
+  /**
+   * Phase 1g: Coverage-exposure recall score.
+   * `claimedCount / openExposurePoints`.
+   */
+  coverageExposure: CoverageExposureScore;
+  /**
+   * Phase 2b: Articulation-recall score.
+   * `claimedMinimalLociCount / bottomLociCount`.
+   */
+  articulationRecall: ArticulationRecallScore;
+  /**
+   * OQ4 / Phase 2f: Subgraph-matching fidelity score.
+   * Edge-level P/R/F1 comparing claimed dependency edges against the
+   * ground-truth chain dependency graph. This is the GraphEval-comparable
+   * dimension; dynamic-manifest variant (C17 / OQ-fidelity).
+   * Vacuously perfect when neither the manifest nor the claim has edges.
+   */
+  chainDependency: ChainDependencyScore;
   /**
    * Confident misstatements. ANY non-empty entry is a release-blocking
    * failure regardless of overall precision/recall.

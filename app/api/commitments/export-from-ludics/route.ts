@@ -11,11 +11,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
+import { bindParticipantToDesign, BindError } from "@/server/ludics/bindParticipantToDesign";
+import { canonicalizeClaimText } from "@/lib/ids/mintMoid";
 
 interface ExportFromLudicsRequest {
   deliberationId: string;
   ludicCommitmentElementIds: string[]; // IDs of LudicCommitmentElements to export
   targetParticipantId?: string; // Optional: override participant ID (default: use ludicElement.ownerId)
+  /** Write-seam hook: map ludicElementId → { ludicMoveId, dialogueMoveId, schemeKey? } for WitnessRecord creation */
+  witnessHooks?: Record<string, { ludicMoveId: string; dialogueMoveId: string; schemeKey?: string }>;
 }
 
 interface ExportFromLudicsResponse {
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse and validate request body
     const body: ExportFromLudicsRequest = await request.json();
-    const { deliberationId, ludicCommitmentElementIds, targetParticipantId } = body;
+    const { deliberationId, ludicCommitmentElementIds, targetParticipantId, witnessHooks } = body;
 
     if (!deliberationId || !ludicCommitmentElementIds || ludicCommitmentElementIds.length === 0) {
       return NextResponse.json(
@@ -237,6 +241,26 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+
+      // Write-seam hook: create WitnessRecord if caller provided binding context for this element
+      const hook = witnessHooks?.[ludicElement.id];
+      if (hook) {
+        try {
+          await bindParticipantToDesign({
+            dialogueMoveId: hook.dialogueMoveId,
+            ludicMoveId: hook.ludicMoveId,
+            participantId,
+            canonicalText: canonicalizeClaimText(proposition || ludicElement.label || ""),
+            schemeKey: hook.schemeKey,
+          });
+        } catch (err) {
+          if (err instanceof BindError) {
+            console.warn(`[export-from-ludics] bind_participant_to_design skipped for ${ludicElement.id}: ${err.code} — ${err.message}`);
+          } else {
+            throw err;
+          }
+        }
+      }
 
       created.push({
         commitmentId: commitment.id,

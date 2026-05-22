@@ -1,5 +1,12 @@
 # The Dialectical/Witnessing Interface — Instantiation, Exposure, Articulation, Witness
 
+> **Post-review status (CORRECTED post-2e/2f, 2026-05-21).** The articulation-lattice section of this doc (§2) and the Ambler-hom-set identification of §2.2 (C3) were authored under the working assumption that $\mathsf{Inc}(B)$ is a join-semilattice with unique bottom `|B|`. The Phase 2e OQ-JSL proof refuted that assumption: $\mathsf{Inc}(B)$ is an **antichain**, $(B, \leq_\subseteq)$ decomposes into **disjoint cones** $\{C_i\}$, $\vee_{\perp\perp}$ is well-defined only **within a cone** and there equals literal chronicle-set union (Phase 2f Reading A; Daimon Lock Lemma). Phrases like "the bottom $|B|$", "$\mathsf{Inc}(B)$ as a join-semilattice with bottom $|B|$", and "the least derivation of $B$" in this doc should be read with the per-cone reframe in mind. Authoritative status:
+>
+> - [LUDICS_CONSOLIDATION_AND_DEV_READINESS.md](./LUDICS_CONSOLIDATION_AND_DEV_READINESS.md) § claims register (C1, C3, N-C23 rows)
+> - [LUDICS_OQ_JSL_PROOF.md](./LUDICS_OQ_JSL_PROOF.md) for the refutation + per-cone reframe
+> - [LUDICS_ORDER_RELATION_DEFINITION.md](./LUDICS_ORDER_RELATION_DEFINITION.md) for the within-cone join definition
+> - [LUDICS_SESSION_1_DEV_SPEC.md](./LUDICS_SESSION_1_DEV_SPEC.md) (post-review-corrected) for the dev-layer consequences
+
 **Session:** 0b (Conceptual)
 **Date:** 2026-05-17
 **Track:** Conceptual / pre-product
@@ -156,6 +163,20 @@ creation and `propose_warrant`-style writes ought to enforce.
   of legitimate participation invisible to Ludics, violating T4's *coordinate*
   (non-hierarchical) framing.
 
+> **Positioning note (Singh dual direction).** The closest pre-existing
+> semantics for these invariants is Singh's social-commitment relation
+> $C(\mathrm{debtor}, \mathrm{creditor}, \mathrm{antecedent},
+> \mathrm{consequent})$ (1999 *AI & Law* 7; 2000 IJCAI ACL workshop), which
+> creates a *new* commitment state from an attributed speech act
+> (`create` / `cancel` / `release` / `discharge` / `assign` / `delegate`).
+> $\iota$ runs in the **opposite direction**: an attributed canonical
+> witnessing act binds *to a pre-existing* anonymous Ludics move, leaving
+> the dialectical state structurally unchanged (I1 records-only). Singh:
+> attributed-act → attributed-new-state. $\iota$: attributed-act →
+> pre-existing-anonymous-state, with a new witness tuple on the side. The
+> two patterns share the four-place act/state shape but compose oppositely;
+> neither subsumes the other.
+
 ### 1.4 Relationship to existing implementations
 
 `CommitmentLudicMapping` ([COMMITMENT_SYSTEM_ARCHITECTURE.md](../COMMITMENT_SYSTEM_ARCHITECTURE.md))
@@ -228,7 +249,6 @@ no projection exposes, (d) candidate MCP-tool shape.
 **(a) Object.** Let $D_P$ be Proponent's design and $\sigma(D_P)$ its protocol
 saturation. Define $E(D_P) = \sigma(D_P)^\perp$, **stratified by the witnessing
 record into three layers**:
-
 $$
 E(D_P) = E_w(D_P) \sqcup E_o(D_P) \sqcup E_\ell(D_P)
 $$
@@ -256,6 +276,30 @@ The map carries two further structures on top of this stratification:
   walking $m$ would lift out of latency, computed by the Ambler §4 /
   `culpritSets()` algorithm. *Walking is a transition, not just a labeling.*
 
+**Positioning relative to existing structured-argumentation work.** The
+closest pre-existing analog is **Prakken (2024), "An abstract and structured
+account of dialectical argument strength," *Artificial Intelligence* 335:
+104193**, which defines argument strength via the set of *possible*
+successful attacks across expansions of an AF — counterfactual attackers
+that *could be added*, irrespective of whether anyone utters them — and
+instantiates this in ASPIC+. Prakken-2024 is the only existing
+structural-objection-space construct in the structured-argumentation
+tradition with the right shape; vanilla ASPIC+/Dung labelling and Caminada
+discussion-games are post-hoc bookkeeping over already-generated attack
+graphs (Baroni–Caminada–Giacomin, KER 2011) and are *not* the right point
+of comparison. The exposure map differs from Prakken-2024 in two specific
+ways: **(i) participant-access stratification.** Prakken-2024 is binary
+(an attacker either is in some expansion or is not). The walked /
+witnessable / latent stratification adds an access modality that splits
+the "could be added" set by *whether the deliberation has accessed it yet*.
+**(ii) Ludics-internal generator.** Prakken-2024 parametrizes expansions
+by a base rule set (ASPIC+ axioms plus orderings); the exposure map
+parametrizes by a Ludics design $D_P$ and computes $\sigma(D_P)^\perp$
+directly from the protocol semantics. The right framing for C8 is
+therefore "exposure map *generalizes* Prakken-2024 with a participant-
+access axis," not "exposure map *has no analog* in ASPIC+"; the latter is
+true at the vanilla-labelling level but elides the closer construct.
+
 **(b) Projection.** The existing MCP reads project as follows:
 
 | MCP tool | Projects onto |
@@ -278,6 +322,20 @@ of Phase 1's structural ground-truth manifest, and the same fidelity
 discipline (mechanical computation, scorecard regression) should apply to its
 serialization.
 
+**N-C24 (Round 2, original-to-track).** The Phase 3 briefing-fingerprint
+mechanism described in the AI roadmap — a content hash over a *partial
+region* of this map (targeted-region nodes + statuses + direct neighbours
++ open-CQ set) used for optimistic concurrency, with a 5-rule
+domain-specific "material change" taxonomy — combines three features not
+found jointly in prior art: (i) content-hashing over a partial graph
+region rather than the full resource; (ii) optimistic concurrency gated
+by that hash; (iii) domain-specific change classification rather than
+structural-only conflict detection. Closest priors: Bisquert, Cayrol,
+Dupin de Saint-Cyr & Lagasquie-Schiex (*Characterizing change in abstract
+argumentation systems*, hal-02875531) for change typology; Almeida
+(arXiv:2310.18220, 2023) for the CRDT survey. Neither combines these
+three.
+
 **(d) MCP shape.** `get_exposure_map(deliberationId, claimId?, options: {
 stratifyDepth, includeCascade, includeTopology })`. Returns a stratified,
 topology-annotated graph. *T5 implication*: this is the read an AI consumer
@@ -293,28 +351,105 @@ current Proponent design $D_P$ lies in. The **articulation lattice** of the
 position is
 
 $$
-\mathsf{Art}(B) = (B,\, \leq)
+\mathsf{Art}(B) \;:=\; \bigl(\mathsf{Inc}(B),\; \leq,\; \vee_{\perp\perp}\bigr)
 $$
 
-where $B$ is the set of designs in the behaviour and $\leq$ is the
-inclusion-of-loci-and-moves order ($D \leq D'$ iff $D' \supseteq D$ as a tree).
-The minimal elements of $\mathsf{Art}(B)$ are the **incarnations** of $B$ —
-the minimum-commitment designs that play the position. The join in
-$\mathsf{Art}(B)$ corresponds to *taking the union of articulations*
-(committing to more); meets, where they exist, correspond to *finding shared
-minimum commitments*.
+where:
 
-**Mathematical identity.** This is the Ludics-native presentation of an
-**Ambler hom-set** $\mathrm{Hom}_{\mathcal{A}_\Gamma}(A, B)$ viewed as a
-join-semilattice of derivations
-([Ambler 1996 §0.5](../ECC_REFINEMENT_AND_MCP_INTEGRATION_PLAN.md)).
-Each design in $B$ is a *derivation* of the position $B$ represents; the
-join is Ambler's $\vee$; the order is set-inclusion of derivations; minimal
-elements are *selected* arrows in Ambler's sense (single canonical
-derivation). **The articulation lattice is the Ludics-native shape of the
-same object the Ambler-style evidential-closed-category algebra builds at the assumption-and-derivation level.**
-This convergence means we are not inventing a new mathematical object; we
-are aligning two unifications of the same one.
+- $\mathsf{Inc}(B) := \{D \in B : D^{\perp\perp} = D\}$ is the set of
+  **incarnations** in $B$ — the $\perp\perp$-fixed designs, equivalently
+  the canonical representatives of $\sim_{\perp\perp}$ equivalence classes
+  of designs in $B$;
+- $\leq$ is the inclusion-of-loci-and-moves order ($D \leq D'$ iff
+  $D' \supseteq D$ as a tree);
+- the join is the **bi-orthogonal closure of the union**,
+
+  $$ D_1 \vee_{\perp\perp} D_2 \;:=\; (D_1 \cup D_2)^{\perp\perp}, $$
+
+  which is the smallest behaviour-closed design containing both $D_1$ and
+  $D_2$ (set-theoretic $D_1 \cup D_2$ is not generally a design and
+  generally not in $B$; the $\perp\perp$-closure is the standard Ludics
+  fix). Informally: "taking the union of articulations, closed under
+  whatever the protocol forces."
+
+The minimum-commitment design in $\mathsf{Inc}(B)$ — when it exists — is
+Girard's **incarnation** $|B|$. Substrate behaviours $B = \sigma(D_P)^\perp$
+are principal by construction, so $|B|$ exists and is the bottom of
+$\mathsf{Art}(B)$. Meets, where they exist, correspond to *finding shared
+minimum commitments*. See
+[LUDICS_TRIADS_BRIDGE_AND_CLOSURE_JOIN.md §II](./LUDICS_TRIADS_BRIDGE_AND_CLOSURE_JOIN.md)
+for the four algebraic checks (idempotence, associativity, bottom, delocation
+compatibility).
+
+> **Note on the restriction to $\mathsf{Inc}(B)$.** Earlier drafts of this
+> section took the carrier to be all of $B$ with join given by set-union.
+> Both choices are wrong: $\cup$ is not the join in Ludics (the closure
+> step is needed), and idempotence of $\vee_{\perp\perp}$ fails on
+> non-incarnation designs (where $D^{\perp\perp} \supsetneq D$).
+> Restricting to incarnations — equivalently, quotienting $B$ by
+> $\sim_{\perp\perp}$ and choosing canonical representatives — recovers
+> idempotence and is what the substrate has implicitly been computing
+> when it says "the minimum-commitment design that plays the position."
+
+> **R-C1 (Round 2 upgrade: confirmed-with-caveat).** The
+> inclusion-ordered structure on incarnations ($\mathrm{Inc}(B)$,
+> $\leq_\subseteq$) matches published ludics: Fouqueré & Quatrini
+> (LMCS 9(4:6), 16 Oct 2013; DOI 10.2168/LMCS-9(4:6)2013) establish
+> the incarnation inclusion-poset and characterise incarnation as
+> “the smallest design included in $\mathfrak{D}$ and belonging to
+> $\mathbf{E}$”; Doumane (*Inductive and Functional Types in Ludics*,
+> CSL 2017) confirms $\perp\perp$-closure semantics on
+> behaviour-unions. The named triple
+> $\mathrm{Art}(B) = (\mathrm{Inc}(B), \leq_\subseteq,
+> \vee_{\perp\perp})$ as a unified algebraic assemblage is the
+> substrate’s specific contribution; neither cited paper names or
+> uses this binary join restricted to $\mathrm{Inc}(B)$ as a primary
+> construct.
+
+**Mathematical identity (proposed).** We *propose a structural
+identification* of $\mathsf{Art}(B)$ with the **Ambler hom-set**
+$\mathrm{Hom}_{\mathcal{A}_\Gamma}(A, B)$ viewed as a join-semilattice of
+derivations ([Ambler 1996 §0.5](../ECC_REFINEMENT_AND_MCP_INTEGRATION_PLAN.md)).
+The correspondence sends:
+
+- incarnations $D \in \mathsf{Inc}(B)$ to **selected arrows** in Ambler's
+  sense (canonical derivations);
+- the $\perp\perp$-closure join $\vee_{\perp\perp}$ to Ambler's $\vee$
+  (semilattice join on derivations);
+- the inclusion order $\leq$ to Ambler's derivation-extension order;
+- the bottom $|B|$ to Ambler's least derivation of $B$ at that arrow.
+
+**This identification is original to this conceptual track.** Girard 2001 +
+Fouquéré–Quatrini 2013 (the Ludics side) and Ambler 1996 (the
+semilattice-enriched-CCC side) are disjoint citation communities; no
+published theorem bridges them. The two halves of the identification are
+each well-attested in their own literature, but the bridge itself is a
+working hypothesis. Round 1 of the literature review classified C3 as a
+*single-source structural identification* on this basis (see
+[LITERATURE_REVIEW_ROUND_1.md Appendix A](./LITERATURE_REVIEW_ROUND_1.md)).
+
+Two caveats on the identification:
+
+- **Confidence-erasure.** Ambler's hom-sets carry Dempster–Shafer
+  confidence weights on derivations; the Ludics side does not. The
+  identification holds at best *after* applying a forgetful functor from
+  the Ambler category to a Ludics-style category that erases the
+  confidence structure. The functor is written down in Session 0g §II; see
+  [LUDICS_TRIADS_CLOSURE_AND_CONFIDENCE_ERASURE_FUNCTOR.md §II](./LUDICS_TRIADS_CLOSURE_AND_CONFIDENCE_ERASURE_FUNCTOR.md).
+- **Single-source bridge.** The platform's deployed Ambler-style algebra
+  (the `ecc_*` MCP tools) and the proposed Ludics-native articulation
+  lattice reads (`get_articulation_lattice` and friends) are *aligned by
+  this identification*. If the identification fails on inspection, the
+  two stacks remain individually well-defined but the substrate loses one
+  of its main unification claims; the algebraic surfaces would have to be
+  presented as parallel rather than as two presentations of the same
+  object.
+
+The payoff of the identification, if it holds, is that we are *not*
+inventing a new mathematical object: we are aligning two unifications of
+the same one, which is what licenses the substrate's design choice to
+deploy `ecc_*` and `get_articulation_lattice` as views over a single
+underlying structure rather than as competing abstractions.
 
 **(b) Projection.** Existing MCP coverage is thin and asymmetric:
 
@@ -336,11 +471,21 @@ version of the same point. The articulation lattice is what makes "what's the
 minimum I have to commit to in order to defend this?" a computable query
 rather than a craft.
 
-**(d) MCP shape.** `get_articulation_lattice(argumentId | claimId)` returning
-the lattice as a navigable structure, plus navigation operations:
+**(d) MCP shape.** `get_articulation_lattice(argumentId | claimId, options:
+{ representatives: "incarnations" | "raw" })` returning the lattice as a
+navigable structure. The default `representatives: "incarnations"` returns
+$\mathsf{Inc}(B)$ as a poset of canonical representatives; `raw` returns
+the full $B$ with $\sim_{\perp\perp}$ equivalence classes annotated (load-
+bearing for an AI consumer that wants to reason about the algebraic
+structure rather than just navigate it). Plus navigation operations:
 `find_minimal_incarnations`, `find_equivalent_articulations`,
 `find_substitute_premises(claimId, drop: claimId[])`,
-`compress_articulation(argumentIds[])`. *T5 implication*: this is the surface
+`compress_articulation(argumentIds[])`, and
+`compute_articulation_join(designIds[])` returning the
+$\vee_{\perp\perp}$ of the supplied designs as a named incarnation in
+$\mathsf{Inc}(B)$ — the formal counterpart to "combine articulations A and
+B" that an LLM drafting a synthesis move would otherwise have to guess.
+*T5 implication*: this is the surface
 that makes Phase 2A (prose ↔ structure spectrum translation) and Phase 2B
 (assumption surfacing) of the AI roadmap *materially better*. Today's
 translation tools choose one structuring of the prose; the articulation
@@ -518,7 +663,16 @@ dialogue, ASPIC+, AIF, and Ambler-style evidential closed categories with no dir
 fidelity scorecard discipline from the AI roadmap should apply: each of
 these reads needs a mechanically computable structural manifest and a
 regression harness, since agent briefings and writes will compose them.
-
+**Protocol grounding (Round 2, Q7 closed).** The MCP protocol is
+specified as a JSON-RPC client-server architecture with
+name/description/input-schema tool triples (Anthropic, November 2024;
+donated to the Agentic AI Foundation (AAIF), a directed fund under the
+Linux Foundation, 9 December 2025). MCPToolBench++ (arXiv:2508.07575,
+2025) benchmarks tool-use across many domains; no argumentation-query
+interface at Ludics-native grain exists in that benchmark or in any
+2024–2025 MCP paper surveyed (Round 2 Q7 confirmed original-to-track).
+The ∼14-tool surface above is the only proposed argumentation-specific
+MCP schema at this specificity.
 ---
 
 ## 6. What's left

@@ -10,6 +10,8 @@ import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { applyToCS } from "@/packages/ludics-engine/commitments";
 import { emitBus } from "@/lib/server/bus";
+import { bindParticipantToDesign, BindError } from "@/server/ludics/bindParticipantToDesign";
+import { canonicalizeClaimText } from "@/lib/ids/mintMoid";
 import type { PromoteCommitmentRequest, PromoteCommitmentResponse } from "@/lib/aif/commitment-ludics-types";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Parse and validate request body
-    const body: PromoteCommitmentRequest = await request.json();
+    const body: PromoteCommitmentRequest & { ludicMoveId?: string; dialogueMoveId?: string; schemeKey?: string } = await request.json();
     const {
       deliberationId,
       participantId,
@@ -34,6 +36,9 @@ export async function POST(request: NextRequest) {
       targetOwnerId,
       targetLocusPath,
       basePolarity,
+      ludicMoveId,
+      dialogueMoveId,
+      schemeKey,
     } = body;
 
     if (!deliberationId || !participantId || !proposition || !targetOwnerId || !basePolarity) {
@@ -185,7 +190,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 9. Emit refresh events
+    // 9. Fire write seam if a ludicMoveId was provided (routes through I1–I4 invariant checks)
+    if (ludicMoveId && dialogueMoveId) {
+      try {
+        await bindParticipantToDesign({
+          dialogueMoveId,
+          ludicMoveId,
+          participantId,
+          canonicalText: canonicalizeClaimText(proposition),
+          schemeKey,
+        });
+      } catch (err) {
+        if (err instanceof BindError) {
+          // Degrade gracefully — promotion succeeded; log the witness failure
+          console.warn(`[promote] bind_participant_to_design skipped: ${err.code} — ${err.message}`);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    // 10. Emit refresh events
     emitBus("dialogue:cs:refresh", { 
       deliberationId, 
       participantId 

@@ -24,6 +24,11 @@ import OpenAI from "openai";
 import type { BriefingClaim, Fixture } from "../types";
 import type { BriefingClient } from "./client";
 import { derivePrioritizedOpenCqs } from "@/lib/deliberation/cqPrioritizer";
+import {
+  toCompactForLlm,
+  atomizeReadoutForLlm,
+} from "@/lib/deliberation/briefing";
+import type { SyntheticReadout } from "@/lib/deliberation/syntheticReadout";
 
 const SYSTEM_PROMPT = `You are auditing a structured deliberation graph for an editorial briefing.
 
@@ -69,14 +74,31 @@ export class OpenAIBriefingClient implements BriefingClient {
   }
 
   async produceBriefingClaim(fixture: Fixture): Promise<BriefingClaim> {
-    // The fixture's readout IS the briefing payload (see
-    // lib/deliberation/briefing.ts), enriched with prioritizedOpenCqs
-    // (Phase 2.1) so the model can populate surfacedCqPrompts without
-    // re-ranking the flat frontier.unansweredCqs list itself.
+    // Apply token-budget compact transform before serializing. The
+    // fixture snapshot may carry large-tier payloads (e.g. large-real-db
+    // with 729 unansweredCqs and 143 perArgument entries) that exceed
+    // gpt-4o-mini's 128k context. toCompactForLlm caps unansweredCqs to
+    // 30 (stripping cqPrompt), filters empty missingMoves entries, and
+    // drops the redundant loadBearingnessRanking. Reduces the
+    // large-real-db fixture from ~100k → ~35k tokens.
+    //
+    // Round 3 (E): also atomize topArguments / mostContested via the
+    // deterministic mock extractor so that toCompactForLlm can drop
+    // the prose `argumentText` blobs in favour of structured
+    // `premises[]` atoms. Lossless under Reading A (atoms carry
+    // full provenance via spans).
+    //
+    // The readout field in a real-DB fixture snapshot is a full
+    // SyntheticReadout; the FixtureReadout TypeScript type is a subset
+    // for synthetic fixtures that omit missingMoves/writingConstraints.
+    const atomized = await atomizeReadoutForLlm(
+      fixture.readout as unknown as SyntheticReadout,
+    );
+    const compacted = toCompactForLlm(atomized);
     const prioritizedOpenCqs = derivePrioritizedOpenCqs(fixture.readout);
     const userContent = JSON.stringify({
       fixtureId: fixture.id,
-      payload: { ...fixture.readout, prioritizedOpenCqs },
+      payload: { ...compacted, prioritizedOpenCqs },
     });
 
     const response = await this.client.chat.completions.create({

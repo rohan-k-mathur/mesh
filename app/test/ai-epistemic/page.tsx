@@ -258,6 +258,22 @@ const TRACKS: { letter: string; name: string; rows: TrackRow[] }[] = [
       { id: "F.8", label: "F.8", title: "MaterialCard + propose_materials (review-track)", status: "planned" },
     ],
   },
+  {
+    letter: "G",
+    name: "Ludics generative substrate (Phase 1)",
+    rows: [
+      { id: "G.1", label: "G.1", title: "DB schema: LudicMove / WitnessRecord / Design / Behaviour / DesignInclusion", status: "shipped" },
+      { id: "G.2", label: "G.2", title: "Write seam: bind_participant_to_design + S1–S4 invariants (T4 non-attribution)", status: "shipped" },
+      { id: "G.3", label: "G.3", title: "Witnessing reads: get_witnesses / get_unwitnessed_exposure / get_instantiation", status: "shipped" },
+      { id: "G.4", label: "G.4", title: "Structural reads: get_deliberation_schema / get_behaviour_at_locus / get_exposure_map", status: "shipped" },
+      { id: "G.5", label: "G.5", title: "Articulation lattice (6 tools): lattice reads + compress_articulation + compute_articulation_join", status: "shipped" },
+      { id: "G.6", label: "G.6", title: "Fossil record (get_fossil_record) + briefing-fingerprint API (5 material-change rules)", status: "shipped" },
+      { id: "G.7", label: "G.7", title: "Scorecard v1.5: coverage-exposure dimension + manifest extensions (openExposurePoints, coverageRatio, fossilCount)", status: "shipped" },
+      { id: "G.8", label: "G.8", title: "Staging migration + stratum-labeling benchmark (< 500ms p95 target)", status: "planned" },
+      { id: "G.9", label: "G.9", title: "Fossil retraction lifecycle (argument / locus deletion → fossilize)", status: "planned" },
+      { id: "G.10", label: "G.10", title: "AI synthesis workflow: compute_articulation_join → bind_participant_to_design end-to-end", status: "planned" },
+    ],
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -928,6 +944,61 @@ function McpExplainer() {
           </ul>
         </div>
       </div>
+      <div className="rounded-xl border border-violet-200 bg-violet-50/30 p-5">
+        <p className="text-sm font-semibold text-violet-900 mb-3 flex items-center gap-2">
+          <Workflow className="w-4 h-4 text-violet-700" /> Ludics substrate — 14 new tools (Phase 1)
+        </p>
+        <p className="text-sm text-violet-800/90 leading-relaxed mb-4">
+          The generative substrate exposes the dialectical structure beneath deliberations: incarnation lattices, witnessing records, fossil transcripts, and a briefing-fingerprint for agent staleness detection. These tools give LLMs the algebraic layer of the argument graph, not just the graph surface.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            { name: "bind_participant_to_design", desc: "Write seam: bind a witnessing act to a Ludics move (I1–I4 invariants, token-gated)", icon: Lock },
+            { name: "get_witnesses", desc: "Witnessing record for a Ludics move; anonymous by default (T4)", icon: Eye },
+            { name: "get_unwitnessed_exposure", desc: "Unaddressed structural objections filtered by stratum (witnessable / latent / all)", icon: Search },
+            { name: "get_instantiation", desc: "Which Ludics node does a dialogue act commit to? Partiality + delocation flag", icon: Waypoints },
+            { name: "get_deliberation_schema", desc: "Locus tree for D_P + witnessing summary (walkedLoci / coverageRatio / openExposurePoints)", icon: Database },
+            { name: "get_behaviour_at_locus", desc: "All incarnations at a locus with fitness scores and stratum labels", icon: Target },
+            { name: "get_exposure_map", desc: "Full exposure map: walked / witnessable / latent strata + hub-set topology", icon: Network },
+            { name: "get_articulation_lattice", desc: "Art(B) DAG with per-cone minima + inclusion edges (Inc(B) is antichain post-2e)", icon: GitBranch },
+            { name: "find_minimal_incarnations", desc: "Antichain of cone minima in Inc(B) — one minimum-commitment design per cone", icon: Layers },
+            { name: "find_equivalent_articulations", desc: "Biorthogonal equivalence class of a design: other ways to say the same thing", icon: RefreshCw },
+            { name: "find_substitute_premises", desc: "Incarnations that reach the same conclusion without dropped premises", icon: Workflow },
+            { name: "compress_articulation", desc: "Meet D₁ ∧ D₂ in Art(B), per-cone (Phase 2e: partial in B; cross-cone returns 200 with kind: 'cross-cone-rejected')", icon: Hash },
+            { name: "compute_articulation_join", desc: "Synthesis D₁ ∨_⊥⊥ D₂ within a cone (Phase 2f Reading A: literal union, closureSteps=0; cross-cone returns 200 with kind: 'cross-cone-rejected')", icon: Boxes },
+            { name: "get_fossil_record", desc: "Retraction history with locus back-pointers; fossilizedAt + retractLayer + retractReason (free-text)", icon: BookMarked },
+          ].map((t) => {
+            const Icon = t.icon;
+            return (
+              <div
+                key={t.name}
+                className="rounded-md border border-violet-200/80 bg-white/80 p-3"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className="w-3.5 h-3.5 text-violet-700" />
+                  <span className="text-[12px] font-mono font-semibold text-slate-800">
+                    {t.name}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">{t.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 rounded-md border border-violet-200/70 bg-white/60 p-3">
+          <p className="text-[11px] uppercase font-semibold tracking-wide text-violet-800 mb-1.5">
+            HTTP equivalents (selection)
+          </p>
+          <ul className="text-[11px] font-mono text-slate-700 space-y-0.5">
+            <li>POST /api/v3/ludics/bind-witness</li>
+            <li>GET /api/v3/ludics/witnesses?ludicMoveId=&#123;id&#125;</li>
+            <li>GET /api/v3/ludics/fossil-record?deliberationId=&#123;id&#125;</li>
+            <li>GET /api/v3/deliberations/&#123;id&#125;/briefing-fingerprint</li>
+            <li>GET /api/v3/deliberations/&#123;id&#125;/briefing-fingerprint/check?hash=sha256:…</li>
+            <li>GET /api/v3/behaviours/&#123;id&#125;/articulation-lattice</li>
+          </ul>
+        </div>
+      </div>
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
           <Terminal className="w-4 h-4 text-slate-500" /> Claude Desktop config
@@ -1170,7 +1241,7 @@ export default function AIEpistemicInfrastructurePage() {
                 AI-Epistemic Infrastructure
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 border border-emerald-200/80 text-emerald-700">
-                Tracks A + B + C.3 + F shipped
+                Tracks A–F + G.1–7 shipped
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 border border-amber-200/80 text-amber-700">
                 Pt. 4 deliberation readout live
@@ -1196,7 +1267,7 @@ export default function AIEpistemicInfrastructurePage() {
                 { label: "AIF + JSON-LD + Schema.org", color: "bg-violet-100 text-violet-700" },
                 { label: "sha256 content addressing", color: "bg-fuchsia-100 text-fuchsia-700" },
                 { label: "archive.org evidence snapshots", color: "bg-amber-100 text-amber-700" },
-                { label: "MCP server (13 tools)", color: "bg-teal-100 text-teal-700" },
+                { label: "MCP server (~40 tools)", color: "bg-teal-100 text-teal-700" },
                 { label: "Counter-citation by default", color: "bg-rose-100 text-rose-700" },
                 { label: "Honest-empty failure mode", color: "bg-emerald-100 text-emerald-700" },
                 { label: "Dialectical-fitness re-rank", color: "bg-yellow-100 text-yellow-700" },
