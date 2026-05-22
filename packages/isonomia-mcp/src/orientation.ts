@@ -26,7 +26,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.4.0" as const;
+export const ORIENTATION_VERSION = "1.5.0" as const;
 
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
@@ -57,6 +57,57 @@ Both tools return a permalink + immutable content-addressed URL. Omit \`delibera
 export const ORIENTATION_PAYLOAD = `# Isonomia Agent Orientation
 
 Version: ${ORIENTATION_VERSION}
+
+## Tool clusters — route here first
+
+29 tools across 5 clusters. Use this map before scanning individual tool descriptions.
+
+### Cluster 1 — Session start (1 tool)
+- \`get_orientation\` — you are reading its output. Call once per session; cache against \`contentHash\`.
+
+### Cluster 2 — Argument retrieval (8 tools)
+Use when finding, fetching, or citing specific arguments or claims.
+- \`search_arguments\` — free-text search across the graph (ranked by dialectical fitness)
+- \`get_argument\` — fetch one argument by id (full: premises, evidence, standing, CQs)
+- \`get_claim\` — fetch one claim by MOID (conclusion text, stance count)
+- \`get_claim_stances\` — who holds a stance on a claim, scoped to a deliberation
+- \`find_counterarguments\` — attacks registered against a claim MOID
+- \`cite_argument\` — permalink → structured argument data
+- \`resolve_citation\` — DOI/arXiv/URL → canonical citation record (call before \`propose_*\`)
+- \`resolve_citations_bulk\` — batch version of \`resolve_citation\`
+
+### Cluster 3 — Argument authoring / WRITE surface (3 tools)
+Use when the user wants to record, log, register, or save a position.
+- \`propose_argument\` — bare assertion (one-line claim, no explicit premises)
+- \`propose_structured_argument\` — **PREFER.** Premise-typed, scheme-annotated, evidence-attached. Enables per-premise standing + CQ tracking.
+- \`propose_warrant\` — attach an inference-license warrant to an existing argument.
+
+### Cluster 4 — Deliberation synthesis (8 tools)
+Use when working with a whole deliberation room, not individual arguments.
+- \`get_synthetic_readout\` — **PRIMARY.** Full synthesis: fingerprint + frontier + topology + refusal surface + top arguments + writing constraints. Start here for any deliberation question.
+- \`get_deliberation_fingerprint\` — lightweight freshness check (contentHash only; no synthesis)
+- \`get_contested_frontier\` — open challenges (projects onto \`get_synthetic_readout.frontier\`)
+- \`get_missing_moves\` — catalog gaps (projects onto \`get_synthetic_readout.missingMoves\`)
+- \`get_chains\` — editor-curated traversal paths through the argument graph
+- \`get_cross_context\` — cross-deliberation canonical-claim families
+- \`summarize_debate\` — NLP-generated summary paragraph (unstructured; prefer \`get_synthetic_readout\` when structure matters)
+- \`get_deliberation_evidence_context\` — evidence rollup for a deliberation
+
+### Cluster 5 — Algebraic / ECC tools — Ambler-style derivation checking (8 tools)
+Use when auditing the inferential structure of a specific argument or warrant. These tools operate on the closed-category derivation algebra, not on the deliberation graph directly.
+- \`ecc_arrow\` — check whether a derivation arrow is valid at the given confidence tier
+- \`ecc_culprits\` — find which assumption sets drive a derivation's confidence level
+- \`ecc_confidence\` — compute the overall confidence level for a derivation
+- \`ecc_enthymemes\` — surface implicit premises (what must be true for the inference to hold)
+- \`ecc_transport\` — check whether an argument transports to a new evidential context
+- \`ecc_aggregate\` — aggregate multiple derivations into a combined confidence score
+- \`ecc_evidential\` — evidential closure: what can be derived from a given evidence set
+- \`ecc_belief_revision_proposals\` — what would have to be retracted to block a conclusion
+
+### Scheme catalog (1 tool)
+- \`list_schemes\` — browse the argumentation-scheme catalog. Filter by \`clusterTag\` (expert | causal | practical | analogical | …). Call before \`propose_structured_argument\` when scheme is unclear.
+
+---
 
 ## Glossary (operational meanings)
 

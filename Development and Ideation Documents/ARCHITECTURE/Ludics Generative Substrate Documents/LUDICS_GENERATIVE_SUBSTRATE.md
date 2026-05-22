@@ -1,5 +1,13 @@
 # Ludics as Generative Substrate — Mapping the Theoretical Terrain
 
+> **Post-review status (CORRECTED post-2e/2f, 2026-05-21).** This Session 0 document is the original source of the C1/C3 claims that the Phase 2e OQ-JSL proof refuted (`Inc(B)` is *not* a join-semilattice with unique bottom `|B|`; it is an antichain decomposing into disjoint cones). Specific paragraphs in this doc are **not** edited in-place — they remain as the historical conceptual record of how the substrate was first staked out. For the current normative status of every claim, consult:
+>
+> - [LUDICS_CONSOLIDATION_AND_DEV_READINESS.md](./LUDICS_CONSOLIDATION_AND_DEV_READINESS.md) § claims register (C1 row marked **Corrected**; OQ-JSL marked **Closed**; OQ-JSL-Cone open at the per-cone level)
+> - [LUDICS_OQ_JSL_PROOF.md](./LUDICS_OQ_JSL_PROOF.md) for the formal refutation
+> - [LUDICS_ORDER_RELATION_DEFINITION.md](./LUDICS_ORDER_RELATION_DEFINITION.md) for the Phase 2f Reading A order definition (∨ = literal chronicle-set union within a cone) + Daimon Lock Lemma
+>
+> Any phrase in this doc framing $(\mathsf{Inc}(B), \leq_\subseteq, \vee_{\perp\perp})$ as a join-semilattice with bottom `|B|` should be read in its historical voice; the per-cone reframe is now authoritative.
+
 **Session:** 0 (Conceptual prelude)
 **Date:** 2026-05-16
 **Track:** Conceptual / pre-product
@@ -117,7 +125,14 @@ is still open* — where loci can still be created, where the type of the
 interaction is still being negotiated? "Open" / "unbounded" /
 "context-extensible" behaviours are not a standard textbook object. We may
 have to define one.
-
+*Literature note (R-C5, Round 2 review; remains open).* Control
+Argumentation Frameworks (CAFs; Coste-Marquis, Konieczny, Mailly &
+Marquis, AAAI 2018) and Doutre–Herzig–Perrussel (*A Dynamic Logic
+Framework for Abstract Argumentation*, KR 2023) treat time-indexed
+abstract AF families with argument addition/removal dynamics; neither
+treats the evolving structure as a directed system of *Ludics behaviours*
+with partial transition maps respecting orthogonality. The
+dynamic-behaviour gap on the Ludics side remains original to this track.
 ---
 
 ## 4. Saturation as a generative operator
@@ -234,7 +249,14 @@ bi-orthogonal closure $\sigma(D_P)^\perp$ — the set of all coherent
 opposition designs to Proponent's saturation. Opponent is **a behaviour, not
 a participant or a coalition of participants.** Individuals do not constitute
 Opponent; they *witness* (instantiate) moves in a pre-structured space whose
-extent is fixed by the dialectical content of what Proponent has said.
+extent is fixed by the dialectical content of what Proponent has said. The
+positive technical home for this reading is the **Basaldella-Triads**
+framing $(P, N, \perp)$ (arXiv:1502.04773, 2015) under a structural
+player-role assignment plus an external $\mathsf{Witness}$ relation — see
+[LUDICS_TRIADS_BRIDGE_AND_CLOSURE_JOIN.md §I](./LUDICS_TRIADS_BRIDGE_AND_CLOSURE_JOIN.md)
+for the bridge. Triads is the closest existing Ludics-internal stepping-
+stone; Reading C is the specific role-and-witness instantiation no published
+Triads work commits to.
 
 **Reading D — Universal dialectical complement.** Opponent as bi-orthogonal
 closure against the universal background of all coherent rational discourse,
@@ -264,7 +286,10 @@ to a separation that off-loads each cost to a different layer.**
   attributed face-to-face discussion, with structural results reported only
   in aggregate), and **Mansbridge et al.'s systemic decomposition** of
   deliberative labour across components (2012 "Systemic Approach to
-  Deliberative Democracy"). Cohen 1989 is sometimes invoked here but his
+  Deliberative Democracy"); **Niemeyer, Veri, Dryzek & Bächtiger** provide
+  the empirical-operationalization layer via the Deliberative Reason Index
+  across 19 deliberative forums (*American Political Science Review*
+  118(1):345–362, 2024; DOI 10.1017/S0003055423000023). Cohen 1989 is sometimes invoked here but his
   legitimacy criterion is content-side ("reasons all reasonable participants
   could accept") rather than attribution-architectural; the gloss
   "legitimacy without identifiable authorship" overreaches Cohen and should
@@ -281,6 +306,17 @@ same deliberation**. Together they cover what the deliberation is; separately
 neither over-claims. The Ludics layer is presently *parallel and
 non-interactive* — it does not speak to participants — which contains the
 "manufactured Opponent" risk by architecture rather than by policy.
+
+*Closest deployed-platform analogs (none implement records-only $\iota$).*
+**Pol.is** (Small et al., *Recerca* 26(2), 2021) is pseudonymous-by-default
+with a derived opinion landscape (PCA / k-means clusters over votes); this
+is a meaningful disanalogy with T4, where the dialectical layer is
+*populated by anonymized claim-content* (authored, then layer-anonymized at
+the boundary) rather than *derived from individual votes* (aggregate-
+computed). **Kialo Edu Anonymous Discussions** is the closest deployment in
+spirit — structural argument tree + peer-pseudonymous attribution + admin-
+visible real names — but it implements anonymity-as-configuration rather
+than anonymity-as-architecture, and has no records-only $\iota$.
 
 This separation is itself a theoretical commitment, captured below as **T4**.
 
@@ -511,9 +547,87 @@ Cohen-1989 framing, and the positioning of the exposure map relative to
 Prakken (AI 2024).
 
 Next conceptual session: **0f — The Triads bridge and the $\perp\perp$-closure
-join in $\mathsf{Art}(B)$.** Addresses the two technical questions surfaced
-by round-1 review (Q1: Basaldella-Triads → Reading C formalization; Q5:
-idempotence/associativity of $D_1 \vee D_2 := (D_1 \cup D_2)^{\perp\perp}$
-and its interaction with delocation). Prerequisite for the Tier-2 substantive
-rewrites of C3 and the exposure-map positioning. Round 2 of the literature
-review can run in parallel once 0f's question set is sharp.
+join in $\mathsf{Art}(B)$.** ✅ *Resolved in*
+[LUDICS_TRIADS_BRIDGE_AND_CLOSURE_JOIN.md](./LUDICS_TRIADS_BRIDGE_AND_CLOSURE_JOIN.md).
+Addressed the two technical questions surfaced by round-1 review (Q1:
+Basaldella-Triads → Reading C as a $(P, N, \perp)$ instance with structural
+player-role assignment + external witnessing; Q5: corrected join
+$D_1 \vee D_2 := (D_1 \cup D_2)^{\perp\perp}$ with restriction to
+$\mathsf{Inc}(B)$ to recover idempotence; associativity, bottom-as-incarnation,
+and delocation-compatibility hold by the general theory). Produced the
+honest restatement of C3 as a *proposed structural identification* with
+explicit single-source / incarnation-restriction / $\perp\perp$-closure
+caveats, suitable for the Tier-2 substantive rewrite of
+`LUDICS_DIALECTICAL_WITNESSING_INTERFACE.md` §2.2. Two follow-on items
+addressed in Session 0g ([LUDICS_TRIADS_CLOSURE_AND_CONFIDENCE_ERASURE_FUNCTOR.md](./LUDICS_TRIADS_CLOSURE_AND_CONFIDENCE_ERASURE_FUNCTOR.md)):
+the Triads-internal closure-compatibility check passed (CQ1–CQ3) and the
+Confidence-Erasure-Functor $U: \mathcal{C}_\mathrm{semi} \to
+\mathcal{C}_\mathrm{plain}$ was formally written down (Kelly 1982 §1.2;
+$F \dashv U$ adjunction; post-0g C3 stated with two-level precision).
+
+Next after 0f: Tier-2 substantive revisions (substitute the 0f C3
+restatement into 0b §2.2; add Prakken-2024 positioning to the exposure-map
+section; add Basaldella-Triads citation to C7; add Singh dual-direction
+note to C12; add Prakken-`retract` fossil-record framing to 0c.3), then
+round 2 of the literature review.
+
+✅ **Tier-2 revisions complete (2026-05-17).** The C3 restatement is
+substituted into [LUDICS_DIALECTICAL_WITNESSING_INTERFACE.md §2.2](./LUDICS_DIALECTICAL_WITNESSING_INTERFACE.md)
+with the corrected carrier ($\mathsf{Inc}(B)$), the corrected join
+($\vee_{\perp\perp}$), explicit framing as a *proposed structural
+identification*, and the Confidence-Erasure-Functor caveat. Prakken-2024
+exposure-map positioning, Basaldella-Triads pointer in Reading C, Singh
+dual-direction note on the $\iota$ invariants, Prakken-`retract`
+fossil-record framing in 0c.3, and Pol.is derived-vs-authored / Kialo Edu
+Anonymous deployment-analog disanalogies are all in place.
+
+✅ **Round 2 literature review complete (2026-05-18).** Captured in
+[LITERATURE_REVIEW_ROUND_2.md](./LITERATURE_REVIEW_ROUND_2.md). Key
+findings: C1 upgrades to confirmed-with-caveat (Fouqueré–Quatrini 2013
+LMCS 9(4:6) match on incarnation-poset structure); C14 upgrades to
+confirmed (Mansbridge et al. 2012 + Niemeyer, Veri, Dryzek & Bächtiger,
+APSR 118(1):345–362, 2024 DRI operationalization). Five new claims
+settled: N-C21 Reading C original-to-track (active null across ≥3
+Triads-lineage sources); N-C22 Confidence-Erasure-Functor categorical
+machinery standard (Kelly 1982), application original; N-C23/N-C24/N-C25
+original-to-track. No Round 1 confirmed verdict overturned. Seven open
+questions carried forward (OQ1–OQ7 in LITERATURE_REVIEW_ROUND_2.md §7).
+
+✅ **Session 0g complete (2026-05-18).** Captured in
+[LUDICS_TRIADS_CLOSURE_AND_CONFIDENCE_ERASURE_FUNCTOR.md](./LUDICS_TRIADS_CLOSURE_AND_CONFIDENCE_ERASURE_FUNCTOR.md).
+Triads-internal closure-compatibility check passed: $\sigma_T(\hat{D}_P)^{\perp_T}
+= \sigma(D_P)^{\perp}$ and carrier-set extension of $N$ = delocation (CQ1–CQ3).
+T3′ and T4 confirmed in $\mathfrak{T}_L$. Confidence-Erasure-Functor $U:
+\mathcal{C}_\mathrm{semi} \to \mathcal{C}_\mathrm{plain}$ written down (Kelly
+1982 §1.2; left adjoint $F$ = free semilattice enrichment; Jansana–San Martín
+2018 close analogue). C3 restated with two-level precision: poset identification
+is the working claim; JSL isomorphism via surjective counit $\varepsilon$ is the
+main open conjecture (0g-OQ1). Four open questions 0g-OQ1–4 queued.
+
+✅ **Session 0h complete (2026-05-18).** Captured in
+[LUDICS_CONSOLIDATION_AND_DEV_READINESS.md](./LUDICS_CONSOLIDATION_AND_DEV_READINESS.md).
+Closed the 0a–0g conceptual cycle: (I) all 5 stale "queued for 0g"
+forward pointers resolved across the corpus; (II) unified claims register
+for all 25 claims (C1–C20, N-C21–25) — 16 confirmed/confirmed-with-caveat,
+7 original-to-track, 1 open (C5), 1 single-source structural identification
+(C3); (III) stability tier-map produced — 12 Tier-1 constructs ready for
+Phase 1 dev, 5 Tier-2 working hypotheses for Phase 2–4, 5 formal-proof
+items deferred; 11-item open-question register consolidates all carry-forwards.
+**The substrate is stable enough to drive Phase 1 dev planning.**
+
+✅ **Session 1 complete (2026-05-19).** Captured in
+[LUDICS_SESSION_1_DEV_SPEC.md](./LUDICS_SESSION_1_DEV_SPEC.md).
+Produced: (§1) full ~14-tool Ludics-native MCP surface as JSON-RPC triples
+across 6 clusters (Exposure, Articulation ×6, Witnessing ×3, Write-seam,
+Fossil, Structure ×2); (§2) structural manifest — 9 mechanically-computable
+fields vs. 4 NLP-pipeline fields; (§3) fidelity-scorecard specification
+answering OQ-fidelity (6 dimensions, 3 release-blocking categories);
+(§4) non-attribution DB invariant as 4 Prisma models + T4 middleware check;
+(§5) briefing-fingerprint API with 5 material-change rules answering
+OQ-5rules. Implementation ordering: 7 phases (1a DB schema → 1g scorecard
+extensions). **The dev-spec is ready for engineering execution.**
+
+The announcement discipline (sub-question ii from the original
+brainstorm) can be re-opened once the §2 MCP read tools ship.
+
+**Cross-track alignment with the AI extensions roadmap.** The conceptual track runs in parallel with [`docs/isonomia-ai-roadmap.md`](../../../docs/isonomia-ai-roadmap.md), which documents the shipped and planned AI feature surface (Phases 1–5 + two cross-cutting workstreams). A full alignment map — recording where each substrate construct ($\sigma$, $\iota$, $E(D_P)$, $\mathsf{Art}(B)$, $\otimes$, $\sigma_{\mathrm{joint}}$, Triads) corresponds to a shipped or planned roadmap decision, which substrate constructs are unaddressed by the roadmap but non-conflicting, and which potential terminology collisions have been confirmed harmless — is maintained as the final section of that roadmap file ("Relation to the Ludics Generative Substrate Conceptual Track"). Readers of this track who want to verify that a new conceptual proposal does not conflict with a product decision, or who want to know where a substrate construct would land as a product feature, should consult that section.

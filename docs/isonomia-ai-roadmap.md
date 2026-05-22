@@ -6,6 +6,22 @@ This roadmap covers the extension of Isonomia's LLM integration from its current
 
 ---
 
+## Implementation Status (last updated 2026-05-18)
+
+**Phase 1 — Deliberation Briefings:** *Shipped.* Composite briefing assembler ([lib/deliberation/briefing.ts](../lib/deliberation/briefing.ts)) built atop the existing read tools. Fidelity harness shipped at [eval/ai-epi/](../eval/ai-epi) with v1 (synthetic, 5 fixtures) and v2 (DB-snapshot, 5 fixtures) corpora, mechanical manifest extractor, Phase 1 scorecard (hub P/R, load-bearing premise P/R, open-CQ P/R, six confident-misstatement detectors, adversarial-gate pass/fail). Mock client runs in CI via `npm run eval:phase1`. OpenAI baseline (`gpt-4o-mini`, temperature 0) recorded at 10/10 → see [/memories/repo/ai-epi-phase1-baseline-2026-05-17.md](#).
+
+**Phase 2.1 — CQ prompting (anchor B precursor):** *Shipped.* Added [lib/deliberation/cqPrioritizer.ts](../lib/deliberation/cqPrioritizer.ts) — hub-first ordering of unanswered CQs. `BriefingPayload` now carries `prioritizedOpenCqs`; the OpenAI prompt requires populating `surfacedCqPrompts`. New scorecard dimension `loadBearingOpenCq` (precision/recall) and a new confident-misstatement kind `cq-priority-inversion` (fires when the briefing surfaces non-hub CQs while omitting hub CQs — pure omission is graded as recall, not inversion). Runner is now per-fixture resilient (context-length errors no longer crash the run). **OpenAI baseline:** 9/10 fixtures pass; `lbOpenCq P=R=F1=1.00` on every fixture that scored. The 1 failure (`large-real-db`, 143 args, 155k tokens vs. 128k limit) is the exact payload-size problem Phase 2.2 was meant to attack.
+
+**Phase 2.2 — Premise extraction (anchor A "prose → structure" lower layer):** *Shipped as harness + library; not yet wired into the briefing pipeline.* Added [lib/deliberation/premiseExtractor.ts](../lib/deliberation/premiseExtractor.ts) with two implementations: a deterministic rule-based `mockPremiseExtractor` (CI-safe; splits on conjunctions / `because` / `since` / semicolons / sentence boundaries with provenance spans that round-trip into the source string) and an LLM-backed `createOpenAIPremiseExtractor` (validates and clamps spans; falls back to mock on parse/HTTP failure). New harness slice at [eval/ai-epi/premise-extraction/](../eval/ai-epi/premise-extraction) with v1 corpus (5 labeled fixtures), normalized-text + alias + Jaccard matcher (≥ 0.65), and per-atom warnings for span-out-of-range / text-mismatch / empty-atom. **Mock baseline:** 5/5 P=R=F1=1.00. **OpenAI baseline (`gpt-4o-mini`, temperature 0):** 5/5 recall=1.00; aggregate **P=0.92 R=1.00 F1=0.96**. One precision dip (`because-link`) where the model duplicated an atom — not a recall miss.
+
+**Test coverage:** 61/61 jest tests pass in [__tests__/eval/](../__tests__/eval) (40 → 47 with Phase 2.1 → 61 with Phase 2.2). Both `eval:phase1` (mock) and `eval:phase2:premise` (mock) are CI-runnable without API keys; `:openai` variants are gated on `OPENAI_API_KEY`.
+
+**Next obvious move:** Wire `premiseExtractor` into the briefing serializer so long real-DB claims are atomized before being sent to the model — directly attacks the `large-real-db` 155k-token blowout that is the only red cell in the Phase 2.1 baseline. Then grow the v1 premise-extraction corpus with adversarial cases (nested clauses, double negatives, scheme-cue triggers).
+
+Remaining roadmap below is unchanged.
+
+---
+
 ## Phase 1 — Deliberation Briefings (Read-Only)
 
 **Goal:** Let users ask an LLM about the current state of any deliberation and get a useful, navigable orientation, with measurable guarantees that the orientation faithfully reflects the underlying graph.
@@ -624,6 +640,58 @@ The platform's commitment is to neither of those defaults. Specifically:
 - **No cross-user LLM memory.** An LLM helping user A never has access to private context from sessions with user B, regardless of whether those sessions occurred in the same deliberation. The MCP authentication context binds session memory to the authenticated principal.
 
 **Why this is its own principle.** Without it, Principles 1 and 2 are insufficient. Principle 1 ensures every action goes through the API; Principle 2 ensures every action is attributed. Neither prevents an LLM from quietly producing a coherent body of contributions that drift from the human's actual view over time, with each individual contribution properly attributed and properly API-mediated. Continuity belongs to the human and is recorded in the commitment store; the LLM is a tool the human picks up at each interaction, not a stable representative of the human across interactions.
+
+---
+
+## Relation to the Ludics Generative Substrate Conceptual Track
+
+This roadmap was developed independently of a parallel conceptual track that explores Ludics as a generative substrate for deliberation — documented in [`Development and Ideation Documents/ARCHITECTURE/Ludics Generative Substrate Documents/`](../Development%20and%20Ideation%20Documents/ARCHITECTURE/Ludics%20Generative%20Substrate%20Documents/), sessions 0a–0f. The two tracks share no terminology conflicts and no design contradictions. They make contact at several specific points, recorded here so readers of either track can locate the correspondence and so future implementation work lands in the right place.
+
+The conceptual track's central artefacts are: the instantiation operation ι; the exposure map E(D_P) = E_w ⊔ E_o ⊔ E_ℓ; the articulation lattice Art(B) with ⊥⊥-closure join; the witnessing record; open behaviours and their fossil-record discipline (0c); the composition algebra — subordination, transport, federation ⊗ (0d); joint saturation σ_joint (0e); and the Basaldella-Triads bridge for Reading C (0f). None of these are in conflict with anything in this roadmap; several are the theoretical grounding for product decisions already made here.
+
+### Alignment map
+
+**Phase 1 structural ground-truth manifest ↔ Protocol saturation σ(D_P).** The eval harness's manifest (hub set with multiplicity, load-bearing premises, open CQs, grounded/defeated argument lists) is the product realization of protocol saturation — the set of structural obligations a deliberation's current state implicitly carries. "The harness believes the graph, not the LLM" is the product statement of the same principle: the mechanically-derived structure is authoritative.
+
+**Phase 1 topology signals ↔ Exposure map E(D_P).** The briefing payload's topology signals — hub set, load-bearing premises, undefended-challenge list, stalled-thread list — are the ASPIC+/product-layer projection of the substrate's exposure map. The substrate's three-stratum breakdown (walked / open-behaviour-witnessable / latent objections) is finer than what the current payload encodes. When `get_exposure_map` ships it could supply that stratified signal directly to the briefing assembler, enabling a finer CQ-priority ordering than the current hub-first heuristic in Phase 2.1.
+
+**Phase 2.1 CQ ordering (hub-first) ↔ E_w primacy.** Hub-CQs surface first because hub arguments are the most-walked region of the exposure map — the "walked stratum" E_w. `cq-priority-inversion` fires when non-walked CQs are surfaced while walked ones are omitted. No conflict; the substrate stratification provides a theoretical justification for the ordering already shipped.
+
+**Phase 2.2 premise extraction ↔ Instantiation invariant I3 (locus-injectivity).** The `premiseExtractor` library handles the atomic decomposition step that makes a compound informal claim locus-injectable: splitting a multi-part claim into atoms that can each occupy a distinct locus in the deliberation graph. This is I3 in practice. The current `mockPremiseExtractor` is scheme-naive (it splits on grammatical connectives); a scheme-aware splitter would use the argument's scheme to determine which splits are inferentially meaningful — natural Phase 2 quality improvement, not a blocker.
+
+**Phase 2 Anchor A (spectrum translation) ↔ Instantiation operation ι.** The prose→structure flow (detect → propose → confirm with `authorKind: HYBRID` + trace back-reference to source prose) is the product realization of ι at the dialogue-move granularity. `authorKind: HYBRID` corresponds to instantiation variant I2 (idempotent: re-instantiating the same content is a no-op). The back-reference to source prose is the Witness relation operationalized: it records which informal content was walked into the formal layer, preserving the spectrum's continuity.
+
+**Phase 2 Anchor B (assumption surfacing) ↔ `ecc_enthymemes` + ι completeness.** The deployed `ecc_enthymemes` tool handles the structural half of assumption surfacing: it finds extensions D' > D where making an implicit warrant explicit makes the inference licit under the scheme. Phase 2 Anchor B's materialization layer (`propose_warrant` UX, calibrated-coverage discipline, acceptance-rate tracking) is the product surface that turns those structural reads into a facilitation action. No conflict; the substrate tool is a prerequisite, not an alternative.
+
+**Phase 2 incarnation faithfulness (future scorecard dimension) ↔ Articulation lattice Art(B).** The Phase 1 scorecard does not yet have an incarnation faithfulness dimension: does the briefing surface the canonical minimum-commitment incarnation of a position, or an arbitrary representative? This gap is addressable once `get_articulation_lattice` (with `representatives: "incarnations"` option) ships. The eval harness could then add an incarnation-recall dimension. Queued; not a blocker for any currently shipped phase.
+
+**Phase 3 briefing fingerprint + material-change rules ↔ Open behaviour drift (0c) + fossil-record read (0c.3).** The briefing fingerprint (content hash over targeted-region nodes + statuses + direct neighbors + open-CQ set) and the five material-change rules are the product realization of the substrate's open-behaviour drift analysis and fossil-record discipline. Material-change rule 1 (grounded/defeated status flip) corresponds to the stable-core / fragile-membership distinction in the time-indexed articulation lattice. Material-change rule 3 (near-identical challenge already filed) requires the same near-duplicate claim detection infrastructure that Phase 4 discovery needs — shared substrate. The targeted-node integrity check (mandatory blocking) corresponds to the fossil-record "current-D_P relevance flag": a move posted against a retracted or revised node is a move against a fossil, and is rejected for the same reason.
+
+**Phase 3 Principle 3 (commitment store as source of continuity) ↔ Instantiation invariant I4 (total-modulo-extension).** "The user's commitment store is the source of truth for continuity, not the LLM's prior context" is the product statement of I4: no new instantiation can contradict prior instantiations without surfacing the conflict. Position-drift detection and I4's conflict-surfacing requirement are the same mechanism at different layers.
+
+**Phase 4 tiered discovery indices ↔ Federation operator ⊗ (0d).** The tiered index design (physically separate stores per tier; opt-in required at the room level for any claim to enter a higher-visibility tier) directly implements the substrate's federation boundary-opt-in discipline: neither component can silently pull the other into a federation. The defaulting to private and the typed-owner-action + governance-log requirement for tier escalation operationalize the substrate's requirement that federation happens at the behaviour boundary.
+
+**Phase 5 structural vs. equity diagnostics visibility split ↔ Dialectical/witnessing separation (T4).** Structural diagnostics (load-bearing premises, stalled threads, cascade exposure, open CQs) are properties of the dialectical layer — computed from the graph, visible to all room members. Equity diagnostics at the positional level are witnessing-layer aggregate properties. Per-participant equity breakdowns collapse the T4 separation and are therefore gated behind facilitator access plus governance logging. The design enforces the separation architecturally, not by policy.
+
+**Phase 5 cascade-exposure diagnostic ↔ Protocol saturation σ(D_P).** "Arguments whose grounded status would change under retraction of any single premise" is the product-layer expression of protocol saturation. Phase 5 is the surface where σ becomes a facilitation tool.
+
+**Phase 5 "what is deliberately not computed" list ↔ T4 witnessing-layer non-subsumption.** The explicit exclusion list (no per-participant scoring, no participation-quality scores, no reading tracking, no sentiment analysis, no predictive churn) is the product statement of T4's architectural commitment: the witnessing layer exists to serve agent-centric legitimacy, not to reduce participants to dialectical objects. Requests to add excluded items require a T4-level principle decision, not a feature decision.
+
+### Substrate constructs with no current roadmap counterpart
+
+The following substrate-track constructs are unaddressed in this roadmap — not in conflict, simply not yet mapped to a phase. They become natural candidate additions when the Ludics-native MCP tools ship:
+
+- **`get_articulation_lattice` / `compute_articulation_join`.** No phase currently consumes the incarnation structure or the join. The briefing layer is the natural first consumer (Phase 1 incarnation-faithfulness scorecard dimension). Phase 2's "minimum-commitment paraphrase of any position" use case (named in T5 of the substrate track) is the second.
+- **`get_exposure_map` with E_w / E_o / E_ℓ stratification.** The current briefing payload carries hub-set and cascade-exposure signals but not the three-stratum breakdown. Adding the stratified signal would enable finer CQ-priority ordering (Phase 2.1) and a more precise cascade-exposure diagnostic (Phase 5).
+- **Joint saturation σ_joint(D_P, Witness) (0e).** No Phase 5 diagnostic currently surfaces the "drained latent stratum" progress signal — a deliberation where the latent objection layer has been substantially walked out is structurally more complete than one where it hasn't. Natural Phase 5 health metric once the tool ships.
+- **Triads / Reading C structural player-role assignment (0f).** Phase 3's dry-run sandbox spec already states it should "recompute Ludics designations for any affected sub-game." The 0f Triads bridge is the theoretical grounding for what those designations mean under Reading C. No implementation work needed now; this is the right reference when Ludics designations land in the sandbox.
+
+### Non-conflicts confirmed
+
+- **"Protocol saturation" terminology.** The substrate track uses "saturation" to mean protocol saturation σ(D_P) — explicitly distinct from Fouquéré-Quatrini (2018) visitable-paths saturation. This roadmap does not use the term "saturation" at all. No collision.
+- **`ecc_*` tool naming.** The deployed `ecc_*` MCP tool names are engineering identifiers that predate the substrate track's terminological note (ECC in this codebase ≠ Luo's Extended Calculus of Constructions). The product tooling retains `ecc_*` names as engineering artifacts; the substrate track notes this explicitly. No conflict.
+- **"Orthogonality" vs. "adversarial."** The substrate uses "orthogonal" in the Ludics sense (two designs whose interaction converges). The eval harness uses "adversarial" for its adversarial eval set. These are different terms for different things with no overlap.
+- **AIFdb and the Argument Web.** Round 1 literature review confirmed AIFdb is a corpus browser, not an import target. Isonomia's argument API is a strict superset of AIF-format semantics. Phase 4 discovery is not in conflict with AIF; the actionable direction is export (Isonomia → AIF for Argument Web interop), not import.
 
 ---
 

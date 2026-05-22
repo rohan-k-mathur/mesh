@@ -24,7 +24,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
-import { mintClaimMoid } from "@/lib/ids/mintMoid";
+import { mintClaimMoid, canonicalizeClaimText } from "@/lib/ids/mintMoid";
+import { bindParticipantToDesign, BindError } from "@/server/ludics/bindParticipantToDesign";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,10 @@ const ProposeWarrantSchema = z.object({
     .partial()
     .optional()
     .default({}),
+  /** Write-seam hook — when both fields are present, creates a WitnessRecord (I1–I4). */
+  ludicMoveId: z.string().optional(),
+  dialogueMoveId: z.string().optional(),
+  schemeKey: z.string().optional(),
 });
 
 async function resolveCallerUserId(req: NextRequest): Promise<string | null> {
@@ -149,6 +154,25 @@ export async function POST(
     },
     select: { id: true, status: true },
   });
+
+  // Write-seam hook: bind to LudicMove if caller provided binding context
+  if (body.ludicMoveId && body.dialogueMoveId) {
+    try {
+      await bindParticipantToDesign({
+        dialogueMoveId: body.dialogueMoveId,
+        ludicMoveId: body.ludicMoveId,
+        participantId: userId,
+        canonicalText: canonicalizeClaimText(body.warrantText),
+        schemeKey: body.schemeKey,
+      });
+    } catch (err) {
+      if (err instanceof BindError) {
+        console.warn(`[propose-warrant] bind_participant_to_design skipped: ${err.code} — ${err.message}`);
+      } else {
+        throw err;
+      }
+    }
+  }
 
   return NextResponse.json({
     ok: true,

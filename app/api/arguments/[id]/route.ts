@@ -6,6 +6,7 @@ import { getCurrentUserId } from '@/lib/serverutils';
 import { buildDiagramForArgument, Diagram } from '@/lib/arguments/diagram';
 import { getArgumentWithSchemes } from '@/lib/db/argument-net-queries';
 import { normalizeArgumentSchemes } from '@/lib/utils/argument-scheme-compat';
+import { fossilizeByArgument } from '@/server/ludics/witnessRecord';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -196,4 +197,37 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
     throw e;
   }
+}
+
+// ── DELETE /api/arguments/:id ─────────────────────────────────────────────────
+// Phase 2d: before deleting the argument row, fossilize any active WitnessRecords
+// that reference LudicMoves bound to this argument (argumentId column).
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = params;
+
+  // Verify the argument exists
+  const argument = await prisma.argument.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!argument) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // Phase 2d: retract all active witnesses bound to this argument
+  const { fossilizedCount } = await fossilizeByArgument(id, 'argument_superseded');
+
+  // Delete the argument row
+  await prisma.argument.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true, fossilizedCount }, NO_STORE);
 }

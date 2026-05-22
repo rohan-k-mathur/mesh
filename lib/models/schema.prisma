@@ -4634,6 +4634,9 @@ model Deliberation {
   representativeClaimId String?
   representativeClaim   Claim?  @relation("DeliberationRepresentativeClaim", fields: [representativeClaimId], references: [id], onDelete: SetNull)
 
+  // Ludics-native layer (Phase 1a)
+  ludicMoves LudicMove[]
+
   @@index([agoraRoomID])
   @@index([hostType, hostId])
   @@index([roomId])
@@ -10241,4 +10244,107 @@ model AuthorSigningKey {
 
   @@index([userId])
   @@index([notAfter])
+}
+
+// ─── Ludics-native layer (Phase 1a) ───────────────────────────────────────
+
+/// A node in the current design D_P for a deliberation — a single locus
+/// with its move type and stratum label. Used by: get_exposure_map,
+/// get_deliberation_schema, get_behaviour_at_locus, and the write seam.
+model LudicMove {
+  id             String   @id @default(cuid())
+  deliberationId String
+  locus          String   // e.g. "⊢A.1.2" — stable address within D_P
+  moveType       String   // "positive" | "negative" | "daimon"
+  stratumLabel   String   // "walked" | "witnessable" | "latent"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  deliberation Deliberation    @relation(fields: [deliberationId], references: [id])
+  witnesses    WitnessRecord[]
+  design       Design?         @relation(fields: [designId], references: [id])
+  designId     String?
+
+  /// Optional back-reference to the Argument this move represents.
+  /// Populated by bind_participant_to_design when an argumentId is supplied.
+  /// Used by fossilizeByArgument to retract all witnesses for a deleted argument.
+  argumentId   String?
+
+  @@unique([deliberationId, locus])
+  @@index([deliberationId, stratumLabel])
+  @@index([argumentId])
+}
+
+/// Records a canonical dialogue act that instantiates a Ludics move
+/// (the iota write seam). participantId is stored but omitted from
+/// default responses (T4 non-attribution invariant).
+model WitnessRecord {
+  id             String    @id @default(cuid())
+  ludicMoveId    String
+  dialogueMoveId String    @unique // I1: one canonical act per dialogue move
+  participantId  String            // T4: stored but never returned by default
+  canonicalText  String            // I3: passed canonicalization pipeline
+  schemeKey      String?           // I4: scheme-typed (null for dialogue-only moves)
+  timestamp      DateTime  @default(now())
+  fossilizedAt   DateTime?         // null = active; non-null = fossilized
+  retractLayer   String?  // structural category: "argument_superseded"|"locus_deleted"|"design_excised"|"manual_retract"
+  retractReason  String?  // free-text reason from the caller (optional, may accompany any retractLayer)
+
+  ludicMove LudicMove @relation(fields: [ludicMoveId], references: [id])
+
+  @@index([ludicMoveId])
+  @@index([participantId])
+  @@index([fossilizedAt])
+}
+
+/// A specific articulation of a position (an element of Inc(B)).
+/// Stores the loci it spans and its biorthogonal equivalence class hash
+/// for find_equivalent_articulations and compress_articulation.
+model Design {
+  id              String   @id @default(cuid())
+  behaviourId     String
+  deliberationId  String   // denormalized for query convenience; not a Prisma relation
+  loci            String[] // locus addresses this design spans
+  premiseClaimIds String[] // claim ids of premises (for find_substitute_premises)
+  biorthoClass    String   // derived: SHA256 of perp-perp equivalence class membership
+  derivedBy       String?  // null | "join" | "meet" | "compression"
+  createdAt       DateTime @default(now())
+
+  behaviour           Behaviour        @relation(fields: [behaviourId], references: [id])
+  ludicMoves          LudicMove[]
+  inclusionsAsSmaller DesignInclusion[] @relation("InclusionSmaller")
+  inclusionsAsLarger  DesignInclusion[] @relation("InclusionLarger")
+
+  @@index([behaviourId])
+  @@index([biorthoClass])
+  @@index([deliberationId])
+}
+
+/// The behaviour B at a given root locus — the container for all
+/// incarnations Inc(B). One Behaviour per distinct position in a deliberation.
+model Behaviour {
+  id             String   @id @default(cuid())
+  deliberationId String   // plain string; not a Prisma relation (no back-ref needed)
+  rootLocus      String
+  designs        Design[]
+  createdAt      DateTime @default(now())
+
+  @@index([deliberationId])
+  @@unique([deliberationId, rootLocus])
+}
+
+/// Edge in the inclusion-order Hasse diagram for Art(B).
+/// Edge direction: smaller.loci ⊆ larger.loci  (smaller ≤ larger).
+/// This is a covering relation (direct successor only, not transitive closure).
+model DesignInclusion {
+  id        String @id @default(cuid())
+  smallerId String // Design with fewer loci (lower in lattice)
+  largerId  String // Design with more loci (higher in lattice)
+
+  smaller Design @relation("InclusionSmaller", fields: [smallerId], references: [id])
+  larger  Design @relation("InclusionLarger", fields: [largerId], references: [id])
+
+  @@unique([smallerId, largerId])
+  @@index([smallerId])
+  @@index([largerId])
 }

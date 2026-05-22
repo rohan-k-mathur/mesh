@@ -49,6 +49,7 @@ import {
   buildWritingConstraints,
   type WritingConstraints,
 } from "@/lib/deliberation/writingConstraints";
+import { findMinimalIncarnations } from "@/server/ludics/articulationLattice";
 
 /**
  * Compact per-argument summary for the top of `loadBearingnessRanking`.
@@ -187,6 +188,18 @@ export interface SyntheticReadout {
    * `lib/deliberation/writingConstraints.ts`.
    */
   writingConstraints: WritingConstraints;
+  /**
+   * Phase 2c — bottom incarnation for the root-locus Behaviour, if one
+   * exists. Null for pre-Phase-1 deliberations that have no Behaviour
+   * row, and for deliberations where `findMinimalIncarnations` returns
+   * an empty set. Optional so old cached payloads remain valid.
+   */
+  bottomIncarnation?: {
+    behaviourId: string;
+    designId: string;
+    loci: string[];
+    moveCount: number;
+  } | null;
 }
 
 export async function computeSyntheticReadout(
@@ -491,6 +504,35 @@ async function _computeSyntheticReadoutUncached(
   }
 
   // ────────────────────────────────────────────────────────────
+  // Phase 2c: bottomIncarnation — find the minimal design for the
+  // root-locus Behaviour of this deliberation. Non-fatal: pre-Phase-1
+  // deliberations have no Behaviour rows, and the field is optional.
+  // ────────────────────────────────────────────────────────────
+
+  let bottomIncarnation: SyntheticReadout["bottomIncarnation"] = null;
+  try {
+    const rootBehaviour = await prisma.behaviour.findFirst({
+      where: { deliberationId },
+      orderBy: { rootLocus: "asc" },
+      select: { id: true },
+    });
+    if (rootBehaviour) {
+      const { minimals } = await findMinimalIncarnations(rootBehaviour.id);
+      if (minimals.length > 0) {
+        const m = minimals[0];
+        bottomIncarnation = {
+          behaviourId: rootBehaviour.id,
+          designId: m.designId,
+          loci: m.loci,
+          moveCount: m.moveCount,
+        };
+      }
+    }
+  } catch {
+    // Non-fatal — bottomIncarnation stays null.
+  }
+
+  // ────────────────────────────────────────────────────────────
   // honestyLine — deterministic template, not free prose.
   // ────────────────────────────────────────────────────────────
 
@@ -524,6 +566,7 @@ async function _computeSyntheticReadoutUncached(
     topArguments,
     mostContested,
     honestyLine,
+    bottomIncarnation,
   };
 
   return {

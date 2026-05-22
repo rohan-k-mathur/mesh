@@ -2,6 +2,8 @@
 import { prisma } from '@/lib/prismaclient';
 import { Hooks } from './hooks';
 import { parseRule, isNegation, stripNegation, validateRule } from './rule-parser';
+import { canonicalizeClaimText } from '@/lib/ids/mintMoid';
+import { bindParticipantToDesign, BindError } from '@/server/ludics/bindParticipantToDesign';
 
 type AddOp = {
   label: string;
@@ -10,6 +12,12 @@ type AddOp = {
   designIds?: string[];
   derived?: boolean;
   entitled?: boolean;          // NEW: allow setting on add
+  /** Optional write-seam hook — when provided fires bind_participant_to_design after element creation. */
+  witnessHook?: {
+    dialogueMoveId: string;
+    ludicMoveId: string;
+    schemeKey?: string;
+  };
 };
 type EraseOp = { byLabel?: string; byLocusPath?: string };
 
@@ -128,6 +136,26 @@ export async function applyToCS(
         },
       });
       added.push(ce.id);
+
+      // Write-seam hook: create WitnessRecord if caller provided binding context
+      if (a.witnessHook) {
+        try {
+          await bindParticipantToDesign({
+            dialogueMoveId: a.witnessHook.dialogueMoveId,
+            ludicMoveId: a.witnessHook.ludicMoveId,
+            participantId: ownerId,
+            canonicalText: canonicalizeClaimText(a.label),
+            schemeKey: a.witnessHook.schemeKey,
+          });
+        } catch (err) {
+          if (err instanceof BindError) {
+            // Degrade gracefully — CS update succeeded; log the witness failure
+            console.warn(`[applyToCS] bind_participant_to_design skipped for element ${ce.id}: ${err.code} — ${err.message}`);
+          } else {
+            throw err;
+          }
+        }
+      }
     }
   }
 

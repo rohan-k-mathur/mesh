@@ -2,6 +2,28 @@
   "id": "small-single-hub-db",
   "description": "DB-snapshot fixture: small (4 args) deliberation with one clearly dominant hub, one shared load-bearing premise, and one unanswered CQ.",
   "adversarialGates": [],
+  "manifestFields": {
+    "openExposurePoints": 2,
+    "coverageRatio": 0.5,
+    "fossilCount": 0,
+    "incarnationSet": {
+      "bottom": {
+        "designId": "fixture-small-single-hub-bottom",
+        "loci": ["\u22a2A.0","\u22a2A.1"],
+        "moveCount": 2,
+        "rank": 0
+      },
+      "minimals": [
+        {
+          "designId": "fixture-small-single-hub-bottom",
+          "loci": ["\u22a2A.0","\u22a2A.1"],
+          "moveCount": 2,
+          "rank": 0
+        }
+      ],
+      "totalIncarnations": 3
+    }
+  },
   "readout": {
     "deliberationId": "fix-small-single-hub-db",
     "contentHash": "sha256:bc46f5157b01d3ad29a10d7a697d632ceacfe218801a53499fbbfd1410d997ce",
