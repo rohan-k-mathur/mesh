@@ -1,43 +1,55 @@
 /**
- * Synthesis Proposal Agent — Phase 2c.
+ * Synthesis Proposal Agent — Phase 2c. *[CORRECTED post-2e/2f (B8 Round 6)]*
  *
  * Orchestrates the AI-synthesis workflow: given two existing Design rows,
  * computes their articulation join, enforces structural invariants, and
- * (when the join is trivially closed) commits a WitnessRecord.
+ * (when the join is trivially closed within a cone) commits a WitnessRecord.
  *
- * Invariant enforcement (inherited from I1–I3 framework):
- *   I1  Root locus ⊢A.0 LudicMove must exist for the deliberation
- *   I3  canonicalText must be non-empty
+ * Discriminated result shape per LUDICS_SESSION_2_DEV_SPEC.md §3.3:
+ *   - `same-cone-join`               — join exists in B; WitnessRecord committed.
+ *   - `same-cone-delocation-required` — join requires within-cone negative-branch
+ *                                      extension (Daimon Lock Lemma); candidate
+ *                                      Design row identifier surfaced for the
+ *                                      caller to bind separately. No WitnessRecord
+ *                                      is written.
+ *   - `cross-cone-rejected`          — inputs span disjoint cones; ∨_⊥⊥ is
+ *                                      undefined in B (Phase 2e cross-cone
+ *                                      incompatibility). Returned as a value
+ *                                      with HTTP 200; not an error.
  *
- * Error codes:
- *   409  DELOCATION_REQUIRED  — join added new loci not present in D_P
- *                              (caller must retrain on enlarged loci set)
- *   422  EMPTY_CANONICAL_TEXT — canonicalText empty / blank
- *   404  DESIGNS_NOT_FOUND    — one or both designIds are missing in DB
+ * Invariant enforcement (inherited from S1–S4 framework, applied on
+ * `same-cone-join` path only):
+ *   S1  Root locus ⊢A.0 LudicMove must exist for the deliberation
+ *   S3  canonicalText must be non-empty
  *
- * Delocation path: when `newLoci.length > 0`, returns early with
- * `witnessId: null` and `delocationType: "locus-addition-required"`.
- * No WitnessRecord is written.
+ * Error codes (true error conditions; the three discriminated outcomes
+ * above are returned as values, not thrown):
+ *   409  ROOT_LOCUS_MISSING         — root locus ⊢A.0 absent from D_P
+ *   422  EMPTY_CANONICAL_TEXT       — canonicalText empty / blank
+ *   404  DESIGNS_NOT_FOUND          — one or both designIds are missing in DB
+ *   422  CLOSURE_STEPS_INVARIANT    — articulationLattice returned closureSteps != 0
+ *                                     for a same-cone-join (Phase 2f Reading A
+ *                                     defensive guard)
  *
  * Idempotence: a deterministic `dialogueMoveId` derived from the input
- * ensures that re-issuing identical inputs returns the existing record
- * with `closureSteps: 0`.
+ * ensures that re-issuing identical inputs returns the existing record on
+ * the `same-cone-join` path with the original witnessId.
  *
- * T4 invariant: participantId is stored but NEVER returned.
+ * T4 invariant: participantId is stored but NEVER returned in any kind.
  */
 
 import crypto from "crypto";
 import { prisma } from "@/lib/prismaclient";
 import { computeArticulationJoin } from "@/server/ludics/articulationLattice";
 import { create as createWitnessRecord } from "@/server/ludics/witnessRecord";
+import { publishAnnouncement } from "@/lib/ludics/announcementBus";
 
 // ── Error class ───────────────────────────────────────────────────────────────
 
 export type SynthesisErrorCode =
-  | "DELOCATION_REQUIRED"
+  | "ROOT_LOCUS_MISSING"
   | "EMPTY_CANONICAL_TEXT"
   | "DESIGNS_NOT_FOUND"
-  | "CROSS_CONE"
   | "CLOSURE_STEPS_INVARIANT";
 
 export class SynthesisError extends Error {
@@ -73,20 +85,47 @@ export interface SynthesisProposalInput {
   canonicalText: string;
 }
 
-export interface SynthesisProposalResult {
-  /** WitnessRecord id; null when delocationType is non-null. */
-  witnessId: string | null;
-  /** The Design row representing Art(B) join of the two inputs. */
-  joinDesignId: string;
-  /** Closure steps taken by computeArticulationJoin. 0 = existing design used. */
-  closureSteps: number;
-  /** Loci contributed by the join beyond what both inputs share. */
-  newLoci: string[];
-  /** True when the join design was not already in the lattice (closureSteps > 0). */
-  wasNontrivial: boolean;
-  /** Set when the join required new loci not yet in D_P. */
-  delocationType: "locus-addition-required" | null;
-}
+/**
+ * Discriminated by `kind`. Mirrors LUDICS_SESSION_2_DEV_SPEC.md §3.3.
+ *
+ * Note on `same-cone-delocation-required`: under Phase 2f Reading A
+ * (literal locus-set union), this branch is structurally unreachable when
+ * loci are plain strings — no collisions are possible. The branch is
+ * preserved in the type as forward-compatibility for a richer chronicle
+ * representation. If a future revision of `computeArticulationJoin` emits
+ * this kind, `joinDesignId` will be the empty string until the candidate
+ * Design row is created (TODO: persist on first reachable invocation).
+ */
+export type SynthesisProposalResult =
+  | {
+      kind: "same-cone-join";
+      witnessId: string;
+      joinDesignId: string;
+      /** Loci added by literal union beyond either input alone. */
+      newLoci: string[];
+      /** Always 0 within a cone (Phase 2f Reading A). */
+      closureSteps: 0;
+    }
+  | {
+      kind: "same-cone-delocation-required";
+      /**
+       * Candidate Design row id; empty string when the row has not yet
+       * been created (current unreachable-in-practice path).
+       */
+      joinDesignId: string;
+      /** Negative-branch extensions per Daimon Lock Lemma. */
+      newLoci: string[];
+      /** First-locus convenience accessor; equal to `newLoci[0] ?? ""`. */
+      delocationCandidateLocus: string;
+    }
+  | {
+      kind: "cross-cone-rejected";
+      reason: "cross-cone-incompatibility";
+      /** First input design (in caller-supplied order); resides in cone 1. */
+      cone1DesignId: string;
+      /** Second input design (in caller-supplied order); resides in cone 2. */
+      cone2DesignId: string;
+    };
 
 // ── proposeSynthesis ──────────────────────────────────────────────────────────
 
@@ -95,7 +134,7 @@ export async function proposeSynthesis(
 ): Promise<SynthesisProposalResult> {
   const { deliberationId, designIds, participantId, canonicalText } = input;
 
-  // I3 — canonicalText must not be blank.
+  // S3 — canonicalText must not be blank.
   if (!canonicalText.trim()) {
     throw new SynthesisError(
       "EMPTY_CANONICAL_TEXT",
@@ -114,35 +153,42 @@ export async function proposeSynthesis(
     );
   }
 
-  // Phase 2e: cross-cone inputs are undefined for ∨_⊥⊥.
+  // Phase 2e: cross-cone inputs are undefined for ∨_⊥⊥. Returned as a value
+  // (HTTP 200) with the discriminated `cross-cone-rejected` kind — not an
+  // error. The two input designs are surfaced in caller-supplied order as
+  // `cone1DesignId` / `cone2DesignId`.
   if (joinResult.kind === "cross-cone-rejected") {
-    throw new SynthesisError(
-      "CROSS_CONE",
-      `inputs span ${joinResult.coneIds.length} incarnation cones; ∨_⊥⊥ is undefined in B`,
-      422,
-    );
-  }
-
-  if (joinResult.kind === "same-cone-delocation-required") {
     return {
-      witnessId: null,
-      joinDesignId: "",
-      closureSteps: 0,
-      newLoci: joinResult.collidingLoci,
-      wasNontrivial: true,
-      delocationType: "locus-addition-required",
+      kind: "cross-cone-rejected",
+      reason: "cross-cone-incompatibility",
+      cone1DesignId: designIds[0],
+      cone2DesignId: designIds[1],
     };
   }
 
+  // Same-cone delocation: within-cone negative-branch extension required
+  // (Daimon Lock Lemma). Structurally unreachable under the current literal
+  // locus-set union semantics, but the type and code path are preserved for
+  // forward-compatibility with richer chronicle representations.
+  if (joinResult.kind === "same-cone-delocation-required") {
+    const collidingLoci = joinResult.collidingLoci ?? [];
+    return {
+      kind: "same-cone-delocation-required",
+      // TODO: persist candidate Design row when this branch becomes
+      // reachable in a future revision of computeArticulationJoin.
+      joinDesignId: "",
+      newLoci: collidingLoci,
+      delocationCandidateLocus: collidingLoci[0] ?? "",
+    };
+  }
+
+  // From here on: kind === "same-cone-join".
   const { join, newLoci, closureSteps } = joinResult;
-  // Phase 2f Reading A: literal chronicle-set union, so closureSteps is
-  // always 0 within a cone. `wasNontrivial` now records whether the join
-  // created a new Design row (newLoci.length > 0), not whether closure ran.
-  //
-  // Invariant (defensive): under Reading A, computeArticulationJoin must
-  // always return closureSteps === 0 for the same-cone-join kind. A non-zero
-  // value indicates either a regression in the service or a silent revert to
-  // Reading B semantics — surface it loudly rather than swallowing it.
+
+  // Phase 2f Reading A defensive guard: literal chronicle-set union means
+  // closureSteps must be 0 within a cone. A non-zero value indicates either
+  // a regression in the lattice service or a silent revert to Reading B
+  // semantics — surface it loudly rather than swallowing it.
   if (closureSteps !== 0) {
     throw new SynthesisError(
       "CLOSURE_STEPS_INVARIANT",
@@ -152,21 +198,11 @@ export async function proposeSynthesis(
       422,
     );
   }
+
   const wasNontrivial = newLoci.length > 0;
 
-  // Delocation path — join added loci not yet in D_P.
-  if (newLoci.length > 0) {
-    return {
-      witnessId: null,
-      joinDesignId: join.designId,
-      closureSteps,
-      newLoci,
-      wasNontrivial,
-      delocationType: "locus-addition-required",
-    };
-  }
-
-  // If the join created a new Design row, persist DesignInclusion edges.
+  // If the join created a new Design row, persist DesignInclusion edges
+  // (same-cone only — articulationLattice already guarantees this).
   if (wasNontrivial) {
     for (const dId of designIds) {
       await prisma.designInclusion.upsert({
@@ -179,7 +215,7 @@ export async function proposeSynthesis(
     }
   }
 
-  // I1 — root locus LudicMove must exist in D_P.
+  // S1 — root locus LudicMove must exist in D_P.
   const rootMove = await prisma.ludicMove.findFirst({
     where: { deliberationId, locus: "\u22a2A.0" },
     select: { id: true },
@@ -187,7 +223,7 @@ export async function proposeSynthesis(
 
   if (!rootMove) {
     throw new SynthesisError(
-      "DELOCATION_REQUIRED",
+      "ROOT_LOCUS_MISSING",
       "root locus \u22a2A.0 not found in D_P for this deliberation",
       409,
     );
@@ -210,12 +246,11 @@ export async function proposeSynthesis(
 
   if (existing) {
     return {
+      kind: "same-cone-join",
       witnessId: existing.id,
       joinDesignId: join.designId,
-      closureSteps: 0,
       newLoci: [],
-      wasNontrivial: false,
-      delocationType: null,
+      closureSteps: 0,
     };
   }
 
@@ -227,12 +262,34 @@ export async function proposeSynthesis(
     canonicalText,
   });
 
+  // A2 announcement (WS-5b): emit `design_revealed` on the fresh-commit
+  // branch only — NOT on the idempotent `existing` short-circuit above.
+  // Protocol §7.0 + §8. Bus failures MUST NOT fail synthesis.
+  try {
+    await publishAnnouncement({
+      eventType: "design_revealed",
+      version: 1,
+      scopeId: deliberationId,
+      actorParticipantId: participantId,
+      subjectId: join.designId,
+      occurredAt: witness.timestamp.toISOString(),
+      payload: {
+        designId: join.designId,
+        joinedDesignIds: sorted,
+        newLoci,
+        witnessId: witness.id,
+      },
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[synthesisProposalAgent] announcement publish failed", err);
+  }
+
   return {
+    kind: "same-cone-join",
     witnessId: witness.id,
     joinDesignId: join.designId,
-    closureSteps,
-    newLoci: [],
-    wasNontrivial,
-    delocationType: null,
+    newLoci,
+    closureSteps: 0,
   };
 }

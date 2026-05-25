@@ -22,5 +22,7 @@ const config: Config = {
     "canonicalise.test.ts$",
     "seed_cmd.integration.test.ts$",
   ],
+  // jose v6 ships ESM only; let ts-jest transform it.
+  transformIgnorePatterns: ["node_modules/(?!(jose)/)"],
 };
 export default config;

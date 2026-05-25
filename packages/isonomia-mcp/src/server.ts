@@ -1748,11 +1748,11 @@ const tools: ToolSpec[] = [
     description:
       "Iota write seam — the ONLY path that produces a WitnessRecord and enforces all four structural invariants before committing. " +
       "Call this after resolving a locus and before any downstream Ludics computation; do NOT write WitnessRecord rows via any other path. " +
-      "CONTRACT: (I1) ludicMoveId must be in LudicMove with a non-empty locus; " +
-      "(I2) LudicMove.deliberationId must be non-null; " +
-      "(I3) canonicalText must be the exact output of canonicalizeClaimText (JSON.stringify({text:…})); " +
+      "CONTRACT: (S1) ludicMoveId must be in LudicMove with a non-empty locus; " +
+      "(S2) LudicMove.deliberationId must be non-null; " +
+      "(S3) canonicalText must be the exact output of canonicalizeClaimText (JSON.stringify({text:…})); " +
       "(S4) if schemeKey is supplied it must be in the ArgumentScheme catalog — use list_schemes first; for moveType='daimon' a schemeKey is required. " +
-      "Error codes: 409 DELOCATION_REQUIRED (I1/I2 fail), 422 CANON_GATE_FAILED (I3 fail), 422 SCHEME_REQUIRED (I4 fail). " +
+      "Error codes: 409 DELOCATION_REQUIRED (S1/S2 fail), 422 CANON_GATE_FAILED (S3 fail), 422 SCHEME_REQUIRED (S4 fail). " +
       "On success returns invariantChecks: {S1_existingLocus, S2_existingStructure, S3_canonPipelineGated, S4_schemeTyped} all true. " +
       "T4 invariant: participantId is stored internally and NEVER returned in the response or any public read. " +
       "REQUIRES the ISONOMIA_API_TOKEN env var.",
@@ -1777,15 +1777,16 @@ const tools: ToolSpec[] = [
     name: "propose_synthesis",
     description:
       "Phase 2c synthesis write seam — computes the Art(B) articulation join of two Design rows " +
-      "and, when the join is trivially closed (no new loci required in D_P), commits a WitnessRecord. " +
+      "and returns a discriminated result. " +
       "CONTRACT: both designIds must belong to the same Behaviour inside the given deliberation; " +
-      "canonicalText is the agent-generated synthesis statement (plain text, ≥10 chars, ≤2000). " +
-      "Delocation path: when the join requires loci not yet in D_P, returns " +
-      "{ witnessId: null, delocationType: 'locus-addition-required', newLoci: [...] } — caller " +
-      "must retrain on the enlarged loci set before re-issuing. " +
-      "Idempotent: identical (deliberationId, designIds, participantId) inputs re-use the existing WitnessRecord. " +
-      "Error codes: 409 DELOCATION_REQUIRED (new loci needed), 422 EMPTY_CANONICAL_TEXT (blank text), " +
-      "404 DESIGNS_NOT_FOUND (unknown design ids). " +
+      "canonicalText is the agent-generated synthesis statement (plain text, \u226510 chars, \u22642000). " +
+      "Returns one of three kinds (HTTP 200 in all three cases): " +
+      "{ kind: 'same-cone-join', witnessId, joinDesignId, newLoci, closureSteps: 0 } — WitnessRecord committed; " +
+      "{ kind: 'same-cone-delocation-required', joinDesignId, newLoci, delocationCandidateLocus } — within-cone negative-branch extension required (Daimon Lock Lemma); no WitnessRecord; " +
+      "{ kind: 'cross-cone-rejected', reason: 'cross-cone-incompatibility', cone1DesignId, cone2DesignId } — inputs span disjoint cones; \u2228_\u22a5\u22a5 undefined in B (Phase 2e); no Design row, no WitnessRecord. " +
+      "Idempotent on 'same-cone-join': identical (deliberationId, designIds, participantId) inputs re-use the existing WitnessRecord. " +
+      "Error codes: 409 ROOT_LOCUS_MISSING (root locus \u22a2A.0 absent), 422 EMPTY_CANONICAL_TEXT (blank text), " +
+      "422 CLOSURE_STEPS_INVARIANT (substrate violation), 404 DESIGNS_NOT_FOUND (unknown design ids). " +
       "REQUIRES the ISONOMIA_API_TOKEN env var.",
     inputSchema: zodToJsonSchema(ProposeSynthesisInput),
     async handler(args) {

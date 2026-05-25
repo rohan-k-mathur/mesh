@@ -1,15 +1,18 @@
 /**
- * Phase 2b invariant tests — `incarnationSet` manifest field.
+ * Phase 2b invariant tests — `incarnationSet` manifest field (post-OQ-JSL Outcome B).
+ *
+ * `Inc(B)` is an antichain under ⊆ (Daimon Lock Lemma); each element is the
+ * minimum-commitment incarnation of its cone. There is no singular bottom |B|.
+ * See LUDICS_OQ_JSL_PROOF.md and LUDICS_ORDER_RELATION_DEFINITION.md.
  *
  * 22 tests covering:
- *   - IncarnationSetManifest shape (null bottom, single bottom, co-equal minima)
- *   - manifestGenerator wires authored incarnationSet from fixture
- *   - scorecard articulationRecall: perfect recall, undercount, null-bottom safe defaults
- *   - detectConfidentMisstatements: incarnation-undercount fires / does not fire
- *   - MockBriefingClient emits correct claimedMinimalPremiseLociCount
- *   - Per-fixture happy-path: articulationRecall.recall === 1 for all 5 v2 fixtures
- *   - Co-equal hub fixture: minimals.length === 2
- *   - Large-real-db fixture: totalIncarnations === 8
+ *   - IncarnationSetManifest shape (empty, single-cone, multi-cone ≥2)
+ *   - manifestGenerator wires authored `incarnations[]` from fixture
+ *   - scorecard articulationRecall: per-cone meanRecall, incarnationCountRecall, vacuous defaults
+ *   - detectConfidentMisstatements: per-cone `incarnation-undercount` + `miscount-across-cones`
+ *   - MockBriefingClient emits `claimedIncarnationCount` + `claimedMinimalPremiseLociCountPerCone`
+ *   - Per-fixture cardinality assertions (small-coequal=2, large-real=8, large-real[0]=12)
+ *   - Mock scorecard pass=true for all v2 fixtures
  */
 
 import { join } from "node:path";
@@ -19,7 +22,6 @@ import { scorePhase1 } from "../../eval/ai-epi/scorecard/phase1";
 import { MockBriefingClient } from "../../eval/ai-epi/llm/mockClient";
 import type {
   Fixture,
-  Manifest,
   BriefingClaim,
   IncarnationSetManifest,
   DesignSummary,
@@ -74,208 +76,234 @@ function makeMinimalFixture(incarnationSet?: IncarnationSetManifest): Fixture {
   };
 }
 
-const BOTTOM_DESIGN: DesignSummary = {
-  designId: "design-bottom",
+const INC_A: DesignSummary = {
+  designId: "design-cone-a",
   loci: ["⊢A.0", "⊢A.1", "⊢A.2"],
   moveCount: 3,
   rank: 0,
 };
 
-const COEQUAL_B: DesignSummary = {
-  designId: "design-coequal-b",
-  loci: ["⊢A.3", "⊢A.4", "⊢A.5"],
-  moveCount: 3,
+const INC_B: DesignSummary = {
+  designId: "design-cone-b",
+  loci: ["⊢A.3", "⊢A.4"],
+  moveCount: 2,
   rank: 0,
 };
 
-const SINGLE_INCARNATION_SET: IncarnationSetManifest = {
-  bottom: BOTTOM_DESIGN,
-  minimals: [BOTTOM_DESIGN],
-  totalIncarnations: 3,
-};
-
-const COEQUAL_INCARNATION_SET: IncarnationSetManifest = {
-  bottom: BOTTOM_DESIGN,
-  minimals: [BOTTOM_DESIGN, COEQUAL_B],
-  totalIncarnations: 4,
-};
-
-const NULL_BOTTOM_SET: IncarnationSetManifest = {
-  bottom: null,
-  minimals: [],
+const EMPTY_SET: IncarnationSetManifest = {
+  incarnations: [],
   totalIncarnations: 0,
+};
+
+const SINGLE_CONE_SET: IncarnationSetManifest = {
+  incarnations: [INC_A],
+  totalIncarnations: 1,
+};
+
+const MULTI_CONE_SET: IncarnationSetManifest = {
+  incarnations: [INC_A, INC_B],
+  totalIncarnations: 2,
 };
 
 // ─── §2.2 Type shape tests ────────────────────────────────────────────────────
 
-describe("IncarnationSetManifest shape", () => {
-  it("T1: null-bottom set has bottom=null, minimals=[], totalIncarnations=0", () => {
-    expect(NULL_BOTTOM_SET.bottom).toBeNull();
-    expect(NULL_BOTTOM_SET.minimals).toHaveLength(0);
-    expect(NULL_BOTTOM_SET.totalIncarnations).toBe(0);
+describe("IncarnationSetManifest shape (antichain)", () => {
+  it("T1: empty antichain has incarnations=[] and totalIncarnations=0", () => {
+    expect(EMPTY_SET.incarnations).toHaveLength(0);
+    expect(EMPTY_SET.totalIncarnations).toBe(0);
   });
 
-  it("T2: single-bottom set has bottom.rank=0 and minimals.length=1", () => {
-    expect(SINGLE_INCARNATION_SET.bottom).not.toBeNull();
-    expect(SINGLE_INCARNATION_SET.bottom!.rank).toBe(0);
-    expect(SINGLE_INCARNATION_SET.minimals).toHaveLength(1);
+  it("T2: single-cone set has incarnations.length=1 and totalIncarnations=1", () => {
+    expect(SINGLE_CONE_SET.incarnations).toHaveLength(1);
+    expect(SINGLE_CONE_SET.totalIncarnations).toBe(1);
+    expect(SINGLE_CONE_SET.incarnations[0].rank).toBe(0);
   });
 
-  it("T3: co-equal set has minimals.length=2 with both rank=0", () => {
-    expect(COEQUAL_INCARNATION_SET.minimals).toHaveLength(2);
-    for (const m of COEQUAL_INCARNATION_SET.minimals) {
-      expect(m.rank).toBe(0);
+  it("T3: multi-cone set has incarnations.length=2 with both rank=0 (antichain)", () => {
+    expect(MULTI_CONE_SET.incarnations).toHaveLength(2);
+    expect(MULTI_CONE_SET.totalIncarnations).toBe(2);
+    for (const inc of MULTI_CONE_SET.incarnations) {
+      expect(inc.rank).toBe(0);
     }
   });
 });
 
-// ─── §2.3 manifestGenerator wires authored incarnationSet ────────────────────
+// ─── §2.3 manifestGenerator wires authored incarnations ─────────────────────
 
 describe("manifestGenerator: incarnationSet field", () => {
-  it("T4: manifest.incarnationSet defaults to empty set when manifestFields absent", () => {
+  it("T4: manifest.incarnationSet defaults to empty antichain when manifestFields absent", () => {
     const fx: Fixture = { ...makeMinimalFixture(), manifestFields: undefined };
     const m = generateManifest(fx);
-    expect(m.incarnationSet.bottom).toBeNull();
-    expect(m.incarnationSet.minimals).toHaveLength(0);
+    expect(m.incarnationSet.incarnations).toHaveLength(0);
     expect(m.incarnationSet.totalIncarnations).toBe(0);
   });
 
-  it("T5: manifest.incarnationSet carries authored bottom from fixture", () => {
-    const m = generateManifest(makeMinimalFixture(SINGLE_INCARNATION_SET));
-    expect(m.incarnationSet.bottom).not.toBeNull();
-    expect(m.incarnationSet.bottom!.designId).toBe("design-bottom");
-    expect(m.incarnationSet.bottom!.loci).toHaveLength(3);
+  it("T5: manifest.incarnationSet carries authored single-cone antichain", () => {
+    const m = generateManifest(makeMinimalFixture(SINGLE_CONE_SET));
+    expect(m.incarnationSet.incarnations).toHaveLength(1);
+    expect(m.incarnationSet.incarnations[0].designId).toBe("design-cone-a");
+    expect(m.incarnationSet.incarnations[0].loci).toHaveLength(3);
   });
 
-  it("T6: manifest.incarnationSet preserves co-equal minimals from fixture", () => {
-    const m = generateManifest(makeMinimalFixture(COEQUAL_INCARNATION_SET));
-    expect(m.incarnationSet.minimals).toHaveLength(2);
-    expect(m.incarnationSet.totalIncarnations).toBe(4);
+  it("T6: manifest.incarnationSet preserves multi-cone antichain from fixture", () => {
+    const m = generateManifest(makeMinimalFixture(MULTI_CONE_SET));
+    expect(m.incarnationSet.incarnations).toHaveLength(2);
+    expect(m.incarnationSet.totalIncarnations).toBe(2);
   });
 });
 
-// ─── §2.4 Scorecard: articulationRecall ───────────────────────────────────────
+// ─── §2.4 Scorecard: articulationRecall (per-cone) ────────────────────────────
 
-describe("scorecard: articulationRecall computation", () => {
+describe("scorecard: articulationRecall computation (per-cone)", () => {
   function score(
     incarnationSet: IncarnationSetManifest,
-    claimedMinimalPremiseLociCount?: number,
+    claim: Partial<BriefingClaim> = {},
   ) {
     const fx = makeMinimalFixture(incarnationSet);
     const manifest = generateManifest(fx);
-    const claim: BriefingClaim = {
-      ...(claimedMinimalPremiseLociCount !== undefined
-        ? { claimedMinimalPremiseLociCount }
-        : {}),
-    };
-    return scorePhase1(fx, manifest, claim).articulationRecall;
+    return scorePhase1(fx, manifest, claim as BriefingClaim).articulationRecall;
   }
 
-  it("T7: recall=1 when LLM claims exact bottom loci count", () => {
-    const r = score(SINGLE_INCARNATION_SET, 3);
-    expect(r.recall).toBe(1);
-    expect(r.undercount).toBe(false);
-    expect(r.bottomLociCount).toBe(3);
-    expect(r.claimedMinimalLociCount).toBe(3);
+  it("T7: meanRecall=1 when LLM claims exact per-cone loci counts", () => {
+    const r = score(MULTI_CONE_SET, {
+      claimedIncarnationCount: 2,
+      claimedMinimalPremiseLociCountPerCone: [3, 2],
+    });
+    expect(r.meanRecall).toBe(1);
+    expect(r.perCone).toHaveLength(2);
+    expect(r.perCone.every((c) => c.recall === 1 && !c.undercount)).toBe(true);
+    expect(r.incarnationCountRecall).toBe(1);
+    expect(r.miscountAcrossCones).toBe(false);
   });
 
-  it("T8: recall < 1 when LLM claims fewer loci than bottom", () => {
-    const r = score(SINGLE_INCARNATION_SET, 1);
-    expect(r.recall).toBeLessThan(1);
-    expect(r.undercount).toBe(true);
-    expect(r.recall).toBeCloseTo(1 / 3);
+  it("T8: meanRecall < 1 when LLM under-counts in one cone", () => {
+    const r = score(MULTI_CONE_SET, {
+      claimedIncarnationCount: 2,
+      claimedMinimalPremiseLociCountPerCone: [1, 2],
+    });
+    expect(r.meanRecall).toBeLessThan(1);
+    expect(r.perCone[0].undercount).toBe(true);
+    expect(r.perCone[0].recall).toBeCloseTo(1 / 3);
+    expect(r.perCone[1].undercount).toBe(false);
   });
 
-  it("T9: recall=1 (vacuous) when bottom is null", () => {
-    const r = score(NULL_BOTTOM_SET, 0);
-    expect(r.recall).toBe(1);
-    expect(r.undercount).toBe(false);
+  it("T9: meanRecall=1 (vacuous) when antichain is empty", () => {
+    const r = score(EMPTY_SET, { claimedIncarnationCount: 0 });
+    expect(r.meanRecall).toBe(1);
+    expect(r.incarnationCountRecall).toBe(1);
+    expect(r.perCone).toHaveLength(0);
   });
 
-  it("T10: recall=1 (vacuous) when claimedMinimalPremiseLociCount is absent", () => {
-    const r = score(NULL_BOTTOM_SET);
-    expect(r.recall).toBe(1);
+  it("T10: meanRecall=1 (vacuous) when per-cone claim is absent", () => {
+    const r = score(EMPTY_SET);
+    expect(r.meanRecall).toBe(1);
+    expect(r.miscountAcrossCones).toBe(false);
   });
 
-  it("T11: claimedCount=0 with non-null bottom gives undercount=true and recall=0", () => {
-    const r = score(SINGLE_INCARNATION_SET, 0);
-    expect(r.undercount).toBe(true);
-    expect(r.recall).toBe(0);
+  it("T11: incarnationCountRecall < 1 when LLM under-counts |Inc(B)|", () => {
+    const r = score(MULTI_CONE_SET, {
+      claimedIncarnationCount: 1,
+      claimedMinimalPremiseLociCountPerCone: [3],
+    });
+    expect(r.incarnationCountRecall).toBeCloseTo(1 / 2);
+    expect(r.miscountAcrossCones).toBe(true);
   });
 });
 
-// ─── §2.4 detectConfidentMisstatements: incarnation-undercount ───────────────
+// ─── §2.4 detectConfidentMisstatements: per-cone + miscount-across-cones ─────
 
-describe("detectConfidentMisstatements: incarnation-undercount", () => {
+describe("detectConfidentMisstatements: incarnation-undercount + miscount-across-cones", () => {
   function detect(
     incarnationSet: IncarnationSetManifest,
-    claimedMinimalPremiseLociCount?: number,
+    claim: Partial<BriefingClaim> = {},
   ) {
     const fx = makeMinimalFixture(incarnationSet);
     const manifest = generateManifest(fx);
-    const claim: BriefingClaim = {
-      ...(claimedMinimalPremiseLociCount !== undefined
-        ? { claimedMinimalPremiseLociCount }
-        : {}),
-    };
-    return scorePhase1(fx, manifest, claim).confidentMisstatements;
+    return scorePhase1(fx, manifest, claim as BriefingClaim).confidentMisstatements;
   }
 
-  it("T12: fires incarnation-undercount when claimed < bottom.loci.length", () => {
-    const ms = detect(SINGLE_INCARNATION_SET, 1);
+  it("T12: fires incarnation-undercount for each cone where claimed < cone.loci.length", () => {
+    const ms = detect(MULTI_CONE_SET, {
+      claimedIncarnationCount: 2,
+      claimedMinimalPremiseLociCountPerCone: [1, 0],
+    });
+    const undercounts = ms.filter((m) => m.kind === "incarnation-undercount");
+    expect(undercounts).toHaveLength(2);
+    expect(undercounts[0].detail).toContain("cone 0");
+    expect(undercounts[1].detail).toContain("cone 1");
+  });
+
+  it("T13: does NOT fire incarnation-undercount when every claim matches its cone", () => {
+    const ms = detect(MULTI_CONE_SET, {
+      claimedIncarnationCount: 2,
+      claimedMinimalPremiseLociCountPerCone: [3, 2],
+    });
+    expect(ms.map((m) => m.kind)).not.toContain("incarnation-undercount");
+  });
+
+  it("T14: does NOT fire when antichain is empty (safe default)", () => {
+    const ms = detect(EMPTY_SET, {
+      claimedIncarnationCount: 0,
+      claimedMinimalPremiseLociCountPerCone: [],
+    });
+    expect(ms.map((m) => m.kind)).not.toContain("incarnation-undercount");
+    expect(ms.map((m) => m.kind)).not.toContain("miscount-across-cones");
+  });
+
+  it("T15: does NOT fire when per-cone claim array is absent", () => {
+    const ms = detect(MULTI_CONE_SET, { claimedIncarnationCount: 2 });
+    expect(ms.map((m) => m.kind)).not.toContain("incarnation-undercount");
+  });
+
+  it("T16: fires miscount-across-cones when |Inc(B)|≥2 and claimedIncarnationCount < |Inc(B)|", () => {
+    const ms = detect(MULTI_CONE_SET, {
+      claimedIncarnationCount: 1,
+      claimedMinimalPremiseLociCountPerCone: [3],
+    });
     const kinds = ms.map((m) => m.kind);
-    expect(kinds).toContain("incarnation-undercount");
+    expect(kinds).toContain("miscount-across-cones");
+    const m = ms.find((x) => x.kind === "miscount-across-cones");
+    expect(m?.detail).toContain("claimed 1");
+    expect(m?.detail).toContain("Inc(B) has 2");
   });
 
-  it("T13: does NOT fire when claimed === bottom.loci.length", () => {
-    const ms = detect(SINGLE_INCARNATION_SET, 3);
-    expect(ms.map((m) => m.kind)).not.toContain("incarnation-undercount");
-  });
-
-  it("T14: does NOT fire when bottom is null (safe default)", () => {
-    const ms = detect(NULL_BOTTOM_SET, 0);
-    expect(ms.map((m) => m.kind)).not.toContain("incarnation-undercount");
-  });
-
-  it("T15: does NOT fire when claimedMinimalPremiseLociCount is absent", () => {
-    const ms = detect(SINGLE_INCARNATION_SET);
-    expect(ms.map((m) => m.kind)).not.toContain("incarnation-undercount");
-  });
-
-  it("T16: detail string includes claimed and bottom counts when it fires", () => {
-    const ms = detect(SINGLE_INCARNATION_SET, 1);
-    const undercount = ms.find((m) => m.kind === "incarnation-undercount");
-    expect(undercount?.detail).toContain("1");
-    expect(undercount?.detail).toContain("3");
+  it("T16b: does NOT fire miscount-across-cones for single-cone antichain regardless of claimedIncarnationCount", () => {
+    const ms = detect(SINGLE_CONE_SET, {
+      claimedIncarnationCount: 0,
+      claimedMinimalPremiseLociCountPerCone: [3],
+    });
+    expect(ms.map((m) => m.kind)).not.toContain("miscount-across-cones");
   });
 });
 
-// ─── §2.5 MockBriefingClient: claimedMinimalPremiseLociCount ─────────────────
+// ─── §2.5 MockBriefingClient: per-cone emission ──────────────────────────────
 
-describe("MockBriefingClient: claimedMinimalPremiseLociCount", () => {
+describe("MockBriefingClient: per-cone claims", () => {
   const client = new MockBriefingClient();
 
-  it("T17: emits claimedMinimalPremiseLociCount equal to bottom.loci.length when bottom is non-null", async () => {
-    const fx = makeMinimalFixture(SINGLE_INCARNATION_SET);
+  it("T17: emits claimedIncarnationCount and per-cone array of correct length & values", async () => {
+    const fx = makeMinimalFixture(MULTI_CONE_SET);
     const claim = await client.produceBriefingClaim(fx);
-    expect(claim.claimedMinimalPremiseLociCount).toBe(3);
+    expect(claim.claimedIncarnationCount).toBe(2);
+    expect(claim.claimedMinimalPremiseLociCountPerCone).toEqual([3, 2]);
   });
 
-  it("T18: omits claimedMinimalPremiseLociCount when bottom is null", async () => {
-    const fx = makeMinimalFixture(NULL_BOTTOM_SET);
+  it("T18: omits both fields when antichain is empty", async () => {
+    const fx = makeMinimalFixture(EMPTY_SET);
     const claim = await client.produceBriefingClaim(fx);
-    expect(claim.claimedMinimalPremiseLociCount).toBeUndefined();
+    expect(claim.claimedIncarnationCount).toBeUndefined();
+    expect(claim.claimedMinimalPremiseLociCountPerCone).toBeUndefined();
   });
 });
 
-// ─── §2.6 Per-fixture happy-path: all 5 v2 fixtures ─────────────────────────
+// ─── §2.6 Per-fixture cardinalities + happy path ─────────────────────────────
 
-describe("Per-fixture happy path: articulationRecall.recall === 1", () => {
-  let corpus: Awaited<ReturnType<typeof loadCorpus>>;
+describe("Per-fixture happy path: articulationRecall.meanRecall === 1", () => {
+  let corpus: ReturnType<typeof loadCorpus>;
   const client = new MockBriefingClient();
 
-  beforeAll(async () => {
-    corpus = await loadCorpus(V2_CORPUS_PATH);
+  beforeAll(() => {
+    corpus = loadCorpus(V2_CORPUS_PATH);
   });
 
   const fixtureIds = [
@@ -287,37 +315,38 @@ describe("Per-fixture happy path: articulationRecall.recall === 1", () => {
   ] as const;
 
   for (const id of fixtureIds) {
-    it(`T-fixture-${id}: articulationRecall.recall === 1 (mock perfect recall)`, async () => {
+    it(`T-fixture-${id}: articulationRecall.meanRecall === 1 (mock perfect recall)`, async () => {
       const fixture = corpus.fixtures.find((f) => f.id === id);
       expect(fixture).toBeDefined();
       const manifest = generateManifest(fixture!);
       const claim = await client.produceBriefingClaim(fixture!);
       const report = scorePhase1(fixture!, manifest, claim);
 
-      expect(report.articulationRecall.recall).toBe(1);
-      expect(report.confidentMisstatements.map((m) => m.kind)).not.toContain(
-        "incarnation-undercount",
-      );
+      expect(report.articulationRecall.meanRecall).toBe(1);
+      expect(report.articulationRecall.miscountAcrossCones).toBe(false);
+      const kinds = report.confidentMisstatements.map((m) => m.kind);
+      expect(kinds).not.toContain("incarnation-undercount");
+      expect(kinds).not.toContain("miscount-across-cones");
     });
   }
 
-  // §2.7 specific structural assertions
-  it("T19: small-coequal-hubs-db has incarnationSet.minimals.length === 2", async () => {
+  it("T19: small-coequal-hubs-db has incarnationSet.incarnations.length === 2", () => {
     const fixture = corpus.fixtures.find((f) => f.id === "small-coequal-hubs-db");
     const manifest = generateManifest(fixture!);
-    expect(manifest.incarnationSet.minimals).toHaveLength(2);
+    expect(manifest.incarnationSet.incarnations).toHaveLength(2);
   });
 
-  it("T20: large-real-db has incarnationSet.totalIncarnations === 8", async () => {
+  it("T20: large-real-db has incarnationSet.totalIncarnations === 8", () => {
     const fixture = corpus.fixtures.find((f) => f.id === "large-real-db");
     const manifest = generateManifest(fixture!);
     expect(manifest.incarnationSet.totalIncarnations).toBe(8);
+    expect(manifest.incarnationSet.incarnations).toHaveLength(8);
   });
 
-  it("T21: large-real-db has incarnationSet.bottom.loci.length === 12", async () => {
+  it("T21: large-real-db has incarnations[0].loci.length === 12", () => {
     const fixture = corpus.fixtures.find((f) => f.id === "large-real-db");
     const manifest = generateManifest(fixture!);
-    expect(manifest.incarnationSet.bottom?.loci).toHaveLength(12);
+    expect(manifest.incarnationSet.incarnations[0].loci).toHaveLength(12);
   });
 
   it("T22: mock scorecard pass=true for all v2 fixtures (no regressions from Phase 2b)", async () => {

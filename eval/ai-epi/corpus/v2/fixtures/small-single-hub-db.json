@@ -7,21 +7,18 @@
     "coverageRatio": 0.5,
     "fossilCount": 0,
     "incarnationSet": {
-      "bottom": {
-        "designId": "fixture-small-single-hub-bottom",
-        "loci": ["\u22a2A.0","\u22a2A.1"],
-        "moveCount": 2,
-        "rank": 0
-      },
-      "minimals": [
+      "incarnations": [
         {
           "designId": "fixture-small-single-hub-bottom",
-          "loci": ["\u22a2A.0","\u22a2A.1"],
+          "loci": [
+            "⊢A.0",
+            "⊢A.1"
+          ],
           "moveCount": 2,
           "rank": 0
         }
       ],
-      "totalIncarnations": 3
+      "totalIncarnations": 1
     }
   },
   "readout": {

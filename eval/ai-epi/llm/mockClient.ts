@@ -84,13 +84,13 @@ export class MockBriefingClient implements BriefingClient {
       ? true
       : undefined;
 
-    // Phase 2b: Articulation recall. When the manifest has a non-null
-    // bottom incarnation, emit perfect recall (the mock claims exactly the
-    // right loci count). For a fixture whose bottom is null, omit the field.
-    const claimedMinimalPremiseLociCount =
-      m.incarnationSet.bottom !== null
-        ? m.incarnationSet.bottom.loci.length
-        : undefined;
+    // Phase 2b (post-OQ-JSL): Articulation recall. `Inc(B)` is an
+    // antichain; emit a per-cone vector of perfect-recall loci counts.
+    // For a fixture whose antichain is empty, omit both fields.
+    const incs = m.incarnationSet.incarnations;
+    const claimedIncarnationCount = incs.length > 0 ? incs.length : undefined;
+    const claimedMinimalPremiseLociCountPerCone =
+      incs.length > 0 ? incs.map((i) => i.loci.length) : undefined;
 
     // OQ4 / Phase 2f: Chain-dependency perfect recall. The mock claims
     // exactly the ground-truth edge set so the CI gate exercises the happy
@@ -110,8 +110,11 @@ export class MockBriefingClient implements BriefingClient {
       ...(surfacedHierarchicalDisclosure
         ? { surfacedHierarchicalDisclosure }
         : {}),
-      ...(claimedMinimalPremiseLociCount !== undefined
-        ? { claimedMinimalPremiseLociCount }
+      ...(claimedIncarnationCount !== undefined
+        ? { claimedIncarnationCount }
+        : {}),
+      ...(claimedMinimalPremiseLociCountPerCone !== undefined
+        ? { claimedMinimalPremiseLociCountPerCone }
         : {}),
       ...(claimedDependencyEdges ? { claimedDependencyEdges } : {}),
     };

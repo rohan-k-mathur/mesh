@@ -284,6 +284,7 @@ For each item: **Substrate artefact → spec contract → rating → note**.
 - **Substrate:** Tier-2 N-C24 = R1–R5 material-change rules.
 - **Spec §1.3 test 11:** stability test only.
 - **Rating: UNDER-COMMITTED.** None of R1–R5 invalidation rules exercised against real data through all of Session 2.
+- **Status (2026-05-21): RESOLVED.** New end-to-end coverage file [__tests__/invariants/phase1f-r1r5-coverage.test.ts](../../../../__tests__/invariants/phase1f-r1r5-coverage.test.ts) — 7 tests (one per R1/R2/R3/R4/R5 + no-change control + R1>R5 priority). Each rule test mocks `computeSyntheticReadout`/`derivePrioritizedOpenCqs`/`getDeliberationSchema` twice, calls `computeBriefingFingerprint` twice, asserts `lastMaterialChangeRule === "Rx"`, asserts `diffComponents(first.components, second.components)` returns exactly the expected single component (disjointness pin from B5), then on a third mock asserts `checkBriefingFingerprint(…, first.contentHash)` returns `{ stale: "Rx" }`. Module-level cache isolated per test via `delib-r1r5-Rx-N` deliberation IDs. 18 suites / 343 tests green. See §9 of [LUDICS_SESSIONS_1_2_SPEC_REVIEW.md](LUDICS_SESSIONS_1_2_SPEC_REVIEW.md).
 
 #### A8.5 Stratum-label correctness after writes
 - **Substrate (echoes A3.2):** stratum is derived from current 𝒟_P and σ(𝒟_P)^⊥; shifts with writes.
@@ -490,6 +491,8 @@ Six highest-impact commitments. Scoring axes 1–5 each: **C**orrectness, **P**e
 
 **Recommendation:** Alt-2. Session 1 just shipped; consumer surface small; lifetime cost of collision >> one-time rename.
 
+**Status (2026-05-21): SHIPPED.** Discovery on entry: most of B4 had already landed silently. Prisma schema at [lib/models/schema.prisma](../../../../lib/models/schema.prisma) line 10258 already declares `moveType String   // "positive" | "negative" | "daimon"`; [server/ludics/bindParticipantToDesign.ts](../../../../server/ludics/bindParticipantToDesign.ts) already returns `invariantChecks: {S1_existingLocus, S2_existingStructure, S3_canonPipelineGated, S4_schemeTyped}`; MCP response shape already uses S1–S4. This round patched the four stale-label doc-comment sites: `bindParticipantToDesign.ts` doc comment (`"inference move" → "daimon move"`); [app/api/v3/ludics/bind-witness/route.ts](../../../../app/api/v3/ludics/bind-witness/route.ts) header (I1–I4 → S1–S4 + daimon wording); [__tests__/invariants/phase1b-bind-seam.test.ts](../../../../__tests__/invariants/phase1b-bind-seam.test.ts) header + 4 section comments + 1 `it(…)` title; [packages/isonomia-mcp/src/server.ts](../../../../packages/isonomia-mcp/src/server.ts) ~L1751 tool description (I1/I2/I3 → S1/S2/S3 in contract + error-code mapping). No behavioural change; `packages/isonomia-mcp/dist/server.js` not hand-edited (regenerates from src). AIF-domain `targetScope: "inference"` in `experiments/polarization-1*` is intentionally untouched (different concept: AIF premise/inference/conclusion attack scope, not Ludics polarity). 18 suites / 343 tests still green. See §9 of [LUDICS_SESSIONS_1_2_SPEC_REVIEW.md](LUDICS_SESSIONS_1_2_SPEC_REVIEW.md).
+
 ### B5 — Briefing fingerprint hash (Tier-2 N-C24)
 
 **Spec decision (S1 §5.3):** Single SHA256 over 15-field deterministic JSON.
@@ -587,6 +590,8 @@ Six highest-impact commitments. Same scoring rubric.
 | 3 | Pre-proof exploratory pass; then formalize strongest open conjecture | 5 | 3 | 4 | 4 | 3 | **19** |
 
 **Recommendation:** Alt-2 as a **permanent template** for formal-proof spec sections. Third bucket (structural refinement) is the historically common outcome.
+
+**Status (2026-05-21): SHIPPED (template archived in place).** [LUDICS_SESSION_2_DEV_SPEC.md](LUDICS_SESSION_2_DEV_SPEC.md) §5 has been rewritten as a 3-paragraph pointer block (`## §5. Phase 2e — Formal Proof Pass (OQ-JSL) *[ARCHIVED post-review]*`) summarising **Outcome B — mis-attribution with structural refinement** (Inc(B) is an antichain; ∨_⊥⊥ is per-cone; (B, ≤_⊆) decomposes into disjoint cones), with links to authoritative records [LUDICS_OQ_JSL_PROOF.md](LUDICS_OQ_JSL_PROOF.md) + [LUDICS_ORDER_RELATION_DEFINITION.md](LUDICS_ORDER_RELATION_DEFINITION.md). Verbatim provenance archive at [LUDICS_SESSION_2_DEV_SPEC.archived.md](LUDICS_SESSION_2_DEV_SPEC.archived.md) (`## Archived §5 — Phase 2e — Formal Proof Pass (OQ-JSL)`). Downstream-sections-rewritten list (§2, §3, §6.3, S1 §1 Cluster B) and lessons-captured paragraph included in the replacement. The three-bucket template recommendation itself (Alt-2) has not yet been written up as a reusable spec template doc — logged for a future round.
 
 ### B11 — Rate-limit key (A13.1)
 

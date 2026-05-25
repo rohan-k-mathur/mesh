@@ -1,27 +1,26 @@
 {
   "id": "small-refusal-rich-db",
   "description": "DB-snapshot fixture: small (3 args) deliberation where the only path to the main conclusion is blocked by an unanswered undercut and an unanswered undermine. Tests refusalSurface population.",
-  "adversarialGates": ["refusal-not-overridden"],
+  "adversarialGates": [
+    "refusal-not-overridden"
+  ],
   "manifestFields": {
     "openExposurePoints": 3,
     "coverageRatio": 0.0,
     "fossilCount": 2,
     "incarnationSet": {
-      "bottom": {
-        "designId": "fixture-small-refusal-rich-bottom",
-        "loci": ["\u22a2A.0","\u22a2A.1"],
-        "moveCount": 2,
-        "rank": 0
-      },
-      "minimals": [
+      "incarnations": [
         {
           "designId": "fixture-small-refusal-rich-bottom",
-          "loci": ["\u22a2A.0","\u22a2A.1"],
+          "loci": [
+            "⊢A.0",
+            "⊢A.1"
+          ],
           "moveCount": 2,
           "rank": 0
         }
       ],
-      "totalIncarnations": 2
+      "totalIncarnations": 1
     }
   },
   "readout": {

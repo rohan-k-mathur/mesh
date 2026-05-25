@@ -2,11 +2,11 @@
  * Phase 1b Invariant Tests — bind_participant_to_design write seam
  *
  * Verifies that bindParticipantToDesign correctly:
- *   I1 — rejects missing ludicMoveId with DELOCATION_REQUIRED (409)
- *   I2 — rejects ludicMove with missing deliberationId with DELOCATION_REQUIRED (409)
- *   I3 — rejects malformed canonicalText with CANON_GATE_FAILED (422)
- *   I4 — rejects unknown schemeKey with SCHEME_REQUIRED (422)
- *   I4 — rejects inference move with missing schemeKey with SCHEME_REQUIRED (422)
+ *   S1 — rejects missing ludicMoveId with DELOCATION_REQUIRED (409)
+ *   S2 — rejects ludicMove with missing deliberationId with DELOCATION_REQUIRED (409)
+ *   S3 — rejects malformed canonicalText with CANON_GATE_FAILED (422)
+ *   S4 — rejects unknown schemeKey with SCHEME_REQUIRED (422)
+ *   S4 — rejects daimon move with missing schemeKey with SCHEME_REQUIRED (422)
  *
  * Happy path: all invariants pass → WitnessRecord written, BindResult returned.
  */
@@ -17,6 +17,7 @@ import {
   type BindResult,
 } from "@/server/ludics/bindParticipantToDesign";
 import { canonicalizeClaimText } from "@/lib/ids/mintMoid";
+import { __resetMemoryRateLimits } from "@/lib/rateLimit";
 
 // ─── Mock setup ──────────────────────────────────────────────────────────────
 
@@ -48,6 +49,10 @@ beforeEach(() => {
   prismaMock.witnessRecord.create.mockReset();
   prismaMock.$transaction.mockReset();
 
+  // WS-2: reset compound rate-limit in-memory buckets between tests so the
+  // per-participant 10/min limit does not bleed across cases.
+  __resetMemoryRateLimits();
+
   // Default $transaction: execute the callback and return its result
   prismaMock.$transaction.mockImplementation(async (cb: (tx: any) => any) => {
     const txWitnessRecord = { create: prismaMock.witnessRecord.create };
@@ -73,7 +78,7 @@ const BASE_INPUT = {
   canonicalText: VALID_CANONICAL,
 };
 
-// ─── I1: DELOCATION_REQUIRED — ludicMoveId not found ─────────────────────────
+// ─── S1: DELOCATION_REQUIRED — ludicMoveId not found ───────────────────────────
 
 describe("S1 — existingLocus", () => {
   it("throws DELOCATION_REQUIRED (409) when LudicMove does not exist", async () => {
@@ -98,7 +103,7 @@ describe("S1 — existingLocus", () => {
   });
 });
 
-// ─── I2: DELOCATION_REQUIRED — deliberationId missing ────────────────────────
+// ─── S2: DELOCATION_REQUIRED — deliberationId missing ────────────────────────
 
 describe("S2 — existingStructure", () => {
   it("throws DELOCATION_REQUIRED (409) when LudicMove has no deliberationId", async () => {
@@ -114,7 +119,7 @@ describe("S2 — existingStructure", () => {
   });
 });
 
-// ─── I3: CANON_GATE_FAILED ────────────────────────────────────────────────────
+// ─── S3: CANON_GATE_FAILED ────────────────────────────────────────────────────
 
 describe("S3 — canonPipelineGated", () => {
   beforeEach(() => {
@@ -148,7 +153,7 @@ describe("S3 — canonPipelineGated", () => {
   });
 
   it("accepts well-formed canonicalText that passes the pipeline", async () => {
-    prismaMock.argumentScheme.findUnique.mockResolvedValue(null); // not queried for non-inference
+    prismaMock.argumentScheme.findUnique.mockResolvedValue(null); // not queried for non-daimon
     prismaMock.witnessRecord.create.mockResolvedValue({
       id: "wit_001",
       ludicMoveId: "lm_001",
@@ -166,7 +171,7 @@ describe("S3 — canonPipelineGated", () => {
   });
 });
 
-// ─── I4: SCHEME_REQUIRED ─────────────────────────────────────────────────────
+// ─── S4: SCHEME_REQUIRED ─────────────────────────────────────────────────────
 
 describe("S4 — schemeTyped", () => {
   beforeEach(() => {
@@ -214,7 +219,7 @@ describe("S4 — schemeTyped", () => {
     expect(result.invariantChecks.S4_schemeTyped).toBe(true);
   });
 
-  it("skips the I4 catalog lookup for dialogue-only moves (schemeKey optional)", async () => {
+  it("skips the S4 catalog lookup for dialogue-only moves (schemeKey optional)", async () => {
     prismaMock.ludicMove.findUnique.mockResolvedValue({
       ...VALID_LOCUS_MOVE,
       moveType: "dialogue-only",

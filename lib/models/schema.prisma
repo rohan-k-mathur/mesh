@@ -1486,8 +1486,8 @@ model Source {
   // Auto-Citation Engine (docs/AUTO_CITATION_ENGINE_ROADMAP.md, Phase 2)
   // ─────────────────────────────────────────────────────────
   lastResolveAttemptAt DateTime? // last time the URL→Source resolver tried this source
-  resolveError         String?   // last resolver error (null on success)
-  resolverVersion      String?   // semver of the resolver that produced this row; null = legacy/manual
+  resolveError         String? // last resolver error (null on success)
+  resolverVersion      String? // semver of the resolver that produced this row; null = legacy/manual
 
   // Relations
   citations       Citation[]
@@ -3931,8 +3931,8 @@ model ClaimLabel {
 model BeliefRevisionProposal {
   id             String   @id @default(cuid())
   deliberationId String
-  claimId        String   // the claim that flipped to OUT
-  argumentId     String   // an argument concluding `claimId` whose support is rejected
+  claimId        String // the claim that flipped to OUT
+  argumentId     String // an argument concluding `claimId` whose support is rejected
   /// `[{ assumptionIds: string[], badConclusionsExplained: number, retractionCost: number }]`
   candidatesJson Json
   /// 'OPEN' | 'APPLIED' | 'DISMISSED'
@@ -6824,18 +6824,18 @@ model RoomFunctor {
 /// `app/api/deliberations/[id]/evidential/route.ts` to produce the
 /// `{ local, imported, total }` band per claim. One-hop only (ECC plan §4 row 2).
 model RoomTransportSnapshot {
-  id             String   @id @default(cuid())
+  id           String   @id @default(cuid())
   /// Destination deliberation (where the imported support lands).
-  toRoomId       String
+  toRoomId     String
   /// Source deliberation (the one being transported from).
-  fromRoomId     String
+  fromRoomId   String
   /// SHA-1 of the `RoomFunctor.claimMapJson` plus the source-side
   /// `(claimId, argumentId, base)` triples used to compute this snapshot.
   /// A re-run of the worker that produces the same hash is a no-op.
-  claimMapHash   String
+  claimMapHash String
   /// `{ [toClaimId]: { score: number; sources: Array<{ fromClaimId, fromDelibId, score }> } }`
-  payloadJson    Json
-  computedAt     DateTime @default(now())
+  payloadJson  Json
+  computedAt   DateTime @default(now())
 
   @@unique([toRoomId, fromRoomId], name: "transport_snapshot_pair")
   @@index([toRoomId])
@@ -10254,9 +10254,9 @@ model AuthorSigningKey {
 model LudicMove {
   id             String   @id @default(cuid())
   deliberationId String
-  locus          String   // e.g. "⊢A.1.2" — stable address within D_P
-  moveType       String   // "positive" | "negative" | "daimon"
-  stratumLabel   String   // "walked" | "witnessable" | "latent"
+  locus          String // e.g. "⊢A.1.2" — stable address within D_P
+  moveType       String // "positive" | "negative" | "daimon"
+  stratumLabel   String // "walked" | "witnessable" | "latent"
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -10268,7 +10268,7 @@ model LudicMove {
   /// Optional back-reference to the Argument this move represents.
   /// Populated by bind_participant_to_design when an argumentId is supplied.
   /// Used by fossilizeByArgument to retract all witnesses for a deleted argument.
-  argumentId   String?
+  argumentId String?
 
   @@unique([deliberationId, locus])
   @@index([deliberationId, stratumLabel])
@@ -10282,13 +10282,13 @@ model WitnessRecord {
   id             String    @id @default(cuid())
   ludicMoveId    String
   dialogueMoveId String    @unique // I1: one canonical act per dialogue move
-  participantId  String            // T4: stored but never returned by default
-  canonicalText  String            // I3: passed canonicalization pipeline
-  schemeKey      String?           // I4: scheme-typed (null for dialogue-only moves)
+  participantId  String // T4: stored but never returned by default
+  canonicalText  String // I3: passed canonicalization pipeline
+  schemeKey      String? // I4: scheme-typed (null for dialogue-only moves)
   timestamp      DateTime  @default(now())
-  fossilizedAt   DateTime?         // null = active; non-null = fossilized
-  retractLayer   String?  // structural category: "argument_superseded"|"locus_deleted"|"design_excised"|"manual_retract"
-  retractReason  String?  // free-text reason from the caller (optional, may accompany any retractLayer)
+  fossilizedAt   DateTime? // null = active; non-null = fossilized
+  retractLayer   String? // structural category: "argument_superseded"|"locus_deleted"|"design_excised"|"manual_retract"
+  retractReason  String? // free-text reason from the caller (optional, may accompany any retractLayer)
 
   ludicMove LudicMove @relation(fields: [ludicMoveId], references: [id])
 
@@ -10303,14 +10303,14 @@ model WitnessRecord {
 model Design {
   id              String   @id @default(cuid())
   behaviourId     String
-  deliberationId  String   // denormalized for query convenience; not a Prisma relation
+  deliberationId  String // denormalized for query convenience; not a Prisma relation
   loci            String[] // locus addresses this design spans
   premiseClaimIds String[] // claim ids of premises (for find_substitute_premises)
-  biorthoClass    String   // derived: SHA256 of perp-perp equivalence class membership
-  derivedBy       String?  // null | "join" | "meet" | "compression"
+  biorthoClass    String // derived: SHA256 of perp-perp equivalence class membership
+  derivedBy       String? // null | "join" | "meet" | "compression"
   createdAt       DateTime @default(now())
 
-  behaviour           Behaviour        @relation(fields: [behaviourId], references: [id])
+  behaviour           Behaviour         @relation(fields: [behaviourId], references: [id])
   ludicMoves          LudicMove[]
   inclusionsAsSmaller DesignInclusion[] @relation("InclusionSmaller")
   inclusionsAsLarger  DesignInclusion[] @relation("InclusionLarger")
@@ -10324,13 +10324,13 @@ model Design {
 /// incarnations Inc(B). One Behaviour per distinct position in a deliberation.
 model Behaviour {
   id             String   @id @default(cuid())
-  deliberationId String   // plain string; not a Prisma relation (no back-ref needed)
+  deliberationId String // plain string; not a Prisma relation (no back-ref needed)
   rootLocus      String
   designs        Design[]
   createdAt      DateTime @default(now())
 
-  @@index([deliberationId])
   @@unique([deliberationId, rootLocus])
+  @@index([deliberationId])
 }
 
 /// Edge in the inclusion-order Hasse diagram for Art(B).
@@ -10347,4 +10347,60 @@ model DesignInclusion {
   @@unique([smallerId, largerId])
   @@index([smallerId])
   @@index([largerId])
+}
+
+/// LUDICS v2 / WS-1 (B12): durable, append-only history of briefing
+/// fingerprints per deliberation. Replaces the module-level Map L2 cache in
+/// `server/ludics/briefingFingerprint.ts` so the cache survives restarts and
+/// stays coherent across horizontally-scaled instances (Redis is L1).
+///
+/// Write semantics: append on every fingerprint recompute that produced a
+/// material change (rule R1–R5 fired). Read: ORDER BY computedAt DESC LIMIT N
+/// to surface `lastMaterialChangeAt` / `lastMaterialChangeRule`.
+///
+/// `supersededAt` is informational (set when a later row replaces this one
+/// in the active staleness check); rows are never deleted — they are the
+/// audit log for OQ-6b durability.
+model BriefingFingerprintHistory {
+  id                    String    @id @default(cuid())
+  deliberationId        String
+  fingerprint           String // SHA256 hash string ("sha256:<hex>")
+  /// R1–R5 rule that produced this fingerprint, or null for the seed entry.
+  materialChangeRule    String?
+  /// Optional structured summary of what changed (component-hash diff, etc.).
+  materialChangeSummary Json?
+  computedAt            DateTime  @default(now())
+  supersededAt          DateTime?
+
+  @@index([deliberationId, computedAt(sort: Desc)])
+  @@index([deliberationId, supersededAt])
+}
+
+/// LUDICS substrate announcement bus row. Source of truth for A1–A4
+/// substrate events; BullMQ is only the wake-up signal (see
+/// LUDICS_ANNOUNCEMENT_BUS_PROTOCOL.md §5–§6).
+///
+/// `occurredAt` is the producer-side canonical action timestamp
+/// (e.g. WitnessRecord.timestamp or fossilizedAt), NOT the publish-site
+/// clock. Idempotency triple `(eventType, subjectId, occurredAt)` is the
+/// unique key — a retried publish is a no-op insert (Prisma P2002 swallowed).
+///
+/// `deliveredAt` is set by the announcement dispatcher on first
+/// successful subscriber pass; null = pending / undelivered.
+model SubstrateAnnouncement {
+  id                 String    @id @default(cuid())
+  eventType          String // witness_committed | design_revealed | witness_contested | witness_rescinded
+  version            Int       @default(1)
+  scopeId            String // = deliberationId per WS-0
+  actorParticipantId String?
+  subjectId          String // witnessId | designId
+  occurredAt         DateTime // canonical action timestamp from producer
+  insertedAt         DateTime  @default(now())
+  payload            Json      @default("{}")
+  deliveredAt        DateTime?
+
+  @@unique([eventType, subjectId, occurredAt], name: "substrate_announcement_idem")
+  @@index([scopeId, occurredAt(sort: Desc)])
+  @@index([eventType, occurredAt(sort: Desc)])
+  @@index([deliveredAt])
 }

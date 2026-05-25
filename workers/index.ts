@@ -8,6 +8,10 @@ import "@/workers/decayConfidenceJob";
 import "@/workers/computeSharedAuthorEdges";
 import "@/workers/transport-aggregator";
 
+// LUDICS Announcement Bus dispatcher — WS-5b (audit-log subscriber).
+// Protocol: LUDICS_ANNOUNCEMENT_BUS_PROTOCOL.md §7.0.
+import "@/workers/ludics/announcementDispatcher";
+
 // ─────────────────────────────────────────────────────────
 // Phase 3.1: Source Trust Infrastructure workers
 // DISABLED during pre-launch development

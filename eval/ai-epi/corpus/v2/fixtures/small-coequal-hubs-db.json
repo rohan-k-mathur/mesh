@@ -1,33 +1,37 @@
 {
   "id": "small-coequal-hubs-db",
   "description": "DB-snapshot fixture: small (9 args) deliberation with three co-equal hub arguments converging on the main claim. Tests co-equal-cluster shape + medium hub ambiguity.",
-  "adversarialGates": ["co-equal-hubs-not-collapsed"],
+  "adversarialGates": [
+    "co-equal-hubs-not-collapsed"
+  ],
   "manifestFields": {
     "openExposurePoints": 5,
     "coverageRatio": 0.44,
     "fossilCount": 1,
     "incarnationSet": {
-      "bottom": {
-        "designId": "fixture-small-coequal-hubs-bottom-a",
-        "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2"],
-        "moveCount": 3,
-        "rank": 0
-      },
-      "minimals": [
+      "incarnations": [
         {
           "designId": "fixture-small-coequal-hubs-bottom-a",
-          "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2"],
+          "loci": [
+            "⊢A.0",
+            "⊢A.1",
+            "⊢A.2"
+          ],
           "moveCount": 3,
           "rank": 0
         },
         {
           "designId": "fixture-small-coequal-hubs-bottom-b",
-          "loci": ["\u22a2A.3","\u22a2A.4","\u22a2A.5"],
+          "loci": [
+            "⊢A.3",
+            "⊢A.4",
+            "⊢A.5"
+          ],
           "moveCount": 3,
           "rank": 0
         }
       ],
-      "totalIncarnations": 4
+      "totalIncarnations": 2
     }
   },
   "readout": {

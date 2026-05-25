@@ -40,7 +40,7 @@
     {
       "id": "synthesis-delocation-db",
       "path": "fixtures/synthesis-delocation-db.json",
-      "description": "Phase 2c fixture: small (5 args) deliberation with two designs with non-overlapping loci. Their articulation join triggers the delocation path (newLoci.length > 0, wasNontrivial=true).",
+      "description": "Phase 2c fixture: small (5 args) deliberation with two designs whose loci differ; their literal-union articulation join surfaces newLoci within a single cone (Phase 2f Reading A, same-cone-join with newLoci.length > 0).",
       "contentHash": "sha256:synthesis-delocation-db-content-hash-placeholder-0000000000000000"
     }
   ]

@@ -10,17 +10,115 @@
     "coverageRatio": 0.255,
     "fossilCount": 5,
     "incarnationSet": {
-      "bottom": {
-        "designId": "fixture-large-real-db-bottom",
-        "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3","\u22a2A.4","\u22a2A.5","\u22a2A.6","\u22a2A.7","\u22a2A.8","\u22a2A.9","\u22a2A.10","\u22a2A.11"],
-        "moveCount": 12,
-        "rank": 0
-      },
-      "minimals": [
+      "incarnations": [
         {
-          "designId": "fixture-large-real-db-bottom",
-          "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3","\u22a2A.4","\u22a2A.5","\u22a2A.6","\u22a2A.7","\u22a2A.8","\u22a2A.9","\u22a2A.10","\u22a2A.11"],
+          "designId": "fixture-large-real-db-bottom-a",
+          "loci": [
+            "⊢A.0",
+            "⊢A.1",
+            "⊢A.2",
+            "⊢A.3",
+            "⊢A.4",
+            "⊢A.5",
+            "⊢A.6",
+            "⊢A.7",
+            "⊢A.8",
+            "⊢A.9",
+            "⊢A.10",
+            "⊢A.11"
+          ],
           "moveCount": 12,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-b",
+          "loci": [
+            "⊢A.12",
+            "⊢A.13",
+            "⊢A.14",
+            "⊢A.15",
+            "⊢A.16",
+            "⊢A.17",
+            "⊢A.18",
+            "⊢A.19",
+            "⊢A.20"
+          ],
+          "moveCount": 9,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-c",
+          "loci": [
+            "⊢A.21",
+            "⊢A.22",
+            "⊢A.23",
+            "⊢A.24",
+            "⊢A.25",
+            "⊢A.26",
+            "⊢A.27"
+          ],
+          "moveCount": 7,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-d",
+          "loci": [
+            "⊢A.28",
+            "⊢A.29",
+            "⊢A.30",
+            "⊢A.31",
+            "⊢A.32",
+            "⊢A.33"
+          ],
+          "moveCount": 6,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-e",
+          "loci": [
+            "⊢A.34",
+            "⊢A.35",
+            "⊢A.36",
+            "⊢A.37",
+            "⊢A.38",
+            "⊢A.39"
+          ],
+          "moveCount": 6,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-f",
+          "loci": [
+            "⊢A.40",
+            "⊢A.41",
+            "⊢A.42",
+            "⊢A.43",
+            "⊢A.44"
+          ],
+          "moveCount": 5,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-g",
+          "loci": [
+            "⊢A.45",
+            "⊢A.46",
+            "⊢A.47",
+            "⊢A.48",
+            "⊢A.49"
+          ],
+          "moveCount": 5,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-large-real-db-bottom-h",
+          "loci": [
+            "⊢A.50",
+            "⊢A.51",
+            "⊢A.52",
+            "⊢A.53"
+          ],
+          "moveCount": 4,
           "rank": 0
         }
       ],
@@ -847,7 +945,7 @@
           "targetArgumentId": "arg-0024",
           "schemeKey": "positive_consequences",
           "cqKey": "PC.NEG_SIDE",
-          "cqPrompt": "Are there overlooked negative side\u2011effects outweighing the good?",
+          "cqPrompt": "Are there overlooked negative side‑effects outweighing the good?",
           "severity": "scheme-required"
         },
         {
@@ -882,7 +980,7 @@
           "targetArgumentId": "arg-0025",
           "schemeKey": "negative_consequences",
           "cqKey": "mitigate",
-          "cqPrompt": "Can A\u2019s harms be mitigated?",
+          "cqPrompt": "Can A’s harms be mitigated?",
           "severity": "scheme-required"
         },
         {
@@ -1015,7 +1113,7 @@
           "targetArgumentId": "arg-0034",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1113,7 +1211,7 @@
           "targetArgumentId": "arg-0045",
           "schemeKey": "argument_from_lack_of_evidence",
           "cqKey": "absence_of_proof_vs_proof_of_absence?",
-          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding \u00acA, or only to justify withholding belief in A?",
+          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding ¬A, or only to justify withholding belief in A?",
           "severity": "scheme-required"
         },
         {
@@ -1162,7 +1260,7 @@
           "targetArgumentId": "arg-0050",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1204,7 +1302,7 @@
           "targetArgumentId": "arg-0051",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1246,7 +1344,7 @@
           "targetArgumentId": "arg-0054",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1288,7 +1386,7 @@
           "targetArgumentId": "arg-0056",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1330,7 +1428,7 @@
           "targetArgumentId": "arg-0057",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1372,7 +1470,7 @@
           "targetArgumentId": "arg-0058",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1470,7 +1568,7 @@
           "targetArgumentId": "arg-0070",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1540,7 +1638,7 @@
           "targetArgumentId": "arg-0075",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1596,7 +1694,7 @@
           "targetArgumentId": "arg-0078",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1638,7 +1736,7 @@
           "targetArgumentId": "arg-0079",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1673,7 +1771,7 @@
           "targetArgumentId": "arg-0080",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1715,7 +1813,7 @@
           "targetArgumentId": "arg-0082",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1757,7 +1855,7 @@
           "targetArgumentId": "arg-0084",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1799,7 +1897,7 @@
           "targetArgumentId": "arg-0085",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1841,7 +1939,7 @@
           "targetArgumentId": "arg-0086",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1883,7 +1981,7 @@
           "targetArgumentId": "arg-0088",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1925,7 +2023,7 @@
           "targetArgumentId": "arg-0089",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -1967,7 +2065,7 @@
           "targetArgumentId": "arg-0090",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2009,7 +2107,7 @@
           "targetArgumentId": "arg-0091",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2051,7 +2149,7 @@
           "targetArgumentId": "arg-0092",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2093,7 +2191,7 @@
           "targetArgumentId": "arg-0093",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2135,7 +2233,7 @@
           "targetArgumentId": "arg-0094",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2177,7 +2275,7 @@
           "targetArgumentId": "arg-0096",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2219,7 +2317,7 @@
           "targetArgumentId": "arg-0097",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2261,7 +2359,7 @@
           "targetArgumentId": "arg-0100",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2303,7 +2401,7 @@
           "targetArgumentId": "arg-0101",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2345,7 +2443,7 @@
           "targetArgumentId": "arg-0102",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2387,7 +2485,7 @@
           "targetArgumentId": "arg-0103",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2429,7 +2527,7 @@
           "targetArgumentId": "arg-0104",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2471,7 +2569,7 @@
           "targetArgumentId": "arg-0105",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2513,7 +2611,7 @@
           "targetArgumentId": "arg-0106",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2555,7 +2653,7 @@
           "targetArgumentId": "arg-0107",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2597,7 +2695,7 @@
           "targetArgumentId": "arg-0108",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2639,7 +2737,7 @@
           "targetArgumentId": "arg-0109",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2681,7 +2779,7 @@
           "targetArgumentId": "arg-0110",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2723,7 +2821,7 @@
           "targetArgumentId": "arg-0111",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2800,7 +2898,7 @@
           "targetArgumentId": "arg-0113",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2877,7 +2975,7 @@
           "targetArgumentId": "arg-0115",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -2954,7 +3052,7 @@
           "targetArgumentId": "arg-0117",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3136,7 +3234,7 @@
           "targetArgumentId": "arg-0122",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3248,7 +3346,7 @@
           "targetArgumentId": "arg-0125",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3346,7 +3444,7 @@
           "targetArgumentId": "arg-0128",
           "schemeKey": "argument_from_lack_of_evidence",
           "cqKey": "absence_of_proof_vs_proof_of_absence?",
-          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding \u00acA, or only to justify withholding belief in A?",
+          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding ¬A, or only to justify withholding belief in A?",
           "severity": "scheme-required"
         },
         {
@@ -3395,7 +3493,7 @@
           "targetArgumentId": "arg-0129",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3472,7 +3570,7 @@
           "targetArgumentId": "arg-0131",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3549,7 +3647,7 @@
           "targetArgumentId": "arg-0133",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3612,7 +3710,7 @@
           "targetArgumentId": "arg-0135",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3654,7 +3752,7 @@
           "targetArgumentId": "arg-0136",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -3682,7 +3780,7 @@
           "targetArgumentId": "arg-0137",
           "schemeKey": "argument_from_lack_of_evidence",
           "cqKey": "absence_of_proof_vs_proof_of_absence?",
-          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding \u00acA, or only to justify withholding belief in A?",
+          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding ¬A, or only to justify withholding belief in A?",
           "severity": "scheme-required"
         },
         {
@@ -3836,7 +3934,7 @@
           "targetArgumentId": "arg-0141",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4102,7 +4200,7 @@
           "targetArgumentId": "arg-0017",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4242,7 +4340,7 @@
           "targetArgumentId": "arg-0026",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4333,7 +4431,7 @@
           "targetArgumentId": "arg-0032",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4522,7 +4620,7 @@
           "targetArgumentId": "arg-0052",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4662,7 +4760,7 @@
           "targetArgumentId": "arg-0061",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4725,7 +4823,7 @@
           "targetArgumentId": "arg-0063",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4760,7 +4858,7 @@
           "targetArgumentId": "arg-0065",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4837,7 +4935,7 @@
           "targetArgumentId": "arg-0071",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4949,7 +5047,7 @@
           "targetArgumentId": "arg-0083",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -4977,7 +5075,7 @@
           "targetArgumentId": "arg-0087",
           "schemeKey": "argument_from_lack_of_evidence",
           "cqKey": "absence_of_proof_vs_proof_of_absence?",
-          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding \u00acA, or only to justify withholding belief in A?",
+          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding ¬A, or only to justify withholding belief in A?",
           "severity": "scheme-required"
         },
         {
@@ -5026,7 +5124,7 @@
           "targetArgumentId": "arg-0095",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -5103,7 +5201,7 @@
           "targetArgumentId": "arg-0099",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -5236,7 +5334,7 @@
           "targetArgumentId": "arg-0028",
           "schemeKey": "argument_from_lack_of_evidence",
           "cqKey": "absence_of_proof_vs_proof_of_absence?",
-          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding \u00acA, or only to justify withholding belief in A?",
+          "cqPrompt": "Is the absence of positive evidence strong enough to justify concluding ¬A, or only to justify withholding belief in A?",
           "severity": "scheme-required"
         },
         {
@@ -5460,7 +5558,7 @@
           "targetArgumentId": "arg-0069",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -5537,7 +5635,7 @@
           "targetArgumentId": "arg-0077",
           "schemeKey": "methodological_critique",
           "cqKey": "selective_critique?",
-          "cqPrompt": "Is this critique applied consistently \u2014 i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
+          "cqPrompt": "Is this critique applied consistently — i.e., would it apply to studies on the other side of the debate that share the same defect kind K?",
           "severity": "scheme-required"
         },
         {
@@ -11160,7 +11258,7 @@
       "loadBearingPremises": [
         {
           "claimId": "claim-0025",
-          "claimText": "Piccardi et al. (2025) conducted a preregistered 10-day field experiment with 1,256 X users during the 2024 US presidential campaign, using an LLM-based browser extension to rerank feeds by increasing\u2026",
+          "claimText": "Piccardi et al. (2025) conducted a preregistered 10-day field experiment with 1,256 X users during the 2024 US presidential campaign, using an LLM-based browser extension to rerank feeds by increasing…",
           "usingArgumentCount": 4,
           "cascadeScore": 5,
           "usingArgumentIds": [
@@ -11172,7 +11270,7 @@
         },
         {
           "claimId": "claim-0026",
-          "claimText": "Decreasing AAPA exposure shifted out-party partisan animosity by more than 2 points on a 100-point feeling thermometer, an effect comparable to approximately three years of observed US affective polar\u2026",
+          "claimText": "Decreasing AAPA exposure shifted out-party partisan animosity by more than 2 points on a 100-point feeling thermometer, an effect comparable to approximately three years of observed US affective polar…",
           "usingArgumentCount": 4,
           "cascadeScore": 5,
           "usingArgumentIds": [
@@ -11207,7 +11305,7 @@
         },
         {
           "claimId": "claim-0042",
-          "claimText": "As of 2024, approximately 70 percent of US adults use at least one in-scope platform for 30+ minutes per week, exposing a supermajority of the adult population to engagement-optimized algorithmic feed\u2026",
+          "claimText": "As of 2024, approximately 70 percent of US adults use at least one in-scope platform for 30+ minutes per week, exposing a supermajority of the adult population to engagement-optimized algorithmic feed…",
           "usingArgumentCount": 3,
           "cascadeScore": 4,
           "usingArgumentIds": [
@@ -11218,7 +11316,7 @@
         },
         {
           "claimId": "claim-0043",
-          "claimText": "The out-group animosity channel identified by Rathje et al. (2021) \u2014 posts about political opponents receiving double the engagement \u2014 operates on both Facebook and Twitter, the two largest political-\u2026",
+          "claimText": "The out-group animosity channel identified by Rathje et al. (2021) — posts about political opponents receiving double the engagement — operates on both Facebook and Twitter, the two largest political-…",
           "usingArgumentCount": 3,
           "cascadeScore": 4,
           "usingArgumentIds": [
@@ -11229,7 +11327,7 @@
         },
         {
           "claimId": "claim-0114",
-          "claimText": "Bakshy, Messing, and Adamic (2015) measured ideological exposure among 10.1 million US Facebook users and found that individual choice had a stronger role than algorithmic ranking in limiting cross-cu\u2026",
+          "claimText": "Bakshy, Messing, and Adamic (2015) measured ideological exposure among 10.1 million US Facebook users and found that individual choice had a stronger role than algorithmic ranking in limiting cross-cu…",
           "usingArgumentCount": 3,
           "cascadeScore": 4,
           "usingArgumentIds": [
@@ -11265,7 +11363,7 @@
         "hubAmbiguity": "high",
         "premiseConcentration": "high",
         "cautions": [
-          "124 arguments share the top load-bearingness tier (scores within 1 of the top score 2). Do not name a single \"hub\" \u2014 the briefing contains multiple co-equal candidates.",
+          "124 arguments share the top load-bearingness tier (scores within 1 of the top score 2). Do not name a single \"hub\" — the briefing contains multiple co-equal candidates.",
           "Hub structure is diffuse (>5 co-equal top-tier arguments). The graph has no single load-bearing argument; treat any \"central\" claim as a synthesis artifact.",
           "9 premises share elevated cascade exposure. Pulling on any single premise is misleading; the graph's robustness depends on the joint set."
         ]
@@ -11287,18 +11385,18 @@
             "arg-0075"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #1] Rathje, Van Bavel, and van der Linden (2021) found that posts about the political out-group received roughly twice the engagement of in\u2026"
+            "[UNDERMINE → premise #1] Rathje, Van Bavel, and van der Linden (2021) found that posts about the political out-group received roughly twice the engagement of in…"
           ]
         },
         {
-          "attemptedConclusion": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012\u20132024 window.",
+          "attemptedConclusion": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012–2024 window.",
           "conclusionClaimId": "claim-0002",
           "blockedBy": "unanswered-undercut",
           "blockerIds": [
             "arg-0091"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] The argument claims feeling-thermometer measures introduce noise that obscures small platform-attributable changes, but the same noise would inflate \u2026"
+            "[UNDERCUT] The argument claims feeling-thermometer measures introduce noise that obscures small platform-attributable changes, but the same noise would inflate …"
           ]
         },
         {
@@ -11309,7 +11407,7 @@
             "arg-0078"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Nyhan et al. (2023) reduced like-minded source exposure on Facebook, testing the echo-chamber mechanism, but did not test whether the algorithm ampli\u2026"
+            "[UNDERCUT] Nyhan et al. (2023) reduced like-minded source exposure on Facebook, testing the echo-chamber mechanism, but did not test whether the algorithm ampli…"
           ]
         },
         {
@@ -11321,12 +11419,12 @@
             "arg-0100"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #0] Allcott et al. (2020) report a 0.16 standard deviation reduction in an overall index of political polarization that combines both issue\u2026",
-            "[UNDERMINE \u2192 premise #1] Piccardi et al. 2025 recruited 1,256 volunteer participants who were required to have at least 5 percent political content in their X f\u2026"
+            "[UNDERMINE → premise #0] Allcott et al. (2020) report a 0.16 standard deviation reduction in an overall index of political polarization that combines both issue…",
+            "[UNDERMINE → premise #1] Piccardi et al. 2025 recruited 1,256 volunteer participants who were required to have at least 5 percent political content in their X f…"
           ]
         },
         {
-          "attemptedConclusion": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
+          "attemptedConclusion": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
           "conclusionClaimId": "claim-0006",
           "blockedBy": "unanswered-undercut",
           "blockerIds": [
@@ -11334,12 +11432,12 @@
             "arg-0084"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Germano et al. (2026) is a theoretical model whose empirical validation rests on survey-based difference-in-differences, not experimental manipulatio\u2026",
-            "[UNDERCUT] Piccardi et al. (2025) found that changes to the feed algorithm caused in-feed but not post-experiment changes to participants' negative emotions, in\u2026"
+            "[UNDERCUT] Germano et al. (2026) is a theoretical model whose empirical validation rests on survey-based difference-in-differences, not experimental manipulatio…",
+            "[UNDERCUT] Piccardi et al. (2025) found that changes to the feed algorithm caused in-feed but not post-experiment changes to participants' negative emotions, in…"
           ]
         },
         {
-          "attemptedConclusion": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
+          "attemptedConclusion": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
           "conclusionClaimId": "claim-0006",
           "blockedBy": "unanswered-undermine",
           "blockerIds": [
@@ -11347,8 +11445,8 @@
             "arg-0101"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #0] Gauthier et al. (2026) report that neither switching the algorithm on nor switching it off significantly affected affective polarizatio\u2026",
-            "[UNDERMINE \u2192 premise #0] Gauthier et al. 2026 found precisely estimated null effects of the algorithm on partisanship and affective polarization, whether the al\u2026"
+            "[UNDERMINE → premise #0] Gauthier et al. (2026) report that neither switching the algorithm on nor switching it off significantly affected affective polarizatio…",
+            "[UNDERMINE → premise #0] Gauthier et al. 2026 found precisely estimated null effects of the algorithm on partisanship and affective polarization, whether the al…"
           ]
         },
         {
@@ -11363,11 +11461,11 @@
             "arg-0097"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Piccardi et al. (2025) measured a 2-point feeling-thermometer shift over 10 days among 1,256 self-selected browser-extension users on X, a platform u\u2026",
-            "[UNDERCUT] Allcott et al. (2024) randomized 19,857 Facebook users and 15,585 Instagram users to deactivate for six weeks before the 2020 election and found effe\u2026",
-            "[UNDERCUT] Guess, Nyhan, and Reifler (2020) studied exposure to untrustworthy websites specifically, which is only one channel through which algorithmic curatio\u2026",
-            "[UNDERCUT] Boxell, Gentzkow, and Shapiro themselves acknowledge in their paper that spillover effects could explain the age pattern, writing that young adults p\u2026",
-            "[UNDERCUT] Boxell et al. (2017) explicitly acknowledge that spillovers across demographic groups could explain the pattern, noting young adults polarized throug\u2026"
+            "[UNDERCUT] Piccardi et al. (2025) measured a 2-point feeling-thermometer shift over 10 days among 1,256 self-selected browser-extension users on X, a platform u…",
+            "[UNDERCUT] Allcott et al. (2024) randomized 19,857 Facebook users and 15,585 Instagram users to deactivate for six weeks before the 2020 election and found effe…",
+            "[UNDERCUT] Guess, Nyhan, and Reifler (2020) studied exposure to untrustworthy websites specifically, which is only one channel through which algorithmic curatio…",
+            "[UNDERCUT] Boxell, Gentzkow, and Shapiro themselves acknowledge in their paper that spillover effects could explain the age pattern, writing that young adults p…",
+            "[UNDERCUT] Boxell et al. (2017) explicitly acknowledge that spillovers across demographic groups could explain the pattern, noting young adults polarized throug…"
           ]
         },
         {
@@ -11386,26 +11484,26 @@
             "arg-0088"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #1] The 2020-election Facebook deactivation experiment with 19,857 users found effects on affective polarization precisely estimated and cl\u2026",
-            "[UNDERMINE \u2192 premise #2] Iyengar, Sood, and Lelkes (2012) document a rising trend in affective polarization since the 1980s but their data end in 2012, precisel\u2026",
-            "[UNDERMINE \u2192 premise #0] Guess et al. (2020) studied exposure to untrustworthy websites, a construct distinct from algorithmically amplified out-group hostility\u2026",
-            "[UNDERMINE \u2192 premise #0] Gauthier et al. (2026) explicitly report that neither switching the algorithm on nor off significantly affected affective polarization \u2026",
-            "[UNDERMINE \u2192 premise #0] Gauthier et al. (2026) report that neither switching the algorithm on nor switching it off significantly affected affective polarizatio\u2026",
-            "[UNDERMINE \u2192 premise #0] Gauthier et al. 2026 report that neither switching the algorithm on nor switching it off significantly affected affective polarization \u2026",
-            "[UNDERMINE \u2192 premise #0] Piccardi et al. (2025) conducted a preregistered field experiment on X finding that algorithmic reranking of partisan animosity content\u2026",
-            "[UNDERMINE \u2192 premise #0] Piccardi et al. (2025) found that reranking AAPA content shifted out-party partisan animosity by more than 2 points on a 100-point feel\u2026",
-            "[UNDERMINE \u2192 premise #0] Boxell et al. (2017) analyzed polarization trends from 1996 to 2012, ending precisely when Facebook introduced algorithmic ranking and \u2026"
+            "[UNDERMINE → premise #1] The 2020-election Facebook deactivation experiment with 19,857 users found effects on affective polarization precisely estimated and cl…",
+            "[UNDERMINE → premise #2] Iyengar, Sood, and Lelkes (2012) document a rising trend in affective polarization since the 1980s but their data end in 2012, precisel…",
+            "[UNDERMINE → premise #0] Guess et al. (2020) studied exposure to untrustworthy websites, a construct distinct from algorithmically amplified out-group hostility…",
+            "[UNDERMINE → premise #0] Gauthier et al. (2026) explicitly report that neither switching the algorithm on nor off significantly affected affective polarization …",
+            "[UNDERMINE → premise #0] Gauthier et al. (2026) report that neither switching the algorithm on nor switching it off significantly affected affective polarizatio…",
+            "[UNDERMINE → premise #0] Gauthier et al. 2026 report that neither switching the algorithm on nor switching it off significantly affected affective polarization …",
+            "[UNDERMINE → premise #0] Piccardi et al. (2025) conducted a preregistered field experiment on X finding that algorithmic reranking of partisan animosity content…",
+            "[UNDERMINE → premise #0] Piccardi et al. (2025) found that reranking AAPA content shifted out-party partisan animosity by more than 2 points on a 100-point feel…",
+            "[UNDERMINE → premise #0] Boxell et al. (2017) analyzed polarization trends from 1996 to 2012, ending precisely when Facebook introduced algorithmic ranking and …"
           ]
         },
         {
-          "attemptedConclusion": "Background drivers of affective polarization \u2014 including cable news, elite partisan rhetoric, and demographic sorting \u2014 do not fully account for the observed polarization trend, leaving a residual share plausibly attributable to algorithmic curation.",
+          "attemptedConclusion": "Background drivers of affective polarization — including cable news, elite partisan rhetoric, and demographic sorting — do not fully account for the observed polarization trend, leaving a residual share plausibly attributable to algorithmic curation.",
           "conclusionClaimId": "claim-0008",
           "blockedBy": "unanswered-undermine",
           "blockerIds": [
             "arg-0092"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #0] The Hewlett Foundation review covers literature through early 2018, before the publication of the four 2023 Science papers, Piccardi et\u2026"
+            "[UNDERMINE → premise #0] The Hewlett Foundation review covers literature through early 2018, before the publication of the four 2023 Science papers, Piccardi et…"
           ]
         },
         {
@@ -11417,8 +11515,8 @@
             "arg-0096"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Eady et al. (2023) found that IRA content exposure was concentrated among a tiny minority of already-partisan users, representing a minuscule fractio\u2026",
-            "[UNDERCUT] Eady et al. (2023) found that IRA exposure was concentrated in a small minority of already-partisan users, meaning the treatment was too dilute and t\u2026"
+            "[UNDERCUT] Eady et al. (2023) found that IRA content exposure was concentrated among a tiny minority of already-partisan users, representing a minuscule fractio…",
+            "[UNDERCUT] Eady et al. (2023) found that IRA exposure was concentrated in a small minority of already-partisan users, meaning the treatment was too dilute and t…"
           ]
         },
         {
@@ -11429,7 +11527,7 @@
             "arg-0090"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Bakshy et al. (2015) measured the proportion of cross-cutting content in feeds, not the affective-polarization impact of that content, which depends \u2026"
+            "[UNDERCUT] Bakshy et al. (2015) measured the proportion of cross-cutting content in feeds, not the affective-polarization impact of that content, which depends …"
           ]
         },
         {
@@ -11441,8 +11539,8 @@
             "arg-0073"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #1] Hosseinmardi et al. (2021) studied consumption of far-right content specifically, but the framing's outcome is affective polarization, \u2026",
-            "[UNDERMINE \u2192 premise #1] Bakshy et al. (2015) found that Facebook's algorithm reduced cross-cutting content exposure by approximately 5-8% beyond what user choi\u2026"
+            "[UNDERMINE → premise #1] Hosseinmardi et al. (2021) studied consumption of far-right content specifically, but the framing's outcome is affective polarization, …",
+            "[UNDERMINE → premise #1] Bakshy et al. (2015) found that Facebook's algorithm reduced cross-cutting content exposure by approximately 5-8% beyond what user choi…"
           ]
         },
         {
@@ -11453,7 +11551,7 @@
             "arg-0111"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 z1vvl4 premise #2] Guess et al. (2023) tested reversing the entire ranking order to chronological, a blunt intervention that does not speci\u2026"
+            "[DEFENSE-UNDERMINE → z1vvl4 premise #2] Guess et al. (2023) tested reversing the entire ranking order to chronological, a blunt intervention that does not speci…"
           ]
         },
         {
@@ -11464,7 +11562,7 @@
             "arg-0110"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Gauthier et al. (2026) report null effects on affective polarization but their study was powered to detect effects on their primary outcomes of polic\u2026"
+            "[UNDERCUT] Gauthier et al. (2026) report null effects on affective polarization but their study was powered to detect effects on their primary outcomes of polic…"
           ]
         },
         {
@@ -11475,7 +11573,7 @@
             "arg-0113"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERCUT \u2192 jchpxu] Gauthier et al. (2026) explain that switching the algorithm off does not reverse effects because the algorithm has already reshaped \u2026"
+            "[DEFENSE-UNDERCUT → jchpxu] Gauthier et al. (2026) explain that switching the algorithm off does not reverse effects because the algorithm has already reshaped …"
           ]
         },
         {
@@ -11486,7 +11584,7 @@
             "arg-0105"
           ],
           "blockerSummaries": [
-            "[UNDERMINE \u2192 premise #3] Liu et al. (2025) conducted experiments on a YouTube-like platform with manipulated recommendations, not on actual YouTube with its rea\u2026"
+            "[UNDERMINE → premise #3] Liu et al. (2025) conducted experiments on a YouTube-like platform with manipulated recommendations, not on actual YouTube with its rea…"
           ]
         },
         {
@@ -11497,7 +11595,7 @@
             "arg-0115"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 50aokb premise #0] Boxell et al. (2017) themselves acknowledge that spillovers across demographic groups could reconcile their pattern with\u2026"
+            "[DEFENSE-UNDERMINE → 50aokb premise #0] Boxell et al. (2017) themselves acknowledge that spillovers across demographic groups could reconcile their pattern with…"
           ]
         },
         {
@@ -11508,7 +11606,7 @@
             "arg-0109"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] The framing explicitly lists whether short-term feed manipulations can identify long-term causal effects as a contested question, meaning this uncert\u2026"
+            "[UNDERCUT] The framing explicitly lists whether short-term feed manipulations can identify long-term causal effects as a contested question, meaning this uncert…"
           ]
         },
         {
@@ -11519,7 +11617,7 @@
             "arg-0117"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERCUT \u2192 h4pjfp] Bakshy et al. (2015) measured the algorithmic effect on cross-cutting ideological exposure, but Piccardi et al. (2025) show that the\u2026"
+            "[DEFENSE-UNDERCUT → h4pjfp] Bakshy et al. (2015) measured the algorithmic effect on cross-cutting ideological exposure, but Piccardi et al. (2025) show that the…"
           ]
         },
         {
@@ -11530,7 +11628,7 @@
             "arg-0108"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Germano et al. (2026) use self-reported reliance on the internet as a primary source of political information as the treatment variable, which is end\u2026"
+            "[UNDERCUT] Germano et al. (2026) use self-reported reliance on the internet as a primary source of political information as the treatment variable, which is end…"
           ]
         },
         {
@@ -11541,7 +11639,7 @@
             "arg-0120"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERCUT \u2192 du0iyt] Levy (2021) demonstrated that changing the partisan news exposure mix on Facebook causally reduced negative attitudes toward the opp\u2026"
+            "[DEFENSE-UNDERCUT → du0iyt] Levy (2021) demonstrated that changing the partisan news exposure mix on Facebook causally reduced negative attitudes toward the opp…"
           ]
         },
         {
@@ -11552,7 +11650,7 @@
             "arg-0127"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 m9a7ah premise #3] Piccardi et al. (2025) reported in supplementary analyses that reweighting their sample to match the population of X use\u2026"
+            "[DEFENSE-UNDERMINE → m9a7ah premise #3] Piccardi et al. (2025) reported in supplementary analyses that reweighting their sample to match the population of X use…"
           ]
         },
         {
@@ -11563,7 +11661,7 @@
             "arg-0103"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Piccardi et al. (2025) recruited desktop-only browser-extension volunteers whose feeds contained at least 5% political content, excluding mobile user\u2026"
+            "[UNDERCUT] Piccardi et al. (2025) recruited desktop-only browser-extension volunteers whose feeds contained at least 5% political content, excluding mobile user…"
           ]
         },
         {
@@ -11574,7 +11672,7 @@
             "arg-0129"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 i0iyc6 premise #1] Piccardi et al. (2025) used an LLM-based reranking of AAPA content specifically, which is a content-targeted interventio\u2026"
+            "[DEFENSE-UNDERMINE → i0iyc6 premise #1] Piccardi et al. (2025) used an LLM-based reranking of AAPA content specifically, which is a content-targeted interventio…"
           ]
         },
         {
@@ -11586,8 +11684,8 @@
             "arg-0131"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] Germano et al. (2026) provide a formal theoretical model with survey-based difference-in-differences validation, but the empirical component uses sel\u2026",
-            "[DEFENSE-UNDERCUT \u2192 xs8gut] Germano et al. (2026) provide a theoretical model of supply-side effects but their empirical validation uses difference-in-differenc\u2026"
+            "[UNDERCUT] Germano et al. (2026) provide a formal theoretical model with survey-based difference-in-differences validation, but the empirical component uses sel…",
+            "[DEFENSE-UNDERCUT → xs8gut] Germano et al. (2026) provide a theoretical model of supply-side effects but their empirical validation uses difference-in-differenc…"
           ]
         },
         {
@@ -11598,7 +11696,7 @@
             "arg-0104"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] The rebuttal aggregates evidence about content amplification from Rathje et al. (2021), share-count asymmetry from Reuning et al. (2022), and a 10-da\u2026"
+            "[UNDERCUT] The rebuttal aggregates evidence about content amplification from Rathje et al. (2021), share-count asymmetry from Reuning et al. (2022), and a 10-da…"
           ]
         },
         {
@@ -11609,7 +11707,7 @@
             "arg-0133"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 3aze4k premise #0] Piccardi et al. (2025) supplementary reweighting to match the X user population rendered the post-treatment Reduced Expo\u2026"
+            "[DEFENSE-UNDERMINE → 3aze4k premise #0] Piccardi et al. (2025) supplementary reweighting to match the X user population rendered the post-treatment Reduced Expo…"
           ]
         },
         {
@@ -11620,7 +11718,7 @@
             "arg-0135"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERCUT \u2192 v3z3sn] Milli et al. (2025) found that users did not prefer algorithmically selected political tweets, but this preference mismatch does not\u2026"
+            "[DEFENSE-UNDERCUT → v3z3sn] Milli et al. (2025) found that users did not prefer algorithmically selected political tweets, but this preference mismatch does not…"
           ]
         },
         {
@@ -11631,7 +11729,7 @@
             "arg-0107"
           ],
           "blockerSummaries": [
-            "[UNDERCUT] The framing specifies algorithmic content curation deployed by major US social media platforms as the treatment, which is the ranking and recommendat\u2026"
+            "[UNDERCUT] The framing specifies algorithmic content curation deployed by major US social media platforms as the treatment, which is the ranking and recommendat…"
           ]
         },
         {
@@ -11642,7 +11740,7 @@
             "arg-0122"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 ft9pb8 premise #0] Piccardi et al. (2025) report that supplementary reweighting to match the X user population replicated their results wit\u2026"
+            "[DEFENSE-UNDERMINE → ft9pb8 premise #0] Piccardi et al. (2025) report that supplementary reweighting to match the X user population replicated their results wit…"
           ]
         },
         {
@@ -11653,7 +11751,7 @@
             "arg-0125"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERCUT \u2192 l9j3xd] Gauthier et al. (2026) themselves explain that switching the algorithm off does not reverse its effects because it has already resha\u2026"
+            "[DEFENSE-UNDERCUT → l9j3xd] Gauthier et al. (2026) themselves explain that switching the algorithm off does not reverse its effects because it has already resha…"
           ]
         },
         {
@@ -11664,7 +11762,7 @@
             "arg-0126"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERCUT \u2192 s44yks] The parent argument's other premise cites Milli et al. (2025), who find that Twitter's engagement-based algorithm amplifies out-grou\u2026"
+            "[DEFENSE-UNDERCUT → s44yks] The parent argument's other premise cites Milli et al. (2025), who find that Twitter's engagement-based algorithm amplifies out-grou…"
           ]
         },
         {
@@ -11675,7 +11773,7 @@
             "arg-0141"
           ],
           "blockerSummaries": [
-            "[DEFENSE-UNDERMINE \u2192 kv8lsa premise #0] Piccardi et al. (2025) tested LLM-based content-targeted reranking of AAPA content, a different intervention from the al\u2026"
+            "[DEFENSE-UNDERMINE → kv8lsa premise #0] Piccardi et al. (2025) tested LLM-based content-targeted reranking of AAPA content, a different intervention from the al…"
           ]
         }
       ]
@@ -11687,8 +11785,8 @@
         "authorId": "161",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0002",
-        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012\u20132024 window.",
-        "argumentText": "Iyengar and Westwood (2015) demonstrate that affective polarization between US partisans on feeling-thermometer scales now exceeds racial and other social cleavages on standard implicit and behavioral measures. The feeling-thermometer operationalization captures the same construct \u2014 out-group animosity \u2014 that is the theorized downstream consequence of algorithmic exposure to partisan-hostile conte\u2026",
+        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012–2024 window.",
+        "argumentText": "Iyengar and Westwood (2015) demonstrate that affective polarization between US partisans on feeling-thermometer scales now exceeds racial and other social cleavages on standard implicit and behavioral measures. The feeling-thermometer operationalization captures the same construct — out-group animosity — that is the theorized downstream consequence of algorithmic exposure to partisan-hostile conte…",
         "primarySchemeKey": "inference_to_best_explanation",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11704,8 +11802,8 @@
         "authorId": "161",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0002",
-        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012\u20132024 window.",
-        "argumentText": "Iyengar, Sood, and Lelkes (2012) document that mass affective polarization on feeling-thermometer scales has tracked elite polarization since the 1980s, establishing a decades-long time series baseline. Campos and Federico (2025) develop a validated multidimensional Affective Polarization Scale with three subdimensions \u2014 othering, aversion, moralization \u2014 that correlates strongly with the standard\u2026",
+        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012–2024 window.",
+        "argumentText": "Iyengar, Sood, and Lelkes (2012) document that mass affective polarization on feeling-thermometer scales has tracked elite polarization since the 1980s, establishing a decades-long time series baseline. Campos and Federico (2025) develop a validated multidimensional Affective Polarization Scale with three subdimensions — othering, aversion, moralization — that correlates strongly with the standard…",
         "primarySchemeKey": "sign",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11722,7 +11820,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0004",
         "conclusionText": "Algorithmic feed-ranking on major US platforms amplifies content characterized by out-group hostility and partisan moral-emotional framing beyond the rate at which users would encounter such content under non-algorithmic baselines.",
-        "argumentText": "Rathje, Van Bavel, and van der Linden (2021) find that across 2.7 million Facebook and Twitter posts, out-group language was the strongest predictor of engagement, with posts about the political out-group receiving roughly double the engagement of in-group posts. Brady et al. (2017) show that each moral-emotional word in a tweet increased its diffusion by approximately 20 percent, with diffusion c\u2026",
+        "argumentText": "Rathje, Van Bavel, and van der Linden (2021) find that across 2.7 million Facebook and Twitter posts, out-group language was the strongest predictor of engagement, with posts about the political out-group receiving roughly double the engagement of in-group posts. Brady et al. (2017) show that each moral-emotional word in a tweet increased its diffusion by approximately 20 percent, with diffusion c…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11739,7 +11837,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0004",
         "conclusionText": "Algorithmic feed-ranking on major US platforms amplifies content characterized by out-group hostility and partisan moral-emotional framing beyond the rate at which users would encounter such content under non-algorithmic baselines.",
-        "argumentText": "Milli et al. (2025) conducted a preregistered algorithmic audit finding that Twitter's engagement-based ranking algorithm amplifies emotionally charged, out-group hostile content relative to a reverse-chronological baseline. Users reported that tweets selected by the engagement-based algorithm made them feel worse about their political out-group compared to chronologically ordered tweets. Therefor\u2026",
+        "argumentText": "Milli et al. (2025) conducted a preregistered algorithmic audit finding that Twitter's engagement-based ranking algorithm amplifies emotionally charged, out-group hostile content relative to a reverse-chronological baseline. Users reported that tweets selected by the engagement-based algorithm made them feel worse about their political out-group compared to chronologically ordered tweets. Therefor…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11756,7 +11854,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0004",
         "conclusionText": "Algorithmic feed-ranking on major US platforms amplifies content characterized by out-group hostility and partisan moral-emotional framing beyond the rate at which users would encounter such content under non-algorithmic baselines.",
-        "argumentText": "Husz\u00e1r et al. (2022) found in a massive randomized experiment on Twitter that algorithmic ranking amplified mainstream political content, with right-wing parties receiving greater amplification in 6 of 7 countries including the US. Gonz\u00e1lez-Bail\u00f3n et al. (2023) document marked ideological segregation in news exposure on Facebook among 208 million US users, driven jointly by user behavior, audience\u2026",
+        "argumentText": "Huszár et al. (2022) found in a massive randomized experiment on Twitter that algorithmic ranking amplified mainstream political content, with right-wing parties receiving greater amplification in 6 of 7 countries including the US. González-Bailón et al. (2023) document marked ideological segregation in news exposure on Facebook among 208 million US users, driven jointly by user behavior, audience…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11773,7 +11871,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0009",
         "conclusionText": "Cross-national evidence showing that countries with high social-media penetration do not uniformly exhibit greater affective polarization is consistent with US algorithmic curation being a significant causal contributor to US polarization specifically.",
-        "argumentText": "Husz\u00e1r et al. (2022) found that the magnitude of algorithmic amplification of right-wing content varied substantially across the 7 countries studied, with the US showing significant right-wing amplification. Boxell et al. (2024) document that polarization trends vary widely across countries despite similar social media penetration. Therefore, [conclusion #8]. (Warrant: If the same platform's algor\u2026",
+        "argumentText": "Huszár et al. (2022) found that the magnitude of algorithmic amplification of right-wing content varied substantially across the 7 countries studied, with the US showing significant right-wing amplification. Boxell et al. (2024) document that polarization trends vary widely across countries despite similar social media penetration. Therefore, [conclusion #8]. (Warrant: If the same platform's algor…",
         "primarySchemeKey": "inference_to_best_explanation",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11790,7 +11888,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0010",
         "conclusionText": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algorithmic curation intensifies exposure beyond what users would self-select into.",
-        "argumentText": "Bail et al. (2018) found that exposing Twitter users to counter-attitudinal content via bot accounts increased polarization among Republicans, suggesting that the manner and framing of cross-cutting exposure determines the polarization outcome. Piccardi et al. (2025) demonstrate that it is specifically the algorithmic amplification of content expressing partisan animosity \u2014 not the overall ideolog\u2026",
+        "argumentText": "Bail et al. (2018) found that exposing Twitter users to counter-attitudinal content via bot accounts increased polarization among Republicans, suggesting that the manner and framing of cross-cutting exposure determines the polarization outcome. Piccardi et al. (2025) demonstrate that it is specifically the algorithmic amplification of content expressing partisan animosity — not the overall ideolog…",
         "primarySchemeKey": "inference_to_best_explanation",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11807,7 +11905,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0010",
         "conclusionText": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algorithmic curation intensifies exposure beyond what users would self-select into.",
-        "argumentText": "Chen et al. (2021) deployed 15 neutrally-initialized bot accounts on Twitter and found that the platform's recommendation algorithm pushed these accounts toward right-leaning information regardless of starting condition. This demonstrates that the algorithm actively directs users toward partisan content even when there is no pre-existing ideological self-selection, establishing an independent algo\u2026",
+        "argumentText": "Chen et al. (2021) deployed 15 neutrally-initialized bot accounts on Twitter and found that the platform's recommendation algorithm pushed these accounts toward right-leaning information regardless of starting condition. This demonstrates that the algorithm actively directs users toward partisan content even when there is no pre-existing ideological self-selection, establishing an independent algo…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11824,7 +11922,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0011",
         "conclusionText": "If algorithmic curation is a significant causal contributor to rising affective polarization, this constitutes a normatively meaningful harm to democratic deliberation that is distinguishable from the polarization attributable to citizens' autonomous media choices.",
-        "argumentText": "Piccardi et al. (2025) demonstrate that downranking animosity content reduces affective polarization without removing any political content from users' feeds, showing that the harm is attributable to algorithmic amplification choices rather than citizens' autonomous decisions to engage with politics. Milli et al. (2025) find that users do not prefer the political tweets selected by the engagement-\u2026",
+        "argumentText": "Piccardi et al. (2025) demonstrate that downranking animosity content reduces affective polarization without removing any political content from users' feeds, showing that the harm is attributable to algorithmic amplification choices rather than citizens' autonomous decisions to engage with politics. Milli et al. (2025) find that users do not prefer the political tweets selected by the engagement-…",
         "primarySchemeKey": "positive_consequences",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11841,7 +11939,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0011",
         "conclusionText": "If algorithmic curation is a significant causal contributor to rising affective polarization, this constitutes a normatively meaningful harm to democratic deliberation that is distinguishable from the polarization attributable to citizens' autonomous media choices.",
-        "argumentText": "Gauthier et al. (2026) show that X's algorithmic feed shifts political attitudes and following behavior in ways that persist even after the algorithm is removed, indicating that users cannot simply undo the algorithmic influence by switching to a chronological feed. Deliberative democratic theory holds that communication should induce reflection rather than coerce, and that democratic quality requ\u2026",
+        "argumentText": "Gauthier et al. (2026) show that X's algorithmic feed shifts political attitudes and following behavior in ways that persist even after the algorithm is removed, indicating that users cannot simply undo the algorithmic influence by switching to a chronological feed. Deliberative democratic theory holds that communication should induce reflection rather than coerce, and that democratic quality requ…",
         "primarySchemeKey": "negative_consequences",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11857,8 +11955,8 @@
         "authorId": "162",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0002",
-        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012\u20132024 window.",
-        "argumentText": "Boxell, Gentzkow, and Shapiro (2024) measure affective polarization across twelve OECD countries using the same feeling-thermometer operationalization, finding that the US is an outlier in polarization growth despite similar social-media penetration elsewhere. If the feeling-thermometer measure were capturing primarily platform-attributable variance, countries with comparable platform adoption sho\u2026",
+        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012–2024 window.",
+        "argumentText": "Boxell, Gentzkow, and Shapiro (2024) measure affective polarization across twelve OECD countries using the same feeling-thermometer operationalization, finding that the US is an outlier in polarization growth despite similar social-media penetration elsewhere. If the feeling-thermometer measure were capturing primarily platform-attributable variance, countries with comparable platform adoption sho…",
         "primarySchemeKey": "statistical_generalization",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11875,7 +11973,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0005",
         "conclusionText": "Field experiments deactivating or replacing algorithmic curation with chronological feeds show measurable reductions in affective polarization among treated participants within the experimental window.",
-        "argumentText": "Guess et al. (2023b) experimentally removed reshared content from Facebook feeds during the 2020 US election, substantially reducing political-news exposure and exposure to untrustworthy sources. Removing reshares did not detectably affect political polarization or other downstream political attitudes. Resharing is the primary virality mechanism through which algorithmically amplified content spre\u2026",
+        "argumentText": "Guess et al. (2023b) experimentally removed reshared content from Facebook feeds during the 2020 US election, substantially reducing political-news exposure and exposure to untrustworthy sources. Removing reshares did not detectably affect political polarization or other downstream political attitudes. Resharing is the primary virality mechanism through which algorithmically amplified content spre…",
         "primarySchemeKey": "argument_from_lack_of_evidence",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11891,8 +11989,8 @@
         "authorId": "162",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0006",
-        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
-        "argumentText": "All four Meta-academic Science experiments ran for approximately three months during the politically exceptional 2020 US presidential election period, when Meta implemented emergency algorithmic changes to suppress misinformation. Bagchi et al. (2024) argued that Meta's temporary break-glass algorithmic changes during the study period altered the control condition, potentially attenuating treatmen\u2026",
+        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
+        "argumentText": "All four Meta-academic Science experiments ran for approximately three months during the politically exceptional 2020 US presidential election period, when Meta implemented emergency algorithmic changes to suppress misinformation. Bagchi et al. (2024) argued that Meta's temporary break-glass algorithmic changes during the study period altered the control condition, potentially attenuating treatmen…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11908,8 +12006,8 @@
         "authorId": "162",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0006",
-        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
-        "argumentText": "The longest algorithmic-feed experiment in the evidence base (Guess et al. 2023) ran for three months, while the framing's causal claim spans a twelve-year window from 2012 to 2024. Gauthier et al. (2026) found that exposure to X's algorithmic feed caused users to follow more right-leaning accounts, a network change that persisted after the algorithm was switched off, suggesting path-dependent eff\u2026",
+        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
+        "argumentText": "The longest algorithmic-feed experiment in the evidence base (Guess et al. 2023) ran for three months, while the framing's causal claim spans a twelve-year window from 2012 to 2024. Gauthier et al. (2026) found that exposure to X's algorithmic feed caused users to follow more right-leaning accounts, a network change that persisted after the algorithm was switched off, suggesting path-dependent eff…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -11925,8 +12023,8 @@
         "authorId": "162",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0006",
-        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
-        "argumentText": "Participants in the Meta-academic experiments were recruited via invitations placed at the top of their feeds, creating a sample of active, consenting users who may differ systematically from the general population of platform users. Volunteer effects in field experiments on social media systematically bias toward more engaged and politically interested users, whose attitudes may be more crystalli\u2026",
+        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
+        "argumentText": "Participants in the Meta-academic experiments were recruited via invitations placed at the top of their feeds, creating a sample of active, consenting users who may differ systematically from the general population of platform users. Volunteer effects in field experiments on social media systematically bias toward more engaged and politically interested users, whose attitudes may be more crystalli…",
         "primarySchemeKey": "statistical_generalization",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11942,8 +12040,8 @@
         "authorId": "162",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0008",
-        "conclusionText": "Background drivers of affective polarization \u2014 including cable news, elite partisan rhetoric, and demographic sorting \u2014 do not fully account for the observed polarization trend, leaving a residual share plausibly attributable to algorithmic curation.",
-        "argumentText": "The Hewlett Foundation literature review synthesizing evidence through early 2018 concluded that causal evidence linking algorithmic curation specifically to mass polarization was mixed and limited. Subsequent experimental evidence from 2020-2023 (Guess et al. 2023, Nyhan et al. 2023, Guess et al. 2023b) found null effects of algorithmic manipulation on polarization, further supporting the conclus\u2026",
+        "conclusionText": "Background drivers of affective polarization — including cable news, elite partisan rhetoric, and demographic sorting — do not fully account for the observed polarization trend, leaving a residual share plausibly attributable to algorithmic curation.",
+        "argumentText": "The Hewlett Foundation literature review synthesizing evidence through early 2018 concluded that causal evidence linking algorithmic curation specifically to mass polarization was mixed and limited. Subsequent experimental evidence from 2020-2023 (Guess et al. 2023, Nyhan et al. 2023, Guess et al. 2023b) found null effects of algorithmic manipulation on polarization, further supporting the conclus…",
         "primarySchemeKey": "inference_to_best_explanation",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11960,7 +12058,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0010",
         "conclusionText": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algorithmic curation intensifies exposure beyond what users would self-select into.",
-        "argumentText": "Nyhan et al. (2023) experimentally reduced like-minded source exposure on Facebook and found no effect on affective polarization, directly testing whether algorithmic echo-chamber effects operate beyond the homophily baseline. If algorithmic amplification of like-minded content beyond user self-selection were a significant driver of affective polarization, experimentally reducing that amplificatio\u2026",
+        "argumentText": "Nyhan et al. (2023) experimentally reduced like-minded source exposure on Facebook and found no effect on affective polarization, directly testing whether algorithmic echo-chamber effects operate beyond the homophily baseline. If algorithmic amplification of like-minded content beyond user self-selection were a significant driver of affective polarization, experimentally reducing that amplificatio…",
         "primarySchemeKey": "argument_from_lack_of_evidence",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11977,7 +12075,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0003",
         "conclusionText": "The threshold of reducing observed affective-polarization growth by at least 10 percent upon removal of algorithmic curation is a coherent operationalization of 'significant causal contributor' that can be estimated from available study designs.",
-        "argumentText": "No existing study design measures the counterfactual of removing algorithmic curation over the full 2012-2024 period, which is what the framing's 10% threshold formally requires. The best available experiments manipulate feeds for weeks to months, which the framing itself lists as contested in terms of external validity for estimating long-run cumulative effects. Extrapolating from short-term null\u2026",
+        "argumentText": "No existing study design measures the counterfactual of removing algorithmic curation over the full 2012-2024 period, which is what the framing's 10% threshold formally requires. The best available experiments manipulate feeds for weeks to months, which the framing itself lists as contested in terms of external validity for estimating long-run cumulative effects. Extrapolating from short-term null…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -11994,7 +12092,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0003",
         "conclusionText": "The threshold of reducing observed affective-polarization growth by at least 10 percent upon removal of algorithmic curation is a coherent operationalization of 'significant causal contributor' that can be estimated from available study designs.",
-        "argumentText": "The 10% threshold requires a population-level counterfactual estimate, but the best causal evidence comes from individual-level experiments on single platforms that cannot be straightforwardly aggregated across platforms and time periods. Boxell, Gentzkow, and Shapiro (2017) demonstrate that the relationship between social media use and polarization varies dramatically across demographic groups, m\u2026",
+        "argumentText": "The 10% threshold requires a population-level counterfactual estimate, but the best causal evidence comes from individual-level experiments on single platforms that cannot be straightforwardly aggregated across platforms and time periods. Boxell, Gentzkow, and Shapiro (2017) demonstrate that the relationship between social media use and polarization varies dramatically across demographic groups, m…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -12011,7 +12109,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0145",
         "conclusionText": "Allcott et al. (2020) measured an overall political polarization index combining issue and affective components, with a modest 0.16 SD effect, and the larger 2020-election replication found effects on affective polarization precisely estimated and close to zero.",
-        "argumentText": "[UNDERMINE \u2192 premise #0] Allcott et al. (2020) report a 0.16 standard deviation reduction in an overall index of political polarization that combines both issue polarization and affective polarization components, not a clean estimate of affective polarization alone. The follow-up 2020-election deactivation experiment with 19,857 Facebook users and 15,585 Instagram users found effects on affective \u2026",
+        "argumentText": "[UNDERMINE → premise #0] Allcott et al. (2020) report a 0.16 standard deviation reduction in an overall index of political polarization that combines both issue polarization and affective polarization components, not a clean estimate of affective polarization alone. The follow-up 2020-election deactivation experiment with 19,857 Facebook users and 15,585 Instagram users found effects on affective …",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -12028,7 +12126,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0154",
         "conclusionText": "Individual-level effects from a 10-day volunteer experiment on one platform cannot be aggregated to population-level claims meeting the 10% counterfactual threshold without establishing persistence, cross-platform generalizability, and representativeness assumptions that the evidence does not support.",
-        "argumentText": "[UNDERCUT] Piccardi et al. (2025) measured a 2-point feeling-thermometer shift over 10 days among 1,256 self-selected browser-extension users on X, a platform used for political discourse by a minority of US adults. The framing identifies whether short-term feed manipulations can identify long-term causal effects and whether platform-internal experiments generalize beyond the experimental window a\u2026",
+        "argumentText": "[UNDERCUT] Piccardi et al. (2025) measured a 2-point feeling-thermometer shift over 10 days among 1,256 self-selected browser-extension users on X, a platform used for political discourse by a minority of US adults. The framing identifies whether short-term feed manipulations can identify long-term causal effects and whether platform-internal experiments generalize beyond the experimental window a…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -12045,7 +12143,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0159",
         "conclusionText": "Allcott et al. (2020) does not show that Facebook deactivation reduces affective polarization in the framing's sense; the 2020-election replication found precisely zero effect on affective polarization despite a sample seven times larger.",
-        "argumentText": "[UNDERMINE \u2192 premise #1] The 2020-election Facebook deactivation experiment with 19,857 users found effects on affective polarization precisely estimated and close to zero, directly contradicting the claim that deactivation reduces polarization. Allcott et al. (2020) reported a 0.16 SD reduction in a composite polarization index that included issue polarization components, not a clean affective-po\u2026",
+        "argumentText": "[UNDERMINE → premise #1] The 2020-election Facebook deactivation experiment with 19,857 users found effects on affective polarization precisely estimated and close to zero, directly contradicting the claim that deactivation reduces polarization. Allcott et al. (2020) reported a 0.16 SD reduction in a composite polarization index that included issue polarization components, not a clean affective-po…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -12062,7 +12160,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0162",
         "conclusionText": "Gauthier et al. (2026) found that X's algorithmic feed did not significantly affect affective polarization, so the persistent following behavior it documents does not establish persistent affective polarization effects.",
-        "argumentText": "[UNDERMINE \u2192 premise #0] Gauthier et al. (2026) explicitly report that neither switching the algorithm on nor off significantly affected affective polarization or self-reported partisanship. The persistent following of conservative activist accounts documented by Gauthier et al. concerns behavioral change, not attitudinal change on the feeling-thermometer measure that operationalizes affective pol\u2026",
+        "argumentText": "[UNDERMINE → premise #0] Gauthier et al. (2026) explicitly report that neither switching the algorithm on nor off significantly affected affective polarization or self-reported partisanship. The persistent following of conservative activist accounts documented by Gauthier et al. concerns behavioral change, not attitudinal change on the feeling-thermometer measure that operationalizes affective pol…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-default",
         "standingDepth": "thin",
@@ -12079,7 +12177,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0184",
         "conclusionText": "Theoretical models of supply-side feedback loops and audit-study observations about content amplification do not license causal claims about long-run population-level affective polarization at the framing's 10 percent threshold.",
-        "argumentText": "[UNDERCUT] Germano et al. (2026) is a theoretical model whose empirical validation rests on survey-based difference-in-differences, not experimental manipulation of the supply-side feedback mechanism. Milli et al. (2025) is an audit study measuring content exposure differences and user self-reports, not downstream attitudinal change on feeling-thermometer measures of affective polarization. The fr\u2026",
+        "argumentText": "[UNDERCUT] Germano et al. (2026) is a theoretical model whose empirical validation rests on survey-based difference-in-differences, not experimental manipulation of the supply-side feedback mechanism. Milli et al. (2025) is an audit study measuring content exposure differences and user self-reports, not downstream attitudinal change on feeling-thermometer measures of affective polarization. The fr…",
         "primarySchemeKey": "methodological_critique",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -12096,7 +12194,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0201",
         "conclusionText": "The characterization that all best-identified experiments report null effects of algorithmic feed manipulation on affective polarization is incomplete, because a 2025 platform-independent experiment and a 2021 field experiment both found significant effects.",
-        "argumentText": "[UNDERMINE \u2192 premise #0] Piccardi et al. (2025) conducted a preregistered field experiment on X finding that algorithmic reranking of partisan animosity content shifted out-party feelings by more than 2 points on a 100-point feeling thermometer, a significant effect on affective polarization. Levy (2021) conducted a field experiment with 1,840 US Facebook users finding that subscriptions to counte\u2026",
+        "argumentText": "[UNDERMINE → premise #0] Piccardi et al. (2025) conducted a preregistered field experiment on X finding that algorithmic reranking of partisan animosity content shifted out-party feelings by more than 2 points on a 100-point feeling thermometer, a significant effect on affective polarization. Levy (2021) conducted a field experiment with 1,840 US Facebook users finding that subscriptions to counte…",
         "primarySchemeKey": "argument_from_example",
         "standing": "untested-supported",
         "standingDepth": "thin",
@@ -12115,7 +12213,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0007",
         "conclusionText": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual threshold when weighted by platform reach and usage intensity across the US adult population.",
-        "argumentText": "Boxell, Gentzkow, and Shapiro (2017) found that polarization growth between 1996 and 2012 was largest among Americans aged 75 and older, who had the lowest social media usage rates. Polarization growth was smallest among adults aged 18-39, the demographic with approximately 80% social media usage. If algorithmic social media were driving population-level polarization, the demographic groups with t\u2026",
+        "argumentText": "Boxell, Gentzkow, and Shapiro (2017) found that polarization growth between 1996 and 2012 was largest among Americans aged 75 and older, who had the lowest social media usage rates. Polarization growth was smallest among adults aged 18-39, the demographic with approximately 80% social media usage. If algorithmic social media were driving population-level polarization, the demographic groups with t…",
         "primarySchemeKey": "sign",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12133,7 +12231,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0007",
         "conclusionText": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual threshold when weighted by platform reach and usage intensity across the US adult population.",
-        "argumentText": "Gauthier et al. (2026) show that algorithmic exposure on X causes users to follow conservative activist accounts, and these following changes persist after the algorithm is switched off. Germano et al. (2026) provide difference-in-differences evidence that Facebook's 2018 MSI update contributed to increased ideological extremism and affective polarization among users relying on the platform for po\u2026",
+        "argumentText": "Gauthier et al. (2026) show that algorithmic exposure on X causes users to follow conservative activist accounts, and these following changes persist after the algorithm is switched off. Germano et al. (2026) provide difference-in-differences evidence that Facebook's 2018 MSI update contributed to increased ideological extremism and affective polarization among users relying on the platform for po…",
         "primarySchemeKey": "inference_to_best_explanation",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12151,7 +12249,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0007",
         "conclusionText": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual threshold when weighted by platform reach and usage intensity across the US adult population.",
-        "argumentText": "Piccardi et al. (2025) found a >2-point feeling-thermometer shift from 10 days of algorithmic reranking on a single platform. As of 2024, approximately 70 percent of US adults use at least one in-scope platform for 30+ minutes per week, exposing a supermajority of the adult population to engagement-optimized algorithmic feeds. The out-group animosity channel identified by Rathje et al. (2021) \u2014 po\u2026",
+        "argumentText": "Piccardi et al. (2025) found a >2-point feeling-thermometer shift from 10 days of algorithmic reranking on a single platform. As of 2024, approximately 70 percent of US adults use at least one in-scope platform for 30+ minutes per week, exposing a supermajority of the adult population to engagement-optimized algorithmic feeds. The out-group animosity channel identified by Rathje et al. (2021) — po…",
         "primarySchemeKey": "statistical_generalization",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12169,7 +12267,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0009",
         "conclusionText": "Cross-national evidence showing that countries with high social-media penetration do not uniformly exhibit greater affective polarization is consistent with US algorithmic curation being a significant causal contributor to US polarization specifically.",
-        "argumentText": "Eady et al. (2023) found that exposure to Russian IRA foreign-influence accounts on Twitter during the 2016 US election was concentrated among already-partisan users and was not associated with changes in political attitudes. If even deliberately polarizing foreign-influence content algorithmically distributed on a major US platform produced no detectable attitude change, general algorithmic ampli\u2026",
+        "argumentText": "Eady et al. (2023) found that exposure to Russian IRA foreign-influence accounts on Twitter during the 2016 US election was concentrated among already-partisan users and was not associated with changes in political attitudes. If even deliberately polarizing foreign-influence content algorithmically distributed on a major US platform produced no detectable attitude change, general algorithmic ampli…",
         "primarySchemeKey": "analogy",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12187,7 +12285,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0007",
         "conclusionText": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual threshold when weighted by platform reach and usage intensity across the US adult population.",
-        "argumentText": "Guess, Nyhan, and Reifler (2020) found that exposure to untrustworthy websites during the 2016 US election was concentrated among approximately 6% of consumers who were predominantly conservative and already highly partisan. The concentration of algorithmically amplified misinformation among a small, already-polarized minority means the population-level contribution of this channel to overall affe\u2026",
+        "argumentText": "Guess, Nyhan, and Reifler (2020) found that exposure to untrustworthy websites during the 2016 US election was concentrated among approximately 6% of consumers who were predominantly conservative and already highly partisan. The concentration of algorithmically amplified misinformation among a small, already-polarized minority means the population-level contribution of this channel to overall affe…",
         "primarySchemeKey": "statistical_generalization",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12205,7 +12303,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0010",
         "conclusionText": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algorithmic curation intensifies exposure beyond what users would self-select into.",
-        "argumentText": "Bakshy, Messing, and Adamic (2015) measured ideological exposure among 10.1 million US Facebook users and found that individual choice had a stronger role than algorithmic ranking in limiting cross-cutting content exposure. Users' click-through choices reduced cross-cutting content consumption by 17% for conservatives and 6% for liberals, while algorithmic ranking reduced it by approximately 5-8%.\u2026",
+        "argumentText": "Bakshy, Messing, and Adamic (2015) measured ideological exposure among 10.1 million US Facebook users and found that individual choice had a stronger role than algorithmic ranking in limiting cross-cutting content exposure. Users' click-through choices reduced cross-cutting content consumption by 17% for conservatives and 6% for liberals, while algorithmic ranking reduced it by approximately 5-8%.…",
         "primarySchemeKey": "sign",
         "standing": "tested-attacked",
         "standingDepth": "moderate",
@@ -12223,7 +12321,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0197",
         "conclusionText": "A platform-independent field experiment directly manipulating algorithmic ranking of partisan animosity content found significant causal effects on affective polarization, contradicting the inference that algorithmic feed manipulation does not detectably change polarization.",
-        "argumentText": "[REBUT] Piccardi et al. (2025) conducted a preregistered 10-day field experiment with 1,256 X users during the 2024 US election, using LLM-based reranking to increase or decrease exposure to content expressing antidemocratic attitudes and partisan animosity. Decreasing AAPA exposure shifted out-party animosity by more than 2 points on a 100-point feeling thermometer, an effect the authors describe\u2026",
+        "argumentText": "[REBUT] Piccardi et al. (2025) conducted a preregistered 10-day field experiment with 1,256 X users during the 2024 US election, using LLM-based reranking to increase or decrease exposure to content expressing antidemocratic attitudes and partisan animosity. Decreasing AAPA exposure shifted out-party animosity by more than 2 points on a 100-point feeling thermometer, an effect the authors describe…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12241,7 +12339,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0218",
         "conclusionText": "Background drivers do not fully account for the observed polarization trend, because direct experimental evidence shows algorithmic content ranking causally moves affective polarization and because algorithmic amplification creates additional polarization pathways not captured by background-driver models.",
-        "argumentText": "[REBUT] Piccardi et al. (2025) provide direct causal evidence that algorithmic ranking of partisan animosity content shifts affective polarization by more than 2 points on a 100-point feeling thermometer in just 10 days, an effect equivalent to approximately three years of population-level change. Germano, G\u00f3mez, and Sobbrio (2026) provide both theoretical and empirical evidence that Facebook's 20\u2026",
+        "argumentText": "[REBUT] Piccardi et al. (2025) provide direct causal evidence that algorithmic ranking of partisan animosity content shifts affective polarization by more than 2 points on a 100-point feeling thermometer in just 10 days, an effect equivalent to approximately three years of population-level change. Germano, Gómez, and Sobbrio (2026) provide both theoretical and empirical evidence that Facebook's 20…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12259,7 +12357,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0205",
         "conclusionText": "The inference from individual-level null experimental effects to the impossibility of population-level effects clearing the 10% threshold ignores general-equilibrium and supply-side causal pathways that short-run experiments cannot capture.",
-        "argumentText": "[UNDERCUT] Germano, G\u00f3mez, and Sobbrio (2026) develop a formal model showing that engagement-weighted ranking algorithms create a dynamic feedback loop where content creators are incentivized to produce more ideologically extreme content, increasing polarization through supply-side effects that individual-level feed experiments do not measure. Gauthier et al. (2026) found that exposure to X's algo\u2026",
+        "argumentText": "[UNDERCUT] Germano, Gómez, and Sobbrio (2026) develop a formal model showing that engagement-weighted ranking algorithms create a dynamic feedback loop where content creators are incentivized to produce more ideologically extreme content, increasing polarization through supply-side effects that individual-level feed experiments do not measure. Gauthier et al. (2026) found that exposure to X's algo…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12277,7 +12375,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0149",
         "conclusionText": "The Guess et al. (2023) null result is corroborated by multiple independent null findings across platforms, methods, and time periods, and cannot be dismissed as an artifact of poor intervention targeting or break-glass measures.",
-        "argumentText": "[REBUT] Nyhan et al. (2023) experimentally reduced exposure to like-minded sources on Facebook for three months during the 2020 election and found no reduction in affective polarization, ideological extremity, or candidate evaluations. Guess et al. (2023) found that experimentally removing reshared content from Facebook feeds substantially reduced political-news exposure but did not detectably aff\u2026",
+        "argumentText": "[REBUT] Nyhan et al. (2023) experimentally reduced exposure to like-minded sources on Facebook for three months during the 2020 election and found no reduction in affective polarization, ideological extremity, or candidate evaluations. Guess et al. (2023) found that experimentally removing reshared content from Facebook feeds substantially reduced political-news exposure but did not detectably aff…",
         "primarySchemeKey": "argument_from_example",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12295,7 +12393,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0007",
         "conclusionText": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual threshold when weighted by platform reach and usage intensity across the US adult population.",
-        "argumentText": "The best-identified individual-level experiments (Guess 2023, Nyhan 2023, Guess 2023b) all report null effects of algorithmic feed manipulation on affective polarization. A null individual-level effect cannot aggregate to a population-level effect meeting the 10% threshold regardless of how it is weighted by platform reach and usage intensity. Even Levy (2021), which found counter-attitudinal news\u2026",
+        "argumentText": "The best-identified individual-level experiments (Guess 2023, Nyhan 2023, Guess 2023b) all report null effects of algorithmic feed manipulation on affective polarization. A null individual-level effect cannot aggregate to a population-level effect meeting the 10% threshold regardless of how it is weighted by platform reach and usage intensity. Even Levy (2021), which found counter-attitudinal news…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12312,8 +12410,8 @@
         "authorId": "161",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0006",
-        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
-        "argumentText": "Gauthier et al. (2026) found that 7 weeks of exposure to X's algorithmic feed shifted political attitudes conservatively and caused users to follow conservative activist accounts \u2014 following patterns that persisted even after switching back to a chronological feed. This persistence mechanism \u2014 algorithm-induced following changes that outlast the algorithmic exposure \u2014 demonstrates that short-durat\u2026",
+        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
+        "argumentText": "Gauthier et al. (2026) found that 7 weeks of exposure to X's algorithmic feed shifted political attitudes conservatively and caused users to follow conservative activist accounts — following patterns that persisted even after switching back to a chronological feed. This persistence mechanism — algorithm-induced following changes that outlast the algorithmic exposure — demonstrates that short-durat…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12330,8 +12428,8 @@
         "authorId": "161",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0006",
-        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
-        "argumentText": "Germano, G\u00f3mez, and Sobbrio (2026) develop a formal model showing that engagement-based ranking creates dynamic amplification: the algorithm incentivizes content creators to produce more extreme content, which further shifts the content distribution. Milli et al. (2025) note that the scope of Guess et al. (2023) does not encompass general-equilibrium effects such as how ranking algorithms indirect\u2026",
+        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
+        "argumentText": "Germano, Gómez, and Sobbrio (2026) develop a formal model showing that engagement-based ranking creates dynamic amplification: the algorithm incentivizes content creators to produce more extreme content, which further shifts the content distribution. Milli et al. (2025) note that the scope of Guess et al. (2023) does not encompass general-equilibrium effects such as how ranking algorithms indirect…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12349,7 +12447,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0005",
         "conclusionText": "Field experiments deactivating or replacing algorithmic curation with chronological feeds show measurable reductions in affective polarization among treated participants within the experimental window.",
-        "argumentText": "Nyhan et al. (2023) experimentally reduced exposure to like-minded sources on Facebook for three months during the 2020 US election, directly targeting the echo-chamber mechanism hypothesized to drive affective polarization. The intervention did not reduce affective polarization, ideological extremity, or candidate evaluations despite successfully altering the content mix. Therefore, [conclusion #\u2026",
+        "argumentText": "Nyhan et al. (2023) experimentally reduced exposure to like-minded sources on Facebook for three months during the 2020 US election, directly targeting the echo-chamber mechanism hypothesized to drive affective polarization. The intervention did not reduce affective polarization, ideological extremity, or candidate evaluations despite successfully altering the content mix. Therefore, [conclusion #…",
         "primarySchemeKey": "argument_from_lack_of_evidence",
         "standing": "tested-attacked",
         "standingDepth": "thin",
@@ -12366,8 +12464,8 @@
         "authorId": "161",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0006",
-        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012\u20132024 period.",
-        "argumentText": "Piccardi et al. (2025) found that just 10 days of reranking AAPA content produced a feeling-thermometer shift equivalent to approximately three years of observed US affective polarization change. If even short-duration algorithmic exposure produces effects of this magnitude, the cumulative impact of years of continuous algorithmic curation across multiple platforms is plausibly much larger than wh\u2026",
+        "conclusionText": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curation on affective polarization over the 2012–2024 period.",
+        "argumentText": "Piccardi et al. (2025) found that just 10 days of reranking AAPA content produced a feeling-thermometer shift equivalent to approximately three years of observed US affective polarization change. If even short-duration algorithmic exposure produces effects of this magnitude, the cumulative impact of years of continuous algorithmic curation across multiple platforms is plausibly much larger than wh…",
         "primarySchemeKey": "statistical_generalization",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12384,8 +12482,8 @@
         "authorId": "162",
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0002",
-        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012\u20132024 window.",
-        "argumentText": "Feeling-thermometer measures of affective polarization are sensitive to survey context effects, question ordering, and the political salience of the measurement period, introducing noise that obscures small platform-attributable changes. Iyengar, Sood, and Lelkes (2012) document that mass affective polarization has risen steadily since the 1980s, well before algorithmic social media, establishing \u2026",
+        "conclusionText": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for detecting platform-attributable changes in US political polarization over the 2012–2024 window.",
+        "argumentText": "Feeling-thermometer measures of affective polarization are sensitive to survey context effects, question ordering, and the political salience of the measurement period, introducing noise that obscures small platform-attributable changes. Iyengar, Sood, and Lelkes (2012) document that mass affective polarization has risen steadily since the 1980s, well before algorithmic social media, establishing …",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12403,7 +12501,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0239",
         "conclusionText": "The claim that the Allcott et al. 2020 deactivation treatment confounds algorithmic curation with all other Facebook effects, making the observed polarization reduction unattributable to algorithmic ranking, actually supports the causal-link position because algorithmic curation is the mechanism through which Facebook delivers all these effects.",
-        "argumentText": "[UNDERMINE \u2192 premise #1] Allcott et al. (2020) found that Facebook deactivation reduced issue polarization, and this bundled treatment includes the algorithmic feed as the primary interface through which all Facebook content \u2014 including group participation, news, and social interaction \u2014 is delivered and prioritized. The framing defines the treatment as algorithmic content curation deployed by maj\u2026",
+        "argumentText": "[UNDERMINE → premise #1] Allcott et al. (2020) found that Facebook deactivation reduced issue polarization, and this bundled treatment includes the algorithmic feed as the primary interface through which all Facebook content — including group participation, news, and social interaction — is delivered and prioritized. The framing defines the treatment as algorithmic content curation deployed by maj…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-undermined",
         "standingDepth": "moderate",
@@ -12421,7 +12519,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0180",
         "conclusionText": "Germano et al. (2026) provides a theoretical model validated with survey-based difference-in-differences around the 2018 MSI update, but this observational design cannot isolate the algorithmic change from confounding events in the same period.",
-        "argumentText": "[UNDERMINE \u2192 premise #0] Germano et al. (2026) is primarily a theoretical model with empirical validation using survey data and a difference-in-differences design around Facebook's 2018 MSI update. The 2018 period coincided with the Trump presidency, the Kavanaugh confirmation, and intensified partisan conflict, creating confounders that a survey-based DiD comparing Facebook-reliant versus non-rel\u2026",
+        "argumentText": "[UNDERMINE → premise #0] Germano et al. (2026) is primarily a theoretical model with empirical validation using survey data and a difference-in-differences design around Facebook's 2018 MSI update. The 2018 period coincided with the Trump presidency, the Kavanaugh confirmation, and intensified partisan conflict, creating confounders that a survey-based DiD comparing Facebook-reliant versus non-rel…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12439,7 +12537,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0173",
         "conclusionText": "Extrapolating from a 10-day effect to 12 years of cumulative impact via statistical generalization is not licensed without evidence on decay rates, habituation, ceiling effects, and cross-platform consistency.",
-        "argumentText": "[UNDERCUT] Piccardi et al. (2025) measured effects over 10 days and did not assess persistence, decay, or habituation of the feeling-thermometer shift beyond the experimental window. Gauthier et al. (2026) found that 7 weeks of algorithmic exposure on X produced no significant change in affective polarization, suggesting that even medium-term exposure does not produce the cumulative affective pola\u2026",
+        "argumentText": "[UNDERCUT] Piccardi et al. (2025) measured effects over 10 days and did not assess persistence, decay, or habituation of the feeling-thermometer shift beyond the experimental window. Gauthier et al. (2026) found that 7 weeks of algorithmic exposure on X produced no significant change in affective polarization, suggesting that even medium-term exposure does not produce the cumulative affective pola…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-attacked",
         "standingDepth": "thin",
@@ -12457,7 +12555,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0142",
         "conclusionText": "Gauthier et al. (2026) found that neither switching X's algorithm on nor switching it off significantly affected affective polarization, directly contradicting the premise that this study demonstrates short experiments underestimate cumulative polarization effects.",
-        "argumentText": "[UNDERMINE \u2192 premise #0] Gauthier et al. (2026) explicitly report that neither switching the algorithm on nor switching it off significantly affected affective polarization or self-reported partisanship over the 7-week experimental window. The persistence finding in Gauthier et al. concerns following behavior and policy attitude shifts toward conservative positions, not affective polarization as o\u2026",
+        "argumentText": "[UNDERMINE → premise #0] Gauthier et al. (2026) explicitly report that neither switching the algorithm on nor switching it off significantly affected affective polarization or self-reported partisanship over the 7-week experimental window. The persistence finding in Gauthier et al. concerns following behavior and policy attitude shifts toward conservative positions, not affective polarization as o…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-attacked",
         "standingDepth": "thin",
@@ -12475,7 +12573,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0177",
         "conclusionText": "Bakshy, Messing, and Adamic (2015) found that individual user choice was the stronger filter on cross-cutting exposure compared to algorithmic ranking, with the algorithm accounting for only about 15 percent reduction in cross-cutting content versus 70 percent from user click-through choices.",
-        "argumentText": "[UNDERMINE \u2192 premise #0] Bakshy et al. (2015) found that algorithmic ranking reduced cross-cutting content exposure by approximately 15 percent, while users' own click-through choices reduced cross-cutting content consumption by approximately 70 percent. The framing establishes that people self-select into informational environments independently of any platform algorithm, and this homophily basel\u2026",
+        "argumentText": "[UNDERMINE → premise #0] Bakshy et al. (2015) found that algorithmic ranking reduced cross-cutting content exposure by approximately 15 percent, while users' own click-through choices reduced cross-cutting content consumption by approximately 70 percent. The framing establishes that people self-select into informational environments independently of any platform algorithm, and this homophily basel…",
         "primarySchemeKey": "sign",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12493,7 +12591,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0188",
         "conclusionText": "Levy (2021) altered news outlet subscriptions, not algorithmic ranking, and the reduction in negative attitudes does not establish that algorithmic curation specifically drives affective polarization at the framing's threshold.",
-        "argumentText": "[UNDERCUT] Levy (2021) offered Facebook users subscriptions to counter-attitudinal news outlets, an intervention on content supply rather than on the algorithmic ranking mechanism the framing targets. The framing requires evidence specifically about algorithmic content curation, and a subscription-based intervention does not test the counterfactual of removing or modifying algorithmic ranking. Gue\u2026",
+        "argumentText": "[UNDERCUT] Levy (2021) offered Facebook users subscriptions to counter-attitudinal news outlets, an intervention on content supply rather than on the algorithmic ranking mechanism the framing targets. The framing requires evidence specifically about algorithmic content curation, and a subscription-based intervention does not test the counterfactual of removing or modifying algorithmic ranking. Gue…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-attacked",
         "standingDepth": "thin",
@@ -12511,7 +12609,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0278",
         "conclusionText": "The methodological critique of Guess et al. (2023) does not rescue the causal claim because multiple independent experiments across platforms and time periods converge on null effects for affective polarization.",
-        "argumentText": "[REBUT] Allcott et al. (2024) found precisely estimated null effects of Facebook and Instagram deactivation on affective polarization in a separate 2020 election experiment with over 35,000 participants. Gauthier et al. (2026) independently found null effects on affective polarization from algorithmic vs. chronological feed assignment on X in 2023, a different platform and time period from the Met\u2026",
+        "argumentText": "[REBUT] Allcott et al. (2024) found precisely estimated null effects of Facebook and Instagram deactivation on affective polarization in a separate 2020 election experiment with over 35,000 participants. Gauthier et al. (2026) independently found null effects on affective polarization from algorithmic vs. chronological feed assignment on X in 2023, a different platform and time period from the Met…",
         "primarySchemeKey": "argument_from_lack_of_evidence",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12529,7 +12627,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0305",
         "conclusionText": "The inference from a single platform-specific algorithm change to the general claim that algorithmic feed-ranking amplifies hostile content beyond non-algorithmic baselines requires evidence of generalizability across platforms that the argument does not provide.",
-        "argumentText": "[UNDERCUT] Reuning et al. (2022) studied only Facebook's 2018 MSI update and measured share counts of local party pages, not user-level exposure to hostile content or affective polarization outcomes. A single platform's algorithm change producing asymmetric amplification of one party's content does not establish that engagement-based ranking in general amplifies out-group hostility beyond non-algo\u2026",
+        "argumentText": "[UNDERCUT] Reuning et al. (2022) studied only Facebook's 2018 MSI update and measured share counts of local party pages, not user-level exposure to hostile content or affective polarization outcomes. A single platform's algorithm change producing asymmetric amplification of one party's content does not establish that engagement-based ranking in general amplifies out-group hostility beyond non-algo…",
         "primarySchemeKey": "methodological_critique",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12547,7 +12645,7 @@
         "authorKind": "HUMAN",
         "conclusionClaimId": "claim-0227",
         "conclusionText": "The inference that out-group content engagement reflects only user demand and would persist under non-algorithmic ordering fails because engagement-optimizing algorithms create a feedback loop that amplifies supply of polarizing content beyond what user demand alone would generate.",
-        "argumentText": "[UNDERCUT] Germano, G\u00f3mez, and Sobbrio (2026) formally model how engagement-weighted ranking creates a dynamic feedback loop where content creators are incentivized to produce more ideologically extreme content to gain algorithmic visibility, increasing polarization through supply-side effects beyond user demand. Milli et al. (2025) found that Twitter's engagement-based algorithm amplifies out-gro\u2026",
+        "argumentText": "[UNDERCUT] Germano, Gómez, and Sobbrio (2026) formally model how engagement-weighted ranking creates a dynamic feedback loop where content creators are incentivized to produce more ideologically extreme content to gain algorithmic visibility, increasing polarization through supply-side effects beyond user demand. Milli et al. (2025) found that Twitter's engagement-based algorithm amplifies out-gro…",
         "primarySchemeKey": "cause_to_effect",
         "standing": "tested-undermined",
         "standingDepth": "thin",
@@ -12565,7 +12663,7 @@
         "honestyLine": "This deliberation has 143 argument(s); 38% have at least one challenger (median 1 distinct challenger(s) when challenged, 0.50 mean across all). 5% catalog-CQ coverage. 3 chain(s) on file; 33 potential conclusion(s) are not licensed by the current graph.",
         "refusalNotice": "This deliberation has 33 blocked conclusions that the graph cannot currently license.",
         "structuralCautions": [
-          "124 arguments share the top load-bearingness tier (scores within 1 of the top score 2). Do not name a single \"hub\" \u2014 the briefing contains multiple co-equal candidates.",
+          "124 arguments share the top load-bearingness tier (scores within 1 of the top score 2). Do not name a single \"hub\" — the briefing contains multiple co-equal candidates.",
           "Hub structure is diffuse (>5 co-equal top-tier arguments). The graph has no single load-bearing argument; treat any \"central\" claim as a synthesis artifact.",
           "9 premises share elevated cascade exposure. Pulling on any single premise is misleading; the graph's robustness depends on the joint set."
         ],
@@ -12574,32 +12672,32 @@
       "mustNotAssert": [
         {
           "claimMoid": "claim-0004",
-          "claimTextPreview": "Algorithmic feed-ranking on major US platforms amplifies content characterized by out-group hostility and partisan moral-emotional framing beyond the rate at wh\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #1] Rathje, Van Bavel, and van der Linden (2021) found that posts about the political out-group received roughly twice the engagement of in\u2026\"",
+          "claimTextPreview": "Algorithmic feed-ranking on major US platforms amplifies content characterized by out-group hostility and partisan moral-emotional framing beyond the rate at wh…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[UNDERMINE → premise #1] Rathje, Van Bavel, and van der Linden (2021) found that posts about the political out-group received roughly twice the engagement of in…\"",
           "blockerIds": [
             "arg-0075"
           ]
         },
         {
           "claimMoid": "claim-0002",
-          "claimTextPreview": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The argument claims feeling-thermometer measures introduce noise that obscures small platform-attributable changes, but the same noise would inflate \u2026\"",
+          "claimTextPreview": "Affective polarization, operationalized as in-group warmth minus out-group warmth on feeling-thermometer scales, is a valid and sufficiently precise measure for…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The argument claims feeling-thermometer measures introduce noise that obscures small platform-attributable changes, but the same noise would inflate …\"",
           "blockerIds": [
             "arg-0091"
           ]
         },
         {
           "claimMoid": "claim-0005",
-          "claimTextPreview": "Field experiments deactivating or replacing algorithmic curation with chronological feeds show measurable reductions in affective polarization among treated par\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Nyhan et al. (2023) reduced like-minded source exposure on Facebook, testing the echo-chamber mechanism, but did not test whether the algorithm ampli\u2026\"",
+          "claimTextPreview": "Field experiments deactivating or replacing algorithmic curation with chronological feeds show measurable reductions in affective polarization among treated par…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Nyhan et al. (2023) reduced like-minded source exposure on Facebook, testing the echo-chamber mechanism, but did not test whether the algorithm ampli…\"",
           "blockerIds": [
             "arg-0078"
           ]
         },
         {
           "claimMoid": "claim-0005",
-          "claimTextPreview": "Field experiments deactivating or replacing algorithmic curation with chronological feeds show measurable reductions in affective polarization among treated par\u2026",
-          "reason": "Blocked by 2 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #0] Allcott et al. (2020) report a 0.16 standard deviation reduction in an overall index of political polarization that combines both issue\u2026\"",
+          "claimTextPreview": "Field experiments deactivating or replacing algorithmic curation with chronological feeds show measurable reductions in affective polarization among treated par…",
+          "reason": "Blocked by 2 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE → premise #0] Allcott et al. (2020) report a 0.16 standard deviation reduction in an overall index of political polarization that combines both issue…\"",
           "blockerIds": [
             "arg-0054",
             "arg-0100"
@@ -12607,8 +12705,8 @@
         },
         {
           "claimMoid": "claim-0006",
-          "claimTextPreview": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curat\u2026",
-          "reason": "Blocked by 2 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Germano et al. (2026) is a theoretical model whose empirical validation rests on survey-based difference-in-differences, not experimental manipulatio\u2026\"",
+          "claimTextPreview": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curat…",
+          "reason": "Blocked by 2 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Germano et al. (2026) is a theoretical model whose empirical validation rests on survey-based difference-in-differences, not experimental manipulatio…\"",
           "blockerIds": [
             "arg-0064",
             "arg-0084"
@@ -12616,8 +12714,8 @@
         },
         {
           "claimMoid": "claim-0006",
-          "claimTextPreview": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curat\u2026",
-          "reason": "Blocked by 2 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #0] Gauthier et al. (2026) report that neither switching the algorithm on nor switching it off significantly affected affective polarizatio\u2026\"",
+          "claimTextPreview": "Short-duration feed-manipulation experiments lasting one to six weeks provide externally valid estimates of the long-run, cumulative effect of algorithmic curat…",
+          "reason": "Blocked by 2 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE → premise #0] Gauthier et al. (2026) report that neither switching the algorithm on nor switching it off significantly affected affective polarizatio…\"",
           "blockerIds": [
             "arg-0086",
             "arg-0101"
@@ -12625,8 +12723,8 @@
         },
         {
           "claimMoid": "claim-0007",
-          "claimTextPreview": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual thresho\u2026",
-          "reason": "Blocked by 5 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Piccardi et al. (2025) measured a 2-point feeling-thermometer shift over 10 days among 1,256 self-selected browser-extension users on X, a platform u\u2026\"",
+          "claimTextPreview": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual thresho…",
+          "reason": "Blocked by 5 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Piccardi et al. (2025) measured a 2-point feeling-thermometer shift over 10 days among 1,256 self-selected browser-extension users on X, a platform u…\"",
           "blockerIds": [
             "arg-0056",
             "arg-0085",
@@ -12637,8 +12735,8 @@
         },
         {
           "claimMoid": "claim-0007",
-          "claimTextPreview": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual thresho\u2026",
-          "reason": "Blocked by 9 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #1] The 2020-election Facebook deactivation experiment with 19,857 users found effects on affective polarization precisely estimated and cl\u2026\"",
+          "claimTextPreview": "Individual-level effects of algorithmic exposure on affective polarization aggregate to population-level changes that meet the 10 percent counterfactual thresho…",
+          "reason": "Blocked by 9 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE → premise #1] The 2020-election Facebook deactivation experiment with 19,857 users found effects on affective polarization precisely estimated and cl…\"",
           "blockerIds": [
             "arg-0057",
             "arg-0079",
@@ -12653,16 +12751,16 @@
         },
         {
           "claimMoid": "claim-0008",
-          "claimTextPreview": "Background drivers of affective polarization \u2014 including cable news, elite partisan rhetoric, and demographic sorting \u2014 do not fully account for the observed po\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #0] The Hewlett Foundation review covers literature through early 2018, before the publication of the four 2023 Science papers, Piccardi et\u2026\"",
+          "claimTextPreview": "Background drivers of affective polarization — including cable news, elite partisan rhetoric, and demographic sorting — do not fully account for the observed po…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[UNDERMINE → premise #0] The Hewlett Foundation review covers literature through early 2018, before the publication of the four 2023 Science papers, Piccardi et…\"",
           "blockerIds": [
             "arg-0092"
           ]
         },
         {
           "claimMoid": "claim-0009",
-          "claimTextPreview": "Cross-national evidence showing that countries with high social-media penetration do not uniformly exhibit greater affective polarization is consistent with US \u2026",
-          "reason": "Blocked by 2 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Eady et al. (2023) found that IRA content exposure was concentrated among a tiny minority of already-partisan users, representing a minuscule fractio\u2026\"",
+          "claimTextPreview": "Cross-national evidence showing that countries with high social-media penetration do not uniformly exhibit greater affective polarization is consistent with US …",
+          "reason": "Blocked by 2 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Eady et al. (2023) found that IRA content exposure was concentrated among a tiny minority of already-partisan users, representing a minuscule fractio…\"",
           "blockerIds": [
             "arg-0076",
             "arg-0096"
@@ -12670,16 +12768,16 @@
         },
         {
           "claimMoid": "claim-0010",
-          "claimTextPreview": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algor\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Bakshy et al. (2015) measured the proportion of cross-cutting content in feeds, not the affective-polarization impact of that content, which depends \u2026\"",
+          "claimTextPreview": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algor…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Bakshy et al. (2015) measured the proportion of cross-cutting content in feeds, not the affective-polarization impact of that content, which depends …\"",
           "blockerIds": [
             "arg-0090"
           ]
         },
         {
           "claimMoid": "claim-0010",
-          "claimTextPreview": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algor\u2026",
-          "reason": "Blocked by 2 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #1] Hosseinmardi et al. (2021) studied consumption of far-right content specifically, but the framing's outcome is affective polarization, \u2026\"",
+          "claimTextPreview": "User self-selection into partisan information environments (homophily) does not render the additional algorithmic amplification effect negligible, because algor…",
+          "reason": "Blocked by 2 unanswered undermines against supporting premise(s). First blocker: \"[UNDERMINE → premise #1] Hosseinmardi et al. (2021) studied consumption of far-right content specifically, but the framing's outcome is affective polarization, …\"",
           "blockerIds": [
             "arg-0080",
             "arg-0073"
@@ -12687,104 +12785,104 @@
         },
         {
           "claimMoid": "claim-0137",
-          "claimTextPreview": "A 10-day reranking experiment with 1,256 volunteer browser-extension users on a single platform does not license the conclusion that algorithmic curation genera\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 z1vvl4 premise #2] Guess et al. (2023) tested reversing the entire ranking order to chronological, a blunt intervention that does not speci\u2026\"",
+          "claimTextPreview": "A 10-day reranking experiment with 1,256 volunteer browser-extension users on a single platform does not license the conclusion that algorithmic curation genera…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → z1vvl4 premise #2] Guess et al. (2023) tested reversing the entire ranking order to chronological, a blunt intervention that does not speci…\"",
           "blockerIds": [
             "arg-0111"
           ]
         },
         {
           "claimMoid": "claim-0142",
-          "claimTextPreview": "Gauthier et al. (2026) found that neither switching X's algorithm on nor switching it off significantly affected affective polarization, directly contradicting \u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Gauthier et al. (2026) report null effects on affective polarization but their study was powered to detect effects on their primary outcomes of polic\u2026\"",
+          "claimTextPreview": "Gauthier et al. (2026) found that neither switching X's algorithm on nor switching it off significantly affected affective polarization, directly contradicting …",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Gauthier et al. (2026) report null effects on affective polarization but their study was powered to detect effects on their primary outcomes of polic…\"",
           "blockerIds": [
             "arg-0110"
           ]
         },
         {
           "claimMoid": "claim-0149",
-          "claimTextPreview": "The Guess et al. (2023) null result is corroborated by multiple independent null findings across platforms, methods, and time periods, and cannot be dismissed a\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT \u2192 jchpxu] Gauthier et al. (2026) explain that switching the algorithm off does not reverse effects because the algorithm has already reshaped \u2026\"",
+          "claimTextPreview": "The Guess et al. (2023) null result is corroborated by multiple independent null findings across platforms, methods, and time periods, and cannot be dismissed a…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT → jchpxu] Gauthier et al. (2026) explain that switching the algorithm off does not reverse effects because the algorithm has already reshaped …\"",
           "blockerIds": [
             "arg-0113"
           ]
         },
         {
           "claimMoid": "claim-0149",
-          "claimTextPreview": "The Guess et al. (2023) null result is corroborated by multiple independent null findings across platforms, methods, and time periods, and cannot be dismissed a\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[UNDERMINE \u2192 premise #3] Liu et al. (2025) conducted experiments on a YouTube-like platform with manipulated recommendations, not on actual YouTube with its rea\u2026\"",
+          "claimTextPreview": "The Guess et al. (2023) null result is corroborated by multiple independent null findings across platforms, methods, and time periods, and cannot be dismissed a…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[UNDERMINE → premise #3] Liu et al. (2025) conducted experiments on a YouTube-like platform with manipulated recommendations, not on actual YouTube with its rea…\"",
           "blockerIds": [
             "arg-0105"
           ]
         },
         {
           "claimMoid": "claim-0165",
-          "claimTextPreview": "Boxell, Gentzkow, and Shapiro (2017) is not limited to the pre-algorithmic era; the finding that polarization grew most among demographics least likely to use t\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 50aokb premise #0] Boxell et al. (2017) themselves acknowledge that spillovers across demographic groups could reconcile their pattern with\u2026\"",
+          "claimTextPreview": "Boxell, Gentzkow, and Shapiro (2017) is not limited to the pre-algorithmic era; the finding that polarization grew most among demographics least likely to use t…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → 50aokb premise #0] Boxell et al. (2017) themselves acknowledge that spillovers across demographic groups could reconcile their pattern with…\"",
           "blockerIds": [
             "arg-0115"
           ]
         },
         {
           "claimMoid": "claim-0173",
-          "claimTextPreview": "Extrapolating from a 10-day effect to 12 years of cumulative impact via statistical generalization is not licensed without evidence on decay rates, habituation,\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The framing explicitly lists whether short-term feed manipulations can identify long-term causal effects as a contested question, meaning this uncert\u2026\"",
+          "claimTextPreview": "Extrapolating from a 10-day effect to 12 years of cumulative impact via statistical generalization is not licensed without evidence on decay rates, habituation,…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The framing explicitly lists whether short-term feed manipulations can identify long-term causal effects as a contested question, meaning this uncert…\"",
           "blockerIds": [
             "arg-0109"
           ]
         },
         {
           "claimMoid": "claim-0177",
-          "claimTextPreview": "Bakshy, Messing, and Adamic (2015) found that individual user choice was the stronger filter on cross-cutting exposure compared to algorithmic ranking, with the\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT \u2192 h4pjfp] Bakshy et al. (2015) measured the algorithmic effect on cross-cutting ideological exposure, but Piccardi et al. (2025) show that the\u2026\"",
+          "claimTextPreview": "Bakshy, Messing, and Adamic (2015) found that individual user choice was the stronger filter on cross-cutting exposure compared to algorithmic ranking, with the…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT → h4pjfp] Bakshy et al. (2015) measured the algorithmic effect on cross-cutting ideological exposure, but Piccardi et al. (2025) show that the…\"",
           "blockerIds": [
             "arg-0117"
           ]
         },
         {
           "claimMoid": "claim-0180",
-          "claimTextPreview": "Germano et al. (2026) provides a theoretical model validated with survey-based difference-in-differences around the 2018 MSI update, but this observational desi\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Germano et al. (2026) use self-reported reliance on the internet as a primary source of political information as the treatment variable, which is end\u2026\"",
+          "claimTextPreview": "Germano et al. (2026) provides a theoretical model validated with survey-based difference-in-differences around the 2018 MSI update, but this observational desi…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Germano et al. (2026) use self-reported reliance on the internet as a primary source of political information as the treatment variable, which is end…\"",
           "blockerIds": [
             "arg-0108"
           ]
         },
         {
           "claimMoid": "claim-0188",
-          "claimTextPreview": "Levy (2021) altered news outlet subscriptions, not algorithmic ranking, and the reduction in negative attitudes does not establish that algorithmic curation spe\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT \u2192 du0iyt] Levy (2021) demonstrated that changing the partisan news exposure mix on Facebook causally reduced negative attitudes toward the opp\u2026\"",
+          "claimTextPreview": "Levy (2021) altered news outlet subscriptions, not algorithmic ranking, and the reduction in negative attitudes does not establish that algorithmic curation spe…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT → du0iyt] Levy (2021) demonstrated that changing the partisan news exposure mix on Facebook causally reduced negative attitudes toward the opp…\"",
           "blockerIds": [
             "arg-0120"
           ]
         },
         {
           "claimMoid": "claim-0192",
-          "claimTextPreview": "A null result from the Guess et al. 2023 feed experiment conducted during Meta's 63 break-glass algorithmic changes does not license the inference that algorith\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 m9a7ah premise #3] Piccardi et al. (2025) reported in supplementary analyses that reweighting their sample to match the population of X use\u2026\"",
+          "claimTextPreview": "A null result from the Guess et al. 2023 feed experiment conducted during Meta's 63 break-glass algorithmic changes does not license the inference that algorith…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → m9a7ah premise #3] Piccardi et al. (2025) reported in supplementary analyses that reweighting their sample to match the population of X use…\"",
           "blockerIds": [
             "arg-0127"
           ]
         },
         {
           "claimMoid": "claim-0197",
-          "claimTextPreview": "A platform-independent field experiment directly manipulating algorithmic ranking of partisan animosity content found significant causal effects on affective po\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Piccardi et al. (2025) recruited desktop-only browser-extension volunteers whose feeds contained at least 5% political content, excluding mobile user\u2026\"",
+          "claimTextPreview": "A platform-independent field experiment directly manipulating algorithmic ranking of partisan animosity content found significant causal effects on affective po…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] Piccardi et al. (2025) recruited desktop-only browser-extension volunteers whose feeds contained at least 5% political content, excluding mobile user…\"",
           "blockerIds": [
             "arg-0103"
           ]
         },
         {
           "claimMoid": "claim-0197",
-          "claimTextPreview": "A platform-independent field experiment directly manipulating algorithmic ranking of partisan animosity content found significant causal effects on affective po\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 i0iyc6 premise #1] Piccardi et al. (2025) used an LLM-based reranking of AAPA content specifically, which is a content-targeted interventio\u2026\"",
+          "claimTextPreview": "A platform-independent field experiment directly manipulating algorithmic ranking of partisan animosity content found significant causal effects on affective po…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → i0iyc6 premise #1] Piccardi et al. (2025) used an LLM-based reranking of AAPA content specifically, which is a content-targeted interventio…\"",
           "blockerIds": [
             "arg-0129"
           ]
         },
         {
           "claimMoid": "claim-0205",
-          "claimTextPreview": "The inference from individual-level null experimental effects to the impossibility of population-level effects clearing the 10% threshold ignores general-equili\u2026",
-          "reason": "Blocked by 2 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Germano et al. (2026) provide a formal theoretical model with survey-based difference-in-differences validation, but the empirical component uses sel\u2026\"",
+          "claimTextPreview": "The inference from individual-level null experimental effects to the impossibility of population-level effects clearing the 10% threshold ignores general-equili…",
+          "reason": "Blocked by 2 unanswered undercuts on supporting argument(s). First blocker: \"[UNDERCUT] Germano et al. (2026) provide a formal theoretical model with survey-based difference-in-differences validation, but the empirical component uses sel…\"",
           "blockerIds": [
             "arg-0106",
             "arg-0131"
@@ -12792,64 +12890,64 @@
         },
         {
           "claimMoid": "claim-0218",
-          "claimTextPreview": "Background drivers do not fully account for the observed polarization trend, because direct experimental evidence shows algorithmic content ranking causally mov\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The rebuttal aggregates evidence about content amplification from Rathje et al. (2021), share-count asymmetry from Reuning et al. (2022), and a 10-da\u2026\"",
+          "claimTextPreview": "Background drivers do not fully account for the observed polarization trend, because direct experimental evidence shows algorithmic content ranking causally mov…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The rebuttal aggregates evidence about content amplification from Rathje et al. (2021), share-count asymmetry from Reuning et al. (2022), and a 10-da…\"",
           "blockerIds": [
             "arg-0104"
           ]
         },
         {
           "claimMoid": "claim-0218",
-          "claimTextPreview": "Background drivers do not fully account for the observed polarization trend, because direct experimental evidence shows algorithmic content ranking causally mov\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 3aze4k premise #0] Piccardi et al. (2025) supplementary reweighting to match the X user population rendered the post-treatment Reduced Expo\u2026\"",
+          "claimTextPreview": "Background drivers do not fully account for the observed polarization trend, because direct experimental evidence shows algorithmic content ranking causally mov…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → 3aze4k premise #0] Piccardi et al. (2025) supplementary reweighting to match the X user population rendered the post-treatment Reduced Expo…\"",
           "blockerIds": [
             "arg-0133"
           ]
         },
         {
           "claimMoid": "claim-0227",
-          "claimTextPreview": "The inference that out-group content engagement reflects only user demand and would persist under non-algorithmic ordering fails because engagement-optimizing a\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT \u2192 v3z3sn] Milli et al. (2025) found that users did not prefer algorithmically selected political tweets, but this preference mismatch does not\u2026\"",
+          "claimTextPreview": "The inference that out-group content engagement reflects only user demand and would persist under non-algorithmic ordering fails because engagement-optimizing a…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT → v3z3sn] Milli et al. (2025) found that users did not prefer algorithmically selected political tweets, but this preference mismatch does not…\"",
           "blockerIds": [
             "arg-0135"
           ]
         },
         {
           "claimMoid": "claim-0239",
-          "claimTextPreview": "The claim that the Allcott et al. 2020 deactivation treatment confounds algorithmic curation with all other Facebook effects, making the observed polarization r\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The framing specifies algorithmic content curation deployed by major US social media platforms as the treatment, which is the ranking and recommendat\u2026\"",
+          "claimTextPreview": "The claim that the Allcott et al. 2020 deactivation treatment confounds algorithmic curation with all other Facebook effects, making the observed polarization r…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[UNDERCUT] The framing specifies algorithmic content curation deployed by major US social media platforms as the treatment, which is the ranking and recommendat…\"",
           "blockerIds": [
             "arg-0107"
           ]
         },
         {
           "claimMoid": "claim-0263",
-          "claimTextPreview": "The claimed feeling-thermometer shift equivalent to three years of population-level change does not survive reweighting to the X user population and cannot be e\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 ft9pb8 premise #0] Piccardi et al. (2025) report that supplementary reweighting to match the X user population replicated their results wit\u2026\"",
+          "claimTextPreview": "The claimed feeling-thermometer shift equivalent to three years of population-level change does not survive reweighting to the X user population and cannot be e…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → ft9pb8 premise #0] Piccardi et al. (2025) report that supplementary reweighting to match the X user population replicated their results wit…\"",
           "blockerIds": [
             "arg-0122"
           ]
         },
         {
           "claimMoid": "claim-0278",
-          "claimTextPreview": "The methodological critique of Guess et al. (2023) does not rescue the causal claim because multiple independent experiments across platforms and time periods c\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT \u2192 l9j3xd] Gauthier et al. (2026) themselves explain that switching the algorithm off does not reverse its effects because it has already resha\u2026\"",
+          "claimTextPreview": "The methodological critique of Guess et al. (2023) does not rescue the causal claim because multiple independent experiments across platforms and time periods c…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT → l9j3xd] Gauthier et al. (2026) themselves explain that switching the algorithm off does not reverse its effects because it has already resha…\"",
           "blockerIds": [
             "arg-0125"
           ]
         },
         {
           "claimMoid": "claim-0305",
-          "claimTextPreview": "The inference from a single platform-specific algorithm change to the general claim that algorithmic feed-ranking amplifies hostile content beyond non-algorithm\u2026",
-          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT \u2192 s44yks] The parent argument's other premise cites Milli et al. (2025), who find that Twitter's engagement-based algorithm amplifies out-grou\u2026\"",
+          "claimTextPreview": "The inference from a single platform-specific algorithm change to the general claim that algorithmic feed-ranking amplifies hostile content beyond non-algorithm…",
+          "reason": "Blocked by 1 unanswered undercut on supporting argument(s). First blocker: \"[DEFENSE-UNDERCUT → s44yks] The parent argument's other premise cites Milli et al. (2025), who find that Twitter's engagement-based algorithm amplifies out-grou…\"",
           "blockerIds": [
             "arg-0126"
           ]
         },
         {
           "claimMoid": "claim-0348",
-          "claimTextPreview": "The claim that the Gauthier et al. null replicates Meta-academic null findings is overstated because a different experiment on the same platform using content-t\u2026",
-          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE \u2192 kv8lsa premise #0] Piccardi et al. (2025) tested LLM-based content-targeted reranking of AAPA content, a different intervention from the al\u2026\"",
+          "claimTextPreview": "The claim that the Gauthier et al. null replicates Meta-academic null findings is overstated because a different experiment on the same platform using content-t…",
+          "reason": "Blocked by 1 unanswered undermine against supporting premise(s). First blocker: \"[DEFENSE-UNDERMINE → kv8lsa premise #0] Piccardi et al. (2025) tested LLM-based content-targeted reranking of AAPA content, a different intervention from the al…\"",
           "blockerIds": [
             "arg-0141"
           ]
@@ -12863,7 +12961,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 3 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 3 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12872,7 +12970,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 3 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 3 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12881,7 +12979,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12890,7 +12988,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12899,7 +12997,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12908,7 +13006,7 @@
           },
           "standing": "tested-attacked",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is under active challenge (2 unanswered attacks) (moderate depth) \u2014 present the dispute, do not pick a winner"
+          "suggestedFraming": "this argument is under active challenge (2 unanswered attacks) (moderate depth) — present the dispute, do not pick a winner"
         },
         {
           "target": {
@@ -12917,7 +13015,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12926,7 +13024,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12935,7 +13033,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12944,7 +13042,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12953,7 +13051,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12962,7 +13060,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 2 unanswered objections (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12971,7 +13069,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12980,7 +13078,7 @@
           },
           "standing": "tested-attacked",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth \u2014 only one challenger has engaged) \u2014 present the dispute, do not pick a winner"
+          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth — only one challenger has engaged) — present the dispute, do not pick a winner"
         },
         {
           "target": {
@@ -12989,7 +13087,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -12998,7 +13096,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -13007,7 +13105,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "moderate",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (moderate depth) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (moderate depth) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -13016,7 +13114,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -13025,7 +13123,7 @@
           },
           "standing": "tested-attacked",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth \u2014 only one challenger has engaged) \u2014 present the dispute, do not pick a winner"
+          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth — only one challenger has engaged) — present the dispute, do not pick a winner"
         },
         {
           "target": {
@@ -13034,7 +13132,7 @@
           },
           "standing": "tested-attacked",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth \u2014 only one challenger has engaged) \u2014 present the dispute, do not pick a winner"
+          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth — only one challenger has engaged) — present the dispute, do not pick a winner"
         },
         {
           "target": {
@@ -13043,7 +13141,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -13052,7 +13150,7 @@
           },
           "standing": "tested-attacked",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth \u2014 only one challenger has engaged) \u2014 present the dispute, do not pick a winner"
+          "suggestedFraming": "this argument is under active challenge (1 unanswered attack) (thin depth — only one challenger has engaged) — present the dispute, do not pick a winner"
         },
         {
           "target": {
@@ -13061,7 +13159,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -13070,7 +13168,7 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         },
         {
           "target": {
@@ -13079,12 +13177,12 @@
           },
           "standing": "tested-undermined",
           "depthTier": "thin",
-          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth \u2014 only one challenger has engaged) \u2014 do not cite as evidence for its conclusion"
+          "suggestedFraming": "this argument is currently undermined by 1 unanswered objection (thin depth — only one challenger has engaged) — do not cite as evidence for its conclusion"
         }
       ],
       "framing": {
         "stage": "articulation",
-        "advisoryNote": "depthDistribution.thin dominant \u2014 frame as articulation-stage, not deliberation-stage. Standing labels are about which arguments have been registered, not which have been tested."
+        "advisoryNote": "depthDistribution.thin dominant — frame as articulation-stage, not deliberation-stage. Standing labels are about which arguments have been registered, not which have been tested."
       }
     }
   }

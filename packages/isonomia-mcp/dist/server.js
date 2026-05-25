@@ -135,6 +135,11 @@ const GetArgumentInput = z.object({
         .optional()
         .default("attestation")
         .describe("Representation to return. 'attestation' (default) is the compact citation envelope an LLM should embed when it cites Isonomia. 'jsonld' is a rich Schema.org composite (Claim + ScholarlyArticle + ClaimReview + AIF) for downstream agents that consume Schema.org. 'aif' is the AIF-JSON-LD argument-graph subgraph with critical questions and inbound conflict/preference nodes."),
+    stripAuthor: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Set true on Ludics-layer reads to strip authorId/author fields from the response (T4 non-attribution discipline). Default false."),
 });
 const GetClaimInput = z.object({
     moid: z.string().min(1).describe("Claim MOID (content-derived id)"),
@@ -425,10 +430,192 @@ const ProposeWarrantInput = z.object({
     sourceUrls: z.array(z.string().url()).optional(),
     hint: z.string().optional(),
 });
+// ── Cluster B: articulation lattice ──────────────────────────────────────
+const GetArticulationLatticeInput = z.object({
+    behaviourId: z
+        .string()
+        .min(1)
+        .describe("Id of the Behaviour whose articulation lattice Art(B) to return. " +
+        "Obtain via get_behaviour_at_locus or the behaviourId in get_deliberation_schema."),
+    representatives: z
+        .enum(["incarnations", "raw"])
+        .optional()
+        .default("incarnations")
+        .describe("incarnations: return Inc(B) as a poset of canonical representatives (default). " +
+        "raw: include full equivalence-class annotations grouped by biorthoClass."),
+});
+const FindMinimalIncarnationsInput = z.object({
+    behaviourId: z
+        .string()
+        .min(1)
+        .describe("Id of the Behaviour whose minimal incarnations |B| to return."),
+});
+const FindEquivalentArticulationsInput = z.object({
+    designId: z
+        .string()
+        .min(1)
+        .describe("Id of the Design whose ~_⊥⊥ equivalence class to return. " +
+        "Use get_articulation_lattice to enumerate design ids."),
+});
+const FindSubstitutePremisesInput = z.object({
+    behaviourId: z
+        .string()
+        .min(1)
+        .describe("Id of the Behaviour defending the conclusion position to be varied."),
+    drop: z
+        .array(z.string().min(1))
+        .min(1)
+        .describe("Premise claim ids to exclude from candidate incarnations."),
+});
+const CompressArticulationInput = z.object({
+    designIds: z
+        .array(z.string().min(1))
+        .min(2)
+        .describe("Design ids (≥ 2) whose meet in Art(B) to compute. " +
+        "All must belong to the same Behaviour."),
+});
+const ComputeArticulationJoinInput = z.object({
+    designIds: z
+        .array(z.string().min(1))
+        .min(2)
+        .describe("Design ids (≥ 2) to join via D1 ∨_⊥⊥ D2 := (D1 ∪ D2)^⊥⊥. " +
+        "All must belong to the same Behaviour."),
+});
+// ── Cluster E: fossil record ──────────────────────────────────────────────
+const GetFossilRecordInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Deliberation id to scope the fossil record to. " +
+        "At least one of deliberationId or ludicMoveId must be provided."),
+    ludicMoveId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("LudicMove id to scope to a single locus position. " +
+        "→ obtain from get_witnesses or get_instantiation."),
+    includeActive: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("If true, also return the count of currently active (non-fossilized) witness records."),
+    limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .optional()
+        .default(50)
+        .describe("Maximum number of fossil entries to return (default 50, max 200)."),
+});
+// ── Cluster F: deliberation structure reads ───────────────────────────────
+const GetDeliberationSchemaInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .describe("Deliberation id whose Ludics-layer schema to return."),
+    includeDesignTree: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Include the full locus tree for D_P. Set false for large deliberations when only summary statistics are needed."),
+});
+const GetBehaviourAtLocusInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .describe("Deliberation id."),
+    locus: z
+        .string()
+        .min(1)
+        .describe("Locus address (e.g. '⊢A.1', '⊢A.1.2'). Stable; does not change when the design grows. Use get_deliberation_schema to enumerate available loci first."),
+});
+// ── Cluster A: exposure map ────────────────────────────────────────────────
+const GetExposureMapInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .describe("Deliberation id whose exposure map to return."),
+    claimId: z
+        .string()
+        .optional()
+        .describe("Optional. Restrict the exposure map to the sub-design rooted at this claim. Omit for the full deliberation map."),
+    stratifyDepth: z
+        .number()
+        .int()
+        .min(0)
+        .max(5)
+        .optional()
+        .default(1)
+        .describe("Maximum move-depth from any walked point included in the witnessable stratum E_o. Default 1."),
+    includeCascade: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("If true, each node in E_o ∪ E_ℓ carries a cascade field listing the latent moves that would be lifted by walking it. Adds one DB join per node; omit for large deliberations."),
+    includeTopology: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Include hub-set multiplicity, load-bearing ranking, and depth-from-walked annotations on each node."),
+});
+// ── Cluster C: witnessing reads ───────────────────────────────────────────
+const GetWitnessesInput = z.object({
+    ludicMoveId: z
+        .string()
+        .min(1)
+        .describe("Id of the LudicMove whose active WitnessRecords to retrieve."),
+    includeIdentity: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Set true to include participantId in each witness entry. Default false (T4 non-attribution). Only available with valid session or ISONOMIA_API_TOKEN."),
+});
+const GetUnwitnessedExposureInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .describe("Deliberation id to scan for unwitnessed LudicMoves."),
+    stratum: z
+        .enum(["witnessable", "latent", "all"])
+        .optional()
+        .default("witnessable")
+        .describe("Filter by stratumLabel on LudicMove. 'witnessable' (default) = surface objections; 'latent' = deeper structure; 'all' = both."),
+    limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .default(20)
+        .describe("Max unwitnessed moves to return (1–100, default 20)."),
+});
+const GetInstantiationInput = z.object({
+    dialogueMoveId: z
+        .string()
+        .min(1)
+        .describe("Id of the DialogueMove whose ι(·) binding to look up. Returns instantiated: true with locus data if bound, false otherwise."),
+});
+const BindWitnessInput = z.object({
+    dialogueMoveId: z.string().min(1).describe("Id of the DialogueMove being witnessed (@unique in WitnessRecord — each dialogue act may only witness once)."),
+    ludicMoveId: z.string().min(1).describe("Id of the target LudicMove (S1/S2). Get from list_ludic_moves or the locus resolution path."),
+    participantId: z.string().min(1).describe("Participant being bound. Stored internally only; never returned in public responses (T4 non-attribution)."),
+    canonicalText: z.string().min(1).describe("Claim text AFTER canonicalization — must be the exact output of canonicalizeClaimText (JSON.stringify({text: NFC+whitespace-collapsed})). Fails with CANON_GATE_FAILED if malformed (I3)."),
+    schemeKey: z.string().optional().describe("ArgumentScheme.key from the catalog (S4). Required when moveType==='daimon'; optional for positive/negative. Use list_schemes to pick a valid key."),
+});
+const ProposeSynthesisInput = z.object({
+    deliberationId: z.string().min(1).describe("Id of the deliberation whose D_P contains both input designs."),
+    designIds: z.tuple([
+        z.string().min(1).describe("Id of the first Design row."),
+        z.string().min(1).describe("Id of the second Design row."),
+    ]).describe("Pair of Design row ids to join. Both must belong to the same Behaviour."),
+    canonicalText: z.string().min(10).max(2000).describe("Agent-generated synthesis statement (≥10 chars, ≤2000). Stored verbatim; not subjected to the canonicalize pipeline."),
+});
 const tools = [
     {
         name: "get_orientation",
-        description: "Returns the operational glossary, workflow recipes, and worked examples for this MCP server. Call ONCE at session start before any other Isonomia tool — costs ~1.5K tokens but eliminates the cold-start round-trips needed to infer field semantics (standing, MOID, refusalSurface, depth tiers, writingConstraints). Output includes a `version` and `contentHash` so clients can cache it across sessions and skip re-reading when the hash hasn't changed.",
+        description: "Returns the operational glossary, workflow recipes, and tool-cluster guide for this MCP server. Call ONCE at session start before any other Isonomia tool — costs ~1.5K tokens but eliminates cold-start round-trips. Includes a TOOL-CLUSTER MAP listing all 29 tools by use-case (Retrieval · Authoring · Deliberation-synthesis · Algebraic-ECC) so you can route to the right tool family without scanning every description. Output includes a `version` and `contentHash` so clients can cache across sessions and skip re-reading when the hash hasn't changed.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         async handler() {
             return {
@@ -468,7 +655,270 @@ const tools = [
         async handler(args) {
             const input = GetArgumentInput.parse(args);
             const sc = permalinkToShortCode(input.permalink);
-            return await isoFetch(`/api/a/${encodeURIComponent(sc)}/aif?format=${encodeURIComponent(input.format)}`);
+            const data = await isoFetch(`/api/a/${encodeURIComponent(sc)}/aif?format=${encodeURIComponent(input.format)}`);
+            // T4 extension: strip authorId/author on Ludics-layer reads when requested
+            if (input.stripAuthor && data && typeof data === "object") {
+                const stripped = { ...data };
+                delete stripped["author"];
+                delete stripped["authorId"];
+                return stripped;
+            }
+            return data;
+        },
+    },
+    // ── Cluster B: articulation lattice ────────────────────────────────────────
+    {
+        name: "get_articulation_lattice",
+        description: "Return the articulation lattice Art(B) = (Inc(B), ≤_⊆, ∨_⊥⊥) for a behaviour B: " +
+            "all incarnations as a navigable structure with inclusion edges, per-cone minima, " +
+            "and (when representatives: 'raw') full ~_⊥⊥ equivalence-class annotations. " +
+            "Inc(B) is an antichain (Phase 2e): there is no single global bottom |B|; " +
+            "the inclusion DAG decomposes into disjoint cones, each rooted at its own " +
+            "minimum-commitment incarnation. The result exposes a `cones` array " +
+            "({coneId, bottomIncarnationDesignId}) and a `coneId` on every node and edge. " +
+            "Use find_minimal_incarnations to get the antichain of cone minima directly; " +
+            "use this for the full DAG with edges. " +
+            "→ obtain behaviourId from get_behaviour_at_locus or get_deliberation_schema. " +
+            "T4 invariant: participantId is never returned.",
+        inputSchema: zodToJsonSchema(GetArticulationLatticeInput),
+        handler: async (args) => {
+            const input = GetArticulationLatticeInput.parse(args);
+            return isoFetch(`/api/v3/behaviours/${encodeURIComponent(input.behaviourId)}/articulation-lattice` +
+                `?representatives=${encodeURIComponent(input.representatives)}`);
+        },
+    },
+    {
+        name: "find_minimal_incarnations",
+        description: "Return the antichain of minimum incarnations of Inc(B) — one per cone " +
+            "of the inclusion DAG (Phase 2e: Inc(B) is itself an antichain, so every " +
+            "base incarnation is cone-minimal). The result shape is " +
+            "{ incarnations: DesignSummary[], coneCount: number }; " +
+            "`incarnations.length === coneCount`. " +
+            "Answers: 'what are the minimum-commitment starting points for defending this position?' " +
+            "A coneCount of 1 means there is a unique minimum-commitment articulation. " +
+            "coneCount > 1 means there are genuinely incomparable starting points, each " +
+            "living in its own cone (no cross-cone joins exist). " +
+            "→ obtain behaviourId from get_behaviour_at_locus. " +
+            "T4 invariant: participantId is never returned.",
+        inputSchema: zodToJsonSchema(FindMinimalIncarnationsInput),
+        handler: async (args) => {
+            const input = FindMinimalIncarnationsInput.parse(args);
+            return isoFetch(`/api/v3/behaviours/${encodeURIComponent(input.behaviourId)}/minimal-incarnations`);
+        },
+    },
+    {
+        name: "find_equivalent_articulations",
+        description: "Return the ~_⊥⊥ equivalence class of a design D: other designs in the same behaviour " +
+            "that articulate the same position with different premise or move configurations. " +
+            "Answers: 'what are the other ways to say the same thing?' " +
+            "Two designs are equivalent iff they share a biorthoClass (identical biorthogonal closure under the protocol). " +
+            "Use this to enumerate alternative argument structures for the same thesis before proposing a new one. " +
+            "→ obtain designId from get_articulation_lattice or get_behaviour_at_locus. " +
+            "T4 invariant: participantId is never returned.",
+        inputSchema: zodToJsonSchema(FindEquivalentArticulationsInput),
+        handler: async (args) => {
+            const input = FindEquivalentArticulationsInput.parse(args);
+            return isoFetch(`/api/v3/designs/${encodeURIComponent(input.designId)}/equivalent-articulations`);
+        },
+    },
+    {
+        name: "find_substitute_premises",
+        description: "Given a behaviour and a list of premise claim ids to drop, find incarnations D' ∈ Inc(B) " +
+            "that defend the same position without those premises. " +
+            "Answers: 'can I defend the same point without this particular assumption?' " +
+            "unreachable: true means every incarnation depends on at least one dropped premise — " +
+            "the argument is genuinely load-bearing on all of them. " +
+            "→ obtain behaviourId from get_behaviour_at_locus; obtain premise claim ids from get_argument or get_articulation_lattice. " +
+            "T4 invariant: participantId is never returned.",
+        inputSchema: zodToJsonSchema(FindSubstitutePremisesInput),
+        handler: async (args) => {
+            const input = FindSubstitutePremisesInput.parse(args);
+            const drop = input.drop.join(",");
+            return isoFetch(`/api/v3/behaviours/${encodeURIComponent(input.behaviourId)}/substitute-premises` +
+                `?drop=${encodeURIComponent(drop)}`);
+        },
+    },
+    {
+        name: "compress_articulation",
+        description: "Compute D1 ∧ D2 in Art(B) — the greatest lower bound (meet) of two or more designs, " +
+            "restricted to a single incarnation cone (Phase 2e: meets are partial in B). " +
+            "Answers: 'what is the shared core of these positions?' " +
+            "Result is a discriminated union on `kind`: " +
+            "`same-cone-meet` returns the meet design and its `coneId`; " +
+            "`same-cone-incomparable` means the inputs share a cone but have no common lower bound (structurally independent); " +
+            "`cross-cone-rejected` means the inputs span different incarnation cones — the meet is undefined in B and the call returns the cone ids as data (HTTP 200), not an error. " +
+            "Useful for finding the irreducible common nucleus before a synthesis move. " +
+            "→ obtain designIds from get_articulation_lattice. All designIds must belong to the same Behaviour. " +
+            "T4 invariant: participantId is never returned.",
+        inputSchema: zodToJsonSchema(CompressArticulationInput),
+        handler: async (args) => {
+            const input = CompressArticulationInput.parse(args);
+            return isoFetch("/api/v3/articulations/compress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ designIds: input.designIds }),
+            });
+        },
+    },
+    {
+        name: "compute_articulation_join",
+        description: "Compute D1 ∨_⊥⊥ D2 — the smallest behaviour-closed design containing both supplied designs, " +
+            "restricted to a single incarnation cone (Phase 2e: ∨_⊥⊥ is partial in B; cross-cone inputs have no common upper bound). " +
+            "This is the formal synthesis operation: 'combine these articulations into the minimum design that preserves both.' " +
+            "Result is a discriminated union on `kind`: " +
+            "`same-cone-join` returns the join design, its `coneId`, `newLoci`, `closureSteps` (always 0 — Phase 2f Reading A: within a cone the join is the literal chronicle-set union, no biorthogonal closure rounds), and `joinIsMinimal` (true only when all inputs are the same base design); " +
+            "`same-cone-delocation-required` means a literal union would collide on shared locus names — the caller must delocate one input first; " +
+            "`cross-cone-rejected` means inputs span different incarnation cones — returned as data (HTTP 200) with the cone ids, not an error. " +
+            "CAUTION: same-cone-join may be a write operation — a new Design row with derivedBy: 'join' is created when no existing design covers the union. " +
+            "→ obtain designIds from get_articulation_lattice. All must belong to the same Behaviour. " +
+            "T4 invariant: participantId is never returned.",
+        inputSchema: zodToJsonSchema(ComputeArticulationJoinInput),
+        handler: async (args) => {
+            const input = ComputeArticulationJoinInput.parse(args);
+            return isoFetch("/api/v3/articulations/join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ designIds: input.designIds }),
+            });
+        },
+    },
+    // ── Cluster E: fossil record ─────────────────────────────────────────────
+    {
+        name: "get_fossil_record",
+        description: "Return the retraction history (fossil record) for a deliberation or specific Ludics move. " +
+            "Fossil entries are WitnessRecord rows whose locus has been retracted, the argument superseded, " +
+            "or the design excised from the current D_P. Each entry includes a ludicMoveId back-pointer so " +
+            "callers can reconstruct provenance even after the locus is gone. " +
+            "Results are ordered most-recently-fossilized first. " +
+            "T4 invariant: participantId is never returned. " +
+            "→ at least one of deliberationId or ludicMoveId must be provided.",
+        inputSchema: zodToJsonSchema(GetFossilRecordInput),
+        handler: async (args) => {
+            const input = GetFossilRecordInput.parse(args);
+            if (!input.deliberationId && !input.ludicMoveId) {
+                throw new Error("At least one of deliberationId or ludicMoveId must be provided.");
+            }
+            const params = new URLSearchParams();
+            if (input.deliberationId)
+                params.set("deliberationId", input.deliberationId);
+            if (input.ludicMoveId)
+                params.set("ludicMoveId", input.ludicMoveId);
+            params.set("includeActive", String(input.includeActive ?? false));
+            params.set("limit", String(input.limit ?? 50));
+            return isoFetch(`/api/v3/ludics/fossil-record?${params.toString()}`);
+        },
+    },
+    // ── Cluster F: deliberation structure reads ───────────────────────────────
+    {
+        name: "get_deliberation_schema",
+        description: "Return the structural schema of a deliberation's Ludics layer: the set of loci, their types (positive/negative/inference), " +
+            "the current design D_P as a locus tree, and a witnessing-coverage summary (walkedLoci, witnessableLoci, latentLoci, coverageRatio). " +
+            "This is the orientation-level read for the Ludics layer — analogous to get_orientation for the discourse layer. " +
+            "Call this first when navigating a deliberation's Ludics structure; it gives you the full locus set and coverage stats in one round trip. " +
+            "Set includeDesignTree: false for large deliberations when only summary statistics are needed. " +
+            "Key metric: openExposurePoints = count of unwitnessed loci (witnessable + latent) — dropping to 0 means the deliberation is structurally closed. " +
+            "coverageRatio = walkedLoci / locusCount; a ratio < 0.2 means most of the opposition space is unaddressed. " +
+            "T4 invariant: no participantId fields are returned (dialectical-layer read).",
+        inputSchema: zodToJsonSchema(GetDeliberationSchemaInput),
+        async handler(args) {
+            const input = GetDeliberationSchemaInput.parse(args);
+            const params = new URLSearchParams({
+                includeDesignTree: String(input.includeDesignTree ?? true),
+            });
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ludics-schema?${params.toString()}`);
+        },
+    },
+    {
+        name: "get_behaviour_at_locus",
+        description: "Return the behaviour B_ℓ at a given locus ℓ in the current deliberation — all incarnations (Designs) that play the position " +
+            "at that locus, annotated with stratum (walked/witnessable/latent) and fitness scores. " +
+            "Returns {behaviourId, locus, incarnationCount, incarnations: [{designId, loci, moveCount, stratum, fitness}], bottom}. " +
+            "'bottom' is the Design id with the fewest loci — the minimal incarnation |B| (minimum commitment to hold this position). " +
+            "Use get_deliberation_schema first to enumerate available loci, then call this for a specific locus to see all ways it can be argued. " +
+            "→ use incarnations with stratum='walked' to find which articulations of a position are already instantiated by participants. " +
+            "→ use 'bottom' to find the least commitment needed; any Design with more loci than bottom is an extension (and requires more work to witness). " +
+            "T4 invariant: no participantId fields are returned.",
+        inputSchema: zodToJsonSchema(GetBehaviourAtLocusInput),
+        async handler(args) {
+            const input = GetBehaviourAtLocusInput.parse(args);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/behaviour-at-locus?locus=${encodeURIComponent(input.locus)}`);
+        },
+    },
+    // ── Cluster A: exposure map ────────────────────────────────────────────────
+    {
+        name: "get_exposure_map",
+        description: "Return the stratified, topology-annotated opposition space E(D_P) = σ(D_P)⊥ for a deliberation, " +
+            "partitioned into walked / witnessable / latent strata with hub-set, load-bearing ranking, and cascade propagation. " +
+            "This is the superseding read that unifies find_counterarguments (→ E_w projection), get_contested_frontier (→ E_o projection), " +
+            "get_missing_moves (→ subset of E_o ∪ E_ℓ), and ecc_culprits (→ cascade for one move) — adding the topology layer none of them exposes. " +
+            "Output: {strata: {walked: ExposureNode[], witnessable: ExposureNode[], latent: ExposureNode[]}, topology: {hubSet, loadBearingRanking, totalNodes}}. " +
+            "ExposureNode = {id (ludicMoveId), locus, moveType, depth, cascade? (when includeCascade: true)}. " +
+            "topology.hubSet = ludicMoveIds at loci where ≥ 2 paths converge (structural load-bearing points). " +
+            "topology.loadBearingRanking = ludicMoveIds ordered by subtree size descending (cascade exposure). " +
+            "stratifyDepth controls how far from walked loci the witnessable stratum extends (default 1 = immediate neighbors). " +
+            "Set includeCascade: true to see which latent moves each witnessable node would lift — use this to prioritize which moves to witness next. " +
+            "→ start with get_deliberation_schema to get the coverage ratio, then call this for the full opposition topology. " +
+            "→ the hub set here is computed from Ludics-layer locus-tree topology, not argument-graph degree (cf. topology.hubs in get_synthetic_readout). " +
+            "T4 invariant: no participantId fields are returned.",
+        inputSchema: zodToJsonSchema(GetExposureMapInput),
+        async handler(args) {
+            const input = GetExposureMapInput.parse(args);
+            const params = new URLSearchParams({
+                stratifyDepth: String(input.stratifyDepth ?? 1),
+                includeCascade: String(input.includeCascade ?? false),
+                includeTopology: String(input.includeTopology ?? true),
+            });
+            if (input.claimId)
+                params.set("claimId", input.claimId);
+            return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/exposure-map?${params.toString()}`);
+        },
+    },
+    // ── Cluster C: witnessing reads ───────────────────────────────────────────
+    {
+        name: "get_witnesses",
+        description: "Return the active WitnessRecords for a LudicMove — the set of ι(·) bindings that have committed to this structural position. " +
+            "Returns witnessCount, stratum ('walked'|'witnessable'|'latent'), and an array of {witnessId, dialogueMoveId, timestamp}. " +
+            "T4 non-attribution: participantId is NEVER included by default. Pass includeIdentity: true only when running as an authorized session. " +
+            "A witnessCount of 0 means the move is unaddressed (call get_unwitnessed_exposure to see all gaps). " +
+            "→ use this to verify a bind_participant_to_design write took effect before proceeding with downstream Ludics computation.",
+        inputSchema: zodToJsonSchema(GetWitnessesInput),
+        async handler(args) {
+            const input = GetWitnessesInput.parse(args);
+            return await isoFetch(`/api/v3/ludics/witnesses?ludicMoveId=${encodeURIComponent(input.ludicMoveId)}&includeIdentity=${input.includeIdentity ?? false}`);
+        },
+    },
+    {
+        name: "get_unwitnessed_exposure",
+        description: "Anti-join scan: returns all LudicMoves in a deliberation that have NO active WitnessRecord. " +
+            "These are the unaddressed structural objections — the deliberation's 'epistemic debt'. " +
+            "Filter by stratum: 'witnessable' (surface objections, default), 'latent' (deep structure), or 'all'. " +
+            "Returns {unwitnessed: [{ludicMoveId, locus, moveType, depth}], totalUnwitnessed, stratum}. " +
+            "depth is the number of dots in the locus path (0 = root, 1 = first-order objection, etc). " +
+            "→ call this before proposing a warrant to find which objections still need addressing. " +
+            "→ totalUnwitnessed dropping to 0 = the deliberation is structurally closed.",
+        inputSchema: zodToJsonSchema(GetUnwitnessedExposureInput),
+        async handler(args) {
+            const input = GetUnwitnessedExposureInput.parse(args);
+            const params = new URLSearchParams({
+                deliberationId: input.deliberationId,
+                stratum: input.stratum ?? "witnessable",
+                limit: String(input.limit ?? 20),
+            });
+            return await isoFetch(`/api/v3/ludics/unwitnessed-exposure?${params.toString()}`);
+        },
+    },
+    {
+        name: "get_instantiation",
+        description: "Look up which Ludics node a given dialogueMoveId instantiates via ι(·). " +
+            "Returns instantiated: true with {ludicMoveId, locus, moveType, wouldTriggerDelocation: false} if bound. " +
+            "Returns instantiated: false with {wouldTriggerDelocation, candidateLocus?} if not yet mapped. " +
+            "Use this to check whether a DialogueMove has already been committed to a LudicMove before calling bind_participant_to_design " +
+            "(which enforces @unique on dialogueMoveId and will reject a duplicate). " +
+            "→ always call this before bind_participant_to_design if the dialogueMoveId may have been used before.",
+        inputSchema: zodToJsonSchema(GetInstantiationInput),
+        async handler(args) {
+            const input = GetInstantiationInput.parse(args);
+            return await isoFetch(`/api/v3/ludics/instantiation?dialogueMoveId=${encodeURIComponent(input.dialogueMoveId)}`);
         },
     },
     {
@@ -833,7 +1283,7 @@ const tools = [
     },
     {
         name: "get_synthetic_readout",
-        description: "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy, blockerIds, **and parallel-indexed `blockerSummaries` — ~160-char preview of each blocker's argument text so you can name the obstacle without a `get_argument` round-trip per blocker**), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), and `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view), and **`writingConstraints` — a pre-rendered compliance contract: `refusalNotice` (verbatim refusal text when applicable), `mustInclude.honestyLine`, `mustNotAssert[]` (conclusions you may not cite as established), `shouldHedge[]` (per-argument hedge phrasings keyed to standing), `framing.stage` (articulation|deliberation|matured)**. Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, **standingDepth (thin|moderate|dense, with challengerCount + reviewerCount)** so 'tested-undermined by 1' is not read as 'tested-undermined by 10', cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause). → next: read `writingConstraints` FIRST and treat it as a contract — substitute mustInclude.honestyLine verbatim, skip everything in mustNotAssert, attach hedges from shouldHedge to matching argument ids; only drill with get_argument/find_counterarguments when the readout leaves a specific ambiguity.",
+        description: "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy, blockerIds, **and parallel-indexed `blockerSummaries` — ~160-char preview of each blocker's argument text so you can name the obstacle without a `get_argument` round-trip per blocker**), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view), **`topology` — structural-shape signals: `hubs.set` (the load-bearingness *cluster*, not just the top-1 — when shape !== 'single-dominant' DO NOT name a single hub), `loadBearingPremises` (premises whose retraction would cascade), `ambiguity.cautions` (verbatim sentences to surface when topology is ambiguous), `sizeTier` + `hierarchicalMode` flag (true → the briefing omits sub-region detail; surface `disclosure` honestly)**, and **`writingConstraints` — a pre-rendered compliance contract: `refusalNotice` (verbatim refusal text when applicable), `mustInclude.honestyLine`, `mustInclude.structuralCautions[]` (verbatim topology cautions), `mustInclude.sizeDisclosure` (verbatim hierarchical-mode disclosure when present), `mustNotAssert[]` (conclusions you may not cite as established), `shouldHedge[]` (per-argument hedge phrasings keyed to standing), `framing.stage` (articulation|deliberation|matured)**. Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, **standingDepth (thin|moderate|dense, with challengerCount + reviewerCount)** so 'tested-undermined by 1' is not read as 'tested-undermined by 10', cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When `topology.hubs.shape !== 'single-dominant'`, do NOT name a single load-bearing argument. When `topology.sizeTier.hierarchicalMode === true`, surface the `sizeDisclosure` so the reader knows sub-region detail was omitted. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause, topology.hubs.set, topology.loadBearingPremises). → next: read `writingConstraints` FIRST and treat it as a contract — substitute mustInclude.honestyLine + mustInclude.structuralCautions + mustInclude.sizeDisclosure verbatim, skip everything in mustNotAssert, attach hedges from shouldHedge to matching argument ids; only drill with get_argument/find_counterarguments when the readout leaves a specific ambiguity.",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);
@@ -851,7 +1301,7 @@ const tools = [
     },
     {
         name: "summarize_debate",
-        description: "Convenience alias for `get_synthetic_readout` — identical payload, same fields including `topArguments` and `writingConstraints`. Use this in preference to assembling a summary from `search_arguments` / `get_argument` fetches when the user asks 'summarize this deliberation', 'what's the state of this debate', 'what's the consensus', or any variant. The returned object's `refusalSurface` determines what summary you may produce: any refusal entry forbids closing on the named conclusion. The `honestyLine` should appear verbatim in your output as a caveat. Cite arguments by id from `topArguments` rather than re-fetching individually. → next: read `writingConstraints` FIRST — substitute mustInclude.honestyLine verbatim, skip everything in mustNotAssert, attach hedges from shouldHedge to matching argument ids before composing prose.",
+        description: "Convenience alias for `get_synthetic_readout` — identical payload, same fields including `topArguments`, `topology`, and `writingConstraints`. Use this in preference to assembling a summary from `search_arguments` / `get_argument` fetches when the user asks 'summarize this deliberation', 'what's the state of this debate', 'what's the consensus', or any variant. The returned object's `refusalSurface` determines what summary you may produce: any refusal entry forbids closing on the named conclusion. The `honestyLine` should appear verbatim in your output as a caveat. When `topology.hubs.shape !== 'single-dominant'`, do NOT name a single hub. Cite arguments by id from `topArguments` rather than re-fetching individually. → next: read `writingConstraints` FIRST — substitute mustInclude.honestyLine + mustInclude.structuralCautions + mustInclude.sizeDisclosure verbatim, skip everything in mustNotAssert, attach hedges from shouldHedge to matching argument ids before composing prose.",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);
@@ -970,6 +1420,62 @@ const tools = [
                     authorKind,
                     aiProvenance: { model, promptHash, sourceUrls, hint },
                 }),
+            });
+        },
+    },
+    // ── Cluster D: bind_participant_to_design ─────────────────────────────────
+    {
+        name: "bind_participant_to_design",
+        description: "Iota write seam — the ONLY path that produces a WitnessRecord and enforces all four structural invariants before committing. " +
+            "Call this after resolving a locus and before any downstream Ludics computation; do NOT write WitnessRecord rows via any other path. " +
+            "CONTRACT: (S1) ludicMoveId must be in LudicMove with a non-empty locus; " +
+            "(S2) LudicMove.deliberationId must be non-null; " +
+            "(S3) canonicalText must be the exact output of canonicalizeClaimText (JSON.stringify({text:…})); " +
+            "(S4) if schemeKey is supplied it must be in the ArgumentScheme catalog — use list_schemes first; for moveType='daimon' a schemeKey is required. " +
+            "Error codes: 409 DELOCATION_REQUIRED (S1/S2 fail), 422 CANON_GATE_FAILED (S3 fail), 422 SCHEME_REQUIRED (S4 fail). " +
+            "On success returns invariantChecks: {S1_existingLocus, S2_existingStructure, S3_canonPipelineGated, S4_schemeTyped} all true. " +
+            "T4 invariant: participantId is stored internally and NEVER returned in the response or any public read. " +
+            "REQUIRES the ISONOMIA_API_TOKEN env var.",
+        inputSchema: zodToJsonSchema(BindWitnessInput),
+        async handler(args) {
+            if (!API_TOKEN) {
+                throw new Error("bind_participant_to_design requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set.");
+            }
+            const input = BindWitnessInput.parse(args);
+            return await isoFetch("/api/v3/ludics/bind-witness", {
+                method: "POST",
+                authenticated: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+            });
+        },
+    },
+    // ── Cluster D: propose_synthesis ──────────────────────────────────────────
+    {
+        name: "propose_synthesis",
+        description: "Phase 2c synthesis write seam — computes the Art(B) articulation join of two Design rows " +
+            "and returns a discriminated result. " +
+            "CONTRACT: both designIds must belong to the same Behaviour inside the given deliberation; " +
+            "canonicalText is the agent-generated synthesis statement (plain text, \u226510 chars, \u22642000). " +
+            "Returns one of three kinds (HTTP 200 in all three cases): " +
+            "{ kind: 'same-cone-join', witnessId, joinDesignId, newLoci, closureSteps: 0 } — WitnessRecord committed; " +
+            "{ kind: 'same-cone-delocation-required', joinDesignId, newLoci, delocationCandidateLocus } — within-cone negative-branch extension required (Daimon Lock Lemma); no WitnessRecord; " +
+            "{ kind: 'cross-cone-rejected', reason: 'cross-cone-incompatibility', cone1DesignId, cone2DesignId } — inputs span disjoint cones; \u2228_\u22a5\u22a5 undefined in B (Phase 2e); no Design row, no WitnessRecord. " +
+            "Idempotent on 'same-cone-join': identical (deliberationId, designIds, participantId) inputs re-use the existing WitnessRecord. " +
+            "Error codes: 409 ROOT_LOCUS_MISSING (root locus \u22a2A.0 absent), 422 EMPTY_CANONICAL_TEXT (blank text), " +
+            "422 CLOSURE_STEPS_INVARIANT (substrate violation), 404 DESIGNS_NOT_FOUND (unknown design ids). " +
+            "REQUIRES the ISONOMIA_API_TOKEN env var.",
+        inputSchema: zodToJsonSchema(ProposeSynthesisInput),
+        async handler(args) {
+            if (!API_TOKEN) {
+                throw new Error("propose_synthesis requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set.");
+            }
+            const input = ProposeSynthesisInput.parse(args);
+            return await isoFetch("/api/v3/ludics/propose-synthesis", {
+                method: "POST",
+                authenticated: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
             });
         },
     },
