@@ -56,6 +56,7 @@ import {
   Waypoints,
   Workflow,
   type LucideIcon,
+  Triangle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -88,6 +89,8 @@ interface PillarCard {
   body: string;
   status: "shipped" | "partial" | "planned";
   evidence: string[];
+  color: string;
+  iconColor: string;
 }
 
 const PILLARS: PillarCard[] = [
@@ -97,8 +100,10 @@ const PILLARS: PillarCard[] = [
     label: "Pillar 1",
     title: "Machine-citable structured arguments",
     body:
-      "Every permalink resolves to a structured AIF subgraph (claim, premises, scheme, evidence) — not just prose. LLMs cite a unit, not a webpage.",
+      "Every permalink resolves to a structured AIF subgraph — claim, premises, scheme, evidence — not just prose. LLMs cite a unit, not a webpage.",
     status: "shipped",
+    color: "from-sky-500/10 to-blue-500/15",
+    iconColor: "text-sky-600",
     evidence: [
       "Content negotiation: /a/{id} returns HTML, JSON-LD, AIF, or attestation",
       "?format=jsonld emits AIF + Schema.org composite",
@@ -111,8 +116,10 @@ const PILLARS: PillarCard[] = [
     label: "Pillar 2",
     title: "Verifiable provenance, end-to-end",
     body:
-      "Argument-level: sha256 over the canonical AIF subgraph plus an immutable @hash permalink. Evidence-level: server-side fetch hash + archive.org snapshot. Premise-level: counters surface unattested premises honestly.",
+      "Three layers of evidence: a sha256 over the canonical AIF subgraph; a server-side fetch hash plus archive.org snapshot per source; and a counter that surfaces unattested premises honestly.",
     status: "shipped",
+    color: "from-violet-500/10 to-purple-500/15",
+    iconColor: "text-violet-600",
     evidence: [
       "Argument contentHash = sha256 over canonical(claim, premises, scheme, evidence)",
       "Immutable URL: /a/{shortCode}@{hash}",
@@ -126,8 +133,10 @@ const PILLARS: PillarCard[] = [
     label: "Pillar 3",
     title: "Dialectical honesty by construction",
     body:
-      "The citation primitive ships with its opposition attached. Counter-arguments are surfaced inline, standing scores are classified (not raw floats), and an empty result is honestly empty rather than a false positive.",
+      "The citation ships with its opposition attached. Counter-arguments are inline, standing scores are classified (not raw floats), and empty results are honestly empty.",
     status: "shipped",
+    color: "from-rose-500/10 to-pink-500/15",
+    iconColor: "text-rose-600",
     evidence: [
       "cite_argument.strongestObjection (default: on)",
       "standingState: untested-default | tested-attacked | tested-survived | …",
@@ -141,23 +150,27 @@ const PILLARS: PillarCard[] = [
     label: "Pillar 4",
     title: "Standards-grounded interoperability",
     body:
-      "AIF + JSON-LD + Schema.org + MCP. No bespoke formats. Any client that speaks one of these can consume Isonomia today.",
+      "AIF, JSON-LD, Schema.org, MCP. No bespoke formats — any client that speaks one of these can consume Isonomia today.",
     status: "shipped",
+    color: "from-emerald-500/10 to-teal-500/15",
+    iconColor: "text-emerald-600",
     evidence: [
       "AIF context with aif:/as:/cq: prefixes",
       "Schema.org composite: Claim + ScholarlyArticle + ClaimReview",
       "MCP server (6 tools, stdio)",
-      "OpenAPI 3.1 spec + Scalar docs at /api/v3/docs (B.3)",
+      "OpenAPI 3.1 spec + Scalar docs at /api/v3/docs",
     ],
   },
   {
     id: "shippable",
-    icon: Sparkles,
+    icon: Triangle,
     label: "Pillar 5",
     title: "Shippable on existing infrastructure",
     body:
-      "Built on production Isonomia: existing argument graph, existing scheme catalog, existing permalinks. No migration, no second source of truth.",
+      "Built on production Isonomia: same argument graph, same scheme catalog, same permalinks. No migration, no second source of truth.",
     status: "shipped",
+    color: "from-amber-500/10 to-orange-500/15",
+    iconColor: "text-amber-600",
     evidence: [
       "54/54 attestation verifier passing",
       "37/37 MCP verifier passing",
@@ -169,17 +182,19 @@ const PILLARS: PillarCard[] = [
     id: "deliberation-honesty",
     icon: Eye,
     label: "Pillar 6",
-    title: "Deliberation-scope readiness & honesty (Pt. 4)",
+    title: "Deliberation-scope readiness & honesty",
     body:
-      "Above the per-argument primitive sits a deliberation-scope substrate: a structural fingerprint, a contested frontier, a missing-moves audit, chain-fragility projections, and a deterministic synthetic readout that refuses to summarise prematurely. Citing a deliberation, not just an argument, comes with the same honesty contract.",
+      "Above the per-argument primitive sits a deliberation-scope substrate: a structural fingerprint, a contested frontier, a missing-moves audit, chain-fragility projections, and a deterministic readout that refuses to summarise prematurely.",
     status: "shipped",
+    color: "from-indigo-500/10 to-violet-500/15",
+    iconColor: "text-indigo-600",
     evidence: [
-      "DeliberationFingerprint (counts, depth, CQ coverage, AI-vs-human extraction split)",
-      "ContestedFrontier (unanswered undercuts/undermines/CQs, terminal leaves)",
+      "DeliberationFingerprint: counts, depth, CQ coverage, AI-vs-human split",
+      "ContestedFrontier: unanswered undercuts / undermines / CQs, terminal leaves",
       "MissingMoveReport (per-argument + rollup) + ChainExposure (weakestLink)",
-      "SyntheticReadout with deterministic honestyLine + refusalSurface (real graph node ids)",
-      "Cross-deliberation aggregation rule (consistent\u2011IN / OUT / contested / undecided)",
-      "AI-engagement telemetry \u2192 truthful articulationOnly chip",
+      "SyntheticReadout: deterministic honestyLine + refusalSurface (real node ids)",
+      "Cross-deliberation aggregation: consistent-IN / OUT / contested / undecided",
+      "AiDraftEngagement telemetry \u2192 articulationOnly chip",
       "DeliberationFingerprintCache (contentHash-keyed) + 30s SWR dedupe",
     ],
   },
@@ -270,8 +285,23 @@ const TRACKS: { letter: string; name: string; rows: TrackRow[] }[] = [
       { id: "G.6", label: "G.6", title: "Fossil record (get_fossil_record) + briefing-fingerprint API (5 material-change rules)", status: "shipped" },
       { id: "G.7", label: "G.7", title: "Scorecard v1.5: coverage-exposure dimension + manifest extensions (openExposurePoints, coverageRatio, fossilCount)", status: "shipped" },
       { id: "G.8", label: "G.8", title: "Staging migration + stratum-labeling benchmark (< 500ms p95 target)", status: "planned" },
-      { id: "G.9", label: "G.9", title: "Fossil retraction lifecycle (argument / locus deletion → fossilize)", status: "planned" },
+      { id: "G.9", label: "G.9", title: "Fossil retraction lifecycle (argument / locus deletion → fossilize + witness rescission)", status: "shipped" },
       { id: "G.10", label: "G.10", title: "AI synthesis workflow: compute_articulation_join → bind_participant_to_design end-to-end", status: "planned" },
+    ],
+  },
+  {
+    letter: "H",
+    name: "Ludics generative substrate (Phase 2 — production)",
+    rows: [
+      { id: "H.1", label: "H.1", title: "Inc(B) antichain decomposition + ∨_⊥⊥ Reading A (per-cone synthesis)", status: "shipped" },
+      { id: "H.2", label: "H.2", title: "R1–R5 fingerprint material-change rules (R1 new fossil · R2 stratum delta · R3 minimum-shift · R4 join-eligible · R5 antichain widen)", status: "shipped" },
+      { id: "H.3", label: "H.3", title: "OQ-JSL proof pass (Inc(B) antichain invariant verified across the suite)", status: "shipped" },
+      { id: "H.4", label: "H.4", title: "Redis-only fingerprint cache (WS-1 / B12) — Postgres truth, Upstash read-through, horizontal-scale convergence", status: "shipped" },
+      { id: "H.5", label: "H.5", title: "Compound rate-limit (WS-2 / B11) — (deliberationId, participantId, IP) keyed; bind / propose / retract", status: "shipped" },
+      { id: "H.6", label: "H.6", title: "Scoped session tokens (WS-3 / B6) — deliberation-bound JWT via jose; scope mismatch → 403", status: "shipped" },
+      { id: "H.7", label: "H.7", title: "Announcement bus A1–A4 — witness_committed / design_revealed / witness_contested / witness_rescinded (BullMQ; idempotent on (eventType,subjectId,occurredAt); replayable from Postgres)", status: "shipped" },
+      { id: "H.8", label: "H.8", title: "v2.5 cutover — bus is sole emit channel (no console.info dual-emit); LUDICS_LEGACY_BEARER + ludics legacy bearer branch removed", status: "shipped" },
+      { id: "H.9", label: "H.9", title: "Upstash p99 latency dashboard + ElastiCache migration trigger threshold", status: "planned", note: "ops task — outside code-side sprint" },
     ],
   },
 ];
@@ -320,6 +350,29 @@ const EXAMPLE_ATTESTATION = {
     standingScore: 0.62,
   },
   author: { username: "panand", name: "Dr. Priya Anand" },
+};
+
+const EXAMPLE_ANNOUNCEMENT = {
+  eventType: "witness_rescinded",
+  version: 1,
+  scopeId: "delib_7c1a4f0e",
+  actorParticipantId: "participant_panand",
+  subjectId: "wr_9f1b3a2c",
+  occurredAt: "2026-05-24T18:42:11.083Z",
+  payload: {
+    ludicMoveId: "lm_bx7kqm",
+    fossilizedAt: "2026-05-24T18:42:11.080Z",
+    retractLayer: "witness",
+    retractReason: "Premise p2 revised; original commitment no longer load-bearing.",
+  },
+};
+
+const EXAMPLE_SCOPED_JWT_CLAIMS = {
+  iss: "mesh-ludics",
+  sub: "participant_panand",
+  scope: { deliberationId: "delib_7c1a4f0e" },
+  iat: 1748112000,
+  exp: 1748115600,
 };
 
 const EXAMPLE_CITE = {
@@ -408,7 +461,7 @@ function PillarsSection() {
   return (
     <section>
       <div className="mb-4">
-        <h2 className="text-xl font-semibold text-slate-800">The five pillars</h2>
+        <h2 className="text-xl font-semibold text-slate-800">The six pillars</h2>
         <p className="text-sm text-slate-500 mt-0.5">
           What an Isonomia permalink means when an LLM cites it.
         </p>
@@ -417,34 +470,35 @@ function PillarsSection() {
         {PILLARS.map((p) => {
           const Icon = p.icon;
           return (
-            <div
-              key={p.id}
-              className="rounded-xl border border-slate-200 bg-white p-5 hover:shadow-sm transition-shadow"
-            >
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 border border-indigo-100">
-                  <Icon className="w-5 h-5" />
+            <div key={p.id} className="cardv2 h-full flex flex-col">
+              <div className="p-5 pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`p-2 rounded-xl bg-gradient-to-br ${p.color} ${p.iconColor} shrink-0`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 font-mono">{p.label}</span>
+                      <p className="font-semibold text-slate-900 text-[14px] leading-tight">{p.title}</p>
+                    </div>
+                  </div>
+                  <StatusPill status={p.status} />
                 </div>
-                <StatusPill status={p.status} />
+                <p className="text-xs text-slate-500 mt-3 leading-snug">{p.body}</p>
               </div>
-              <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
-                {p.label}
-              </p>
-              <h3 className="text-base font-semibold text-slate-800 mt-0.5 leading-snug">
-                {p.title}
-              </h3>
-              <p className="text-sm text-slate-600 mt-2 leading-relaxed">{p.body}</p>
-              <ul className="mt-3 space-y-1.5">
-                {p.evidence.map((e) => (
-                  <li
-                    key={e}
-                    className="flex items-start gap-1.5 text-[12px] text-slate-500"
-                  >
-                    <ArrowRight className="w-3 h-3 mt-1 text-slate-400 shrink-0" />
-                    <span>{e}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="px-5 pb-5 flex-1">
+                <ul className="space-y-1.5">
+                  {p.evidence.map((e) => (
+                    <li
+                      key={e}
+                      className="flex items-start gap-2 text-[12.5px] text-slate-600 leading-snug"
+                    >
+                      <div className="w-1 h-1 rounded-full bg-sky-400/70 flex-shrink-0 mt-[5px]" />
+                      {e}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           );
         })}
@@ -459,8 +513,7 @@ function TracksSection() {
       <div className="mb-4">
         <h2 className="text-xl font-semibold text-slate-800">Roadmap tracks</h2>
         <p className="text-sm text-slate-500 mt-0.5">
-          Five capability tracks, ordered by leverage. Each is independently
-          shippable.
+          Eight capability tracks, ordered by leverage. Each is independently shippable.
         </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -538,10 +591,9 @@ function PermalinkExplainer() {
           <Hash className="w-4 h-4 text-slate-500" /> Content addressing
         </p>
         <p className="text-sm text-slate-600 leading-relaxed">
-          Every argument's canonical AIF subgraph is hashed (sha256, sorted-keys
-          JSON). The hash and the version number ride alongside the permalink in
-          response headers and an immutable URL form, so a citation can pin to
-          the exact state of the argument at retrieval time.
+          Each argument&apos;s canonical AIF subgraph is sha256-hashed (sorted-keys JSON).
+          The hash and version ride alongside the permalink in response headers and an
+          immutable URL form, so a citation can pin to the exact state at retrieval time.
         </p>
         <CodeBlock language="http">
 {`HTTP/1.1 200 OK
@@ -570,7 +622,7 @@ function AttestationExplainer() {
         </p>
         <p className="text-sm text-slate-600 leading-relaxed">
           What an LLM should embed when it cites Isonomia. Verifiable, dated,
-          and dialectically scored — the unit a careful reasoner would want.
+          and dialectically scored.
         </p>
       </div>
       <CodeBlock>{JSON.stringify(EXAMPLE_ATTESTATION, null, 2)}</CodeBlock>
@@ -604,7 +656,7 @@ function AttestationExplainer() {
             CQ counters, inbound attacks/supports,{" "}
             <span className="font-mono">testedness</span> bucket, and a{" "}
             <span className="font-mono">standingScore</span> that is{" "}
-            <em>null</em> when there's no signal — never a misleading 1.0.
+            <em>null</em> when there&apos;s no signal — never a misleading 1.0.
           </p>
         </div>
         <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3">
@@ -632,14 +684,13 @@ function CounterCitationExplainer() {
           </div>
           <div>
             <p className="text-sm font-semibold text-rose-800">
-              No other citation system in the world does this
+              No other citation system ships its opposition
             </p>
             <p className="text-sm text-rose-700 mt-1 leading-relaxed">
-              When an LLM calls{" "}
-              <span className="font-mono">cite_argument</span>, the citation
-              block arrives with the strongest known counter-argument
-              <em> already attached</em>. There is no path to citing an
-              Isonomia argument that hides what attacks it.
+              When an LLM calls <span className="font-mono">cite_argument</span>,
+              the citation block arrives with the strongest known counter-argument
+              <em> already attached</em>. There is no path to citing an Isonomia
+              argument that hides what attacks it.
             </p>
           </div>
         </div>
@@ -651,7 +702,7 @@ function CounterCitationExplainer() {
         </p>
         <p className="text-sm text-slate-600 leading-relaxed mb-3">
           A naive consumer reading <span className="font-mono">standingScore: 1.0</span>{" "}
-          might infer "this argument has survived everything." That can be
+          might infer &quot;this argument has survived everything.&quot; That can be
           misleading: a scheme requiring zero critical questions, with no
           inbound traffic, would also produce 1.0. So we classify:
         </p>
@@ -896,12 +947,12 @@ function McpExplainer() {
       </div>
       <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-5">
         <p className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
-          <Eye className="w-4 h-4 text-amber-700" /> Deliberation primitive — 7 new tools (Pt. 4)
+          <Eye className="w-4 h-4 text-amber-700" /> Deliberation primitive — 7 new tools
         </p>
         <p className="text-sm text-amber-800/90 leading-relaxed mb-4">
           The deliberation-scope substrate is exposed over the same MCP
-          surface. These tools let an LLM ask <em>"is this debate ready to
-          summarise?"</em> before it tries to.
+          surface. These tools let an LLM ask <em>&quot;is this debate ready to
+          summarise?&quot;</em> before it tries to.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
@@ -946,7 +997,7 @@ function McpExplainer() {
       </div>
       <div className="rounded-xl border border-violet-200 bg-violet-50/30 p-5">
         <p className="text-sm font-semibold text-violet-900 mb-3 flex items-center gap-2">
-          <Workflow className="w-4 h-4 text-violet-700" /> Ludics substrate — 14 new tools (Phase 1)
+          <Workflow className="w-4 h-4 text-violet-700" /> Ludics substrate — 14 new tools
         </p>
         <p className="text-sm text-violet-800/90 leading-relaxed mb-4">
           The generative substrate exposes the dialectical structure beneath deliberations: incarnation lattices, witnessing records, fossil transcripts, and a briefing-fingerprint for agent staleness detection. These tools give LLMs the algebraic layer of the argument graph, not just the graph surface.
@@ -1020,12 +1071,147 @@ function McpExplainer() {
   );
 }
 
+function LudicsSubstrateTab() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-5">
+        <div className="flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-violet-100 text-violet-700 shrink-0">
+            <Radio className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-violet-900">
+              Substrate v2.5 — typed, scoped, replayable
+            </p>
+            <p className="text-sm text-violet-800/90 mt-1 leading-relaxed">
+              Phase 1 shipped the read model: witnessing, fossils, articulation
+              lattice. Phase 2 hardened the perimeter and made the substrate
+              observable from outside. Every binding act on the substrate now
+              (a) writes through a deliberation-scoped JWT, (b) is rate-limited
+              on a compound key, and (c) emits a typed announcement that is
+              persisted in Postgres and dispatched at-least-once via BullMQ.
+              v2.5 retired the last <span className="font-mono">console.info</span>{" "}
+              dual-emit and the legacy shared bearer; the bus is now the sole channel.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <Radio className="w-4 h-4 text-slate-500" /> Announcement envelope (A1–A4)
+        </p>
+        <p className="text-sm text-slate-600 leading-relaxed mb-3">
+          Four event types map onto Ludics&apos; four axioms — A1 commit, A2 reveal,
+          A3 contest, A4 retract — and ride a single Zod-validated envelope.
+          Idempotency key is the triple{" "}
+          <span className="font-mono">(eventType, subjectId, occurredAt)</span>;
+          subscribers must dedupe.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+          {[
+            { type: "witness_committed", axiom: "A1", note: "new WitnessRecord persisted at a locus" },
+            { type: "design_revealed", axiom: "A2", note: "first published synthesis (same-cone-join)" },
+            { type: "witness_contested", axiom: "A3", note: "counter-witness bound to the same locus" },
+            { type: "witness_rescinded", axiom: "A4", note: "witness retracted → fossil emitted" },
+          ].map((e) => (
+            <div key={e.type} className="rounded-md border border-violet-200/70 bg-violet-50/40 p-2.5">
+              <p className="text-[10px] uppercase font-semibold tracking-wide text-violet-700">{e.axiom}</p>
+              <p className="text-[12px] font-mono font-semibold text-slate-800 mt-0.5">{e.type}</p>
+              <p className="text-[11px] text-slate-600 leading-snug mt-0.5">{e.note}</p>
+            </div>
+          ))}
+        </div>
+        <CodeBlock>{JSON.stringify(EXAMPLE_ANNOUNCEMENT, null, 2)}</CodeBlock>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <Lock className="w-4 h-4 text-slate-500" /> Scoped session token (JWT claims)
+        </p>
+        <p className="text-sm text-slate-600 leading-relaxed mb-3">
+          Every write to the substrate (bind / propose / retract) verifies a
+          short-lived JWT signed with{" "}
+          <span className="font-mono">LUDICS_JWT_SIGNING_KEY</span>. The token&apos;s{" "}
+          <span className="font-mono">scope.deliberationId</span> must match
+          the request body — a mismatch returns{" "}
+          <span className="font-mono">403 SCOPE_MISMATCH</span>, an expired token returns{" "}
+          <span className="font-mono">401 EXPIRED_TOKEN</span>. There is no tenant
+          axis in this repo (WS-0 audit), so the scope unit is the
+          deliberation itself.
+        </p>
+        <CodeBlock>{JSON.stringify(EXAMPLE_SCOPED_JWT_CLAIMS, null, 2)}</CodeBlock>
+        <p className="text-[11px] text-slate-500 mt-3">
+          Mint locally via{" "}
+          <span className="font-mono">
+            npx tsx scripts/mintMcpToken.ts --deliberation &lt;id&gt; --participant &lt;id&gt; --ttl 3600
+          </span>.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-slate-500" /> Production-readiness invariants (§6.6 suite)
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            { hdr: "Fingerprint cache (WS-1)", body: "Postgres truth + Upstash read-through; cold-miss writes Redis; recordFingerprint invalidates; two PrismaClient instances converge." },
+            { hdr: "Compound rate-limit (WS-2)", body: "(deliberationId, participantId) + (deliberationId, IP) buckets; cross-deliberation isolation; Retry-After header set on 429." },
+            { hdr: "Scoped JWT (WS-3)", body: "Valid token + matching scope → 200; wrong deliberationId → 403; expired → 401; unparseable bearer → 401 INVALID_TOKEN." },
+            { hdr: "Announcement bus (A1–A4)", body: "Envelope shape · idempotency on (eventType,subjectId,occurredAt) · replay-from-Postgres · dispatcher retries · DLQ on terminal failure." },
+          ].map((row) => (
+            <div key={row.hdr} className="rounded-md border border-slate-200 bg-slate-50/60 p-3">
+              <p className="text-[11px] uppercase font-semibold text-slate-500 tracking-wide mb-1">{row.hdr}</p>
+              <p className="text-[12px] text-slate-600 leading-snug">{row.body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-500 mt-3 font-mono">
+          npx jest __tests__/invariants __tests__/eval · 22 suites · 390 tests + 1 todo at v2.5 cutover
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 p-5">
+        <p className="text-sm font-semibold text-emerald-900 mb-2 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-700" /> v2.5 cutover — sole-channel emit
+        </p>
+        <ul className="text-[12px] text-emerald-900/90 leading-relaxed space-y-1 list-disc pl-5">
+          <li>
+            Removed the{" "}
+            <span className="font-mono">console.info({"{ event: \"witness_rescinded\", … }"})</span>{" "}
+            dual-emit from <span className="font-mono">app/api/v3/ludics/retract-witness/route.ts</span> —
+            the bus is the only channel.
+          </li>
+          <li>
+            Dropped <span className="font-mono">LUDICS_LEGACY_BEARER</span> and the legacy{" "}
+            <span className="font-mono">MCP_API_TOKEN</span> branch in{" "}
+            <span className="font-mono">server/ludics/auth.ts</span>. Resolution is now
+            (1) Bearer → scoped JWT, (2) Session cookie.
+          </li>
+          <li>
+            JWT-failure catch re-throws the precise{" "}
+            <span className="font-mono">LudicsAuthError</span> code
+            (<span className="font-mono">SCOPE_MISMATCH</span> /{" "}
+            <span className="font-mono">EXPIRED_TOKEN</span> /{" "}
+            <span className="font-mono">INVALID_TOKEN</span>) instead of silently collapsing.
+          </li>
+          <li>
+            The <span className="font-mono">MCP_API_TOKEN</span> env var itself is preserved —
+            it is still consumed by <span className="font-mono">lib/citation/mcpAuth.ts</span>{" "}
+            and the isonomia MCP OpenAPI surface (non-ludics).
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function FlowExplainer() {
   const steps = [
     {
       n: 1,
       title: "User asks an LLM about a contested issue",
-      body: '"Is social media driving the teen mental health crisis?"',
+      body: '"Are GLP-1 medications safe for long-term use?" → LLM identifies key claims and formulates a search query',
       icon: HelpCircle,
     },
     {
@@ -1227,82 +1413,101 @@ function DeliberationReadoutTab() {
   );
 }
 
+const ROUTES = [
+  { method: "GET", path: "/a/{shortCode}", description: "Content-negotiated permalink (HTML / JSON-LD / AIF / attestation)", tag: "Page" },
+  { method: "GET", path: "/a/{shortCode}@{hash}", description: "Immutable, content-addressed permalink", tag: "Page" },
+  { method: "GET", path: "/api/v3/search/arguments", description: "Hybrid retrieval; ?sort=dialectical_fitness re-rank", tag: "API" },
+  { method: "GET", path: "/api/v3/arguments/{shortCode}/attestation", description: "Compact citation envelope (the LLM unit)", tag: "API" },
+  { method: "GET", path: "/api/v3/deliberations/{id}/synthetic-readout", description: "Deterministic readout + refusalSurface (real node ids)", tag: "API" },
+  { method: "GET", path: "/api/v3/deliberations/{id}/fingerprint", description: "Structural fingerprint (counts, depth, CQ coverage)", tag: "API" },
+  { method: "GET", path: "/api/v3/ludics/fossil-record", description: "Retraction history with locus back-pointers", tag: "API" },
+  { method: "GET", path: "/api/v3/docs", description: "OpenAPI 3.1 spec (Scalar UI)", tag: "API" },
+  { method: "MCP", path: "cite_argument", description: "Citation block + strongest objection + provenance counters", tag: "MCP" },
+  { method: "MCP", path: "get_synthetic_readout", description: "Editorial primitive: deterministic honestyLine + refusalSurface", tag: "MCP" },
+  { method: "MCP", path: "summarize_debate", description: "Refusal-aware narrative; refuses with cited blockers when not ready", tag: "MCP" },
+  { method: "MCP", path: "bind_participant_to_design", description: "Write seam: scoped JWT + rate-limit + announcement bus (A1)", tag: "MCP" },
+];
+
 export default function AIEpistemicInfrastructurePage() {
   const [tab, setTab] = useState("permalink");
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-        <div className="max-w-6xl mx-auto px-6 py-10 space-y-10">
-          {/* Header */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-700 border border-indigo-500/20 text-xs font-semibold">
-                <Cpu className="w-3.5 h-3.5" />
+      <div
+        className="min-h-screen"
+        style={{
+          background:
+            "linear-gradient(145deg, #f5faff 0%, #eef5ff 25%, #faf6ff 60%, #fff6f8 100%)",
+        }}
+      >
+        {/* Sticky header */}
+        <div
+          className="border-b border-slate-900/[0.07] bg-white/85 backdrop-blur-xl sticky top-0 z-40 px-6 py-4"
+          style={{
+            boxShadow:
+              "0 1px 3px rgba(99,102,241,0.06), 0 4px 16px -8px rgba(99,102,241,0.08)",
+          }}
+        >
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
+                  <Cpu className="w-5 h-5 text-white" />
+                </div>
                 AI-Epistemic Infrastructure
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 border border-emerald-200/80 text-emerald-700">
-                Tracks A–F + G.1–7 shipped
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 border border-amber-200/80 text-amber-700">
-                Pt. 4 deliberation readout live
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 border border-indigo-200/80 text-indigo-700">
-                Four-week pitch deliverable
-              </span>
+              </h1>
+              <p className="text-sm text-slate-500 mt-1 ml-12">
+                The argument primitive for AI citation
+              </p>
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-              The argument primitive for AI citation
-            </h1>
-            <p className="text-base text-slate-600 max-w-3xl leading-relaxed">
-              Every Isonomia permalink is an addressable, structured,
-              verifiable, machine-citable epistemic artifact. It carries a
-              canonical claim, attested evidence with provenance, a typed
-              inference (scheme + critical questions), the dialectical context
-              that has tested it, and a cryptographically stable identifier.
-              LLMs need exactly this shape of unit when they cite.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              {[
-                { label: "Content-negotiated permalinks", color: "bg-indigo-100 text-indigo-700" },
-                { label: "AIF + JSON-LD + Schema.org", color: "bg-violet-100 text-violet-700" },
-                { label: "sha256 content addressing", color: "bg-fuchsia-100 text-fuchsia-700" },
-                { label: "archive.org evidence snapshots", color: "bg-amber-100 text-amber-700" },
-                { label: "MCP server (~40 tools)", color: "bg-teal-100 text-teal-700" },
-                { label: "Counter-citation by default", color: "bg-rose-100 text-rose-700" },
-                { label: "Honest-empty failure mode", color: "bg-emerald-100 text-emerald-700" },
-                { label: "Dialectical-fitness re-rank", color: "bg-yellow-100 text-yellow-700" },
-                { label: "Synthetic readout (deterministic)", color: "bg-amber-100 text-amber-800" },
-                { label: "Cross-deliberation aggregation", color: "bg-sky-100 text-sky-700" },
-                { label: "AI-engagement telemetry", color: "bg-violet-100 text-violet-800" },
-              ].map((chip) => (
-                <span
-                  key={chip.label}
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${chip.color}`}
-                >
-                  {chip.label}
-                </span>
-              ))}
-            </div>
+            
           </div>
+        </div>
 
-          {/* Vision callout */}
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
-                <Target className="w-4 h-4" />
+        <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+          {/* Strategic context banner */}
+          <div className="rounded-xl bg-gradient-to-r from-indigo-50 via-violet-50 to-pink-50 border border-indigo-100/80 p-5">
+            <div className="flex items-start gap-4">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shrink-0">
+                <Target className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-semibold text-indigo-800 text-sm">Thesis</p>
-                <p className="text-sm text-indigo-700 mt-1 leading-relaxed">
-                  Citations today cite <em>prose</em>. URLs point at webpages
-                  whose state can drift, whose evidence isn't hashed, whose
-                  reasoning isn't typed, and whose opposition isn't surfaced.
-                  Isonomia citations cite <em>adjudicated reasoning</em>: a
-                  structured argument graph with provenance, dialectical
-                  status, and the strongest known counter attached. This is
-                  what scalable-oversight and retrieval-augmented systems need
-                  — and it's standards-grounded, shippable today.
+                <h2 className="text-base font-semibold text-slate-900 mb-1">
+                  What an Isonomia citation contains
+                </h2>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  A standard web citation resolves to an HTML page: the
+                  underlying claim, evidence, and counter-arguments are not
+                  addressable, hashed, or typed. An Isonomia permalink
+                  resolves to an AIF subgraph that includes the claim, its
+                  premises and inference scheme, sha256-addressed evidence,
+                  a dialectical standing value, and the highest-ranked known
+                  counter-argument. The same resource is served over
+                  content-negotiated HTTP and MCP, and returns an explicit
+                  &quot;not yet&quot; state when no signal is available.
                 </p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {[
+                    { label: "Content-negotiated permalinks", color: "bg-indigo-100 text-indigo-700" },
+                    { label: "AIF + JSON-LD + Schema.org", color: "bg-violet-100 text-violet-700" },
+                    { label: "sha256 content addressing", color: "bg-fuchsia-100 text-fuchsia-700" },
+                    { label: "archive.org snapshots", color: "bg-amber-100 text-amber-700" },
+                    { label: "MCP (~40 tools)", color: "bg-teal-100 text-teal-700" },
+                    { label: "Counter-citation by default", color: "bg-rose-100 text-rose-700" },
+                    { label: "Honest-empty failure mode", color: "bg-emerald-100 text-emerald-700" },
+                    { label: "Dialectical-fitness re-rank", color: "bg-yellow-100 text-yellow-700" },
+                    { label: "Deterministic synthetic readout", color: "bg-amber-100 text-amber-800" },
+                    { label: "Cross-deliberation aggregation", color: "bg-sky-100 text-sky-700" },
+                    { label: "Ludics bus (A1–A4)", color: "bg-violet-100 text-violet-700" },
+                    { label: "Deliberation-scoped JWT", color: "bg-pink-100 text-pink-700" },
+                  ].map((chip) => (
+                    <span
+                      key={chip.label}
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${chip.color}`}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -1314,11 +1519,10 @@ export default function AIEpistemicInfrastructurePage() {
           <section>
             <div className="mb-4">
               <h2 className="text-xl font-semibold text-slate-800">
-                End-to-end flow
+                Example Flow
               </h2>
               <p className="text-sm text-slate-500 mt-0.5">
-                What happens when a user asks an LLM about a contested issue
-                with the Isonomia MCP server installed.
+                What an LLM does when a user asks about a contested issue with the Isonomia MCP server installed.
               </p>
             </div>
             <FlowExplainer />
@@ -1332,8 +1536,7 @@ export default function AIEpistemicInfrastructurePage() {
             <div className="mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Deep dive</h2>
               <p className="text-sm text-slate-500 mt-0.5">
-                The actual shapes — permalink contracts, attestation envelope,
-                counter-citation reflex, and the MCP surface.
+                Shapes and contracts: permalink, attestation, counter-citation, MCP, deliberation, substrate.
               </p>
             </div>
             <Tabs value={tab} onValueChange={setTab} className="space-y-4">
@@ -1356,7 +1559,11 @@ export default function AIEpistemicInfrastructurePage() {
                 </TabsTrigger>
                 <TabsTrigger value="deliberation" className="gap-1.5">
                   <Eye className="w-4 h-4" />
-                  Deliberation (Pt. 4)
+                  Deliberation
+                </TabsTrigger>
+                <TabsTrigger value="substrate" className="gap-1.5">
+                  <Radio className="w-4 h-4" />
+                  Ludics substrate
                 </TabsTrigger>
                 <TabsTrigger value="live" className="gap-1.5">
                   <Activity className="w-4 h-4" />
@@ -1377,6 +1584,9 @@ export default function AIEpistemicInfrastructurePage() {
               </TabsContent>
               <TabsContent value="deliberation">
                 <DeliberationReadoutTab />
+              </TabsContent>
+              <TabsContent value="substrate">
+                <LudicsSubstrateTab />
               </TabsContent>
               <TabsContent value="live">
                 <LiveVerification />
@@ -1419,29 +1629,68 @@ export default function AIEpistemicInfrastructurePage() {
             </div>
           </section>
 
+          {/* Routes & MCP tools */}
+          <section>
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-slate-800">Routes &amp; MCP tools</h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                The full surface, identical for humans, crawlers, and language-model agents.
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y">
+              {ROUTES.map((r, i) => (
+                <div key={i} className="flex items-center gap-3 px-5 py-3">
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 font-mono ${
+                      r.tag === "Page"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : r.tag === "API"
+                        ? "bg-sky-100 text-sky-700"
+                        : "bg-violet-100 text-violet-700"
+                    }`}
+                  >
+                    {r.method}
+                  </span>
+                  <code className="font-mono text-xs text-slate-700 flex-1 truncate">{r.path}</code>
+                  <span className="text-xs text-slate-400 hidden md:block truncate max-w-[55%] text-right">
+                    {r.description}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* Footer */}
-          <div className="text-center text-[12px] text-slate-400 pb-4">
-            <p className="flex items-center justify-center gap-1.5 flex-wrap">
+          <footer className="py-6 border-t border-slate-900/[0.06] flex items-center justify-between text-xs text-slate-400 flex-wrap gap-3">
+            <span className="font-medium text-slate-500 inline-flex items-center gap-1.5">
               <Activity className="w-3 h-3" />
               Live verifiers: 54/54 attestation · 37/37 MCP
-              <span className="mx-2">·</span>
+            </span>
+            <div className="flex items-center gap-3 flex-wrap">
+              <a
+                href="/test/argument-search-discovery"
+                className="text-indigo-500 hover:underline inline-flex items-center gap-1"
+              >
+                Search &amp; Discovery <ExternalLink className="w-3 h-3" />
+              </a>
+              <span className="text-slate-300">·</span>
               <a
                 href="/test/living-thesis"
-                className="text-indigo-500 hover:text-indigo-700 inline-flex items-center gap-1"
+                className="text-indigo-500 hover:underline inline-flex items-center gap-1"
               >
-                Living Thesis demo
-                <ExternalLink className="w-3 h-3" />
+                Living Thesis <ExternalLink className="w-3 h-3" />
               </a>
-              <span className="mx-2">·</span>
+              <span className="text-slate-300">·</span>
               <a
                 href="/test/embeddable-widget-pt4"
-                className="text-amber-600 hover:text-amber-800 inline-flex items-center gap-1"
+                className="text-amber-600 hover:underline inline-flex items-center gap-1"
               >
-                Embeddable widget (Pt. 4)
-                <ExternalLink className="w-3 h-3" />
+                Embeddable widget (Pt. 4) <ExternalLink className="w-3 h-3" />
               </a>
-            </p>
-          </div>
+              <span className="text-slate-300">·</span>
+              <span>May 2026</span>
+            </div>
+          </footer>
         </div>
       </div>
     </TooltipProvider>
