@@ -87,16 +87,38 @@ export interface DesignSummary {
 }
 
 /**
- * The set of incarnations for a Behaviour — the poset bottom plus all
- * co-equal minima (usually just [bottom] unless the behaviour has a split
- * bottom with two non-comparable minima).
+ * The set of incarnations for a Behaviour B.
+ *
+ * Post-OQ-JSL (Phase 2e Outcome B): `Inc(B)` is an **antichain** under
+ * ⊆. There is no global bottom `|B|`. Instead, `(B, ≤_⊆)` decomposes
+ * into disjoint cones, and each cone has its own minimal incarnation
+ * (the bottom *of that cone*). See LUDICS_OQ_JSL_PROOF.md and
+ * LUDICS_ORDER_RELATION_DEFINITION.md for the Daimon Lock Lemma and the
+ * Cross-Cone Incompatibility result.
+ *
+ * `incarnations` is the full antichain (one element per cone). The empty
+ * antichain (`[]`) is the legal representation of a behaviour with no
+ * Designs.
  */
 export interface IncarnationSetManifest {
-  /** Girard incarnation |B|; null when the behaviour has no Designs. */
-  bottom: DesignSummary | null;
-  /** Co-equal minima (usually just [bottom]). */
-  minimals: DesignSummary[];
+  /**
+   * The antichain `Inc(B)`. One `DesignSummary` per cone; each is the
+   * minimal incarnation of its cone. Empty when the behaviour has no
+   * Designs.
+   */
+  incarnations: DesignSummary[];
+  /**
+   * `=== incarnations.length === |Inc(B)|`. Kept as an explicit field
+   * so consumers can assert on it without re-computing.
+   */
   totalIncarnations: number;
+  /**
+   * Optional per-cone structure when callers need explicit cone
+   * identity (e.g. MCP tools that name cones across requests). When
+   * present, `cones[i].bottomIncarnation` is the same value as
+   * `incarnations[i]`.
+   */
+  cones?: Array<{ coneId: string; bottomIncarnation: DesignSummary }>;
 }
 
 export type AdversarialGate =
@@ -214,10 +236,25 @@ export interface BriefingClaim {
    */
   expressedTopologyUncertainty?: boolean;
   /**
-   * Phase 2b: How many distinct loci the LLM identifies as part of the
-   * minimum-commitment position. Graded against incarnationSet.bottom.loci.length.
+   * Phase 2b (post-OQ-JSL): how many distinct incarnations (`Inc(B)`
+   * members) the LLM identifies. Graded against
+   * `manifest.incarnationSet.incarnations.length`. When LLM
+   * undercounts (`claimedIncarnationCount < |Inc(B)|`) on a
+   * multi-cone behaviour, the scorecard raises a
+   * `miscount-across-cones` confident misstatement.
    */
-  claimedMinimalPremiseLociCount?: number;
+  claimedIncarnationCount?: number;
+  /**
+   * Phase 2b (post-OQ-JSL): per-cone vector of how many loci the LLM
+   * identifies as the minimum-commitment position *in that cone*.
+   * Element `i` is the claim for `incarnationSet.incarnations[i]`.
+   * Per-cone undercount (`claimed[i] < incarnations[i].loci.length`)
+   * raises an `incarnation-undercount` misstatement scoped to that
+   * cone. Length need not equal `|Inc(B)|`; missing entries are
+   * treated as "did not claim" (recall miss, not confident
+   * misstatement).
+   */
+  claimedMinimalPremiseLociCountPerCone?: number[];
   /**
    * OQ4 / Phase 2f: The dependency edges the LLM asserts exist in the
    * deliberation graph. Parsed from the LLM response by the extractor;
@@ -251,8 +288,22 @@ export type ConfidentMisstatementKind =
   | "cq-priority-inversion"
   /** Phase 1g: briefing named zero open CQs when openExposurePoints > 0. */
   | "coverage-exposure-zero"
-  /** Phase 2b: LLM identifies fewer loci than the bottom incarnation. */
+  /**
+   * Phase 2b (post-OQ-JSL): for some cone `i`, the LLM identified
+   * fewer loci than `incarnationSet.incarnations[i].loci.length`.
+   * Scoped per cone — a multi-cone behaviour can produce multiple
+   * `incarnation-undercount` misstatements (one per offending cone).
+   */
   | "incarnation-undercount"
+  /**
+   * Phase 2b (post-OQ-JSL): the LLM under-counted `|Inc(B)|`
+   * (`claimedIncarnationCount < incarnations.length`) on a behaviour
+   * with ≥ 2 cones. Indicates the LLM collapsed distinct, mutually
+   * incomparable incarnations into a single position — the
+   * cross-cone-conflation failure mode the OQ-JSL proof flagged as
+   * structurally invalid.
+   */
+  | "miscount-across-cones"
   /**
    * OQ4 / Phase 2f: briefing claimed an edge A→B but the ground-truth
    * graph has the reversed edge B→A (same type). A direction reversal is
@@ -328,22 +379,49 @@ export interface ChainDependencyScore {
 // ────────────────────────────────────────────────────────────
 
 /**
- * Articulation-recall dimension (Phase 2b).
- * Measures whether the LLM correctly identified the minimum-commitment
- * position (the bottom incarnation loci count).
+ * Articulation-recall dimension (Phase 2b, post-OQ-JSL).
+ *
+ * Measures whether the LLM correctly identified each cone's
+ * minimum-commitment position. Per-cone scoring is required because
+ * `Inc(B)` is an antichain — cones are mutually incomparable, so a
+ * single scalar recall would conflate distinct structural facts.
  */
 export interface ArticulationRecallScore {
-  /** incarnationSet.bottom.loci.length; 0 when bottom is null. */
-  bottomLociCount: number;
-  /** From claimedMinimalPremiseLociCount; 0 when absent. */
-  claimedMinimalLociCount: number;
   /**
-   * min(claimedMinimalLociCount, bottomLociCount) / bottomLociCount.
-   * 1.0 when bottomLociCount === 0 (vacuously perfect).
+   * One entry per cone in `incarnationSet.incarnations`, in the same
+   * index order. Vacuous (`recall = 1`) when the cone has zero loci.
    */
-  recall: number;
-  /** true when claimedMinimalLociCount < bottomLociCount. */
-  undercount: boolean;
+  perCone: Array<{
+    /** Index into `incarnationSet.incarnations`. */
+    coneIndex: number;
+    /** `incarnations[coneIndex].loci.length`. */
+    coneLociCount: number;
+    /** `claim.claimedMinimalPremiseLociCountPerCone?.[coneIndex] ?? 0`. */
+    claimedLociCount: number;
+    /**
+     * `coneLociCount === 0 ? 1 : min(claimed, coneLociCount) / coneLociCount`.
+     */
+    recall: number;
+    /** `claimedLociCount < coneLociCount`. */
+    undercount: boolean;
+  }>;
+  /**
+   * Arithmetic mean of `perCone[*].recall`. `1` (vacuous) when
+   * `perCone.length === 0`.
+   */
+  meanRecall: number;
+  /**
+   * Recall on the cone count itself:
+   * `incarnations.length === 0 ? 1 : min(claimedIncarnationCount, incarnations.length) / incarnations.length`.
+   * Captures whether the LLM noticed the right *number* of distinct
+   * incarnations, separately from per-cone loci accuracy.
+   */
+  incarnationCountRecall: number;
+  /**
+   * `incarnations.length >= 2 && claimedIncarnationCount < incarnations.length`.
+   * Mirrors the `miscount-across-cones` confident-misstatement gate.
+   */
+  miscountAcrossCones: boolean;
 }
 
 // ────────────────────────────────────────────────────────────

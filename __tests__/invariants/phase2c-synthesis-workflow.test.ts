@@ -165,71 +165,69 @@ describe("computeArticulationJoin result shape", () => {
   });
 });
 
-// ─── §3.2 SynthesisProposalResult shape ──────────────────────────────────────
+// ─── §3.2 SynthesisProposalResult shape (discriminated, post-B8) ─────────────
 
-describe("SynthesisProposalResult shape", () => {
-  it("T5: happy-path shape: witnessId is string, delocationType is null, newLoci empty", () => {
+describe("SynthesisProposalResult shape (discriminated)", () => {
+  it("T5: same-cone-join shape: kind discriminator, non-null witnessId, closureSteps literal 0", () => {
     const result: SynthesisProposalResult = {
+      kind: "same-cone-join",
       witnessId: "witness-abc",
       joinDesignId: "design-xyz",
-      closureSteps: 0,
       newLoci: [],
-      wasNontrivial: false,
-      delocationType: null,
+      closureSteps: 0,
     };
+    expect(result.kind).toBe("same-cone-join");
+    if (result.kind !== "same-cone-join") return;
     expect(result.witnessId).toBeTruthy();
-    expect(result.delocationType).toBeNull();
+    expect(result.closureSteps).toBe(0);
     expect(result.newLoci).toHaveLength(0);
   });
 
-  it("T6: delocation path: witnessId=null, delocationType='locus-addition-required'", () => {
+  it("T6: same-cone-delocation-required shape: kind discriminator, no witnessId field, delocationCandidateLocus surfaced", () => {
     const result: SynthesisProposalResult = {
-      witnessId: null,
+      kind: "same-cone-delocation-required",
       joinDesignId: "design-xyz",
-      closureSteps: 1,
-      newLoci: ["\u22a2A.5"],
-      wasNontrivial: true,
-      delocationType: "locus-addition-required",
+      newLoci: ["\u22a2A.5-neg"],
+      delocationCandidateLocus: "\u22a2A.5-neg",
     };
-    expect(result.witnessId).toBeNull();
-    expect(result.delocationType).toBe("locus-addition-required");
-    expect(result.wasNontrivial).toBe(true);
+    expect(result.kind).toBe("same-cone-delocation-required");
+    if (result.kind !== "same-cone-delocation-required") return;
+    expect(result.delocationCandidateLocus).toBe("\u22a2A.5-neg");
     expect(result.newLoci.length).toBeGreaterThan(0);
+    // @ts-expect-error — witnessId is not in this kind
+    expect(result.witnessId).toBeUndefined();
   });
 
-  it("T7: wasNontrivial mirrors whether a new Design row was created (Phase 2f: closureSteps is always 0 within a cone)", () => {
-    const trivial: SynthesisProposalResult = {
-      witnessId: "w1",
-      joinDesignId: "d1",
-      closureSteps: 0,
-      newLoci: [],
-      wasNontrivial: false,
-      delocationType: null,
+  it("T7: cross-cone-rejected shape: kind discriminator, returned-as-value (not thrown), reason fixed, cone1/cone2DesignId surfaced", () => {
+    const result: SynthesisProposalResult = {
+      kind: "cross-cone-rejected",
+      reason: "cross-cone-incompatibility",
+      cone1DesignId: "design-cone1",
+      cone2DesignId: "design-cone2",
     };
-    const nontrivial: SynthesisProposalResult = {
-      witnessId: "w2",
-      joinDesignId: "d2",
-      closureSteps: 0,
-      newLoci: ["\u22a2A.7"],
-      wasNontrivial: true,
-      delocationType: "locus-addition-required",
-    };
-    expect(trivial.wasNontrivial).toBe(trivial.newLoci.length > 0);
-    expect(nontrivial.wasNontrivial).toBe(nontrivial.newLoci.length > 0);
+    expect(result.kind).toBe("cross-cone-rejected");
+    if (result.kind !== "cross-cone-rejected") return;
+    expect(result.reason).toBe("cross-cone-incompatibility");
+    expect(result.cone1DesignId).toBe("design-cone1");
+    expect(result.cone2DesignId).toBe("design-cone2");
+    // @ts-expect-error — witnessId is not in this kind
+    expect(result.witnessId).toBeUndefined();
+    // @ts-expect-error — joinDesignId is not in this kind (no join exists)
+    expect(result.joinDesignId).toBeUndefined();
   });
 
-  it("T8: idempotent result has closureSteps=0 and wasNontrivial=false regardless of original join", () => {
+  it("T8: idempotent same-cone-join result retains kind='same-cone-join' with original witnessId", () => {
     const idempotentResult: SynthesisProposalResult = {
+      kind: "same-cone-join",
       witnessId: "existing-witness-id",
       joinDesignId: "design-xyz",
-      closureSteps: 0,
       newLoci: [],
-      wasNontrivial: false,
-      delocationType: null,
+      closureSteps: 0,
     };
+    expect(idempotentResult.kind).toBe("same-cone-join");
+    if (idempotentResult.kind !== "same-cone-join") return;
     expect(idempotentResult.closureSteps).toBe(0);
-    expect(idempotentResult.wasNontrivial).toBe(false);
-    expect(idempotentResult.witnessId).not.toBeNull();
+    expect(idempotentResult.witnessId).toBe("existing-witness-id");
   });
 });
 
@@ -310,33 +308,33 @@ describe("Phase 2c corpus fixtures", () => {
     expect(joinFixture).toBeDefined();
   });
 
-  it("T14: synthesis-join-db articulationRecall.recall === 1 with MockBriefingClient", async () => {
+  it("T14: synthesis-join-db articulationRecall.meanRecall === 1 with MockBriefingClient", async () => {
     if (!joinFixture) return;
     const client = new MockBriefingClient();
     const claim = await client.produceBriefingClaim(joinFixture);
     const manifest = generateManifest(joinFixture);
     const report = scorePhase1(joinFixture, manifest, claim);
-    expect(report.articulationRecall.recall).toBe(1);
+    expect(report.articulationRecall.meanRecall).toBe(1);
   });
 
-  it("T15: synthesis-join-db incarnationSet.bottom has 2 loci", () => {
+  it("T15: synthesis-join-db incarnationSet has 1 cone with 2 loci", () => {
     if (!joinFixture) return;
     const m = generateManifest(joinFixture);
-    expect(m.incarnationSet.bottom).not.toBeNull();
-    expect(m.incarnationSet.bottom!.loci).toHaveLength(2);
+    expect(m.incarnationSet.incarnations).toHaveLength(1);
+    expect(m.incarnationSet.incarnations[0].loci).toHaveLength(2);
   });
 
   it("T16: synthesis-delocation-db fixture exists in v2 corpus", () => {
     expect(delocFixture).toBeDefined();
   });
 
-  it("T17: synthesis-delocation-db articulationRecall.recall === 1 with MockBriefingClient", async () => {
+  it("T17: synthesis-delocation-db articulationRecall.meanRecall === 1 with MockBriefingClient", async () => {
     if (!delocFixture) return;
     const client = new MockBriefingClient();
     const claim = await client.produceBriefingClaim(delocFixture);
     const manifest = generateManifest(delocFixture);
     const report = scorePhase1(delocFixture, manifest, claim);
-    expect(report.articulationRecall.recall).toBe(1);
+    expect(report.articulationRecall.meanRecall).toBe(1);
   });
 });
 

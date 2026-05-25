@@ -114,6 +114,7 @@ export async function middleware(req: Request) {
   if (
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico" ||
+    pathname === "/favicon-alt.ico" ||
     pathname.startsWith("/fonts/") ||
     pathname.startsWith("/images/") ||
     pathname.startsWith("/assets/") ||
@@ -184,12 +185,12 @@ export const config = {
     "/api/sheaf/:path*",
     "/discussions/:path*",
     "/messages/:path*",
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon-alt.ico).*)',
     '/api/ludics/:path*',
     '/api/commitments/:path*',
     '/api/compose/:path*',
     '/api/loci/:path*',
     '/api/:path*',
-    "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
+    "/((?!_next|favicon.ico|favicon-alt.ico|fonts|images|assets|.*\\.).+)",
   ],
 };

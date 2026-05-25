@@ -35,7 +35,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico";
+    pathname === "/favicon.ico" ||
+    pathname === "/favicon-alt.ico";
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

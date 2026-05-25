@@ -1,27 +1,48 @@
 {
   "id": "small-diffuse-hubs-db",
   "description": "DB-snapshot fixture: small (12 args) deliberation with six co-equal hub arguments. Tests diffuse hub shape + high hub ambiguity.",
-  "adversarialGates": ["diffuse-topology-not-named-as-hub"],
+  "adversarialGates": [
+    "diffuse-topology-not-named-as-hub"
+  ],
   "manifestFields": {
     "openExposurePoints": 8,
     "coverageRatio": 0.25,
     "fossilCount": 0,
     "incarnationSet": {
-      "bottom": {
-        "designId": "fixture-small-diffuse-hubs-bottom",
-        "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3"],
-        "moveCount": 4,
-        "rank": 0
-      },
-      "minimals": [
+      "incarnations": [
         {
-          "designId": "fixture-small-diffuse-hubs-bottom",
-          "loci": ["\u22a2A.0","\u22a2A.1","\u22a2A.2","\u22a2A.3"],
+          "designId": "fixture-small-diffuse-hubs-bottom-a",
+          "loci": [
+            "⊢A.0",
+            "⊢A.1",
+            "⊢A.2",
+            "⊢A.3"
+          ],
           "moveCount": 4,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-small-diffuse-hubs-bottom-b",
+          "loci": [
+            "⊢A.4",
+            "⊢A.5",
+            "⊢A.6"
+          ],
+          "moveCount": 3,
+          "rank": 0
+        },
+        {
+          "designId": "fixture-small-diffuse-hubs-bottom-c",
+          "loci": [
+            "⊢A.7",
+            "⊢A.8",
+            "⊢A.9"
+          ],
+          "moveCount": 3,
           "rank": 0
         }
       ],
-      "totalIncarnations": 5
+      "totalIncarnations": 3
     }
   },
   "readout": {

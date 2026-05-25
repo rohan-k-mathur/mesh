@@ -25,7 +25,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export declare const ORIENTATION_VERSION: "1.4.0";
+export declare const ORIENTATION_VERSION: "1.5.0";
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
  * Target: ~400 tokens. Keep tight; the long form lives in

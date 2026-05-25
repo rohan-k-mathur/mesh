@@ -1,5 +1,5 @@
 /**
- * Briefing-fingerprint service — §5 (Phase 1f).
+ * Briefing-fingerprint service — §5 (Phase 1f) + B12 (LUDICS v2 / WS-1).
  *
  * Computes a content-hash over the *material fields* that the AI-EPI
  * fidelity scorecard grades: hubSet, loadBearingRankingTop10,
@@ -13,11 +13,16 @@
  *   R4 — a hub-targeting CQ entered prioritizedOpenCqs[0..14]
  *   R5 — openExposurePoints increased by ≥ R5_THRESHOLD (default 10)
  *
- * The staleness check (checkBriefingFingerprint) requires material
- * fields from the previously-issued hash. We keep a module-level
- * in-memory cache (Map<hash, MaterialFields>) for this purpose.
- * This is intentionally lightweight: the Tier-2 feature does not
- * warrant a new DB table for Phase 1f.
+ * Cache topology (v2 / B12 / WS-1):
+ *   L1 (hot)   — Upstash Redis REST, keys `fp:hash:<h>` + `fp:latest:<delib>`,
+ *                TTL 300 s. Shared across horizontally-scaled instances.
+ *   L2 (cold)  — Postgres `BriefingFingerprintHistory` (append-only).
+ *                Authoritative; survives restarts and Redis evictions.
+ *   L0 (dev)   — Bounded in-process Map. Only used when neither L1 nor L2
+ *                is reachable (tests, single-instance dev). NOT relied on
+ *                for cross-instance coherence. Resolves OQ-6b for v2.
+ *
+ * Write order: Postgres first (durable), then Redis (hot). Reads go L1 → L2 → L0.
  */
 
 import crypto from "crypto";
@@ -27,6 +32,8 @@ import {
 } from "@/lib/deliberation/syntheticReadout";
 import { derivePrioritizedOpenCqs } from "@/lib/deliberation/cqPrioritizer";
 import { getDeliberationSchema } from "@/server/ludics/deliberationSchema";
+import { prisma } from "@/lib/prismaclient";
+import { tryGetUpstashRedis } from "@/lib/upstash";
 
 const R5_THRESHOLD = 10;
 
@@ -94,8 +101,7 @@ export type ComponentName = keyof ComponentHashVector;
 
 export type StalenessResult = { stale: false } | { stale: "R1" | "R2" | "R3" | "R4" | "R5" };
 
-// ── In-memory cache ───────────────────────────────────────────────────────────
-// Key: SHA256 hash string. Value: { deliberationId, fields, computedAt }
+// ── Cache layers (B12 / WS-1) ────────────────────────────────────────────────
 
 interface CacheEntry {
   deliberationId: string;
@@ -104,17 +110,241 @@ interface CacheEntry {
   computedAt: string;
 }
 
-const hashCache = new Map<string, CacheEntry>();
+type RuleLabel = "R1" | "R2" | "R3" | "R4" | "R5" | null;
 
-// Per-deliberation history of (hash, computedAt, rule)
-// used to surface lastMaterialChangeAt/Rule
-interface HistoryEntry {
+interface LatestEntry {
   hash: string;
   computedAt: string;
-  rule: "R1" | "R2" | "R3" | "R4" | "R5" | null;
+  rule: RuleLabel;
+  /** ISO of the most recent entry whose rule !== null. Surfaces R-attribution
+   *  across stable hashes without scanning history. */
+  lastChangeAt: string | null;
+  lastChangeRule: RuleLabel;
 }
 
-const deliberationHistory = new Map<string, HistoryEntry[]>();
+/** L0 fallback only — bounded; not cross-instance coherent. */
+const L0_HASH_LIMIT = 256;
+const L0_LATEST_LIMIT = 256;
+const l0Hash = new Map<string, CacheEntry>();
+const l0Latest = new Map<string, LatestEntry>();
+
+const REDIS_TTL_SECONDS = 300;
+const keyHash = (h: string) => `fp:hash:${h}`;
+const keyLatest = (d: string) => `fp:latest:${d}`;
+
+function l0SetHash(h: string, e: CacheEntry) {
+  if (l0Hash.size >= L0_HASH_LIMIT) {
+    const oldest = l0Hash.keys().next().value;
+    if (oldest !== undefined) l0Hash.delete(oldest);
+  }
+  l0Hash.set(h, e);
+}
+function l0SetLatest(d: string, e: LatestEntry) {
+  if (l0Latest.size >= L0_LATEST_LIMIT) {
+    const oldest = l0Latest.keys().next().value;
+    if (oldest !== undefined) l0Latest.delete(oldest);
+  }
+  l0Latest.set(d, e);
+}
+
+async function l1GetHash(h: string): Promise<CacheEntry | null> {
+  const r = tryGetUpstashRedis();
+  if (!r) return null;
+  try {
+    const raw = await r.get<CacheEntry>(keyHash(h));
+    return raw ?? null;
+  } catch {
+    return null;
+  }
+}
+async function l1SetHash(h: string, e: CacheEntry): Promise<void> {
+  const r = tryGetUpstashRedis();
+  if (!r) return;
+  try {
+    await r.set(keyHash(h), e, { ex: REDIS_TTL_SECONDS });
+  } catch {
+    /* swallow */
+  }
+}
+async function l1GetLatest(d: string): Promise<LatestEntry | null> {
+  const r = tryGetUpstashRedis();
+  if (!r) return null;
+  try {
+    const raw = await r.get<LatestEntry>(keyLatest(d));
+    return raw ?? null;
+  } catch {
+    return null;
+  }
+}
+async function l1SetLatest(d: string, e: LatestEntry): Promise<void> {
+  const r = tryGetUpstashRedis();
+  if (!r) return;
+  try {
+    await r.set(keyLatest(d), e, { ex: REDIS_TTL_SECONDS });
+  } catch {
+    /* swallow */
+  }
+}
+
+/**
+ * L2 (Postgres) — `BriefingFingerprintHistory`. Append-only.
+ * `materialChangeSummary` carries the full `{fields, components, computedAt}`
+ * snapshot so an L1 miss can fully rehydrate without re-running the readout.
+ */
+async function l2AppendHistory(
+  deliberationId: string,
+  entry: CacheEntry,
+  rule: RuleLabel,
+): Promise<void> {
+  try {
+    const p = prisma as unknown as {
+      briefingFingerprintHistory?: {
+        create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
+      };
+    };
+    if (!p.briefingFingerprintHistory) return;
+    await p.briefingFingerprintHistory.create({
+      data: {
+        deliberationId,
+        fingerprint: getEntryHashKey(entry),
+        materialChangeRule: rule,
+        materialChangeSummary: {
+          fields: entry.fields,
+          components: entry.components,
+          computedAt: entry.computedAt,
+        },
+        computedAt: new Date(entry.computedAt),
+      },
+    });
+  } catch {
+    /* swallow — degrades to Redis-only / L0 */
+  }
+}
+
+async function l2GetByHash(hash: string): Promise<CacheEntry | null> {
+  try {
+    const p = prisma as unknown as {
+      briefingFingerprintHistory?: {
+        findFirst: (args: {
+          where: { fingerprint: string };
+          orderBy?: { computedAt: "desc" };
+        }) => Promise<{
+          deliberationId: string;
+          materialChangeSummary: unknown;
+        } | null>;
+      };
+    };
+    if (!p.briefingFingerprintHistory) return null;
+    const row = await p.briefingFingerprintHistory.findFirst({
+      where: { fingerprint: hash },
+      orderBy: { computedAt: "desc" },
+    });
+    if (!row) return null;
+    const summary = row.materialChangeSummary as {
+      fields?: MaterialFields;
+      components?: ComponentHashVector;
+      computedAt?: string;
+    } | null;
+    if (!summary?.fields || !summary.components || !summary.computedAt) return null;
+    return {
+      deliberationId: row.deliberationId,
+      fields: summary.fields,
+      components: summary.components,
+      computedAt: summary.computedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function l2GetLatest(deliberationId: string): Promise<LatestEntry | null> {
+  try {
+    const p = prisma as unknown as {
+      briefingFingerprintHistory?: {
+        findMany: (args: {
+          where: { deliberationId: string };
+          orderBy: { computedAt: "desc" };
+          take: number;
+        }) => Promise<
+          Array<{
+            fingerprint: string;
+            materialChangeRule: RuleLabel;
+            computedAt: Date;
+          }>
+        >;
+      };
+    };
+    if (!p.briefingFingerprintHistory) return null;
+    // Pull the most recent two rows: row[0] is `latest`, the first row with
+    // a non-null rule is the most recent material change.
+    const rows = await p.briefingFingerprintHistory.findMany({
+      where: { deliberationId },
+      orderBy: { computedAt: "desc" },
+      take: 20,
+    });
+    if (rows.length === 0) return null;
+    const top = rows[0];
+    const lastChange = rows.find((r) => r.materialChangeRule !== null);
+    return {
+      hash: top.fingerprint,
+      computedAt: top.computedAt.toISOString(),
+      rule: top.materialChangeRule,
+      lastChangeAt: lastChange?.computedAt.toISOString() ?? null,
+      lastChangeRule: lastChange?.materialChangeRule ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Cached lookup of an entry's hash: small reverse-index to avoid recomputing
+ *  for L0 entries on rehydrate. */
+const l0EntryHashes = new WeakMap<CacheEntry, string>();
+function getEntryHashKey(e: CacheEntry): string {
+  const cached = l0EntryHashes.get(e);
+  if (cached) return cached;
+  const h = computeHash(e.fields);
+  l0EntryHashes.set(e, h);
+  return h;
+}
+
+async function loadCacheEntry(hash: string): Promise<CacheEntry | null> {
+  const l1 = await l1GetHash(hash);
+  if (l1) {
+    l0SetHash(hash, l1);
+    return l1;
+  }
+  const l2 = await l2GetByHash(hash);
+  if (l2) {
+    l0SetHash(hash, l2);
+    await l1SetHash(hash, l2);
+    return l2;
+  }
+  return l0Hash.get(hash) ?? null;
+}
+
+async function loadLatestEntry(
+  deliberationId: string,
+): Promise<LatestEntry | null> {
+  const l1 = await l1GetLatest(deliberationId);
+  if (l1) {
+    l0SetLatest(deliberationId, l1);
+    return l1;
+  }
+  const l2 = await l2GetLatest(deliberationId);
+  if (l2) {
+    l0SetLatest(deliberationId, l2);
+    await l1SetLatest(deliberationId, l2);
+    return l2;
+  }
+  return l0Latest.get(deliberationId) ?? null;
+}
+
+/** Test-only: clear L0. L1/L2 are not touched. */
+export function __resetBriefingFingerprintL0(): void {
+  l0Hash.clear();
+  l0Latest.clear();
+}
 
 // ── Hash computation ──────────────────────────────────────────────────────────
 
@@ -321,45 +551,48 @@ export async function computeBriefingFingerprint(
   const components = computeComponentHashes(fields);
   const computedAt = new Date().toISOString();
 
-  // Store in cache
-  hashCache.set(contentHash, { deliberationId, fields, components, computedAt });
+  const entry: CacheEntry = { deliberationId, fields, components, computedAt };
+  l0EntryHashes.set(entry, contentHash);
 
-  // Update history
-  const history = deliberationHistory.get(deliberationId) ?? [];
-  const prevEntry = history[history.length - 1];
+  // Look up the previous "latest" pointer for this deliberation.
+  const prevLatest = await loadLatestEntry(deliberationId);
 
-  let lastMaterialChangeAt: string | null = null;
-  let lastMaterialChangeRule: "R1" | "R2" | "R3" | "R4" | "R5" | null = null;
+  let rule: RuleLabel = null;
+  let lastMaterialChangeAt: string | null = prevLatest?.lastChangeAt ?? null;
+  let lastMaterialChangeRule: RuleLabel = prevLatest?.lastChangeRule ?? null;
 
-  if (prevEntry && prevEntry.hash !== contentHash) {
-    // Hash changed — determine which rule fired. Pass component vectors
-    // so unchanged components skip their owning rules (B5 fast path).
-    const prevCache = hashCache.get(prevEntry.hash);
-    const rule = prevCache
+  if (prevLatest && prevLatest.hash !== contentHash) {
+    // Hash changed — attribute the rule. Pull full prev state from cache.
+    const prevEntry = await loadCacheEntry(prevLatest.hash);
+    rule = prevEntry
       ? evaluateStalenessRules(
-          prevCache.fields,
+          prevEntry.fields,
           fields,
-          prevCache.components,
+          prevEntry.components,
           components,
         )
-      : "R1";
+      : "R1"; // conservative when prev state is unrecoverable
     lastMaterialChangeAt = computedAt;
     lastMaterialChangeRule = rule;
-    history.push({ hash: contentHash, computedAt, rule });
-  } else if (prevEntry) {
-    // Hash unchanged — surface last change
-    const lastChange = history.slice().reverse().find((h) => h.rule !== null);
-    lastMaterialChangeAt = lastChange?.computedAt ?? null;
-    lastMaterialChangeRule = lastChange?.rule ?? null;
-    history.push({ hash: contentHash, computedAt, rule: null });
-  } else {
-    // First computation
-    history.push({ hash: contentHash, computedAt, rule: null });
+  } else if (!prevLatest) {
+    // First computation for this deliberation — no rule.
+    rule = null;
   }
 
-  // Keep history bounded
-  if (history.length > 100) history.splice(0, history.length - 100);
-  deliberationHistory.set(deliberationId, history);
+  const nextLatest: LatestEntry = {
+    hash: contentHash,
+    computedAt,
+    rule,
+    lastChangeAt: lastMaterialChangeAt,
+    lastChangeRule: lastMaterialChangeRule,
+  };
+
+  // Write-through: L2 (durable) → L1 (hot) → L0 (in-proc).
+  await l2AppendHistory(deliberationId, entry, rule);
+  await l1SetHash(contentHash, entry);
+  await l1SetLatest(deliberationId, nextLatest);
+  l0SetHash(contentHash, entry);
+  l0SetLatest(deliberationId, nextLatest);
 
   return {
     contentHash,
@@ -385,10 +618,10 @@ export async function checkBriefingFingerprint(
 
   if (current.contentHash === hash) return { stale: false };
 
-  // Try to find the cached material fields for the provided hash
-  const prevCached = hashCache.get(hash);
+  // Look up prior material fields for the supplied hash (L1 → L2 → L0).
+  const prevCached = await loadCacheEntry(hash);
   if (!prevCached) {
-    // No cached state for this hash — conservative: signal R1
+    // No recoverable state for this hash — conservative: signal R1
     return { stale: "R1" };
   }
 

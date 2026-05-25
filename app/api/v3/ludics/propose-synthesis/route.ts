@@ -2,48 +2,50 @@
  * POST /api/v3/ludics/propose-synthesis
  *
  * Phase 2c write seam — computes the articulation join of two Design rows
- * and, when the join is trivially closed (no new loci required), commits
- * a WitnessRecord.
+ * within a behaviour's incarnation lattice. Returns a discriminated result
+ * (`same-cone-join` | `same-cone-delocation-required` | `cross-cone-rejected`)
+ * per LUDICS_SESSION_2_DEV_SPEC.md §3.3.
  *
- * Auth: Bearer MCP_API_TOKEN (env) or session cookie.
+ * Auth (WS-3 / v2.5): scoped JWT or session cookie.
+ *   (Legacy MCP_API_TOKEN bearer fallback was removed in the v2.5 cutover.)
  *
  * Request body:
  *   deliberationId  string          — id of the deliberation
  *   designIds       [string,string] — pair of Design row ids to join
  *   canonicalText   string (≥1)     — synthesis statement text
  *
- * Success 200:
+ * Success 200 (always — the three substrate outcomes are returned as values):
  *   { ok: true, result: SynthesisProposalResult }
+ *     where result.kind is one of:
+ *       "same-cone-join"               — WitnessRecord committed
+ *       "same-cone-delocation-required" — within-cone negative-branch
+ *                                        extension required; no WitnessRecord
+ *       "cross-cone-rejected"          — inputs span disjoint cones; ∨_⊥⊥
+ *                                        undefined in B (Phase 2e)
  *
- * Errors:
- *   409 DELOCATION_REQUIRED  — join requires new loci not yet in D_P
- *   422 EMPTY_CANONICAL_TEXT — canonicalText is blank
- *   404 DESIGNS_NOT_FOUND    — one or both designIds missing
- *   400                      — bad input shape
- *   401                      — unauthenticated
+ * Errors (true error conditions only):
+ *   409 ROOT_LOCUS_MISSING       — root locus ⊢A.0 absent from D_P
+ *   422 EMPTY_CANONICAL_TEXT     — canonicalText is blank
+ *   422 CLOSURE_STEPS_INVARIANT  — articulationLattice returned closureSteps != 0
+ *   404 DESIGNS_NOT_FOUND        — one or both designIds missing
+ *   400                          — bad input shape
+ *   401                          — unauthenticated
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUserId } from "@/lib/serverutils";
 import {
   proposeSynthesis,
   SynthesisError,
 } from "@/server/ludics/synthesisProposalAgent";
+import { compoundRateLimit } from "@/lib/rateLimit";
+import {
+  resolveLudicsCaller,
+  enforceTokenScope,
+  LudicsAuthError,
+} from "@/server/ludics/auth";
 
 export const dynamic = "force-dynamic";
-
-// ── Auth helper (mirrors bind-witness pattern) ────────────────────────────────
-
-async function resolveCallerUserId(req: NextRequest): Promise<string | null> {
-  const auth = req.headers.get("authorization") ?? "";
-  const m = auth.match(/^Bearer\s+(.+)$/i);
-  const expected = process.env.MCP_API_TOKEN;
-  if (m && expected && m[1] === expected) {
-    return process.env.MCP_AUTHOR_USER_ID ?? "mcp-system";
-  }
-  return getCurrentUserId();
-}
 
 // ── Input schema ──────────────────────────────────────────────────────────────
 
@@ -56,10 +58,28 @@ const ProposeSynthesisSchema = z.object({
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  const callerId = await resolveCallerUserId(request);
-  if (!callerId) {
+  let caller;
+  try {
+    caller = await resolveLudicsCaller(request);
+  } catch (err) {
+    if (err instanceof LudicsAuthError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: err.code },
+        { status: err.status },
+      );
+    }
+    throw err;
+  }
+  if (!caller) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+  const callerId = caller.callerId;
+
+  // ── Phase 2f §6.1 (B11 v2 / WS-2) compound rate limit ──────────────────────
+  // Scope = deliberationId (per WS-0 tenant-scope audit, 2026-05-22 — repo
+  // has no tenant axis). Bucket 1: (scope, participant, "propose_synthesis").
+  // Bucket 2: (scope, ip, "propose_synthesis") when IP supplied. Either
+  // exhausted ⇒ 429 with Retry-After.
 
   let body: unknown;
   try {
@@ -76,6 +96,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { ok: false, error: "Invalid request body", details: parsed.error.flatten() },
       { status: 400 },
+    );
+  }
+
+  // WS-3: enforce JWT scope against body deliberationId.
+  try {
+    enforceTokenScope(caller, parsed.data.deliberationId);
+  } catch (err) {
+    if (err instanceof LudicsAuthError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: err.code },
+        { status: err.status },
+      );
+    }
+    throw err;
+  }
+
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const rl = await compoundRateLimit(
+    {
+      scopeId: parsed.data.deliberationId,
+      participantId: callerId,
+      ip,
+      action: "propose_synthesis",
+    },
+    {
+      perParticipant: { max: 10, window: "1 m" },
+      perIp:          { max: 30, window: "1 m" },
+    },
+  );
+  if (!rl.success) {
+    return NextResponse.json(
+      { ok: false, error: "RATE_LIMITED", code: "RATE_LIMITED", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
     );
   }
 

@@ -12,8 +12,7 @@
 import type { Fixture, Manifest, IncarnationSetManifest, DependencyEdge } from "./types";
 
 const EMPTY_INCARNATION_SET: IncarnationSetManifest = {
-  bottom: null,
-  minimals: [],
+  incarnations: [],
   totalIncarnations: 0,
 };
 

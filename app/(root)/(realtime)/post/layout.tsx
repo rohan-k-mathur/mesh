@@ -10,8 +10,8 @@ import { getRoomsForUser } from "@/lib/actions/realtimeroom.actions";
 import { RealtimeRoom } from "@prisma/client";
 
 export const metadata = {
-  title: "Mesh",
-  description: "A social media website",
+  title: "Isonomia",
+  description: "Deliberation platform for epistemic infrastructure and democratic decision-making",
 };
 
 export const dynamic = "force-dynamic";

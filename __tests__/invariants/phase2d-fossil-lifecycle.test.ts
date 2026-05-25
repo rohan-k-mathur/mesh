@@ -6,7 +6,8 @@
  *   T3-T4   fossilizeByArgument() happy path and zero-match
  *   T5-T8   getFossilRecord() queries (empty, filled, includeActive, ludicMoveId)
  *   T9      Argument delete hook → fossil with "argument_superseded"
- *   T10-T13 Manual retract endpoint (401, 200, 404, 409)
+ *   T10-T13 Manual retract endpoint (401, 200, 404, idempotent 200)
+ *   T13b    Manual retract endpoint emits witness_rescinded announcement event (A11.3)
  *   T14     RetractReason covers all four values
  *   T15     fossilizeByArgument where-clause includes argumentId column
  *   T16     fossilizeByArgument returns correct count for 3 witnesses
@@ -339,12 +340,59 @@ describe("T9: argument delete hook fossilizes with argument_superseded", () => {
 // ─── T10-T13: Manual retract endpoint ─────────────────────────────────────────
 
 describe("Manual retract endpoint", () => {
-  // Import the route handler lazily after mocks are in place
+  // Import the route handler lazily AFTER scoped mocks for the auth + bus
+  // modules are in place. v2.5 cutover: the legacy MCP_API_TOKEN bearer path
+  // is gone, so tests now mock `resolveLudicsCaller` directly and assert on
+  // the announcement-bus publish (the console.info dual-emit was removed
+  // per LUDICS_ANNOUNCEMENT_BUS_PROTOCOL.md §7.0).
   let POST: (req: Request) => Promise<Response>;
+  let resolveLudicsCallerMock: jest.Mock;
+  let publishAnnouncementMock: jest.Mock;
+  let LudicsAuthErrorCtor: new (code: string, message: string, status: number) => Error;
 
   beforeAll(async () => {
+    jest.doMock("@/server/ludics/auth", () => {
+      class LudicsAuthError extends Error {
+        code: string;
+        status: number;
+        constructor(code: string, message: string, status: number) {
+          super(message);
+          this.name = "LudicsAuthError";
+          this.code = code;
+          this.status = status;
+        }
+      }
+      return {
+        resolveLudicsCaller: jest.fn(),
+        LudicsAuthError,
+      };
+    });
+    jest.doMock("@/lib/ludics/announcementBus", () => ({
+      publishAnnouncement: jest.fn(async () => ({
+        ok: true,
+        eventId: "ann-phase2d",
+        deduped: false,
+      })),
+    }));
+
+    const authMod = jest.requireMock("@/server/ludics/auth") as {
+      resolveLudicsCaller: jest.Mock;
+      LudicsAuthError: new (code: string, message: string, status: number) => Error;
+    };
+    const busMod = jest.requireMock("@/lib/ludics/announcementBus") as {
+      publishAnnouncement: jest.Mock;
+    };
+    resolveLudicsCallerMock = authMod.resolveLudicsCaller;
+    LudicsAuthErrorCtor = authMod.LudicsAuthError;
+    publishAnnouncementMock = busMod.publishAnnouncement;
+
     const mod = await import("@/app/api/v3/ludics/retract-witness/route");
     POST = mod.POST as unknown as (req: Request) => Promise<Response>;
+  });
+
+  beforeEach(() => {
+    resolveLudicsCallerMock.mockReset();
+    publishAnnouncementMock.mockClear();
   });
 
   function makeRequest(body: unknown, authHeader?: string): Request {
@@ -360,22 +408,21 @@ describe("Manual retract endpoint", () => {
 
   // T10: returns 401 without token
   it("T10: returns 401 when no auth provided", async () => {
-    getCurrentUserId.mockResolvedValue(null);
-    delete process.env.MCP_API_TOKEN;
+    resolveLudicsCallerMock.mockResolvedValueOnce(null);
 
     const req = makeRequest({ witnessId: "wr-1" });
     const res = await POST(req as unknown as Parameters<typeof POST>[0]);
     expect(res.status).toBe(401);
   });
 
-  // T11: returns { ok: true } with valid token and witnessId
-  it("T11: returns ok:true with valid MCP_API_TOKEN and existing unfossilized witnessId", async () => {
-    process.env.MCP_API_TOKEN = "test-token-phase2d";
-    getCurrentUserId.mockResolvedValue(null); // Not needed — token auth passes
+  // T11: returns { ok: true } with a valid session caller and witnessId
+  it("T11: returns ok:true with valid session caller and existing unfossilized witnessId", async () => {
+    resolveLudicsCallerMock.mockResolvedValue({ callerId: "u-1", authMode: "session" });
 
     prisma.witnessRecord.findUnique.mockResolvedValueOnce({
       id: "wr-ok",
       fossilizedAt: null,
+      ludicMove: { deliberationId: "delib-1" },
     });
     const fossilizedAt = new Date("2025-06-01T00:00:00Z");
     prisma.witnessRecord.update.mockResolvedValueOnce({
@@ -389,47 +436,108 @@ describe("Manual retract endpoint", () => {
       retractReason: null,
     });
 
-    const req = makeRequest(
-      { witnessId: "wr-ok" },
-      "Bearer test-token-phase2d",
-    );
+    const req = makeRequest({ witnessId: "wr-ok" });
     const res = await POST(req as unknown as Parameters<typeof POST>[0]);
     const json = await res.json();
 
     expect(res.status).toBe(200);
     expect(json.ok).toBe(true);
     expect(typeof json.fossilizedAt).toBe("string");
+    expect(json.alreadyFossilized).toBe(false);
   });
 
   // T12: returns 404 for unknown witnessId
   it("T12: returns 404 for unknown witnessId", async () => {
-    process.env.MCP_API_TOKEN = "test-token-phase2d";
-    getCurrentUserId.mockResolvedValue(null);
+    resolveLudicsCallerMock.mockResolvedValue({ callerId: "u-1", authMode: "session" });
 
     prisma.witnessRecord.findUnique.mockResolvedValueOnce(null);
 
-    const req = makeRequest({ witnessId: "wr-unknown" }, "Bearer test-token-phase2d");
+    const req = makeRequest({ witnessId: "wr-unknown" });
     const res = await POST(req as unknown as Parameters<typeof POST>[0]);
 
     expect(res.status).toBe(404);
   });
 
-  // T13: returns 409 if witnessId already fossilized
-  it("T13: returns 409 when witnessId is already fossilized", async () => {
-    process.env.MCP_API_TOKEN = "test-token-phase2d";
-    getCurrentUserId.mockResolvedValue(null);
+  // T13: idempotent 200 with alreadyFossilized:true (spec §4.5 [CORRECTED post-review])
+  it("T13: returns 200 alreadyFossilized:true when witnessId is already fossilized", async () => {
+    resolveLudicsCallerMock.mockResolvedValue({ callerId: "u-1", authMode: "session" });
 
+    const previouslyFossilizedAt = new Date("2025-01-01T00:00:00Z");
     prisma.witnessRecord.findUnique.mockResolvedValueOnce({
       id: "wr-fossilized",
-      fossilizedAt: new Date("2025-01-01T00:00:00Z"),
+      fossilizedAt: previouslyFossilizedAt,
+      ludicMove: { deliberationId: "delib-1" },
     });
 
-    const req = makeRequest({ witnessId: "wr-fossilized" }, "Bearer test-token-phase2d");
+    const req = makeRequest({ witnessId: "wr-fossilized" });
     const res = await POST(req as unknown as Parameters<typeof POST>[0]);
     const json = await res.json();
 
-    expect(res.status).toBe(409);
-    expect(json.code).toBe("ALREADY_FOSSILIZED");
+    expect(res.status).toBe(200);
+    expect(json.ok).toBe(true);
+    expect(json.alreadyFossilized).toBe(true);
+    expect(json.fossilizedAt).toBe(previouslyFossilizedAt.toISOString());
+    // No fresh fossilize() write should be issued on the idempotent path.
+    expect(prisma.witnessRecord.update).not.toHaveBeenCalled();
+  });
+
+  // T13b: A11.3 — manual retract endpoint emits witness_rescinded via the
+  // A1–A4 announcement bus (LUDICS_ANNOUNCEMENT_BUS_PROTOCOL.md §6+§7).
+  // v2.5 cutover: the v0 `console.info` dual-emit was removed; the bus
+  // publish is now the sole channel. Idempotent repeats MUST NOT re-publish.
+  it("T13b: publishes witness_rescinded on fresh retract; does not publish on idempotent repeat", async () => {
+    resolveLudicsCallerMock.mockResolvedValue({ callerId: "u-1", authMode: "session" });
+
+    // Fresh retract → publish.
+    const fossilizedAt = new Date("2025-06-02T00:00:00Z");
+    prisma.witnessRecord.findUnique.mockResolvedValueOnce({
+      id: "wr-fresh",
+      fossilizedAt: null,
+      ludicMove: { deliberationId: "delib-1" },
+    });
+    prisma.witnessRecord.update.mockResolvedValueOnce({
+      id: "wr-fresh",
+      ludicMoveId: "lm-1",
+      dialogueMoveId: "dm-1",
+      participantId: "p-1",
+      timestamp: new Date(),
+      fossilizedAt,
+      retractLayer: "manual_retract",
+      retractReason: null,
+    });
+
+    const freshReq = makeRequest({ witnessId: "wr-fresh" });
+    const freshRes = await POST(freshReq as unknown as Parameters<typeof POST>[0]);
+    expect(freshRes.status).toBe(200);
+
+    expect(publishAnnouncementMock).toHaveBeenCalledTimes(1);
+    const env = publishAnnouncementMock.mock.calls[0][0] as {
+      eventType: string;
+      scopeId: string;
+      subjectId: string;
+      occurredAt: string;
+    };
+    expect(env.eventType).toBe("witness_rescinded");
+    expect(env.scopeId).toBe("delib-1");
+    expect(env.subjectId).toBe("wr-fresh");
+    expect(env.occurredAt).toBe(fossilizedAt.toISOString());
+
+    // Repeat retract (already fossilized) → NO new publish.
+    publishAnnouncementMock.mockClear();
+    prisma.witnessRecord.findUnique.mockResolvedValueOnce({
+      id: "wr-fresh",
+      fossilizedAt,
+      ludicMove: { deliberationId: "delib-1" },
+    });
+    const repeatReq = makeRequest({ witnessId: "wr-fresh" });
+    const repeatRes = await POST(repeatReq as unknown as Parameters<typeof POST>[0]);
+    expect(repeatRes.status).toBe(200);
+    expect((await repeatRes.json()).alreadyFossilized).toBe(true);
+    expect(publishAnnouncementMock).not.toHaveBeenCalled();
+
+    // Suppress unused-var lint on the harness symbols.
+    void LudicsAuthErrorCtor;
+    void getCurrentUserId;
   });
 });
 

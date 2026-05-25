@@ -15,28 +15,39 @@
  * Error codes (never logged with participantId in messages — T4 invariant):
  *  409  DELOCATION_REQUIRED  — ludicMoveId absent / locus not found
  *  422  CANON_GATE_FAILED    — canonicalText failed the pipeline validator
- *  422  SCHEME_REQUIRED      — schemeKey absent for inference move, or key not in catalog
+ *  422  SCHEME_REQUIRED      — schemeKey absent for daimon move, or key not in catalog
  */
 
 import { prisma } from "@/lib/prismaclient";
 import { canonicalizeClaimText } from "@/lib/ids/mintMoid";
+import { compoundRateLimit } from "@/lib/rateLimit";
+import { publishAnnouncement } from "@/lib/ludics/announcementBus";
 
 // ── Error class ──────────────────────────────────────────────────────────────
 
 export type BindErrorCode =
   | "DELOCATION_REQUIRED"
   | "CANON_GATE_FAILED"
-  | "SCHEME_REQUIRED";
+  | "SCHEME_REQUIRED"
+  | "RATE_LIMITED";
 
 export class BindError extends Error {
   readonly code: BindErrorCode;
-  readonly status: 409 | 422;
+  readonly status: 409 | 422 | 429;
+  /** Seconds the caller should wait before retrying. Set for RATE_LIMITED only. */
+  readonly retryAfter?: number;
 
-  constructor(code: BindErrorCode, message: string, status: 409 | 422) {
+  constructor(
+    code: BindErrorCode,
+    message: string,
+    status: 409 | 422 | 429,
+    retryAfter?: number,
+  ) {
     super(message);
     this.name = "BindError";
     this.code = code;
     this.status = status;
+    if (typeof retryAfter === "number") this.retryAfter = retryAfter;
   }
 }
 
@@ -56,6 +67,12 @@ export interface BindInput {
    * find all witnesses for this argument on deletion.
    */
   argumentId?: string;
+  /**
+   * Caller IP for B11 v2 compound rate-limiting (WS-2). Pass from the route
+   * handler: `req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()`.
+   * When omitted, only the per-participant bucket is checked.
+   */
+  ip?: string | null;
 }
 
 export interface InvariantChecks {
@@ -77,7 +94,7 @@ export interface BindResult {
 export async function bindParticipantToDesign(
   input: BindInput
 ): Promise<BindResult> {
-  const { dialogueMoveId, ludicMoveId, participantId, canonicalText, schemeKey, argumentId } =
+  const { dialogueMoveId, ludicMoveId, participantId, canonicalText, schemeKey, argumentId, ip } =
     input;
 
   // ── S1 + S2: LudicMove must exist, have a locus, and belong to a deliberation ──
@@ -99,6 +116,31 @@ export async function bindParticipantToDesign(
       "DELOCATION_REQUIRED",
       `LudicMove "${ludicMoveId}" has no deliberationId — existingStructure invariant violated`,
       409
+    );
+  }
+
+  // ── Phase 2f §6.1 (B11 v2 / WS-2) compound rate limit ────────────────────
+  // Scope = deliberationId (per WS-0 tenant-scope audit, 2026-05-22 — repo
+  // has no tenant axis). Bucket 1: (scope, participant, "bind"). Bucket 2:
+  // (scope, ip, "bind") when IP supplied. Either exhausted ⇒ 429.
+  const rl = await compoundRateLimit(
+    {
+      scopeId: ludicMove.deliberationId,
+      participantId,
+      ip: ip ?? null,
+      action: "bind",
+    },
+    {
+      perParticipant: { max: 10, window: "1 m" },
+      perIp:          { max: 30, window: "1 m" },
+    },
+  );
+  if (!rl.success) {
+    throw new BindError(
+      "RATE_LIMITED",
+      "RATE_LIMITED",
+      429,
+      rl.retryAfter,
     );
   }
 
@@ -190,6 +232,28 @@ export async function bindParticipantToDesign(
       },
     });
   });
+
+  // A1 announcement (WS-5b): emit `witness_committed` post-transaction.
+  // Protocol §7.0 + §8. Bus failures MUST NOT fail the bind operation.
+  try {
+    await publishAnnouncement({
+      eventType: "witness_committed",
+      version: 1,
+      scopeId: ludicMove.deliberationId,
+      actorParticipantId: participantId,
+      subjectId: witness.id,
+      occurredAt: witness.timestamp.toISOString(),
+      payload: {
+        witnessId: witness.id,
+        ludicMoveId,
+        dialogueMoveId,
+        schemeKey: schemeKey ?? null,
+      },
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[bindParticipantToDesign] announcement publish failed", err);
+  }
 
   return {
     witnessId: witness.id,

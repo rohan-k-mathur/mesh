@@ -1,27 +1,24 @@
 {
   "id": "synthesis-delocation-db",
-  "description": "Phase 2c fixture: small (5 args) deliberation with two designs with non-overlapping loci. Their articulation join produces newLoci.length > 0 (closureSteps: 1), triggering the DELOCATION_REQUIRED path. Used to validate the wasNontrivial codepath and locus-addition-required signal.",
+  "description": "Phase 2c fixture: small (5 args) deliberation with two designs whose loci differ; their literal-union articulation join surfaces newLoci within a single cone (Phase 2f Reading A, closureSteps: 0). Used to validate the same-cone-join codepath's newLoci propagation and the manifest's per-cone incarnation count.",
   "adversarialGates": [],
   "manifestFields": {
     "openExposurePoints": 1,
     "coverageRatio": 0.8,
     "fossilCount": 0,
     "incarnationSet": {
-      "bottom": {
-        "designId": "fixture-synthesis-delocation-bottom",
-        "loci": ["\u22a2A.0", "\u22a2A.1"],
-        "moveCount": 2,
-        "rank": 0
-      },
-      "minimals": [
+      "incarnations": [
         {
           "designId": "fixture-synthesis-delocation-bottom",
-          "loci": ["\u22a2A.0", "\u22a2A.1"],
+          "loci": [
+            "⊢A.0",
+            "⊢A.1"
+          ],
           "moveCount": 2,
           "rank": 0
         }
       ],
-      "totalIncarnations": 3
+      "totalIncarnations": 1
     }
   },
   "readout": {

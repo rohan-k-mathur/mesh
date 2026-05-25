@@ -9,30 +9,37 @@
  *   stratum          "witnessable" | "latent" | "all" (optional, default "witnessable")
  *   limit            number 1-100                     (optional, default 20)
  *
- * Auth: session cookie or MCP_API_TOKEN bearer.
+ * Auth (WS-3 / v2.5): scoped JWT (preferred; scope.deliberationId must match
+ * `deliberationId` query param) | session cookie.
+ *   (Legacy MCP_API_TOKEN bearer fallback was removed in the v2.5 cutover.)
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserId } from "@/lib/serverutils";
 import { getUnwitnessedExposure, ExposureStratum } from "@/server/ludics/exposure";
+import {
+  resolveLudicsCaller,
+  enforceTokenScope,
+  LudicsAuthError,
+} from "@/server/ludics/auth";
 
 export const dynamic = "force-dynamic";
-
-async function resolveCallerUserId(req: NextRequest): Promise<string | null> {
-  const auth = req.headers.get("authorization") ?? "";
-  const m = auth.match(/^Bearer\s+(.+)$/i);
-  const expected = process.env.MCP_API_TOKEN;
-  if (m && expected && m[1] === expected) {
-    return process.env.MCP_AUTHOR_USER_ID ?? "mcp-system";
-  }
-  return getCurrentUserId();
-}
 
 const VALID_STRATA = new Set<ExposureStratum>(["witnessable", "latent", "all"]);
 
 export async function GET(request: NextRequest) {
-  const callerId = await resolveCallerUserId(request);
-  if (!callerId) {
+  let caller;
+  try {
+    caller = await resolveLudicsCaller(request);
+  } catch (err) {
+    if (err instanceof LudicsAuthError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: err.code },
+        { status: err.status },
+      );
+    }
+    throw err;
+  }
+  if (!caller) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -44,6 +51,19 @@ export async function GET(request: NextRequest) {
       { ok: false, error: "Missing required query param: deliberationId" },
       { status: 400 }
     );
+  }
+
+  // WS-3: enforce JWT scope vs requested deliberation.
+  try {
+    enforceTokenScope(caller, deliberationId);
+  } catch (err) {
+    if (err instanceof LudicsAuthError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: err.code },
+        { status: err.status },
+      );
+    }
+    throw err;
   }
 
   const rawStratum = (searchParams.get("stratum") ?? "witnessable") as ExposureStratum;

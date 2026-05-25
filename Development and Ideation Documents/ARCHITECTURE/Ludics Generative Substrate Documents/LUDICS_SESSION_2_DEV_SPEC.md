@@ -868,7 +868,7 @@ console.log(JSON.stringify({
 
 These structured logs integrate with the existing logging pipeline. *[CORRECTED post-2e/2f]* `closureSteps > 0` is treated as a **substrate violation**, not unusual position complexity — within a cone, ∨_⊥⊥ is the literal chronicle-set union (Phase 2f Reading A) and requires zero closure rounds. The cross-cone case is rejected upstream by `proposeSynthesis`'s pre-flight cone check (§3.3) and never reaches `computeArticulationJoin`.
 
-> **Policy on `closureSteps > 0`.** *[ADDED post-review]* Default is **soft alert** (warn + surface in observability dashboard); upgrade to hard error after one production cycle confirms zero occurrences. Tracked as OQ-6 (LUDICS_SESSIONS_1_2_SPEC_REVIEW.md §7).
+> **Policy on `closureSteps > 0`: hard error.** *[RATIFIED 2026-05-22, post-B8]* OQ-6 (soft-alert vs. hard-error vs. drop-result) closed in favour of **hard error**. Rationale: Reading A makes within-cone ∨_⊥⊥ the literal chronicle-set union, so any nonzero `closureSteps` is a substrate-invariant violation (not a load/perf signal) and silently continuing would let downstream consumers act on an incoherent join. Implementation: [server/ludics/synthesisProposalAgent.ts](../../../../server/ludics/synthesisProposalAgent.ts) throws `SynthesisError("CLOSURE_STEPS_INVARIANT", …, 422)` immediately when `joinResult.closureSteps !== 0` on a `same-cone-join`; the WARN log above still fires from `articulationLattice.ts` for observability. The route handler propagates the 422 to the MCP/HTTP surface so the violation is loud rather than swallowed.
 
 ### §6.4 Auth audit (`server/ludics/auth.ts`)
 

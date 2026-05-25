@@ -98,10 +98,12 @@ import { RealtimeRoom } from "@prisma/client";
 import ClientProviders from "./client-providers";
 import { Toaster } from "sonner";
 import StandardShell from "./StandardShell"; // 👈 add this
+import { SITE_TITLE, SITE_DESCRIPTION, siteIcons } from "@/lib/favicons";
 
 export const metadata = {
-  title: "Mesh",
-  description: "A social media website",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  icons: siteIcons,
   // Track B.1 \u2014 discovery hints for LLM agents and AI-citation pipelines.
   alternates: {
     types: {

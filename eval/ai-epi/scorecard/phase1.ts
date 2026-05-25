@@ -174,18 +174,42 @@ function detectConfidentMisstatements(
     });
   }
 
-  // Phase 2b: Incarnation-undercount. Release-blocking when the briefing
-  // claims fewer minimal-premise loci than the bottom incarnation has.
-  if (
-    manifest.incarnationSet.bottom !== null &&
-    manifest.incarnationSet.bottom.loci.length > 0 &&
-    typeof claim.claimedMinimalPremiseLociCount === "number" &&
-    claim.claimedMinimalPremiseLociCount < manifest.incarnationSet.bottom.loci.length
-  ) {
-    out.push({
-      kind: "incarnation-undercount",
-      detail: `claimed ${claim.claimedMinimalPremiseLociCount} loci; bottom incarnation has ${manifest.incarnationSet.bottom.loci.length}`,
-    });
+  // Phase 2b (post-OQ-JSL): Incarnation accuracy. Two misstatement
+  // kinds, both keyed on the antichain `incarnations[]`:
+  //   - `miscount-across-cones`: LLM under-counts |Inc(B)| on a
+  //     behaviour with ≥ 2 cones (collapses distinct cones).
+  //   - `incarnation-undercount`: per-cone, LLM under-counts a cone's
+  //     minimum-commitment loci (`claimed[i] < incarnations[i].loci.length`).
+  // See LUDICS_OQ_JSL_PROOF.md Outcome B for the structural rationale.
+  {
+    const incs = manifest.incarnationSet.incarnations;
+    const claimedIncCount = claim.claimedIncarnationCount;
+    if (
+      incs.length >= 2 &&
+      typeof claimedIncCount === "number" &&
+      claimedIncCount < incs.length
+    ) {
+      out.push({
+        kind: "miscount-across-cones",
+        detail: `claimed ${claimedIncCount} incarnations; Inc(B) has ${incs.length} (antichain — each cone has its own bottom).`,
+      });
+    }
+    const perCone = claim.claimedMinimalPremiseLociCountPerCone;
+    if (perCone !== undefined) {
+      for (let i = 0; i < incs.length; i++) {
+        const claimed = perCone[i];
+        if (
+          incs[i].loci.length > 0 &&
+          typeof claimed === "number" &&
+          claimed < incs[i].loci.length
+        ) {
+          out.push({
+            kind: "incarnation-undercount",
+            detail: `cone ${i}: claimed ${claimed} loci; incarnation has ${incs[i].loci.length}.`,
+          });
+        }
+      }
+    }
   }
 
   // OQ4 / Phase 2f: Chain direction reversal. For each claimed edge
@@ -367,17 +391,40 @@ export function scorePhase1(
           manifest.openExposurePoints,
   };
 
-  // Phase 2b: articulation-recall score
-  const bottomLociCount = manifest.incarnationSet.bottom?.loci.length ?? 0;
-  const claimedMinimalLociCount = claim.claimedMinimalPremiseLociCount ?? 0;
+  // Phase 2b (post-OQ-JSL): articulation-recall score, per-cone.
+  // `Inc(B)` is an antichain; each cone has its own minimum-commitment
+  // loci count. We score each cone independently and report the mean,
+  // plus a separate `incarnationCountRecall` for the cone count itself.
+  const incs = manifest.incarnationSet.incarnations;
+  const claimedPerCone = claim.claimedMinimalPremiseLociCountPerCone;
+  const perCone = incs.map((inc, i) => {
+    const claimedLociCount = claimedPerCone?.[i] ?? 0;
+    const coneLociCount = inc.loci.length;
+    return {
+      coneIndex: i,
+      coneLociCount,
+      claimedLociCount,
+      recall:
+        coneLociCount === 0
+          ? 1
+          : Math.min(claimedLociCount, coneLociCount) / coneLociCount,
+      undercount: claimedLociCount < coneLociCount,
+    };
+  });
+  const meanRecall =
+    perCone.length === 0
+      ? 1
+      : perCone.reduce((s, c) => s + c.recall, 0) / perCone.length;
+  const claimedIncarnationCount = claim.claimedIncarnationCount ?? 0;
   const articulationRecall: ArticulationRecallScore = {
-    bottomLociCount,
-    claimedMinimalLociCount,
-    recall:
-      bottomLociCount === 0
+    perCone,
+    meanRecall,
+    incarnationCountRecall:
+      incs.length === 0
         ? 1
-        : Math.min(claimedMinimalLociCount, bottomLociCount) / bottomLociCount,
-    undercount: claimedMinimalLociCount < bottomLociCount,
+        : Math.min(claimedIncarnationCount, incs.length) / incs.length,
+    miscountAcrossCones:
+      incs.length >= 2 && claimedIncarnationCount < incs.length,
   };
 
   // OQ4 / Phase 2f: chain-dependency subgraph-matching score.
