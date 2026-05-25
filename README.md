@@ -1,16 +1,10 @@
 # Isonomia
 
-## Overview
+## Complete Platform Overview
 
-Isonomia is open-source infrastructure for community gathering and structured reasoning. It unifies a general-purpose social platform with a formal deliberation engine under a single data model, so that any conversation can be upgraded to a tracked deliberation through a single reversible action, and every resulting claim, argument, and deliberation is addressable, citable, challengeable, and durable.
+Isonomia is a social platform with a formal reasoning layer. The social layer (forums, feed, messaging, rooms, articles, shared libraries, user profiles) provides the space where communities gather. The reasoning layer, a deliberation engine implementing formal argumentation theory, interactive proof theory, and evidence aggregation, provides the infrastructure that preserves what the gathering produces. The two layers share a single data model and a continuous spectrum of formality: any conversation can become a structured deliberation, and any deliberation exists within a social context.
 
-The social layer is complete as a standalone platform: a chronological feed with eight post types, profiles and follows, persistent rooms and lounges, spatial canvas environments, sheaf-based layered messaging with drifts, proposals and polls, a long-form article system with anchored comments and rhetoric overlays, and shared document libraries. The reasoning layer sits beside it and implements four families of formalism: structured argumentation via ASPIC+ grounded extensions and the Walton taxonomy of schemes with auto-generated critical questions; interactive proof theory via Ludics designs, with a generative substrate of witnessing records, articulation lattices, and fossil retractions; typed dialogue protocols with commitment stores; and a category-theoretic evidence algebra over typed evidence arrows, with closed-monoid confidence folding and culprit-set belief revision. Evidence enters through a six-stage citation resolver (arXiv, Crossref, page metadata, OpenAlex, LLM extraction, Wayback) with four-tier confidence gating.
-
-The argument graph is exposed as a machine-citable epistemic primitive. Every permalink resolves to a content-hashed, dialectically attested structured argument with end-to-end provenance, served over content-negotiated HTTP (HTML, JSON-LD, AIF, social cards, oEmbed, iframe embeds) and over a bidirectional Model Context Protocol surface with read tools for arguments, counters, stances, and citations, and write tools that flag AI authorship honestly and gate logicality on human ratification. A public search surface fuses dense and sparse retrieval through reciprocal rank fusion, attaches the strongest known counter to every result by default, and reports empty states honestly rather than collapsing them.
-
-Three further layers ride on this substrate. Living documents (theses, briefs, peer reviews) embed claims and arguments that read live from the graph, with inspectors, attack registers, auditable confidence cards, snapshots, and fork/merge. An institutional workflow layer carries deliberation outputs into authorized bodies through a verifiable institution registry, hash-chained pathway audit logs, recommendation packets, and facilitator cockpits with real-time equity surfaces. The Plexus network connects deliberation rooms as a graph-of-graphs across five typed meta-edges, with SHA-1 fingerprinted one-hop room functors and three confidence-gating modes (logical, social, hybrid).
-
-Isonomia is free, self-hostable, and ad-free. There is no behavioral tracking, no algorithmic ranking, and no engagement metric. Data ownership, privacy, and provenance are enforced by architecture rather than by policy: the social graph is portable and exportable in open formats, and the reasoning graph is content-hashed and cryptographically auditable. The system is sustained by grants, institutional partnerships, and optional managed hosting. Its thesis is that the inferential structure connecting evidence to claims to conclusions deserves first-class infrastructure, and that such infrastructure can sit beneath an interface ordinary communities will actually use.
+The platform is open-source, self-hostable, and designed as public infrastructure. There is no advertising, no algorithmic feed optimization, no data harvesting, and no engagement metrics. The data belongs to the community that produces it. The code is public. The architecture enforces these commitments at the protocol level rather than the policy level.
 
 ---
 
@@ -21,6 +15,8 @@ Isonomia is free, self-hostable, and ad-free. There is no behavioral tracking, n
 **The Social Layer (MESH)** provides the features of a general-purpose community platform: a chronological feed with multiple post types, direct and group messaging, persistent rooms and lounges, user profiles with friend and follow systems, shared document libraries, long-form article publishing, and spatial canvas environments. This layer is complete and functional as a standalone social platform. It requires no engagement with the reasoning layer.
 
 **The Reasoning Layer (Isonomia)** provides formal deliberation infrastructure: argumentation schemes with auto-generated critical questions, typed dialogue moves with protocol enforcement, commitment stores, evidence management with executable citations, Ludics game-theoretic evaluation, confidence scoring, and a cross-context transport network. This layer is accessible from any point in the social layer through a single upgrade action (a discussion can become a deliberation, a comment can become a claim, an annotation can become a proposition), and the transition is reversible.
+
+The two layers are coordinate, not hierarchical: not a simplified version and an advanced version of one thing, but two modes of the same platform addressing two moments in a community's life, the moment of gathering and the moment of deciding. Most communities spend most of their time gathering. The reasoning layer exists for those moments when the gathering needs structure.
 
 ### The Spectrum
 
@@ -301,13 +297,7 @@ Three contracts the surface honors:
 - **AI-flagged warrants are non-logical until ratified.** A "propose warrant" action materializes an internal-hom warrant as an AI-authored argument together with a proposed assumption use; the resulting derivation never lifts to logical until a human ratifies the warrant text.
 - **One-hop cross-room transport.** Transport snapshots written by the transport-aggregator carry one-hop transport only, by contract: chained transport across three or more rooms is intentionally unsupported, so the aggregated band of *local*, *imported*, and *total* counts for any claim remains auditable to a single source room.
 
-**Substrate-level dialectical event stream.** Beneath the per-argument and per-deliberation surfaces sits a generative Ludics substrate that exposes the dialectical mechanics directly. Witnessing records bind dialogue acts to loci in a design; an articulation lattice exposes the cone structure of incarnations, with per-cone minima forming an antichain; a fossil record captures retractions with back-pointers to the loci they vacated; and a briefing-fingerprint API detects material change through five typed rules.
-
-Every binding act on the substrate (commit, reveal, contest, retract) is gated by a deliberation-scoped token (the scope is the deliberation itself; there is no tenant axis) and rate-limited on the compound key of deliberation, participant, and IP. The four axioms surface as four event types carried on a single envelope.
-
-The bus is the sole emit channel. External systems such as the embeddable widget, the model-context surface, third-party dashboards can use it to observe what a deliberation is doing in real time without polling the read model, and to do so against the same dialectical primitives the engine itself manipulates.
-
-Taken together, these surfaces let an external system — human or model — cite a unit rather than a webpage, prove what it cited and when, and surface the strongest known objection alongside the citation.
+Taken together, these surfaces let an external system — human or model — cite a unit rather than a webpage, prove what it cited and when, and surface the strongest known objection alongside the citation. An empty result is honestly empty rather than a false positive.
 
 ---
 
@@ -387,7 +377,7 @@ The platform's reasoning layer is grounded in formally studied frameworks:
 
 **Formal Argumentation Theory.** ASPIC+ (Prakken, 2010; Modgil & Prakken, 2018) provides the framework for structured argumentation with grounded extension computation. The Walton taxonomy (Walton, Reed & Macagno, 2008) provides over sixty argumentation schemes with associated critical questions. The Argument Interchange Format (AIF) (Chesñevar et al., 2006; Reed et al., 2010) provides the ontology for interoperable argument representation and JSON-LD export.
 
-**Interactive Proof Theory.** Ludics (Girard, 2001) models deliberation as a game between Proponent and Opponent strategies, with convergence and divergence computed through the interaction of designs. The Ludics layer provides game-theoretic evaluation independent of the ASPIC+ evaluation, offering a complementary perspective on which arguments are strategically decisive. Beneath that evaluation surface sits a generative substrate that exposes the dialectical primitives directly; witnessing records bound to loci, an articulation lattice with antichain minima, and a fossil record for retractions.
+**Interactive Proof Theory.** Ludics (Girard, 2001) models deliberation as a game between Proponent and Opponent strategies. Convergence and divergence are computed through the interaction of designs. The Ludics layer provides game-theoretic evaluation that is independent of the ASPIC+ evaluation, offering a complementary perspective on which arguments are strategically decisive.
 
 **Evidence Theory.** Dempster-Shafer theory handles the combination and aggregation of evidence from multiple sources with varying degrees of reliability, producing belief functions that represent the state of evidential support more precisely than binary true/false or simple probability.
 
