@@ -383,6 +383,7 @@ try {
   // write (with P2002 de-dup)
   let move: any, dedup = false;
   try {
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     move = await prisma.dialogueMove.create({
       data: { 
         deliberationId, 

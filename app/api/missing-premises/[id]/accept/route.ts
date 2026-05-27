@@ -80,6 +80,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
   try {
     const payload = { expression: mp.text, cqId:'default', locusPath:'0' };
     const signature = makeSignature('GROUNDS','argument', mp.targetId, payload); // same helper you use elsewhere
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     await prisma.dialogueMove.create({
       data: {
         deliberationId: parent?.deliberationId ?? '',

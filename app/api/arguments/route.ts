@@ -290,7 +290,8 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
   // Create a DialogueMove to assert this argument in the deliberation
   // This allows the ludics engine to compile it into designs
   try {
-    await prisma.dialogueMove.create({
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
+    const assertMove = await prisma.dialogueMove.create({
       data: {
         deliberationId,
         targetType: 'argument',
@@ -305,6 +306,22 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
         },
       }
     });
+
+    // Backfill the AIF graph (RA + I + premise/conclusion/asserts edges) for
+    // this argument so the new generative substrate's Step 8 walk can populate
+    // Design.premiseClaimIds without needing a separate one-shot backfill.
+    // Idempotent: re-running on an existing argument is a no-op.
+    // Non-fatal — the DM is already created and the rest of the request must
+    // continue (contradiction checks, commitments, CQ seeding, etc.).
+    try {
+      const { syncArgumentToAif } = await import('@/services/aif/syncArgument');
+      await syncArgumentToAif({
+        argumentId: argId,
+        dialogueMoveId: assertMove.id,
+      });
+    } catch (err) {
+      console.error('[arguments/POST] syncArgumentToAif failed:', err);
+    }
     
     // Also create a commitment for the conclusion claim (for contradiction detection)
     // Get the conclusion claim text

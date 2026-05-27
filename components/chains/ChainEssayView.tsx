@@ -12,7 +12,7 @@
 
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import useSWR from "swr";
 import {
   FileText,
@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { generateEssay, EssayOptions, EssayResult } from "@/lib/chains/essayGenerator";
+import { generateEssay, EssayOptions, EssayResult, conclusionSynthesisInputs } from "@/lib/chains/essayGenerator";
 import { ArgumentChainWithRelations } from "@/lib/types/argumentChain";
 import ReactMarkdown from "react-markdown";
 import ChainRefusalBanner from "./ChainRefusalBanner";
@@ -150,6 +150,53 @@ export function ChainEssayView({
 
   const chainData = initialData || fetchedChain;
 
+  // M3b: pull the deliberation's refusal surface so we can hand the
+  // generator the list of blocked conclusion-claim ids. SWR shares this
+  // request with `ChainRefusalBanner` (same URL key), so adding this
+  // hook does not duplicate the round trip. When the readout is absent
+  // (loading / 404 / unavailable) the generator simply falls back to
+  // its non-refusal-aware rendering.
+  const { data: readout } = useSWR<{
+    refusalSurface?: {
+      cannotConcludeBecause?: Array<{
+        attemptedConclusion: string;
+        conclusionClaimId: string;
+        blockedBy: string;
+      }>;
+    };
+  }>(
+    chainData?.deliberation?.id
+      ? `/api/v3/deliberations/${chainData.deliberation.id}/synthetic-readout?view=compact`
+      : null,
+    (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json()),
+    { revalidateOnFocus: false, shouldRetryOnError: false },
+  );
+
+  const refusalSurfaceForGenerator = useMemo(() => {
+    if (!chainData || !readout?.refusalSurface?.cannotConcludeBecause?.length) {
+      return undefined;
+    }
+    // Restrict to entries whose conclusion claim id appears in *this*
+    // chain — the deliberation may carry many refusal entries that
+    // belong to other chains, and surfacing them here would be noise.
+    const chainClaimIds = new Set(
+      chainData.nodes
+        .map((n) => n.argument?.conclusion?.id)
+        .filter((x): x is string => Boolean(x)),
+    );
+    const matched = readout.refusalSurface.cannotConcludeBecause.filter((e) =>
+      chainClaimIds.has(e.conclusionClaimId),
+    );
+    if (matched.length === 0) return undefined;
+    return {
+      blockedClaimIds: matched.map((e) => e.conclusionClaimId),
+      // First entry is highest-severity (readout already orders by
+      // unanswered-undercut → undermine → scheme-incompatibility →
+      // depth-thin). Use its attempted conclusion as the human label.
+      weakestLinkLabel: matched[0].attemptedConclusion,
+    };
+  }, [chainData, readout]);
+
   // Generate essay when data or options change
   const essayResult = useMemo<EssayResult | null>(() => {
     if (!chainData) return null;
@@ -161,17 +208,140 @@ export function ChainEssayView({
       includeCriticalQuestions: includeCQs,
       includePremiseStructure: includePremises,
       includeDialectic,
+      refusalSurface: refusalSurfaceForGenerator,
     };
     
     return generateEssay(chainData, options);
-  }, [chainData, tone, audienceLevel, includeSchemeRefs, includeCQs, includePremises, includeDialectic]);
+  }, [chainData, tone, audienceLevel, includeSchemeRefs, includeCQs, includePremises, includeDialectic, refusalSurfaceForGenerator]);
+
+  // M6 — LLM polish pass (behind feature flag `NEXT_PUBLIC_CHAIN_ESSAY_LLM_POLISH`).
+  // Always renders the deterministic essay first; if the polish call
+  // succeeds (and the fact-preservation guard does not trip server-side)
+  // we swap in the polished text. The user can flip back via the
+  // "Show original" toggle.
+  const polishFlagOn =
+    typeof process !== "undefined" &&
+    (process.env.NEXT_PUBLIC_CHAIN_ESSAY_LLM_POLISH === "1" ||
+      process.env.NEXT_PUBLIC_CHAIN_ESSAY_LLM_POLISH === "true" ||
+      process.env.NEXT_PUBLIC_CHAIN_ESSAY_LLM_POLISH === "on");
+  const [polishedText, setPolishedText] = useState<string | null>(null);
+  const [polishUsed, setPolishUsed] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [polishLoading, setPolishLoading] = useState(false);
+
+  // Cheap stable content hash for the cache key: 32-bit FNV-1a of the
+  // deterministic prose. The prose already encodes every option that
+  // matters (tone, audience, refusalSurface, etc.) because it's the
+  // deterministic skeleton — so hashing it is a complete cache key.
+  const contentHash = useMemo(() => {
+    if (!essayResult) return "";
+    const s = essayResult.fullText;
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16);
+  }, [essayResult]);
+
+  // The callable polish path: shared by the auto-trigger (env flag on)
+  // and the manual "Polish with AI" button. The `force` arg makes the
+  // server bypass `isChainEssayPolishEnabled` so curators can fire a
+  // one-off polish even when the flag is off — credentials still
+  // required, fact-preservation guard still runs.
+  const polishAbortRef = useRef<{ cancelled: boolean } | null>(null);
+  const runPolish = useCallback(
+    async (opts?: { force?: boolean }) => {
+      if (!chainData || !essayResult) return;
+      // Cancel any in-flight polish before starting a new one.
+      if (polishAbortRef.current) polishAbortRef.current.cancelled = true;
+      const token = { cancelled: false };
+      polishAbortRef.current = token;
+      setPolishLoading(true);
+      try {
+        const synth = conclusionSynthesisInputs(chainData);
+        const body = {
+          contentHash,
+          deterministicProse: essayResult.fullText,
+          tone,
+          audience: audienceLevel,
+          standingsSummary: {
+            oneLiner:
+              (chainData as any).purpose ||
+              `${synth.surviving.length} surviving, ${synth.fallen.length} fallen, ${synth.residual.length} residual.`,
+            survivingCount: synth.surviving.length,
+            fallenCount: synth.fallen.length,
+            residualCount: synth.residual.length,
+          },
+          force: opts?.force === true,
+        };
+        const r = await fetch(
+          `/api/argument-chains/${chainData.id}/essay-polish`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
+        const res = await r.json();
+        if (token.cancelled) return;
+        if (res?.usedPolish && typeof res.polished === "string") {
+          setPolishedText(res.polished);
+          setPolishUsed(true);
+          setShowOriginal(false);
+          if (opts?.force) toast.success("Polished");
+        } else {
+          setPolishedText(null);
+          setPolishUsed(false);
+          if (opts?.force) {
+            const reason = typeof res?.reason === "string" ? res.reason : "unknown";
+            toast.error(
+              reason === "missing_credentials"
+                ? "Polish unavailable (missing LLM credentials)"
+                : reason === "fact_drift"
+                  ? "Polish dropped (fact-preservation guard tripped)"
+                  : `Polish unavailable (${reason})`,
+            );
+          }
+        }
+      } catch {
+        if (token.cancelled) return;
+        setPolishedText(null);
+        setPolishUsed(false);
+        if (opts?.force) toast.error("Polish request failed");
+      } finally {
+        if (!token.cancelled) setPolishLoading(false);
+      }
+    },
+    [chainData, essayResult, contentHash, tone, audienceLevel],
+  );
+
+  // Auto-trigger: when the env flag is on, kick off a polish on mount /
+  // whenever the deterministic prose changes. The button path is the
+  // manual escape hatch when the flag is off.
+  useEffect(() => {
+    if (!polishFlagOn || !chainData || !essayResult) {
+      setPolishedText(null);
+      setPolishUsed(false);
+      return;
+    }
+    void runPolish();
+    return () => {
+      if (polishAbortRef.current) polishAbortRef.current.cancelled = true;
+    };
+  }, [polishFlagOn, chainData, essayResult, contentHash, tone, audienceLevel, runPolish]);
+
+  const displayedText =
+    polishUsed && polishedText && !showOriginal
+      ? polishedText
+      : essayResult?.fullText ?? "";
 
   // Copy to clipboard
   const handleCopy = async () => {
     if (!essayResult) return;
     
     try {
-      await navigator.clipboard.writeText(essayResult.fullText);
+      await navigator.clipboard.writeText(displayedText);
       setCopied(true);
       toast.success("Copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
@@ -184,7 +354,7 @@ export function ChainEssayView({
   const handleDownload = () => {
     if (!essayResult) return;
     
-    const blob = new Blob([essayResult.fullText], { type: "text/markdown" });
+    const blob = new Blob([displayedText], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -252,6 +422,27 @@ export function ChainEssayView({
           <span className="text-xs text-slate-500">
             {essayResult.wordCount} words • {essayResult.metadata.schemeCount} schemes
           </span>
+          {polishLoading && (
+            <span className="text-xs text-slate-400 inline-flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              polishing…
+            </span>
+          )}
+          {polishUsed && !showOriginal && (
+            <Badge variant="outline" className="text-xs border-violet-300 text-violet-700">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Polished
+            </Badge>
+          )}
+          {polishUsed && (
+            <button
+              type="button"
+              className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700"
+              onClick={() => setShowOriginal((v) => !v)}
+            >
+              {showOriginal ? "Show polished" : "Show original"}
+            </button>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
@@ -347,6 +538,26 @@ export function ChainEssayView({
           <Button
             variant="outline"
             size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => runPolish({ force: true })}
+            disabled={polishLoading || polishUsed}
+            title={
+              polishUsed
+                ? "Already polished — toggle 'Show original' to compare"
+                : "Run a one-off LLM polish pass over the deterministic essay"
+            }
+          >
+            {polishLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>{polishUsed ? "Polished" : "Polish"}</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             className="h-8"
             onClick={handleCopy}
           >
@@ -433,7 +644,7 @@ export function ChainEssayView({
             ),
           }}
         >
-          {essayResult.fullText}
+          {displayedText}
         </ReactMarkdown>
       </div>
 

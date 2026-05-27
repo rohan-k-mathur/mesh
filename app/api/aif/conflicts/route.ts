@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     };
     const expression = attackLabels[p.schemeKey?.toUpperCase() || ''] || 'I challenge this';
     
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     const attackMove = await prisma.dialogueMove.create({
       data: {
         deliberationId: p.deliberationId,

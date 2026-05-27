@@ -69,6 +69,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BASE_URL, API_TOKEN, isoFetch, permalinkToShortCode } from "./http.js";
+import { isLudicsAutoMintConfigured } from "./ludicsAuth.js";
 import {
   SERVER_INSTRUCTIONS,
   ORIENTATION_PAYLOAD,
@@ -150,6 +151,18 @@ const SearchInput = z.object({
     .optional()
     .describe(
       "How many top results to enrich with strongestCounter (default 10). Only meaningful when include_strongest_counter=true."
+    ),
+  within_deliberation: z
+    .string()
+    .optional()
+    .describe(
+      "Deliberation id used to scope or tag results. When set, each result carries `scope: 'within' | 'cross'` so intra- vs inter-deliberation hits are distinguishable. Combine with `scope` to filter. REQUIRED whenever the caller is investigating a specific deliberation — search is global by default and will mix hits from unrelated deliberations otherwise."
+    ),
+  scope: z
+    .enum(["within", "cross", "both"])
+    .optional()
+    .describe(
+      "How `within_deliberation` applies. 'within' = only intra-deliberation results. 'cross' = only results from other deliberations. 'both' (default when within_deliberation is set) = return both, tagged with `scope`. Ignored when `within_deliberation` is not set."
     ),
 });
 
@@ -559,6 +572,14 @@ const GetArticulationLatticeInput = z.object({
       "incarnations: return Inc(B) as a poset of canonical representatives (default). " +
         "raw: include full equivalence-class annotations grouped by biorthoClass.",
     ),
+  deliberationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional. Deliberation id of the behaviour, used only to auto-mint a scoped Ludics JWT for this read. " +
+        "Pass this when the MCP is configured with LUDICS_JWT_SIGNING_KEY/LUDICS_PARTICIPANT_ID and you don't want to fall back to ISONOMIA_API_TOKEN.",
+    ),
 });
 
 const FindMinimalIncarnationsInput = z.object({
@@ -566,6 +587,13 @@ const FindMinimalIncarnationsInput = z.object({
     .string()
     .min(1)
     .describe("Id of the Behaviour whose minimal incarnations |B| to return."),
+  deliberationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional. Deliberation id of the behaviour, used only to auto-mint a scoped Ludics JWT for this read.",
+    ),
 });
 
 const FindEquivalentArticulationsInput = z.object({
@@ -575,6 +603,13 @@ const FindEquivalentArticulationsInput = z.object({
     .describe(
       "Id of the Design whose ~_⊥⊥ equivalence class to return. " +
         "Use get_articulation_lattice to enumerate design ids.",
+    ),
+  deliberationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional. Deliberation id of the design, used only to auto-mint a scoped Ludics JWT for this read.",
     ),
 });
 
@@ -589,6 +624,13 @@ const FindSubstitutePremisesInput = z.object({
     .array(z.string().min(1))
     .min(1)
     .describe("Premise claim ids to exclude from candidate incarnations."),
+  deliberationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional. Deliberation id of the behaviour, used only to auto-mint a scoped Ludics JWT for this read.",
+    ),
 });
 
 const CompressArticulationInput = z.object({
@@ -599,6 +641,13 @@ const CompressArticulationInput = z.object({
       "Design ids (≥ 2) whose meet in Art(B) to compute. " +
         "All must belong to the same Behaviour.",
     ),
+  deliberationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional. Deliberation id of the parent behaviour, used only to auto-mint a scoped Ludics JWT for this call.",
+    ),
 });
 
 const ComputeArticulationJoinInput = z.object({
@@ -608,6 +657,13 @@ const ComputeArticulationJoinInput = z.object({
     .describe(
       "Design ids (≥ 2) to join via D1 ∨_⊥⊥ D2 := (D1 ∪ D2)^⊥⊥. " +
         "All must belong to the same Behaviour.",
+    ),
+  deliberationId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional. Deliberation id of the parent behaviour, used only to auto-mint a scoped Ludics JWT for this call.",
     ),
 });
 
@@ -670,6 +726,13 @@ const GetBehaviourAtLocusInput = z.object({
     .describe(
       "Locus address (e.g. '⊢A.1', '⊢A.1.2'). Stable; does not change when the design grows. Use get_deliberation_schema to enumerate available loci first.",
     ),
+});
+
+const ListBehavioursInput = z.object({
+  deliberationId: z
+    .string()
+    .min(1)
+    .describe("Deliberation id whose behaviours to enumerate."),
 });
 
 // ── Cluster A: exposure map ────────────────────────────────────────────────
@@ -757,20 +820,44 @@ const GetInstantiationInput = z.object({
 });
 
 const BindWitnessInput = z.object({
+  deliberationId: z.string().min(1).describe(
+    "Id of the deliberation whose D_P this witness belongs to. Required so the perimeter can enforce scoped-JWT scope (WS-3) and so the MCP server can auto-mint a deliberation-scoped token when LUDICS_JWT_SIGNING_KEY is configured."
+  ),
   dialogueMoveId: z.string().min(1).describe(
     "Id of the DialogueMove being witnessed (@unique in WitnessRecord — each dialogue act may only witness once)."
   ),
   ludicMoveId: z.string().min(1).describe(
-    "Id of the target LudicMove (S1/S2). Get from list_ludic_moves or the locus resolution path."
+    "Id of the target LudicMove (S1/S2). Get from list_bindable_moves (preferred — returns ludicMoveId pre-paired with an unwitnessed dialogueMoveId + canonicalText) or the locus resolution path."
   ),
-  participantId: z.string().min(1).describe(
-    "Participant being bound. Stored internally only; never returned in public responses (T4 non-attribution)."
+  participantId: z.string().min(1).optional().describe(
+    "Participant being bound. Stored internally only; never returned in public responses (T4 non-attribution). When omitted, the MCP server falls back to LUDICS_PARTICIPANT_ID env (required when auto-mint is configured); supplying it explicitly overrides the env."
   ),
   canonicalText: z.string().min(1).describe(
     "Claim text AFTER canonicalization — must be the exact output of canonicalizeClaimText (JSON.stringify({text: NFC+whitespace-collapsed})). Fails with CANON_GATE_FAILED if malformed (I3)."
   ),
   schemeKey: z.string().optional().describe(
     "ArgumentScheme.key from the catalog (S4). Required when moveType==='daimon'; optional for positive/negative. Use list_schemes to pick a valid key."
+  ),
+});
+
+const ListBindableMovesInput = z.object({
+  deliberationId: z.string().min(1).describe(
+    "Id of the deliberation whose LudicMoves to enumerate. Used both as a scope filter and (when LUDICS_JWT_SIGNING_KEY is configured) to auto-mint a deliberation-scoped Ludics JWT."
+  ),
+  designId: z.string().min(1).optional().describe(
+    "When set, restrict to LudicMoves on this specific Design. Use this after `find_minimal_incarnations` to enumerate bindable slots on a chosen incarnation."
+  ),
+  behaviourId: z.string().min(1).optional().describe(
+    "When set (and designId is omitted), restrict to LudicMoves on any Design in this Behaviour."
+  ),
+  locus: z.string().min(1).optional().describe(
+    "When set, restrict to LudicMoves at this exact locus (e.g. '⊢A.1.2')."
+  ),
+  includeWitnessed: z.boolean().optional().default(false).describe(
+    "When true, also returns LudicMoves that already carry an active (non-fossilized) WitnessRecord. Default false — such moves cannot be re-bound."
+  ),
+  limit: z.number().int().min(1).max(200).optional().default(50).describe(
+    "Max bindable-move rows to return. Default 50, max 200."
   ),
 });
 
@@ -802,7 +889,7 @@ const tools: ToolSpec[] = [
   {
     name: "get_orientation",
     description:
-      "Returns the operational glossary, workflow recipes, and tool-cluster guide for this MCP server. Call ONCE at session start before any other Isonomia tool — costs ~1.5K tokens but eliminates cold-start round-trips. Includes a TOOL-CLUSTER MAP listing all 29 tools by use-case (Retrieval · Authoring · Deliberation-synthesis · Algebraic-ECC) so you can route to the right tool family without scanning every description. Output includes a `version` and `contentHash` so clients can cache across sessions and skip re-reading when the hash hasn't changed.",
+      "Returns the operational glossary, workflow recipes, and tool-cluster guide for this MCP server. Call ONCE at session start before any other Isonomia tool — costs ~1.5K tokens but eliminates cold-start round-trips. Includes a TOOL-CLUSTER MAP listing all 45 tools across 6 clusters by use-case (Retrieval · Authoring · Deliberation-synthesis · Algebraic-ECC · Ludics generative substrate) so you can route to the right tool family without scanning every description. Output includes a `version` and `contentHash` so clients can cache across sessions and skip re-reading when the hash hasn't changed. Pair with get_capabilities for a cheap (~50-token) runtime probe of what auth/identity is wired.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     async handler() {
       return {
@@ -814,9 +901,37 @@ const tools: ToolSpec[] = [
     },
   },
   {
+    name: "get_capabilities",
+    description:
+      "Cheap runtime probe — returns what auth, identity, and tool surface this MCP instance currently has wired, without any round-trip to the Isonomia API. Call on first contact (alongside or instead of get_orientation) to decide before-the-fact whether write tools will work. Returns: `serverName`, `orientationVersion`, `orientationContentHash` (compare against your cached value to skip get_orientation), `apiBaseUrl`, `auth: { staticTokenConfigured: boolean, autoMintConfigured: boolean, defaultParticipantIdSet: boolean }` (booleans only — actual token/participantId values are never returned, T4 non-attribution), `toolCount`, `clusters` (the 6-cluster taxonomy used in orientation). Use `auth.defaultParticipantIdSet === true` to know you can omit `participantId` on bind_participant_to_design; use `auth.autoMintConfigured || auth.staticTokenConfigured` to know write seams are reachable.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    async handler() {
+      return {
+        serverName: "@app/isonomia-mcp",
+        orientationVersion: ORIENTATION_VERSION,
+        orientationContentHash: computeOrientationContentHash(),
+        apiBaseUrl: BASE_URL,
+        auth: {
+          staticTokenConfigured: Boolean(API_TOKEN),
+          autoMintConfigured: isLudicsAutoMintConfigured(),
+          defaultParticipantIdSet: Boolean(process.env.LUDICS_PARTICIPANT_ID),
+        },
+        toolCount: tools.length,
+        clusters: [
+          "1-retrieval",
+          "2-authoring",
+          "3-deliberation-synthesis",
+          "4-algebraic-ecc",
+          "5-scheme-catalog",
+          "6-ludics-substrate",
+        ],
+      };
+    },
+  },
+  {
     name: "search_arguments",
     description:
-      "Search Isonomia for public arguments, claims, and counter-arguments by free-text query. Use this as the first step for any debate, controversy, position, objection, rebuttal, supporting reason, or evidence question. Returns ranked permalinks with scheme, conclusion, and an attestation URL. Defaults to mode='hybrid' (pgvector cosine + lexical OR-tokens fused via RRF, K=60) so paraphrased queries hit semantically related arguments even when surface vocabulary differs; pass mode='lexical' for deterministic substring matching or mode='vector' for pure embedding similarity. Supports sort='dialectical_fitness' to rank by tested-and-survived (answered CQs, supports, evidence with provenance, minus open attacks). When sort='dialectical_fitness' is used, each result also carries a `fitnessBreakdown` object decomposing the score into its weighted components (cqAnswered, supportEdges, attackEdges, attackCAs, evidenceWithProvenance) plus the formula weights, so the score is auditable rather than opaque. When mode is hybrid or vector, each result also carries a `hybrid` block (rrfScore, sparseRank, denseRank, denseDistance) so retrieval confidence is auditable. Phase 2 quality filters — tested_only (only arguments that have been challenged in the graph), min_cq_satisfied (minimum answered critical-questions), min_evidence (minimum provenance-anchored evidence rows on the conclusion), and since/until (ISO-8601 date range on createdAt) — narrow results to arguments that meet a higher quality bar. → next: for any deliberation you summarise, call get_synthetic_readout and obey its writingConstraints before composing prose; for a single citation, call get_argument and hedge per its standingState.",
+      "Search Isonomia for public arguments, claims, and counter-arguments by free-text query. Use this as the first step for any debate, controversy, position, objection, rebuttal, supporting reason, or evidence question. Returns ranked permalinks with scheme, conclusion, and an attestation URL. SCOPING: search is GLOBAL by default and will return hits from any deliberation. Whenever you are investigating a specific deliberation, ALWAYS pass `within_deliberation` (with optional `scope`) so results are scoped or at least tagged with `scope: 'within' | 'cross'` — otherwise you will silently mix hits from unrelated deliberations. Defaults to mode='hybrid' (pgvector cosine + lexical OR-tokens fused via RRF, K=60) so paraphrased queries hit semantically related arguments even when surface vocabulary differs; pass mode='lexical' for deterministic substring matching or mode='vector' for pure embedding similarity. Supports sort='dialectical_fitness' to rank by tested-and-survived (answered CQs, supports, evidence with provenance, minus open attacks). When sort='dialectical_fitness' is used, each result also carries a `fitnessBreakdown` object decomposing the score into its weighted components (cqAnswered, supportEdges, attackEdges, attackCAs, evidenceWithProvenance) plus the formula weights, so the score is auditable rather than opaque. When mode is hybrid or vector, each result also carries a `hybrid` block (rrfScore, sparseRank, denseRank, denseDistance) so retrieval confidence is auditable. Phase 2 quality filters — tested_only (only arguments that have been challenged in the graph), min_cq_satisfied (minimum answered critical-questions), min_evidence (minimum provenance-anchored evidence rows on the conclusion), and since/until (ISO-8601 date range on createdAt) — narrow results to arguments that meet a higher quality bar. → next: for any deliberation you summarise, call get_synthetic_readout and obey its writingConstraints before composing prose; for a single citation, call get_argument and hedge per its standingState.",
     inputSchema: zodToJsonSchema(SearchInput),
     async handler(args) {
       const input = SearchInput.parse(args);
@@ -833,7 +948,9 @@ const tools: ToolSpec[] = [
         (input.until ? `&until=${encodeURIComponent(input.until)}` : "") +
         (input.conclusion_moid ? `&conclusion_moid=${encodeURIComponent(input.conclusion_moid)}` : "") +
         (input.include_strongest_counter ? `&include_strongest_counter=1` : "") +
-        (input.strongest_counter_k != null ? `&strongest_counter_k=${input.strongest_counter_k}` : "");
+        (input.strongest_counter_k != null ? `&strongest_counter_k=${input.strongest_counter_k}` : "") +
+        (input.within_deliberation ? `&within_deliberation=${encodeURIComponent(input.within_deliberation)}` : "") +
+        (input.scope ? `&scope=${encodeURIComponent(input.scope)}` : "");
       return await isoFetch(url);
     },
   },
@@ -860,11 +977,32 @@ const tools: ToolSpec[] = [
   },
   // ── Cluster B: articulation lattice ────────────────────────────────────────
   {
+    name: "list_behaviours",
+    description:
+      "List every Behaviour in a deliberation with summary stats (incarnationCount, coneCount, moveCount, walkedCount, witnessRatio), sorted by incarnationCount desc. " +
+      "Use this FIRST when you don't yet know which behaviour(s) exist in a deliberation — avoids guessing locus addresses and probing get_behaviour_at_locus. " +
+      "`behaviours[0]` is the most-articulated entry point. " +
+      "→ next: pick a behaviourId and call get_articulation_lattice (full DAG with cones) or find_minimal_incarnations (just the per-cone bottoms). Then list_bindable_moves(designId) on a chosen incarnation to enumerate bindable slots. " +
+      "T4 invariant: no participantId is returned.",
+    inputSchema: zodToJsonSchema(ListBehavioursInput),
+    handler: async (args: unknown) => {
+      const input = ListBehavioursInput.parse(args);
+      return isoFetch(
+        `/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/behaviours`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
+      );
+    },
+  },
+  {
     name: "get_articulation_lattice",
     description:
       "Return the articulation lattice Art(B) = (Inc(B), ≤_⊆, ∨_⊥⊥) for a behaviour B: " +
       "all incarnations as a navigable structure with inclusion edges, per-cone minima, " +
       "and (when representatives: 'raw') full ~_⊥⊥ equivalence-class annotations. " +
+      "Each incarnation carries derivedBy ∈ {null, 'join', 'meet', 'compression', 'extend'} — null marks a base incarnation (cone bottom); the four named values mark designs produced by Art(B) operations. Any other value (including legacy sentinels) is treated as a base incarnation. " +
       "Inc(B) is an antichain (Phase 2e): there is no single global bottom |B|; " +
       "the inclusion DAG decomposes into disjoint cones, each rooted at its own " +
       "minimum-commitment incarnation. The result exposes a `cones` array " +
@@ -872,6 +1010,7 @@ const tools: ToolSpec[] = [
       "Use find_minimal_incarnations to get the antichain of cone minima directly; " +
       "use this for the full DAG with edges. " +
       "→ obtain behaviourId from get_behaviour_at_locus or get_deliberation_schema. " +
+      "→ next: find_minimal_incarnations for the per-cone bottoms, then list_bindable_moves(designId) to enumerate bindable slots on a chosen incarnation. " +
       "T4 invariant: participantId is never returned.",
     inputSchema: zodToJsonSchema(GetArticulationLatticeInput),
     handler: async (args: unknown) => {
@@ -879,6 +1018,10 @@ const tools: ToolSpec[] = [
       return isoFetch(
         `/api/v3/behaviours/${encodeURIComponent(input.behaviourId)}/articulation-lattice` +
           `?representatives=${encodeURIComponent(input.representatives)}`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -895,12 +1038,17 @@ const tools: ToolSpec[] = [
       "coneCount > 1 means there are genuinely incomparable starting points, each " +
       "living in its own cone (no cross-cone joins exist). " +
       "→ obtain behaviourId from get_behaviour_at_locus. " +
+      "→ next: pick one incarnation and call list_bindable_moves(deliberationId, { designId }) to enumerate bindable slots for bind_participant_to_design. " +
       "T4 invariant: participantId is never returned.",
     inputSchema: zodToJsonSchema(FindMinimalIncarnationsInput),
     handler: async (args: unknown) => {
       const input = FindMinimalIncarnationsInput.parse(args);
       return isoFetch(
         `/api/v3/behaviours/${encodeURIComponent(input.behaviourId)}/minimal-incarnations`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -919,6 +1067,10 @@ const tools: ToolSpec[] = [
       const input = FindEquivalentArticulationsInput.parse(args);
       return isoFetch(
         `/api/v3/designs/${encodeURIComponent(input.designId)}/equivalent-articulations`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -939,6 +1091,10 @@ const tools: ToolSpec[] = [
       return isoFetch(
         `/api/v3/behaviours/${encodeURIComponent(input.behaviourId)}/substitute-premises` +
           `?drop=${encodeURIComponent(drop)}`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -962,6 +1118,8 @@ const tools: ToolSpec[] = [
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ designIds: input.designIds }),
+        authenticated: true,
+        ludicsDeliberationId: input.deliberationId,
       });
     },
   },
@@ -985,6 +1143,8 @@ const tools: ToolSpec[] = [
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ designIds: input.designIds }),
+        authenticated: true,
+        ludicsDeliberationId: input.deliberationId,
       });
     },
   },
@@ -1010,7 +1170,10 @@ const tools: ToolSpec[] = [
       if (input.ludicMoveId) params.set("ludicMoveId", input.ludicMoveId);
       params.set("includeActive", String(input.includeActive ?? false));
       params.set("limit", String(input.limit ?? 50));
-      return isoFetch(`/api/v3/ludics/fossil-record?${params.toString()}`);
+      return isoFetch(`/api/v3/ludics/fossil-record?${params.toString()}`, {
+        authenticated: true,
+        ludicsDeliberationId: input.deliberationId,
+      });
     },
   },
   // ── Cluster F: deliberation structure reads ───────────────────────────────
@@ -1033,6 +1196,10 @@ const tools: ToolSpec[] = [
       });
       return await isoFetch(
         `/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/ludics-schema?${params.toString()}`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -1052,6 +1219,10 @@ const tools: ToolSpec[] = [
       const input = GetBehaviourAtLocusInput.parse(args);
       return await isoFetch(
         `/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/behaviour-at-locus?locus=${encodeURIComponent(input.locus)}`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -1083,6 +1254,10 @@ const tools: ToolSpec[] = [
       if (input.claimId) params.set("claimId", input.claimId);
       return await isoFetch(
         `/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/exposure-map?${params.toString()}`,
+        {
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
       );
     },
   },
@@ -1121,7 +1296,10 @@ const tools: ToolSpec[] = [
         stratum: input.stratum ?? "witnessable",
         limit: String(input.limit ?? 20),
       });
-      return await isoFetch(`/api/v3/ludics/unwitnessed-exposure?${params.toString()}`);
+      return await isoFetch(`/api/v3/ludics/unwitnessed-exposure?${params.toString()}`, {
+        authenticated: true,
+        ludicsDeliberationId: input.deliberationId,
+      });
     },
   },
   {
@@ -1742,33 +1920,74 @@ const tools: ToolSpec[] = [
       );
     },
   },
+  // ── Cluster D: list_bindable_moves ────────────────────────────────────────
+  {
+    name: "list_bindable_moves",
+    description:
+      "Return LudicMoves in a deliberation that are eligible targets for bind_participant_to_design, each paired with any unwitnessed DialogueMoves that could supply the witnessing dialogue act. " +
+      "Designed to make 'bind me to design X' executable in a single turn: every row carries a ludicMoveId, the move's locus / moveType / stratumLabel, and (when present) candidateDialogueMoves[] with a ready-to-submit canonicalText. " +
+      "Filter via designId (most common — after find_minimal_incarnations), behaviourId, or locus. By default excludes already-witnessed LudicMoves (S1/S2: cannot be re-bound); pass includeWitnessed:true to see them. " +
+      "T4 invariant: no participantId is returned — caller (or LUDICS_PARTICIPANT_ID on the MCP server) must supply that when calling bind_participant_to_design. " +
+      "→ pair this with bind_participant_to_design: pick a row whose candidateDialogueMoves[0].locusAlignedExactly is true, then submit {ludicMoveId, dialogueMoveId, canonicalText} from the chosen pair.",
+    inputSchema: zodToJsonSchema(ListBindableMovesInput),
+    async handler(args) {
+      const input = ListBindableMovesInput.parse(args);
+      const params = new URLSearchParams();
+      if (input.designId) params.set("designId", input.designId);
+      if (input.behaviourId) params.set("behaviourId", input.behaviourId);
+      if (input.locus) params.set("locus", input.locus);
+      if (input.includeWitnessed) params.set("includeWitnessed", "true");
+      if (input.limit != null) params.set("limit", String(input.limit));
+      const qs = params.toString();
+      return await isoFetch(
+        `/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/bindable-moves${qs ? `?${qs}` : ""}`,
+        {
+          method: "GET",
+          authenticated: true,
+          ludicsDeliberationId: input.deliberationId,
+        },
+      );
+    },
+  },
   // ── Cluster D: bind_participant_to_design ─────────────────────────────────
   {
     name: "bind_participant_to_design",
     description:
       "Iota write seam — the ONLY path that produces a WitnessRecord and enforces all four structural invariants before committing. " +
+      "→ PREREQUISITE: if you don't already have {ludicMoveId, dialogueMoveId, canonicalText}, call list_bindable_moves first — it returns rows pre-paired with all three values (canonicalText is the canonicalizeClaimText output; do NOT hand-construct it). " +
       "Call this after resolving a locus and before any downstream Ludics computation; do NOT write WitnessRecord rows via any other path. " +
       "CONTRACT: (S1) ludicMoveId must be in LudicMove with a non-empty locus; " +
       "(S2) LudicMove.deliberationId must be non-null; " +
       "(S3) canonicalText must be the exact output of canonicalizeClaimText (JSON.stringify({text:…})); " +
       "(S4) if schemeKey is supplied it must be in the ArgumentScheme catalog — use list_schemes first; for moveType='daimon' a schemeKey is required. " +
       "Error codes: 409 DELOCATION_REQUIRED (S1/S2 fail), 422 CANON_GATE_FAILED (S3 fail), 422 SCHEME_REQUIRED (S4 fail). " +
+      "RECOVERY: 409 DELOCATION_REQUIRED → ludicMoveId/locus is not in this deliberation or its structure is missing; re-call list_bindable_moves(deliberationId, {designId}) to get a fresh aligned slot. " +
+      "422 CANON_GATE_FAILED → canonicalText was hand-built or stale; copy it verbatim from list_bindable_moves[].candidateDialogueMoves[].canonicalText. " +
+      "422 SCHEME_REQUIRED → moveType==='daimon' and no schemeKey supplied; call list_schemes (filter by clusterTag) and re-bind with a valid key. " +
       "On success returns invariantChecks: {S1_existingLocus, S2_existingStructure, S3_canonPipelineGated, S4_schemeTyped} all true. " +
       "T4 invariant: participantId is stored internally and NEVER returned in the response or any public read. " +
-      "REQUIRES the ISONOMIA_API_TOKEN env var.",
+      "AUTH: requires either Ludics auto-mint (LUDICS_JWT_SIGNING_KEY + LUDICS_PARTICIPANT_ID env on the MCP server — preferred, scoped per call) OR a static ISONOMIA_API_TOKEN bearer that the Next perimeter accepts as a scoped JWT.",
     inputSchema: zodToJsonSchema(BindWitnessInput),
     async handler(args) {
-      if (!API_TOKEN) {
+      if (!API_TOKEN && !isLudicsAutoMintConfigured()) {
         throw new Error(
-          "bind_participant_to_design requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set.",
+          "bind_participant_to_design requires either Ludics auto-mint (LUDICS_JWT_SIGNING_KEY + LUDICS_PARTICIPANT_ID) or ISONOMIA_API_TOKEN to be set on the MCP server.",
         );
       }
       const input = BindWitnessInput.parse(args);
+      const participantId = input.participantId ?? process.env.LUDICS_PARTICIPANT_ID;
+      if (!participantId) {
+        throw new Error(
+          "bind_participant_to_design requires a participantId, either passed in args or set as LUDICS_PARTICIPANT_ID on the MCP server.",
+        );
+      }
+      const body = { ...input, participantId };
       return await isoFetch("/api/v3/ludics/bind-witness", {
         method: "POST",
         authenticated: true,
+        ludicsDeliberationId: input.deliberationId,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify(body),
       });
     },
   },
@@ -1787,18 +2006,19 @@ const tools: ToolSpec[] = [
       "Idempotent on 'same-cone-join': identical (deliberationId, designIds, participantId) inputs re-use the existing WitnessRecord. " +
       "Error codes: 409 ROOT_LOCUS_MISSING (root locus \u22a2A.0 absent), 422 EMPTY_CANONICAL_TEXT (blank text), " +
       "422 CLOSURE_STEPS_INVARIANT (substrate violation), 404 DESIGNS_NOT_FOUND (unknown design ids). " +
-      "REQUIRES the ISONOMIA_API_TOKEN env var.",
+      "AUTH: requires either Ludics auto-mint (LUDICS_JWT_SIGNING_KEY + LUDICS_PARTICIPANT_ID env on the MCP server) OR a static ISONOMIA_API_TOKEN bearer.",
     inputSchema: zodToJsonSchema(ProposeSynthesisInput),
     async handler(args) {
-      if (!API_TOKEN) {
+      if (!API_TOKEN && !isLudicsAutoMintConfigured()) {
         throw new Error(
-          "propose_synthesis requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set.",
+          "propose_synthesis requires either Ludics auto-mint (LUDICS_JWT_SIGNING_KEY + LUDICS_PARTICIPANT_ID) or ISONOMIA_API_TOKEN to be set on the MCP server.",
         );
       }
       const input = ProposeSynthesisInput.parse(args);
       return await isoFetch("/api/v3/ludics/propose-synthesis", {
         method: "POST",
         authenticated: true,
+        ludicsDeliberationId: input.deliberationId,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });

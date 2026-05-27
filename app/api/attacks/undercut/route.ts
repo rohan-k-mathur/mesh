@@ -212,6 +212,7 @@ const deliberationId = parsed.data.deliberationId ?? (targetArg ? targetArg.deli
   // This links the undercut to the dialogue system
   let attackMoveId: string | null = null;
   try {
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     const attackMove = await prisma.dialogueMove.create({
       data: {
         deliberationId,

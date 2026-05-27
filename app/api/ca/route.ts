@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
       const cqId = (d.metaJson as any)?.cqId || `aif_attack_${created.id}`;
       
       // Create ATTACK move linked to this ConflictApplication
+      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
       const attackMove = await prisma.dialogueMove.create({
         data: {
           deliberationId: d.deliberationId,
@@ -162,6 +163,7 @@ export async function POST(req: NextRequest) {
       const schemeKey = (d.metaJson as any)?.schemeKey;
       
       // Create WHY move linked to this attack
+      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
       await prisma.dialogueMove.create({
         data: {
           deliberationId: d.deliberationId,

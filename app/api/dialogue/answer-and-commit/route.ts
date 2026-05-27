@@ -238,6 +238,7 @@ export async function POST(req: NextRequest) {
 
     let move: any;
     try {
+      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
       move = await prisma.dialogueMove.create({
         data: {
           deliberationId,

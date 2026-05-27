@@ -50,6 +50,7 @@ export async function POST(_req: NextRequest) {
   });
 
   // One WHY from opponent, one GROUNDS from proponent (CQ satisfied)
+  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
   const why = await prisma.dialogueMove.create({
     data:{
       deliberationId: delib.id, kind:'WHY', type:'WHY' as any, illocution:'Question' as any,
@@ -62,6 +63,7 @@ export async function POST(_req: NextRequest) {
 
   await prisma.cQStatus.create({ data:{ argumentId: arg.id, cqKey:'cq_expert_bias', status:'open' } }).catch(()=>null);
 
+  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
   await prisma.dialogueMove.create({
     data:{
       deliberationId: delib.id, kind:'GROUNDS', type:'GROUNDS' as any, illocution:'Argue' as any,

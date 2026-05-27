@@ -58,6 +58,7 @@ export interface PostDialogueMoveOpts {
  */
 export async function postDialogueMove(opts: PostDialogueMoveOpts): Promise<string | null> {
   try {
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     const row = await prisma.dialogueMove.create({
       data: {
         deliberationId: opts.deliberationId,
