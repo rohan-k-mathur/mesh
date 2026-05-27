@@ -161,8 +161,12 @@ const ARTICULATION_ONLY_ENGAGEMENT_FLOOR = 0.1;
  *        topArguments / mostContested entry in syntheticReadout (2026-05-11)
  *   v4 — added refusalSurface[i].blockerSummaries; chainFitness now
  *        weights inbound attacks by attacker standing (2026-05-11)
+ *   v5 — M5 sprint exit: export `attackerCredibility` for direct test
+ *        coverage; no shape change, bump to evict stale cached
+ *        chainFitness payloads computed before the weighted-attack
+ *        rollout reached production (2026-05-24).
  */
-const FINGERPRINT_VERSION = "v4";
+const FINGERPRINT_VERSION = "v5";
 
 // ============================================================
 // MAIN BUILDER

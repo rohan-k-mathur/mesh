@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
           "EXCEPTION_REBUTTAL": "GROUNDS"
         };
         
+        // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
         await prisma.dialogueMove.create({
           data: {
             id: dialogueMoveId,

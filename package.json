@@ -27,6 +27,8 @@
     "watch:worker": "nodemon",
     "size": "size-limit",
     "backfill:block-thumbs": "tsx -r tsconfig-paths/register -r dotenv/config scripts/backfill-block-thumbnails.ts",
+    "snapshot:invariants": "tsx scripts/snapshot-invariants.ts",
+    "snapshot:invariants:run": "tsx scripts/snapshot-invariants.ts --run",
     "size:why": "size-limit --why",
     "worker": "tsx -r dotenv/config workers/index.ts",
     "acl:build": "tsc -p packages/sheaf-acl/tsconfig.json",

@@ -211,6 +211,7 @@ export async function POST(request: NextRequest) {
       const dialogueMoveActorId = String(userId);
       
       // @ts-ignore - extJson may not be in types yet
+      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
       const dialogueMove = await prisma.dialogueMove.create({
         data: {
           deliberationId,

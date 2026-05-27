@@ -220,24 +220,100 @@ export interface ConeDecomposition {
   cones: ConeSummary[];
 }
 
+/**
+ * Known `derivedBy` values produced by Art(B) operations. Any other value
+ * (including `null` and provenance sentinels like `"seed"` written by
+ * showcase/test fixtures) is treated as a base incarnation. This keeps
+ * `computeCones` robust to stale or hand-seeded data — only true algebraic
+ * derivations are excluded from Inc(B).
+ */
+export const DERIVED_OPERATIONS: ReadonlySet<string> = new Set([
+  "join",
+  "meet",
+  "compression",
+  "extend",
+]);
+
+/** True iff `derivedBy` names a recognised algebraic derivation in Art(B). */
+export function isDerivedDesign(d: { derivedBy: string | null }): boolean {
+  return !!d.derivedBy && DERIVED_OPERATIONS.has(d.derivedBy);
+}
+
 export function computeCones(
   allDesigns: Array<{ id: string; loci: string[]; derivedBy: string | null }>,
+  inclusions: ReadonlyArray<{ smallerId: string; largerId: string }> = [],
 ): ConeDecomposition {
   const bases = allDesigns
-    .filter((d) => d.derivedBy === null)
+    .filter((d) => !isDerivedDesign(d))
     .sort((a, b) => a.id.localeCompare(b.id));
 
-  const byBaseId = new Map<string, string>();
-  const cones: ConeSummary[] = bases.map((b, i) => {
+  // ── Antichain-violation tolerance (Phase 2g) ────────────────────────────────
+  // Post-2e, Inc(B) is supposed to be an antichain — yet stale seed data and
+  // hand-authored fixtures can produce two "base" designs (derivedBy ∉
+  // DERIVED_OPERATIONS) where one's loci ⊂ the other's. The DesignInclusion
+  // table records the relationship even when `derivedBy` doesn't. Treat any
+  // two bases connected by an inclusion edge (in either direction) as
+  // belonging to the same cone, with the inclusion-minimum (smallest loci)
+  // as the cone's bottom. This preserves the disjoint-cone invariant that
+  // the rest of the system (cross-cone validation in join/meet, the bind
+  // workflow, the orientation glossary) assumes.
+  const baseIds = new Set(bases.map((b) => b.id));
+  // Union-find over base ids only.
+  const parent = new Map<string, string>(bases.map((b) => [b.id, b.id]));
+  const find = (x: string): string => {
+    let r = x;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    let c = x;
+    while (parent.get(c) !== r) {
+      const next = parent.get(c)!;
+      parent.set(c, r);
+      c = next;
+    }
+    return r;
+  };
+  const union = (a: string, b: string) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra === rb) return;
+    // Choose the lexicographically smaller root for stability — independent
+    // of cone-bottom selection below, which uses loci-size.
+    if (ra < rb) parent.set(rb, ra);
+    else parent.set(ra, rb);
+  };
+  for (const e of inclusions) {
+    if (baseIds.has(e.smallerId) && baseIds.has(e.largerId)) {
+      union(e.smallerId, e.largerId);
+    }
+  }
+
+  // Bucket bases by union-find root, then pick the cone bottom as the base
+  // with the fewest loci (inclusion-minimum); ties broken by stable id sort.
+  const basesByRoot = new Map<string, typeof bases>();
+  for (const b of bases) {
+    const root = find(b.id);
+    const bucket = basesByRoot.get(root) ?? [];
+    bucket.push(b);
+    basesByRoot.set(root, bucket);
+  }
+  const roots = [...basesByRoot.keys()].sort();
+  const coneByRoot = new Map<string, string>();
+  const cones: ConeSummary[] = roots.map((root, i) => {
     const coneId = `cone_${i}`;
-    byBaseId.set(b.id, coneId);
-    return { coneId, bottomIncarnationDesignId: b.id };
+    coneByRoot.set(root, coneId);
+    const bucket = basesByRoot.get(root)!;
+    // Inclusion-minimum (smallest loci); tie-break by id for stability.
+    const bottom = bucket.reduce((min, cur) => {
+      if (cur.loci.length < min.loci.length) return cur;
+      if (cur.loci.length === min.loci.length && cur.id < min.id) return cur;
+      return min;
+    });
+    return { coneId, bottomIncarnationDesignId: bottom.id };
   });
 
   const byDesignId = new Map<string, string>();
   for (const d of allDesigns) {
-    if (d.derivedBy === null) {
-      byDesignId.set(d.id, byBaseId.get(d.id)!);
+    if (!isDerivedDesign(d)) {
+      byDesignId.set(d.id, coneByRoot.get(find(d.id))!);
       continue;
     }
     // Find the most specific base ancestor (largest loci-subset).
@@ -253,7 +329,10 @@ export function computeCones(
     // fall back to a synthetic cone id keyed off the design itself so the
     // output is still well-formed. Such designs would also trip cross-cone
     // validation in computeArticulationJoin.
-    byDesignId.set(d.id, best ? byBaseId.get(best.id)! : `cone_orphan_${d.id}`);
+    byDesignId.set(
+      d.id,
+      best ? coneByRoot.get(find(best.id))! : `cone_orphan_${d.id}`,
+    );
   }
 
   return { byDesignId, cones };
@@ -291,6 +370,7 @@ export async function getArticulationLattice(
 
   const { byDesignId: coneByDesignId, cones } = computeCones(
     designs.map((d) => ({ id: d.id, loci: d.loci, derivedBy: d.derivedBy })),
+    inclusions,
   );
 
   const edges: InclusionEdge[] = inclusions.map((e) => ({
@@ -378,7 +458,7 @@ export async function findMinimalIncarnations(
     include: DESIGN_INCLUDE,
   });
 
-  const baseDesigns = designs.filter((d) => d.derivedBy === null);
+  const baseDesigns = designs.filter((d) => !isDerivedDesign(d));
 
   return {
     incarnations: baseDesigns.map((d) => toDesignSummary(d as RawDesign)),
@@ -484,6 +564,7 @@ export async function compressArticulation(
   // ── Cross-cone validation (Phase 2e) ────────────────────────────────────────
   const { byDesignId: coneByDesignId } = computeCones(
     allDesigns.map((d) => ({ id: d.id, loci: d.loci, derivedBy: d.derivedBy })),
+    inclusions,
   );
   const inputCones = new Set<string>();
   for (const d of designs) {
@@ -598,14 +679,21 @@ export async function computeArticulationJoin(
   const behaviourId = designs[0].behaviourId;
   const deliberationId = designs[0].deliberationId;
 
-  const allBehaviourDesigns = await prisma.design.findMany({
-    where: { behaviourId },
-    include: DESIGN_INCLUDE,
-  });
+  const [allBehaviourDesigns, allBehaviourInclusions] = await Promise.all([
+    prisma.design.findMany({
+      where: { behaviourId },
+      include: DESIGN_INCLUDE,
+    }),
+    prisma.designInclusion.findMany({
+      where: { smaller: { behaviourId } },
+      select: { smallerId: true, largerId: true },
+    }),
+  ]);
 
   // ── Phase 2e: cross-cone validation ────────────────────────────────────────
   const { byDesignId: coneByDesignId } = computeCones(
     allBehaviourDesigns.map((d) => ({ id: d.id, loci: d.loci, derivedBy: d.derivedBy })),
+    allBehaviourInclusions,
   );
   const inputCones = new Set<string>();
   for (const d of designs) {

@@ -37,6 +37,9 @@ jest.mock("@/lib/prismaclient", () => ({
     behaviour: {
       findUnique: jest.fn(),
     },
+    designInclusion: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -45,6 +48,7 @@ const prismaMock = (jest.requireMock("@/lib/prismaclient") as any).prisma as {
   witnessRecord: { findMany: jest.Mock };
   design: { findMany: jest.Mock };
   behaviour: { findUnique: jest.Mock };
+  designInclusion: { findMany: jest.Mock };
 };
 
 beforeEach(() => {
@@ -52,6 +56,9 @@ beforeEach(() => {
   prismaMock.witnessRecord.findMany.mockReset();
   prismaMock.design.findMany.mockReset();
   prismaMock.behaviour.findUnique.mockReset();
+  prismaMock.designInclusion.findMany.mockReset();
+  // Default: no inclusion edges (each base is its own cone)
+  prismaMock.designInclusion.findMany.mockResolvedValue([]);
 });
 
 // ─── getDeliberationSchema ────────────────────────────────────────────────────

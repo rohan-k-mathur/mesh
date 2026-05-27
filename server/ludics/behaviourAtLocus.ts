@@ -100,7 +100,7 @@ export async function getBehaviourAtLocus(
   // Fetch all Designs for this Behaviour
   const designs = await prisma.design.findMany({
     where: { behaviourId: behaviour.id },
-    select: { id: true, loci: true, derivedBy: true, argumentId: true },
+    select: { id: true, loci: true, derivedBy: true },
   });
 
   if (designs.length === 0) {
@@ -115,10 +115,17 @@ export async function getBehaviourAtLocus(
 
   const designIds = designs.map((d) => d.id);
 
+  // Fetch DesignInclusions so computeCones can detect antichain violations
+  // (two "base" designs linked by inclusion → same cone). See computeCones doc.
+  const inclusions = await prisma.designInclusion.findMany({
+    where: { smaller: { behaviourId: behaviour.id } },
+    select: { smallerId: true, largerId: true },
+  });
+
   // Fetch LudicMoves linked to these Designs
   const ludicMoves = await prisma.ludicMove.findMany({
     where: { designId: { in: designIds } },
-    select: { id: true, designId: true, stratumLabel: true },
+    select: { id: true, designId: true, stratumLabel: true, argumentId: true },
   });
 
   // Fetch active witnesses for those LudicMoves
@@ -132,10 +139,21 @@ export async function getBehaviourAtLocus(
     })
     .then((rows) => new Set(rows.map((r) => r.ludicMoveId)));
 
-  const { byDesignId: coneByDesignId, cones } = computeCones(designs);
-  const baseDesignIds = new Set(
-    designs.filter((d) => d.derivedBy === null).map((d) => d.id),
-  );
+  const { byDesignId: coneByDesignId, cones } = computeCones(designs, inclusions);
+  // A design is a cone bottom iff it is the `bottomIncarnationDesignId` of
+  // its cone — post-Phase-2g, not every non-derived design qualifies (two
+  // base designs linked by inclusion now share a cone, with only the
+  // inclusion-minimum acting as the bottom).
+  const coneBottomIds = new Set(cones.map((c) => c.bottomIncarnationDesignId));
+
+  // Phase 2d: argumentId lives on LudicMove. Surface the first non-null
+  // argumentId among a design's moves as the design's argumentId proxy.
+  const argumentIdByDesignId = new Map<string, string | null>();
+  for (const m of ludicMoves) {
+    if (!m.designId) continue;
+    if (argumentIdByDesignId.has(m.designId)) continue;
+    if (m.argumentId != null) argumentIdByDesignId.set(m.designId, m.argumentId);
+  }
 
   const incarnations: Incarnation[] = designs.map((d) => {
     const coneId = coneByDesignId.get(d.id) ?? "cone_unknown";
@@ -146,8 +164,8 @@ export async function getBehaviourAtLocus(
       stratum: designStratum(d.id, ludicMoves, witnessedIds),
       fitness: designFitness(d.id, ludicMoves, witnessedIds),
       coneId,
-      isConeBottom: baseDesignIds.has(d.id),
-      argumentId: d.argumentId ?? null,
+      isConeBottom: coneBottomIds.has(d.id),
+      argumentId: argumentIdByDesignId.get(d.id) ?? null,
     };
   });
 

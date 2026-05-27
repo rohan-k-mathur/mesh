@@ -29,6 +29,28 @@ const PUBLIC_API = [
   // cross-context). Public, cache-friendly; route handlers do their
   // own per-deliberation visibility checks where needed.
   /^\/api\/v3\/deliberations\/[^/]+\/(fingerprint|frontier|missing-moves|chains|synthetic-readout|cross-context)\/?$/,
+  // Ludics-substrate surfaces consumed by the @app/isonomia-mcp tools
+  // (Cluster F deliberation reads + Cluster A exposure map). Route
+  // handlers perform their own per-deliberation visibility checks.
+  /^\/api\/v3\/deliberations\/[^/]+\/(ludics-schema|behaviour-at-locus|exposure-map|bindable-moves)\/?$/,
+  // Cluster B — articulation lattice reads on behaviours/designs.
+  /^\/api\/v3\/behaviours\/[^/]+\/(articulation-lattice|minimal-incarnations|substitute-premises)\/?$/,
+  /^\/api\/v3\/designs\/[^/]+\/equivalent-articulations\/?$/,
+  // Cluster B writes (compress / join). The route's own JWT-or-token
+  // check is the actual auth gate; middleware only needs to let the
+  // request reach the handler.
+  /^\/api\/v3\/articulations\/(compress|join)\/?$/,
+  // Cluster C/D/E — witness reads and the scoped-JWT-gated writes.
+  // bind-witness / propose-synthesis enforce WS-3 scoped JWT inside
+  // the route; the read endpoints either accept a scoped JWT or are
+  // intentionally public (T4 non-attribution).
+  /^\/api\/v3\/ludics\/(witnesses|unwitnessed-exposure|instantiation|fossil-record|bind-witness|propose-synthesis|retract-witness)\/?$/,
+  // Phase 6 — public stance retrieval per claim MOID.
+  /^\/api\/v3\/claims\/[^/]+\/stances\/?$/,
+  // Citation resolution endpoints consumed by the MCP write seam.
+  /^\/api\/citations\/(resolve-url|resolve\/bulk)\/?$/,
+  // Quick-argument write seams (route enforces bearer / session).
+  /^\/api\/arguments\/quick(-structured)?\/?$/,
   // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
   /^\/api\/v3\/openapi\.json$/,
   /^\/api\/v3\/docs\/?$/,

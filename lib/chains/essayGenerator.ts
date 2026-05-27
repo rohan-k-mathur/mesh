@@ -44,6 +44,38 @@ export interface EssayOptions {
   structureByScopes?: boolean;
   /** Handle nested scopes as subsections (Phase C) */
   handleNestedScopes?: boolean;
+  /**
+   * M2a: honour per-node `epistemicStatus` (QUESTIONED/SUSPENDED/DENIED/
+   * HYPOTHETICAL) at paragraph composition time. Defaults to `true`; set
+   * to `false` only for diagnostic renders that want raw conclusions.
+   */
+  respectEpistemicStatus?: boolean;
+  /**
+   * M2b: dispatch paragraphs through role-keyed openers
+   * (ANTITHESIS / SYNTHESIS / RESPONSE / CONCESSION). Defaults to `true`.
+   */
+  respectDialecticalRole?: boolean;
+  /**
+   * M2c: edges weaker than this threshold are dropped from inline
+   * transitions so the prose doesn't promote marginal attacks. Default 0.3.
+   */
+  edgeStrengthThreshold?: number;
+  /**
+   * M3: refusal-surface honesty. When the deliberation's synthetic readout
+   * lists `cannotConcludeBecause` entries whose target is a claim that
+   * appears in this chain, the caller passes the blocked claim ids here.
+   * The generator then:
+   *   - never produces an assertive `<blocked-claim>.` sentence anywhere
+   *     (opening preview / flow / conclusion all switch to question form);
+   *   - appends a one-line refusal banner to the conclusion naming the
+   *     weakest link, if supplied.
+   * `blockedClaimIds` are `argument.conclusion.id` values (not node ids).
+   */
+  refusalSurface?: {
+    blockedClaimIds: string[];
+    weakestLinkLabel?: string;
+    reasons?: string[];
+  };
 }
 
 export interface EssayResult {
@@ -112,34 +144,83 @@ interface CriticalQuestionData {
 /**
  * Intelligently lowercase text while preserving proper nouns and acronyms
  * Handles common patterns in argumentative text (AI, EU, GDPR, etc.)
+ *
+ * Heuristic for proper-noun detection (M1 item 2):
+ * The hardcoded `properNounPrefixes` list only catches names we anticipated.
+ * Real chains cite arbitrary authors (Boxell, Gentzkow, Iyengar, Druckman…)
+ * which were being mangled to `"boxell, Gentzkow…"`. We now treat the first
+ * whitespace-delimited token as a proper noun whenever it is Title-Case
+ * (initial caps + lowercase tail) AND not in a small stoplist of common
+ * English sentence-starters that legitimately need lowercasing when spliced
+ * into a larger sentence ("This", "The", "We", etc.).
  */
 function smartLowercase(text: string): string {
   if (!text) return "";
-  
+
   // Common acronyms to preserve (all caps)
   const acronyms = ['AI', 'EU', 'US', 'UK', 'UN', 'GDPR', 'NATO', 'UNESCO', 'WHO', 'WTO', 'FDA', 'FTC', 'OECD'];
-  
+
   // Common proper nouns that might start sentences (names, organizations)
   const properNounPrefixes = [
     'Geoffrey', 'Yoshua', 'Stuart', 'Hinton', 'Bengio', 'Russell',
     'Congress', 'Parliament', 'Court', 'Senate', 'Commission',
     'NeurIPS', 'OpenAI', 'Google', 'Microsoft', 'DeepMind', 'Anthropic'
   ];
-  
+
+  // Sentence-starter pronouns / articles / connectives that SHOULD be
+  // lowercased when the sentence is spliced into a longer one. Anything
+  // else that looks Title-Case is treated as a proper noun.
+  const sentenceStarters = new Set([
+    'A', 'An', 'The', 'This', 'That', 'These', 'Those',
+    'It', 'Its', 'They', 'Their', 'There',
+    'We', 'Our', 'Us', 'You', 'Your', 'I', 'My', 'Me',
+    'He', 'She', 'His', 'Her', 'Him',
+    'When', 'While', 'If', 'Although', 'Because', 'Since',
+    'Whether', 'Either', 'Neither', 'Unless', 'Until',
+    'Such', 'Some', 'Many', 'Most', 'Any', 'Both', 'Each', 'Every',
+    'Here', 'Now', 'Then', 'Thus', 'Hence', 'Therefore', 'However',
+    'Moreover', 'Furthermore', 'Indeed', 'Yet', 'But', 'And', 'Or',
+    'For', 'In', 'On', 'At', 'By', 'With', 'From', 'To', 'Of', 'As',
+    'One', 'Two', 'Three', 'Four', 'Five', 'First', 'Second', 'Third',
+  ]);
+
   // Check if text starts with a proper noun - don't lowercase
   for (const noun of properNounPrefixes) {
     if (text.startsWith(noun)) {
       return text;
     }
   }
-  
+
   // Check if text starts with an acronym - don't lowercase
   for (const acronym of acronyms) {
     if (text.startsWith(acronym + ' ') || text === acronym) {
       return text;
     }
   }
-  
+
+  // Generic proper-noun heuristic: first token Title-Case (e.g. "Boxell"),
+  // contains at least one lowercase letter (rules out single-letter "A"),
+  // and is not a known sentence-starter -> treat as proper noun.
+  const firstToken = text.split(/[\s,;:.()\[\]]/, 1)[0] ?? "";
+  if (
+    firstToken.length >= 2 &&
+    /^[A-Z][a-z]/.test(firstToken) &&
+    !sentenceStarters.has(firstToken)
+  ) {
+    return text;
+  }
+
+  // All-caps tokens of length >=2 (generic acronym catch) also pass through.
+  if (firstToken.length >= 2 && /^[A-Z]+$/.test(firstToken)) {
+    return text;
+  }
+
+  // Single-letter capital used as a possessive label ("A's argument",
+  // "B's critique") — common in dialectical writing. Preserve the capital.
+  if (/^[A-Z]['']s\b/.test(text)) {
+    return text;
+  }
+
   // Lowercase the first character only (preserve rest)
   let result = text.charAt(0).toLowerCase() + text.slice(1);
   
@@ -159,6 +240,268 @@ function ensurePeriod(text: string): string {
   const trimmed = text.trim();
   if (/[.!?]$/.test(trimmed)) return trimmed;
   return trimmed + ".";
+}
+
+/**
+ * Lowercase the first letter of `text` for mid-sentence splicing while
+ * preserving the standard set of acronyms (AI / EU / US / UK / UN / RCT /
+ * GDPR / NATO / FDA / …). Used by the warrant-rendering site, which used
+ * to call raw `.toLowerCase()` and produce mangled output ("us-specific
+ * structural vulnerabilities", "rcts", "if us political structure …").
+ */
+function preserveAcronymLowercase(text: string): string {
+  if (!text) return "";
+  const acronyms = [
+    "AI", "EU", "US", "UK", "UN", "GDPR", "NATO", "UNESCO", "WHO", "WTO",
+    "FDA", "FTC", "OECD", "RCT", "RCTs", "MSI", "ANES", "OLS",
+  ];
+  let out = text.charAt(0).toLowerCase() + text.slice(1);
+  out = out.toLowerCase();
+  for (const a of acronyms) {
+    // Restore the acronym wherever its lowercased form appears as a whole
+    // word. Hyphenated tails like "us-specific" → "US-specific" are also
+    // recovered because `\b` matches the hyphen boundary.
+    const re = new RegExp(`\\b${a.toLowerCase()}\\b`, "g");
+    out = out.replace(re, a);
+  }
+  return out;
+}
+
+/**
+ * Spell out small cardinal integers (1–10) as words. Larger numbers fall
+ * back to their digit form. Used to avoid sentence-initial digit forms
+ * such as "4 points of significant disagreement…".
+ */
+function spellOut(n: number): string {
+  const words = [
+    "zero", "one", "two", "three", "four", "five",
+    "six", "seven", "eight", "nine", "ten",
+  ];
+  if (!Number.isFinite(n) || n < 0) return String(n);
+  if (n <= 10) return words[n];
+  return String(n);
+}
+
+// ===== M3.8 G: boilerplate / thesis-anaphora dedupe helpers =====
+//
+// Several render templates fire once per body paragraph and produce
+// near-identical sentences across a 6-node chain ("The definitional
+// basis of this argument makes the classification straightforward.",
+// "The underlying warrant—the principle that licenses this inference—
+// holds that …", "Two questions remain open for the critical reader:",
+// "The reasoning rests on multiple considerations.", etc.). The first
+// occurrence frames the discourse for the reader; subsequent
+// occurrences read as filler. `useBoilerplateKey` returns `true` the
+// first time a given key is requested per essay and `false` thereafter,
+// so callers can choose between a full and a short / skipped form.
+//
+// `_renderedBoilerplateKeys`, `_renderedConclusionKeys`, and
+// `_thesisAnaphorCursor` are private fields on `innerOptions` (see
+// `generateEssay`) so the dedupe state is per-essay, not global.
+function useBoilerplateKey(key: string, options: EssayOptions): boolean {
+  const set = (options as any)._renderedBoilerplateKeys;
+  if (!(set instanceof Set)) return true;
+  if (set.has(key)) return false;
+  set.add(key);
+  return true;
+}
+
+// Sentence-level anaphors used when a paragraph would otherwise re-emit
+// the full thesis text verbatim. Cycled deterministically so essay
+// output stays seed-stable.
+const THESIS_ANAPHOR_SENTENCES = [
+  "The argument here restates the same conclusion already defended above, approached from a different angle.",
+  "This paragraph returns to the same thesis by an independent route.",
+  "Here the case for the same claim is reinforced through a distinct line of reasoning.",
+  "The line of reasoning below recovers the same conclusion from new supporting material.",
+];
+
+// Noun-phrase anaphors for mid-sentence interpolation in logical-flow
+// edges and dialectical splices. Used when the conclusion text has
+// already been rendered somewhere upstream in the essay; emitting the
+// full thesis a fourth or fifth time inside a connective phrase reads
+// as drone repetition.
+const THESIS_NP_ANAPHORS = [
+  "the same validity claim",
+  "the same thesis",
+  "this same position",
+  "the same conclusion",
+  "this claim",
+];
+
+function normalizeConclusionKey(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[\s.,;:?!"'\u2018\u2019\u201C\u201D]+/g, " ")
+    .trim();
+}
+
+/**
+ * Detect whether `conclusionText` has already been rendered as a body
+ * paragraph's opening claim. Returns either the original text (first
+ * occurrence — caller renders normally) or `{ anaphor: <sentence> }`
+ * (subsequent occurrence — caller skips the reasoning-opener template
+ * and pushes the anaphor instead, then continues with premises/warrant
+ * /CQs which still carry fresh content).
+ */
+function checkConclusionAnaphor(
+  conclusionText: string,
+  options: EssayOptions,
+): { anaphor: string } | null {
+  const set = (options as any)._renderedConclusionKeys;
+  if (!(set instanceof Set)) return null;
+  const key = normalizeConclusionKey(conclusionText);
+  if (!key) return null;
+  if (!set.has(key)) {
+    set.add(key);
+    return null;
+  }
+  const cursor = (options as any)._thesisSentenceAnaphorCursor as
+    | { i: number }
+    | undefined;
+  const idx = cursor ? cursor.i++ : 0;
+  return {
+    anaphor: THESIS_ANAPHOR_SENTENCES[idx % THESIS_ANAPHOR_SENTENCES.length],
+  };
+}
+
+// Noun-phrase variant of `checkConclusionAnaphor`. Shares the same
+// `_renderedConclusionKeys` set: whichever site fires first claims the
+// verbatim render and subsequent sites — whether sentence-level
+// (paragraph openers) or noun-phrase (logical-flow / dialectical edges)
+// — receive an anaphor. Returns the original text on first sight (and
+// mutates the set), or a short noun phrase on subsequent calls.
+function npAnaphor(text: string, options: EssayOptions): string {
+  if (!text) return text;
+  const set = (options as any)._renderedConclusionKeys;
+  if (!(set instanceof Set)) return text;
+  const key = normalizeConclusionKey(text);
+  if (!key) return text;
+  if (!set.has(key)) {
+    set.add(key);
+    return text;
+  }
+  const cursor = (options as any)._thesisAnaphorCursor as
+    | { i: number }
+    | undefined;
+  const idx = cursor ? cursor.i++ : 0;
+  return THESIS_NP_ANAPHORS[idx % THESIS_NP_ANAPHORS.length];
+}
+
+// Track attack-description sentences that have already been rendered
+// as an em-dash continuation (in `generateDialecticalExchange`, in
+// support-edge descriptions, and in the J fallen-objections render).
+// Returns the text on first sight; returns `""` on repeat so callers
+// can drop the continuation entirely.
+function dedupeAttackDescription(
+  desc: string | null | undefined,
+  options: EssayOptions,
+): string {
+  if (!desc) return "";
+  const set = (options as any)._renderedAttackDescriptions;
+  if (!(set instanceof Set)) return desc;
+  const key = normalizeConclusionKey(desc);
+  if (!key) return desc;
+  if (set.has(key)) return "";
+  set.add(key);
+  return desc;
+}
+
+/**
+ * Detect critical-question text whose scheme placeholders were never
+ * instantiated. Walton-style CQs use single-capital letters as variables
+ * ("Does study S actually have defect D…", "Is the literature really agreed
+ * that defects of kind K bias inferences in direction B…"). When two or
+ * more such bare capitals appear in a single question, the template has not
+ * been bound to the chain's actual content and the question should not be
+ * surfaced verbatim to the reader.
+ *
+ * Single-capital pronouns / articles ("A", "I") are excluded so chains that
+ * legitimately reference "Argument A" or "Position B" still pass through.
+ */
+function cqHasUnfilledPlaceholders(text: string): boolean {
+  if (!text) return false;
+  const matches = text.match(/\b[A-Z]\b/g) ?? [];
+  const placeholders = matches.filter((m) => m !== "A" && m !== "I");
+  return placeholders.length >= 2;
+}
+
+/**
+ * Compose a grammatically appropriate opening sentence from a chain purpose
+ * string and a chain type (M1 item 1).
+ *
+ * The previous splice was a single fixed template — "The question before us
+ * concerns <purpose>." — which produced awkward constructions whenever the
+ * purpose started with an interrogative ("Whether X is Y") or a bare verb
+ * ("Examine the validity of X"). This helper branches on the surface form
+ * of the purpose so that:
+ *  - "Whether ..."           → "The question before us is whether ..."
+ *  - "How/Why/What/When ..."  → "We turn to the question of <lowercased> ..."
+ *  - Verb-initial purpose     → "This chain sets out to <lowercased>."
+ *  - Noun-phrase purpose      → "This essay examines <lowercased>."
+ *
+ * Chain type colors the framing for DIVERGENT / TREE / GRAPH chains where the
+ * "question" framing reads better than the "thesis" framing.
+ */
+export function composeIntroLead(
+  purpose: string,
+  chainType: string,
+  prep: (s: string) => string = (s) => s
+): string {
+  const raw = purpose.trim().replace(/[.!?]+$/, "");
+  if (!raw) return "";
+
+  const firstWord = raw.split(/\s+/, 1)[0] ?? "";
+
+  // Interrogative lead-ins: "Whether ...", "How ...", "Why ...", "What ..."
+  if (/^whether$/i.test(firstWord)) {
+    return `The question before us is ${prep(raw)}.`;
+  }
+  if (/^(how|why|what|when|where|which|who)$/i.test(firstWord)) {
+    return `We turn to the question of ${prep(raw)}.`;
+  }
+
+  // Bare-verb leads ("Examine", "Determine", "Evaluate", "Assess", "Consider",
+  // "Decide", "Capture", …). A small allow-list keeps us from misclassifying
+  // noun phrases that happen to start with a Title-Case verb form like
+  // "Trust". The list is extended generously because new chains regularly
+  // surface fresh imperatives; if a new verb-lead slips through, the
+  // suffix-based detector below catches the common `-e`/`-ish` shapes.
+  const verbLeads = new Set([
+    "Examine", "Determine", "Evaluate", "Assess", "Consider",
+    "Decide", "Investigate", "Analyze", "Test", "Establish",
+    "Resolve", "Adjudicate", "Defend", "Argue",
+    "Capture", "Map", "Identify", "Trace", "Survey", "Audit",
+    "Characterize", "Compare", "Contrast", "Quantify", "Bound",
+    "Reconcile", "Reassess", "Refute", "Validate", "Verify",
+    "Clarify", "Distinguish", "Demonstrate", "Show", "Prove",
+    "Disprove", "Explain", "Account", "Specify", "Articulate",
+  ]);
+  // Heuristic fall-back: a Title-Case first word followed by an article
+  // ("the/a/an") or a bare noun phrase (no internal capitals) is almost
+  // certainly an imperative verb. The article test catches the
+  // "Capture the aggregation gap" / "Map the contested band" shape.
+  const secondWord = raw.split(/\s+/, 2)[1] ?? "";
+  const looksImperative =
+    /^[A-Z][a-z]+$/.test(firstWord) && /^(the|a|an|whether|how|why)$/i.test(secondWord);
+  if (verbLeads.has(firstWord) || looksImperative) {
+    // M3.6 A: `prep` (smartLowercase) treats any Title-Case first token
+    // not in `sentenceStarters` as a proper noun and returns it unchanged,
+    // which leaves verb-leads like "Capture" capitalized ("… sets out to
+    // Capture the aggregation gap"). Force the first letter down here.
+    const lowered = raw.charAt(0).toLowerCase() + raw.slice(1);
+    return `This chain sets out to ${lowered}.`;
+  }
+
+  // Noun-phrase fall-through. Vary the framing slightly for divergent /
+  // graph-shaped chains, which read better as "examines" than as a single
+  // question.
+  const examinChains = new Set(["DIVERGENT", "TREE", "GRAPH"]);
+  if (examinChains.has(chainType)) {
+    return `This essay examines ${prep(raw)}.`;
+  }
+  return `The question before us concerns ${prep(raw)}.`;
 }
 
 // ===== Natural Language Weaving Utilities =====
@@ -242,14 +585,36 @@ const EDGE_NARRATIVE_TRANSITIONS: Record<string, string[]> = {
   SUPPORTS: [
     "This reasoning is strengthened by",
     "Further support comes from",
-    "Reinforcing this point",
-    "Building on this foundation",
+    "Reinforcing this point,",
+    "Building on this foundation,",
   ],
   REFUTES: [
     "However, this faces a significant challenge:",
     "A compelling counterargument holds that",
     "Yet this reasoning is contested by",
     "Against this view stands the objection that",
+  ],
+  // M2c: the canonical ArgumentChainEdgeType enum uses REBUTS / UNDERCUTS /
+  // UNDERMINES alongside REFUTES; each gets its own discourse register so
+  // that an undercut ("even granting the premise") doesn't read identically
+  // to a flat refutation.
+  REBUTS: [
+    "By contrast, the opposing view counters that",
+    "However, this is rebutted by the claim that",
+    "By contrast, the rebuttal holds that",
+    "However, a direct rebuttal counters that",
+  ],
+  UNDERCUTS: [
+    "Even granting the premise, this inference is undercut by",
+    "This warrant is undercut by",
+    "Yet the inferential step is undermined, because",
+    "The link itself is challenged: ",
+  ],
+  UNDERMINES: [
+    "This footing is undermined by",
+    "The supporting ground is undermined by",
+    "However, the supporting evidence is undermined by",
+    "The premise itself is undermined by",
   ],
   ENABLES: [
     "This opens the path to",
@@ -346,7 +711,11 @@ const EPISTEMIC_ESSAY_LANGUAGE: Record<string, {
   },
   QUESTIONED: {
     introPhrase: "It remains an open question whether ",
-    contextMarker: "Pending further examination, ",
+    // M2a: hedged premise transitions for QUESTIONED nodes. "Plausibly, on
+    // the available evidence" gives the reader an explicit cue that the
+    // surrounding sentences are tentative and licenses the downstream
+    // synthesis conclusion to remain qualified.
+    contextMarker: "Plausibly, on the available evidence, ",
     closingNote: "This matter awaits conclusive resolution."
   },
   DENIED: {
@@ -857,27 +1226,43 @@ function analyzeNarrativeStructure(
     }
   });
   
-  // Find dialectical pairs (thesis-antithesis-synthesis patterns)
+  // Find dialectical pairs (thesis-antithesis-synthesis patterns).
+  // M1 item 3: prefer attackers whose `dialecticalRole === "ANTITHESIS"` so
+  // the antithesis paragraph always names B's own conclusion (not the
+  // thesis claim). Edge-based discovery remains the fallback for chains
+  // that don't tag dialectical roles.
   const dialecticalPairs: NarrativeStructure["dialecticalPairs"] = [];
   contestedArguments.forEach(thesis => {
-    const attackers = attackedBy.get(thesis.id) || [];
-    attackers.forEach(attackerId => {
-      const antithesis = nodeMap.get(attackerId);
-      if (!antithesis) return;
-      
+    const attackerIds = attackedBy.get(thesis.id) || [];
+    const attackerNodes = attackerIds
+      .map(id => nodeMap.get(id))
+      .filter((n): n is ArgumentChainNodeWithArgument => !!n);
+
+    const roleTagged = attackerNodes.filter(
+      n => (n as any).dialecticalRole === "ANTITHESIS"
+    );
+    const orderedAttackers = roleTagged.length > 0 ? roleTagged : attackerNodes;
+
+    orderedAttackers.forEach(antithesis => {
       // Look for a synthesis: something that supports both or follows from the exchange
       const synthesisCandidates = edges
-        .filter(e => 
-          (e.sourceNodeId === thesis.id || e.sourceNodeId === attackerId) &&
+        .filter(e =>
+          (e.sourceNodeId === thesis.id || e.sourceNodeId === antithesis.id) &&
           e.edgeType === "SUPPORTS"
         )
         .map(e => nodeMap.get(e.targetNodeId))
         .filter(Boolean);
-      
+
+      // Prefer a SYNTHESIS-roled candidate when available.
+      const syntheses = synthesisCandidates as ArgumentChainNodeWithArgument[];
+      const synthesisRoleTagged = syntheses.find(
+        s => (s as any).dialecticalRole === "SYNTHESIS"
+      );
+
       dialecticalPairs.push({
         thesis,
         antithesis,
-        synthesis: synthesisCandidates[0] || null,
+        synthesis: synthesisRoleTagged || syntheses[0] || null,
       });
     });
   });
@@ -917,18 +1302,19 @@ function generateOpening(
     // Use smartLowercase to preserve proper nouns/acronyms
     return smartLowercase(cleaned);
   };
-  
+
   // Thematic opening based on chain purpose
   if (chain.purpose) {
-    let openingParagraph = `The question before us concerns ${cleanPurpose(chain.purpose)}.`;
-    
+    const lead = composeIntroLead(chain.purpose, chainType, cleanPurpose);
+    let openingParagraph = lead;
+
     // Phase 4: Add chain type description
     if (describeChainStructure) {
       openingParagraph += ` ${typeInfo.opening}, ${typeInfo.structure}.`;
     } else {
       openingParagraph += ` This analysis examines the arguments and considerations that bear on this matter.`;
     }
-    
+
     paragraphs.push(openingParagraph);
   } else if (chain.description) {
     let descParagraph = chain.description;
@@ -954,22 +1340,46 @@ function generateOpening(
   }
   
   // Preview the argumentative landscape
+  // Preview the argumentative landscape
   if (structure.openingArguments.length > 0) {
-    const openingClaims = structure.openingArguments
-      .slice(0, 3)
+    // M2a: only quote ASSERTED claims here — QUESTIONED / SUSPENDED /
+    // DENIED conclusions previewed verbatim would read as endorsements
+    // of contested propositions in the opening paragraph.
+    const assertedOpening = structure.openingArguments.filter(n => {
+      const s = (n as any).epistemicStatus;
+      return !s || s === "ASSERTED";
+    });
+    const previewSource = assertedOpening.length > 0 ? assertedOpening : structure.openingArguments;
+    const previewCount = previewSource.length;
+    const previewLimit = 3;
+    const openingClaims = previewSource
+      .slice(0, previewLimit)
       .map(n => getArgumentConclusion(n))
       .map(c => `"${c.length > 80 ? c.slice(0, 80) + "..." : c}"`);
-    
-    paragraphs.push(
-      `The analysis begins from ${structure.openingArguments.length} foundational consideration${structure.openingArguments.length > 1 ? "s" : ""}: ` +
-      openingClaims.join("; and ") + "."
-    );
+
+    // M3.5 #3: spell out small counts and, when the chain is too large to
+    // preview every consideration, signal that only the first three are
+    // surfaced rather than leaving readers to wonder why "19 foundational
+    // considerations" is followed by a three-item list.
+    if (previewCount > previewLimit) {
+      paragraphs.push(
+        `The analysis begins from ${spellOut(previewCount)} foundational considerations; ` +
+        `${spellOut(previewLimit)} are central: ` +
+        openingClaims.join("; and ") + "."
+      );
+    } else {
+      paragraphs.push(
+        `The analysis begins from ${spellOut(previewCount)} foundational consideration${previewCount > 1 ? "s" : ""}: ` +
+        openingClaims.join("; and ") + "."
+      );
+    }
   }
-  
+
   // Signal dialectical complexity if present
   if (structure.dialecticalPairs.length > 0) {
+    const count = structure.dialecticalPairs.length;
     paragraphs.push(
-      `The reasoning is not uncontested. ${structure.dialecticalPairs.length} point${structure.dialecticalPairs.length > 1 ? "s" : ""} of significant disagreement ` +
+      `The reasoning is not uncontested. ${spellOut(count)[0].toUpperCase()}${spellOut(count).slice(1)} point${count > 1 ? "s" : ""} of significant disagreement ` +
       `reveal the tensions inherent in this domain, requiring careful navigation between competing considerations.`
     );
   }
@@ -987,35 +1397,66 @@ function generateArgumentProse(
   warrant: string | null,
   options: EssayOptions
 ): string {
-  const conclusion = getArgumentConclusion(node);
+  const rawConclusion = getArgumentConclusion(node);
   const parts: string[] = [];
   const { includeEpistemicLanguage = true } = options;
-  
+
+  // M3: when this node's claim sits in the deliberation's refusal surface
+  // we must never render it as a closed assertion. Strip the trailing
+  // period and override the closer to `?` so every downstream splice in
+  // this function ("It follows that X.", "The evidence points to X.",
+  // etc.) emits "...X?" instead. Premise bridges further down still run
+  // unchanged — they explain *why the question is open*, not why the
+  // claim is true.
+  const blockedNodeIds =
+    ((options as any)._blockedNodeIds as Set<string> | undefined) ?? new Set();
+  const isBlocked = blockedNodeIds.has(node.id);
+
   // Phase 4: Get epistemic status
   const epistemicStatus = (node as any).epistemicStatus as string | null;
   const epistemicIntro = includeEpistemicLanguage ? getEssayEpistemicIntro(epistemicStatus) : "";
-  
-  // Opening: integrate conclusion naturally based on scheme type
-  // Phase 4: Prepend epistemic intro if non-ASSERTED
-  if (epistemicIntro) {
-    // For non-ASSERTED statuses, lead with the epistemic framing
-    if (scheme?.reasoningType) {
-      const reasoningType = scheme.reasoningType.toLowerCase();
-      
-      if (reasoningType === "inductive") {
-        parts.push(`${epistemicIntro}the evidence points to an important conclusion: ${smartLowercase(conclusion)}`);
-      } else if (reasoningType === "abductive") {
-        parts.push(`${epistemicIntro}the most plausible explanation is that ${smartLowercase(conclusion)}`);
-      } else if (reasoningType === "practical") {
-        parts.push(`${epistemicIntro}from a practical standpoint, ${smartLowercase(conclusion)}`);
-      } else if (reasoningType === "deductive") {
-        parts.push(`${epistemicIntro}it follows that ${smartLowercase(conclusion)}`);
-      } else {
-        parts.push(`${epistemicIntro}${smartLowercase(conclusion)}`);
-      }
-    } else {
-      parts.push(`${epistemicIntro}${smartLowercase(conclusion)}`);
-    }
+
+  // M3.6 F: only append `?` when the conclusion is going to be spliced
+  // as a bare assertion ("It follows that <X>."). When an epistemicIntro
+  // is present ("While some have argued that <X>", "It remains an open
+  // question whether <X>", "Let us suppose, for the sake of argument,
+  // that <X>"), the outer frame is already non-assertoric, so we use a
+  // period — "<X>? Despite the rejection of this view, …" reads as if
+  // the previous sentence asked a question, but the frame ("While some
+  // have argued that …") is actually a concession to a claim. Keep the
+  // `?` for unframed reasoning-type splices, since those would otherwise
+  // render blocked claims as closed assertions.
+  const stripped = rawConclusion.replace(/\.$/, "");
+  const conclusion = !isBlocked
+    ? rawConclusion
+    : epistemicIntro
+      ? stripped + "."
+      : stripped + "?";
+
+  // M3.8 G: thesis-anaphora. Chains commonly contain multiple nodes whose
+  // conclusion text is the chain's defended thesis. Emitting the full
+  // thesis sentence at the start of every such paragraph drowns the
+  // reader in repetition. On the second+ render of the same conclusion
+  // we emit a short anaphoric sentence and skip the reasoning-type
+  // opener (premises / warrant / CQs still run, since they carry fresh
+  // material for that paragraph). Blocked paragraphs are left alone so
+  // the refusal-aware framing still surfaces the contested claim text.
+  const anaphor = isBlocked ? null : checkConclusionAnaphor(stripped, options);
+  if (anaphor) {
+    parts.push(anaphor.anaphor);
+  } else if (epistemicIntro) {
+    // M3.8 H: `epistemicIntro` ("While some have argued that ", "It
+    // remains an open question whether ", "Plausibly, on the available
+    // evidence, ", "Setting aside for now the question of whether ") is
+    // already a complete propositional wrapper. Compounding it with a
+    // reasoning-type opener ("the evidence points to an important
+    // conclusion:", "the most plausible explanation is that", …)
+    // produces stacked nonsense: "While some have argued that the
+    // evidence points to an important conclusion: <thesis>". The
+    // reasoning type is already carried by the warrant / premise frame
+    // downstream — the reader doesn't need both layers. Emit the
+    // conclusion bare under the epistemic wrapper.
+    parts.push(`${epistemicIntro}${smartLowercase(conclusion)}`);
   } else if (scheme?.reasoningType) {
     const reasoningType = scheme.reasoningType.toLowerCase();
     
@@ -1040,11 +1481,30 @@ function generateArgumentProse(
   const epistemicContext = includeEpistemicLanguage ? getEssayEpistemicContext(epistemicStatus) : "";
   
   if (premises.length > 0 && options.includePremiseStructure !== false) {
-    if (premises.length === 1) {
+    // M3.5 #2: filter out premise statements that earlier paragraphs have
+    // already surfaced verbatim. Sibling nodes in the same chain often
+    // share an evidence pool (e.g. cited studies, statistics) and the
+    // un-deduped paragraphs read as near-identical copies.
+    const renderedPremiseTexts: Set<string> | null =
+      (options as any)._renderedPremiseTexts instanceof Set
+        ? ((options as any)._renderedPremiseTexts as Set<string>)
+        : null;
+    const premiseDedupeKey = (text: string) =>
+      text.trim().toLowerCase().replace(/\s+/g, " ");
+    const freshPremises = renderedPremiseTexts
+      ? premises.filter((p) => !renderedPremiseTexts.has(premiseDedupeKey(p.text)))
+      : premises.slice();
+
+    // If everything has already been said, skip the evidence block entirely
+    // rather than re-emitting it under a fresh discourse marker.
+    if (freshPremises.length === 0) {
+      // no-op: downstream sentences (scheme reference, warrant) still run.
+    } else if (freshPremises.length === 1) {
       const bridge = scheme?.materialRelation 
         ? sample(MATERIAL_RELATION_BRIDGES[scheme.materialRelation.toLowerCase()] || ["This follows from the fact that"])
         : "This follows from the fact that";
-      parts.push(`${epistemicContext}${epistemicContext ? bridge.toLowerCase() : bridge} ${smartLowercase(premises[0].text)}`);
+      parts.push(`${epistemicContext}${epistemicContext ? bridge.toLowerCase() : bridge} ${smartLowercase(freshPremises[0].text)}`);
+      if (renderedPremiseTexts) renderedPremiseTexts.add(premiseDedupeKey(freshPremises[0].text));
     } else {
       // Multiple premises - create sophisticated enumeration
       const premiseIntros = epistemicContext 
@@ -1059,17 +1519,26 @@ function generateArgumentProse(
             "Several factors converge to support this view.",
           ];
       
-      parts.push(sample(premiseIntros));
+      // M3.8 G: only emit the framing sentence the first time; downstream
+      // paragraphs let the `First, … Additionally, … Finally, …`
+      // discourse markers carry the enumeration on their own.
+      if (useBoilerplateKey("multi_premise_intro", options)) {
+        parts.push(sample(premiseIntros));
+      }
       
       // Present premises as a flowing paragraph rather than a list
-      const premiseNarratives = premises.map((p, i) => {
+      const premiseNarratives = freshPremises.map((p, i) => {
         const text = p.text;
         if (i === 0) return `First, ${smartLowercase(text)}`;
-        if (i === premises.length - 1) return `Finally, ${smartLowercase(text)}`;
+        if (i === freshPremises.length - 1) return `Finally, ${smartLowercase(text)}`;
         return `Additionally, ${smartLowercase(text)}`;
       });
       
       parts.push(premiseNarratives.join(" "));
+
+      if (renderedPremiseTexts) {
+        for (const p of freshPremises) renderedPremiseTexts.add(premiseDedupeKey(p.text));
+      }
     }
   }
   
@@ -1089,33 +1558,113 @@ function generateArgumentProse(
       };
       
       if (relationContexts[scheme.materialRelation.toLowerCase()]) {
-        parts.push(relationContexts[scheme.materialRelation.toLowerCase()]);
+        // M3.8 G: scheme-context sentences are keyed per material relation
+        // — the reader doesn't need the same "This causal reasoning follows
+        // a well-established pattern of inference." gloss in every causal
+        // paragraph. Emit once per relation, then skip on subsequent
+        // paragraphs of the same scheme family.
+        const relKey = `scheme_relation:${scheme.materialRelation.toLowerCase()}`;
+        if (useBoilerplateKey(relKey, options)) {
+          parts.push(relationContexts[scheme.materialRelation.toLowerCase()]);
+        }
       }
     } else if (scheme.description) {
-      parts.push(scheme.description);
+      // M3.5 #4: scheme descriptions are sometimes raw Walton-style
+      // templates with unbound placeholders ("An expert E in domain D
+      // asserts that A; therefore A"). Skip those rather than emit them
+      // as essay prose.
+      if (!cqHasUnfilledPlaceholders(scheme.description)) {
+        parts.push(scheme.description);
+      }
     }
   }
   
   // Warrant as the inferential license - present naturally
   if (warrant && options.includePremiseStructure !== false) {
-    parts.push(`The underlying warrant—the principle that licenses this inference—holds that ${warrant.toLowerCase().replace(/\.$/, "")}.`);
+    // M3.6 C: raw `.toLowerCase()` destroys acronyms (US → us, RCT → rct).
+    // Route through `smartLowercase` (which preserves the known-acronym
+    // allowlist) and additionally restore mid-sentence US/UK/RCT/etc.
+    // tokens so warrants like "interacts with US-specific structural
+    // vulnerabilities" survive the splice.
+    //
+    // M3.8 G: first warrant gets the full em-dash gloss ("the principle
+    // that licenses this inference"); subsequent warrants drop the gloss
+    // and use a leaner connective — the reader has already been taught
+    // what the warrant role is.
+    const warrantBody = preserveAcronymLowercase(warrant).replace(/\.$/, "");
+    if (useBoilerplateKey("warrant_gloss", options)) {
+      parts.push(`The underlying warrant—the principle that licenses this inference—holds that ${warrantBody}.`);
+    } else {
+      parts.push(`The warrant here holds that ${warrantBody}.`);
+    }
   }
   
-  // Critical questions as implicit challenges addressed
+  // Critical questions as implicit challenges addressed (M1 item 4)
+  // - Previously concatenated raw question text ("requires considering both is
+  //   the source a genuine expert … and is the assertion …") which was
+  //   ungrammatical. Now branches on audience: expert readers get a compact
+  //   parenthetical that frames each CQ as an objection the author addresses;
+  //   general/informed readers get the questions rendered as questions.
+  // - `answeredCqKeys` (when provided by callers that have read `CqStatus`)
+  //   filters out CQs that already have an answer on record so we don't
+  //   surface them as still-open challenges.
   if (scheme && options.includeCriticalQuestions && scheme.cq.length > 0) {
-    // Pick 1-2 most relevant CQs and phrase them as natural considerations
-    const relevantCQs = scheme.cq.slice(0, 2);
+    const answered = (options as any).answeredCqKeys instanceof Set
+      ? ((options as any).answeredCqKeys as Set<string>)
+      : null;
+    const renderedCqKeys: Set<string> | null =
+      (options as any)._renderedCqKeys instanceof Set
+        ? ((options as any)._renderedCqKeys as Set<string>)
+        : null;
+    const cqDedupeKey = (cq: CriticalQuestionData) =>
+      cq.key || cq.text.trim().toLowerCase();
+    const openCQs = scheme.cq.filter((cq) => {
+      // M3.5 #4: drop scheme CQs that still contain unbound placeholder
+      // variables (e.g. "Does study S actually have defect D…").
+      if (cqHasUnfilledPlaceholders(cq.text)) return false;
+      if (answered && cq.key && answered.has(cq.key)) return false;
+      // M3.5 #5: dedupe CQs across sibling-node paragraphs so the same
+      // critical question is not surfaced multiple times in one essay.
+      if (renderedCqKeys && renderedCqKeys.has(cqDedupeKey(cq))) return false;
+      return true;
+    });
+    const relevantCQs = openCQs.slice(0, 2);
+
     if (relevantCQs.length > 0) {
-      const cqPhrases = relevantCQs.map(cq => {
-        // Transform question into a consideration
-        const q = cq.text.replace(/\?$/, "").toLowerCase();
-        return q;
-      });
-      
-      if (cqPhrases.length === 1) {
-        parts.push(`A critical reader might wonder ${cqPhrases[0]}—a legitimate concern that deserves examination.`);
+      const cleaned = relevantCQs.map(cq => cq.text.replace(/\?$/, "").trim());
+
+      if (options.audienceLevel === "expert") {
+        // Frame as objections the author has addressed. Keep the CQs as
+        // intact interrogatives — naive prefix-stripping produced
+        // ungrammatical phrases ("whether the source a genuine expert"),
+        // so we leave the question wording alone and quote it as a question
+        // the author engages.
+        const questions = cleaned.map(q => `${q}?`).join(" ");
+        const label = relevantCQs.length === 1 ? "question" : "questions";
+        parts.push(`The author addresses the following ${label}: ${questions}`);
       } else {
-        parts.push(`Critical examination of this argument requires considering both ${cqPhrases[0]} and ${cqPhrases[1]}.`);
+        // Keep questions as questions for non-expert readers.
+        const questions = cleaned.map(q => `${q}?`).join(" ");
+        // M3.8 G: first CQ block gets the full pedagogical framing;
+        // subsequent blocks use a leaner "Further open questions" lead-in.
+        const cqFirst = useBoilerplateKey("cq_intro", options);
+        if (relevantCQs.length === 1) {
+          parts.push(
+            cqFirst
+              ? `A critical reader might ask: ${questions}`
+              : `A further critical question: ${questions}`,
+          );
+        } else {
+          parts.push(
+            cqFirst
+              ? `Two questions remain open for the critical reader: ${questions}`
+              : `Further open questions: ${questions}`,
+          );
+        }
+      }
+
+      if (renderedCqKeys) {
+        for (const cq of relevantCQs) renderedCqKeys.add(cqDedupeKey(cq));
       }
     }
   }
@@ -1175,8 +1724,17 @@ function generateDialecticalExchange(
   
   // Add thesis premises if structured
   if (options.includePremiseStructure && thesisScheme?.premises?.length) {
-    const premiseText = thesisScheme.premises.slice(0, 2).join(", and ");
-    parts.push(`The reasoning proceeds from the understanding that ${smartLowercase(premiseText)}.`);
+    // M3.6 B: premises are `PremiseTemplate[]`; flattening them with
+    // `.join` produces `[object Object], and [object Object]`. Extract
+    // `.text` (or fall back to string coercion for legacy callers).
+    const premiseText = thesisScheme.premises
+      .slice(0, 2)
+      .map((p) => (typeof p === "string" ? p : (p && (p as any).text) || ""))
+      .filter(Boolean)
+      .join(", and ");
+    if (premiseText) {
+      parts.push(`The reasoning proceeds from the understanding that ${smartLowercase(premiseText)}.`);
+    }
   }
   
   // Transition to antithesis with narrative tension
@@ -1184,10 +1742,17 @@ function generateDialecticalExchange(
     ? sample(EDGE_NARRATIVE_TRANSITIONS[attackEdge.edgeType] || EDGE_NARRATIVE_TRANSITIONS["REFUTES"])
     : sample(EDGE_NARRATIVE_TRANSITIONS["REFUTES"]);
   
-  const antithesisText = smartLowercase(antithesisConclusion.replace(/\.$/, ""));
+  // M3.8 anaphora: antithesis conclusion may be the same text as the
+  // defended thesis (when a defensive node also launches an attack).
+  // Anaphorize to avoid "a direct rebuttal counters that <thesis>…"
+  // repeating the thesis verbatim.
+  const antithesisText = smartLowercase(npAnaphor(antithesisConclusion.replace(/\.$/, ""), options));
+  // M3.8 attack-desc dedupe: drop the em-dash continuation when this
+  // exact description has already been rendered by another splice site.
+  const dedupedAttackDesc = dedupeAttackDescription(attackEdge?.description, options);
   parts.push(
     `${attackTransition} ${antithesisText}.` +
-    (attackEdge?.description ? ` ${attackEdge.description}` : "")
+    (dedupedAttackDesc ? ` ${dedupedAttackDesc}` : "")
   );
   
   // Add antithesis reasoning context (improved)
@@ -1233,7 +1798,14 @@ function generateLogicalFlow(
   options: EssayOptions
 ): string {
   const parts: string[] = [];
-  
+
+  // M3: refusal-surface awareness for the support/qualify summaries below.
+  // When the support edge's *target* is a blocked claim, we must not say
+  // the chain "provides grounding for X" (which restates X assertively).
+  // Same idea for qualifies. Empty set is the no-op fast path.
+  const blockedNodeIds =
+    ((options as any)._blockedNodeIds as Set<string> | undefined) ?? new Set();
+
   // Build adjacency for narrative flow
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
   
@@ -1252,9 +1824,88 @@ function generateLogicalFlow(
       const target = nodeMap.get(edge.targetNodeId);
       if (!source || !target) return;
       
-      const sourceText = smartLowercase(getArgumentConclusion(source).replace(/\.$/, ""));
-      const targetText = smartLowercase(getArgumentConclusion(target).replace(/\.$/, ""));
-      
+      const rawSource = getArgumentConclusion(source).replace(/\.$/, "");
+      const rawTarget = getArgumentConclusion(target).replace(/\.$/, "");
+
+      // M3: when the target sits in the refusal surface, every support
+      // sentence is reframed as supplying a strand *toward an open
+      // question* — never as grounding a settled claim. We push and
+      // return early so the strength/description appendix below (which
+      // expects an assertive frame) doesn't run.
+      if (blockedNodeIds.has(target.id)) {
+        // M3.8 anaphora/collapse: if the source claim and the blocked
+        // target are the same normalized text, we'd otherwise render
+        // "The recognition that <thesis> supplies one strand toward the
+        // still-open question of whether <thesis>…" — the thesis
+        // appears twice in one sentence. Collapse to a short pointer
+        // back to the residual band.
+        const sourceKey = normalizeConclusionKey(rawSource);
+        const targetKey = normalizeConclusionKey(rawTarget);
+        if (sourceKey && sourceKey === targetKey) {
+          // Touch the set so downstream renderers know this claim has
+          // been surfaced; subsequent occurrences will anaphorize.
+          npAnaphor(rawSource, options);
+          supportDescriptions.push(
+            `This same claim recurs as the chain's still-open contested band.`,
+          );
+          return;
+        }
+        const sourceForFlow = smartLowercase(npAnaphor(rawSource, options));
+        const targetForFlow = smartLowercase(npAnaphor(rawTarget, options));
+        supportDescriptions.push(
+          `The recognition that ${sourceForFlow} supplies one strand toward the still-open question of whether ${targetForFlow}, though the chain's conclusion remains blocked.`,
+        );
+        return;
+      }
+
+      // M3.8 anaphora: anaphorize at most ONE interpolated endpoint per
+      // support sentence. Anaphorizing both turns "The argument that
+      // <source> provides grounding for <target>" into "The argument
+      // that the same validity claim provides grounding for the same
+      // thesis" — the reader loses both endpoints. Prefer to anaphorize
+      // the target (typically the thesis); fall back to source-only if
+      // target hasn't been seen yet.
+      const renderedSet = (options as any)._renderedConclusionKeys as Set<string> | undefined;
+      const sourceKey = normalizeConclusionKey(rawSource);
+      const targetKey = normalizeConclusionKey(rawTarget);
+      const sourceSeen = !!(renderedSet && sourceKey && renderedSet.has(sourceKey));
+      const targetSeen = !!(renderedSet && targetKey && renderedSet.has(targetKey));
+      // M3.8: when source and target are the SAME claim (e.g. a node
+      // that supports the chain thesis and itself concludes the
+      // thesis) AND both have already been rendered upstream, the
+      // support template collapses to a tautology ("Evidence that
+      // <thesis> lends credence to <thesis>"). Emit a short collapse
+      // sentence instead so the reader sees "the same claim is
+      // independently buttressed — <description>" rather than the
+      // doubled interpolation.
+      const isSelfSupport = !!(sourceKey && targetKey && sourceKey === targetKey);
+      if (isSelfSupport && sourceSeen && targetSeen) {
+        const dedupedDesc = dedupeAttackDescription(edge.description, options);
+        const tail = dedupedDesc
+          ? ` — ${dedupedDesc.trim().replace(/\.+$/, "")}.`
+          : ".";
+        supportDescriptions.push(
+          `The same claim receives a further independent strand of support${tail}`
+        );
+        return;
+      }
+      let sourceText: string;
+      let targetText: string;
+      if (targetSeen) {
+        targetText = smartLowercase(npAnaphor(rawTarget, options));
+        if (renderedSet && sourceKey && !sourceSeen) renderedSet.add(sourceKey);
+        sourceText = smartLowercase(rawSource);
+      } else if (sourceSeen) {
+        sourceText = smartLowercase(npAnaphor(rawSource, options));
+        if (renderedSet && targetKey) renderedSet.add(targetKey);
+        targetText = smartLowercase(rawTarget);
+      } else {
+        if (renderedSet && sourceKey) renderedSet.add(sourceKey);
+        if (renderedSet && targetKey) renderedSet.add(targetKey);
+        sourceText = smartLowercase(rawSource);
+        targetText = smartLowercase(rawTarget);
+      }
+
       // Vary the support phrasing
       const supportPhrases = [
         `The recognition that ${sourceText} strengthens the case for ${targetText}`,
@@ -1270,10 +1921,13 @@ function generateLogicalFlow(
           ? " — though this support is modest."
           : "";
       
-      // Clean edge description and build final sentence
+      // Clean edge description and build final sentence (M3.8: dedupe
+      // attack-style descriptions so the same em-dash continuation
+      // doesn't echo here and in J's fallen-objections render).
       let description = "";
-      if (edge.description) {
-        const cleanedDesc = edge.description.replace(/\.+$/, "");
+      const dedupedDesc = dedupeAttackDescription(edge.description, options);
+      if (dedupedDesc) {
+        const cleanedDesc = dedupedDesc.replace(/\.+$/, "");
         // If we have strength context, edge description is a new sentence
         description = strengthContext 
           ? ` ${cleanedDesc.charAt(0).toUpperCase() + cleanedDesc.slice(1)}.`
@@ -1372,58 +2026,417 @@ function generateLogicalFlow(
  * Generate conclusion synthesizing the chain
  * Creates a thoughtful conclusion that synthesizes the argumentative journey
  */
+// ===== M3: Refusal-surface helpers =====
+//
+// `buildBlockedNodeIds` translates a refusalSurface (which references
+// *claim* ids) into the *node* ids local to this chain so the renderer
+// can do O(1) lookups while walking nodes. Returns an empty set when no
+// surface is supplied, which is the no-op fast path.
+function buildBlockedNodeIds(
+  nodes: ArgumentChainNodeWithArgument[],
+  refusalSurface: EssayOptions["refusalSurface"]
+): Set<string> {
+  if (!refusalSurface?.blockedClaimIds?.length) return new Set();
+  const blockedClaims = new Set(refusalSurface.blockedClaimIds);
+  const out = new Set<string>();
+  for (const n of nodes) {
+    const cid = (n as any).argument?.conclusion?.id as string | undefined;
+    if (cid && blockedClaims.has(cid)) out.add(n.id);
+  }
+  return out;
+}
+
+// `renderBlockedQuestion` formats a blocked claim as an open question
+// without a terminating period. Callers are responsible for the trailing
+// punctuation (typically "?" or "; "), so a single helper can serve both
+// inline ("the question whether X") and standalone ("Whether X?") uses.
+function renderBlockedQuestion(claimText: string): string {
+  return `whether ${smartLowercase(claimText.replace(/\.$/, ""))}`;
+}
+
+// `composeRefusalBanner` produces the single-line caveat that closes the
+// conclusion when any blocked claim was surfaced. We name the weakest
+// link by label (curator-supplied) so the reader can act on the next
+// objection rather than just learn the chain is "blocked".
+function composeRefusalBanner(
+  refusalSurface: NonNullable<EssayOptions["refusalSurface"]>
+): string {
+  const n = refusalSurface.blockedClaimIds.length;
+  const noun = n === 1 ? "objection" : "objections";
+  // M3.6 D: strip a trailing period from the curator label so the banner
+  // doesn't render "… US adult population.. Do not read…" (double dot).
+  const rawLabel = refusalSurface.weakestLinkLabel?.trim().replace(/\.+$/, "") ?? "";
+  const weak = rawLabel ? ` the weakest link is ${rawLabel}` : "";
+  return `This chain's conclusion remains blocked by ${spellOut(n)} unanswered ${noun};${weak}. Do not read the above as a closed verdict.`;
+}
+
+
+//
+// `pickInlineTransition` returns the discourse-marker sentence that should
+// precede a paragraph when a previously-rendered node has an edge into the
+// current node. The returned string is empty when no qualifying edge exists
+// (e.g. the only inbound edge is from a not-yet-rendered node, or its
+// `strength` is below `edgeStrengthThreshold`). The caller is responsible
+// for prepending the result, separated by a blank line, so that the prose
+// reads as continuous discourse rather than a list of disjoint paragraphs.
+function pickInlineTransition(
+  targetNodeId: string,
+  renderedIds: Set<string>,
+  edges: ArgumentChainEdgeWithRelations[],
+  nodeMap: Map<string, ArgumentChainNodeWithArgument>,
+  threshold: number,
+  options: EssayOptions
+): string {
+  // Prefer attacks (REBUTS / UNDERCUTS / UNDERMINES / REFUTES) over supports
+  // when both are present, because the contrastive transition carries more
+  // discourse information than a confirmatory one.
+  const priority: string[] = [
+    "REBUTS", "UNDERCUTS", "UNDERMINES", "REFUTES",
+    "QUALIFIES", "SUPPORTS", "PRESUPPOSES", "ENABLES",
+    "EXEMPLIFIES", "GENERALIZES",
+  ];
+  const incoming = edges
+    .filter(e => e.targetNodeId === targetNodeId && renderedIds.has(e.sourceNodeId))
+    .filter(e => {
+      const s = (e as any).strength;
+      return typeof s !== "number" || s >= threshold;
+    });
+  if (incoming.length === 0) return "";
+  incoming.sort((a, b) => priority.indexOf(a.edgeType) - priority.indexOf(b.edgeType));
+  const edge = incoming[0];
+  const source = nodeMap.get(edge.sourceNodeId);
+  if (!source) return "";
+  const phrases = EDGE_NARRATIVE_TRANSITIONS[edge.edgeType] || EDGE_NARRATIVE_TRANSITIONS["REFUTES"];
+  const phrase = sample(phrases);
+  // M3.8: anaphorize the splice's source conclusion so a node whose
+  // conclusion duplicates an earlier-rendered claim (e.g. a defensive
+  // node whose conclusion is the defended thesis) doesn't restate the
+  // thesis verbatim inside "However, this is rebutted by the claim
+  // that <thesis>" or "Even granting the premise, this inference is
+  // undercut by <thesis>".
+  const sourceText = smartLowercase(npAnaphor(getArgumentConclusion(source).replace(/\.$/, ""), options));
+  // If the edge has a curator-supplied `description`, promote it to a
+  // relative clause so the transition carries the explicit reason rather
+  // than a vague "this". M3.8: also route through dedupeAttackDescription
+  // so the same description never echoes here and in J's fallen-objections
+  // render.
+  const rawDesc = (edge as any).description as string | undefined;
+  const description = dedupeAttackDescription(rawDesc, options);
+  if (description && description.trim().length > 0) {
+    return `${phrase} ${sourceText} — ${description.trim().replace(/\.$/, "")}.`;
+  }
+  return `${phrase} ${sourceText}.`;
+}
+
+// ===== M2b: Role-keyed paragraph openers =====
+//
+// `roleOpener` returns a short discourse marker that frames a paragraph
+// by its `dialecticalRole`. We only emit a marker for non-THESIS roles
+// (THESIS paragraphs read fine without scaffolding) and only when no
+// inline edge transition has already been prepended; otherwise the
+// reader gets two opening cues in a row.
+function roleOpener(role: string | null | undefined): string {
+  switch (role) {
+    case "ANTITHESIS":  return "Against this view, ";
+    case "SYNTHESIS":   return "Synthesizing these strands, ";
+    case "RESPONSE":    return "In response, ";
+    case "CONCESSION":  return "Granting this, ";
+    default:            return "";
+  }
+}
+
+// M3.8 H: strip a reasoning-type opener from the start of a paragraph
+// body when an outer discourse marker (role opener / inline edge
+// transition) will be prepended. The four reasoning-type openers
+// emitted by `generateArgumentProse` are sentence leads, not phrases
+// that compose with a discourse cue. Without stripping we get stacked
+// openers like "Against this view, the evidence points to an important
+// conclusion: <thesis>". The reasoning type is still conveyed by the
+// warrant / premise framing downstream.
+const REASONING_OPENER_PREFIXES = [
+  "The evidence points to an important conclusion: ",
+  "The most plausible explanation is that ",
+  "From a practical standpoint, ",
+  "It follows that ",
+];
+function stripReasoningOpener(body: string): string {
+  if (!body) return body;
+  for (const prefix of REASONING_OPENER_PREFIXES) {
+    if (body.startsWith(prefix)) {
+      const rest = body.slice(prefix.length);
+      // The remainder starts with the conclusion; for "It follows that"
+      // and "the most plausible explanation is that" the conclusion was
+      // already `smartLowercase`'d, while the "evidence points to"
+      // branch leaves the conclusion title-cased after the colon.
+      // Recapitalize the first character so the bare sentence reads as
+      // a proper sentence start; the caller will lowercase it again if
+      // a comma-trailing opener is being prepended.
+      if (!rest) return rest;
+      return rest[0].toUpperCase() + rest.slice(1);
+    }
+  }
+  return body;
+}
+
+// ===== M2d: Conclusion synthesis inputs =====
+//
+// `conclusionSynthesisInputs` returns the structured standings of the
+// chain so both the essay conclusion (here) and downstream Brief view
+// (roadmap item 14) can share the same accounting. Three buckets:
+//   * `surviving` — ASSERTED nodes that either have no incoming attacks
+//     or whose attackers were themselves attacked (i.e. the attack was
+//     neutralised). These are the premises the essay rests on.
+//   * `fallen`    — attacker nodes whose attack was rebutted/undercut by
+//     a downstream node, OR attackers that are themselves DENIED. We
+//     surface (attacker, rebutter, description) so the conclusion can
+//     name *why* the objection fell.
+//   * `residual`  — QUESTIONED / SUSPENDED nodes that remain open. This
+//     is the "contested band" the essay should not paper over.
+type ConclusionSynthesis = {
+  surviving: ArgumentChainNodeWithArgument[];
+  fallen: Array<{
+    attacker: ArgumentChainNodeWithArgument;
+    target: ArgumentChainNodeWithArgument;
+    rebutter: ArgumentChainNodeWithArgument | null;
+    rebutDescription: string | null;
+    attackDescription: string | null;
+  }>;
+  residual: ArgumentChainNodeWithArgument[];
+};
+
+export function conclusionSynthesisInputs(
+  chain: ArgumentChainWithRelations
+): ConclusionSynthesis {
+  const nodes = chain.nodes || [];
+  const edges = chain.edges || [];
+  const nodeMap = new Map(nodes.map(n => [n.id, n] as const));
+  const ATTACK = new Set(["REBUTS", "UNDERCUTS", "UNDERMINES", "REFUTES"]);
+
+  const attacksByTarget = new Map<string, ArgumentChainEdgeWithRelations[]>();
+  for (const e of edges) {
+    if (!ATTACK.has(e.edgeType)) continue;
+    const arr = attacksByTarget.get(e.targetNodeId) || [];
+    arr.push(e);
+    attacksByTarget.set(e.targetNodeId, arr);
+  }
+  // For each attacker, did anyone attack *it* in turn?
+  const isAttacked = (id: string) => (attacksByTarget.get(id)?.length ?? 0) > 0;
+  const isDenied = (n: ArgumentChainNodeWithArgument) =>
+    (n as any).epistemicStatus === "DENIED";
+
+  const surviving: ArgumentChainNodeWithArgument[] = [];
+  const residual: ArgumentChainNodeWithArgument[] = [];
+  const fallen: ConclusionSynthesis["fallen"] = [];
+
+  for (const node of nodes) {
+    const status = (node as any).epistemicStatus as string | undefined;
+    const incomingAttacks = attacksByTarget.get(node.id) || [];
+
+    // Fallen objections: this node is itself an attacker (has outgoing
+    // attack edge) AND has been neutralised — either it's DENIED, or it
+    // was itself attacked by a still-standing node.
+    const outgoingAttacks = edges.filter(
+      e => e.sourceNodeId === node.id && ATTACK.has(e.edgeType)
+    );
+    if (outgoingAttacks.length > 0) {
+      const neutralised = isDenied(node) || isAttacked(node.id);
+      if (neutralised) {
+        const rebutEdge = (attacksByTarget.get(node.id) || [])[0];
+        const rebutter = rebutEdge ? nodeMap.get(rebutEdge.sourceNodeId) || null : null;
+        const target = nodeMap.get(outgoingAttacks[0].targetNodeId);
+        if (target) {
+          fallen.push({
+            attacker: node,
+            target,
+            rebutter,
+            rebutDescription: (rebutEdge as any)?.description ?? null,
+            attackDescription: (outgoingAttacks[0] as any)?.description ?? null,
+          });
+          continue;
+        }
+      }
+    }
+
+    if (status === "QUESTIONED" || status === "SUSPENDED") {
+      residual.push(node);
+      continue;
+    }
+    if (status === "DENIED") {
+      // Already counted as fallen above when it was an attacker; otherwise
+      // it's a discarded claim we needn't reassert.
+      continue;
+    }
+    // ASSERTED (or unspecified): surviving iff no live attack remains.
+    const liveAttack = incomingAttacks.some(e => {
+      const src = nodeMap.get(e.sourceNodeId);
+      if (!src) return false;
+      if (isDenied(src)) return false;
+      if (isAttacked(src.id)) return false;     // attacker was itself attacked
+      return true;
+    });
+    if (!liveAttack) surviving.push(node);
+    else residual.push(node);                    // still under live challenge
+  }
+
+  return { surviving, fallen, residual };
+}
+
 function generateEssayConclusion(
   chain: ArgumentChainWithRelations,
   structure: NarrativeStructure,
   options: EssayOptions
 ): string {
   const parts: string[] = [];
-  
-  // Varied conclusion openers
-  const conclusionOpeners = [
-    "The weight of the arguments converges on the conclusion that",
-    "Taking stock of the foregoing analysis, the evidence supports the view that",
-    "The argumentative journey ultimately leads to the recognition that",
-    "Drawing together the threads of this discourse, we arrive at the understanding that",
-  ];
-  
-  // State the main thesis if identified
-  if (structure.mainThesis) {
-    const thesisText = smartLowercase(getArgumentConclusion(structure.mainThesis).replace(/\.$/, ""));
-    parts.push(`${sample(conclusionOpeners)} ${thesisText}.`);
-  } else if (structure.resolutionArguments.length > 0) {
-    const conclusions = structure.resolutionArguments
-      .map(n => smartLowercase(getArgumentConclusion(n).replace(/\.$/, "")))
-      .slice(0, 3);
-    
-    if (conclusions.length === 1) {
-      parts.push(`The analysis culminates in the conclusion that ${conclusions[0]}.`);
-    } else {
-      const conclusionList = conclusions.map((c, i) => 
-        i === conclusions.length - 1 ? `and that ${c}` : `that ${c}`
-      ).join(", ");
-      parts.push(`The analysis reaches several interconnected conclusions: ${conclusionList}.`);
+  const { surviving, fallen, residual } = conclusionSynthesisInputs(chain);
+
+  // (1) Surviving premises. Name them — the reader should be able to
+  // re-derive the standing of each load-bearing claim from the conclusion
+  // alone without re-reading the body.
+  if (surviving.length > 0) {
+    // M3.7 (Bug I): dedupe by normalized conclusion text. Chains often
+    // contain multiple nodes whose conclusions phrase the same claim
+    // (defended thesis variants); listing them verbatim made the
+    // "Taking stock" sentence repeat itself. Keep the first occurrence
+    // and recompute the count so the spelled-out number matches the list.
+    const seenNames = new Set<string>();
+    const uniqueNames: string[] = [];
+    for (const n of surviving) {
+      const raw = smartLowercase(getArgumentConclusion(n).replace(/\.$/, ""));
+      const key = raw.toLowerCase().replace(/\s+/g, " ").trim();
+      if (!key || seenNames.has(key)) continue;
+      seenNames.add(key);
+      uniqueNames.push(raw);
+      if (uniqueNames.length >= 4) break;
     }
+    const count = uniqueNames.length;
+    const list = count === 1
+      ? uniqueNames[0]
+      : uniqueNames.slice(0, -1).join("; ") + "; and " + uniqueNames[count - 1];
+    parts.push(
+      `Taking stock, ${spellOut(count)} premise${count > 1 ? "s" : ""} ` +
+      `survive${count > 1 ? "" : "s"} the foregoing exchange: ${list}.`
+    );
+  } else if (structure.mainThesis) {
+    // Fallback: if the standings computation found no clearly-surviving
+    // premise (e.g. every node is QUESTIONED), still anchor the reader to
+    // the thesis under examination.
+    const thesisText = smartLowercase(getArgumentConclusion(structure.mainThesis).replace(/\.$/, ""));
+    parts.push(`No premise emerged unchallenged, though the analysis turned on whether ${thesisText}.`);
   }
-  
-  // Acknowledge dialectical complexity
-  if (structure.dialecticalPairs.length > 0) {
-    const dialecticReflections = [
-      `This conclusion emerges from a genuine dialectic. The ${structure.dialecticalPairs.length} point${structure.dialecticalPairs.length > 1 ? "s" : ""} of contestation are not weaknesses but rather evidence that the reasoning has engaged with the strongest available objections.`,
-      `The strength of this conclusion is tested by the counterarguments it has weathered. Having navigated ${structure.dialecticalPairs.length} dialectical challenge${structure.dialecticalPairs.length > 1 ? "s" : ""}, the central thesis emerges refined rather than diminished.`,
-      `Notably, this position has been forged in the crucible of genuine disagreement. The competing perspectives considered herein have sharpened rather than undermined the central claims.`,
-    ];
-    parts.push(sample(dialecticReflections));
+
+  // (2) Fallen objections. One clause per neutralised attacker, with the
+  // rebutter named when available so the reader knows *why* the objection
+  // fell rather than just *that* it did.
+  if (fallen.length > 0) {
+    const clauses = fallen.slice(0, 3).map(f => {
+      // M3.7 (Bug J): prefer the attack-edge description over the
+      // attacker node's conclusion. Chains commonly reuse the defended
+      // thesis text as the conclusion of a defensive node that itself
+      // launches an attack — rendering that conclusion under
+      // "the objection that…" misattributes the thesis as an objection.
+      // The edge description ("M's symmetry attack…") names the actual
+      // dialectical move; fall back to the target's conclusion when no
+      // edge description is available.
+      const attackDesc = (f.attackDescription || "").trim().replace(/\.$/, "");
+      const targetText = smartLowercase(getArgumentConclusion(f.target).replace(/\.$/, ""));
+      const objection = attackDesc
+        ? `the objection that ${smartLowercase(attackDesc)}`
+        : `the objection to ${targetText}`;
+      const rebutterText = f.rebutter
+        ? smartLowercase(getArgumentConclusion(f.rebutter).replace(/\.$/, ""))
+        : null;
+      // M3.8 attack-desc dedupe: when the rebut description has already
+      // been emitted (e.g. by `generateDialecticalExchange` or by a
+      // support-edge description splice), drop the em-dash continuation
+      // and fall back to the rebutter-named or bare "did not survive"
+      // form. The reader has already seen the rebuttal text in context.
+      const dedupedRebut = dedupeAttackDescription(f.rebutDescription, options);
+      if (dedupedRebut) {
+        return `${objection} was undermined — ${dedupedRebut.trim().replace(/\.$/, "")}`;
+      }
+      if (rebutterText) {
+        return `${objection} was undermined by the rejoinder that ${rebutterText}`;
+      }
+      return `${objection} did not survive scrutiny`;
+    });
+    parts.push(
+      `Among the objections raised, ${clauses.join("; ")}.`
+    );
   }
-  
-  // Add epistemic humility
+
+  // (3) Residual contested band. Anything QUESTIONED/SUSPENDED that
+  // hasn't been resolved — framed as open *questions* (not assertions)
+  // so the conclusion can't be read as endorsing the contested claims.
+  // M3: when any residual entry is in the refusal surface we close the
+  // sentence with `?` rather than `.` so the rendered text never
+  // produces "<blocked claim>." anywhere in the essay.
+  const blockedNodeIds =
+    ((options as any)._blockedNodeIds as Set<string> | undefined) ?? new Set();
+  if (residual.length > 0) {
+    const items = residual.slice(0, 3).map(n => {
+      // M3.8: route residual-band entries through `npAnaphor` so a
+      // chain whose blocked node IS the defended thesis renders as
+      // "whether the same validity claim" / "whether the same thesis"
+      // instead of restating the full thesis sentence inside the
+      // conclusion paragraph.
+      const rawConc = getArgumentConclusion(n).replace(/\.$/, "");
+      const concText = smartLowercase(npAnaphor(rawConc, options));
+      // If npAnaphor returned a short NP (anaphor case), the bare
+      // "whether <NP>" phrase is ungrammatical ("whether the same
+      // position."). Reword as a complete clause referring back to
+      // the prior claim.
+      const isAnaphor = THESIS_NP_ANAPHORS.some(
+        (np) => concText === np.toLowerCase()
+      );
+      return {
+        text: isAnaphor
+          ? `whether ${concText} stands`
+          : `whether ${concText}`,
+        blocked: blockedNodeIds.has(n.id),
+      };
+    });
+    // M3.6 E: dedupe residual entries by their normalized question text so
+    // chains where multiple blocked nodes share the same conclusion (e.g.
+    // three undercuts of the same chain-thesis) render the question once
+    // instead of "whether <X>; whether <X>; and whether <X>".
+    const seen = new Set<string>();
+    const uniqItems: typeof items = [];
+    for (const it of items) {
+      const key = it.text.toLowerCase().replace(/\s+/g, " ").trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniqItems.push(it);
+    }
+    const lastBlocked = uniqItems[uniqItems.length - 1].blocked;
+    const term = lastBlocked ? "?" : ".";
+    const list = uniqItems.length === 1
+      ? uniqItems[0].text
+      : uniqItems.slice(0, -1).map(i => i.text).join("; ") + "; and " + uniqItems[uniqItems.length - 1].text;
+    parts.push(
+      `A residual contested band persists, leaving open ${list}${term} ` +
+      `These questions remain live and the conclusions above should be read against them.`
+    );
+  }
+
+  // M3: explicit refusal banner. When the caller supplied a refusal
+  // surface, append a one-line caveat naming the weakest link. This is
+  // additive — we still render the standings paragraphs above — but
+  // ensures the conclusion ends with the honest "blocked" framing rather
+  // than the generic epistemic-humility closer.
+  if (options.refusalSurface?.blockedClaimIds.length) {
+    parts.push(composeRefusalBanner(options.refusalSurface));
+  }
+
+  // Add a single epistemic-humility closing — kept from the prior
+  // implementation because it sets the right register for "defeasible
+  // reasoning", but trimmed to one line so the synthesis above is what
+  // the reader takes away.
   const epistemicClosings = [
-    "The strength of these conclusions depends on the soundness of the underlying premises and the validity of the inferential steps that connect them. As with all defeasible reasoning, new evidence or considerations could warrant revision.",
-    "These conclusions, while supported by the arguments presented, remain open to revision in light of new evidence or stronger counterarguments. This tentativeness is a feature, not a bug, of rational inquiry.",
-    "The conclusions reached here should be held with appropriate epistemic humility. The arguments provide reasons for belief, not proof beyond doubt, and the discourse remains open to further development.",
+    "As with all defeasible reasoning, these standings remain open to revision in light of new evidence or stronger counterarguments.",
+    "These standings are provisional: the arguments give reasons for belief, not proof beyond doubt.",
   ];
   parts.push(sample(epistemicClosings));
-  
+
   return parts.join("\n\n");
 }
 
@@ -1445,11 +2458,45 @@ export function generateEssay(
     includeDialectic = true,
     structureByScopes = true,
     handleNestedScopes = true,
+    // M2: edges below this strength are too weak to merit an inline
+    // discourse marker; we'd rather skip the transition than mislead the
+    // reader into thinking a marginal challenge is load-bearing.
+    edgeStrengthThreshold = 0.3,
+    refusalSurface,
   } = options;
   
   const nodes = chain.nodes || [];
   const edges = chain.edges || [];
   const scopes = (chain as any).scopes || [];
+
+  // M3: pre-compute the set of blocked node ids and inject onto a private
+  // option key so the existing site functions (generateArgumentProse,
+  // generateLogicalFlow, generateEssayConclusion) can consult it without
+  // a wider signature change. Empty set when no surface was supplied.
+  const blockedNodeIds = buildBlockedNodeIds(nodes, refusalSurface);
+  // M3.5 #2 / #5: track which premise texts and critical-question keys have
+  // already been surfaced so downstream paragraphs do not repeat verbatim
+  // evidence lists or scheme CQs across sibling nodes.
+  const innerOptions: EssayOptions & {
+    _blockedNodeIds?: Set<string>;
+    _renderedCqKeys?: Set<string>;
+    _renderedPremiseTexts?: Set<string>;
+    _renderedBoilerplateKeys?: Set<string>;
+    _renderedConclusionKeys?: Set<string>;
+    _thesisAnaphorCursor?: { i: number };
+    _thesisSentenceAnaphorCursor?: { i: number };
+    _renderedAttackDescriptions?: Set<string>;
+  } = {
+    ...options,
+    _blockedNodeIds: blockedNodeIds,
+    _renderedCqKeys: new Set<string>(),
+    _renderedPremiseTexts: new Set<string>(),
+    _renderedBoilerplateKeys: new Set<string>(),
+    _renderedConclusionKeys: new Set<string>(),
+    _thesisAnaphorCursor: { i: 0 },
+    _thesisSentenceAnaphorCursor: { i: 0 },
+    _renderedAttackDescriptions: new Set<string>(),
+  } as any;
   
   // Phase C: Group nodes by scope
   const { mainNodes, scopeSections } = structureByScopes 
@@ -1460,7 +2507,7 @@ export function generateEssay(
   const structure = analyzeNarrativeStructure(mainNodes, edges);
   
   // Generate essay sections
-  const opening = generateOpening(chain, structure, options);
+  const opening = generateOpening(chain, structure, innerOptions);
   
   // Phase C: Add scope overview to opening if scopes exist
   let enhancedOpening = opening;
@@ -1471,16 +2518,46 @@ export function generateEssay(
   
   // Main body: arguments woven together
   const bodyParts: string[] = [];
-  
+
+  // M2b/M2c: track nodes we've already rendered so the next paragraph can
+  // open with the appropriate inline transition (REBUTS → "By contrast,"
+  // etc.) and a role-keyed discourse marker. Wrapped in a single helper
+  // so every push-site honours the same wiring.
+  const renderedIds = new Set<string>();
+  const nodeIndexMap = new Map(nodes.map(n => [n.id, n] as const));
+  const pushNodeParagraph = (node: ArgumentChainNodeWithArgument) => {
+    const scheme = extractSchemeMetadata(node);
+    const premises = getArgumentPremises(node);
+    const warrant = getImplicitWarrant(node);
+    const transition = pickInlineTransition(
+      node.id, renderedIds, edges, nodeIndexMap, edgeStrengthThreshold, innerOptions
+    );
+    const role = (node as any).dialecticalRole as string | null | undefined;
+    const opener = transition ? "" : roleOpener(role);
+    const body = generateArgumentProse(node, scheme, premises, warrant, innerOptions);
+    // M3.8 H: when a role opener ("Against this view, ", "In response, "
+    // …) is being prepended, strip any reasoning-type opener from the
+    // start of the body so we don't produce stacked discourse cues like
+    // "Against this view, the evidence points to an important
+    // conclusion: <X>". The reasoning type is still carried by the
+    // warrant / premise framing downstream.
+    const strippedBody = opener ? stripReasoningOpener(body) : body;
+    // When the opener ends in ", " we lowercase the next character so the
+    // paragraph reads as a continuation rather than a hard new sentence.
+    const continued = opener && strippedBody.length > 0
+      ? opener + strippedBody[0].toLowerCase() + strippedBody.slice(1)
+      : strippedBody;
+    const composed = [transition, continued]
+      .filter(Boolean)
+      .join("\n\n");
+    bodyParts.push(composed);
+    renderedIds.add(node.id);
+  };
+
   // First, present opening arguments (from main/unscoped nodes)
   const unscopedOpening = structure.openingArguments.filter(n => !(n as any).scopeId);
   if (unscopedOpening.length > 0) {
-    unscopedOpening.forEach(node => {
-      const scheme = extractSchemeMetadata(node);
-      const premises = getArgumentPremises(node);
-      const warrant = getImplicitWarrant(node);
-      bodyParts.push(generateArgumentProse(node, scheme, premises, warrant, options));
-    });
+    unscopedOpening.forEach(pushNodeParagraph);
   }
   
   // Present dialectical exchanges if any (from main/unscoped nodes)
@@ -1492,6 +2569,11 @@ export function generateEssay(
       bodyParts.push("\n---\n"); // Thematic break
       unscopedPairs.forEach(pair => {
         bodyParts.push(generateDialecticalExchange(pair, edges, options));
+        // Mark the pair's nodes as rendered so later inline transitions
+        // don't double-introduce them.
+        renderedIds.add(pair.thesis.id);
+        renderedIds.add(pair.antithesis.id);
+        if (pair.synthesis) renderedIds.add(pair.synthesis.id);
       });
     }
   }
@@ -1504,12 +2586,7 @@ export function generateEssay(
         p => p.thesis.id === n.id || p.antithesis.id === n.id
       ));
     
-    developingNodes.forEach(node => {
-      const scheme = extractSchemeMetadata(node);
-      const premises = getArgumentPremises(node);
-      const warrant = getImplicitWarrant(node);
-      bodyParts.push(generateArgumentProse(node, scheme, premises, warrant, options));
-    });
+    developingNodes.forEach(pushNodeParagraph);
   }
   
   // Present resolution arguments (from main/unscoped nodes)
@@ -1518,12 +2595,7 @@ export function generateEssay(
       .filter(n => !(n as any).scopeId)
       .filter(n => !structure.dialecticalPairs.some(p => p.synthesis?.id === n.id));
     
-    resolutionNodes.forEach(node => {
-      const scheme = extractSchemeMetadata(node);
-      const premises = getArgumentPremises(node);
-      const warrant = getImplicitWarrant(node);
-      bodyParts.push(generateArgumentProse(node, scheme, premises, warrant, options));
-    });
+    resolutionNodes.forEach(pushNodeParagraph);
   }
   
   // Phase C: Generate scope sections
@@ -1538,10 +2610,10 @@ export function generateEssay(
   }
   
   // Logical flow analysis (optional section)
-  const logicalFlow = generateLogicalFlow(nodes, edges, options);
+  const logicalFlow = generateLogicalFlow(nodes, edges, innerOptions);
   
   // Essay conclusion
-  const conclusion = generateEssayConclusion(chain, structure, options);
+  const conclusion = generateEssayConclusion(chain, structure, innerOptions);
   
   // Phase C: Enhance conclusion with scope summary
   let enhancedConclusion = conclusion;

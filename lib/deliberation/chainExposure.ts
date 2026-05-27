@@ -81,8 +81,12 @@ const STANDING_RANK: Record<StandingState, number> = {
  * Per-argument fitness in `computeFitnessBreakdown` keeps flat
  * counting; this weighting is *only* applied during chain aggregation
  * so individual argument scores remain comparable across deliberations.
+ *
+ * Exported so tests (and the Hinge-1 unit assertion in
+ * `chainAttackerWeighting.test.ts`) can pin the discount contract
+ * without standing up a DB fixture.
  */
-function attackerCredibility(standing: StandingState): number {
+export function attackerCredibility(standing: StandingState): number {
   switch (standing) {
     case "tested-undermined":
       return 0.1; // attacker is itself refuted

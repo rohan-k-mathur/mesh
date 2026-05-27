@@ -78,6 +78,7 @@ export async function POST(req: Request, { params }: { params: { id: string; cqK
   }
 
   if (authorId && deliberationId) {
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     await prisma.dialogueMove.create({
       data: {
         deliberationId, authorId, type:'WHY', illocution:'Question' as any,

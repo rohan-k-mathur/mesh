@@ -61,6 +61,7 @@ function buildLocusTree(
     moveType: string;
     stratumLabel: string;
   }>,
+  witnessedIds: ReadonlySet<string>,
 ): LocusNode[] {
   // Sort by locus so parents always come before children
   const sorted = [...moves].sort((a, b) => a.locus.localeCompare(b.locus));
@@ -69,11 +70,24 @@ function buildLocusTree(
   const roots: LocusNode[] = [];
 
   for (const m of sorted) {
+    // Override the stored `stratumLabel` column with the authoritative
+    // value derived from WitnessRecord, matching the rule used by
+    // `witnessingSummary.walkedLoci`. Without this, the per-node label
+    // and the aggregate counts can disagree when seed data writes
+    // `stratumLabel = "walked"` without inserting a WitnessRecord row.
+    // See server/ludics/stratum.ts for the same contract at the
+    // point-lookup layer.
+    const authoritativeLabel = witnessedIds.has(m.id)
+      ? "walked"
+      : m.stratumLabel === "walked"
+        ? "latent" // stale "walked" with no witness → latent
+        : m.stratumLabel;
+
     const node: LocusNode = {
       ludicMoveId: m.id,
       locus: m.locus,
       moveType: m.moveType,
-      stratumLabel: m.stratumLabel,
+      stratumLabel: authoritativeLabel,
       depth: locusDepth(m.locus),
       children: [],
     };
@@ -149,7 +163,9 @@ export async function getDeliberationSchema(
   const coverageRatio = locusCount > 0 ? walkedLoci / locusCount : 0;
   const openExposurePoints = witnessableLoci + latentLoci;
 
-  const designTree = includeDesignTree ? buildLocusTree(allMoves) : null;
+  const designTree = includeDesignTree
+    ? buildLocusTree(allMoves, witnessedIds)
+    : null;
 
   return {
     deliberationId,

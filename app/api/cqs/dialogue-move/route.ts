@@ -186,6 +186,7 @@ async function handleAskCQ(
   const attackResult = cqToAspicAttack(cqMetadata, targetArgument, theory);
 
   // Create WHY DialogueMove with ASPIC+ metadata
+  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
   const move = await prisma.dialogueMove.create({
     data: {
       deliberationId,
@@ -333,6 +334,7 @@ async function handleAnswerCQ(
   const attackResult = cqToAspicAttack(cqMetadata, targetArgument, theory);
 
   // Create ATTACK DialogueMove
+  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
   const move = await prisma.dialogueMove.create({
     data: {
       deliberationId,

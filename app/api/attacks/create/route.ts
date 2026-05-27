@@ -230,6 +230,7 @@ async function createConflictApplicationAttack(input: CreateAttackInput, userId:
     
     const cqId = input.cqKey || `attack_${conflictApplication.id}`;
     
+    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
     attackMove = await prisma.dialogueMove.create({
       data: {
         deliberationId: input.deliberationId,

@@ -25,7 +25,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.5.0";
+export const ORIENTATION_VERSION = "1.8.0";
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
  * Target: ~400 tokens. Keep tight; the long form lives in
@@ -46,7 +46,15 @@ WRITING TO THE GRAPH (these tools commit rows; treat as first-class, not as fall
 Whenever the user states a position, asks you to "record / log / capture / save / register" a claim or counter-claim, drafts a thesis, or sketches an evidence-backed argument, reach for a write tool instead of replying in prose. Two write surfaces:
   • \`propose_argument\` — bare assertion. \`{ claim, reasoning?, evidence?[], deliberationId? }\`. Use only when the user has a one-line claim with no premises worth naming.
   • \`propose_structured_argument\` — PREFER THIS whenever the user gives reasons ("because…", "since…"), names an argumentation pattern (expert opinion, analogy, cause-to-effect, practical reasoning), or expects per-premise standing/CQs. \`{ conclusion, premises[], reasoning?, schemeKey?, evidence?[], deliberationId? }\`. Each premise becomes its own Claim row, so attackers can later undermine specific premises rather than the whole argument. If unsure which scheme applies, call \`list_schemes\` first; or omit \`schemeKey\` and the server will infer one (returned as a \`scheme_inferred\` warning).
-Both tools return a permalink + immutable content-addressed URL. Omit \`deliberationId\` to land in the caller's "My Arguments" room; pass one to land in a specific debate. For warrants/inference-licenses against an existing argument, use \`propose_warrant\`. After any write, call \`get_argument\` on the returned id (after \`retryAfterMs\` if \`provenancePending\` is true) to verify the round-trip before claiming success. Do not invent ids or permalinks — only echo what the write tool returned.`;
+Both tools return a permalink + immutable content-addressed URL. Omit \`deliberationId\` to land in the caller's "My Arguments" room; pass one to land in a specific debate. For warrants/inference-licenses against an existing argument, use \`propose_warrant\`. After any write, call \`get_argument\` on the returned id (after \`retryAfterMs\` if \`provenancePending\` is true) to verify the round-trip before claiming success. Do not invent ids or permalinks — only echo what the write tool returned.
+
+TOOL-CLUSTER MAP (46 tools / 6 clusters — route here before scanning tool descriptions):
+  1. Session start: \`get_orientation\` (full glossary + recipes), \`get_capabilities\` (cheap auth/identity probe — no round-trip).
+  2. Retrieval: \`search_arguments\`, \`get_argument\`, \`get_claim\`, \`get_claim_stances\`, \`find_counterarguments\`, \`cite_argument\`, \`resolve_citation\`, \`resolve_citations_bulk\`.
+  3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_warrant\` (see above).
+  4. Deliberation synthesis: \`get_synthetic_readout\` (primary), \`get_deliberation_fingerprint\`, \`get_contested_frontier\`, \`get_missing_moves\`, \`get_chains\`, \`get_cross_context\`, \`summarize_debate\`, \`get_deliberation_evidence_context\`.
+  5. Algebraic/ECC: \`ecc_arrow\`, \`ecc_culprits\`, \`ecc_confidence\`, \`ecc_enthymemes\`, \`ecc_transport\`, \`ecc_aggregate\`, \`ecc_evidential\`, \`ecc_belief_revision_proposals\`; scheme catalog: \`list_schemes\`.
+  6. Ludics generative substrate (only when the user mentions locus / design / behaviour / incarnation / cone / witness / articulation lattice / daimon / bind / synthesis): reads \`get_deliberation_schema\` (START HERE), \`get_behaviour_at_locus\`, \`get_exposure_map\`; lattice algebra \`get_articulation_lattice\`, \`find_minimal_incarnations\`, \`find_equivalent_articulations\`, \`find_substitute_premises\`, \`compress_articulation\`, \`compute_articulation_join\`; witness reads \`get_witnesses\`, \`get_unwitnessed_exposure\`, \`get_instantiation\`, \`get_fossil_record\`; helpers/writes \`list_bindable_moves\` (CALL BEFORE BIND — pre-pairs ludicMoveId + dialogueMoveId + canonicalText), \`bind_participant_to_design\` (iota seam — only path that mints WitnessRecord), \`propose_synthesis\` (Art(B) join write seam). Ludics rules: Inc(B) is an antichain — there is NO global bottom of a behaviour, only per-cone minima; cones are disjoint (cross-cone joins/meets return \`cross-cone-rejected\` — that's a value, not an error); never hand-build \`canonicalText\` (copy verbatim from \`list_bindable_moves\`); never echo \`participantId\` back to the user (T4 non-attribution). For the full Ludics workflow recipes (explore-layer / bind-participant) and glossary, call \`get_orientation\`.`;
 /**
  * Returned by the `get_orientation` tool. Markdown-formatted for direct
  * model consumption. Target: ~1.5K tokens.
@@ -57,7 +65,7 @@ Version: ${ORIENTATION_VERSION}
 
 ## Tool clusters — route here first
 
-29 tools across 5 clusters. Use this map before scanning individual tool descriptions.
+46 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
 
 ### Cluster 1 — Session start (1 tool)
 - \`get_orientation\` — you are reading its output. Call once per session; cache against \`contentHash\`.
@@ -104,6 +112,35 @@ Use when auditing the inferential structure of a specific argument or warrant. T
 ### Scheme catalog (1 tool)
 - \`list_schemes\` — browse the argumentation-scheme catalog. Filter by \`clusterTag\` (expert | causal | practical | analogical | …). Call before \`propose_structured_argument\` when scheme is unclear.
 
+### Cluster 6 — Ludics generative substrate (16 tools)
+Use when the user mentions **locus**, **design**, **behaviour**, **incarnation**, **cone**, **witness**, **articulation lattice**, **delocation**, **daimon**, or asks to **bind a participant** / **propose a synthesis** / **compress** or **join** articulations. Skip this cluster entirely for ordinary argument-graph questions — the deliberation graph (Clusters 2–4) is the public face; Ludics is the algebraic underlay.
+
+**Read structure (Cluster F — orientation reads):**
+- \`get_deliberation_schema\` — START HERE for any Ludics question. Returns locus count, design tree, witnessing-coverage summary. Costs O(1) round-trip; tells you whether the deliberation even has a Ludics layer worth exploring.
+- \`get_behaviour_at_locus\` — at a given locus, list the behaviour's designs + their cones + per-design witnessing state.
+- \`get_exposure_map\` — per-locus map of walked / witnessable / latent moves; the dialectical surface a participant could engage.
+
+**Lattice algebra (Cluster B — six Art(B) operations):**
+- \`get_articulation_lattice\` — PRIMARY. Full Art(B) for a behaviour: incarnations, cones, inclusion edges, optional equivalence classes. Inc(B) is an antichain (Phase 2e): no global bottom, one minimum per cone.
+- \`find_minimal_incarnations\` — antichain of per-cone bottoms. Use right after \`get_articulation_lattice\` to pick a target design for binding.
+- \`find_equivalent_articulations\` — same ~_⊥⊥ biorthogonal class as a given design ("different incarnations, same testing behaviour").
+- \`find_substitute_premises\` — incarnations that avoid a specified set of premises (useful for "can we still license C if we drop premise P?").
+- \`compress_articulation\` — meet D₁ ∧ D₂. Partial: only defined within a single cone. Discriminated result: \`same-cone-meet\` | \`same-cone-incomparable\` | \`cross-cone-rejected\`.
+- \`compute_articulation_join\` — join D₁ ∨_⊥⊥ D₂. Also partial. Discriminated result: \`same-cone-join\` | \`same-cone-delocation-required\` | \`cross-cone-rejected\`.
+
+**Witness reads (Cluster E — read-side of the iota seam):**
+- \`get_witnesses\` — active WitnessRecords for a LudicMove (T4: no participantId returned).
+- \`get_unwitnessed_exposure\` — LudicMoves with non-empty exposure but no active witness.
+- \`get_instantiation\` — whether a specific DialogueMove has been ι-bound to a LudicMove (verify before re-binding).
+- \`list_bindable_moves\` — **HELPER for the bind workflow.** Returns LudicMoves eligible for \`bind_participant_to_design\`, each pre-paired with unused DialogueMoves carrying ready-to-submit \`canonicalText\`. Makes "bind me to design X" executable in one turn. Filter by \`designId\`, \`behaviourId\`, or \`locus\`.
+
+**Write seams (Cluster D — the only paths that mutate Ludics state):**
+- \`bind_participant_to_design\` — iota seam. The ONLY way to create a WitnessRecord. Enforces S1–S4 (locus exists, structure intact, canonicalText passes pipeline, scheme valid). Call \`list_bindable_moves\` first if you don't already have \`ludicMoveId\` + \`dialogueMoveId\` + \`canonicalText\`.
+- \`propose_synthesis\` — Art(B) join write seam. Computes ∨_⊥⊥ of two designs in the same behaviour and commits the resulting Design + WitnessRecord. Discriminated result mirrors \`compute_articulation_join\`.
+
+**Audit:**
+- \`get_fossil_record\` — fossilized (retracted) WitnessRecords for a deliberation, with retract layer + reason.
+
 ---
 
 ## Glossary (operational meanings)
@@ -129,6 +166,36 @@ Use when auditing the inferential structure of a specific argument or warrant. T
 - **refusalSurface** — \`{ cannotConcludeBecause: [{ conclusionClaimId, blockedBy, blockerIds, blockerSummaries }] }\`. Conclusions the graph cannot license. Hard constraints — output must not assert any listed conclusion. Use \`blockerSummaries\` (parallel-indexed to \`blockerIds\`) to name the obstacle in prose without a per-blocker round-trip.
 
 - **honestyLine** — A deterministic single-sentence caveat keyed on \`contentHash\`. Include verbatim in any synthesis output.
+
+### Ludics terms (Cluster 6 only)
+
+- **locus** — A stable address inside a design, written like \`⊢A.1.2\`. The unit of dialectical engagement; LudicMoves live at loci.
+
+- **design (D)** — A set of loci with a polarity discipline; one specific articulation of a position. Identified by a cuid. Carries a \`derivedBy\` provenance label.
+
+- **derivedBy** — How a design was produced. ∈ {\`null\`, \`"join"\`, \`"meet"\`, \`"compression"\`, \`"extend"\`}. \`null\` (or any unrecognized sentinel value from legacy seed data) marks a **base incarnation**; the four named values mark designs produced by Art(B) operations.
+
+- **behaviour (B)** — Set of designs orthogonal to a common counter-set; the "type" a design inhabits. Behaviours own the lattice Art(B).
+
+- **incarnation** — A design that is a minimum element of its cone in Inc(B). Post-Phase 2e, Inc(B) is an antichain: every base incarnation is cone-minimal.
+
+- **cone** — Equivalence-by-base-ancestor partition of a behaviour's designs. Each cone has exactly one base incarnation at its bottom; all derived designs (join/meet/compression/extend) live in the cone of their most specific base ancestor. **Joins and meets are partial** — they only exist within a single cone (\`cross-cone-rejected\` is a returned value, not an error).
+
+- **biorthogonal class (~_⊥⊥)** — Equivalence under "tested by the same counter-designs." Multiple designs may articulate the same behaviour differently but share a biorthoClass. Use \`find_equivalent_articulations\` to enumerate them.
+
+- **articulation lattice Art(B)** — The poset \`(Inc(B), ≤_⊆, ∨_⊥⊥)\` of incarnations ordered by locus-set inclusion, with the partial join.
+
+- **LudicMove** — A move at a locus. Carries \`moveType\` ∈ {\`"positive"\`, \`"negative"\`, \`"daimon"\`} and a \`stratumLabel\` ∈ {\`"walked"\`, \`"witnessable"\`, \`"latent"\`}. \`daimon\` moves close a branch and require a \`schemeKey\` when witnessed.
+
+- **DialogueMove** — A canonical dialogue act in the deliberation graph (kind ∈ ASSERT|WHY|GROUNDS|RETRACT|…). Becomes the \`dialogueMoveId\` parameter when binding; \`@unique\` on WitnessRecord, so each dialogue act may witness at most one LudicMove.
+
+- **witness / WitnessRecord** — A binding of (LudicMove, DialogueMove, participantId, canonicalText). The iota seam: the ONLY way to instantiate a ludic move is through \`bind_participant_to_design\`. T4 invariant: \`participantId\` is stored but never returned in reads.
+
+- **canonicalText** — Must equal \`JSON.stringify({ text: <NFC-normalized, whitespace-collapsed string> })\` — the output of the canonicalization pipeline. Pass straight from \`list_bindable_moves[].candidateDialogueMoves[].canonicalText\`; do not hand-construct.
+
+- **delocation** — When a literal chronicle-set union would collide at a locus, one side must be relocated before the join can be taken. Surfaced as \`same-cone-delocation-required\` from \`compute_articulation_join\`.
+
+- **fossilization** — Soft retraction of a WitnessRecord. \`fossilizedAt\` non-null + \`retractLayer\` ∈ {\`argument_superseded\`, \`locus_deleted\`, \`design_excised\`, \`manual_retract\`}. Fossilized witnesses are excluded from active reads but preserved for audit (\`get_fossil_record\`).
 
 - **frontier** — Open dialectical edges: \`unansweredUndercuts\`, \`unansweredUndermines\`, \`unansweredCqs\`. Each carries a \`schemeTypical\` flag — true means the catalog expected this challenge and nobody raised it.
 
@@ -212,6 +279,30 @@ Use this whenever the user states a position, says "log this claim / save this a
 
 Sibling write tool — \`propose_warrant\` — attaches an inference-license warrant to an existing argument inside an ECC-typed deliberation. Use it when the user says "add a warrant" / "license this inference" against a specific argument id, not for freestanding claims.
 
+### Recipe F — Explore a deliberation's Ludics layer
+
+Use when the user mentions locus, design, behaviour, incarnation, cone, articulation lattice, or asks how a position is "structurally articulated".
+
+1. \`get_deliberation_schema(deliberationId)\` — confirms a Ludics layer exists and surfaces the design tree + witnessing coverage. If \`designCount === 0\` the deliberation has not been Ludics-lifted; stop and tell the user.
+2. Pick a behaviour from the schema's design tree (each Design carries a \`behaviourId\`). For a specific position the user named, use \`get_behaviour_at_locus(deliberationId, locus)\` instead to find the behaviour from the locus.
+3. \`get_articulation_lattice(behaviourId)\` — returns \`{ incarnations[], cones[], edges[] }\`. Each incarnation has a \`coneId\`; \`cones[]\` lists per-cone minima (\`bottomIncarnationDesignId\`). Inc(B) is an antichain, so "the minimum" is per-cone, never global — narrate accordingly.
+4. \`find_minimal_incarnations(behaviourId)\` if all the user wants is the antichain of bottoms (cheaper than the full lattice).
+5. For "what else articulates the same testing-behaviour as design D?" use \`find_equivalent_articulations(designId)\`. For "can the position survive without premise P?" use \`find_substitute_premises\`.
+6. Compose results by cone — never mix designs from different cones into a single "reduction" narrative. Cross-cone results from \`compress_articulation\` or \`compute_articulation_join\` are partial (\`cross-cone-rejected\` is a value, not an error); surface that explicitly to the user.
+
+### Recipe G — Bind a participant to a chosen incarnation
+
+Use when the user says "bind me to design X", "commit to the minimal incarnation", "witness the join", "record my position at locus Y". This is a WRITE workflow — it produces a WitnessRecord.
+
+1. **Pick the target design.** Either:
+   - \`find_minimal_incarnations(behaviourId)\` → pick the smallest / largest / user-chosen incarnation; OR
+   - \`get_articulation_lattice(behaviourId)\` → pick by coneId / inclusion structure.
+2. \`list_bindable_moves(deliberationId, { designId })\` → returns LudicMoves on that design with \`{ ludicMoveId, locus, moveType, witnessed, candidateDialogueMoves[] }\`. Each candidate carries a ready-to-submit \`{ dialogueMoveId, canonicalText, locusAlignedExactly }\` triple. Default scope excludes already-witnessed moves; pass \`includeWitnessed: true\` to inspect them.
+3. Choose a row where \`witnessed === false\` and at least one \`candidateDialogueMoves[i].locusAlignedExactly === true\`. If none exists, tell the user no aligned dialogue act is available and stop — do not invent one.
+4. \`bind_participant_to_design({ deliberationId, ludicMoveId, dialogueMoveId, canonicalText, participantId, schemeKey? })\` using the chosen triple. \`canonicalText\` MUST be the value from \`candidateDialogueMoves[i].canonicalText\` — do not re-canonicalize on the client. \`schemeKey\` is required when \`moveType === "daimon"\`; optional otherwise (use \`list_schemes\` if needed).
+5. On success, the result carries \`invariantChecks: { S1_existingLocus, S2_existingStructure, S3_canonPipelineGated, S4_schemeTyped }\` all true and a \`witnessId\`. Report the witnessId to the user; do NOT report \`participantId\` back (T4 non-attribution).
+6. (Optional) Verify with \`get_instantiation(deliberationId, dialogueMoveId)\` — should return \`instantiated: true\` with the LudicMove locus.
+
 ## Things to avoid
 
 - Synthesizing from raw \`search_arguments\` hits when \`get_synthetic_readout\` is available. The readout is the editorial primitive; search is for lookup.
@@ -220,6 +311,9 @@ Sibling write tool — \`propose_warrant\` — attaches an inference-license war
 - Asserting a claim listed in \`refusalSurface.cannotConcludeBecause\` (or equivalently, \`writingConstraints.mustNotAssert\`). Even with strong-looking supports, the unanswered attacks are dispositive.
 - Inventing argument or chain IDs. All references must come from tool output.
 - Calling \`get_argument\` for IDs already hydrated in \`topArguments\` / \`mostContested\` / chain nodes — those lists are pre-hydrated to save round-trips.
+- Conflating cones with the lattice as a whole. There is no global minimum of Inc(B) — "the minimum incarnation" is always cone-relative. Cross-cone joins / meets are undefined (returned as \`cross-cone-rejected\`, not an error).
+- Hand-constructing \`canonicalText\` for \`bind_participant_to_design\`. It must be the exact \`JSON.stringify({text:…})\` output of the canonicalization pipeline; copy the pre-computed value from \`list_bindable_moves[].candidateDialogueMoves[].canonicalText\` rather than building it yourself.
+- Reporting \`participantId\` in any read response. T4 non-attribution: it is stored but never surfaced; do not echo it back to the user even when you supplied it as an input.
 `;
 /**
  * Stable content hash for the orientation payload, derived from the

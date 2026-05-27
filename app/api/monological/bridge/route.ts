@@ -593,6 +593,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Perform idempotent upserts
+  // HARMONIZATION-FREEZE (H0): legacy direct DM creation (batched upsert); migrate to lib/ludics/createDialogueMove (H1).
   await prisma.$transaction(movesToUpsert.map(cfg => prisma.dialogueMove.upsert(cfg)));
 
   return NextResponse.json({ ok: true, mode, created: movesToUpsert.length });
