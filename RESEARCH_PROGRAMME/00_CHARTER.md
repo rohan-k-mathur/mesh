@@ -305,9 +305,7 @@ two methods compete.
 
 1. **Formal proof.** First-class. A claim that can be stated formally is
    stated formally, in [`02_THEOREMS_AND_PROOFS/`](02_THEOREMS_AND_PROOFS/) or
-   as a conjecture in [`03_CONJECTURES/`](03_CONJECTURES/). Proofs are
-   human-checked by default; we will not adopt a proof assistant until a
-   specific result warrants it.
+   as a conjecture in [`03_CONJECTURES/`](03_CONJECTURES/). 
    - *Refusal:* the programme will not accept "implementation-passes-tests"
      as a substitute for a proof. Tests are a falsification surface for
      conjectures, never a settlement.

@@ -112,7 +112,6 @@ type SchemeFormData = {
   // Phase 6D: Clustering fields
   parentSchemeId: string;
   clusterTag: string;
-  inheritCQs: boolean;
 };
 
 type SchemeCreatorProps = {
@@ -145,7 +144,6 @@ const INITIAL_FORM: SchemeFormData = {
   // Phase 6D: Clustering fields
   parentSchemeId: "",
   clusterTag: "",
-  inheritCQs: true,
 };
 
 export default function SchemeCreator({
@@ -742,22 +740,8 @@ export default function SchemeCreator({
               </div>
             </div>
 
-            <div className="flex items-start gap-2">
-              <Checkbox
-                id="inheritCQs"
-                className="flex items-center bg-white w-4 border-indigo-200 focus:ring-1 focus:ring-indigo-500 h-5 "
-                checked={formData.inheritCQs}
-                onCheckedChange={(checked) => 
-                  setFormData({ ...formData, inheritCQs: checked as boolean })
-                }
-              />
-              <Label 
-                htmlFor="inheritCQs" 
-                className="text-sm items-center font-medium tracking-wide cursor-pointer text-slate-700"
-              >
-                Inherit critical questions from parent scheme
-              </Label>
-            </div>
+            {/* Phase 3 step 13: inheritance is unconditional whenever a parent
+                edge exists; the per-row opt-out (`inheritCQs`) has been retired. */}
           </div>
 
           {/* Formal Structure (Walton-style Premises & Conclusion) */}

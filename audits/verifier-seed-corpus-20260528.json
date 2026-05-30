@@ -1,0 +1,79 @@
+{
+  "generatedAtIso": "2026-05-28T22:33:14.609Z",
+  "planStep": "Phase 2 step 8",
+  "sourceAudit": "audits/q018-ontoclean-20260528.md §3.1",
+  "pairs": [
+    {
+      "leftKey": "expert_opinion",
+      "rightKey": "expert-opinion",
+      "leftFound": true,
+      "rightFound": true,
+      "leftCqCount": 4,
+      "rightCqCount": 2,
+      "leftFingerprint": "612a8f02bea81aac9c3bece0f3f6a767bb050f2e77b08fc9f242a55cc0d22dd7",
+      "rightFingerprint": "69b3b2f3131a14a9cd318cec90cd08cba4af6a85ddc47c3aa3a35c7169f7be01",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "consensus",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "EO1",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "positive_consequences",
+      "rightKey": "good_consequences",
+      "leftFound": true,
+      "rightFound": true,
+      "leftCqCount": 5,
+      "rightCqCount": 3,
+      "leftFingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941",
+      "rightFingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "tradeoffs",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "causal",
+      "rightKey": "cause_to_effect",
+      "leftFound": true,
+      "rightFound": true,
+      "leftCqCount": 2,
+      "rightCqCount": 5,
+      "leftFingerprint": "73030208918e7c111a25631175fb87d7fe841bf17c5050a913b1a1eedf128c93",
+      "rightFingerprint": "168068b120139d61daddc55f0f6272b66812b497ee7e11ad1afec187aae1e6bb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "alt_causes",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "causal_strength",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    }
+  ]
+}

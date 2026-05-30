@@ -84,9 +84,10 @@ export class AIFGraphBuilder {
       if (schemeWithPhase6.clusterTag) {
         this.addTriple(schemeURI, CONST.MESH_CLUSTER_TAG, schemeWithPhase6.clusterTag, "literal", CONST.XSD_STRING);
       }
-      
-      this.addTriple(schemeURI, CONST.MESH_INHERIT_CQS, String(schemeWithPhase6.inheritCQs ?? true), "literal", CONST.XSD_BOOLEAN);
-      
+
+      // Phase 3 step 13 retired `inheritCQs` from the data model; inheritance
+      // is unconditional whenever `parentSchemeId` is set.
+
       if (schemeWithPhase6.createdAt) {
         this.addTriple(schemeURI, CONST.MESH_CREATED_AT, schemeWithPhase6.createdAt.toISOString(), "literal", CONST.XSD_DATETIME);
       }

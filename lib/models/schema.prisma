@@ -4102,7 +4102,11 @@ model ArgumentScheme {
   childSchemes   ArgumentScheme[] @relation("SchemeHierarchy")
 
   clusterTag String? // e.g., "practical_reasoning_family", "authority_family"
-  inheritCQs Boolean @default(true) // Whether to inherit parent scheme's CQs
+
+  // Phase 3 step 13 (FROM_FOLKSONOMY_TO_ONTOLOGY_SCHEMES.md): `inheritCQs`
+  // retired (Q-019 audit returned 0 false rows). Inheritance is unconditional
+  // whenever `parentSchemeId` is set; sibling-within-family semantics live in
+  // `clusterTag` instead.
 
   // NEW: Module 8 - ASPIC+ integration metadata
   // Maps this scheme to ASPIC+ constructs for formal argumentation semantics
@@ -4128,11 +4132,65 @@ model ArgumentScheme {
   // Organizes schemes by topic/domain for cluster browser navigation
   semanticCluster String? // "authority" | "causality" | "decision_making" | "analogy" | "classification" | "values" | "evidence" | "opposition"
 
+  // NEW: Q-018 Phase 0 - kind discriminator
+  // Distinguishes Walton-style argument-inference schemes from dialogue-protocol meta entries
+  // ("argument-scheme" | "dialogue-meta"). Dialogue-meta rows are mirrored in `DialogueMeta`;
+  // they remain here until consumers (SchemeInstance, etc.) are repointed in Phase 0.5.
+  kind String @default("argument-scheme")
+
+  // NEW: Q-022 Phase 1 - per-scheme provenance.
+  // `sourceCatalogue` is the upstream catalogue of record; CHECK constraint enforces the
+  // enum {AIF, AIFdb, Argdown, WRM-2008, admin-authored}. The remaining fields are
+  // optional and populated only when the row originates from an external catalogue.
+  sourceCatalogue String  @default("admin-authored")
+  sourceId        String?
+  sourceVersion   String?
+  importedAt      DateTime?
+  importerVersion String?
+
+  // NEW: Q-024 Phase 1 - chronological auditing.
+  // Pre-Q024 rows take the migration moment as `createdAt`; `createdBy` is NULL for them.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  createdBy String?
+
+  // NEW: Phase 2 step 9 - materialized behaviour fingerprint.
+  // sha256 over the canonical digest produced by `computeBehaviourFingerprint`
+  // (see lib/schemes/verifier/computeFingerprint.ts). Recomputed on every admin
+  // write. Duplicate-prevention is enforced by a Postgres PARTIAL unique index
+  // scoped to `kind='argument-scheme'` (created in migration script
+  // scripts/migrations/04-phase2-fingerprint-materialize.ts — partial indexes
+  // are not expressible in Prisma's schema DSL). Dialogue-meta rows have no
+  // CQs and trivially collide on the empty digest; they are excluded from the
+  // invariant and will be removed in Phase 0.5.
+  fingerprint String?
+
   @@index([parentSchemeId])
   @@index([clusterTag])
   @@index([epistemicMode])
   @@index([usageCount])
   @@index([semanticCluster])
+  @@index([kind])
+  @@index([sourceCatalogue])
+  @@index([createdAt])
+}
+
+/// Q-018 Phase 0 — dialogue-protocol meta entries (e.g. `bare_assertion`, `claim_truth`).
+/// These are NOT Walton-style argument-inference patterns; they were historically stored in
+/// `ArgumentScheme` and are migrated here for catalogue hygiene. Existing consumers
+/// (SchemeInstance, ArgumentSchemeInstance, etc.) continue to reference the corresponding
+/// `ArgumentScheme` rows (now flagged `kind = 'dialogue-meta'`) until Phase 0.5 repoints them.
+model DialogueMeta {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String?
+  description String?
+  summary     String?
+  cq          Json     @default("[]")
+  tags        String[] @default([])
+  examples    String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model CQStatus {
@@ -4345,10 +4403,59 @@ model SchemeInstance {
   createdById String
   createdAt   DateTime @default(now())
 
+  // Phase 4 / Spec 3 §3.4 — close-hook target
+  // 'open' (default) | 'closed' (soundness gate passed) | 'failed' (gate blocked)
+  status      String   @default("open")
+  closedAt    DateTime?
+  closedById  String?
+
   scheme           ArgumentScheme     @relation(fields: [schemeId], references: [id], onDelete: Cascade)
   CriticalQuestion CriticalQuestion[]
+  obligations      CqObligationRecord[]
+  soundnessWarnings SchemeInstanceSoundnessWarning[]
 
   @@index([targetType, targetId])
+  @@index([status])
+}
+
+// =====================
+// Phase 4 — Spec 3 protocol soundness (§3.2, §4.1)
+// Per-(instance, cqKey) record of CQ-locus obligation lifecycle.
+// =====================
+model CqObligationRecord {
+  id               String   @id @default(cuid())
+  instanceId       String
+  cqKey            String
+  // CqObligationStatus: 'not-offered'|'offered-open'|'offered-engaged'|'discharged'|'failed'|'waived'
+  status           String   @default("not-offered")
+  subLocusId       String?
+  closingMoveId    String?
+  burdenOfProof    BurdenOfProof @default(PROPONENT)
+  requiresEvidence Boolean       @default(false)
+  premiseType      PremiseType?
+  evidenceRefs     String[]      @default([])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  instance         SchemeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@unique([instanceId, cqKey])
+  @@index([instanceId])
+  @@index([status])
+}
+
+// Phase 4 / Spec 3 §4.2 — phase 3a soundness-violation log.
+// Read by the feature-flag gate when running in "warn" mode.
+model SchemeInstanceSoundnessWarning {
+  id          String   @id @default(cuid())
+  instanceId  String
+  reason      Json     // SoundnessFailure shape from lib/schemes/protocol/soundnessGate.ts
+  occurredAt  DateTime @default(now())
+
+  instance    SchemeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+  @@index([occurredAt])
 }
 
 model CriticalQuestion {

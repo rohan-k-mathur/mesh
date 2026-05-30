@@ -185,3 +185,53 @@ exercise the legacy pipeline by design.
 extracting the AIF-edge write path from
 `packages/ludics-engine/aif-sync.ts` (or equivalent) into a reusable
 function the seam will call.
+
+## H1 status (2026-05-29) — seam landed, call-site conversion pending
+
+**Done.**
+
+- `lib/ludics/createDialogueMove.ts` — the keystone seam. One
+  `prisma.$transaction` that writes (1) `DialogueMove` with P2002
+  dedup on `(deliberationId, signature)`, (2) AIF graph for
+  argument-targeted moves by delegating to the pre-existing
+  `services/aif/syncArgument.syncArgumentToAif` (no duplication), (3)
+  `Behaviour` upsert on `(deliberationId, "⊢A.0")`, (4) `LudicMove`
+  upsert on `(deliberationId, locus)`, (5) `WitnessRecord` create
+  idempotent on `dialogueMoveId`. Returns
+  `{ move, deduplicated, aif, ludicMoveId, witnessRecordId, unbridgeable }`.
+- `__tests__/invariants/h1-creation-seam.test.ts` — 10 invariants
+  covering I-Seam, I-AIF-min, the dedup path, the auto-`unbridgeable`
+  path, caller-supplied `unbridgeable`, idempotent re-runs, non-argument
+  targets, `syncAif: false`, AIF helper failure isolation, and
+  `LudicMove.moveType` selection across `WHY`/`ATTACK`/`ASSERT`/`GROUNDS`/
+  `DAIMON`/`CLOSE`/polarity overrides. All green.
+- `_snapshot.json` refreshed: **18 files, 282 cases** (+1 file, +10 cases).
+
+**Deliberate deferrals (documented in the seam's doc-comment).**
+
+- `Design` row materialisation stays in the bridge / compile path. The
+  spec's per-move Design write is conditional on "first realisation of a
+  chronicle-set not already in `Behaviour.designs`", which only becomes
+  knowable after `compileFromMoves` runs.
+- `LudicAct` / `LudicLocus` are still produced by
+  `packages/ludics-engine/compileFromMoves.ts` (delete-and-recreate); the
+  seam does not touch them.
+- The `services/aif/syncArgument.ts` helper already implements the AIF
+  contract the seam needs (premise/conclusion/asserts edges). No
+  extraction from `packages/ludics-engine/aif-sync.ts` was necessary;
+  `aif-sync.ts` (which itself creates DMs for CONCEDE/DAIMON sync) will
+  be folded into the seam during call-site conversion.
+
+**Not done (the bulk of H1's work).**
+
+- Convert the 20 `HARMONIZATION-FREEZE (H0)` sites listed above to call
+  `createDialogueMove(...)` and delete the freeze marker on each.
+  Acceptance is `rg "prisma.dialogueMove.create\("` returning *only*
+  `lib/ludics/createDialogueMove.ts`.
+
+**Next action.** Decide call-site conversion strategy: pilot one route
+end-to-end (recommendation: `app/api/dialogue/move/route.ts`, the
+busiest and most representative) to validate the seam shape against
+production traffic, then mass-convert the remaining 19 sites; or batch
+the lot. Either way each converted file removes its `HARMONIZATION-FREEZE`
+marker so the H1 acceptance test reduces to a single grep.

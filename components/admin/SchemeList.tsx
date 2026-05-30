@@ -29,7 +29,6 @@ type ArgumentScheme = {
   ruleForm?: string;
   conclusionType?: string;
   clusterTag?: string;
-  inheritCQs?: boolean;
   parentSchemeId?: string;
   premises?: any;
   conclusion?: any;
@@ -378,10 +377,6 @@ export default function SchemeList() {
                           <span className="font-medium text-slate-600">Cluster Tag:</span>{" "}
                           <span className="text-slate-800">{scheme.clusterTag || "none"}</span>
                         </div>
-                        <div>
-                          <span className="font-medium text-slate-600">Inherit CQs:</span>{" "}
-                          <span className="text-slate-800">{scheme.inheritCQs ? "Yes" : "No"}</span>
-                        </div>
                         {scheme.parentSchemeId && (
                           <div className="col-span-2">
                             <span className="font-medium text-slate-600">Parent Scheme ID:</span>{" "}
@@ -518,7 +513,6 @@ export default function SchemeList() {
                 // Phase 6D clustering fields
                 parentSchemeId: (editingScheme as any).parentSchemeId || "",
                 clusterTag: (editingScheme as any).clusterTag || "",
-                inheritCQs: (editingScheme as any).inheritCQs ?? true,
               }
             : undefined
         }

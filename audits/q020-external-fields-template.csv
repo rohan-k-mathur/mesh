@@ -1,0 +1,42 @@
+external_field_name,external_source,semantic_description,substrate_mapping,classification,rationale,follow_on_q
+# Q-020 — External-catalogue field comparison template.
+# Spec: ../Development and Ideation Documents/ARCHITECTURE/SCHEMES_IMPL_AUDIT_PROTOCOLS.md §3 (Q-020).
+#
+# external_source ∈ {AIF, AIFdb, Argdown, ASPIC+, DefLog, WRM-2008, Wagemans-PTA}
+# classification ∈ {
+#   exposed,                                         # present in substrate (substrate_mapping required)
+#   intentional-exclusion,                           # absent for principled reason (rationale required)
+#   accidental-omission,                             # absent; should be added (follow_on_q likely)
+#   representable-but-absent,                        # re-derivable from existing fields (substrate_mapping = derivation recipe)
+#   externally-load-bearing-internally-irrelevant    # not needed under substrate ontology (rationale required)
+# }
+#
+# Save as q020-external-fields-<YYYYMMDD>.csv when complete. Per-class summary lives in the sibling .md.
+#
+# --- AIF (Chesñevar et al. 2006) ---
+RA-Scheme-Type,AIF,Type of rule of inference for the rule-application node,ArgumentScheme.key,exposed,Direct mapping,
+CA-Scheme-Type,AIF,Type of conflict for the conflict-application node,ArgumentScheme.aspicMapping.ruleType,representable-but-absent,Derivable from aspicMapping when ruleType=strict→rebuts and CQ targetScope,
+PA-Scheme-Type,AIF,Type of preference for preference-application node,,intentional-exclusion,Preferences are first-class in the substrate via Preference table not on schemes,
+descriptor,AIF,Free-text descriptor of the scheme,ArgumentScheme.description,exposed,,
+formaldescription,AIF,Logical-form description,ArgumentScheme.aspicMapping,representable-but-absent,Derivable from aspicMapping + premises/conclusion templates,
+hassource,AIF,Citation/provenance of the scheme,,accidental-omission,Substrate has no per-scheme provenance field; should be added for catalogue-import audit trail,Q-022 (to be filed if surfaced)
+# --- WRM 2008 (Walton Reed Macagno) ---
+name,WRM-2008,Scheme name,ArgumentScheme.name,exposed,,
+premises,WRM-2008,Named premise templates,ArgumentScheme.premises,exposed,,
+conclusion,WRM-2008,Conclusion template,ArgumentScheme.conclusion,exposed,,
+critical-questions,WRM-2008,Named CQ list with attack semantics,CriticalQuestion[],exposed,,
+# --- ASPIC+ (Modgil & Prakken 2014) ---
+rule-id,ASPIC+,Identifier for the defeasible/strict rule,ArgumentScheme.aspicMapping.ruleId,exposed,,
+rule-type,ASPIC+,strict|defeasible,ArgumentScheme.aspicMapping.ruleType,exposed,,
+preference-level,ASPIC+,Numeric preference among rules,ArgumentScheme.aspicMapping.preferenceLevel,exposed,,
+# --- Argdown ---
+slug,Argdown,Stable identifier for the scheme,ArgumentScheme.key,exposed,,
+tags,Argdown,Free-form tag list,ArgumentScheme.tags,exposed,,
+# --- Wagemans PTA ---
+predicate-type,Wagemans-PTA,Predicate type of the conclusion (proposition typology),ArgumentScheme.conclusionType,exposed,,
+subject-type,Wagemans-PTA,Subject type of the conclusion,,accidental-omission,Substrate has no per-scheme subject typology field,
+relation,Wagemans-PTA,Type of relation between premise and conclusion,ArgumentScheme.materialRelation,exposed,,
+# --- AIFdb ---
+url,AIFdb,Canonical URL for the scheme record,,intentional-exclusion,Substrate is the canonical source; external URLs live on import provenance not on schemes,
+# --- DefLog ---
+defeater-pattern,DefLog,Pattern for when this rule is defeated,CriticalQuestion[],representable-but-absent,Substrate models defeaters as CQs with attackKind; round-trip serialiser builds the pattern,

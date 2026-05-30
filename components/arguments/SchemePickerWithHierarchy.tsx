@@ -18,7 +18,6 @@ type Scheme = {
   summary?: string;
   parentSchemeId?: string | null;
   clusterTag?: string | null;
-  inheritCQs?: boolean;
   cqs?: any[];
   // Enhanced fields for hierarchy
   ownCQCount?: number;
@@ -132,8 +131,9 @@ export function SchemePickerWithHierarchy({
             </div>
           )}
 
-          {/* Inherit indicator for child schemes */}
-          {scheme.parentSchemeId && scheme.inheritCQs && (
+          {/* Inherit indicator for child schemes (Phase 3 step 13: inheritance
+              is now unconditional when a parent edge exists) */}
+          {scheme.parentSchemeId && (
             <span className="text-xs text-slate-500" title="Inherits parent CQs">
               ⬆️
             </span>

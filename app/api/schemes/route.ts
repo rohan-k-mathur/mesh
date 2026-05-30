@@ -1,10 +1,19 @@
 // app/api/schemes/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { recomputeSchemeFingerprint } from "@/lib/schemes/persistence/recomputeSchemeFingerprint";
+import {
+  validateSchemePresentation,
+  type DraftCq,
+  type ParentSchemeShape,
+} from "@/lib/schemes/validation/validatePresentation";
 
 export async function GET(_: NextRequest) {
   try {
     const schemes = await prisma.argumentScheme.findMany({
+      // Q-018 Phase 0: exclude dialogue-meta entries from the default scheme picker.
+      // They live in `DialogueMeta` and are surfaced via separate UI affordances.
+      where: { kind: "argument-scheme" } as any,
       orderBy: { key: "asc" },
       select: {
         id: true,
@@ -42,7 +51,6 @@ export async function GET(_: NextRequest) {
         // Phase 6D: Clustering fields
         parentSchemeId: true,
         clusterTag: true,
-        inheritCQs: true,
       },
     });
 
@@ -55,10 +63,11 @@ export async function GET(_: NextRequest) {
       if (!scheme) return 0;
 
       const ownCQs = Array.isArray(scheme.cq) ? scheme.cq.length : 0;
-      
-      // If scheme inherits CQs and has a parent, add parent's total CQs
+
+      // Phase 3 step 13: inheritance is unconditional whenever a parent edge
+      // exists; the `inheritCQs` opt-out has been retired.
       const schemeAny = scheme as any;
-      if (schemeAny.inheritCQs && schemeAny.parentSchemeId) {
+      if (schemeAny.parentSchemeId) {
         return ownCQs + calculateTotalCQs(schemeAny.parentSchemeId, visited);
       }
 
@@ -142,6 +151,56 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Phase 3 step 11/12: Spec 2 WF1/WF2/WF3 well-formedness validator.
+    // See lib/schemes/validation/validatePresentation.ts and
+    // Development and Ideation Documents/ARCHITECTURE/SCHEMES_IMPL_ADMIN_TIGHTENING.md §3.1.
+    let parentShape: ParentSchemeShape | null = null;
+    if (body.parentSchemeId) {
+      const parentRow = await prisma.argumentScheme.findUnique({
+        where: { id: body.parentSchemeId },
+        include: { cqs: true },
+      });
+      if (!parentRow) {
+        return NextResponse.json(
+          { error: `parentSchemeId "${body.parentSchemeId}" does not exist` },
+          { status: 400 },
+        );
+      }
+      parentShape = {
+        id: parentRow.id,
+        key: parentRow.key,
+        cqs: (parentRow as any).cqs.map((c: any) => ({
+          cqKey: c.cqKey,
+          text: c.text,
+          attackType: c.attackType,
+          targetScope: c.targetScope,
+        })) as DraftCq[],
+      };
+    }
+    const wfResult = validateSchemePresentation(
+      {
+        key: body.key,
+        parentSchemeId: body.parentSchemeId ?? null,
+        cqs: (body.cqs as any[]).map((c) => ({
+          cqKey: c.cqKey ?? null,
+          text: c.text ?? null,
+          attackType: c.attackType ?? null,
+          targetScope: c.targetScope ?? null,
+        })),
+      },
+      { parentScheme: parentShape },
+    );
+    if (!wfResult.ok) {
+      return NextResponse.json(
+        {
+          error: "Scheme fails well-formedness checks (WF1/WF2/WF3).",
+          violations: wfResult.errors,
+          warnings: wfResult.warnings,
+        },
+        { status: 400 },
+      );
+    }
+
     // Create scheme
     const scheme = await prisma.argumentScheme.create({
       data: {
@@ -170,7 +229,6 @@ export async function POST(req: NextRequest) {
         // Phase 6D: Clustering fields
         parentSchemeId: body.parentSchemeId || null,
         clusterTag: body.clusterTag || null,
-        inheritCQs: body.inheritCQs ?? true, // Default true
       } as any,
     });
 
@@ -185,13 +243,40 @@ export async function POST(req: NextRequest) {
           status: "open",
           attackType: cq.attackType || "UNDERCUTS",
           targetScope: cq.targetScope || "inference",
+          // Phase 4 step 15 — Carneades default (Walton 2008 §11.1).
+          // Admin may override via the dedicated form field; null is no longer accepted.
+          premiseType: cq.premiseType || "ORDINARY",
         })) as any,
         skipDuplicates: true,
       });
     }
 
+    // Phase 2 step 9: materialize behaviour fingerprint after CQs are written.
+    // The partial unique index ArgumentScheme_argument_scheme_fingerprint_unique
+    // will throw P2002 here if this scheme is behaviourally identical to an
+    // existing one (returned to the caller as a 409 below).
+    try {
+      await recomputeSchemeFingerprint(scheme.id);
+    } catch (e: any) {
+      if (e?.code === "P2002") {
+        await prisma.argumentScheme.delete({ where: { id: scheme.id } });
+        return NextResponse.json(
+          {
+            error: `Scheme is behaviourally identical to an existing argument scheme (fingerprint collision).`,
+          },
+          { status: 409 },
+        );
+      }
+      throw e;
+    }
+
     return NextResponse.json(
-      { success: true, schemeId: scheme.id, scheme },
+      {
+        success: true,
+        schemeId: scheme.id,
+        scheme,
+        warnings: wfResult.warnings,
+      },
       { status: 201 }
     );
   } catch (error) {

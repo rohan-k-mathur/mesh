@@ -1,10 +1,11 @@
 # C006 — A scheme is a behaviour: `⟦S⟧ ⊆ Designs` is the ⊥⊥-closed set of proponent designs that survive every CQ in S's CQ-bundle played as opponent
 
-- **status:** open
+- **status:** confirmed (layered — base layer)
 - **ring:** core
 - **depends-on:** T001 (per-cone JSL), T002 (Inc antichain)
-- **linked-open-questions:** Q-011, Q-012, Q-015
-- **mutually-exclusive-with:** C007, C008 (the three competing scheme-ontology readings)
+- **linked-open-questions:** Q-011, Q-015 (Q-012 closed)
+- **layered-complement-of:** C007 (structural layer), C008 (procedural layer)
+- **verdict:** Confirmed as the semantic ground truth layer of the layered scheme ontology. Scheme identity is behaviour-extensional; the ⊥⊥-closure of the CQ-orthogonal set is the semantic content; the structural (C007) and procedural (C008) layers are complementary, not rival. See [`../../Development and Ideation Documents/ARCHITECTURE/SCHEMES_ONTOLOGY_DECISION.md`](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/SCHEMES_ONTOLOGY_DECISION.md) §5 and [T003 — Schemes Layered Coherence](../02_THEOREMS_AND_PROOFS/T003-schemes-layered-coherence.md).
 - **last-reviewed:** 2026-05-27
 
 ## Statement

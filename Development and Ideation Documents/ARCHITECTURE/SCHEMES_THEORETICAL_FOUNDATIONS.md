@@ -132,34 +132,101 @@ re-grounding work.
 
 ### Cluster A — Ontology: what *is* a scheme in the interaction-first substrate?
 
-The Walton tradition treats a scheme as a defeasible inference template;
-AIF as a graph node type (RA); ASPIC+ as a defeasible rule with typed
-premises. None of these survives intact under the substrate's commitment
-to interaction-first semantics. Three candidate replacements, each with
-different downstream consequences:
+**Status: resolved (Outcome A — LAYERED).** The argument that forces the
+resolution is structural, not merely consistency-based. It runs in three
+steps; the conclusion is that the layered reading is the *uniquely*
+consistent one given prior substrate commitments.
 
-- **Scheme-as-behaviour** ([C006](../../RESEARCH_PROGRAMME/03_CONJECTURES/C006-scheme-as-behaviour.md)).
-  `⟦S⟧ ⊆ Designs` is the ⊥⊥-closed set of proponent designs that survive
-  every CQ played as opponent. *Consequence:* scheme identity is
-  extensional; two schemes with the same CQ-orthogonal set are the same
-  scheme regardless of taxonomy.
-- **Scheme-as-design-schema** ([C007](../../RESEARCH_PROGRAMME/03_CONJECTURES/C007-scheme-as-design-schema.md)).
-  A locus tree with typed holes for premise variables plus a CQ-bundle.
-  *Consequence:* scheme identity is intensional and structural; membership
-  is decidable by unification; the admin's `variables: string[]` field on
-  each premise becomes load-bearing.
-- **Scheme-as-protocol-constraint** ([C008](../../RESEARCH_PROGRAMME/03_CONJECTURES/C008-scheme-as-protocol-constraint.md)).
-  A fragment of the room's dialogue protocol that, once a proponent
-  declares scheme application, extends the protocol with locus
-  obligations and opponent rights. *Consequence:* schemes live in the
-  room's protocol layer, not in any single argument; identification
-  patterns become protocol triggers; the admin's `burdenOfProof` /
-  `requiresEvidence` / `premiseType` fields become protocol clauses, not
-  metadata.
+**Step 1 — the substrate has already paid for one instance of the
+layered architecture.** The Ludics generative substrate commits to
+[Reading C](Ludics%20Generative%20Substrate%20Documents/LUDICS_DIALECTICAL_WITNESSING_INTERFACE.md)
+(behaviours as the primary semantic object), and the T4 dialectical /
+witnessing layer-separation theorem in the same document forces a
+three-layer treatment of deliberation: a dialectical layer (anonymous,
+pre-existing, Ludics-native), a witnessing layer (attributed,
+constructed by participation), and a structural description (locus tree,
+designs, exposure map) connected by the ι discipline whose I1 invariant
+is *records-only on the dialectical side*. This architecture is not
+negotiable for the substrate; it is what Reading C plus T4 already cost
+to adopt.
 
-C006/C007/C008 are mutually exclusive. The admin currently behaves *as
-if all three are simultaneously true*, which is incoherent if pressed.
-The programme owes a decision.
+**Step 2 — scheme ontology is the same architecture applied to scheme
+identity rather than to deliberation structure.** The C006/C007/C008
+three-way slice maps cleanly onto the ι three-way slice:
+
+| `ι` deliberation layer separation | Layered scheme ontology |
+|---|---|
+| Dialectical layer (anonymous, pre-existing, Ludics-native) | C006 behaviour (extensional, pre-existing as semantic object) |
+| Witnessing layer (attributed, constructed by participation) | C008 protocol surface (procedural, constructed by scheme declaration in a room) |
+| Structural description (locus tree, designs, exposure map) | C007 presentation (locus tree, variables, CQ-bundle) |
+| I1: records-only on the dialectical side | Soundness $\mathcal{P}(\pi_S) \subseteq \llbracket S \rrbracket$ |
+| I3: multiple witnesses per move | $\mathcal{B}$ not injective (multiple presentations per behaviour) |
+
+The vertical alignment is exact, point-for-point, including the
+invariants.
+
+**Step 3 — any other resolution of the trilemma would treat scheme
+ontology under a discipline incompatible with how the substrate already
+treats deliberation ontology.** A C006-winning resolution that erased
+C007 and C008 would require the substrate to deny the witnessing /
+structural distinction it has already affirmed at the deliberation
+layer. A C007-winning resolution would invert Reading C (presentation
+becomes the primary semantic object). A C008-winning resolution would
+collapse the dialectical / witnessing distinction (everything becomes a
+protocol act, eliminating the anonymous Ludics-native stratum). The
+layered reading is therefore **forced**, not chosen.
+
+**The three conjectures, restated under the verdict.** C006, C007, C008
+form a **product structure** with C006 as base and C007, C008 as fibres
+over the shared CQ-bundle. They are not mutually exclusive; they are
+layered complements (see
+[C006](../../RESEARCH_PROGRAMME/03_CONJECTURES/C006-scheme-as-behaviour.md),
+[C007](../../RESEARCH_PROGRAMME/03_CONJECTURES/C007-scheme-as-design-schema.md),
+[C008](../../RESEARCH_PROGRAMME/03_CONJECTURES/C008-scheme-as-protocol-constraint.md),
+all now `confirmed (layered — <layer>)`):
+
+- **C006 (base, semantic ground truth).** $\llbracket S \rrbracket \subseteq \mathrm{Designs}$
+  is the $\perp\!\perp$-closed set of proponent designs that survive
+  every CQ played as opponent. Scheme identity is behaviour-extensional
+  *at this layer*; two schemes with the same CQ-orthogonal set denote
+  the same behaviour regardless of how they are presented.
+- **C007 (structural, presentation).** $\mathcal{S}_S$ is a locus tree
+  with typed holes for premise variables plus a CQ-bundle. The
+  presentation→behaviour map $\mathcal{B}$ is well-defined and
+  **many-to-one** (the same behaviour admits multiple presentations
+  differing in locus-tree shape, variable renaming, hole-map
+  permutation, CQ-bundle order). C007 is not a rival ontology; it is
+  the syntactic layer the admin needs to communicate, store, and match
+  schemes.
+- **C008 (procedural, protocol).** $\pi_S$ is a protocol fragment that,
+  once a proponent declares scheme application, extends the room's
+  protocol with locus obligations and opponent rights. The
+  protocol→behaviour map $\mathcal{P}$ is **sound but not surjective**:
+  $\mathcal{P}(\pi_S) \subseteq \llbracket S \rrbracket$ with the
+  inclusion proper in general; the gap is exactly the exposure map's
+  latent stratum $E_\ell$ applied to the scheme's behaviour. The
+  admin's `burdenOfProof` / `requiresEvidence` / `premiseType` fields
+  are protocol clauses at this layer, not metadata.
+
+The coherence theorem governing the three layers is
+[T003 — Schemes Layered Coherence](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T003-schemes-layered-coherence.md);
+the full proof and the dispatched epistemicMode counterexample are in
+[`SCHEMES_ONTOLOGY_DECISION.md`](SCHEMES_ONTOLOGY_DECISION.md) §3–§4.
+The admin's apparent incoherence ("behaves as if all three are
+simultaneously true") was a *correct intuition* about the product
+structure, not a confusion — the three layers really are simultaneously
+in play. What the admin lacked was the soundness discipline
+($\mathcal{P}(\pi_S) \subseteq \llbracket S \rrbracket$) and the
+many-to-one nature of $\mathcal{B}$, both of which now have engineering
+consequences (the non-redundancy decidability problem in
+[Q-021](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md)).
+
+What remains open under the verdict: the soundness-of-concatenation
+conjecture for composed schemes (Q-015), the behaviour-equality
+decidability problem ([Q-021](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md)),
+the CQ-of-CQ termination question (Q-017), and the OntoClean catalogue
+audit (Q-018) — see
+[`SCHEMES_ONTOLOGY_DECISION.md`](SCHEMES_ONTOLOGY_DECISION.md) §8.
 
 ### Cluster B — CQs as opponent loci: what is a critical question, formally?
 
@@ -341,21 +408,34 @@ theoretical choice is this field forcing?":
 
 ## §4 What the programme does *not* commit to yet
 
-The programme is not yet committed to:
+**Resolved as of 2026-05-27.** The programme **now commits to** the
+layered scheme ontology: C006 as base / semantic ground truth, C007 as
+structural presentation layer, C008 as procedural protocol layer, with
+the soundness condition $\mathcal{P}(\pi_S) \subseteq \llbracket S \rrbracket$
+and the many-to-one presentation→behaviour map $\mathcal{B}$. Inheritance
+(Q-012) is layered refinement, decided by the same verdict. See
+[`SCHEMES_ONTOLOGY_DECISION.md`](SCHEMES_ONTOLOGY_DECISION.md) and
+[T003 — Schemes Layered Coherence](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T003-schemes-layered-coherence.md).
 
-- A choice among C006 / C007 / C008. The substrate-original framing
-  (Reading C, anonymous polarity, behaviours as the primary semantic
-  object) **leans** toward C006, but C007 has the cleanest story for
-  scheme composition (Q-015) and C008 has the cleanest story for
-  burden-of-proof / premise-type fields. The right answer may be a
-  *layered* position (C006 as semantic ground truth, C007 as
-  presentation, C008 as protocol surface), but that layered position has
-  not yet been worked out.
+**Still not committed to:**
+
 - A position on Cluster D before [S004](../../RESEARCH_PROGRAMME/04_EMPIRICAL_STUDIES/S004-scheme-assignment-agreement.md)
   runs. The pattern-matching commitment is provisional.
-- A position on Cluster E before Q-014 is articulated.
+- A position on Cluster E before Q-014 is fully articulated (Q-018's
+  OntoClean audit is the empirical input that breaks the Q-014 tie).
+- A position on the soundness-of-concatenation conjecture for composed
+  schemes (Q-015 under the layered reading) before the cut-composition
+  machinery is engaged.
+- A decision on the behaviour-equality decidability problem
+  ([Q-021](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md))
+  surfaced by the verdict's non-injectivity result; a verifier is
+  needed.
 - Any retraction of admin behaviour. The admin is what it is; this
-  document records what it *implies*, not what it should be changed to.
+  document records what it *implies* (now: under the layered ontology),
+  not what it should be changed to. Admin tightening (the `inheritCQs`
+  flag, non-redundancy checks, scheme-version tables) is downstream of
+  this decision and is filed in the relevant follow-on Q-NNN items, not
+  enacted here.
 
 ---
 

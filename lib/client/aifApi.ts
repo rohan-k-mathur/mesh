@@ -79,7 +79,6 @@ export async function listSchemes() {
     // Phase 6D: Hierarchy fields
     parentSchemeId: s.parentSchemeId ?? null,
     clusterTag: s.clusterTag ?? null,
-    inheritCQs: s.inheritCQs ?? true,
     ownCQCount: s.ownCQCount ?? (Array.isArray(s.cqs) ? s.cqs.length : 0),
     totalCQCount: s.totalCQCount ?? (Array.isArray(s.cqs) ? s.cqs.length : 0),
     // Phase 6E: Formal structure

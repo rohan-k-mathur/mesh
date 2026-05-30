@@ -10,6 +10,8 @@ import { prisma } from "@/lib/prismaclient";
 export async function GET(_: NextRequest) {
   try {
     const schemes = await prisma.argumentScheme.findMany({
+      // Q-018 Phase 0: exclude dialogue-meta entries from the catalogue listing.
+      where: { kind: "argument-scheme" } as any,
       orderBy: { name: "asc" },
     });
 

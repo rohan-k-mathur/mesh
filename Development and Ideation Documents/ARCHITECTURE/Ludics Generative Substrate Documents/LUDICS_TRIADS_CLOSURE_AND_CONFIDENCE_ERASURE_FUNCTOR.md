@@ -357,6 +357,41 @@ The adjunction $F \dashv U$ has unit and counit:
 
 ### II.4 What the counit says about C3
 
+> **2026-05-29 — redirect note.** The per-cone framing of this section
+> ("$\varepsilon$ at $(A, B)$ acts per-cone $C_i$, with target
+> $\mathcal{C}_\mathrm{semi}(A, B_i)$") was tested by the
+> [Q-027 thin-cones diagnostic](../../../RESEARCH_PROGRAMME/audits/q027-thin-cones-2026-05-29.md)
+> on Ambler 1996 Example 1 (aspirin, Q3) and was found to be **the wrong
+> bridge target level.** Cones under Reading A are too sparse to admit a
+> surjective $\varepsilon$ onto the Ambler hom-semilattice; the missing
+> Ambler element is exactly the cross-cone join that Phase 2e's
+> Cross-Cone Incompatibility theorem forbids at the design level.
+>
+> The natural bridge target is one level up: $\mathcal{P}_\mathrm{fin}(\mathsf{Inc}(B))$ — the free JSL on incarnations — at which
+> $\varepsilon$ is iso for trivial reasons (free extension of a
+> generator-level bijection $\mathsf{Inc}(B) \leftrightarrow \mathcal{C}_\mathrm{base}(A, B^\sharp)$). This respects Phase 2e Cross-Cone
+> Incompatibility because set-union now operates on sets of designs, not
+> designs.
+>
+> The three-case taxonomy below (iso / surjective-not-injective /
+> non-surjective) is still applicable, but to the **power-set-target**
+> $\varepsilon$ rather than the per-cone $\varepsilon$. The substantive
+> open content has migrated to
+> [Q-028](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028)
+> (canonicality of the generator-level bijection) and
+> [C001b′](../../../RESEARCH_PROGRAMME/03_CONJECTURES/C001b-prime-ambler-remainder.md).
+> The original
+> [C001b](../../../RESEARCH_PROGRAMME/03_CONJECTURES/C001b-ambler-remainder.md)
+> is preserved as superseded for lineage.
+>
+> What remains intact in this section: (i) the $F \dashv U$ framing
+> itself; (ii) the counit-as-comparison-map perspective; (iii) the
+> three-case taxonomy of how a counit can fail. What was wrong: the
+> implicit assumption that the per-cone JSL `(C_i, \subseteq, \cup, D_i)`
+> from T001 is the right *target* for the bridge. T001 remains true as a
+> fact about the structure of $B$, but the bridge target lives one level
+> up.
+
 The counit $\varepsilon$ at $(A, B)$ is the comparison map:
 
 $$

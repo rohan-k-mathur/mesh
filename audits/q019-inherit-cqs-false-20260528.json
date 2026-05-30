@@ -1,0 +1,13 @@
+{
+  "generatedAtIso": "2026-05-28T05:07:51.534Z",
+  "totalCount": 0,
+  "totalCatalogueSize": 31,
+  "fraction": 0,
+  "rows": [],
+  "byIntent": {
+    "sibling-misuse": 0,
+    "workaround": 0,
+    "genuine-child-different-cqs": 0,
+    "unknown": 0
+  }
+}

@@ -1,15 +1,22 @@
 {
-  "generatedAt": "2026-05-27T10:33:45.573Z",
+  "generatedAt": "2026-05-29T20:50:48.871Z",
   "programme": "ludics-harmonization",
   "sprint": "H0",
-  "totalFiles": 17,
-  "totalCases": 272,
+  "totalFiles": 18,
+  "totalCases": 282,
   "files": [
     {
       "file": "__tests__/invariants/aif-from-arguments.test.ts",
       "caseCount": 4,
       "describes": [
         "aif-from-arguments invariants"
+      ]
+    },
+    {
+      "file": "__tests__/invariants/h1-creation-seam.test.ts",
+      "caseCount": 10,
+      "describes": [
+        "H1 — createDialogueMove seam (I-Seam, I-AIF-min, idempotency)"
       ]
     },
     {

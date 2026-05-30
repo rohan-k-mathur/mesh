@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import crypto from "crypto";
-import { Prisma } from '@prisma/client';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { computeLegalMoves } from '@/lib/dialogue/legalMovesServer';
 import { TargetType } from '@prisma/client';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { syncLudicsToAif } from '@/lib/ludics/syncToAif';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { invalidateInsightsCache } from '@/lib/ludics/insightsCache';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
@@ -19,6 +19,7 @@ import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
 import { invalidateCommitmentStoresCache, getCommitmentStores } from '@/lib/aif/graph-builder';
 import { checkNewCommitmentContradictions, type Contradiction } from '@/lib/aif/dialogue-contradictions';
 import { recordAiDraftEngagement } from '@/lib/argument/aiAuthoring';
+import { onDialogueMoveForObligations } from '@/lib/schemes/protocol/dialogueHooks';
 
 function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
 const WHY_TTL_HOURS = 24;
@@ -380,35 +381,28 @@ try {
       ? payload.createdArgumentId 
       : undefined;
 
-  // write (with P2002 de-dup)
-  let move: any, dedup = false;
-  try {
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    move = await prisma.dialogueMove.create({
-      data: { 
-        deliberationId, 
-        targetType: actualTargetType, 
-        targetId: actualTargetId, 
-        kind, 
-        illocution,
-        payload, 
-        actorId, 
-        signature, 
-        replyToMoveId, 
-        replyTarget,
-        argumentId: argumentIdForGrounds, // 👈 Populate argumentId for GROUNDS moves
-      },
-    });
-  } catch (e: any) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      move = await prisma.dialogueMove.findUnique({
-        where: { dm_unique_signature: { deliberationId, signature } },
-      });
-      dedup = true;
-    } else {
-      throw e;
-    }
-  }
+  // H1 seam: writes DialogueMove + AIF graph (for argument targets) +
+  // substrate LudicMove + WitnessRecord in a single transaction, with
+  // P2002 dedup on (deliberationId, signature). See
+  // lib/ludics/createDialogueMove.ts.
+  const seamResult = await createDialogueMove({
+    deliberationId,
+    targetType: actualTargetType,
+    targetId: actualTargetId,
+    kind,
+    illocution,
+    payload,
+    actorId,
+    signature,
+    replyToMoveId,
+    replyTarget,
+    argumentId: argumentIdForGrounds,
+    locusPath: typeof (payload as any)?.locusPath === 'string'
+      ? (payload as any).locusPath
+      : null,
+  });
+  const move: any = seamResult.move;
+  const dedup = seamResult.deduplicated;
 
   // AI-EPI Pt. 4 §8 — record human engagement against AI-authored arguments.
   // Fire-and-forget; helper short-circuits on human targets and self-engagement.
@@ -632,6 +626,17 @@ if (prop) {
     await onDialogueMove({ deliberationId, targetType, targetId, kind, payload });
     emitBus('issues:changed', { deliberationId });
   } catch {}
+
+  // Phase 4 / Spec 3 §3.4 — record CQ-obligation transition for the move.
+  // Non-fatal: hook swallows its own errors.
+  if (move?.id && !dedup) {
+    void onDialogueMoveForObligations({
+      kind,
+      payload: payload as any,
+      moveId: move.id,
+    });
+  }
+
   return NextResponse.json({ 
     ok: true, 
     move, 
