@@ -3,6 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { normalizeNL } from "@/lib/nl";
+import { InlineEvidencePicker } from "@/components/dialogue/InlineEvidencePicker";
 
 export function NLCommitPopover({
   open,
@@ -16,6 +17,8 @@ export function NLCommitPopover({
   defaultText = "",
   cqKey = "default",
   onDone,
+  requiresEvidence = false,
+  burdenHint = null,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -28,10 +31,15 @@ export function NLCommitPopover({
   defaultText?: string;
   cqKey?: string;
   onDone?: () => void;
+  /** Phase 3d: when true, mount InlineEvidencePicker and gate submit. */
+  requiresEvidence?: boolean;
+  /** Phase 3d: optional burden-of-proof hint shown above the picker. */
+  burdenHint?: string | null;
 }) {
   const [text, setText] = React.useState(defaultText);
   const [owner, setOwner] = React.useState<"Proponent" | "Opponent">(defaultOwner);
   const [polarity, setPolarity] = React.useState<"pos" | "neg">(defaultPolarity);
+  const [evidenceRefs, setEvidenceRefs] = React.useState<string[]>([]);
   const [busy, setBusy] = React.useState(false);
   const [preview, setPreview] = React.useState<{
     kind: "fact" | "rule";
@@ -46,6 +54,7 @@ export function NLCommitPopover({
       setText(defaultText);
       setError(null);
       setPreview(null);
+      setEvidenceRefs([]);
     } else {
       // Ensure focus when opened, with a small delay to let the portal render
       setTimeout(() => {
@@ -99,6 +108,11 @@ export function NLCommitPopover({
       return;
     }
 
+    if (requiresEvidence && evidenceRefs.length === 0) {
+      setError("This critical question requires at least one evidence reference (URL or DOI).");
+      return;
+    }
+
     setBusy(true);
     setError(null);
 
@@ -116,6 +130,7 @@ export function NLCommitPopover({
           original: text,
           commitOwner: owner,
           commitPolarity: polarity,
+          evidenceRefs: evidenceRefs.length > 0 ? evidenceRefs : undefined,
         }),
       });
 
@@ -262,6 +277,15 @@ export function NLCommitPopover({
             </span>
           </div>
 
+          {requiresEvidence && (
+            <InlineEvidencePicker
+              value={evidenceRefs}
+              onChange={setEvidenceRefs}
+              required
+              helperText={burdenHint ?? "This CQ requires evidence references to be attached when answering."}
+            />
+          )}
+
           {error ? (
             <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
               {error}
@@ -283,7 +307,8 @@ export function NLCommitPopover({
               <button
                 className="text-sm px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={submit}
-                disabled={busy || !text.trim()}
+                disabled={busy || !text.trim() || (requiresEvidence && evidenceRefs.length === 0)}
+                title={requiresEvidence && evidenceRefs.length === 0 ? "Attach at least one evidence reference" : undefined}
               >
                 {busy ? "Posting…" : "Post & Commit"}
               </button>

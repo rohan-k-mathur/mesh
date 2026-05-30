@@ -11,6 +11,7 @@ import { WhyChallengeModal } from "@/components/dialogue/WhyChallengeModal";
 import { CQContextPanel } from "@/components/dialogue/command-card/CQContextPanel";
 import type { CommandCardAction, ProtocolKind } from "@/components/dialogue/command-card/types";
 import { TargetType } from "@prisma/client";
+import { premiseTypeHeader } from "@/lib/dialogue/burdenGuards";
 import useSWR from "swr";
 import {
   MessageSquare,
@@ -50,6 +51,13 @@ export interface DialogueActionsModalProps {
     cqKey: string;
     cqText: string;
     status: "open" | "answered";
+    // Phase 3d (dialogue-UI polish): optional burden metadata. When
+    // present, the modal renders a premiseType-tinted header strip and
+    // forwards `requiresEvidence` into WhyChallengeModal /
+    // NLCommitPopover so they mount the evidence picker.
+    burdenOfProof?: "PROPONENT" | "OPPONENT" | "CHALLENGER";
+    requiresEvidence?: boolean;
+    premiseType?: "ORDINARY" | "ASSUMPTION" | "EXCEPTION" | null;
   };
   
   // Optional: show only specific categories
@@ -446,15 +454,18 @@ export function DialogueActionsModal({
 
   // Handle WHY challenge modal submission
   const handleWhyChallengeSubmit = useCallback(
-    async (challengeText: string) => {
+    async (challengeText: string, opts?: { evidenceRefs?: string[] }) => {
       if (!pendingWhyMove) return;
 
       try {
-        const payload = {
+        const payload: Record<string, any> = {
           ...pendingWhyMove.payload,
           locusPath,
           expression: challengeText.trim(),
         };
+        if (opts?.evidenceRefs && opts.evidenceRefs.length > 0) {
+          payload.evidenceRefs = opts.evidenceRefs;
+        }
 
         const response = await fetch("/api/dialogue/move", {
           method: "POST",
@@ -585,6 +596,20 @@ export function DialogueActionsModal({
             </p>
           </DialogHeader>
 
+          {/* Phase 3d: premiseType-tinted header strip from cqContext */}
+          {(() => {
+            const header = premiseTypeHeader(cqContext?.premiseType ?? null);
+            if (!header.text) return null;
+            return (
+              <div
+                className={`rounded-md border px-3 py-2 text-xs ${header.borderClass}`}
+                data-testid="cq-premise-header"
+              >
+                {header.text}
+              </div>
+            );
+          })()}
+
           {/* Loading state */}
           {isLoading && (
             <div className="flex items-center justify-center py-12">
@@ -693,6 +718,12 @@ export function DialogueActionsModal({
             "default"
           }
           defaultOwner="Proponent"
+          requiresEvidence={!!cqContext?.requiresEvidence}
+          burdenHint={
+            cqContext?.burdenOfProof
+              ? `Burden: ${cqContext.burdenOfProof}. Evidence required to discharge this critical question.`
+              : null
+          }
           onDone={() => {
             mutate();
             onMovePerformed?.();
@@ -718,6 +749,12 @@ export function DialogueActionsModal({
           open={whyChallengeModalOpen}
           onOpenChange={setWhyChallengeModalOpen}
           onSubmit={handleWhyChallengeSubmit}
+          requiresEvidence={!!cqContext?.requiresEvidence}
+          burdenHint={
+            cqContext?.burdenOfProof
+              ? `Burden: ${cqContext.burdenOfProof}. Evidence required to raise this critical question.`
+              : null
+          }
         />
       )}
     </>

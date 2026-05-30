@@ -25,7 +25,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.8.0";
+export const ORIENTATION_VERSION = "1.10.0";
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
  * Target: ~400 tokens. Keep tight; the long form lives in
@@ -48,13 +48,13 @@ Whenever the user states a position, asks you to "record / log / capture / save 
   • \`propose_structured_argument\` — PREFER THIS whenever the user gives reasons ("because…", "since…"), names an argumentation pattern (expert opinion, analogy, cause-to-effect, practical reasoning), or expects per-premise standing/CQs. \`{ conclusion, premises[], reasoning?, schemeKey?, evidence?[], deliberationId? }\`. Each premise becomes its own Claim row, so attackers can later undermine specific premises rather than the whole argument. If unsure which scheme applies, call \`list_schemes\` first; or omit \`schemeKey\` and the server will infer one (returned as a \`scheme_inferred\` warning).
 Both tools return a permalink + immutable content-addressed URL. Omit \`deliberationId\` to land in the caller's "My Arguments" room; pass one to land in a specific debate. For warrants/inference-licenses against an existing argument, use \`propose_warrant\`. After any write, call \`get_argument\` on the returned id (after \`retryAfterMs\` if \`provenancePending\` is true) to verify the round-trip before claiming success. Do not invent ids or permalinks — only echo what the write tool returned.
 
-TOOL-CLUSTER MAP (46 tools / 6 clusters — route here before scanning tool descriptions):
+TOOL-CLUSTER MAP (47 tools / 6 clusters — route here before scanning tool descriptions):
   1. Session start: \`get_orientation\` (full glossary + recipes), \`get_capabilities\` (cheap auth/identity probe — no round-trip).
   2. Retrieval: \`search_arguments\`, \`get_argument\`, \`get_claim\`, \`get_claim_stances\`, \`find_counterarguments\`, \`cite_argument\`, \`resolve_citation\`, \`resolve_citations_bulk\`.
   3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_warrant\` (see above).
   4. Deliberation synthesis: \`get_synthetic_readout\` (primary), \`get_deliberation_fingerprint\`, \`get_contested_frontier\`, \`get_missing_moves\`, \`get_chains\`, \`get_cross_context\`, \`summarize_debate\`, \`get_deliberation_evidence_context\`.
   5. Algebraic/ECC: \`ecc_arrow\`, \`ecc_culprits\`, \`ecc_confidence\`, \`ecc_enthymemes\`, \`ecc_transport\`, \`ecc_aggregate\`, \`ecc_evidential\`, \`ecc_belief_revision_proposals\`; scheme catalog: \`list_schemes\`.
-  6. Ludics generative substrate (only when the user mentions locus / design / behaviour / incarnation / cone / witness / articulation lattice / daimon / bind / synthesis): reads \`get_deliberation_schema\` (START HERE), \`get_behaviour_at_locus\`, \`get_exposure_map\`; lattice algebra \`get_articulation_lattice\`, \`find_minimal_incarnations\`, \`find_equivalent_articulations\`, \`find_substitute_premises\`, \`compress_articulation\`, \`compute_articulation_join\`; witness reads \`get_witnesses\`, \`get_unwitnessed_exposure\`, \`get_instantiation\`, \`get_fossil_record\`; helpers/writes \`list_bindable_moves\` (CALL BEFORE BIND — pre-pairs ludicMoveId + dialogueMoveId + canonicalText), \`bind_participant_to_design\` (iota seam — only path that mints WitnessRecord), \`propose_synthesis\` (Art(B) join write seam). Ludics rules: Inc(B) is an antichain — there is NO global bottom of a behaviour, only per-cone minima; cones are disjoint (cross-cone joins/meets return \`cross-cone-rejected\` — that's a value, not an error); never hand-build \`canonicalText\` (copy verbatim from \`list_bindable_moves\`); never echo \`participantId\` back to the user (T4 non-attribution). For the full Ludics workflow recipes (explore-layer / bind-participant) and glossary, call \`get_orientation\`.`;
+  6. Ludics generative substrate (only when the user mentions locus / design / behaviour / incarnation / cone / witness / articulation lattice / daimon / bind / synthesis): reads \`get_deliberation_schema\` (START HERE), \`list_behaviours\` (enumerate behaviours before probing loci), \`get_behaviour_at_locus\`, \`get_exposure_map\`; lattice algebra \`get_articulation_lattice\`, \`find_minimal_incarnations\`, \`find_equivalent_articulations\`, \`find_substitute_premises\`, \`compress_articulation\`, \`compute_articulation_join\`; witness reads \`get_witnesses\`, \`get_unwitnessed_exposure\`, \`get_instantiation\`, \`get_fossil_record\`; helpers/writes \`list_bindable_moves\` (CALL BEFORE BIND — pre-pairs ludicMoveId + dialogueMoveId + canonicalText), \`bind_participant_to_design\` (iota seam — only path that mints WitnessRecord), \`propose_synthesis\` (Art(B) join write seam). Ludics rules: Inc(B) is an antichain — there is NO global bottom of a behaviour, only per-cone minima; cones are disjoint (cross-cone joins/meets return \`cross-cone-rejected\` — that's a value, not an error); never hand-build \`canonicalText\` (copy verbatim from \`list_bindable_moves\`); never echo \`participantId\` back to the user (T4 non-attribution). For the full Ludics workflow recipes (explore-layer / bind-participant) and glossary, call \`get_orientation\`.`;
 /**
  * Returned by the `get_orientation` tool. Markdown-formatted for direct
  * model consumption. Target: ~1.5K tokens.
@@ -65,7 +65,7 @@ Version: ${ORIENTATION_VERSION}
 
 ## Tool clusters — route here first
 
-46 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
+47 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
 
 ### Cluster 1 — Session start (1 tool)
 - \`get_orientation\` — you are reading its output. Call once per session; cache against \`contentHash\`.
@@ -112,11 +112,12 @@ Use when auditing the inferential structure of a specific argument or warrant. T
 ### Scheme catalog (1 tool)
 - \`list_schemes\` — browse the argumentation-scheme catalog. Filter by \`clusterTag\` (expert | causal | practical | analogical | …). Call before \`propose_structured_argument\` when scheme is unclear.
 
-### Cluster 6 — Ludics generative substrate (16 tools)
+### Cluster 6 — Ludics generative substrate (17 tools)
 Use when the user mentions **locus**, **design**, **behaviour**, **incarnation**, **cone**, **witness**, **articulation lattice**, **delocation**, **daimon**, or asks to **bind a participant** / **propose a synthesis** / **compress** or **join** articulations. Skip this cluster entirely for ordinary argument-graph questions — the deliberation graph (Clusters 2–4) is the public face; Ludics is the algebraic underlay.
 
 **Read structure (Cluster F — orientation reads):**
 - \`get_deliberation_schema\` — START HERE for any Ludics question. Returns locus count, design tree, witnessing-coverage summary. Costs O(1) round-trip; tells you whether the deliberation even has a Ludics layer worth exploring.
+- \`list_behaviours\` — enumerate every Behaviour in a deliberation with summary stats (incarnationCount, coneCount, moveCount, walkedCount, witnessRatio), sorted most-articulated first. Use BEFORE \`get_behaviour_at_locus\` when you don't already know which loci exist — avoids guessing addresses.
 - \`get_behaviour_at_locus\` — at a given locus, list the behaviour's designs + their cones + per-design witnessing state.
 - \`get_exposure_map\` — per-locus map of walked / witnessable / latent moves; the dialectical surface a participant could engage.
 

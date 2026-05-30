@@ -16,6 +16,7 @@ import { mintClaimMoid } from "@/lib/ids/mintMoid";
 import { getOrCreatePermalink } from "@/lib/citations/permalinkService";
 import { isSafePublicUrl, getOrFetchLinkPreview } from "@/lib/unfurl";
 import { enrichEvidenceProvenanceInBackground } from "@/lib/citations/evidenceProvenance";
+import { enrichDeliberationNameInBackground } from "@/lib/deliberations/autoNameEnrichment";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -269,6 +270,11 @@ export async function POST(req: NextRequest) {
       },
       select: { id: true, text: true, confidence: true },
     });
+
+    // Fire-and-forget: once a deliberation accumulates content, an LLM pass
+    // may upgrade an auto-generated / NULL title to a concise summary name.
+    // Self-debouncing and guarded against clobbering human titles (Phase 6).
+    enrichDeliberationNameInBackground(targetDelibId);
 
     // Create ArgumentPermalink
     const permalink = await getOrCreatePermalink(argument.id);

@@ -301,9 +301,13 @@ export function LegalMoveToolbar({
         <WhyChallengeModal
           open={whyChallengeModalOpen}
           onOpenChange={setWhyChallengeModalOpen}
-          onSubmit={async (note) => {
+          onSubmit={async (note, opts) => {
             if (!pendingWhyMove) return;
-            await postMove(pendingWhyMove, { note });
+            const extra: Record<string, any> = { note };
+            if (opts?.evidenceRefs && opts.evidenceRefs.length > 0) {
+              extra.evidenceRefs = opts.evidenceRefs;
+            }
+            await postMove(pendingWhyMove, extra);
             setWhyChallengeModalOpen(false);
             setPendingWhyMove(null);
           }}

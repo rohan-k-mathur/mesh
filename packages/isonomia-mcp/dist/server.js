@@ -125,6 +125,14 @@ const SearchInput = z.object({
         .max(50)
         .optional()
         .describe("How many top results to enrich with strongestCounter (default 10). Only meaningful when include_strongest_counter=true."),
+    within_deliberation: z
+        .string()
+        .optional()
+        .describe("Deliberation id used to scope or tag results. When set, each result carries `scope: 'within' | 'cross'` so intra- vs inter-deliberation hits are distinguishable. Combine with `scope` to filter. REQUIRED whenever the caller is investigating a specific deliberation — search is global by default and will mix hits from unrelated deliberations otherwise."),
+    scope: z
+        .enum(["within", "cross", "both"])
+        .optional()
+        .describe("How `within_deliberation` applies. 'within' = only intra-deliberation results. 'cross' = only results from other deliberations. 'both' (default when within_deliberation is set) = return both, tagged with `scope`. Ignored when `within_deliberation` is not set."),
 });
 const GetArgumentInput = z.object({
     permalink: z
@@ -563,6 +571,12 @@ const GetBehaviourAtLocusInput = z.object({
         .min(1)
         .describe("Locus address (e.g. '⊢A.1', '⊢A.1.2'). Stable; does not change when the design grows. Use get_deliberation_schema to enumerate available loci first."),
 });
+const ListBehavioursInput = z.object({
+    deliberationId: z
+        .string()
+        .min(1)
+        .describe("Deliberation id whose behaviours to enumerate."),
+});
 // ── Cluster A: exposure map ────────────────────────────────────────────────
 const GetExposureMapInput = z.object({
     deliberationId: z
@@ -696,7 +710,7 @@ const tools = [
     },
     {
         name: "search_arguments",
-        description: "Search Isonomia for public arguments, claims, and counter-arguments by free-text query. Use this as the first step for any debate, controversy, position, objection, rebuttal, supporting reason, or evidence question. Returns ranked permalinks with scheme, conclusion, and an attestation URL. Defaults to mode='hybrid' (pgvector cosine + lexical OR-tokens fused via RRF, K=60) so paraphrased queries hit semantically related arguments even when surface vocabulary differs; pass mode='lexical' for deterministic substring matching or mode='vector' for pure embedding similarity. Supports sort='dialectical_fitness' to rank by tested-and-survived (answered CQs, supports, evidence with provenance, minus open attacks). When sort='dialectical_fitness' is used, each result also carries a `fitnessBreakdown` object decomposing the score into its weighted components (cqAnswered, supportEdges, attackEdges, attackCAs, evidenceWithProvenance) plus the formula weights, so the score is auditable rather than opaque. When mode is hybrid or vector, each result also carries a `hybrid` block (rrfScore, sparseRank, denseRank, denseDistance) so retrieval confidence is auditable. Phase 2 quality filters — tested_only (only arguments that have been challenged in the graph), min_cq_satisfied (minimum answered critical-questions), min_evidence (minimum provenance-anchored evidence rows on the conclusion), and since/until (ISO-8601 date range on createdAt) — narrow results to arguments that meet a higher quality bar. → next: for any deliberation you summarise, call get_synthetic_readout and obey its writingConstraints before composing prose; for a single citation, call get_argument and hedge per its standingState.",
+        description: "Search Isonomia for public arguments, claims, and counter-arguments by free-text query. Use this as the first step for any debate, controversy, position, objection, rebuttal, supporting reason, or evidence question. Returns ranked permalinks with scheme, conclusion, and an attestation URL. SCOPING: search is GLOBAL by default and will return hits from any deliberation. Whenever you are investigating a specific deliberation, ALWAYS pass `within_deliberation` (with optional `scope`) so results are scoped or at least tagged with `scope: 'within' | 'cross'` — otherwise you will silently mix hits from unrelated deliberations. Defaults to mode='hybrid' (pgvector cosine + lexical OR-tokens fused via RRF, K=60) so paraphrased queries hit semantically related arguments even when surface vocabulary differs; pass mode='lexical' for deterministic substring matching or mode='vector' for pure embedding similarity. Supports sort='dialectical_fitness' to rank by tested-and-survived (answered CQs, supports, evidence with provenance, minus open attacks). When sort='dialectical_fitness' is used, each result also carries a `fitnessBreakdown` object decomposing the score into its weighted components (cqAnswered, supportEdges, attackEdges, attackCAs, evidenceWithProvenance) plus the formula weights, so the score is auditable rather than opaque. When mode is hybrid or vector, each result also carries a `hybrid` block (rrfScore, sparseRank, denseRank, denseDistance) so retrieval confidence is auditable. Phase 2 quality filters — tested_only (only arguments that have been challenged in the graph), min_cq_satisfied (minimum answered critical-questions), min_evidence (minimum provenance-anchored evidence rows on the conclusion), and since/until (ISO-8601 date range on createdAt) — narrow results to arguments that meet a higher quality bar. → next: for any deliberation you summarise, call get_synthetic_readout and obey its writingConstraints before composing prose; for a single citation, call get_argument and hedge per its standingState.",
         inputSchema: zodToJsonSchema(SearchInput),
         async handler(args) {
             const input = SearchInput.parse(args);
@@ -712,7 +726,9 @@ const tools = [
                 (input.until ? `&until=${encodeURIComponent(input.until)}` : "") +
                 (input.conclusion_moid ? `&conclusion_moid=${encodeURIComponent(input.conclusion_moid)}` : "") +
                 (input.include_strongest_counter ? `&include_strongest_counter=1` : "") +
-                (input.strongest_counter_k != null ? `&strongest_counter_k=${input.strongest_counter_k}` : "");
+                (input.strongest_counter_k != null ? `&strongest_counter_k=${input.strongest_counter_k}` : "") +
+                (input.within_deliberation ? `&within_deliberation=${encodeURIComponent(input.within_deliberation)}` : "") +
+                (input.scope ? `&scope=${encodeURIComponent(input.scope)}` : "");
             return await isoFetch(url);
         },
     },
@@ -735,6 +751,22 @@ const tools = [
         },
     },
     // ── Cluster B: articulation lattice ────────────────────────────────────────
+    {
+        name: "list_behaviours",
+        description: "List every Behaviour in a deliberation with summary stats (incarnationCount, coneCount, moveCount, walkedCount, witnessRatio), sorted by incarnationCount desc. " +
+            "Use this FIRST when you don't yet know which behaviour(s) exist in a deliberation — avoids guessing locus addresses and probing get_behaviour_at_locus. " +
+            "`behaviours[0]` is the most-articulated entry point. " +
+            "→ next: pick a behaviourId and call get_articulation_lattice (full DAG with cones) or find_minimal_incarnations (just the per-cone bottoms). Then list_bindable_moves(designId) on a chosen incarnation to enumerate bindable slots. " +
+            "T4 invariant: no participantId is returned.",
+        inputSchema: zodToJsonSchema(ListBehavioursInput),
+        handler: async (args) => {
+            const input = ListBehavioursInput.parse(args);
+            return isoFetch(`/api/v3/deliberations/${encodeURIComponent(input.deliberationId)}/behaviours`, {
+                authenticated: true,
+                ludicsDeliberationId: input.deliberationId,
+            });
+        },
+    },
     {
         name: "get_articulation_lattice",
         description: "Return the articulation lattice Art(B) = (Inc(B), ≤_⊆, ∨_⊥⊥) for a behaviour B: " +
@@ -1349,7 +1381,7 @@ const tools = [
     // ───────────────────────────────────────────────────────────────
     {
         name: "get_deliberation_fingerprint",
-        description: "NARROW SLICE — returns ONLY the statistical summary (argumentCount, schemeDistribution, standingDistribution, depthDistribution, medianChallengerCount, meanChallengerCount, challengerCoverage, medianChallengerCountAmongChallenged, cqCoverage, etc.). Prefer `get_synthetic_readout` as your first call: it returns the same fingerprint *plus* frontier, missing moves, chains, refusalSurface, and a hydrated `topArguments` list, all in one round trip. Use this individual tool only when you need the raw fingerprint without paying for the larger composite payload (e.g. quick honesty-check on a different deliberation). The returned `contentHash` is the cache key for every other Pt. 4 readout. A deliberation with `depthDistribution.thin === argumentCount` is articulation-only; do not summarize it as if it were a tested debate.",
+        description: "NARROW SLICE — returns ONLY the statistical summary (argumentCount, schemeDistribution, standingDistribution, depthDistribution, medianChallengerCount, meanChallengerCount, challengerCoverage, medianChallengerCountAmongChallenged, cqCoverage, etc.), plus `displayName` — the human-citable deliberation name (resolved title → host name → auto-title → fallback; always non-empty, NOT part of contentHash). Cite the deliberation by `displayName`, not its id. Prefer `get_synthetic_readout` as your first call: it returns the same fingerprint *plus* frontier, missing moves, chains, refusalSurface, and a hydrated `topArguments` list, all in one round trip. Use this individual tool only when you need the raw fingerprint without paying for the larger composite payload (e.g. quick honesty-check on a different deliberation). The returned `contentHash` is the cache key for every other Pt. 4 readout. A deliberation with `depthDistribution.thin === argumentCount` is articulation-only; do not summarize it as if it were a tested debate.",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);
@@ -1385,7 +1417,7 @@ const tools = [
     },
     {
         name: "get_synthetic_readout",
-        description: "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response, plus `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy, blockerIds, **and parallel-indexed `blockerSummaries` — ~160-char preview of each blocker's argument text so you can name the obstacle without a `get_argument` round-trip per blocker**), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view), **`topology` — structural-shape signals: `hubs.set` (the load-bearingness *cluster*, not just the top-1 — when shape !== 'single-dominant' DO NOT name a single hub), `loadBearingPremises` (premises whose retraction would cascade), `ambiguity.cautions` (verbatim sentences to surface when topology is ambiguous), `sizeTier` + `hierarchicalMode` flag (true → the briefing omits sub-region detail; surface `disclosure` honestly)**, and **`writingConstraints` — a pre-rendered compliance contract: `refusalNotice` (verbatim refusal text when applicable), `mustInclude.honestyLine`, `mustInclude.structuralCautions[]` (verbatim topology cautions), `mustInclude.sizeDisclosure` (verbatim hierarchical-mode disclosure when present), `mustNotAssert[]` (conclusions you may not cite as established), `shouldHedge[]` (per-argument hedge phrasings keyed to standing), `framing.stage` (articulation|deliberation|matured)**. Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, **standingDepth (thin|moderate|dense, with challengerCount + reviewerCount)** so 'tested-undermined by 1' is not read as 'tested-undermined by 10', cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When `topology.hubs.shape !== 'single-dominant'`, do NOT name a single load-bearing argument. When `topology.sizeTier.hierarchicalMode === true`, surface the `sizeDisclosure` so the reader knows sub-region detail was omitted. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause, topology.hubs.set, topology.loadBearingPremises). → next: read `writingConstraints` FIRST and treat it as a contract — substitute mustInclude.honestyLine + mustInclude.structuralCautions + mustInclude.sizeDisclosure verbatim, skip everything in mustNotAssert, attach hedges from shouldHedge to matching argument ids; only drill with get_argument/find_counterarguments when the readout leaves a specific ambiguity.",
+        description: "FIRST CALL FOR ANY DELIBERATION SUMMARY. This is the one-stop bundle: composes fingerprint + contested frontier + missing moves + chain exposure + cross-context into a single response. Top-level `displayName` is the human-citable deliberation name (resolved title → host name → auto-title → fallback; always non-empty and kept fresh across renames) — cite the deliberation by `displayName`, not its id. Also includes `refusalSurface.cannotConcludeBecause` (which conclusions the graph will not currently license, with blockedBy, blockerIds, **and parallel-indexed `blockerSummaries` — ~160-char preview of each blocker's argument text so you can name the obstacle without a `get_argument` round-trip per blocker**), `topArguments` (top 25 from `loadBearingnessRanking` — foundation-biased, surfaces load-bearing premises), `mostContested` (top 25 from `contestednessRanking` — surfaces actively-challenged arguments by unanswered-attack count, complementing the load-bearingness view), **`topology` — structural-shape signals: `hubs.set` (the load-bearingness *cluster*, not just the top-1 — when shape !== 'single-dominant' DO NOT name a single hub), `loadBearingPremises` (premises whose retraction would cascade), `ambiguity.cautions` (verbatim sentences to surface when topology is ambiguous), `sizeTier` + `hierarchicalMode` flag (true → the briefing omits sub-region detail; surface `disclosure` honestly)**, and **`writingConstraints` — a pre-rendered compliance contract: `refusalNotice` (verbatim refusal text when applicable), `mustInclude.honestyLine`, `mustInclude.structuralCautions[]` (verbatim topology cautions), `mustInclude.sizeDisclosure` (verbatim hierarchical-mode disclosure when present), `mustNotAssert[]` (conclusions you may not cite as established), `shouldHedge[]` (per-argument hedge phrasings keyed to standing), `framing.stage` (articulation|deliberation|matured)**. Each list entry is hydrated with conclusionText (truncated 400 chars), argumentText, primarySchemeKey, standing, **standingDepth (thin|moderate|dense, with challengerCount + reviewerCount)** so 'tested-undermined by 1' is not read as 'tested-undermined by 10', cqAnswered/cqRequired, fitness, and authorKind. The two lists answer different questions: `topArguments` = 'what's load-bearing?'; `mostContested` = 'what's actually being challenged?'. Look at both before producing a closer. The honestyLine is a deterministic single-sentence caveat keyed on contentHash. CONTRACT: when refusalSurface is non-empty, you may not produce a closer that resolves a contested question — name the blockers and stop. When `topology.hubs.shape !== 'single-dominant'`, do NOT name a single load-bearing argument. When `topology.sizeTier.hierarchicalMode === true`, surface the `sizeDisclosure` so the reader knows sub-region detail was omitted. When refusalSurface is empty *and* fingerprint.depthDistribution.thin is dominant, qualify any standing claim as articulation-stage, not deliberation-stage. Do not synthesize from raw search hits when this is available; reference fields by name (topArguments[i].id, mostContested[i].unansweredAttackCount, chains[i].weakestLink, frontier.unansweredUndercuts, refusalSurface.cannotConcludeBecause, topology.hubs.set, topology.loadBearingPremises). → next: read `writingConstraints` FIRST and treat it as a contract — substitute mustInclude.honestyLine + mustInclude.structuralCautions + mustInclude.sizeDisclosure verbatim, skip everything in mustNotAssert, attach hedges from shouldHedge to matching argument ids; only drill with get_argument/find_counterarguments when the readout leaves a specific ambiguity.",
         inputSchema: zodToJsonSchema(DeliberationIdInput),
         async handler(args) {
             const input = DeliberationIdInput.parse(args);

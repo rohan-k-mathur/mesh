@@ -1,6 +1,7 @@
 // app/api/dialogue-moves/[moveId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -124,7 +125,7 @@ export async function GET(
       deliberation: deliberation
         ? {
             id: deliberation.id,
-            title: deliberation.title || "Untitled Deliberation",
+            title: resolveDeliberationName(deliberation, { fallback: "Untitled Deliberation" }),
           }
         : null,
       

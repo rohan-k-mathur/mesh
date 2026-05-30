@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 import {
   MergeOptions,
   MergeClaimSelection,
@@ -468,11 +469,11 @@ export async function listMergeRequests(
       status: req.status as MergeStatus,
       sourceDeliberation: {
         id: req.sourceDeliberation.id,
-        title: req.sourceDeliberation.title || "Untitled",
+        title: resolveDeliberationName(req.sourceDeliberation, { fallback: "Untitled" }),
       },
       targetDeliberation: {
         id: req.targetDeliberation.id,
-        title: req.targetDeliberation.title || "Untitled",
+        title: resolveDeliberationName(req.targetDeliberation, { fallback: "Untitled" }),
       },
       author: {
         id: req.authorId,
@@ -540,11 +541,11 @@ export async function getMergeRequest(
     status: req.status as MergeStatus,
     sourceDeliberation: {
       id: req.sourceDeliberation.id,
-      title: req.sourceDeliberation.title || "Untitled",
+      title: resolveDeliberationName(req.sourceDeliberation, { fallback: "Untitled" }),
     },
     targetDeliberation: {
       id: req.targetDeliberation.id,
-      title: req.targetDeliberation.title || "Untitled",
+      title: resolveDeliberationName(req.targetDeliberation, { fallback: "Untitled" }),
     },
     author: {
       id: req.authorId,

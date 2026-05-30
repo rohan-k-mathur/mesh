@@ -228,6 +228,45 @@ if (!userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 })
       hint: 'GROUNDS must answer a specific WHY move. Include payload.cqId to match the WHY.'
     }, { status: 400 });
   }
+
+  // Phase 3d (dialogue-UI polish) — when the targeted CQ is flagged
+  // `requiresEvidence`, both WHY and GROUNDS must carry at least one
+  // evidence ref. Synthetic generic_why_* ids (used for unkeyed WHY
+  // moves) are skipped because they do not correspond to a stored CQ.
+  if (
+    (kind === 'WHY' || kind === 'GROUNDS') &&
+    typeof payload.cqId === 'string' &&
+    payload.cqId &&
+    !payload.cqId.startsWith('generic_why_')
+  ) {
+    try {
+      const cq = await prisma.criticalQuestion.findUnique({
+        where: { id: payload.cqId },
+        select: { requiresEvidence: true },
+      });
+      if (cq?.requiresEvidence) {
+        const refs = Array.isArray(payload.evidenceRefs)
+          ? (payload.evidenceRefs as unknown[]).filter(
+              (x): x is string => typeof x === 'string' && x.trim().length > 0
+            )
+          : [];
+        if (refs.length === 0) {
+          return NextResponse.json(
+            {
+              error: 'EVIDENCE_REQUIRED',
+              hint: 'This critical question requires at least one evidence reference (payload.evidenceRefs: string[]).',
+              cqId: payload.cqId,
+            },
+            { status: 400 }
+          );
+        }
+        // Normalise to filtered array so downstream sees a clean shape.
+        payload.evidenceRefs = refs;
+      }
+    } catch (err) {
+      console.warn('[dialogue/move] requiresEvidence lookup failed (non-fatal):', err);
+    }
+  }
   
   // Validate expression for structural moves
   if ((kind === 'THEREFORE' || kind === 'SUPPOSE') && !payload.expression) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { getCommitmentStores } from "@/lib/aif/graph-builder";
 import { prisma } from "@/lib/prismaclient";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 
 /**
  * GET /api/aif/dialogue/[deliberationId]/commitments/export
@@ -96,7 +97,7 @@ export async function GET(
     if (format === "json") {
       const exportData = {
         deliberationId,
-        deliberationTitle: deliberation.title || "Untitled",
+        deliberationTitle: resolveDeliberationName(deliberation, { fallback: "Untitled" }),
         exportedAt: new Date().toISOString(),
         asOf: asOf || "latest",
         includeInactive,
