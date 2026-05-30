@@ -8,6 +8,7 @@
  */
 
 import { prisma } from "@/lib/prismaclient";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 import {
   CreateQuoteOptions,
   QuoteNodeSummary,
@@ -257,7 +258,7 @@ export async function getQuote(
     deliberation: quote.deliberation
       ? {
           id: quote.deliberation.id,
-          title: quote.deliberation.title || "Discussion",
+          title: resolveDeliberationName(quote.deliberation, { fallback: "Discussion" }),
         }
       : undefined,
   };

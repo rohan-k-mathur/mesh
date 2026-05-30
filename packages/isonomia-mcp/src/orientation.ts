@@ -26,7 +26,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.9.0" as const;
+export const ORIENTATION_VERSION = "1.10.0" as const;
 
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.

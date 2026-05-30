@@ -14,12 +14,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { HelpCircle, Lightbulb } from "lucide-react";
+import { InlineEvidencePicker } from "@/components/dialogue/InlineEvidencePicker";
 
+// Phase 3d (dialogue-UI polish). Extended `onSubmit` signature is
+// back-compatible: existing call sites that ignore the second argument
+// keep working unchanged.
 interface WhyChallengeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (challengeText: string) => void | Promise<void>;
+  onSubmit: (
+    challengeText: string,
+    opts?: { evidenceRefs?: string[] }
+  ) => void | Promise<void>;
   targetText?: string;
+  /** Phase 3d: when true, mount InlineEvidencePicker and gate submit. */
+  requiresEvidence?: boolean;
+  /** Phase 3d: optional burden-of-proof hint shown above the picker. */
+  burdenHint?: string | null;
 }
 
 const EXAMPLE_CHALLENGES = [
@@ -41,10 +52,15 @@ export function WhyChallengeModal({
   onOpenChange,
   onSubmit,
   targetText,
+  requiresEvidence = false,
+  burdenHint = null,
 }: WhyChallengeModalProps) {
   const [text, setText] = useState("");
+  const [evidenceRefs, setEvidenceRefs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const evidenceBlocking = requiresEvidence && evidenceRefs.length === 0;
 
   const handleSubmit = async () => {
     const trimmed = text.trim();
@@ -59,12 +75,18 @@ export function WhyChallengeModal({
       return;
     }
 
+    if (evidenceBlocking) {
+      setError("This critical question requires at least one evidence reference (URL or DOI).");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit(trimmed);
+      await onSubmit(trimmed, evidenceRefs.length > 0 ? { evidenceRefs } : undefined);
       setText("");
+      setEvidenceRefs([]);
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit challenge");
@@ -75,6 +97,7 @@ export function WhyChallengeModal({
 
   const handleCancel = () => {
     setText("");
+    setEvidenceRefs([]);
     setError(null);
     onOpenChange(false);
   };
@@ -130,6 +153,17 @@ export function WhyChallengeModal({
             </div>
           </div>
 
+          {requiresEvidence && (
+            <div className="space-y-1">
+              <InlineEvidencePicker
+                value={evidenceRefs}
+                onChange={setEvidenceRefs}
+                required
+                helperText={burdenHint ?? "This CQ requires evidence references to be attached when challenging."}
+              />
+            </div>
+          )}
+
           {error && (
             <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm">
               {error}
@@ -168,9 +202,10 @@ export function WhyChallengeModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !text.trim()}
+            disabled={isSubmitting || !text.trim() || evidenceBlocking}
             className="bg-amber-600 hover:bg-amber-700 text-white"
             type="button"
+            title={evidenceBlocking ? "Attach at least one evidence reference" : undefined}
           >
             {isSubmitting ? "Posting Challenge..." : "Post WHY Challenge"}
           </Button>

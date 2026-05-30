@@ -36,6 +36,7 @@ import { mintClaimMoid } from "@/lib/ids/mintMoid";
 import { getOrCreatePermalink } from "@/lib/citations/permalinkService";
 import { isSafePublicUrl, getOrFetchLinkPreview } from "@/lib/unfurl";
 import { enrichEvidenceProvenanceInBackground } from "@/lib/citations/evidenceProvenance";
+import { enrichDeliberationNameInBackground } from "@/lib/deliberations/autoNameEnrichment";
 import { inferAndAssignScheme } from "@/lib/argumentation/schemeInference";
 import { ensureArgumentSupportInTx } from "@/lib/arguments/ensure-support";
 import { markArgumentAsComposedInTx } from "@/lib/arguments/detect-composition";
@@ -565,6 +566,11 @@ export async function POST(req: NextRequest) {
 
       return { argument, schemeInstanceId };
     });
+
+    // Fire-and-forget: once a deliberation accumulates content, an LLM pass
+    // may upgrade an auto-generated / NULL title to a concise summary name.
+    // Self-debouncing and guarded against clobbering human titles (Phase 6).
+    enrichDeliberationNameInBackground(targetDelibId);
 
     // Permalink + embed codes
     const permalink = await getOrCreatePermalink(created.argument.id);

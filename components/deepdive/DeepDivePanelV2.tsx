@@ -46,6 +46,7 @@ import { ArgumentsTab, AnalyticsTab, DebateTab } from "./v3/tabs";
 import { ChainsTab } from "./v3/tabs/ChainsTab"; // Task 1.7: Chains tab
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import { useAuth } from "@/lib/AuthContext";
+import DeliberationTitle from "@/components/deepdive/DeliberationTitle";
 import { useSheetPersistence, useDeliberationState } from "./v3/hooks";
 import { getUserFromCookies } from "@/lib/server/getUser";
 import AIFArgumentsListPro from '@/components/arguments/AIFArgumentsListPro';
@@ -690,11 +691,7 @@ const {
     <ConfidenceProvider>
       {/* Header section when content is ready */}
       <div className="w-full">
-        
-        <h2 className="text-4xl font-[Kolonia] uppercase tracking-wide text-center text-slate-800 mb-4">
-          {hostName ? `Deliberation for "${hostName}"` : "Deliberation"}
-        </h2>
-        <div className="mx-auto w-[80%] border-b border-slate-500/40" />
+        <DeliberationTitle deliberationId={deliberationId} hostName={hostName} />
       </div>
 
       {/* Floating Toggle Buttons */}

@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 
 interface OEmbedResponse {
   type: "rich";
@@ -300,7 +301,7 @@ async function getMetadata(
       if (!deliberation) return null;
 
       return {
-        title: deliberation.title || "Deliberation Health",
+        title: resolveDeliberationName(deliberation, { fallback: "Deliberation Health" }),
       };
     }
 

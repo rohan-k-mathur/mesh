@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 
 type WidgetType = "stack" | "evidence" | "source" | "health" | "argument" | "claim";
 type Theme = "light" | "dark" | "auto";
@@ -204,7 +205,7 @@ async function verifyPublicAccess(
       return {
         allowed: true,
         metadata: {
-          title: deliberation.title || "Deliberation",
+          title: resolveDeliberationName(deliberation, { fallback: "Deliberation" }),
         },
       };
     }

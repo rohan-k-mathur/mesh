@@ -33,6 +33,9 @@ export async function GET(req: NextRequest) {
       data: true,
       createdAt: true,
       createdById: true,
+      // Phase 4 — needed by LatentObligationsForTarget to filter open instances
+      status: true,
+      closedAt: true,
       scheme: {                 // relation to ArgumentScheme
         select: {
           key: true,

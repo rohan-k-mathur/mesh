@@ -145,7 +145,7 @@ React.useEffect(() => {
                 Forum
               </button>
               <div className="h-6 border-l border-slate-400" />
-              <DeliberateButton discussionId={discussion.id} />
+              <DeliberateButton discussionId={discussion.id} defaultTitle={discussion.title} />
             </div>
           </div>
         </header>

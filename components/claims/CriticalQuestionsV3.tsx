@@ -25,6 +25,8 @@ import CQAuthorDashboard from "./CQAuthorDashboard";
 import CQStatusBadge from "./CQStatusBadge";
 import CQActivityFeed from "./CQActivityFeed";
 import CQEndorseModal from "./CQEndorseModal";
+// Phase 4 mount — latent obligations panel (collapsed by default).
+import { LatentObligationsForTarget } from "@/components/room/LatentObligationsForTarget";
 // Phase 0.1: Burden of Proof helpers
 import {
   getBurdenBadgeText,
@@ -590,6 +592,20 @@ export default function CriticalQuestionsV3({
 
   return (
     <div className="space-y-4 max-h-[600px] overflow-y-auto px-3 py-2 custom-scrollbar">
+      {/* Phase 4 — latent obligations panel(s) for this target.
+          Renders one collapsed-by-default panel per open SchemeInstance
+          attached to (targetType, targetId). Only mounted for claims —
+          arguments don't carry SchemeInstance protocol state. */}
+      {targetType === "claim" && deliberationId && currentUserId ? (
+        <LatentObligationsForTarget
+          targetType="claim"
+          targetId={targetId}
+          deliberationId={deliberationId}
+          currentUserId={currentUserId}
+          isProponent={!!isAuthor}
+        />
+      ) : null}
+
       {/* Contextual Help Banner */}
       <div className="bg-gradient-to-r from-indigo-50 to-sky-50 border border-indigo-200 rounded-xl p-4">
         <div className="flex items-start gap-3">

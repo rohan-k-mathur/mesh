@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 import {
   exportDeliberationToBibTeX,
   exportDeliberationToRIS,
@@ -142,7 +143,7 @@ export async function GET(
   // Transform to exportable format
   const exportableDeliberation: ExportableDeliberation = {
     id: deliberation.id,
-    title: deliberation.title ?? "Untitled Deliberation",
+    title: resolveDeliberationName(deliberation, { fallback: "Untitled Deliberation" }),
     description: null,
     createdAt: deliberation.createdAt,
     updatedAt: deliberation.updatedAt,

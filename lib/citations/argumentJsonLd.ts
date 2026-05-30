@@ -21,6 +21,7 @@
  */
 
 import type { ArgumentAttestation } from "./argumentAttestation";
+import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 
 const SCHEME_BASE_URI = "http://arg.tech/ont/schemes#";
 
@@ -164,7 +165,7 @@ export function buildArgumentJsonLd(att: ArgumentAttestation): Record<string, un
           isPartOf: {
             "@type": "CreativeWork",
             "@id": `${BASE_URL}/deliberations/${att.deliberation.id}`,
-            name: att.deliberation.title || "Deliberation",
+            name: resolveDeliberationName(att.deliberation, { fallback: "Deliberation" }),
             url: `${BASE_URL}/deliberations/${att.deliberation.id}`,
           },
         }

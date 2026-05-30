@@ -1012,10 +1012,8 @@ export default function DialogueTimelinePage() {
             </button>
           </div>
         </div>
-        {delibData?.deliberation && (
-          <p className="text-gray-600">
-            {delibData.deliberation.title || `Deliberation ${deliberationId.slice(0, 18)}...`}
-          </p>
+        {delibData?.displayName && (
+          <p className="text-gray-600">{delibData.displayName}</p>
         )}
       </div>
 

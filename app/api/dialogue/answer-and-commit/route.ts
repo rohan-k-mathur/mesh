@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prismaclient";
 import { applyToCS } from "@/packages/ludics-engine/commitments";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { Prisma } from "@prisma/client";
+import { onDialogueMoveForObligations } from "@/lib/schemes/protocol/dialogueHooks";
 import { emitBus } from "@/lib/server/bus";
 
 /**
@@ -121,6 +122,10 @@ const Body = z.object({
   original: z.string().optional().nullable(), // optional NL text
   commitOwner: z.enum(["Proponent", "Opponent"]),
   commitPolarity: z.enum(["pos", "neg"]).default("pos"),
+  // Phase 3d (dialogue-UI polish): optional evidence references that
+  // get forwarded into the dialogue-move payload so the obligation
+  // hook persists them on the CqObligationRecord.
+  evidenceRefs: z.array(z.string().min(1)).optional(),
 });
 
 const makeSignature = (
@@ -159,7 +164,44 @@ export async function POST(req: NextRequest) {
       original,
       commitOwner,
       commitPolarity,
+      evidenceRefs,
     } = parsed.data;
+
+    // Phase 3d (dialogue-UI polish) — when the targeted CQ is flagged
+    // `requiresEvidence`, GROUNDS via answer-and-commit must carry at
+    // least one evidence ref. We resolve the CriticalQuestion by
+    // (schemeKey, cqKey); answer-and-commit does not currently know
+    // the schemeKey so we fall back to cqKey alone (the field is
+    // unique within a scheme, not globally — see schema). If
+    // ambiguous, we skip the guard rather than block legitimate
+    // submissions.
+    try {
+      // Look up CQ by id first (cqKey from the modal is often a CQ.id
+      // when the WHY came from the legal-moves API).
+      const cqById = await prisma.criticalQuestion.findUnique({
+        where: { id: cqKey },
+        select: { requiresEvidence: true },
+      }).catch(() => null);
+      const requiresEvidence = !!cqById?.requiresEvidence;
+      if (requiresEvidence) {
+        const refs = (evidenceRefs ?? []).filter(
+          (x) => typeof x === "string" && x.trim().length > 0
+        );
+        if (refs.length === 0) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: "EVIDENCE_REQUIRED",
+              hint: "This critical question requires at least one evidence reference (evidenceRefs: string[]).",
+              cqId: cqKey,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("[answer-and-commit] requiresEvidence lookup failed (non-fatal):", err);
+    }
 
     // Validate target exists and matches deliberation
     try {
@@ -216,13 +258,18 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Answer the WHY with GROUNDS move
-    const payload = {
+    const payload: Record<string, any> = {
       expression,
       cqId: cqKey,
       locusPath,
       original: original ?? expression,
       createdArgumentId, // Store reference to created Argument
     };
+    if (evidenceRefs && evidenceRefs.length > 0) {
+      payload.evidenceRefs = evidenceRefs.filter(
+        (x) => typeof x === "string" && x.trim().length > 0
+      );
+    }
     const signature = makeSignature(
       targetType,
       targetId,
@@ -330,6 +377,17 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error("[answer-and-commit] Failed to emit bus events:", err);
       // Non-fatal, continue
+    }
+
+    // Phase 3d (dialogue-UI polish) — record CQ-obligation transition
+    // for the GROUNDS move (matches the equivalent hook call in
+    // /api/dialogue/move). Non-fatal: the hook swallows its own errors.
+    if (move?.id) {
+      void onDialogueMoveForObligations({
+        kind: "GROUNDS",
+        payload: payload as any,
+        moveId: move.id,
+      });
     }
 
     return NextResponse.json({ ok: true, move, commitOwner, expression });
