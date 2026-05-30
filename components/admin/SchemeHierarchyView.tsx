@@ -18,7 +18,6 @@ type Scheme = {
   summary: string;
   parentSchemeId: string | null;
   clusterTag: string | null;
-  inheritCQs: boolean;
   cq: any;
 };
 
@@ -84,8 +83,10 @@ export default function SchemeHierarchyView() {
         .filter(s => s.parentSchemeId === scheme.id && !visited.has(s.id))
         .map(child => buildNode(child, depth + 1));
 
-      // Calculate inherited CQ count (simplified - actual calculation would need API call)
-      const inheritedCQCount = scheme.parentSchemeId && scheme.inheritCQs ? 0 : 0;
+      // Phase 3 step 13: inheritance is unconditional whenever a parent edge
+      // exists; the per-row opt-out (`inheritCQs`) has been retired. The actual
+      // count is computed server-side in /api/schemes (totalCQCount).
+      const inheritedCQCount = scheme.parentSchemeId ? 0 : 0;
 
       return {
         scheme,
@@ -205,7 +206,7 @@ export default function SchemeHierarchyView() {
               <Badge variant="outline" className="text-xs">
                 {node.ownCQCount} CQ{node.ownCQCount !== 1 ? "s" : ""}
               </Badge>
-              {node.scheme.parentSchemeId && node.scheme.inheritCQs && (
+              {node.scheme.parentSchemeId && (
                 <Badge variant="secondary" className="text-xs bg-indigo-100 text-indigo-700">
                   +inherited
                 </Badge>

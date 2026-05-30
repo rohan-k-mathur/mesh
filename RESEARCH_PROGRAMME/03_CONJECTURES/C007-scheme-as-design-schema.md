@@ -1,10 +1,11 @@
 # C007 — A scheme is a design schema: a partially-specified design (locus tree with typed holes for premise variables) plus a CQ-bundle determining its orthogonal completion
 
-- **status:** open
+- **status:** confirmed (layered — structural layer)
 - **ring:** core
 - **depends-on:** T001, T002
-- **linked-open-questions:** Q-011, Q-012, Q-015
-- **mutually-exclusive-with:** C006, C008
+- **linked-open-questions:** Q-011, Q-015 (Q-012 closed)
+- **layered-complement-of:** C006 (base / semantic ground truth), C008 (procedural layer)
+- **verdict:** Confirmed as the structural presentation layer of the layered scheme ontology. The design schema is a *presentation of* the C006 behaviour — multiple presentations can denote the same behaviour (the presentation→behaviour map `𝓑` is many-to-one). C007 is not a rival ontology; it is the syntactic layer the admin needs to communicate, store, and match schemes. See [`../../Development and Ideation Documents/ARCHITECTURE/SCHEMES_ONTOLOGY_DECISION.md`](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/SCHEMES_ONTOLOGY_DECISION.md) §3.2 and [T003 — Schemes Layered Coherence](../02_THEOREMS_AND_PROOFS/T003-schemes-layered-coherence.md).
 - **last-reviewed:** 2026-05-27
 
 ## Statement

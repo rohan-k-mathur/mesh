@@ -37,7 +37,6 @@ export async function getCQsWithInheritance(
       key: true,
       name: true,
       parentSchemeId: true,
-      inheritCQs: true,
       cqs: {
         select: {
           cqKey: true,
@@ -71,8 +70,9 @@ export async function getCQsWithInheritance(
     });
   }
 
-  // Recursively fetch parent CQs if inheritance enabled
-  if (includeParentCQs && scheme.inheritCQs && scheme.parentSchemeId) {
+  // Recursively fetch parent CQs (Phase 3 step 13: inheritance is now
+  // unconditional when a parent edge exists; the per-row opt-out is retired).
+  if (includeParentCQs && scheme.parentSchemeId) {
     const parentCQs = await getCQsWithInheritance(
       scheme.parentSchemeId,
       true // Keep recursing up the hierarchy

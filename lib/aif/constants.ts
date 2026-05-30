@@ -204,10 +204,7 @@ export const OWL_DATATYPE_PROPERTY = `${OWL_NAMESPACE}DatatypeProperty`;
  */
 export const MESH_CLUSTER_TAG = `${MESH_NAMESPACE}clusterTag`;
 
-/**
- * Mesh property: inheritCQs
- */
-export const MESH_INHERIT_CQS = `${MESH_NAMESPACE}inheritCQs`;
+// Phase 3 step 13: MESH_INHERIT_CQS retired with the `inheritCQs` column.
 
 /**
  * Mesh property: hasAncestor (transitive)

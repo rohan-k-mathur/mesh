@@ -91,7 +91,6 @@ function normalize(s: any) {
     // Phase 6D: Include hierarchy metadata
     parentSchemeId: s.parentSchemeId ?? null,
     clusterTag: s.clusterTag ?? null,
-    inheritCQs: s.inheritCQs ?? true,
     // Phase 6E: Include formal argument structure
     formalStructure: FORMAL_STRUCTURES[s.key] || null,
     // keep validators server-side; add later to the payload if/when the UI needs them

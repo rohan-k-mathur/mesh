@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
+import { onCqCounterPost } from '@/lib/schemes/protocol/dialogueHooks';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const cqId = params.id;
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     where: { id: cqId },
     data: { status: 'counter-posted', resolvedById: createdById },
   });
+
+  // Phase 4 / Spec 3 §3.3 — a counter-post defeats the CQ for the
+  // scheme-instance; mark the obligation `failed`. Non-fatal.
+  void onCqCounterPost({ criticalQuestionId: cqId });
 
   await recomputeGroundedForDelib(targetClaim?.deliberationId ?? null);
 

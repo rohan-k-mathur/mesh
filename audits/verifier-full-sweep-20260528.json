@@ -1,0 +1,1251 @@
+{
+  "generatedAtIso": "2026-05-28T22:35:02.540Z",
+  "planStep": "Phase 2 step 8 (extended sweep)",
+  "schemes": [
+    {
+      "key": "analogy",
+      "clusterTag": "similarity_family",
+      "cqCount": 2,
+      "fingerprint": "781120804043ef6cd22e6e9b8cd5c9d28b7c8271bb55f9533abe86d80f9b96f0"
+    },
+    {
+      "key": "argument_from_composition",
+      "clusterTag": "definition_family",
+      "cqCount": 5,
+      "fingerprint": "618f7ec17c9d8cc19175303e2c1bf95285370e02c203a51162f9e818a76a1898"
+    },
+    {
+      "key": "argument_from_division",
+      "clusterTag": "definition_family",
+      "cqCount": 5,
+      "fingerprint": "0cdd7ee766d76f84d1e0f708146c901366b4bdf28ab0a348670f0fa0b3899abe"
+    },
+    {
+      "key": "argument_from_example",
+      "clusterTag": "similarity_family",
+      "cqCount": 5,
+      "fingerprint": "bcce415b52ac05443cbfea217c7c47958ca98ae2946f929b02ff54e3fa1f53bc"
+    },
+    {
+      "key": "argument_from_lack_of_evidence",
+      "clusterTag": "evidence_family",
+      "cqCount": 5,
+      "fingerprint": "f70dd5bed2748b767f634d3c7faa25a2b2b80b7eb3abfaf1c56f2bb2c11cae37"
+    },
+    {
+      "key": "causal",
+      "clusterTag": "causal_family",
+      "cqCount": 2,
+      "fingerprint": "73030208918e7c111a25631175fb87d7fe841bf17c5050a913b1a1eedf128c93"
+    },
+    {
+      "key": "cause_to_effect",
+      "clusterTag": "causal_family",
+      "cqCount": 5,
+      "fingerprint": "168068b120139d61daddc55f0f6272b66812b497ee7e11ad1afec187aae1e6bb"
+    },
+    {
+      "key": "classification",
+      "clusterTag": "definition_family",
+      "cqCount": 1,
+      "fingerprint": "914dfe08a02aeed6def8cd8ebb1d422f94f031be42093ea776184a0b70ea1bdb"
+    },
+    {
+      "key": "definition_to_classification",
+      "clusterTag": "definition_family",
+      "cqCount": 6,
+      "fingerprint": "c2af090adb7965003d64a9f1dd867f7eb3d74d861a8e04eff2b25913281326e9"
+    },
+    {
+      "key": "expert-opinion",
+      "clusterTag": "authority_family",
+      "cqCount": 2,
+      "fingerprint": "69b3b2f3131a14a9cd318cec90cd08cba4af6a85ddc47c3aa3a35c7169f7be01"
+    },
+    {
+      "key": "expert_opinion",
+      "clusterTag": "authority_family",
+      "cqCount": 4,
+      "fingerprint": "612a8f02bea81aac9c3bece0f3f6a767bb050f2e77b08fc9f242a55cc0d22dd7"
+    },
+    {
+      "key": "good_consequences",
+      "clusterTag": "practical_reasoning_family",
+      "cqCount": 3,
+      "fingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725"
+    },
+    {
+      "key": "inference_to_best_explanation",
+      "clusterTag": "causal_family",
+      "cqCount": 5,
+      "fingerprint": "7372ce00527f5268afb66a82339aea167b9046823ceec9d4638d4f3fdd0d80e0"
+    },
+    {
+      "key": "methodological_critique",
+      "clusterTag": "evidence_family",
+      "cqCount": 6,
+      "fingerprint": "cc2d0d290cb52b416effaab9647cfcc206dfbb2e7a24f96ce2b9ccc13bde68ef"
+    },
+    {
+      "key": "negative_consequences",
+      "clusterTag": "practical_reasoning_family",
+      "cqCount": 5,
+      "fingerprint": "999f44c56af8104e47584473d38bdbcef9481e56f937e0ae35dffe224420f99b"
+    },
+    {
+      "key": "popular_opinion",
+      "clusterTag": "authority_family",
+      "cqCount": 5,
+      "fingerprint": "401d90f95156abec11b17e3e38b2a1ccbd4490c981dc35f5d048d435e9039645"
+    },
+    {
+      "key": "popular_practice",
+      "clusterTag": "authority_family",
+      "cqCount": 5,
+      "fingerprint": "f8f1981e65fc3b778a3f411e2287513eeb9b24e9e020e6e36ef95bf85dbba8d1"
+    },
+    {
+      "key": "positive_consequences",
+      "clusterTag": "practical_reasoning_family",
+      "cqCount": 5,
+      "fingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941"
+    },
+    {
+      "key": "practical_reasoning",
+      "clusterTag": "practical_reasoning_family",
+      "cqCount": 9,
+      "fingerprint": "00bb79db9b05bece8f985a8d6a8280ce03c44b47d750fe977273c809b99e7011"
+    },
+    {
+      "key": "sign",
+      "clusterTag": "evidence_family",
+      "cqCount": 3,
+      "fingerprint": "7a55a5b74c95ad4f34b7a3e55a959b7cab02a46ca39a056af73b9676ea680aec"
+    },
+    {
+      "key": "slippery_slope",
+      "clusterTag": "practical_reasoning_family",
+      "cqCount": 4,
+      "fingerprint": "d97851360ab3e39a83f079c5d331713d810c7eb1160b2f11cef25a5004f094ee"
+    },
+    {
+      "key": "statistical_generalization",
+      "clusterTag": "evidence_family",
+      "cqCount": 5,
+      "fingerprint": "ee3cc6ae790db61cb224a6b56a0a3fd5448bec81edd1a09d76e8b8ec73f1fa44"
+    },
+    {
+      "key": "value_based_pr",
+      "clusterTag": "practical_reasoning_family",
+      "cqCount": 3,
+      "fingerprint": "c9b032dda681b24ab3428a99be3d3a2772953fc095650408e12ae110ce1ba5cb"
+    },
+    {
+      "key": "verbal_classification",
+      "clusterTag": "definition_family",
+      "cqCount": 5,
+      "fingerprint": "b88775978f70a08d9d57747bcbd3c309f1a0860c91a49ed8c865ee43c8b7a50f"
+    },
+    {
+      "key": "witness_testimony",
+      "clusterTag": "authority_family",
+      "cqCount": 6,
+      "fingerprint": "b92d2cdda967ca7dfb9a1306e8f91cc4f98342fec4b8cdaeae57c5282ddade4e"
+    }
+  ],
+  "families": [
+    {
+      "clusterTag": "similarity_family",
+      "keys": [
+        "analogy",
+        "argument_from_example"
+      ]
+    },
+    {
+      "clusterTag": "definition_family",
+      "keys": [
+        "argument_from_composition",
+        "argument_from_division",
+        "classification",
+        "definition_to_classification",
+        "verbal_classification"
+      ]
+    },
+    {
+      "clusterTag": "evidence_family",
+      "keys": [
+        "argument_from_lack_of_evidence",
+        "methodological_critique",
+        "sign",
+        "statistical_generalization"
+      ]
+    },
+    {
+      "clusterTag": "causal_family",
+      "keys": [
+        "causal",
+        "cause_to_effect",
+        "inference_to_best_explanation"
+      ]
+    },
+    {
+      "clusterTag": "authority_family",
+      "keys": [
+        "expert-opinion",
+        "expert_opinion",
+        "popular_opinion",
+        "popular_practice",
+        "witness_testimony"
+      ]
+    },
+    {
+      "clusterTag": "practical_reasoning_family",
+      "keys": [
+        "good_consequences",
+        "negative_consequences",
+        "positive_consequences",
+        "practical_reasoning",
+        "slippery_slope",
+        "value_based_pr"
+      ]
+    }
+  ],
+  "fingerprintCollisions": [],
+  "pairs": [
+    {
+      "leftKey": "analogy",
+      "rightKey": "argument_from_example",
+      "clusterTag": "similarity_family",
+      "leftCqs": 2,
+      "rightCqs": 5,
+      "leftFingerprint": "781120804043ef6cd22e6e9b8cd5c9d28b7c8271bb55f9533abe86d80f9b96f0",
+      "rightFingerprint": "bcce415b52ac05443cbfea217c7c47958ca98ae2946f929b02ff54e3fa1f53bc",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "relevant_sims",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "example_representative?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_composition",
+      "rightKey": "argument_from_division",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "618f7ec17c9d8cc19175303e2c1bf95285370e02c203a51162f9e818a76a1898",
+      "rightFingerprint": "0cdd7ee766d76f84d1e0f708146c901366b4bdf28ab0a348670f0fa0b3899abe",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "all_parts_have_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "whole_has_property?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_composition",
+      "rightKey": "classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 1,
+      "leftFingerprint": "618f7ec17c9d8cc19175303e2c1bf95285370e02c203a51162f9e818a76a1898",
+      "rightFingerprint": "914dfe08a02aeed6def8cd8ebb1d422f94f031be42093ea776184a0b70ea1bdb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "all_parts_have_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "category_fit",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_composition",
+      "rightKey": "definition_to_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 6,
+      "leftFingerprint": "618f7ec17c9d8cc19175303e2c1bf95285370e02c203a51162f9e818a76a1898",
+      "rightFingerprint": "c2af090adb7965003d64a9f1dd867f7eb3d74d861a8e04eff2b25913281326e9",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "all_parts_have_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_defining_properties?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_composition",
+      "rightKey": "verbal_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "618f7ec17c9d8cc19175303e2c1bf95285370e02c203a51162f9e818a76a1898",
+      "rightFingerprint": "b88775978f70a08d9d57747bcbd3c309f1a0860c91a49ed8c865ee43c8b7a50f",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "all_parts_have_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_property?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_division",
+      "rightKey": "classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 1,
+      "leftFingerprint": "0cdd7ee766d76f84d1e0f708146c901366b4bdf28ab0a348670f0fa0b3899abe",
+      "rightFingerprint": "914dfe08a02aeed6def8cd8ebb1d422f94f031be42093ea776184a0b70ea1bdb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "whole_has_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "category_fit",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_division",
+      "rightKey": "definition_to_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 6,
+      "leftFingerprint": "0cdd7ee766d76f84d1e0f708146c901366b4bdf28ab0a348670f0fa0b3899abe",
+      "rightFingerprint": "c2af090adb7965003d64a9f1dd867f7eb3d74d861a8e04eff2b25913281326e9",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "whole_has_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_defining_properties?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_division",
+      "rightKey": "verbal_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "0cdd7ee766d76f84d1e0f708146c901366b4bdf28ab0a348670f0fa0b3899abe",
+      "rightFingerprint": "b88775978f70a08d9d57747bcbd3c309f1a0860c91a49ed8c865ee43c8b7a50f",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "whole_has_property?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_property?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "classification",
+      "rightKey": "definition_to_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 1,
+      "rightCqs": 6,
+      "leftFingerprint": "914dfe08a02aeed6def8cd8ebb1d422f94f031be42093ea776184a0b70ea1bdb",
+      "rightFingerprint": "c2af090adb7965003d64a9f1dd867f7eb3d74d861a8e04eff2b25913281326e9",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "category_fit",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_defining_properties?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "classification",
+      "rightKey": "verbal_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 1,
+      "rightCqs": 5,
+      "leftFingerprint": "914dfe08a02aeed6def8cd8ebb1d422f94f031be42093ea776184a0b70ea1bdb",
+      "rightFingerprint": "b88775978f70a08d9d57747bcbd3c309f1a0860c91a49ed8c865ee43c8b7a50f",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "category_fit",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_property?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "definition_to_classification",
+      "rightKey": "verbal_classification",
+      "clusterTag": "definition_family",
+      "leftCqs": 6,
+      "rightCqs": 5,
+      "leftFingerprint": "c2af090adb7965003d64a9f1dd867f7eb3d74d861a8e04eff2b25913281326e9",
+      "rightFingerprint": "b88775978f70a08d9d57747bcbd3c309f1a0860c91a49ed8c865ee43c8b7a50f",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "has_defining_properties?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "has_property?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_lack_of_evidence",
+      "rightKey": "methodological_critique",
+      "clusterTag": "evidence_family",
+      "leftCqs": 5,
+      "rightCqs": 6,
+      "leftFingerprint": "f70dd5bed2748b767f634d3c7faa25a2b2b80b7eb3abfaf1c56f2bb2c11cae37",
+      "rightFingerprint": "cc2d0d290cb52b416effaab9647cfcc206dfbb2e7a24f96ce2b9ccc13bde68ef",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "search_adequate?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "defect_present?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_lack_of_evidence",
+      "rightKey": "sign",
+      "clusterTag": "evidence_family",
+      "leftCqs": 5,
+      "rightCqs": 3,
+      "leftFingerprint": "f70dd5bed2748b767f634d3c7faa25a2b2b80b7eb3abfaf1c56f2bb2c11cae37",
+      "rightFingerprint": "7a55a5b74c95ad4f34b7a3e55a959b7cab02a46ca39a056af73b9676ea680aec",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "search_adequate?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "sign_correlation",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "argument_from_lack_of_evidence",
+      "rightKey": "statistical_generalization",
+      "clusterTag": "evidence_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "f70dd5bed2748b767f634d3c7faa25a2b2b80b7eb3abfaf1c56f2bb2c11cae37",
+      "rightFingerprint": "ee3cc6ae790db61cb224a6b56a0a3fd5448bec81edd1a09d76e8b8ec73f1fa44",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "search_adequate?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "sample_size?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "methodological_critique",
+      "rightKey": "sign",
+      "clusterTag": "evidence_family",
+      "leftCqs": 6,
+      "rightCqs": 3,
+      "leftFingerprint": "cc2d0d290cb52b416effaab9647cfcc206dfbb2e7a24f96ce2b9ccc13bde68ef",
+      "rightFingerprint": "7a55a5b74c95ad4f34b7a3e55a959b7cab02a46ca39a056af73b9676ea680aec",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "defect_present?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "sign_correlation",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "methodological_critique",
+      "rightKey": "statistical_generalization",
+      "clusterTag": "evidence_family",
+      "leftCqs": 6,
+      "rightCqs": 5,
+      "leftFingerprint": "cc2d0d290cb52b416effaab9647cfcc206dfbb2e7a24f96ce2b9ccc13bde68ef",
+      "rightFingerprint": "ee3cc6ae790db61cb224a6b56a0a3fd5448bec81edd1a09d76e8b8ec73f1fa44",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "defect_present?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "sample_size?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "sign",
+      "rightKey": "statistical_generalization",
+      "clusterTag": "evidence_family",
+      "leftCqs": 3,
+      "rightCqs": 5,
+      "leftFingerprint": "7a55a5b74c95ad4f34b7a3e55a959b7cab02a46ca39a056af73b9676ea680aec",
+      "rightFingerprint": "ee3cc6ae790db61cb224a6b56a0a3fd5448bec81edd1a09d76e8b8ec73f1fa44",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "sign_correlation",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "sample_size?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "causal",
+      "rightKey": "cause_to_effect",
+      "clusterTag": "causal_family",
+      "leftCqs": 2,
+      "rightCqs": 5,
+      "leftFingerprint": "73030208918e7c111a25631175fb87d7fe841bf17c5050a913b1a1eedf128c93",
+      "rightFingerprint": "168068b120139d61daddc55f0f6272b66812b497ee7e11ad1afec187aae1e6bb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "alt_causes",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "causal_strength",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "causal",
+      "rightKey": "inference_to_best_explanation",
+      "clusterTag": "causal_family",
+      "leftCqs": 2,
+      "rightCqs": 5,
+      "leftFingerprint": "73030208918e7c111a25631175fb87d7fe841bf17c5050a913b1a1eedf128c93",
+      "rightFingerprint": "7372ce00527f5268afb66a82339aea167b9046823ceec9d4638d4f3fdd0d80e0",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "post_hoc",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "alternative_hypothesis?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "cause_to_effect",
+      "rightKey": "inference_to_best_explanation",
+      "clusterTag": "causal_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "168068b120139d61daddc55f0f6272b66812b497ee7e11ad1afec187aae1e6bb",
+      "rightFingerprint": "7372ce00527f5268afb66a82339aea167b9046823ceec9d4638d4f3fdd0d80e0",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "causal_strength",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "alternative_hypothesis?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert-opinion",
+      "rightKey": "expert_opinion",
+      "clusterTag": "authority_family",
+      "leftCqs": 2,
+      "rightCqs": 4,
+      "leftFingerprint": "69b3b2f3131a14a9cd318cec90cd08cba4af6a85ddc47c3aa3a35c7169f7be01",
+      "rightFingerprint": "612a8f02bea81aac9c3bece0f3f6a767bb050f2e77b08fc9f242a55cc0d22dd7",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "EO1",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "consensus",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert-opinion",
+      "rightKey": "popular_opinion",
+      "clusterTag": "authority_family",
+      "leftCqs": 2,
+      "rightCqs": 5,
+      "leftFingerprint": "69b3b2f3131a14a9cd318cec90cd08cba4af6a85ddc47c3aa3a35c7169f7be01",
+      "rightFingerprint": "401d90f95156abec11b17e3e38b2a1ccbd4490c981dc35f5d048d435e9039645",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "EO1",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "acceptance_evidence?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert-opinion",
+      "rightKey": "popular_practice",
+      "clusterTag": "authority_family",
+      "leftCqs": 2,
+      "rightCqs": 5,
+      "leftFingerprint": "69b3b2f3131a14a9cd318cec90cd08cba4af6a85ddc47c3aa3a35c7169f7be01",
+      "rightFingerprint": "f8f1981e65fc3b778a3f411e2287513eeb9b24e9e020e6e36ef95bf85dbba8d1",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "EO1",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "practice_evidence?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert-opinion",
+      "rightKey": "witness_testimony",
+      "clusterTag": "authority_family",
+      "leftCqs": 2,
+      "rightCqs": 6,
+      "leftFingerprint": "69b3b2f3131a14a9cd318cec90cd08cba4af6a85ddc47c3aa3a35c7169f7be01",
+      "rightFingerprint": "b92d2cdda967ca7dfb9a1306e8f91cc4f98342fec4b8cdaeae57c5282ddade4e",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "EO1",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "witness_consistent?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert_opinion",
+      "rightKey": "popular_opinion",
+      "clusterTag": "authority_family",
+      "leftCqs": 4,
+      "rightCqs": 5,
+      "leftFingerprint": "612a8f02bea81aac9c3bece0f3f6a767bb050f2e77b08fc9f242a55cc0d22dd7",
+      "rightFingerprint": "401d90f95156abec11b17e3e38b2a1ccbd4490c981dc35f5d048d435e9039645",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "consensus",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "acceptance_evidence?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert_opinion",
+      "rightKey": "popular_practice",
+      "clusterTag": "authority_family",
+      "leftCqs": 4,
+      "rightCqs": 5,
+      "leftFingerprint": "612a8f02bea81aac9c3bece0f3f6a767bb050f2e77b08fc9f242a55cc0d22dd7",
+      "rightFingerprint": "f8f1981e65fc3b778a3f411e2287513eeb9b24e9e020e6e36ef95bf85dbba8d1",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "consensus",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "practice_evidence?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "expert_opinion",
+      "rightKey": "witness_testimony",
+      "clusterTag": "authority_family",
+      "leftCqs": 4,
+      "rightCqs": 6,
+      "leftFingerprint": "612a8f02bea81aac9c3bece0f3f6a767bb050f2e77b08fc9f242a55cc0d22dd7",
+      "rightFingerprint": "b92d2cdda967ca7dfb9a1306e8f91cc4f98342fec4b8cdaeae57c5282ddade4e",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "consensus",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "witness_consistent?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "popular_opinion",
+      "rightKey": "popular_practice",
+      "clusterTag": "authority_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "401d90f95156abec11b17e3e38b2a1ccbd4490c981dc35f5d048d435e9039645",
+      "rightFingerprint": "f8f1981e65fc3b778a3f411e2287513eeb9b24e9e020e6e36ef95bf85dbba8d1",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "acceptance_evidence?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "practice_evidence?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "popular_opinion",
+      "rightKey": "witness_testimony",
+      "clusterTag": "authority_family",
+      "leftCqs": 5,
+      "rightCqs": 6,
+      "leftFingerprint": "401d90f95156abec11b17e3e38b2a1ccbd4490c981dc35f5d048d435e9039645",
+      "rightFingerprint": "b92d2cdda967ca7dfb9a1306e8f91cc4f98342fec4b8cdaeae57c5282ddade4e",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "acceptance_evidence?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "witness_consistent?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "popular_practice",
+      "rightKey": "witness_testimony",
+      "clusterTag": "authority_family",
+      "leftCqs": 5,
+      "rightCqs": 6,
+      "leftFingerprint": "f8f1981e65fc3b778a3f411e2287513eeb9b24e9e020e6e36ef95bf85dbba8d1",
+      "rightFingerprint": "b92d2cdda967ca7dfb9a1306e8f91cc4f98342fec4b8cdaeae57c5282ddade4e",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "practice_evidence?",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "witness_consistent?",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "good_consequences",
+      "rightKey": "negative_consequences",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 3,
+      "rightCqs": 5,
+      "leftFingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725",
+      "rightFingerprint": "999f44c56af8104e47584473d38bdbcef9481e56f937e0ae35dffe224420f99b",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "exaggerated",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "good_consequences",
+      "rightKey": "positive_consequences",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 3,
+      "rightCqs": 5,
+      "leftFingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725",
+      "rightFingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "tradeoffs",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "good_consequences",
+      "rightKey": "practical_reasoning",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 3,
+      "rightCqs": 9,
+      "leftFingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725",
+      "rightFingerprint": "00bb79db9b05bece8f985a8d6a8280ce03c44b47d750fe977273c809b99e7011",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "alternatives",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "good_consequences",
+      "rightKey": "slippery_slope",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 3,
+      "rightCqs": 4,
+      "leftFingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725",
+      "rightFingerprint": "d97851360ab3e39a83f079c5d331713d810c7eb1160b2f11cef25a5004f094ee",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "SS.CHAIN_PLAUSIBLE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "good_consequences",
+      "rightKey": "value_based_pr",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 3,
+      "rightCqs": 3,
+      "leftFingerprint": "2b569f3882500254366704e391aad0409ee8f61f411051b83fe4b67e092f8725",
+      "rightFingerprint": "c9b032dda681b24ab3428a99be3d3a2772953fc095650408e12ae110ce1ba5cb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "VB.RELEVANCE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "negative_consequences",
+      "rightKey": "positive_consequences",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 5,
+      "leftFingerprint": "999f44c56af8104e47584473d38bdbcef9481e56f937e0ae35dffe224420f99b",
+      "rightFingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "exaggerated",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "tradeoffs",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "negative_consequences",
+      "rightKey": "practical_reasoning",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 9,
+      "leftFingerprint": "999f44c56af8104e47584473d38bdbcef9481e56f937e0ae35dffe224420f99b",
+      "rightFingerprint": "00bb79db9b05bece8f985a8d6a8280ce03c44b47d750fe977273c809b99e7011",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "exaggerated",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "alternatives",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "negative_consequences",
+      "rightKey": "slippery_slope",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 4,
+      "leftFingerprint": "999f44c56af8104e47584473d38bdbcef9481e56f937e0ae35dffe224420f99b",
+      "rightFingerprint": "d97851360ab3e39a83f079c5d331713d810c7eb1160b2f11cef25a5004f094ee",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "exaggerated",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "SS.CHAIN_PLAUSIBLE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "negative_consequences",
+      "rightKey": "value_based_pr",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 3,
+      "leftFingerprint": "999f44c56af8104e47584473d38bdbcef9481e56f937e0ae35dffe224420f99b",
+      "rightFingerprint": "c9b032dda681b24ab3428a99be3d3a2772953fc095650408e12ae110ce1ba5cb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "exaggerated",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "VB.RELEVANCE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "positive_consequences",
+      "rightKey": "practical_reasoning",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 9,
+      "leftFingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941",
+      "rightFingerprint": "00bb79db9b05bece8f985a8d6a8280ce03c44b47d750fe977273c809b99e7011",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "tradeoffs",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "alternatives",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "positive_consequences",
+      "rightKey": "slippery_slope",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 4,
+      "leftFingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941",
+      "rightFingerprint": "d97851360ab3e39a83f079c5d331713d810c7eb1160b2f11cef25a5004f094ee",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "tradeoffs",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "SS.CHAIN_PLAUSIBLE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "positive_consequences",
+      "rightKey": "value_based_pr",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 5,
+      "rightCqs": 3,
+      "leftFingerprint": "8381e6bea00235644f93c8b8996de190a0859316ab36b8654b0eb992c53d7941",
+      "rightFingerprint": "c9b032dda681b24ab3428a99be3d3a2772953fc095650408e12ae110ce1ba5cb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "tradeoffs",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "VB.RELEVANCE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "practical_reasoning",
+      "rightKey": "slippery_slope",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 9,
+      "rightCqs": 4,
+      "leftFingerprint": "00bb79db9b05bece8f985a8d6a8280ce03c44b47d750fe977273c809b99e7011",
+      "rightFingerprint": "d97851360ab3e39a83f079c5d331713d810c7eb1160b2f11cef25a5004f094ee",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "alternatives",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "SS.CHAIN_PLAUSIBLE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "practical_reasoning",
+      "rightKey": "value_based_pr",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 9,
+      "rightCqs": 3,
+      "leftFingerprint": "00bb79db9b05bece8f985a8d6a8280ce03c44b47d750fe977273c809b99e7011",
+      "rightFingerprint": "c9b032dda681b24ab3428a99be3d3a2772953fc095650408e12ae110ce1ba5cb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "alternatives",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "VB.RELEVANCE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    },
+    {
+      "leftKey": "slippery_slope",
+      "rightKey": "value_based_pr",
+      "clusterTag": "practical_reasoning_family",
+      "leftCqs": 4,
+      "rightCqs": 3,
+      "leftFingerprint": "d97851360ab3e39a83f079c5d331713d810c7eb1160b2f11cef25a5004f094ee",
+      "rightFingerprint": "c9b032dda681b24ab3428a99be3d3a2772953fc095650408e12ae110ce1ba5cb",
+      "fingerprintsAgree": false,
+      "verdict": {
+        "kind": "incomparable",
+        "certificate": {
+          "discriminatingCqOnLeft": {
+            "cqKey": "SS.CHAIN_PLAUSIBLE",
+            "rationale": "no structural match on right"
+          },
+          "discriminatingCqOnRight": {
+            "cqKey": "VB.RELEVANCE",
+            "rationale": "no structural match on left"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -52,7 +52,6 @@ export async function GET(
                   },
                 },
                 parentSchemeId: true,
-                inheritCQs: true,
               },
             },
           },
@@ -94,8 +93,9 @@ export async function GET(
     const inheritedCQs: CQWithProvenance[] = [];
     const inheritancePath: Array<{ id: string; name: string; key: string }> = [];
 
-    // Traverse parent chain to collect inherited CQs
-    if (scheme.inheritCQs && scheme.parentSchemeId) {
+    // Traverse parent chain to collect inherited CQs (Phase 3 step 13:
+    // inheritance is now unconditional whenever a parent edge exists).
+    if (scheme.parentSchemeId) {
       let currentParentId = scheme.parentSchemeId;
       const visited = new Set<string>([scheme.id]);
 
@@ -117,7 +117,6 @@ export async function GET(
               },
             },
             parentSchemeId: true,
-            inheritCQs: true,
           },
         });
 
@@ -144,8 +143,8 @@ export async function GET(
 
         inheritedCQs.push(...parentCQs);
 
-        // Continue up the chain if parent also inherits
-        if (parentScheme.inheritCQs && parentScheme.parentSchemeId) {
+        // Continue up the chain if parent has its own parent
+        if (parentScheme.parentSchemeId) {
           currentParentId = parentScheme.parentSchemeId;
         } else {
           break;

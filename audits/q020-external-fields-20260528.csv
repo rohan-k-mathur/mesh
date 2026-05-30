@@ -1,0 +1,75 @@
+external_field_name,external_source,semantic_description,substrate_mapping,classification,rationale,follow_on_q
+# Q-020 — External-catalogue field comparison (first-pass; single analyst; 2026-05-28).
+# Spec: ../Development and Ideation Documents/ARCHITECTURE/SCHEMES_IMPL_AUDIT_PROTOCOLS.md §3 (Q-020).
+# Per-class summary lives in the sibling .md.
+#
+# Substrate model under audit: ArgumentScheme + CriticalQuestion + SchemeInstance + ArgumentSchemeInstance + SchemeVariant.
+# See lib/models/schema.prisma (ArgumentScheme @ line 4062).
+#
+# external_source ∈ {AIF, AIFdb, Argdown, ASPIC+, DefLog, WRM-2008, Wagemans-PTA}
+# classification ∈ {
+#   exposed,                                         # present in substrate (substrate_mapping required)
+#   intentional-exclusion,                           # absent for principled reason (rationale required)
+#   accidental-omission,                             # absent; should be added (follow_on_q likely)
+#   representable-but-absent,                        # re-derivable from existing fields (substrate_mapping = derivation recipe)
+#   externally-load-bearing-internally-irrelevant    # not needed under substrate ontology (rationale required)
+# }
+#
+# === AIF (Chesñevar et al. 2006 §3–§5) ===
+RA-Scheme-Type,AIF,Type of rule of inference for the rule-application (RA) node,ArgumentScheme.key,exposed,Direct mapping — substrate scheme key plays the RA-Scheme-Type role,
+CA-Scheme-Type,AIF,Type of conflict for the conflict-application (CA) node,ArgumentScheme.aspicMapping.ruleType + CriticalQuestion.attackKind,representable-but-absent,"Derivable: ruleType=strict CQs with attackKind=rebut → CA-Rebut; attackKind=undercut → CA-Undercut",
+PA-Scheme-Type,AIF,Type of preference for preference-application (PA) node,,intentional-exclusion,Preferences are first-class in the substrate via the Preference table and ASPIC+ preferenceLevel; not a scheme-layer concern,
+TA-Scheme-Type,AIF,Type of transition for transition-application (TA) node — dialogue-protocol-level,,intentional-exclusion,Dialogue protocol lives in the Dialogue/Locution layer not on schemes; substrate's ludics/dialogue layer carries this,
+descriptor,AIF,Free-text descriptor of the scheme,ArgumentScheme.description,exposed,,
+formaldescription,AIF,Logical-form description (typically first-order or modal),ArgumentScheme.aspicMapping + premises/conclusion templates,representable-but-absent,Re-derivable from aspicMapping ruleType + premises + conclusion JSON; no canonical formal-logic string is stored,
+hassource,AIF,Citation/provenance of the scheme (e.g., Walton 1996),,accidental-omission,Substrate has no per-scheme provenance field. Should be added for catalogue-import audit trail and to disambiguate `expert_opinion` vs `expert-opinion` cases,Q-022
+I-node-type,AIF,Information-node type (proposition vs statement),,intentional-exclusion,I-nodes are argument-level not scheme-level; substrate models them on Claim/ClaimText,
+L-node-illocution,AIF,Locution-node illocutionary force (assert query etc.),,intentional-exclusion,Locutions live in the dialogue layer not on schemes,
+period,AIF,Temporal validity of the scheme (when applicable),,externally-load-bearing-internally-irrelevant,AIF spec allows period annotations on schemes for historical/legal corpora; substrate's epistemicMode field handles factual/hypothetical/counterfactual but not temporal validity. Not load-bearing for the substrate's argumentation use case,
+AIF-version,AIF,Which version of the AIF specification this scheme conforms to,,accidental-omission,Substrate's AIF round-trip (lib/aif/syncArgument.ts) does not record version. Spec 4 phase 4c AIF round-trip identity discipline needs version-pinning,Q-023
+# === AIFdb (Lawrence & Reed 2012) ===
+url,AIFdb,Canonical URL for the scheme record on AIFdb,,intentional-exclusion,Substrate is the canonical source for its own schemes; external URLs belong on import-provenance not on schemes,
+mapId,AIFdb,Identifier of the AIFdb argument-map this scheme was extracted from,,accidental-omission,Should live on an ImportProvenance side-table not on ArgumentScheme. Spec 4 phase 4c benefits from this when round-tripping,Q-022
+contributor,AIFdb,User who added the scheme to AIFdb,,intentional-exclusion,User attribution lives on substrate's own audit log (createdById on Argument) not on the abstract scheme,
+edit-history,AIFdb,Version history of scheme edits,,intentional-exclusion,Substrate scheme edits are tracked via Postgres audit triggers and Prisma migrations not in the scheme row itself,
+nodeset-format,AIFdb,Mapping into AIFdb's JSON nodeset format,,representable-but-absent,Spec 4 phase 4c serialiser builds this from premises + conclusion + CQs + aspicMapping at round-trip time,
+import-timestamp,AIFdb,When the scheme was imported,,accidental-omission,Substrate has no per-scheme `importedAt` or `createdAt`. The Q-019 audit script discovered this (ArgumentScheme has no createdAt column). Should be added for catalogue-hygiene,Q-024
+# === Argdown (Voigt et al. — argdown.org/syntax/) ===
+slug,Argdown,Stable identifier for the scheme,ArgumentScheme.key,exposed,,
+tags,Argdown,Free-form tag list,ArgumentScheme.tags,exposed,,
+heading-level,Argdown,Markdown heading depth in the source Argdown document,,intentional-exclusion,Argdown headings are presentation-layer; substrate's hierarchy lives in parentSchemeId / clusterTag,
+frontmatter,Argdown,YAML metadata block at the top of an Argdown file,,intentional-exclusion,Substrate's per-scheme metadata is structured (separate columns); a free-form frontmatter dict is anti-pattern under the substrate ontology,
+relations-syntax,Argdown,"Argdown's arrow syntax for relations (<_, _>, <+, +>) between claims/arguments",CriticalQuestion.attackKind + ClaimRelation,exposed,Substrate has typed claim/argument relations (support/attack/undercut) covering the Argdown arrow set,
+position-in-graph,Argdown,Manually-set XY coordinates for graph layout,,intentional-exclusion,Layout is a UI-layer concern (recomputed per render); substrate stores no layout state on schemes,
+statement-references,Argdown,Cross-references between argument cells (`[Statement1]`),Claim.id references in premise templates,representable-but-absent,Substrate models cross-claim references via ClaimEdge / ArgumentEdge at the argument layer not the scheme layer,
+boolean-relations,Argdown,Boolean operators on relations (`AND`/`OR` between premises),,externally-load-bearing-internally-irrelevant,Substrate models premises as independent items each with its own CQs; conjunction is implicit and disjunction is rare in Walton-style schemes,
+# === ASPIC+ (Modgil & Prakken 2014) ===
+rule-id,ASPIC+,Identifier for the defeasible/strict rule,ArgumentScheme.aspicMapping.ruleId,exposed,,
+rule-type,ASPIC+,strict | defeasible,ArgumentScheme.aspicMapping.ruleType,exposed,,
+preference-level,ASPIC+,Numeric preference among rules,ArgumentScheme.aspicMapping.preferenceLevel,exposed,,
+contrariness-function,ASPIC+,Defines what contradicts what (¬a vs a),,intentional-exclusion,Contrariness is a global system-level function in ASPIC+; substrate models contradictions via per-claim ClaimRelation rebut/contradict edges not via a per-scheme contrariness operator,
+knowledge-base-class,ASPIC+,"Kn (necessary) | Kp (ordinary premises) | Ka (assumptions) | Ki (issues) classification of premises",CriticalQuestion.premiseType (Carneades-mapped: assumption | exception | ordinary),representable-but-absent,Substrate uses Carneades's premiseType which maps onto ASPIC+'s Kn/Kp/Ka taxonomy at round-trip time; see Spec 3 phase 3d,
+last-link-vs-weakest-link,ASPIC+,Preference principle for argument-tree evaluation,,externally-load-bearing-internally-irrelevant,System-level evaluation policy; substrate's evaluation uses Carneades-style proof-standard not ASPIC+ link policies,
+rebut-vs-undercut,ASPIC+,Distinguishes attacks on conclusion vs on inference,CriticalQuestion.attackKind,exposed,attackKind ∈ {rebut undercut undermine} mirrors ASPIC+ distinctions,
+axiom-vs-premise,ASPIC+,Whether a premise is axiomatic (cannot be attacked) or ordinary,CriticalQuestion.premiseType=ordinary vs assumption + isAxiomatic flag,representable-but-absent,Substrate's premiseType taxonomy covers the substantive distinction; an `isAxiomatic` boolean would make it explicit at the CQ level,Q-025
+# === DefLog (Verheij 2003) ===
+defeater-pattern,DefLog,Pattern for when this rule is defeated,CriticalQuestion[],representable-but-absent,Substrate models defeaters as CQs with attackKind; round-trip serialiser builds the pattern,
+issue-attack-rule,DefLog,Rule whose attack creates a dialectical issue,,representable-but-absent,Substrate models issues via dialogue-layer Open/Close locutions; round-trip would build from CQ status transitions,
+warrant-marker,DefLog,Whether this scheme requires its warrant to be made explicit (Toulmin-style),,intentional-exclusion,Substrate's premise templates always make the warrant explicit (it's the major premise) so the marker is redundant,
+dialectical-justification,DefLog,Justification structure linking conclusion to grounds via warrant,ArgumentScheme.premises + conclusion + aspicMapping,representable-but-absent,Re-derivable from substrate's structural fields; no canonical justification string is stored,
+# === WRM-2008 (Walton Reed Macagno 2008 Ch. 9) ===
+name,WRM-2008,Scheme name,ArgumentScheme.name,exposed,,
+premises,WRM-2008,Named premise templates,ArgumentScheme.premises,exposed,,
+conclusion,WRM-2008,Conclusion template,ArgumentScheme.conclusion,exposed,,
+critical-questions,WRM-2008,Named CQ list with attack semantics,CriticalQuestion[],exposed,,
+classification-tree-position,WRM-2008,Position in WRM 2008's hierarchical scheme tree (Ch. 9),ArgumentScheme.parentSchemeId + clusterTag,representable-but-absent,Substrate's hierarchy fields cover this but tree-position metadata (depth root-distance siblings) is computed not stored,
+chapter-section-reference,WRM-2008,Source-document chapter/section for this scheme,,accidental-omission,Substrate has no per-scheme citation pointer back to WRM 2008. Required for honest catalogue provenance,Q-022
+sub-scheme-of,WRM-2008,Direct subsumption relation,ArgumentScheme.parentSchemeId,exposed,,
+example-cases,WRM-2008,Concrete worked examples for each scheme,ArgumentScheme.examples,exposed,,
+identification-conditions,WRM-2008,When this scheme is applicable,ArgumentScheme.identificationConditions + whenToUse,exposed,,
+# === Wagemans PTA (Wagemans 2016) ===
+predicate-type,Wagemans-PTA,Predicate type of the conclusion (proposition typology),ArgumentScheme.conclusionType,exposed,,
+subject-type,Wagemans-PTA,Subject type of the conclusion,,accidental-omission,Substrate has no per-scheme subject-typology field; Wagemans's PTA requires this for full taxonomy placement,Q-026
+relation,Wagemans-PTA,Type of relation between premise and conclusion,ArgumentScheme.materialRelation,exposed,,
+first-order-vs-second-order,Wagemans-PTA,Predicate of object vs predicate of statement,,representable-but-absent,Derivable from conclusionType + reasoningType combination but not explicit,
+epistemic-vs-deontic,Wagemans-PTA,"is vs ought axis",ArgumentScheme.conclusionType ∈ {is ought},exposed,,

@@ -295,6 +295,24 @@ any incarnation).
    determine whether the C3 identification needs to be restated in terms of
    the approximation order $\sqsubseteq$ rather than $\subseteq$.
 
+   > **2026-05-29 — resolved-with-redirect.** This flag was filed as
+   > [Q-027](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-027)
+   > and diagnosed on Ambler Example 1 / Q3 (see
+   > [audit](../../../RESEARCH_PROGRAMME/audits/q027-thin-cones-2026-05-29.md)).
+   > The cones-too-thin worry was confirmed under Reading A in both safe
+   > and compressed Ludics encodings — but the resolution is **not** the
+   > anticipated $\subseteq \to \sqsubseteq$ restatement. The diagnostic
+   > surfaced a level mismatch on the bridge target: the per-cone JSL
+   > $C_i$ is the *wrong target* for the Ambler bridge; the correct
+   > target is $\mathcal{P}_\mathrm{fin}(\mathsf{Inc}(B))$ (free JSL on
+   > incarnations). At the new target, Reading A's $\subseteq$ suffices and
+   > the bridge is structurally trivial; the open content reduces to
+   > [Q-028](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028)
+   > (canonicality of the generator-level bijection) and the C001b′
+   > naturality square. Reading A's per-cone JSL story (T001 / Phase 2f
+   > Outcome I) is unaffected as a fact about $B$ — only its role as the
+   > bridge target was misidentified.
+
 3. **Terminology.** Subsequent documents should use $\subseteq$ (not
    $\leq_\subseteq$) for the chronicle-set inclusion order, and $\sqsubseteq$
    for the approximation/extension order when it arises. This avoids the

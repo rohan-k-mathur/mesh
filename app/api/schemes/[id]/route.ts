@@ -1,6 +1,12 @@
 // app/api/schemes/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { recomputeSchemeFingerprint } from "@/lib/schemes/persistence/recomputeSchemeFingerprint";
+import {
+  validateSchemePresentation,
+  type DraftCq,
+  type ParentSchemeShape,
+} from "@/lib/schemes/validation/validatePresentation";
 
 export async function GET(
   _: NextRequest,
@@ -70,12 +76,70 @@ export async function PUT(
     // Check if scheme exists
     const existing = await prisma.argumentScheme.findUnique({
       where: { id: params.id },
+      include: { cqs: true },
     });
 
     if (!existing) {
       return NextResponse.json(
         { error: "Scheme not found" },
         { status: 404 }
+      );
+    }
+
+    // Phase 3 step 11/12: Spec 2 WF1/WF2/WF3 well-formedness validator.
+    // Merge incoming body with current row for fields not being updated, then
+    // validate the *resulting* draft.
+    const effectiveParentId =
+      body.parentSchemeId !== undefined ? body.parentSchemeId : (existing as any).parentSchemeId ?? null;
+    const effectiveCqs: DraftCq[] = (
+      body.cqs !== undefined
+        ? (body.cqs as any[])
+        : ((existing as any).cqs ?? [])
+    ).map((c: any) => ({
+      cqKey: c.cqKey ?? null,
+      text: c.text ?? null,
+      attackType: c.attackType ?? null,
+      targetScope: c.targetScope ?? null,
+    }));
+    let parentShape: ParentSchemeShape | null = null;
+    if (effectiveParentId) {
+      const parentRow = await prisma.argumentScheme.findUnique({
+        where: { id: effectiveParentId },
+        include: { cqs: true },
+      });
+      if (!parentRow) {
+        return NextResponse.json(
+          { error: `parentSchemeId "${effectiveParentId}" does not exist` },
+          { status: 400 },
+        );
+      }
+      parentShape = {
+        id: parentRow.id,
+        key: parentRow.key,
+        cqs: (parentRow as any).cqs.map((c: any) => ({
+          cqKey: c.cqKey,
+          text: c.text,
+          attackType: c.attackType,
+          targetScope: c.targetScope,
+        })) as DraftCq[],
+      };
+    }
+    const wfResult = validateSchemePresentation(
+      {
+        key: existing.key,
+        parentSchemeId: effectiveParentId,
+        cqs: effectiveCqs,
+      },
+      { parentScheme: parentShape },
+    );
+    if (!wfResult.ok) {
+      return NextResponse.json(
+        {
+          error: "Edit fails well-formedness checks (WF1/WF2/WF3).",
+          violations: wfResult.errors,
+          warnings: wfResult.warnings,
+        },
+        { status: 400 },
       );
     }
 
@@ -98,7 +162,6 @@ export async function PUT(
         // Phase 6D: Clustering fields
         parentSchemeId: body.parentSchemeId !== undefined ? body.parentSchemeId : undefined,
         clusterTag: body.clusterTag !== undefined ? body.clusterTag : undefined,
-        inheritCQs: body.inheritCQs !== undefined ? body.inheritCQs : undefined,
       },
     });
 
@@ -120,13 +183,32 @@ export async function PUT(
             status: "open",
             attackType: cq.attackType || "UNDERCUTS",
             targetScope: cq.targetScope || "inference",
+            // Phase 4 step 15 — Carneades default (Walton 2008 §11.1).
+            premiseType: cq.premiseType || "ORDINARY",
           })) as any,
           skipDuplicates: true,
         });
       }
     }
 
-    return NextResponse.json({ success: true, scheme: updated });
+    // Phase 2 step 9: recompute behaviour fingerprint after any structural edit.
+    // The partial unique index ArgumentScheme_argument_scheme_fingerprint_unique
+    // throws P2002 if the edit collapses this row onto another's behaviour.
+    try {
+      await recomputeSchemeFingerprint(params.id);
+    } catch (e: any) {
+      if (e?.code === "P2002") {
+        return NextResponse.json(
+          {
+            error: `Edit would make this scheme behaviourally identical to another argument scheme (fingerprint collision).`,
+          },
+          { status: 409 },
+        );
+      }
+      throw e;
+    }
+
+    return NextResponse.json({ success: true, scheme: updated, warnings: wfResult.warnings });
   } catch (error) {
     console.error(`[PUT /api/schemes/${params.id}] Error:`, error);
     return NextResponse.json(

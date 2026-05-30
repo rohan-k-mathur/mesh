@@ -116,7 +116,6 @@ export interface AIFMappedScheme {
   description?: string;
   parentSchemeURI?: string;
   clusterTag?: string;
-  inheritCQs: boolean;
   questions: AIFMappedQuestion[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -219,7 +218,6 @@ export const SCHEME_PROPERTY_MAPPING = {
   description: "aif:description",
   parentSchemeId: "aif:isSubtypeOf",
   clusterTag: "mesh:clusterTag",
-  inheritCQs: "mesh:inheritCQs",
   schemeCategory: "mesh:schemeCategory",
   createdAt: "mesh:createdAt",
   updatedAt: "mesh:updatedAt",

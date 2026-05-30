@@ -1,10 +1,11 @@
 # C008 — A scheme is a protocol constraint: a rule on the room's dialogue protocol that obliges the proponent to offer subloci for each CQ and grants the opponent the right to play at any CQ-locus
 
-- **status:** open
+- **status:** confirmed (layered — procedural layer)
 - **ring:** core
 - **depends-on:** T001, T002
-- **linked-open-questions:** Q-011, Q-012, Q-014, Q-015
-- **mutually-exclusive-with:** C006, C007
+- **linked-open-questions:** Q-011, Q-014, Q-015 (Q-012 closed)
+- **layered-complement-of:** C006 (base / semantic ground truth), C007 (structural layer)
+- **verdict:** Confirmed as the procedural surface layer of the layered scheme ontology. The protocol fragment `π_S` is *sound with respect to* the C006 behaviour (`𝓟(π_S) ⊆ ⟦S⟧`) and carries additional procedural information (burden distribution, closure conditions) that the behaviour does not determine. Soundness is *proper inclusion* in general — the gap `⟦S⟧ ∖ 𝓟(π_S)` is exactly the exposure map's latent stratum applied to the scheme's behaviour. The `epistemicMode` candidate counterexample does not land: modal annotations live at the C007 layer (and affect C006 selection) without requiring a C008 encoding. See [`../../Development and Ideation Documents/ARCHITECTURE/SCHEMES_ONTOLOGY_DECISION.md`](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/SCHEMES_ONTOLOGY_DECISION.md) §3.3–§3.4, §4.5, and [T003 — Schemes Layered Coherence](../02_THEOREMS_AND_PROOFS/T003-schemes-layered-coherence.md).
 - **last-reviewed:** 2026-05-27
 
 ## Statement
