@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { TargetType } from '@prisma/client';
+import { checkAifVersionStamp } from '@/lib/aif/version';
 
 type Mode = 'validate'|'upsert';
 
@@ -15,6 +16,26 @@ export async function POST(req: NextRequest) {
 
   const errors: Array<{ path: string; message: string }> = [];
   const inferences: any[] = [];
+
+  // Q-023 version pin (folksonomy step 16): every batch document must carry
+  // an explicit AIF version stamp. `validate` mode tolerates legacy
+  // unstamped documents but emits a warning so callers can be migrated;
+  // `upsert` always hard-rejects unstamped or mismatched documents.
+  const allowUnstamped = mode === 'validate';
+  const stampCheck = checkAifVersionStamp(body, allowUnstamped);
+  if (!stampCheck.ok) {
+    return NextResponse.json(
+      { ok: false, error: stampCheck.code, message: stampCheck.message, expected: stampCheck.expected, got: stampCheck.got },
+      { status: 422, ...NO_STORE },
+    );
+  }
+  const versionWarnings: Array<{ path: string; message: string }> = [];
+  if (allowUnstamped && body && typeof body === 'object' && (body as any).aifVersion === undefined && (body as any).meshAifProfile === undefined) {
+    versionWarnings.push({
+      path: 'aifVersion',
+      message: 'Document is missing aifVersion/meshAifProfile stamp. Accepted in validate mode only — upsert will reject.',
+    });
+  }
 
   // --- super-light structural validation ---
   // Expect: I nodes, RA nodes, Premise edges (I->RA), Conclusion edges (RA->I)
@@ -47,7 +68,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (mode === 'validate' || errors.length) {
-    return NextResponse.json({ ok: errors.length === 0, errors, inferences }, { status: errors.length ? 422 : 200, ...NO_STORE });
+    return NextResponse.json({ ok: errors.length === 0, errors, inferences, warnings: versionWarnings }, { status: errors.length ? 422 : 200, ...NO_STORE });
   }
 
   // --- upsert (minimal RA import: create Argument + ArgumentPremise) ---
@@ -75,6 +96,7 @@ export async function POST(req: NextRequest) {
     for (const r of RA) {
       const raId = r['@id'];
       const schemeKey: string | null = r['aif:usesScheme'] || r['as:appliesSchemeKey'] || null;
+      const fingerprint: string | null = r['mesh:behaviourFingerprint'] || r.behaviourFingerprint || null;
 
       const premEdges = Prem.filter(p => p['aif:to'] === raId);
       const concEdge  = Conc.find(c => c['aif:from'] === raId);
@@ -83,16 +105,33 @@ export async function POST(req: NextRequest) {
       const conclusionClaimId = claimIdByNode.get(concEdge['aif:to'])!;
       const premiseClaimIds = premEdges.map(p => claimIdByNode.get(p['aif:from'])!).filter(Boolean);
 
-      // Optional: scheme lookup by key
-      const scheme = schemeKey
-        ? await tx.argumentScheme.findUnique({ where: { key: schemeKey }, select: { id: true } }).catch(()=>null)
-        : null;
+      // Phase 4c (folksonomy step 17): resolve schemeId by key first, then by
+      // behaviourFingerprint as a candidate-set hint.
+      let resolvedSchemeId: string | null = null;
+      if (schemeKey) {
+        const byKey = await tx.argumentScheme.findFirst({
+          where: { key: schemeKey, kind: 'argument-scheme' },
+          select: { id: true },
+        }).catch(() => null);
+        if (byKey) resolvedSchemeId = byKey.id;
+      }
+      if (!resolvedSchemeId && fingerprint) {
+        const byFp = await tx.argumentScheme.findFirst({
+          where: { fingerprint, kind: 'argument-scheme' },
+          select: { id: true, key: true },
+        }).catch(() => null);
+        if (byFp) {
+          resolvedSchemeId = byFp.id;
+          // eslint-disable-next-line no-console
+          console.info('[aif-batch-upsert] fingerprint match', { ra: raId, fingerprint, schemeId: byFp.id, schemeKey: byFp.key });
+        }
+      }
 
       const a = await tx.argument.create({
         data: {
           deliberationId, authorId, text: '',
           conclusionClaimId,
-          schemeId: scheme?.id ?? null,
+          schemeId: resolvedSchemeId,
         }
       });
       if (premiseClaimIds.length) {

@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { createDialogueMove } from "@/lib/ludics/createDialogueMove";
 import { cqToAspicAttack } from "@/lib/aspic/cqMapping";
 import { mintClaimMoid } from "@/lib/ids/mintMoid";
 import type { ArgumentationTheory, Argument } from "@/lib/aspic/types";
@@ -185,38 +186,38 @@ async function handleAskCQ(
   // Compute ASPIC+ attack
   const attackResult = cqToAspicAttack(cqMetadata, targetArgument, theory);
 
-  // Create WHY DialogueMove with ASPIC+ metadata
-  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-  const move = await prisma.dialogueMove.create({
-    data: {
-      deliberationId,
-      authorId,
-      actorId: authorId,
-      type: "WHY",
-      illocution: "Question",
-      kind: "WHY",
-      targetType: "argument",
-      targetId: argId,
-      signature: `WHY:argument:${argId}:cq_${cqStatus.cqKey}:${Date.now()}`,
-      payload: {
-        cqId: cqStatus.id,
-        cqKey: cqStatus.cqKey,
-        cqText: cqMetadata.text,
-        aspicAttack: attackResult.attack ? {
-          type: attackResult.attack.type,
-          attackerId: attackResult.attack.attacker.id,
-          defenderId: attackResult.attack.attacked.id,
-          succeeded: attackResult.attack !== null,
-        } : null,
-        aspicMetadata: {
-          attackType: cqMetadata.attackType,
-          targetScope: cqMetadata.targetScope,
-          reason: attackResult.reason,
-        },
+  // Create WHY DialogueMove with ASPIC+ metadata via the H1 seam.
+  const whySeam = await createDialogueMove({
+    deliberationId,
+    authorId,
+    actorId: authorId,
+    type: "WHY",
+    illocution: "Question",
+    kind: "WHY",
+    targetType: "argument",
+    targetId: argId,
+    signature: `WHY:argument:${argId}:cq_${cqStatus.cqKey}:${Date.now()}`,
+    payload: {
+      cqId: cqStatus.id,
+      cqKey: cqStatus.cqKey,
+      cqText: cqMetadata.text,
+      locusPath: "0",
+      aspicAttack: attackResult.attack ? {
+        type: attackResult.attack.type,
+        attackerId: attackResult.attack.attacker.id,
+        defenderId: attackResult.attack.attacked.id,
+        succeeded: attackResult.attack !== null,
+      } : null,
+      aspicMetadata: {
+        attackType: cqMetadata.attackType,
+        targetScope: cqMetadata.targetScope,
+        reason: attackResult.reason,
       },
-      endsWithDaimon: false,
     },
+    endsWithDaimon: false,
+    locusPath: "0",
   });
+  const move = whySeam.move;
 
   // Update CQStatus to "open"
   await prisma.cQStatus.update({
@@ -333,39 +334,39 @@ async function handleAnswerCQ(
   // Compute ASPIC+ attack
   const attackResult = cqToAspicAttack(cqMetadata, targetArgument, theory);
 
-  // Create ATTACK DialogueMove
-  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-  const move = await prisma.dialogueMove.create({
-    data: {
-      deliberationId,
-      authorId,
-      actorId: authorId,
-      type: "ATTACK",
-      illocution: "Argue",
-      kind: "ATTACK",
-      targetType: "argument",
-      targetId: argId,
-      signature: `ATTACK:argument:${argId}:cq_${cqStatus.cqKey}:${Date.now()}`,
-      payload: {
-        cqId: cqStatus.id,
-        cqKey: cqStatus.cqKey,
-        cqText: cqMetadata.text,
-        conflictingClaimId,
-        aspicAttack: attackResult.attack ? {
-          type: attackResult.attack.type,
-          attackerId: attackResult.attack.attacker.id,
-          defenderId: attackResult.attack.attacked.id,
-          succeeded: attackResult.attack !== null,
-        } : null,
-        aspicMetadata: {
-          attackType: cqMetadata.attackType,
-          targetScope: cqMetadata.targetScope,
-          reason: attackResult.reason,
-        },
+  // Create ATTACK DialogueMove via the H1 seam.
+  const attackSeam = await createDialogueMove({
+    deliberationId,
+    authorId,
+    actorId: authorId,
+    type: "ATTACK",
+    illocution: "Argue",
+    kind: "ATTACK",
+    targetType: "argument",
+    targetId: argId,
+    signature: `ATTACK:argument:${argId}:cq_${cqStatus.cqKey}:${Date.now()}`,
+    payload: {
+      cqId: cqStatus.id,
+      cqKey: cqStatus.cqKey,
+      cqText: cqMetadata.text,
+      conflictingClaimId,
+      locusPath: "0",
+      aspicAttack: attackResult.attack ? {
+        type: attackResult.attack.type,
+        attackerId: attackResult.attack.attacker.id,
+        defenderId: attackResult.attack.attacked.id,
+        succeeded: attackResult.attack !== null,
+      } : null,
+      aspicMetadata: {
+        attackType: cqMetadata.attackType,
+        targetScope: cqMetadata.targetScope,
+        reason: attackResult.reason,
       },
-      endsWithDaimon: false,
     },
+    endsWithDaimon: false,
+    locusPath: "0",
   });
+  const move = attackSeam.move;
 
   // Create ConflictApplication record linked to DialogueMove
   const conclusionId = argument.conclusion?.id;

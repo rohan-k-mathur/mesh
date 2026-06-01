@@ -1,5 +1,5 @@
 // lib/argumentation/afAcceptance.ts
-import { preferredExtensions } from '@/lib/deepdive/af';
+import { preferredExtensions } from '@/lib/argumentation';
 
 export function acceptanceLabels(A: string[], R: Array<[string,string]>) {
   const prefs = preferredExtensions(A, new Map(Object.entries(R.reduce((m,[x,y])=>{

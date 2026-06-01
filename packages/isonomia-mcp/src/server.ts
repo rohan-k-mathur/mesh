@@ -358,6 +358,12 @@ const ProposeStructuredArgumentInput = z.object({
           .optional()
           .default(false)
           .describe("Mark this premise as an axiom (no further justification expected). Defaults false."),
+        premiseType: z
+          .enum(["ordinary", "assumption", "exception"])
+          .optional()
+          .describe(
+            "Carneades premise classification. 'ordinary' (default) must always be supported; 'assumption' is accepted unless questioned; 'exception' must be proven to apply by a challenger. Persisted on the premise row.",
+          ),
         evidence: z
           .array(
             z.object({
@@ -398,6 +404,12 @@ const ProposeStructuredArgumentInput = z.object({
     .default("DEFEASIBLE")
     .describe("ASPIC+ rule type. Almost always 'DEFEASIBLE'; use 'STRICT' only for definitional / mathematical inferences."),
   ruleName: z.string().max(200).optional().describe("Optional human-readable name for STRICT rules."),
+  epistemicMode: z
+    .enum(["FACTUAL", "HYPOTHETICAL", "COUNTERFACTUAL"])
+    .optional()
+    .describe(
+      "Epistemic mode for this argument. Defaults to the resolved scheme's catalogue value. Overriding it shifts the behaviour-fingerprint domain (the instance no longer matches the scheme's catalogue fingerprint exactly) and returns an `EPISTEMIC_MODE_CHANGED_FINGERPRINT` warning — only override when the reasoning is genuinely hypothetical or counterfactual.",
+    ),
   implicitWarrant: z
     .string()
     .max(2000)
@@ -444,6 +456,13 @@ const ListSchemesInput = z.object({
     .describe(
       "When true, include the `examples` array per scheme (concrete worked examples). Off by default to keep payloads small — each example can be ~100 tokens.",
     ),
+  excludeUnhealthy: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "When true (default), omit schemes whose `catalogueHealth` flags them as NON-argument-patterns — i.e. dialogue-meta machinery (`isDialogueMeta`) and test/placeholder rows (`isTestPlaceholder`). These cannot anchor an argument and `propose_structured_argument` will refuse them, so they are hidden from selection by default. Folksonomy duplicates (`duplicateOf`) are NOT filtered — they are advisory and auto-redirected to canonical on write. Set false only when auditing the raw catalogue.",
+    ),
   limit: z
     .number()
     .int()
@@ -452,6 +471,88 @@ const ListSchemesInput = z.object({
     .optional()
     .default(100)
     .describe("Max number of schemes to return. Default 100; the catalog is small (~30–60 schemes) so the default usually returns everything."),
+});
+
+// ── Phase C — verifier "structural radar" read tools ────────────
+// Thin read-only wrappers over the shipped behaviour-equality verifier and the
+// materialised fingerprint. The cardinal discipline (P3 / Q-021): a fingerprint
+// match is a NECESSARY but NOT SUFFICIENT condition for behaviour equality — the
+// verifier supplies the authoritative verdict, the fingerprint is only a filter.
+
+const VerifySchemeEqualityInput = z.object({
+  keyA: z
+    .string()
+    .min(1)
+    .describe("First scheme key (ArgumentScheme.key, e.g. 'good_consequences'). Use list_schemes to find keys."),
+  keyB: z
+    .string()
+    .min(1)
+    .describe("Second scheme key to compare against keyA."),
+  searchBoundMs: z
+    .number()
+    .int()
+    .positive()
+    .max(60_000)
+    .optional()
+    .describe("Optional verifier search budget in milliseconds (1..60000). Exceeding it yields an 'inconclusive' verdict rather than a wrong answer. Defaults to the server's standard bound."),
+});
+
+const ComputeSchemeFingerprintInput = z.object({
+  schemeKey: z
+    .string()
+    .min(1)
+    .describe("Scheme key (ArgumentScheme.key) to fingerprint. Use list_schemes to find keys."),
+});
+
+const FindSimilarSchemesInput = z.object({
+  schemeKey: z
+    .string()
+    .min(1)
+    .describe("Scheme key whose behavioural near-duplicates you want to find."),
+  k: z
+    .number()
+    .int()
+    .min(1)
+    .max(25)
+    .optional()
+    .default(5)
+    .describe("Max number of similar schemes to return (1..25, default 5)."),
+  searchBoundMs: z
+    .number()
+    .int()
+    .positive()
+    .max(60_000)
+    .optional()
+    .describe("Optional per-candidate verifier search budget in milliseconds (1..60000)."),
+});
+
+// ── Phase D — provenance read tools (Q-022 source-of-record + Q-024 audit) ──
+// Echo the shipped provenance columns; compare_scheme_provenance composes the
+// two reads with the verifier to answer "same scheme under two presentations?".
+
+const GetSchemeProvenanceInput = z.object({
+  schemeKey: z
+    .string()
+    .min(1)
+    .describe("Scheme key (ArgumentScheme.key) whose provenance you want. Use list_schemes to find keys."),
+});
+
+const CompareSchemeProvenanceInput = z.object({
+  keyA: z
+    .string()
+    .min(1)
+    .describe("First scheme key (ArgumentScheme.key)."),
+  keyB: z
+    .string()
+    .min(1)
+    .describe("Second scheme key to compare against keyA."),
+  searchBoundMs: z
+    .number()
+    .int()
+    .positive()
+    .max(60_000)
+    .optional()
+    .describe("Optional verifier search budget in milliseconds (1..60000) for the behaviour-equality leg. Defaults to the server's standard bound."),
 });
 
 // ── Track AI-EPI Pt. 4 — deliberation-scope read tools ──────────
@@ -957,7 +1058,7 @@ const tools: ToolSpec[] = [
   {
     name: "get_argument",
     description:
-      "Fetch a structured representation of an argument permalink. Default format='attestation' returns the compact citation envelope (conclusion, premises, scheme, evidence with sha256 + archive URL, dialectical status, standingState). The envelope also carries: `structuredCitations` (canonical CitationBlock[] with url/doi/publisher/quote/quoteAnchor) for citation-grade serialization; `criticalQuestions` (per-CQ status aggregate — `answered`, `partiallyAnswered`, `unanswered` — so consumers can see which CQs are open without inferring from absence); `fitnessBreakdown` decomposing the dialectical-fitness score into weighted contributors; `standingDepth` annotating the standing label with distinct-author challenger/reviewer counts and a `confidence` tier (thin|moderate|dense) so 'tested-survived (1 challenger)' is not read as 'vetted by the field'; and `author.kind` (HUMAN|AI|HYBRID) plus `author.aiProvenance` so AI-authored arguments are explicitly flagged. Pass format='jsonld' for the rich Schema.org composite (Claim + ScholarlyArticle + ClaimReview + AIF) or format='aif' for the AIF-JSON-LD subgraph with critical questions. → also use this to verify the round-trip after `propose_argument` writes a new argument. → next: if standingState is not 'tested-survived' with standingDepth.confidence ≥ moderate, hedge per the parent deliberation's writingConstraints (or refuse if it appears in mustNotAssert); do not cite as settled evidence.",
+      "Fetch a structured representation of an argument permalink. Default format='attestation' returns the compact citation envelope (conclusion, premises, scheme, evidence with sha256 + archive URL, dialectical status, standingState). The envelope also carries: `structuredCitations` (canonical CitationBlock[] with url/doi/publisher/quote/quoteAnchor) for citation-grade serialization; `criticalQuestions` (per-CQ status aggregate — `answered`, `partiallyAnswered`, `unanswered` — so consumers can see which CQs are open without inferring from absence); `fitnessBreakdown` decomposing the dialectical-fitness score into weighted contributors; `standingDepth` annotating the standing label with distinct-author challenger/reviewer counts and a `confidence` tier (thin|moderate|dense) so 'tested-survived (1 challenger)' is not read as 'vetted by the field'; and `author.kind` (HUMAN|AI|HYBRID) plus `author.aiProvenance` so AI-authored arguments are explicitly flagged. The `scheme` block is enriched with `canonicalKey`, `behaviourFingerprint`, and `catalogueHealth` (E1 — folksonomy duplicate/dialogue-meta/cluster diagnostics); each `criticalQuestions` item carries `premiseType` (ORDINARY|ASSUMPTION|EXCEPTION), `isSchemeRequired`, and `inheritedFromParentScheme`. A `schemeInstance` block mirrors `get_scheme_instance_state` (open vs discharged obligations + `closeHookEligible`) for the argument's conclusion when an obligation instance exists. Pass format='jsonld' for the rich Schema.org composite (Claim + ScholarlyArticle + ClaimReview + AIF) or format='aif' for the AIF-JSON-LD subgraph with critical questions — the aif body adds `mesh:roundTripSoundness`, the per-premise-group exposed-vs-absent classification flagging whether ASSUMPTION/EXCEPTION obligations survive the AIF round-trip (`lossy: true` means a dialectical obligation has no carrier in the exported subgraph). → also use this to verify the round-trip after `propose_argument` writes a new argument. → next: if standingState is not 'tested-survived' with standingDepth.confidence ≥ moderate, hedge per the parent deliberation's writingConstraints (or refuse if it appears in mustNotAssert); do not cite as settled evidence.",
     inputSchema: zodToJsonSchema(GetArgumentInput),
     async handler(args) {
       const input = GetArgumentInput.parse(args);
@@ -1592,7 +1693,7 @@ const tools: ToolSpec[] = [
   {
     name: "list_schemes",
     description:
-      "READ TOOL — list the catalog of argumentation schemes (Walton + Mesh extensions) available for argument-write tools. **Call this BEFORE `propose_structured_argument` whenever you are unsure which `schemeKey` matches the reasoning pattern you're recording** (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Each entry returns: `key` (pass as `schemeKey` to write tools), `name`, `summary`, `whenToUse` (free-text guidance on identification conditions), `slotHints` (role-slots the scheme expects, e.g. expert_opinion expects `expert` + `proposition`), `materialRelation`, `reasoningType`, `epistemicMode`, `clusterTag` (family — 'expert' | 'causal' | 'practical' | 'analogical' | …), `difficulty` (beginner | intermediate | advanced), `tags`, and CQ counts (`ownCQCount`, `totalCQCount` including inheritance). Pass `includeExamples: true` to additionally receive concrete worked examples per scheme (off by default to keep the payload small). Pass `clusterTag` to narrow to one family. → next: `propose_structured_argument` with the chosen `schemeKey` (or omit `schemeKey` and the server will infer one). Anonymous; no API token required.",
+      "READ TOOL — list the catalog of argumentation schemes (Walton + Mesh extensions) available for argument-write tools. **Call this BEFORE `propose_structured_argument` whenever you are unsure which `schemeKey` matches the reasoning pattern you're recording** (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Each entry returns: `key` (pass as `schemeKey` to write tools), `name`, `summary`, `whenToUse` (free-text guidance on identification conditions), `slotHints` (role-slots the scheme expects, e.g. expert_opinion expects `expert` + `proposition`), `materialRelation`, `reasoningType`, `epistemicMode`, `clusterTag` (family — 'expert' | 'causal' | 'practical' | 'analogical' | …), `difficulty` (beginner | intermediate | advanced), `tags`, CQ counts (`ownCQCount`, `totalCQCount` including inheritance), `behaviourFingerprint` (the materialised behaviour-equality fingerprint, or null), and `catalogueHealth` (`{ isArgumentPattern, isDialogueMeta, isTestPlaceholder, duplicateOf, canonicalKey, clusterTagMissing, fingerprintMaterialised }`). **By default (`excludeUnhealthy: true`) only healthy argument patterns are returned** — dialogue-meta and test/placeholder rows are hidden because `propose_structured_argument` refuses them; pass `excludeUnhealthy: false` to audit the raw catalogue. Folksonomy duplicates are kept (advisory — they auto-redirect to canonical on write). The top-level `catalogueOntologyState` rollup summarises the catalogue's health counts (argumentPatterns, dialogueMeta, testPlaceholders, duplicateCandidates, missingClusterTag, fingerprintMaterialised, hiddenByExcludeUnhealthy). Pass `includeExamples: true` to additionally receive concrete worked examples per scheme (off by default to keep the payload small). Pass `clusterTag` to narrow to one family. → next: `propose_structured_argument` with the chosen `schemeKey` (or omit `schemeKey` and the server will infer one). Anonymous; no API token required.",
     inputSchema: zodToJsonSchema(ListSchemesInput),
     async handler(args) {
       const input = ListSchemesInput.parse(args);
@@ -1603,9 +1704,19 @@ const tools: ToolSpec[] = [
         items?: any[];
       };
       const all = Array.isArray(raw?.items) ? raw.items : [];
-      const filtered = input.clusterTag
+      const clusterFiltered = input.clusterTag
         ? all.filter((s) => s?.clusterTag === input.clusterTag)
         : all;
+      // A.1 — health-selection filter. Hide non-argument-pattern rows
+      // (dialogue-meta / test-placeholder) by default so agents don't pick a
+      // key the write tool will refuse. Duplicates stay visible (advisory).
+      const filtered = input.excludeUnhealthy
+        ? clusterFiltered.filter((s) => {
+            const h = s?.catalogueHealth;
+            if (!h) return true; // no health signal → keep (backward compat)
+            return !h.isDialogueMeta && !h.isTestPlaceholder;
+          })
+        : clusterFiltered;
       const projected = filtered.slice(0, input.limit).map((s) => {
         const out: Record<string, unknown> = {
           key: s.key,
@@ -1621,18 +1732,111 @@ const tools: ToolSpec[] = [
           tags: Array.isArray(s.tags) ? s.tags : [],
           ownCQCount: s.ownCQCount ?? 0,
           totalCQCount: s.totalCQCount ?? 0,
+          // A.1 — behaviour fingerprint + derived catalogue-health projection.
+          behaviourFingerprint: s.fingerprint ?? null,
+          catalogueHealth: s.catalogueHealth ?? null,
         };
         if (input.includeExamples) {
           out.examples = Array.isArray(s.examples) ? s.examples : [];
         }
         return out;
       });
+      // A.1 — top-level catalogue ontology rollup so an agent can triage the
+      // catalogue's overall health in one read (computed over the post-cluster,
+      // pre-limit set so the counts describe the catalogue, not the page).
+      const healthOf = (s: any) => s?.catalogueHealth ?? null;
+      const catalogueOntologyState = {
+        total: clusterFiltered.length,
+        argumentPatterns: clusterFiltered.filter((s) => healthOf(s)?.isArgumentPattern).length,
+        dialogueMeta: clusterFiltered.filter((s) => healthOf(s)?.isDialogueMeta).length,
+        testPlaceholders: clusterFiltered.filter((s) => healthOf(s)?.isTestPlaceholder).length,
+        duplicateCandidates: clusterFiltered.filter((s) => healthOf(s)?.duplicateOf).length,
+        missingClusterTag: clusterFiltered.filter((s) => healthOf(s)?.clusterTagMissing).length,
+        fingerprintMaterialised: clusterFiltered.filter((s) => healthOf(s)?.fingerprintMaterialised).length,
+        hiddenByExcludeUnhealthy: input.excludeUnhealthy
+          ? clusterFiltered.length - filtered.length
+          : 0,
+      };
       return {
         total: filtered.length,
         returned: projected.length,
         clusterTag: input.clusterTag ?? null,
+        excludeUnhealthy: input.excludeUnhealthy,
+        catalogueOntologyState,
         items: projected,
       };
+    },
+  },
+
+  // ── Phase C — verifier structural-radar read tools ──────────────
+  {
+    name: "verify_scheme_equality",
+    description:
+      "READ TOOL — run the behaviour-equality VERIFIER between two argumentation schemes addressed by key. Returns `{ keyA, keyB, verdict, witnessOrCounter, runtimeMs, fingerprintsMatched, note }`. `verdict` is one of: `equal` (the two schemes accept exactly the same attacks/CQs — interchangeable), `subset` (one's behaviour is contained in the other — a specialisation), `incomparable` (each licenses an attack the other doesn't — genuinely distinct), or `inconclusive` (the verifier hit its search bound and could NOT decide — this is NOT the same as 'incomparable'; treat as 'unknown'). `witnessOrCounter` carries the structural certificate (for equal/subset/incomparable) or the reason (for inconclusive). **A `fingerprintsMatched: true` is NECESSARY but NOT SUFFICIENT for `equal`** — there is no canonical form (P3/Q-021), so always read `verdict`, not the fingerprint, as the authoritative answer. Use this to decide whether two folksonomy keys are true duplicates before merging, or to confirm a `find_behaviourally_similar_schemes` candidate. Anonymous; no API token required.",
+    inputSchema: zodToJsonSchema(VerifySchemeEqualityInput),
+    async handler(args) {
+      const input = VerifySchemeEqualityInput.parse(args);
+      const params = new URLSearchParams({ keyA: input.keyA, keyB: input.keyB });
+      if (input.searchBoundMs) params.set("searchBoundMs", String(input.searchBoundMs));
+      return await isoFetch(`/api/schemes/verify-equality?${params.toString()}`, {
+        authenticated: true,
+      });
+    },
+  },
+  {
+    name: "compute_scheme_fingerprint",
+    description:
+      "READ TOOL — return the BEHAVIOUR FINGERPRINT of a scheme: `{ schemeKey, behaviourFingerprint, materialised, note }`. The fingerprint is a content hash over the scheme's structural behaviour-surface (CQ-bundle digest, premise/conclusion arity, epistemicMode). `materialised: true` means it was read from the stored column; `false` means it was recomputed on the fly (column was null). **The fingerprint is a STRUCTURAL PRE-FILTER, not a proof of equality** — two schemes sharing a fingerprint are equality CANDIDATES that must be confirmed with `verify_scheme_equality`. Use it to cheaply bucket the catalogue or to detect that an imported scheme structurally collides with an existing one. Anonymous; no API token required.",
+    inputSchema: zodToJsonSchema(ComputeSchemeFingerprintInput),
+    async handler(args) {
+      const input = ComputeSchemeFingerprintInput.parse(args);
+      const params = new URLSearchParams({ key: input.schemeKey });
+      return await isoFetch(`/api/schemes/fingerprint?${params.toString()}`, {
+        authenticated: true,
+      });
+    },
+  },
+  {
+    name: "find_behaviourally_similar_schemes",
+    description:
+      "READ TOOL — the REDUNDANCY RADAR. Given a scheme key, find catalogue schemes that are behaviourally similar to it. Mechanism: bucket the catalogue by the target's fingerprint (necessary condition, indexed) then VERIFIER-CONFIRM each candidate (authoritative). Returns `{ schemeKey, behaviourFingerprint, candidatesConsidered, hits, note }` where each hit is `{ schemeKey, schemeName, verdict, fingerprintMatched }`, ordered `equal` → `subset` → `incomparable` → `inconclusive`. **An empty `hits` list means 'no behavioural near-duplicate found', NOT 'not checked'.** Use before authoring or importing a new scheme to avoid creating a folksonomy duplicate, or to audit the catalogue for redundancy. Anonymous; no API token required.",
+    inputSchema: zodToJsonSchema(FindSimilarSchemesInput),
+    async handler(args) {
+      const input = FindSimilarSchemesInput.parse(args);
+      const params = new URLSearchParams({ key: input.schemeKey, k: String(input.k) });
+      if (input.searchBoundMs) params.set("searchBoundMs", String(input.searchBoundMs));
+      return await isoFetch(`/api/schemes/similar?${params.toString()}`, {
+        authenticated: true,
+      });
+    },
+  },
+
+  // ── Phase D — provenance read tools ─────────────────────────────
+  {
+    name: "get_scheme_provenance",
+    description:
+      "READ TOOL — return the PROVENANCE of an argumentation scheme: `{ schemeKey, sourceCatalogue, sourceId, sourceVersion, importedAt, importerVersion, createdBy, createdAt }`. Every field echoes a stored column verbatim (Q-022 source-of-record + Q-024 chronological audit) — nothing is derived. `sourceCatalogue` is the upstream catalogue of record (one of `AIF`, `AIFdb`, `Argdown`, `WRM-2008`, `admin-authored`); the `sourceId`/`sourceVersion`/`importedAt`/`importerVersion` fields are populated only for rows imported from an external catalogue and are `null` for admin-authored rows. `createdBy` is `null` for pre-Q024 migrated rows (their `createdAt` is the migration moment, not the true authoring time). Use this to attribute a scheme to its catalogue of record before citing it, or to audit where a folksonomy key came from. Anonymous; no API token required.",
+    inputSchema: zodToJsonSchema(GetSchemeProvenanceInput),
+    async handler(args) {
+      const input = GetSchemeProvenanceInput.parse(args);
+      const params = new URLSearchParams({ key: input.schemeKey });
+      return await isoFetch(`/api/schemes/provenance?${params.toString()}`, {
+        authenticated: true,
+      });
+    },
+  },
+  {
+    name: "compare_scheme_provenance",
+    description:
+      "READ TOOL — the 'same scheme under two presentations?' DIAGNOSTIC. Composes two `get_scheme_provenance` reads with the behaviour-equality VERIFIER. Returns `{ keyA, keyB, provenanceA, provenanceB, sameSource, sourceDelta, behaviourFingerprintEqual, verifierVerdict, note }`. `sameSource` is true iff both rows share the same `sourceCatalogue` + `sourceId`. `sourceDelta` is a per-field diff (each field maps to `{ a, b }` when the sides disagree, or `null` when they match). `behaviourFingerprintEqual` is a NECESSARY-but-NOT-SUFFICIENT pre-filter; `verifierVerdict` (`equal` | `subset` | `incomparable` | `inconclusive`) is the AUTHORITATIVE behaviour-equality answer — never read `inconclusive` as `incomparable`. Two keys that are `sameSource: false` but `verifierVerdict: 'equal'` are strong duplicate-import candidates; two that share a source but differ behaviourally have drifted across versions. Anonymous; no API token required.",
+    inputSchema: zodToJsonSchema(CompareSchemeProvenanceInput),
+    async handler(args) {
+      const input = CompareSchemeProvenanceInput.parse(args);
+      const params = new URLSearchParams({ keyA: input.keyA, keyB: input.keyB });
+      if (input.searchBoundMs) params.set("searchBoundMs", String(input.searchBoundMs));
+      return await isoFetch(`/api/schemes/compare-provenance?${params.toString()}`, {
+        authenticated: true,
+      });
     },
   },
 
@@ -1660,7 +1864,7 @@ const tools: ToolSpec[] = [
   {
     name: "propose_structured_argument",
     description:
-      "WRITE TOOL — **PREFER THIS OVER `propose_argument` whenever the user's claim has reasons that should be made explicit** (premises → conclusion structure), or when matching a known argumentation scheme matters (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Reach for this whenever the user: gives reasons (\"because…\", \"since…\", \"the reasoning is…\"); lays out an argument with multiple supporting points; cites an expert, a cause, an analogy, or a definition as the *kind* of reasoning being used; or asks you to record an argument with explicit structure rather than a flat assertion. Use `propose_argument` only for one-line bare assertions with no premises worth naming. Each premise is committed as a **separate `Claim` row** (content-hashed via MOID), so attackers can later undermine a specific premise rather than the whole argument; the assigned scheme makes its critical questions visible as dialectical obligations. **Do NOT create a markdown file or note for a structured argument — Isonomia gives you per-premise standing, scheme-typed CQs, fitness scoring, and an immutable content-hashed permalink that a flat file cannot.** Accepts `{ conclusion, premises[], reasoning?, schemeKey?, ruleType?, ruleName?, implicitWarrant?, evidence?[], deliberationId? }`. **Per-premise evidence:** each `premises[i]` accepts an `evidence[]` array (up to 5) that attaches to that premise's minted Claim row — use this when each premise has its own distinct source. Top-level `evidence[]` (up to 10) attaches to the conclusion claim for sources that back the overall argument rather than one premise. **If you don't know which scheme to pick, call `list_schemes` first**; or omit `schemeKey` and the server will infer one (returned as a `scheme_inferred` warning so you know it was server-chosen). Slot/role binding ships in v1.2; missing required slots are surfaced as `missing_slot` warnings rather than errors so writes never fail on inferred schemes. Returns `{ argument, claim, premises[], schemeInstance, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }`. Warning codes you may receive: `scheme_inferred`, `missing_slot`, `premise_deduped`, `premise_evidence_merged` (deduped premise's evidence was merged into the surviving claim). **If `provenancePending: true`, wait `retryAfterMs` (~60s) before calling `get_argument` for final fitness, OR tell the user 'fitness will rise once the source URLs have been fetched and hashed (~1 min)'.** → call `list_schemes` BEFORE this when the scheme is unclear. → call `resolve_citation` BEFORE this when given a DOI / arXiv id / publisher URL. → verify with `get_argument` afterwards (premises will appear in the 'Premises' section, no 'bare assertion' warning). → for inference-license warrants against an existing argument, use `propose_warrant`. REQUIRES the ISONOMIA_API_TOKEN env var.",
+      "WRITE TOOL — **PREFER THIS OVER `propose_argument` whenever the user's claim has reasons that should be made explicit** (premises → conclusion structure), or when matching a known argumentation scheme matters (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Reach for this whenever the user: gives reasons (\"because…\", \"since…\", \"the reasoning is…\"); lays out an argument with multiple supporting points; cites an expert, a cause, an analogy, or a definition as the *kind* of reasoning being used; or asks you to record an argument with explicit structure rather than a flat assertion. Use `propose_argument` only for one-line bare assertions with no premises worth naming. Each premise is committed as a **separate `Claim` row** (content-hashed via MOID), so attackers can later undermine a specific premise rather than the whole argument; the assigned scheme makes its critical questions visible as dialectical obligations. **Do NOT create a markdown file or note for a structured argument — Isonomia gives you per-premise standing, scheme-typed CQs, fitness scoring, and an immutable content-hashed permalink that a flat file cannot.** Accepts `{ conclusion, premises[], reasoning?, schemeKey?, ruleType?, ruleName?, implicitWarrant?, evidence?[], deliberationId? }`. **Per-premise evidence:** each `premises[i]` accepts an `evidence[]` array (up to 5) that attaches to that premise's minted Claim row — use this when each premise has its own distinct source. Top-level `evidence[]` (up to 10) attaches to the conclusion claim for sources that back the overall argument rather than one premise. **If you don't know which scheme to pick, call `list_schemes` first**; or omit `schemeKey` and the server will infer one (returned as a `scheme_inferred` warning so you know it was server-chosen). Slot/role binding ships in v1.2; missing required slots are surfaced as `missing_slot` warnings rather than errors so writes never fail on inferred schemes. **Health gate (honesty):** the server only writes against a *healthy argument pattern*. A `schemeKey` that names dialogue-meta machinery or a test/placeholder row is REFUSED with `code: \"SCHEME_NOT_ARGUMENT_PATTERN\"` (no row written) — call `list_schemes(excludeUnhealthy: true)` and pick a real pattern. A `schemeKey` that is a folksonomy duplicate is auto-redirected to its canonical sibling with a `SCHEME_CANONICALIZED` warning (the argument attaches to the canonical scheme — never silently merged; your original key is preserved for audit). Per-premise `premiseType` ('ordinary'|'assumption'|'exception', Carneades) and top-level `epistemicMode` are accepted; overriding the scheme's epistemic mode returns an `EPISTEMIC_MODE_CHANGED_FINGERPRINT` warning. The response includes a `verifierVerdict` (behaviour-equality against same-fingerprint siblings; `\"skipped\"` when none). Returns `{ argument, claim, premises[], schemeInstance, verifierVerdict, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }`. Warning codes you may receive — canonical (§4.1) typed codes `SCHEME_CANONICALIZED`, `EPISTEMIC_MODE_CHANGED_FINGERPRINT`, `VERIFIER_INCONCLUSIVE` (each carries a `canonical` field with the corrected/applied value), plus operational diagnostics `scheme_inferred`, `scheme_behaviour_verdict`, `missing_slot`, `premise_deduped`, `premise_evidence_merged` (deduped premise's evidence was merged into the surviving claim). Refusals return a top-level `code` + `canonical` (`null` when there is no automatic fix): `SCHEME_UNKNOWN` (key not in `list_schemes`) or `SCHEME_NOT_ARGUMENT_PATTERN` (dialogue-meta / test placeholder). **If `provenancePending: true`, wait `retryAfterMs` (~60s) before calling `get_argument` for final fitness, OR tell the user 'fitness will rise once the source URLs have been fetched and hashed (~1 min)'.** → call `list_schemes` BEFORE this when the scheme is unclear. → call `resolve_citation` BEFORE this when given a DOI / arXiv id / publisher URL. → verify with `get_argument` afterwards (premises will appear in the 'Premises' section, no 'bare assertion' warning). → for inference-license warrants against an existing argument, use `propose_warrant`. REQUIRES the ISONOMIA_API_TOKEN env var.",
     inputSchema: zodToJsonSchema(ProposeStructuredArgumentInput),
     async handler(args) {
       if (!API_TOKEN) {

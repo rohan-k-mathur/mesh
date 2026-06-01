@@ -38,11 +38,13 @@ export class AIFGraphBuilder {
     includeHierarchy?: boolean;
     includeCQs?: boolean;
     includeMeshExtensions?: boolean;
+    behaviourFingerprint?: string | null;
   } = {}): void {
     const {
       includeHierarchy = true,
       includeCQs = true,
       includeMeshExtensions = true,
+      behaviourFingerprint = null,
     } = options;
 
     const schemeURI = this.getSchemeURI(scheme.key);
@@ -95,6 +97,14 @@ export class AIFGraphBuilder {
       if (schemeWithPhase6.updatedAt) {
         this.addTriple(schemeURI, CONST.MESH_UPDATED_AT, schemeWithPhase6.updatedAt.toISOString(), "literal", CONST.XSD_DATETIME);
       }
+
+      // Phase 4c (folksonomy step 17): emit behaviourFingerprint as a
+      // mesh-namespaced literal so importers can use it as a candidate-set
+      // hint before invoking the verifier.
+      const fp = behaviourFingerprint ?? schemeWithPhase6.fingerprint ?? null;
+      if (typeof fp === "string" && fp.length > 0) {
+        this.addTriple(schemeURI, CONST.MESH_BEHAVIOUR_FINGERPRINT, fp, "literal", CONST.XSD_STRING);
+      }
     }
 
     // Critical Questions (own CQs)
@@ -122,6 +132,7 @@ export class AIFGraphBuilder {
       includeHierarchy?: boolean;
       includeCQs?: boolean;
       includeMeshExtensions?: boolean;
+      behaviourFingerprint?: string | null;
     } = {}
   ): Promise<void> {
     // First add the base scheme

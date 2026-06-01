@@ -342,6 +342,7 @@
 // }
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { createHash } from 'crypto';
 
@@ -445,7 +446,11 @@ export async function POST(req: NextRequest) {
   const conclusion = (rebuttalCue.test(last) ? '' : last) || sents[0] || arg.text || '';
 
   // 3) Synthesize dialogue moves
-  const movesToUpsert: Parameters<typeof prisma.dialogueMove.upsert>[0][] = [];
+  const movesToUpsert: Array<{
+    where: { signature: string };
+    update: Record<string, never>;
+    create: any;
+  }> = [];
 
   const common = {
     deliberationId: arg.deliberationId,
@@ -592,11 +597,24 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Perform idempotent upserts
-  // HARMONIZATION-FREEZE (H0): legacy direct DM creation (batched upsert); migrate to lib/ludics/createDialogueMove (H1).
-  await prisma.$transaction(movesToUpsert.map(cfg => prisma.dialogueMove.upsert(cfg)));
+  // Perform idempotent creates via the H1 seam (one transactional write
+  // per move; the seam dedupes on (deliberationId, signature) using P2002).
+  let createdCount = 0;
+  for (const cfg of movesToUpsert) {
+    const data = cfg.create as any;
+    const seamResult = await createDialogueMove({
+      deliberationId: data.deliberationId,
+      targetType: data.targetType,
+      targetId: data.targetId,
+      kind: data.kind,
+      actorId: data.actorId,
+      signature: data.signature,
+      payload: data.payload,
+    });
+    if (!seamResult.deduplicated) createdCount++;
+  }
 
-  return NextResponse.json({ ok: true, mode, created: movesToUpsert.length });
+  return NextResponse.json({ ok: true, mode, created: createdCount });
 }
 
 // Keep GET for callers that were using a querystring (also fixes 405s from before)

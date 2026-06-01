@@ -25,6 +25,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, Save, Loader2, AlertCircle, CheckCircle2, PlusCircle } from "lucide-react";
 import { generateCQsFromTaxonomy, type TaxonomyFields } from "@/lib/argumentation/cqGeneration";
+import SchemeNonRedundancyPanel from "@/components/admin/SchemeNonRedundancyPanel";
 
 // Custom scrollbar styles for light mode
 export const scrollbarStyles = `
@@ -112,6 +113,8 @@ type SchemeFormData = {
   // Phase 6D: Clustering fields
   parentSchemeId: string;
   clusterTag: string;
+  // Spec 4 phase 4b: non-redundancy override audit trail.
+  nonRedundancyJustification?: string;
 };
 
 type SchemeCreatorProps = {
@@ -144,6 +147,8 @@ const INITIAL_FORM: SchemeFormData = {
   // Phase 6D: Clustering fields
   parentSchemeId: "",
   clusterTag: "",
+  // Spec 4 phase 4b
+  nonRedundancyJustification: "",
 };
 
 export default function SchemeCreator({
@@ -169,6 +174,24 @@ export default function SchemeCreator({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Spec 4 phase 4b: latest non-redundancy result (set by the panel; gates submit).
+  const [nonRedundancyResult, setNonRedundancyResult] = React.useState<
+    | {
+        candidates: Array<{ verdict: { kind: "equal" | "subset" | "incomparable" | "inconclusive" } }>;
+      }
+    | null
+  >(null);
+  const blockingHitCount = React.useMemo(
+    () =>
+      (nonRedundancyResult?.candidates ?? []).filter(
+        (c) => c.verdict.kind === "equal" || c.verdict.kind === "subset",
+      ).length,
+    [nonRedundancyResult],
+  );
+  const submitBlockedByRedundancy =
+    blockingHitCount > 0 &&
+    !((formData.nonRedundancyJustification ?? "").trim().length > 0);
   
   // Phase 6D: Available schemes for parent selector
   const [availableSchemes, setAvailableSchemes] = useState<Array<{ id: string; key: string; name: string }>>([]);
@@ -293,7 +316,11 @@ export default function SchemeCreator({
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          nonRedundancyJustification:
+            (formData.nonRedundancyJustification ?? "").trim() || null,
+        }),
       });
 
       if (!response.ok) {
@@ -1183,6 +1210,35 @@ export default function SchemeCreator({
         </div>
         </div>
 
+        {/* Spec 4 phase 4b — non-redundancy panel (button-driven) */}
+        <div className="px-1 pb-1">
+          <SchemeNonRedundancyPanel
+            draft={{
+              id: editScheme?.id ?? null,
+              key: formData.key,
+              name: formData.name,
+              clusterTag: formData.clusterTag || null,
+              epistemicMode: formData.epistemicMode,
+              premises: formData.premises,
+              conclusion: formData.conclusion,
+              cqs: formData.cqs.map((c) => ({
+                cqKey: c.cqKey,
+                text: c.text,
+                attackType: c.attackType,
+                targetScope: c.targetScope,
+                burdenOfProof: c.burdenOfProof,
+                requiresEvidence: c.requiresEvidence,
+                premiseType: c.premiseType,
+              })),
+            }}
+            justification={formData.nonRedundancyJustification ?? ""}
+            onJustificationChange={(next) =>
+              setFormData((prev) => ({ ...prev, nonRedundancyJustification: next }))
+            }
+            onResultChange={(r) => setNonRedundancyResult(r)}
+          />
+        </div>
+
         <DialogFooter className="border-t border-slate-900/10 pt-1 mt-2 gap-3">
           <button
             type="button"
@@ -1195,7 +1251,7 @@ export default function SchemeCreator({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || submitBlockedByRedundancy}
             className="relative btnv2 text-base overflow-hidden bg-gradient-to-r from-sky-700 to-sky-900 hover:from-cyan-600 hover:to-sky-800 text-white border-0 shadow-md shadow-cyan-400/30 hover:shadow-cyan-400/50 transition-all duration-300 group"
           >
             {/* Glass shine effect */}

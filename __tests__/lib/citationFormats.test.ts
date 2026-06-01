@@ -46,6 +46,7 @@ function fixture(overrides: Partial<ArgumentAttestation> = {}): ArgumentAttestat
     evidence: [],
     structuredCitations: [],
     criticalQuestions: null,
+    schemeInstance: null,
     confidence: 0.7,
     dialecticalStatus: {
       incomingAttacks: 0,

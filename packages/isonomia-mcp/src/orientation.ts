@@ -26,7 +26,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.10.0" as const;
+export const ORIENTATION_VERSION = "1.11.0" as const;
 
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
@@ -48,14 +48,15 @@ WRITING TO THE GRAPH (these tools commit rows; treat as first-class, not as fall
 Whenever the user states a position, asks you to "record / log / capture / save / register" a claim or counter-claim, drafts a thesis, or sketches an evidence-backed argument, reach for a write tool instead of replying in prose. Two write surfaces:
   • \`propose_argument\` — bare assertion. \`{ claim, reasoning?, evidence?[], deliberationId? }\`. Use only when the user has a one-line claim with no premises worth naming.
   • \`propose_structured_argument\` — PREFER THIS whenever the user gives reasons ("because…", "since…"), names an argumentation pattern (expert opinion, analogy, cause-to-effect, practical reasoning), or expects per-premise standing/CQs. \`{ conclusion, premises[], reasoning?, schemeKey?, evidence?[], deliberationId? }\`. Each premise becomes its own Claim row, so attackers can later undermine specific premises rather than the whole argument. If unsure which scheme applies, call \`list_schemes\` first; or omit \`schemeKey\` and the server will infer one (returned as a \`scheme_inferred\` warning).
+HEALTH-SELECTION GATE (honesty, write-time): the server only writes against a *healthy argument pattern*. Prefer \`list_schemes(excludeUnhealthy: true)\` so you never pick a dialogue-meta / test-placeholder row — those are REFUSED with \`code: "SCHEME_NOT_ARGUMENT_PATTERN"\` (nothing written). A folksonomy-duplicate key is auto-redirected to its canonical sibling with a \`SCHEME_CANONICALIZED\` warning (never a silent merge; the warning's \`canonical\` field is the key the argument actually attached to). Typed write codes carry a \`canonical\` corrected value: errors \`SCHEME_UNKNOWN\` / \`SCHEME_NOT_ARGUMENT_PATTERN\`; warnings \`SCHEME_CANONICALIZED\`, \`EPISTEMIC_MODE_CHANGED_FINGERPRINT\`, \`VERIFIER_INCONCLUSIVE\`.
 Both tools return a permalink + immutable content-addressed URL. Omit \`deliberationId\` to land in the caller's "My Arguments" room; pass one to land in a specific debate. For warrants/inference-licenses against an existing argument, use \`propose_warrant\`. After any write, call \`get_argument\` on the returned id (after \`retryAfterMs\` if \`provenancePending\` is true) to verify the round-trip before claiming success. Do not invent ids or permalinks — only echo what the write tool returned.
 
-TOOL-CLUSTER MAP (47 tools / 6 clusters — route here before scanning tool descriptions):
+TOOL-CLUSTER MAP (52 tools / 6 clusters — route here before scanning tool descriptions):
   1. Session start: \`get_orientation\` (full glossary + recipes), \`get_capabilities\` (cheap auth/identity probe — no round-trip).
   2. Retrieval: \`search_arguments\`, \`get_argument\`, \`get_claim\`, \`get_claim_stances\`, \`find_counterarguments\`, \`cite_argument\`, \`resolve_citation\`, \`resolve_citations_bulk\`.
   3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_warrant\` (see above).
   4. Deliberation synthesis: \`get_synthetic_readout\` (primary), \`get_deliberation_fingerprint\`, \`get_contested_frontier\`, \`get_missing_moves\`, \`get_chains\`, \`get_cross_context\`, \`summarize_debate\`, \`get_deliberation_evidence_context\`.
-  5. Algebraic/ECC: \`ecc_arrow\`, \`ecc_culprits\`, \`ecc_confidence\`, \`ecc_enthymemes\`, \`ecc_transport\`, \`ecc_aggregate\`, \`ecc_evidential\`, \`ecc_belief_revision_proposals\`; scheme catalog: \`list_schemes\`.
+  5. Algebraic/ECC: \`ecc_arrow\`, \`ecc_culprits\`, \`ecc_confidence\`, \`ecc_enthymemes\`, \`ecc_transport\`, \`ecc_aggregate\`, \`ecc_evidential\`, \`ecc_belief_revision_proposals\`; scheme catalog + analysis: \`list_schemes\` (browse; pass \`excludeUnhealthy: true\` before writing), \`verify_scheme_equality\`, \`compute_scheme_fingerprint\`, \`find_behaviourally_similar_schemes\`, \`get_scheme_provenance\`, \`compare_scheme_provenance\`.
   6. Ludics generative substrate (only when the user mentions locus / design / behaviour / incarnation / cone / witness / articulation lattice / daimon / bind / synthesis): reads \`get_deliberation_schema\` (START HERE), \`list_behaviours\` (enumerate behaviours before probing loci), \`get_behaviour_at_locus\`, \`get_exposure_map\`; lattice algebra \`get_articulation_lattice\`, \`find_minimal_incarnations\`, \`find_equivalent_articulations\`, \`find_substitute_premises\`, \`compress_articulation\`, \`compute_articulation_join\`; witness reads \`get_witnesses\`, \`get_unwitnessed_exposure\`, \`get_instantiation\`, \`get_fossil_record\`; helpers/writes \`list_bindable_moves\` (CALL BEFORE BIND — pre-pairs ludicMoveId + dialogueMoveId + canonicalText), \`bind_participant_to_design\` (iota seam — only path that mints WitnessRecord), \`propose_synthesis\` (Art(B) join write seam). Ludics rules: Inc(B) is an antichain — there is NO global bottom of a behaviour, only per-cone minima; cones are disjoint (cross-cone joins/meets return \`cross-cone-rejected\` — that's a value, not an error); never hand-build \`canonicalText\` (copy verbatim from \`list_bindable_moves\`); never echo \`participantId\` back to the user (T4 non-attribution). For the full Ludics workflow recipes (explore-layer / bind-participant) and glossary, call \`get_orientation\`.`;
 
 /**
@@ -68,7 +69,7 @@ Version: ${ORIENTATION_VERSION}
 
 ## Tool clusters — route here first
 
-47 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
+52 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
 
 ### Cluster 1 — Session start (1 tool)
 - \`get_orientation\` — you are reading its output. Call once per session; cache against \`contentHash\`.
@@ -112,8 +113,14 @@ Use when auditing the inferential structure of a specific argument or warrant. T
 - \`ecc_evidential\` — evidential closure: what can be derived from a given evidence set
 - \`ecc_belief_revision_proposals\` — what would have to be retracted to block a conclusion
 
-### Scheme catalog (1 tool)
-- \`list_schemes\` — browse the argumentation-scheme catalog. Filter by \`clusterTag\` (expert | causal | practical | analogical | …). Call before \`propose_structured_argument\` when scheme is unclear.
+### Scheme catalog + analysis (6 tools)
+Browse the argumentation-scheme catalog and reason about scheme identity / redundancy / provenance. The catalogue is a *folksonomy converging on an ontology* (P3/Q-021): there is NO canonical form, so a shared behaviour-fingerprint is only a NECESSARY pre-filter — \`verify_scheme_equality\` is the authoritative arbiter.
+- \`list_schemes\` — browse the catalog. Filter by \`clusterTag\` (expert | causal | practical | analogical | …). **Pass \`excludeUnhealthy: true\` before \`propose_structured_argument\`** so you never pick a dialogue-meta or test-placeholder row (the write surface refuses those).
+- \`verify_scheme_equality\` — AUTHORITATIVE behaviour-equality verdict between two scheme keys: \`equal\` | \`subset\` | \`incomparable\` | \`inconclusive\`. \`inconclusive\` means the verifier hit its search bound — treat as 'unknown', NOT as 'incomparable'. \`fingerprintsMatched: true\` is necessary-but-not-sufficient for \`equal\`.
+- \`compute_scheme_fingerprint\` — the behaviour fingerprint of one scheme (cheap structural pre-filter / bucket key). \`materialised: false\` means recomputed on the fly. Two schemes sharing a fingerprint are equality CANDIDATES to confirm with \`verify_scheme_equality\`.
+- \`find_behaviourally_similar_schemes\` — the REDUNDANCY RADAR: fingerprint-bucket then verifier-confirm. Empty \`hits\` means 'no behavioural near-duplicate found', not 'not checked'. Call before authoring/importing a scheme to avoid creating a folksonomy duplicate.
+- \`get_scheme_provenance\` — source-of-record for a scheme: \`sourceCatalogue\` (AIF | AIFdb | Argdown | WRM-2008 | admin-authored) + \`sourceId\`/\`sourceVersion\`/\`importedAt\`/\`importerVersion\`/\`createdBy\`/\`createdAt\`. Every field echoes a stored column verbatim.
+- \`compare_scheme_provenance\` — 'same scheme under two presentations?' diagnostic: composes two provenance reads + the verifier. \`sameSource: false\` + \`verifierVerdict: 'equal'\` = duplicate-import candidates; same source + behavioural drift = a versioned divergence.
 
 ### Cluster 6 — Ludics generative substrate (17 tools)
 Use when the user mentions **locus**, **design**, **behaviour**, **incarnation**, **cone**, **witness**, **articulation lattice**, **delocation**, **daimon**, or asks to **bind a participant** / **propose a synthesis** / **compress** or **join** articulations. Skip this cluster entirely for ordinary argument-graph questions — the deliberation graph (Clusters 2–4) is the public face; Ludics is the algebraic underlay.
@@ -268,16 +275,17 @@ Use this whenever the user states a position, says "log this claim / save this a
 
 #### E.2 — Structured argument (\`propose_structured_argument\`)
 
-1. (Optional) \`list_schemes\` to browse the catalog if you don't know which scheme matches the user's reasoning. Filter by \`clusterTag\` (\`expert\` | \`causal\` | \`practical\` | \`analogical\` | …) to narrow.
+1. (Optional) \`list_schemes\` to browse the catalog if you don't know which scheme matches the user's reasoning. Filter by \`clusterTag\` (\`expert\` | \`causal\` | \`practical\` | \`analogical\` | …) to narrow. **Pass \`excludeUnhealthy: true\`** so the picker only returns production argument patterns — the write surface REFUSES dialogue-meta / test-placeholder keys with \`code: "SCHEME_NOT_ARGUMENT_PATTERN"\` (nothing written).
 2. (Optional) \`resolve_citation\` for any DOI / arXiv id / publisher URL the user gave — the resolved canonical URL goes into \`evidence[].url\`.
-3. \`propose_structured_argument({ conclusion, premises[], reasoning?, schemeKey?, ruleType?, evidence?[], deliberationId? })\`:
+3. \`propose_structured_argument({ conclusion, premises[], reasoning?, schemeKey?, ruleType?, epistemicMode?, evidence?[], deliberationId? })\`:
    - \`conclusion\` (required) — the sentence the argument supports.
-   - \`premises[]\` (required, 1–10) — each \`{ text, isAxiom?, evidence?[] }\`. Each premise is committed as its own Claim row, so attackers can later undermine specific premises rather than the whole argument. **Per-premise evidence (recommended):** when each premise has its own distinct source (e.g. a multi-source policy argument), attach it via \`premises[i].evidence[]\` (≤ 5 per premise). The evidence lands on that premise's minted Claim row, so per-source provenance maps onto per-premise standing rather than being collapsed onto the conclusion.
+   - \`premises[]\` (required, 1–10) — each \`{ text, isAxiom?, premiseType?, evidence?[] }\`. Each premise is committed as its own Claim row, so attackers can later undermine specific premises rather than the whole argument. \`premiseType\` ∈ \`ordinary\` | \`assumption\` | \`exception\` (Carneades; default \`ordinary\`) controls the defeasibility role — an \`exception\` premise is one whose *truth* defeats the inference. **Per-premise evidence (recommended):** when each premise has its own distinct source (e.g. a multi-source policy argument), attach it via \`premises[i].evidence[]\` (≤ 5 per premise). The evidence lands on that premise's minted Claim row, so per-source provenance maps onto per-premise standing rather than being collapsed onto the conclusion.
    - \`reasoning\` (optional) — narrative gloss tying premises to conclusion; stored on \`Argument.text\`.
-   - \`schemeKey\` (optional) — from \`list_schemes\`. Omit and the server infers one (response includes a \`scheme_inferred\` warning).
+   - \`schemeKey\` (optional) — from \`list_schemes(excludeUnhealthy: true)\`. Omit and the server infers one (response includes a \`scheme_inferred\` warning). A folksonomy-duplicate key is auto-redirected to its canonical sibling with a \`SCHEME_CANONICALIZED\` warning whose \`canonical\` field names the key actually used (never a silent merge).
+   - \`epistemicMode\` (optional) — defaults to the scheme's catalogue value. Override (\`FACTUAL\` | \`HYPOTHETICAL\` | \`COUNTERFACTUAL\`) only when the reasoning is genuinely hypothetical/counterfactual; an override shifts the behaviour-fingerprint domain and returns an \`EPISTEMIC_MODE_CHANGED_FINGERPRINT\` warning (\`canonical\` = the mode applied).
    - \`evidence[]\` (optional, up to 10) — top-level evidence attaches to the **conclusion** claim. Use this only for sources that back the overall argument rather than one specific premise; otherwise prefer per-premise \`premises[i].evidence[]\`.
    - \`deliberationId\` (optional) — omit for "My Arguments".
-4. The response gives \`{ argument, claim, premises[], schemeInstance, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }\`. **Read \`warnings[]\`** — \`scheme_inferred\` means the server picked the scheme (announce that to the user), \`missing_slot\` lists scheme-required slots not yet bound (mention as "v1.2 will let you bind the \`expert\` slot explicitly"), \`premise_deduped\` means duplicate-text premises collapsed into one Claim, \`premise_evidence_merged\` means a deduped premise's evidence was merged into the surviving claim (so no source is lost).
+4. The response gives \`{ argument, claim, premises[], schemeInstance, verifierVerdict, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }\`. **Read \`warnings[]\`** — each entry is \`{ code, detail, canonical? }\`. Canonical (§4.1) codes carry the corrected value in \`canonical\`: \`SCHEME_CANONICALIZED\` (announce the redirect, attach to \`canonical\`), \`EPISTEMIC_MODE_CHANGED_FINGERPRINT\`, \`VERIFIER_INCONCLUSIVE\` (the same-fingerprint behaviour check could not decide — the argument still shipped; treat as 'unknown', not a failure). Operational diagnostics: \`scheme_inferred\` (server picked the scheme — announce it), \`scheme_behaviour_verdict\` (a clean equal/subset relationship against a same-fingerprint sibling, persisted for the catalogue audit), \`missing_slot\` (scheme-required slots not yet bindable — mention as "v1.2 will let you bind the \`expert\` slot explicitly"), \`premise_deduped\` (duplicate-text premises collapsed into one Claim), \`premise_evidence_merged\` (a deduped premise's evidence was merged into the surviving claim, so no source is lost). A 400 with a top-level \`code\` (\`SCHEME_UNKNOWN\` or \`SCHEME_NOT_ARGUMENT_PATTERN\`) + \`canonical\` means the write was REFUSED — re-pick via \`list_schemes(excludeUnhealthy: true)\`.
 5. **Verify the round-trip** with \`get_argument(argumentId)\` (after \`retryAfterMs\` if \`provenancePending: true\`). The result should show all premises in the "Premises" section (no "bare assertion" warning), the assigned scheme, and any critical questions.
 6. Do not invent ids, permalinks, or hashes — only echo values the write tool returned.
 
@@ -306,6 +314,16 @@ Use when the user says "bind me to design X", "commit to the minimal incarnation
 4. \`bind_participant_to_design({ deliberationId, ludicMoveId, dialogueMoveId, canonicalText, participantId, schemeKey? })\` using the chosen triple. \`canonicalText\` MUST be the value from \`candidateDialogueMoves[i].canonicalText\` — do not re-canonicalize on the client. \`schemeKey\` is required when \`moveType === "daimon"\`; optional otherwise (use \`list_schemes\` if needed).
 5. On success, the result carries \`invariantChecks: { S1_existingLocus, S2_existingStructure, S3_canonPipelineGated, S4_schemeTyped }\` all true and a \`witnessId\`. Report the witnessId to the user; do NOT report \`participantId\` back (T4 non-attribution).
 6. (Optional) Verify with \`get_instantiation(deliberationId, dialogueMoveId)\` — should return \`instantiated: true\` with the LudicMove locus.
+
+### Recipe H — Decide whether two schemes are the same / find redundancy / attribute a scheme
+
+Use when the user asks "are these two schemes the same?", "is this a duplicate?", "where did this scheme come from?", or before authoring/importing a scheme you want to avoid duplicating. The catalog is a folksonomy converging on an ontology — there is no canonical form, so a fingerprint match is a CANDIDATE signal, never a proof.
+
+1. **"Are scheme A and scheme B the same?"** → \`verify_scheme_equality(keyA, keyB)\`. Read \`verdict\`, NOT \`fingerprintsMatched\`: \`equal\` (interchangeable) / \`subset\` (one specialises the other) / \`incomparable\` (genuinely distinct) / \`inconclusive\` (verifier hit its bound — say "undecided", do not claim they differ). Optionally raise \`searchBoundMs\` and re-run if \`inconclusive\`.
+2. **"Is this scheme a duplicate of anything in the catalog?"** → \`find_behaviourally_similar_schemes(schemeKey)\`. Bucket-then-verify; \`hits\` ordered \`equal\` → \`subset\` → \`incomparable\` → \`inconclusive\`. Empty \`hits\` = "no behavioural near-duplicate found" (a real negative, not "unchecked"). Use \`compute_scheme_fingerprint\` only when you want the raw bucket key.
+3. **"Where did this scheme come from?"** → \`get_scheme_provenance(schemeKey)\` for the source-of-record (\`sourceCatalogue\` + import metadata). \`null\` import fields = admin-authored; \`createdBy: null\` = a pre-Q024 migrated row (its \`createdAt\` is the migration moment, not the authoring time).
+4. **"Are these two keys the same scheme under different presentations?"** → \`compare_scheme_provenance(keyA, keyB)\`. \`sameSource: false\` + \`verifierVerdict: 'equal'\` = duplicate-import candidates worth flagging; \`sameSource: true\` + a non-equal verdict = a versioned divergence. Always quote \`verifierVerdict\` (authoritative) over \`behaviourFingerprintEqual\` (pre-filter).
+5. None of these tools mutate state — they are safe to run during synthesis or before a write. Do not present \`inconclusive\` / \`behaviourFingerprintEqual\` as a definitive equality claim.
 
 ## Things to avoid
 

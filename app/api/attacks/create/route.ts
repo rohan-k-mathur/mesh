@@ -1,6 +1,7 @@
 // app/api/attacks/create/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { createDialogueMove } from "@/lib/ludics/createDialogueMove";
 import { z } from "zod";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { computeAspicConflictMetadata } from "@/lib/aspic/conflictHelpers";
@@ -230,30 +231,24 @@ async function createConflictApplicationAttack(input: CreateAttackInput, userId:
     
     const cqId = input.cqKey || `attack_${conflictApplication.id}`;
     
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    attackMove = await prisma.dialogueMove.create({
-      data: {
-        deliberationId: input.deliberationId,
-        targetType: input.targetType as any,
-        targetId: input.targetId,
-        kind: "ATTACK",
-        payload: {
-          cqId,
-          cqKey: input.cqKey,
-          conflictApplicationId: conflictApplication.id,
-          attackType: input.attackType,
-        },
-        createdById: String(userId),
+    const seamResult = await createDialogueMove({
+      deliberationId: input.deliberationId,
+      targetType: input.targetType as any,
+      targetId: input.targetId,
+      kind: "ATTACK",
+      payload: {
+        cqId,
+        cqKey: input.cqKey,
+        conflictApplicationId: conflictApplication.id,
+        attackType: input.attackType,
         expression,
-        signature: `ATTACK:${input.targetType}:${input.targetId}:${conflictApplication.id}`,
-        acts: [{ 
-          polarity: "neg", 
-          locusPath: "0", 
-          openings: [], 
-          expression 
-        }],
+        locusPath: "0",
       },
+      actorId: String(userId),
+      signature: `ATTACK:${input.targetType}:${input.targetId}:${conflictApplication.id}`,
+      locusPath: "0",
     });
+    attackMove = seamResult.move;
 
     // Link DialogueMove back to ConflictApplication
     await prisma.conflictApplication.update({

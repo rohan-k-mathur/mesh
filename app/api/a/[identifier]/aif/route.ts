@@ -28,6 +28,7 @@ import {
 } from "@/lib/citations/argumentAttestation";
 import { buildArgumentJsonLd } from "@/lib/citations/argumentJsonLd";
 import { buildAifGraphJSONLD } from "@/lib/aif/jsonld";
+import { computeRoundTripSoundness } from "@/lib/aif/roundTripSoundness";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,7 @@ export async function GET(
       body = {
         ...aif,
         "iso:attestation": toAttestationSummary(att),
+        "mesh:roundTripSoundness": computeRoundTripSoundness(att, aif as any),
       };
     }
 

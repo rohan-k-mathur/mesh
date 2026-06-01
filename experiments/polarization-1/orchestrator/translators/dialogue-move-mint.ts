@@ -22,6 +22,7 @@
  */
 
 import { prisma } from "@/lib/prismaclient";
+import { createDialogueMove } from "@/lib/ludics/createDialogueMove";
 import type { RoundLogger } from "../log/round-logger";
 
 export type DialogueMoveKind =
@@ -58,18 +59,25 @@ export interface PostDialogueMoveOpts {
  */
 export async function postDialogueMove(opts: PostDialogueMoveOpts): Promise<string | null> {
   try {
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    const row = await prisma.dialogueMove.create({
-      data: {
-        deliberationId: opts.deliberationId,
-        targetType: opts.targetType as any,
-        targetId: opts.targetId,
-        kind: opts.kind as any,
-        actorId: opts.actorId,
-        signature: opts.signature,
-        payload: (opts.payload ?? {}) as any,
-      },
+    const seamResult = await createDialogueMove({
+      deliberationId: opts.deliberationId,
+      targetType: opts.targetType as any,
+      targetId: opts.targetId,
+      kind: opts.kind as any,
+      actorId: opts.actorId,
+      signature: opts.signature,
+      payload: (opts.payload ?? {}) as any,
     });
+    if (seamResult.deduplicated) {
+      opts.logger.event("dialogue_move_dedup", {
+        step: opts.step,
+        advocate: opts.advocate,
+        kind: opts.kind,
+        signature: opts.signature,
+      });
+      return null;
+    }
+    const row = seamResult.move;
     opts.logger.event("dialogue_move_posted", {
       step: opts.step,
       advocate: opts.advocate,

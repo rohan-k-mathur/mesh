@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { makeSignature } from '@/lib/dialogue/moves'; // existing helper
 
@@ -80,17 +81,15 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
   try {
     const payload = { expression: mp.text, cqId:'default', locusPath:'0' };
     const signature = makeSignature('GROUNDS','argument', mp.targetId, payload); // same helper you use elsewhere
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    await prisma.dialogueMove.create({
-      data: {
-        deliberationId: parent?.deliberationId ?? '',
-        targetType: 'argument',
-        targetId: mp.targetId,
-        kind: 'GROUNDS',
-        payload,
-        actorId: String(userId),
-        signature,
-      },
+    await createDialogueMove({
+      deliberationId: parent?.deliberationId ?? '',
+      targetType: 'argument',
+      targetId: mp.targetId,
+      kind: 'GROUNDS',
+      payload,
+      actorId: String(userId),
+      signature,
+      locusPath: '0',
     });
     (globalThis as any).meshBus?.emit?.('dialogue:moves:refresh', { deliberationId: parent?.deliberationId });
   } catch {}

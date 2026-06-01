@@ -2716,6 +2716,18 @@ model ArgumentSchemeInstance {
   ruleType RuleType @default(DEFEASIBLE) // Strict rules cannot be rebutted
   ruleName String? // Optional name for undercutting attacks (e.g., "Modus Ponens")
 
+  // Roadmap B.1: epistemic mode the agent selected for THIS instance. Defaults
+  // to the scheme's catalogue value; an override participates in the fingerprint
+  // domain (Q-020) and is surfaced to the caller as a warning. Nullable so
+  // legacy instances are unaffected.
+  epistemicMode EpistemicMode?
+
+  // Roadmap B.1: behaviour-equality verdict recorded at write time against any
+  // same-fingerprint catalogue sibling ("equal" | "subset" | "incomparable" |
+  // "inconclusive" | "skipped"). Persisted so the Phase 4d catalogue audit can
+  // track drift away from the 0-equal / 0-subset baseline.
+  verifierVerdict String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -2852,6 +2864,12 @@ model ArgumentPremise {
   // Marks premise as axiom (K_n) vs ordinary premise (K_p)
   // Axioms cannot be undermined (attack restriction)
   isAxiom Boolean @default(false)
+
+  // Roadmap B.1: Carneades premise classification accepted by the structured
+  // write tool (ordinary | assumption | exception). Nullable — legacy rows and
+  // non-Carneades premises leave it unset; the structured write tool defaults to
+  // ORDINARY when a premise omits it.
+  premiseType PremiseType?
 
   argument Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
   groupKey String?
@@ -4153,6 +4171,13 @@ model ArgumentScheme {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   createdBy String?
+
+  // NEW: Spec 4 phase 4b - non-redundancy override audit trail.
+  // Populated when an admin submits a scheme that the non-redundancy panel
+  // flagged as behaviourally `equal` or `subset` to an existing row, recording
+  // the rationale for proceeding anyway. Null on rows where the panel was
+  // clear (or where the row predates phase 4b).
+  nonRedundancyJustification String?
 
   // NEW: Phase 2 step 9 - materialized behaviour fingerprint.
   // sha256 over the canonical digest produced by `computeBehaviourFingerprint`

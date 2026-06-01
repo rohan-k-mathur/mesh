@@ -6,8 +6,10 @@
 - **proved-by:** Phase 2f formal-proof session, 2026-05-21
 - **cross-checked-by:** Round 2 literature review (substrate-internal cross-check against Fouqueré–Quatrini 2013)
 - **cross-check-date:** 2026-05-18
-- **last-reviewed:** 2026-05-29 (equality-convention audit; see §Audit below)
+- **last-reviewed:** 2026-05-29 (equality-convention audit; see §Audit below — and added corroborating Agda mechanisation, see §Corroborating mechanisation)
 - **source-of-proof:** [`../../Development and Ideation Documents/ARCHITECTURE/Ludics Generative Substrate Documents/LUDICS_OQ_JSL_PROOF.md`](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/Ludics%20Generative%20Substrate%20Documents/LUDICS_OQ_JSL_PROOF.md) and [`../../Development and Ideation Documents/ARCHITECTURE/Ludics Generative Substrate Documents/LUDICS_ORDER_RELATION_DEFINITION.md`](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/Ludics%20Generative%20Substrate%20Documents/LUDICS_ORDER_RELATION_DEFINITION.md)
+- **corroborating-mechanisation:** [`../mechanisation/agda/T001/T001.agda`](../mechanisation/agda/T001/T001.agda) (Agda 2.7.0.1, agda-stdlib v2.0; `--safe --without-K`, no postulates/holes; evidence-only — see §Corroborating mechanisation)
+- **build-instructions:** [`../mechanisation/agda/T001/README.md`](../mechanisation/agda/T001/README.md)
 
 ## Statement
 
@@ -127,3 +129,49 @@ lost in the audit handoff.
   view" listing all designs without cone partitioning).
 - Any sprint that depends on a single greatest element of `Inc(B)`. There
   isn't one in general; the antichain (T002) prevents this.
+
+## Corroborating mechanisation
+
+[`../mechanisation/agda/T001/T001.agda`](../mechanisation/agda/T001/T001.agda)
+type-checks (Agda 2.7.0.1, agda-stdlib v2.0, `--safe --without-K`) with
+no postulates and no holes. It mechanises the **Reading A** proof,
+following the split the human proof already makes between the
+order-theoretic core and the Daimon Lock Lemma:
+
+- **The JSL axioms are unconditional.** `Order.JoinFromLUB` proves that
+  *any* least-upper-bound operation on a setoid partial order is
+  idempotent (`⊔-idem`), commutative (`⊔-comm`), associative (`⊔-assoc`)
+  and `≈`-congruent (`⊔-cong`), discharging from antisymmetry alone —
+  exactly the source's "order-theoretic consequences of the
+  least-upper-bound property" (§6). No behaviour, no cone, no Ludics.
+
+- **The per-cone JSL is conditional on the Daimon Lock Lemma.** Its three
+  within-cone consequences — `Dᵢ` is the bottom (`cone-bottom`, the map
+  T002 exports), the cone contains `Dᵢ` (`Dᵢ∈`), and set-union is closed
+  in the cone (`⊔-closed`) — are supplied as explicit `Cone` module
+  **hypotheses**, *not* Agda `postulate`s, so the artefact stays `--safe`
+  while keeping the dependency visible in the types. From them the file
+  derives the full JSL plus bottom neutrality `Dᵢ ∪ D ≈ D` (`⊔-bot`) and
+  `Dᵢ` as least element (`⊥-least`).
+
+- **The F2 equality convention is modelled faithfully.** Every derived
+  axiom is an `≈`-equality (`⊑-antisym` lands in `≈`); on the C001a list
+  model `≈` is set-equality `≈ᴰ`, so idempotence is `D ++ D ≈ D` even
+  though `D ++ D ≢ D` propositionally — the setoid-internal reading this
+  entry's §Equality convention and §Audit call for.
+
+- **Non-vacuity.** `ListModel` instantiates the abstract order on the
+  C001a list-design model (set-inclusion / set-equality `≈ᴰ`); set-union
+  is `_++_`, whose LUB clauses are the C001a union lemmas, and the
+  principal up-set `↑Dᵢ` is exhibited as a concrete inhabited cone
+  (`PrincipalCone`).
+
+Under the Register policy this is **evidence-only**, not a positive
+settlement: the fidelity of the `Cone` hypotheses to the Daimon Lock
+Lemma (in particular within-cone closure of `∪`) and of the `List A`
+model to chronicle-tree designs are human-review obligations, recorded in
+[`../mechanisation/agda/T001/README.md`](../mechanisation/agda/T001/README.md)
+§"What this cannot check". T001's `status` remains `established` on the
+strength of the human proof and the §Audit above; the mechanisation
+corroborates the order-theoretic core and isolates exactly which claims
+ride on the Daimon Lock Lemma.

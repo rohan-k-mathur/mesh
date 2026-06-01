@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { createDialogueMove } from "@/lib/ludics/createDialogueMove";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
 import { bindParticipantToDesign, BindError } from "@/server/ludics/bindParticipantToDesign";
@@ -200,28 +201,26 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 7c. Create DialogueMove (ASSERT) linking to the claim
-      // This is what CommitmentStorePanel actually reads
-      // signature is required - use a unique identifier
+      // 7c. Create DialogueMove (ASSERT) linking to the claim via the H1 seam.
+      // CommitmentStorePanel SQL joins on numeric actorId to users table, so
+      // we use the current user id (not the ludics participantId).
       const signature = `ludics-export-${ludicElement.id}-${Date.now()}`;
-      
-      // Use the current user's ID as actorId for proper user lookup in CommitmentStorePanel
-      // The CommitmentStorePanel SQL joins on numeric actorId to users table
-      // Store the ludics participantId (Proponent/Opponent) in the mapping instead
       const dialogueMoveActorId = String(userId);
-      
-      // @ts-ignore - extJson may not be in types yet
-      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-      const dialogueMove = await prisma.dialogueMove.create({
-        data: {
+
+      const seamResult = await createDialogueMove(
+        {
           deliberationId,
-          actorId: dialogueMoveActorId, // Use real user ID for proper display
+          actorId: dialogueMoveActorId,
           kind: "ASSERT",
           targetType: "claim",
           targetId: claim.id,
           signature,
         },
-      });
+        // We are inside a prisma.$transaction; pass the tx through so all
+        // writes commit/rollback as one unit.
+        { tx: tx as any },
+      );
+      const dialogueMove = seamResult.move;
 
       // 8. Create mapping record to link ludics and dialogue systems
       // @ts-ignore - commitmentLudicMapping exists but types not yet refreshed

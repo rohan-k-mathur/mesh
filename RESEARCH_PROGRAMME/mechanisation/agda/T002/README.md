@@ -57,10 +57,13 @@ Requires:
 - Agda 2.7.0.1 or later (tested on 2.7.0.1)
 - `agda-stdlib` **v2.0 pinned**
 
-Type-check:
+Resolution is via [`../mesh-substrate.agda-lib`](../mesh-substrate.agda-lib),
+which puts the shared [`../lib/Order.agda`](../lib/Order.agda) on the
+include path (T002's abstract order theory and list-design model now live
+there, shared with T001).  Type-check from `mechanisation/agda`:
 
 ```sh
-agda T002.agda
+agda T002/T002.agda
 ```
 
 Expected output: clean, no errors, no warnings, no unsolved metas.

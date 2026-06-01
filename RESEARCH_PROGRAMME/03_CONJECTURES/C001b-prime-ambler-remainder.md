@@ -79,9 +79,17 @@ distinct Ludics incarnations are sent to distinct Ambler generators.
 > (b₁′), this gives a bijection `Inc(B) ↔ 𝒞_base(A, B^♯)`, whose
 > free-JSL extension is automatically a JSL iso `ε`.
 
-**(b₃′) Erasure-square naturality.** The bijection from
-(b₁′ ∧ b₂′) extends to a natural transformation in the Ambler
-argument variable. The square
+**(b₃′) Erasure-square naturality (within-fibre).** *Restated
+2026-05-31, after [Q-037](../01_OPEN_QUESTIONS_REGISTRY.md#q-037)
+closed positive on the full propositional fragment and the defeat-encoding
+`δ` ceased to be a substantive side-data parameter (see
+[Q-028b](../01_OPEN_QUESTIONS_REGISTRY.md#q-028b)).* For **fixed side
+data** — a fixed defeasible rule-base `Γ` and the now-canonical
+propositional defeat-encoding `δ₁` (i.e. working **within a single fibre**
+of the side-data parameterisation of
+[Q-029](../01_OPEN_QUESTIONS_REGISTRY.md#q-029)) — the bijection from
+(b₁′ ∧ b₂′) extends to a natural transformation in the Ambler argument
+variable. The square
 
 ```
        𝓕(Inc(B))           ≅           C_semi(A, B^♯)
@@ -93,6 +101,13 @@ argument variable. The square
 
 commutes for every morphism `B → B′` of behaviours (and its
 Ambler-side counterpart `B^♯ → B′^♯`).
+
+> *Scope note.* Naturality **across** side-data refinements (extending
+> `Γ`, refining `δ`) is **not** part of b₃′ — it is the cleavage/transport
+> law of the candidate side-data fibration, tracked separately under
+> [Q-029](../01_OPEN_QUESTIONS_REGISTRY.md#q-029). b₃′ is now purely the
+> *within-fibre* (fixed `(Γ, δ₁)`) naturality square in the behaviour
+> variable `B`.
 
 **The combined C001b′ claim is `b₁′ ∧ b₂′ ∧ b₃′`.**
 

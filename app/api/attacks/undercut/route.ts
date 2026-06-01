@@ -1,6 +1,7 @@
 // app/api/attacks/undercut/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
@@ -212,25 +213,24 @@ const deliberationId = parsed.data.deliberationId ?? (targetArg ? targetArg.deli
   // This links the undercut to the dialogue system
   let attackMoveId: string | null = null;
   try {
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    const attackMove = await prisma.dialogueMove.create({
-      data: {
-        deliberationId,
-        targetType: 'argument',
-        targetId: toArgumentId,
-        kind: 'ATTACK',
-        actorId: String(userId),
-        payload: {
-          attackType: 'UNDERCUTS',
-          targetScope: 'inference',
-          targetInferenceId,
-          locusPath: '0',
-          expression: fromText,
-        },
-        signature: `ATTACK:argument:${toArgumentId}:undercut_${targetInferenceId}`,
-        endsWithDaimon: false,
+    const seamResult = await createDialogueMove({
+      deliberationId,
+      targetType: 'argument',
+      targetId: toArgumentId,
+      kind: 'ATTACK',
+      actorId: String(userId),
+      payload: {
+        attackType: 'UNDERCUTS',
+        targetScope: 'inference',
+        targetInferenceId,
+        locusPath: '0',
+        expression: fromText,
       },
+      signature: `ATTACK:argument:${toArgumentId}:undercut_${targetInferenceId}`,
+      endsWithDaimon: false,
+      locusPath: '0',
     });
+    const attackMove = seamResult.move;
     attackMoveId = attackMove.id;
     
     console.log('[attacks/undercut] Created ATTACK move:', {

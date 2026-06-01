@@ -1,6 +1,7 @@
 // app/api/cq/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { computeAspicConflictMetadata } from '@/lib/aspic/conflictHelpers';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
@@ -42,25 +43,24 @@ export async function POST(req: NextRequest) {
           };
           const expression = attackLabels[attachCA.attackType] || 'I challenge this';
           
-          // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-          const attackMove = await prisma.dialogueMove.create({
-            data: {
-              deliberationId,
-              targetType: targetType as any,
-              targetId,
-              kind: 'ATTACK',
-              actorId: String(authorId || 'self'),
-              payload: {
-                cqKey,
-                schemeKey,
-                locusPath: '0',
-                expression,
-                attackType: attachCA.attackType,
-              },
-              signature: `ATTACK:${targetType}:${targetId}:cq_${cqKey}`,
-              endsWithDaimon: false,
+          const seamResult = await createDialogueMove({
+            deliberationId,
+            targetType: targetType as any,
+            targetId,
+            kind: 'ATTACK',
+            actorId: String(authorId || 'self'),
+            payload: {
+              cqKey,
+              schemeKey,
+              locusPath: '0',
+              expression,
+              attackType: attachCA.attackType,
             },
+            signature: `ATTACK:${targetType}:${targetId}:cq_${cqKey}`,
+            endsWithDaimon: false,
+            locusPath: '0',
           });
+          const attackMove = seamResult.move;
           attackMoveId = attackMove.id;
           
           console.log('[cq] Created ATTACK move for CQ resolution:', {

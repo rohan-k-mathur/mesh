@@ -51,6 +51,9 @@ const PUBLIC_API = [
   /^\/api\/citations\/(resolve-url|resolve\/bulk)\/?$/,
   // Quick-argument write seams (route enforces bearer / session).
   /^\/api\/arguments\/quick(-structured)?\/?$/,
+  // Chain-creation write seam for the MCP `propose_argument_chain` tool
+  // (route enforces bearer / session).
+  /^\/api\/argument-chains\/quick-chain\/?$/,
   // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
   /^\/api\/v3\/openapi\.json$/,
   /^\/api\/v3\/docs\/?$/,
@@ -58,6 +61,16 @@ const PUBLIC_API = [
   // Returns the argumentation-scheme catalog — read-only, no PII.
   // Required so `list_schemes` works without a bearer token.
   /^\/api\/schemes\/?$/,
+  // Phase C — verifier structural-radar read tools (key-addressed GET):
+  // verify_scheme_equality, compute_scheme_fingerprint,
+  // find_behaviourally_similar_schemes. Read-only, no PII.
+  /^\/api\/schemes\/verify-equality\/?$/,
+  /^\/api\/schemes\/fingerprint\/?$/,
+  /^\/api\/schemes\/similar\/?$/,
+  // Phase D — provenance read tools (key-addressed GET):
+  // get_scheme_provenance, compare_scheme_provenance. Read-only, no PII.
+  /^\/api\/schemes\/provenance\/?$/,
+  /^\/api\/schemes\/compare-provenance\/?$/,
   ];
 
 // Public pages that must be reachable without auth (Phase 1 of the

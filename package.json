@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:no-legacy-ludics-read": "tsx scripts/lint-no-legacy-ludics-read.ts",
     "test": "jest",
     "vitest": "vitest",
     "predev": "npm run -w @app/sheaf-acl build",

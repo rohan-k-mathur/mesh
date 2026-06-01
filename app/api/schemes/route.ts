@@ -7,6 +7,10 @@ import {
   type DraftCq,
   type ParentSchemeShape,
 } from "@/lib/schemes/validation/validatePresentation";
+import {
+  buildFingerprintPeerIndex,
+  computeCatalogueHealth,
+} from "@/lib/schemes/catalogueHealth";
 
 export async function GET(_: NextRequest) {
   try {
@@ -51,6 +55,11 @@ export async function GET(_: NextRequest) {
         // Phase 6D: Clustering fields
         parentSchemeId: true,
         clusterTag: true,
+        // Roadmap E1: behaviour fingerprint feeds the catalogue-health projection.
+        // @ts-expect-error - Phase 2 field, Prisma types may be cached
+        fingerprint: true,
+        // @ts-expect-error - Q-018 discriminator, Prisma types may be cached
+        kind: true,
       },
     });
 
@@ -75,6 +84,9 @@ export async function GET(_: NextRequest) {
     };
 
     // Parse and normalize to 'cqs' for API response + add calculated fields
+    const peerIndex = buildFingerprintPeerIndex(
+      schemes.map((s) => ({ key: s.key, fingerprint: (s as any).fingerprint })),
+    );
     const items = schemes.map((s) => {
       const cqs = Array.isArray(s.cq) ? s.cq : [];
       const ownCQCount = cqs.length;
@@ -85,6 +97,15 @@ export async function GET(_: NextRequest) {
         cqs,
         ownCQCount,
         totalCQCount,
+        catalogueHealth: computeCatalogueHealth(
+          {
+            key: s.key,
+            kind: (s as any).kind,
+            clusterTag: (s as any).clusterTag,
+            fingerprint: (s as any).fingerprint,
+          },
+          peerIndex,
+        ),
         cq: undefined, // Remove the DB field name from response
       };
     });
@@ -229,6 +250,12 @@ export async function POST(req: NextRequest) {
         // Phase 6D: Clustering fields
         parentSchemeId: body.parentSchemeId || null,
         clusterTag: body.clusterTag || null,
+        // Spec 4 phase 4b: non-redundancy override audit trail.
+        nonRedundancyJustification:
+          typeof body.nonRedundancyJustification === "string" &&
+          body.nonRedundancyJustification.trim().length > 0
+            ? body.nonRedundancyJustification.trim()
+            : null,
       } as any,
     });
 

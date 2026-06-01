@@ -1,5 +1,6 @@
 // packages/aif-core/src/import.ts
 import { prisma } from '@/lib/prismaclient';
+import { resolveSchemeByFingerprint } from '@/lib/aif/behaviourFingerprint';
 
 async function ensureArgumentForClaim(deliberationId: string, claimId: string) {
   const existing = await prisma.argument.findFirst({
@@ -48,10 +49,48 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
     const cI = conc.find((e:any) => e.from === sid)?.to;
     if (!cI) continue;
     const pIs = prem.filter((e:any) => e.to === sid).map((e:any) => e.from);
+
+    // Phase 4c (folksonomy step 17): resolve schemeId in this priority:
+    //   1. exact `aif:usesScheme` / `as:appliesSchemeKey` key match;
+    //   2. fingerprint match against the catalogue's materialised digest.
+    // No silent merge — every fingerprint match is logged so import-path
+    // soak reviews can audit the decision (Spec 4 §3.5).
+    const schemeKey: string | null =
+      (s['aif:usesScheme'] ?? s['as:appliesSchemeKey'] ?? s.usesScheme ?? null) || null;
+    const fingerprint: string | null =
+      (s['mesh:behaviourFingerprint'] ?? s.behaviourFingerprint ?? null) || null;
+    let resolvedSchemeId: string | null = null;
+    if (schemeKey) {
+      const byKey = await prisma.argumentScheme.findFirst({
+        where: { key: schemeKey, kind: 'argument-scheme' },
+        select: { id: true },
+      });
+      if (byKey) resolvedSchemeId = byKey.id;
+    }
+    if (!resolvedSchemeId && fingerprint) {
+      const resolution = await resolveSchemeByFingerprint(fingerprint);
+      if (resolution.kind === 'match') {
+        resolvedSchemeId = resolution.schemeId;
+        // eslint-disable-next-line no-console
+        console.info('[aif-import] fingerprint match', {
+          ra: sid,
+          fingerprint,
+          schemeId: resolution.schemeId,
+          schemeKey: resolution.schemeKey,
+        });
+      } else {
+        // eslint-disable-next-line no-console
+        console.info('[aif-import] fingerprint no-match', {
+          ra: sid,
+          fingerprint,
+        });
+      }
+    }
+
     const a = await prisma.argument.create({
       data: {
         deliberationId, authorId: 'importer', text: '',
-        schemeId: null, conclusionClaimId: claimMap.get(cI)!,
+        schemeId: resolvedSchemeId, conclusionClaimId: claimMap.get(cI)!,
       }
     });
     if (pIs.length) {

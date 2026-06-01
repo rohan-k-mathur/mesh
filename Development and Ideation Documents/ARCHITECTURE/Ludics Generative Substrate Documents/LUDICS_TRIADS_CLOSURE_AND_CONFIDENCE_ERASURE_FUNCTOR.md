@@ -392,6 +392,79 @@ The adjunction $F \dashv U$ has unit and counit:
 > fact about the structure of $B$, but the bridge target lives one level
 > up.
 
+> **2026-05-30 — δ defeat-encoding commitment (provisional, R1).** The
+> [Q-028b reduction](../../../RESEARCH_PROGRAMME/audits/q028b-freeness-argument-2026-05-29.md)
+> isolated the defeat-encoding $\delta$ as the only substantive of the
+> bridge's four side-data items (the third factor of
+> $\phi = \delta^{-1} \circ \mathrm{CH} \circ \mathrm{DP}$). Per the
+> [δ decision brainstorm](../../../RESEARCH_PROGRAMME/audits/delta-defeat-encoding-decision-brainstorm-2026-05-30.md),
+> the substrate **commits to $\delta_1$ — defeat-as-negation** as the
+> working default for the C001b′ proof: an Ambler defeat $\mathrm{defeat}(\pi)$
+> is encoded as a *negative design* (a Daimon ramification with an explicit
+> attack ramification; the defeated argument is a blocked chronicle on the
+> negative side). This is the substrate-native reading: it *is* the
+> Phase 2e Cross-Cone Incompatibility relation, requires no new substrate
+> primitive, and dominates the CSP-style $\delta_2$ (defeat-as-coroutine)
+> on every proof-relevant axis (substrate consistency, theorem reuse,
+> incarnation cardinality, Ambler-faithfulness, b₃′ tractability) per the
+> brainstorm §3.
+>
+> The commitment is **provisional on the MALL fragment** and carries three
+> recorded caveats: (i) confirmatory stress-tests E1 (reinstatement /
+> nested-defeat crispness — does Ludics non-classicality leave a residue in
+> $\mathrm{defeat}\circ\mathrm{defeat}$?) and E3 (primary-source polarity
+> read-off of Ambler's defeat connective) are **not yet executed** — a
+> negative E1 or a positive-polarity E3 would re-open the choice toward
+> $\delta_2$; (ii) the MELL image of $\delta_1$ is pending
+> [Q-030](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-030)
+> and the fixpoint check
+> [Q-031](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-031);
+> (iii) the **runtime view is $\delta_2$** — the Mesh deliberation engine
+> schedules challenges coroutine-style, so the operational layer is a
+> $\delta_2$ *presentation* of this $\delta_1$ *semantics*, and the claim
+> that the two agree on $\mathsf{Inc}(B)$ is the new question
+> [Q-037](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-037).
+> If Q-037 (R3) lands, the side-data item 4 substantiveness dissolves and
+> this commitment becomes choice-free.
+>
+> **2026-05-30 update — caveat (i) discharged.** Both confirmatory gates are
+> now executed and **both confirm $\delta_1$**:
+> [E1](../../../RESEARCH_PROGRAMME/audits/e1-reinstatement-aspirin-2026-05-30.md)
+> (reinstatement is Ambler-*monotone accrual* per Ambler 1996 p. 171, not
+> double-negation collapse — $\delta_1$ implements it natively, naive $\delta_2$
+> discards the evidence; settles A3, H1) and
+> [E3](../../../RESEARCH_PROGRAMME/audits/e3-polarity-readoff-2026-05-30.md)
+> (the focusing/evaluation alignment **forces negative polarity** on two
+> independent grounds — the $P_L \times N_L$ interaction typing and the
+> call-by-name evaluation regime — clearing H2 on the $\delta_1$ side and
+> showing $\delta_2$'s positive locus is ill-typed). Caveats (ii) MELL image
+> and (iii) runtime/$\delta_2$ agreement (Q-037) remain open and orthogonal.
+>
+> **2026-05-31 update — caveat (iii) discharged; commitment now firm on the
+> propositional fragment.**
+> [Q-037](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-037) is
+> **closed positive on the full propositional defeasible fragment** — the
+> [cyclic-defeat audit](../../../RESEARCH_PROGRAMME/audits/q031-cyclic-defeat-collapse-2026-05-31.md)
+> lifted the acyclicity guard on top of L-MERGE + E2 + the R3-termination
+> theorem §2.1, also closing the residual full
+> [Q-031](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-031)
+> (cyclic / unbounded-depth defeat forces **no** fixpoint in the design logic;
+> no μMELL/μMALL needed). Consequently the runtime $\delta_2$ presentation is
+> **proven to present** the semantic $\delta_1$ on $\mathsf{Inc}(B)$: the
+> "runtime view is $\delta_2$ / agreement is a standing obligation" language of
+> caveat (iii) is **withdrawn** — agreement is now a theorem, not an open
+> obligation. Side-data item 4 ($\delta$) therefore **dissolves** on the
+> propositional fragment and this commitment is **choice-free** there (the
+> qualified positive of
+> [Q-028b](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b)
+> promotes to unqualified-positive on the propositional fragment). **The only
+> surviving caveat is (ii):** the higher-order ($!$-translated MELL) image,
+> tracked under [Q-030](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-030)
+> and the higher-order canonicality question
+> [Q-028a stratum-2](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028a)
+> (gated on the BF-materiality antichain
+> [Q-032](../../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-032)).
+
 The counit $\varepsilon$ at $(A, B)$ is the comparison map:
 
 $$
