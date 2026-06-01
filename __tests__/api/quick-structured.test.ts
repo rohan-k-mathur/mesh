@@ -23,7 +23,7 @@ import { NextRequest } from "next/server";
 
 const prismaMock: any = {
   deliberation: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
-  argumentScheme: { findUnique: jest.fn() },
+  argumentScheme: { findUnique: jest.fn(), findMany: jest.fn() },
   claim: { upsert: jest.fn() },
   claimEvidence: { createMany: jest.fn(), findMany: jest.fn() },
   argument: { create: jest.fn() },
@@ -120,6 +120,9 @@ beforeEach(() => {
   // "My Arguments" deliberation lookup → already exists.
   prismaMock.deliberation.findFirst.mockResolvedValue({ id: "delib-my-args" });
 
+  // B.1 write-gate peer index: empty catalogue by default (no fingerprint peers).
+  prismaMock.argumentScheme.findMany.mockResolvedValue([]);
+
   // Default claim upsert: echo input.
   prismaMock.claim.upsert.mockImplementation(async ({ where, create }: any) => ({
     id: `claim_${where.moid}`,
@@ -196,6 +199,8 @@ describe("POST /api/arguments/quick-structured", () => {
       schemeId: "scheme-id-x",
       schemeKey: "practical_reasoning",
       schemeName: "Practical Reasoning",
+      epistemicMode: null,
+      verifierVerdict: null,
     });
     expect(body.warnings).toEqual(
       expect.arrayContaining([
@@ -534,4 +539,173 @@ describe("POST /api/arguments/quick-structured", () => {
       expect(rows[0].uri).toBe("https://top-only.example/paper");
     });
   });
+
+  // ─── B.1 §4 Phase B: health-selection gate ──────────────────────────────────
+
+  describe("health-selection gate (B.1)", () => {
+    /** Mock the gate's catalogue read + by-key lookup for a single scheme row. */
+    function mockScheme(row: any) {
+      // Peer index read (findMany over argument-pattern catalogue).
+      prismaMock.argumentScheme.findMany.mockResolvedValue(
+        [{ key: row.key, fingerprint: row.fingerprint ?? null }],
+      );
+      // By-key resolution inside the gate.
+      prismaMock.argumentScheme.findUnique.mockResolvedValue(row);
+    }
+
+    it("refuses a dialogue-meta schemeKey with SCHEME_NOT_ARGUMENT_PATTERN and writes nothing", async () => {
+      mockScheme({
+        id: "dm-1",
+        key: "bare_assertion",
+        name: "Bare Assertion",
+        kind: "dialogue-meta",
+        clusterTag: "dialogue",
+        fingerprint: null,
+        epistemicMode: "FACTUAL",
+      });
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ text: "P1" }],
+          schemeKey: "bare_assertion",
+        }),
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.code).toBe("SCHEME_NOT_ARGUMENT_PATTERN");
+      expect(body.requestedKey).toBe("bare_assertion");
+      expect(body.hint).toMatch(/excludeUnhealthy/);
+      // No argument row written.
+      expect(prismaMock.argument.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses a test-placeholder schemeKey", async () => {
+      mockScheme({
+        id: "tp-1",
+        key: "test_scheme",
+        name: "Test",
+        kind: "argument-scheme",
+        clusterTag: null,
+        fingerprint: null,
+        epistemicMode: "FACTUAL",
+      });
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ text: "P1" }],
+          schemeKey: "test_scheme",
+        }),
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.code).toBe("SCHEME_NOT_ARGUMENT_PATTERN");
+      expect(prismaMock.argument.create).not.toHaveBeenCalled();
+    });
+
+    it("auto-redirects a folksonomy duplicate to canonical and emits SCHEME_CANONICALIZED", async () => {
+      // Two argument-patterns share a fingerprint; canonical = "good_consequences".
+      prismaMock.argumentScheme.findMany.mockResolvedValue([
+        { key: "good_consequences", fingerprint: "fp-dup" },
+        { key: "positive_consequences", fingerprint: "fp-dup" },
+      ]);
+      prismaMock.argumentScheme.findUnique.mockImplementation(async ({ where }: any) => {
+        const rows: Record<string, any> = {
+          positive_consequences: {
+            id: "pc-1",
+            key: "positive_consequences",
+            name: "Positive Consequences",
+            kind: "argument-scheme",
+            clusterTag: "consequence_family",
+            fingerprint: "fp-dup",
+            epistemicMode: "FACTUAL",
+          },
+          good_consequences: {
+            id: "gc-1",
+            key: "good_consequences",
+            name: "Good Consequences",
+            kind: "argument-scheme",
+            clusterTag: "consequence_family",
+            fingerprint: "fp-dup",
+            epistemicMode: "FACTUAL",
+          },
+        };
+        return where.key ? rows[where.key] ?? null : null;
+      });
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ text: "P1" }],
+          schemeKey: "positive_consequences",
+        }),
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.schemeInstance.schemeKey).toBe("good_consequences");
+      const canonWarn = body.warnings.find((w: any) => w.code === "SCHEME_CANONICALIZED");
+      expect(canonWarn).toBeTruthy();
+      expect(canonWarn.detail).toMatch(/positive_consequences/);
+      expect(canonWarn.detail).toMatch(/good_consequences/);
+      expect(canonWarn.canonical).toBe("good_consequences");
+    });
+
+    it("round-trips premiseType onto the ArgumentPremise rows (default ORDINARY)", async () => {
+      mockScheme({
+        id: "eo-1",
+        key: "expert_opinion",
+        name: "Expert Opinion",
+        kind: "argument-scheme",
+        clusterTag: "expert_family",
+        fingerprint: null,
+        epistemicMode: "FACTUAL",
+      });
+
+      await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [
+            { text: "P1", premiseType: "exception" },
+            { text: "P2" },
+          ],
+          schemeKey: "expert_opinion",
+        }),
+      );
+
+      const rows = prismaMock.argumentPremise.createMany.mock.calls[0][0].data;
+      expect(rows[0].premiseType).toBe("EXCEPTION");
+      expect(rows[1].premiseType).toBe("ORDINARY");
+    });
+
+    it("emits EPISTEMIC_MODE_CHANGED_FINGERPRINT when the agent overrides the scheme's mode", async () => {
+      mockScheme({
+        id: "eo-2",
+        key: "expert_opinion",
+        name: "Expert Opinion",
+        kind: "argument-scheme",
+        clusterTag: "expert_family",
+        fingerprint: null,
+        epistemicMode: "FACTUAL",
+      });
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ text: "P1" }],
+          schemeKey: "expert_opinion",
+          epistemicMode: "HYPOTHETICAL",
+        }),
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const codes = body.warnings.map((w: any) => w.code);
+      expect(codes).toContain("EPISTEMIC_MODE_CHANGED_FINGERPRINT");
+      expect(body.schemeInstance.epistemicMode).toBe("HYPOTHETICAL");
+      // Persisted on the instance.
+      const instData = prismaMock.argumentSchemeInstance.create.mock.calls[0][0].data;
+      expect(instData.epistemicMode).toBe("HYPOTHETICAL");
+    });
+  });
 });
+

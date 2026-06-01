@@ -1,4 +1,14 @@
 // lib/argumentation/afEngine.ts
+//
+// @deprecated Import the AF engine from `@/lib/argumentation` (the consolidated
+// engine of record) rather than this module directly. This file remains the
+// edge-list (`Array<[string, string]>`) adapter surface and is re-exported by
+// `lib/argumentation/index.ts`. As of Phase 1, `grounded` and `preferred` here
+// delegate to the exact labelling core (`./labelling`, `./semantics`); the
+// previous unsound random-restart fallback for large frameworks is gone.
+import { toDefeatGraphFromEdgeList, groundedExtension as groundedExtensionCore } from "@/lib/argumentation/labelling";
+import { preferredExtensions as preferredExtensionsCore } from "@/lib/argumentation/semantics";
+
 export type EdgeType = 'support' | 'rebut' | 'undercut' | 'attack';
 
 export type AFNode = { id: string; label?: string; text?: string };
@@ -113,15 +123,13 @@ export function characteristicF(A: string[], R: Array<[string, string]>, S: Set<
   return out;
 }
 
-/** Grounded extension via least fixpoint of characteristic function. */
+/** Grounded extension via least fixpoint of characteristic function.
+ *
+ * Delegates to the exact labelling core (`./labelling`) so the whole engine
+ * shares one grounded implementation (Phase 1, commitment C1).
+ */
 export function grounded(A: string[], R: Array<[string, string]>): Set<string> {
-  let S = new Set<string>(); // ∅
-  while (true) {
-    const next = characteristicF(A, R, S);
-    // fixpoint?
-    if (next.size === S.size && [...next].every(x => S.has(x))) return next;
-    S = next;
-  }
+  return groundedExtensionCore(toDefeatGraphFromEdgeList(A, R));
 }
 
 /** Check admissibility: conflict-free and defends all its members. */
@@ -131,64 +139,17 @@ export function isAdmissible(A: string[], R: Array<[string, string]>, S: Set<str
   return true;
 }
 
-/** Preferred extensions: maximal (w.r.t inclusion) admissible sets.  */
-export function preferred(A: string[], R: Array<[string, string]>, maxExplore = 20000): Array<Set<string>> {
-  // Small DFS with pruning; falls back to greedy if search explodes.
-  const nodes = [...A];
-  const res: Array<Set<string>> = [];
-  let explored = 0;
-
-  const addIfMaximal = (S: Set<string>) => {
-    // drop if subset of existing
-    for (const T of res) {
-      let subset = true;
-      for (const x of S) if (!T.has(x)) { subset = false; break; }
-      if (subset) return;
-    }
-    // remove any existing that are subset of S
-    for (let i = res.length - 1; i >= 0; i--) {
-      const T = res[i];
-      let subset = true;
-      for (const x of T) if (!S.has(x)) { subset = false; break; }
-      if (subset) res.splice(i, 1);
-    }
-    res.push(new Set(S));
-  };
-
-  const dfs = (idx: number, S: Set<string>) => {
-    if (explored++ > maxExplore) return; // guard
-    if (idx >= nodes.length) {
-      if (isAdmissible(A, R, S)) addIfMaximal(S);
-      return;
-    }
-    const a = nodes[idx];
-
-    // Option 1: include a (only if still (potentially) admissible)
-    if (conflictFree(new Set([...S, a]), R)) {
-      // Light local check: a must be defensible against current attackers
-      const S1 = new Set([...S, a]);
-      if (defends(S1, a, R)) dfs(idx + 1, S1);
-    }
-    // Option 2: skip a
-    dfs(idx + 1, S);
-  };
-
-  dfs(0, new Set());
-
-  if (res.length || nodes.length <= 18) return res;
-
-  // Fallback greedy (multi-start) to approximate preferred sets
-  const tries = Math.min(20, nodes.length);
-  for (let t = 0; t < tries; t++) {
-    const order = [...nodes].sort(() => Math.random() - 0.5);
-    const S = new Set<string>();
-    for (const a of order) {
-      const S1 = new Set([...S, a]);
-      if (isAdmissible(A, R, S1)) S.add(a);
-    }
-    addIfMaximal(S);
-  }
-  return res;
+/** Preferred extensions: maximal (w.r.t inclusion) admissible sets.
+ *
+ * Delegates to the exact labelling-based core (`./semantics`). The previous
+ * random multi-start greedy fallback for large frameworks has been removed —
+ * the core is exact for all sizes (Phase 1, commitment C2).
+ *
+ * `maxExplore` is retained for backward signature compatibility and ignored.
+ */
+export function preferred(A: string[], R: Array<[string, string]>, _maxExplore = 20000): Array<Set<string>> {
+  const dg = toDefeatGraphFromEdgeList(A, R);
+  return preferredExtensionsCore(dg);
 }
 
 /** Labeling from one extension: IN = E; OUT = attacked by E; UNDEC = rest. */

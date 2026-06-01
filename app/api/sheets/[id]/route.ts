@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
-import { buildAttackGraph, preferredExtensions } from '@/lib/deepdive/af'; // same lib your /dialectic uses
+import { buildAttackGraph, preferredExtensions, groundedExtension } from '@/lib/argumentation';
 
 const Q = z.object({
   semantics: z.enum(['preferred','grounded']).default('preferred'),
@@ -112,28 +112,6 @@ async function computeNodeMetadata(argumentId: string, deliberationId: string): 
     preferenceRank: preferenceCount > 0 ? preferenceCount / 10.0 : null, // Normalize to 0-1 scale
     toulminDepth: maxDepth > 0 ? maxDepth : null,
   };
-}
-
-function groundedExtension(nodes: string[], attackMap: Map<string, Set<string>>): Set<string> {
-  const attackersOf = (x: string) => {
-    const res = new Set<string>();
-    for (const [a, tos] of attackMap) if (tos.has(x)) res.add(a);
-    return res;
-  };
-  let S = new Set<string>();
-  for (;;) {
-    const F = new Set<string>();
-    for (const a of nodes) {
-      const atks = attackersOf(a);
-      const defended = [...atks].every(b => {
-        for (const s of S) if (attackMap.get(s)?.has(b)) return true;
-        return false;
-      });
-      if (defended) F.add(a);
-    }
-    if (F.size === S.size && [...F].every(x => S.has(x))) return F;
-    S = F;
-  }
 }
 
 

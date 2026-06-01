@@ -1,32 +1,8 @@
 // app/api/deliberations/[id]/dialectic/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
-import type { Edge, NodeID } from '@/lib/deepdive/af';
-import { buildAttackGraph, preferredExtensions } from '@/lib/deepdive/af';
-
-// helpers for grounded labelling
-function attackersOf(map: Map<NodeID, Set<NodeID>>, x: NodeID): Set<NodeID> {
-  const res = new Set<NodeID>();
-  for (const [a, tos] of map) if (tos.has(x)) res.add(a);
-  return res;
-}
-function sAttacks(map: Map<NodeID, Set<NodeID>>, S: Set<NodeID>, y: NodeID): boolean {
-  for (const a of S) if (map.get(a)?.has(y)) return true;
-  return false;
-}
-function groundedExtension(nodes: NodeID[], map: Map<NodeID, Set<NodeID>>): Set<NodeID> {
-  let S = new Set<NodeID>(); // start from ∅
-  for (;;) {
-    const F = new Set<NodeID>();
-    for (const a of nodes) {
-      const atks = attackersOf(map, a);
-      const defended = [...atks].every(b => sAttacks(map, S, b));
-      if (defended) F.add(a);
-    }
-    if (F.size === S.size && [...F].every(x => S.has(x))) return F; // fixpoint
-    S = F;
-  }
-}
+import type { Edge, NodeID } from '@/lib/argumentation';
+import { buildAttackGraph, preferredExtensions, groundedExtension } from '@/lib/argumentation';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const deliberationId = params.id;

@@ -1,5 +1,5 @@
 // lib/deepdive/selection.ts
-import { preferredExtensions, buildAttackGraph, Edge, NodeID } from './af';
+import { preferredExtensions, buildAttackGraph, type Edge, type NodeID } from '@/lib/argumentation';
 
 export type ApprovalMap = Map<string /*userId*/, Set<NodeID>>;
 export type SelectionRule = 'utilitarian' | 'harmonic' | 'maxcov';

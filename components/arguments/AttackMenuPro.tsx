@@ -18,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { preferred } from '@/lib/argumentation/afEngine';
+import { preferred } from '@/lib/argumentation';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import CriticalQuestions from '@/components/claims/CriticalQuestionsV2';
 

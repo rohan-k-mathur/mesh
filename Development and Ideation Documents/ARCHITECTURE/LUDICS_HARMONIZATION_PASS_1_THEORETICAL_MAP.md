@@ -352,3 +352,27 @@ commitment tables, (d) AIF edges are written by the creation seam so
 `Design.premiseClaimIds[]` can be backfilled meaningfully.
 
 Pass 2 turns this into a concrete sprint ordering.
+
+---
+
+## 9. Substrate-v1 commitments and the BF/MELL question
+
+> Added 2026-05-30 from the [Q-030 Phase 1 lit audit](MALL%E2%86%92MELL%20Incarnation%20Upgrade%20for%20the%20Isonomia%20Ludics%20Substrate.md) and [`RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md`](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-030) Q-030/Q-032/Q-035. *Forward-compatibility note only — does not change H0–H8.*
+
+This programme is the **FQ-substrate-v1 harmonization**. It commits to Fouquéré–Quatrini–style linear incarnation as the substrate's base design notion, and to the FQ/Girard separation property (every behaviour distinguishes its designs by some test). Both commitments are **correct for v1** and unaffected by H0–H8.
+
+A separate, much larger architectural question — **[Q-030](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-030): should the substrate upgrade to Basaldella–Faggian designs-with-repetitions for MELL coverage?** — is open and recommended (on literature grounds) to land as a future *substrate-v2*. Q-030 Phase 1 (literature review) is complete; Phases 2–5 are gated by [Q-031](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-031), [Q-033](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-033), [Q-034](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-034), [Q-035](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-035) and would proceed independently of harmonization.
+
+**Five v1 commitments that a v2 BF migration would have to revisit** (named here so v2 has a clean diff target):
+
+| v1 commitment | v1 source | v2 implication under BF designs-with-repetitions |
+|---|---|---|
+| `I-Inc` — `Inc(B)` is an antichain in `(B, ⊑)` | §6.1; T002; FQ Props 5.2/5.3 | BF proves *no* antichain/minimality theorem on materiality (Def 11.5). Restate via Sironi principal sets, antichain-up-to-repetition-equivalence, or canonical-representative selection — [Q-032](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-032). |
+| `I-Cone`, `I-Join` — cones partition `B`; join is literal `loci[]` set-union | §2; §6.1; Phase 2e Daimon Lock + Cross-Cone Incompatibility | The distinguishing-test step uses FQ/Girard separation. Separation **fails** under BF non-uniformity. Cones-partition picture may need replaying via orthogonality-quotient classes — [Q-035](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-035). |
+| `Design.loci[]` is a *set* (ordering forgotten) | §1 `F_des` row | BF strategies can visit the same address multiple times (τ-sum, VAM "Copies" property). v2 likely needs `loci[]: { locus, multiplicity }[]` or a `LociRepetition` join — schema-level change. |
+| `LudicMove` unique on `(deliberationId, locus)` (`I-Loc`) | §6.1; `schema.prisma` | BF coherence (Def 7.2) allows `s.m`, `s.n` at the same address when both are negative. Likely relax to `(deliberationId, locus, moveType, repetitionTag)`. |
+| `I-No-Additive-Silent` — separate-cone-per-additive-choice (theoretical), fail-loud (impl) | §2 Q1; §6.2; Pass 2 H3 | BF τ-sums encode non-determinism directly; additive turn-on under v2 may be τ-sum-natural rather than separate-cone-natural. Couples to BF-MELLS additive extension or Terui c-designs ([Q-033](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-033), [Q-034](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-034)). |
+
+**What is *not* on this list** (i.e. survives a v2 migration unchanged): the `createDialogueMove` seam (H1), `reconstructChronicle` (H2), AIF as premise/conclusion bridge (§3), witnessing / `WitnessRecord` records-only `ι` (§4), T4 anonymity, locus prefix `⊢A.`, `Design.premiseClaimIds[]`, `I-No-Commitment-Write`, the cross-scope same-scope-only carve-out, and chronicle retirement (H7). These all live above or beside the design-notion choice.
+
+**Recommended posture.** Ship FQ-v1 (H0–H8) on the schedule already planned. Treat any v2 BF migration as a separately-scoped programme that follows Q-030's Phase 2–5 workflow (see Q-030 in the registry). The v1 invariants above are correct as written *and* are the diff target for v2 — no rewrites required pre-emptively.

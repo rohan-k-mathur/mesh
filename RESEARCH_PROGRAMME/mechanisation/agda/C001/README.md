@@ -1,10 +1,17 @@
 # C001a — JSL-fragment Ambler bridge, Agda mechanisation
 
-Toy mechanisation of [C001a](../../../03_CONJECTURES/C001a-jsl-fragment-bridge.md)
-(the JSL fragment of the Ambler bridge). Status: **type-checks
-without postulates or holes**. Not a positive settlement of C001a
-under the [Theorem Register policy](../../../02_THEOREMS_AND_PROOFS/README.md);
-this is *evidence for* C001a only.
+**Formal** mechanisation of [C001a](../../../03_CONJECTURES/C001a-jsl-fragment-bridge.md)
+(the JSL fragment of the Ambler bridge). Status: **type-checks under
+`--safe --without-K` without postulates or holes**. Promoted from the
+earlier exploratory toy on 2026-05-30: every structural claim is now
+stated against the standard library's order/lattice bundles —
+`Relation.Binary.Bundles.Setoid`,
+`Relation.Binary.Lattice.Bundles.JoinSemilattice`, a first-class
+`record IsJSLHom`, and the bridge as a
+`Function.Bundles.Inverse` of setoids. Not a positive settlement of
+C001a under the [Theorem Register policy](../../../02_THEOREMS_AND_PROOFS/README.md);
+this is a formal mechanisation of the *representative-level obligations*,
+i.e. *evidence for* C001a.
 
 ## History
 
@@ -34,7 +41,7 @@ holds *up to* the cone-level setoid `≈ᶜ` (which lifts the design-level
 Both triangles type-check:
 
 - `from-to : ∀ c → fromHom (toHom c) ≡ c` — by `refl`.
-- `to-from : ∀ h → toHom (fromHom h) ≈H h` — by `pres-bot` (at `⊥g`) and `≈ᶜ-refl` (at `*g`).
+- `to-from : ∀ h → toHom (fromHom h) ≈H h` — by `pres-bot` (at `⊥g`) and `≈ᴰ-refl` (at `*g`).
 
 The four `pres-⊔` obligations on `toHom` discharge mechanically by
 `⊆ᴰ-++-collapse` + `⊆ᴰ-refl` + the cone witness `proj₂ c`.
@@ -43,17 +50,18 @@ The four `pres-⊔` obligations on `toHom` discharge mechanically by
 
 Requires:
 
-- Agda 2.7.0.1 or later (tested on 2.8.0)
+- Agda 2.7.0.1 or later (tested on 2.7.0.1)
 - `agda-stdlib` **v2.0 pinned** — v2.1+ ships `--warn=noUserWarning`
   which is not recognised by all Agda builds. Pin with:
   ```sh
   cd ~/.agda/agda-stdlib && git checkout v2.0
   ```
 
-Type-check:
+Resolution is via [`../mesh-substrate.agda-lib`](../mesh-substrate.agda-lib).
+Type-check from `mechanisation/agda`:
 
 ```sh
-agda C001a.agda
+agda C001/C001a.agda
 ```
 
 Expected output: clean, no errors, no warnings, no unsolved metas.

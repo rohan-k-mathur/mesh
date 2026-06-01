@@ -1,7 +1,7 @@
 // components/dialogue/useGraphAF.ts
 'use client';
 import useSWR from 'swr';
-import type { AFNode, AFEdge } from '@/lib/argumentation/afEngine';
+import type { AFNode, AFEdge } from '@/lib/argumentation';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 

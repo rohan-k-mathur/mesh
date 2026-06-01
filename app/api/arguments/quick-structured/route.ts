@@ -38,6 +38,12 @@ import { isSafePublicUrl, getOrFetchLinkPreview } from "@/lib/unfurl";
 import { enrichEvidenceProvenanceInBackground } from "@/lib/citations/evidenceProvenance";
 import { enrichDeliberationNameInBackground } from "@/lib/deliberations/autoNameEnrichment";
 import { inferAndAssignScheme } from "@/lib/argumentation/schemeInference";
+import {
+  resolveSchemeForWrite,
+  verifyAgainstFingerprintPeers,
+  type WriteVerifierVerdict,
+} from "@/lib/schemes/writeGate";
+import type { SchemeWriteWarningCode } from "@/lib/schemes/schemeWriteCodes";
 import { ensureArgumentSupportInTx } from "@/lib/arguments/ensure-support";
 import { markArgumentAsComposedInTx } from "@/lib/arguments/detect-composition";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -79,6 +85,9 @@ const PremiseItem = z.object({
     .max(1000, "Premise must be 1000 characters or fewer")
     .transform((s) => s.replace(/<[^>]*>/g, "").trim()),
   isAxiom: z.boolean().optional().default(false),
+  // Roadmap B.1 — Carneades premise classification. Accepted lowercase from the
+  // tool surface and normalised to the Prisma `PremiseType` enum at write time.
+  premiseType: z.enum(["ordinary", "assumption", "exception"]).optional(),
   // v1.1 — per-premise evidence. Each item attaches to the premise's
   // minted Claim row (not the conclusion). Capped at 5 per premise to
   // keep total per-request evidence in line with the conclusion cap.
@@ -103,6 +112,10 @@ const QuickStructuredArgSchema = z.object({
   schemeKey: z.string().min(1).max(100).optional(),
   ruleType: z.enum(["STRICT", "DEFEASIBLE"]).optional().default("DEFEASIBLE"),
   ruleName: z.string().max(200).optional(),
+  // Roadmap B.1 — top-level epistemic mode for the instance. Defaults to the
+  // resolved scheme's catalogue value; an explicit override emits a warning
+  // because the mode participates in the behaviour-fingerprint domain (Q-020).
+  epistemicMode: z.enum(["FACTUAL", "HYPOTHETICAL", "COUNTERFACTUAL"]).optional(),
   implicitWarrant: z
     .string()
     .max(2000)
@@ -152,12 +165,20 @@ function buildEmbedCodes(shortCode: string, claimText: string) {
 // ─── Non-throwing slot-presence check ────────────────────────────────────────
 // Replaces `validateSlotsAgainstScheme` (which throws). v1 surfaces missing
 // required slots as response warnings; v1.1 will accept slot bindings as input.
-type WarningCode =
+//
+// Operational warning codes are route-local diagnostics that are NOT part of the
+// roadmap §4.1 canonical code table (those live in `schemeWriteCodes.ts` as
+// `SchemeWriteWarningCode`). Both unions feed the response `warnings[]`.
+type OperationalWarningCode =
   | "missing_slot"
   | "premise_deduped"
   | "scheme_inferred"
-  | "premise_evidence_merged";
-type Warning = { code: WarningCode; detail: string };
+  | "premise_evidence_merged"
+  | "scheme_behaviour_verdict";
+type WarningCode = OperationalWarningCode | SchemeWriteWarningCode;
+// Canonical (§4.1) warnings additionally carry the corrected value in
+// `canonical`; operational warnings leave it `null`.
+type Warning = { code: WarningCode; detail: string; canonical?: string | null };
 
 // Inferred input shape for an evidence item after zod transform.
 type NormalizedEvidence = z.infer<typeof EvidenceItem>;
@@ -228,6 +249,7 @@ export async function POST(req: NextRequest) {
     implicitWarrant,
     evidence,
     deliberationId,
+    epistemicMode: epistemicModeInput,
   } = parsed.data;
 
   // SSRF guard on every evidence URL (top-level + per-premise).
@@ -265,23 +287,86 @@ export async function POST(req: NextRequest) {
   const warnings: Warning[] = [];
   let schemeId: string | null = null;
   let schemeMeta: { id: string; key: string; name: string } | null = null;
+  // Roadmap B.1: epistemic mode persisted on the instance + verifier verdict.
+  let resolvedEpistemicMode: string | null = null;
+  let verifierVerdict: WriteVerifierVerdict | null = null;
 
   if (schemeKey) {
-    const row = await prisma.argumentScheme.findUnique({
-      where: { key: schemeKey },
-      select: { id: true, key: true, name: true },
-    });
-    if (!row) {
+    // Roadmap B.1 — health-selection gate. Refuse dialogue-meta / test
+    // placeholders; auto-redirect folksonomy duplicates to their canonical
+    // sibling (never a silent merge — §1.4).
+    const gate = await resolveSchemeForWrite(schemeKey);
+    if (!gate.ok) {
+      if (gate.code === "SCHEME_UNKNOWN") {
+        return NextResponse.json(
+          {
+            error: `Unknown schemeKey '${schemeKey}'`,
+            code: "SCHEME_UNKNOWN",
+            canonical: null,
+            hint: "Call `list_schemes` (MCP) or GET /api/schemes for the catalog.",
+          },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         {
-          error: `Unknown schemeKey '${schemeKey}'`,
-          hint: "Call `list_schemes` (MCP) or GET /api/schemes for the catalog.",
+          error: gate.reason,
+          code: gate.code, // SCHEME_NOT_ARGUMENT_PATTERN
+          canonical: gate.canonical, // null — no automatic fix
+          requestedKey: gate.requestedKey,
+          hint: "Call `list_schemes(excludeUnhealthy: true)` to pick a production argument pattern.",
         },
         { status: 400 }
       );
     }
-    schemeId = row.id;
-    schemeMeta = row;
+
+    schemeId = gate.scheme.id;
+    schemeMeta = { id: gate.scheme.id, key: gate.scheme.key, name: gate.scheme.name };
+
+    if (gate.canonicalizedFrom) {
+      warnings.push({
+        code: "SCHEME_CANONICALIZED",
+        canonical: gate.scheme.key,
+        detail: `Requested scheme '${gate.canonicalizedFrom}' is a folksonomy duplicate; auto-redirected to canonical '${gate.scheme.key}'. The argument is attached to the canonical scheme (not silently merged — the original key is preserved here for audit).`,
+      });
+    }
+
+    // Epistemic mode: default to the scheme's catalogue value; an explicit
+    // override shifts the behaviour-fingerprint domain (Q-020) → warn.
+    if (epistemicModeInput && epistemicModeInput !== gate.scheme.epistemicMode) {
+      resolvedEpistemicMode = epistemicModeInput;
+      warnings.push({
+        code: "EPISTEMIC_MODE_CHANGED_FINGERPRINT",
+        canonical: epistemicModeInput,
+        detail: `Epistemic mode overridden from the scheme default '${gate.scheme.epistemicMode}' to '${epistemicModeInput}'. This participates in the behaviour-fingerprint domain, so this instance no longer matches the scheme's catalogue fingerprint exactly.`,
+      });
+    } else {
+      resolvedEpistemicMode = epistemicModeInput ?? gate.scheme.epistemicMode;
+    }
+
+    // Behaviour-equality verdict against same-fingerprint siblings (radar).
+    verifierVerdict = await verifyAgainstFingerprintPeers(
+      gate.scheme.id,
+      gate.scheme.fingerprint,
+    );
+    if (verifierVerdict.kind === "inconclusive") {
+      // §4.1 canonical: the same-fingerprint behaviour check was inconclusive.
+      warnings.push({
+        code: "VERIFIER_INCONCLUSIVE",
+        canonical: verifierVerdict.againstSchemeKey,
+        detail: `Verifier verdict 'inconclusive' against same-fingerprint scheme '${verifierVerdict.againstSchemeKey ?? "?"}'. The argument ships; the verdict is persisted on the instance for the Phase 4d catalogue audit.`,
+      });
+    } else if (
+      verifierVerdict.kind === "equal" ||
+      verifierVerdict.kind === "subset"
+    ) {
+      // Operational diagnostic (not a §4.1 refusal/health code): a clean
+      // behaviour relationship against a same-fingerprint sibling.
+      warnings.push({
+        code: "scheme_behaviour_verdict",
+        detail: `Verifier verdict '${verifierVerdict.kind}' against same-fingerprint scheme '${verifierVerdict.againstSchemeKey ?? "?"}'. The argument ships; the verdict is persisted on the instance for the Phase 4d catalogue audit.`,
+      });
+    }
   } else {
     const inferenceText =
       (reasoning && reasoning.length > 0 && reasoning) ||
@@ -291,10 +376,11 @@ export async function POST(req: NextRequest) {
     if (schemeId) {
       const row = await prisma.argumentScheme.findUnique({
         where: { id: schemeId },
-        select: { id: true, key: true, name: true },
+        select: { id: true, key: true, name: true, epistemicMode: true } as any,
       });
       if (row) {
-        schemeMeta = row;
+        schemeMeta = { id: row.id, key: row.key, name: row.name };
+        resolvedEpistemicMode = epistemicModeInput ?? ((row as any).epistemicMode ?? null);
         warnings.push({
           code: "scheme_inferred",
           detail: `Scheme '${row.key}' (${row.name}) was inferred server-side. Pass an explicit \`schemeKey\` to override; call \`list_schemes\` to browse the catalog.`,
@@ -336,6 +422,7 @@ export async function POST(req: NextRequest) {
       text: p.text,
       moid: mintClaimMoid(p.text),
       isAxiom: p.isAxiom,
+      premiseType: p.premiseType,
       evidence: p.evidence ?? [],
     }));
 
@@ -533,7 +620,10 @@ export async function POST(req: NextRequest) {
           groupKey: null,
           isImplicit: false,
           isAxiom: dedupedPremises[idx]?.isAxiom ?? false,
-        })),
+          // Roadmap B.1 — Carneades classification (default ORDINARY when the
+          // caller omits it). Enum values are upper-case in Prisma.
+          premiseType: (dedupedPremises[idx]?.premiseType ?? "ordinary").toUpperCase(),
+        })) as any,
         skipDuplicates: true,
       });
 
@@ -558,6 +648,10 @@ export async function POST(req: NextRequest) {
             order: 0,
             ruleType,
             ruleName: ruleName ?? null,
+            // Roadmap B.1 — record the selected epistemic mode + the behaviour
+            // verdict so the Phase 4d audit can track drift.
+            epistemicMode: resolvedEpistemicMode ?? null,
+            verifierVerdict: verifierVerdict?.kind ?? null,
           },
           select: { id: true },
         });
@@ -600,8 +694,14 @@ export async function POST(req: NextRequest) {
               schemeId: schemeMeta.id,
               schemeKey: schemeMeta.key,
               schemeName: schemeMeta.name,
+              epistemicMode: resolvedEpistemicMode ?? null,
+              verifierVerdict: verifierVerdict?.kind ?? null,
             }
           : null,
+      // Roadmap B.1 — behaviour-equality verdict against same-fingerprint
+      // siblings (kind "skipped" at the Phase 4d baseline). Surfaced so the
+      // agent can react before reusing a redundant scheme.
+      verifierVerdict,
       warnings,
       permalink: {
         shortCode: permalink.shortCode,

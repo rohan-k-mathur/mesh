@@ -16,6 +16,7 @@ import {
   verifyBehaviourEquality,
   type SchemeWithCqs,
 } from "@/lib/schemes/verifier";
+import { verifySchemeEqualityByKey } from "@/lib/schemes/readTools";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -62,4 +63,44 @@ export async function POST(req: NextRequest) {
 
   const verdict = await verifyBehaviourEquality(left, right, options);
   return NextResponse.json(verdict, { headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * Roadmap C.1 — GET /api/schemes/verify-equality?keyA=&keyB=&searchBoundMs=
+ *
+ * Key-addressed read surface that backs the MCP `verify_scheme_equality` tool.
+ * Returns the enriched shape { verdict, witnessOrCounter, runtimeMs,
+ * fingerprintsMatched, note } with the necessary-but-not-sufficient framing.
+ */
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const keyA = url.searchParams.get("keyA");
+  const keyB = url.searchParams.get("keyB");
+  if (!keyA || !keyB) {
+    return NextResponse.json(
+      { error: "bad-request", detail: "keyA and keyB query params are required" },
+      { status: 400 },
+    );
+  }
+  const searchBoundRaw = url.searchParams.get("searchBoundMs");
+  const searchBoundMs = searchBoundRaw ? Number(searchBoundRaw) : undefined;
+  if (
+    searchBoundMs !== undefined &&
+    (!Number.isFinite(searchBoundMs) || searchBoundMs <= 0 || searchBoundMs > 60_000)
+  ) {
+    return NextResponse.json(
+      { error: "bad-request", detail: "searchBoundMs must be 1..60000" },
+      { status: 400 },
+    );
+  }
+
+  const result = await verifySchemeEqualityByKey(
+    keyA,
+    keyB,
+    searchBoundMs ? { searchBoundMs } : undefined,
+  );
+  if ("error" in result) {
+    return NextResponse.json(result, { status: 404 });
+  }
+  return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
 }

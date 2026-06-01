@@ -1,6 +1,7 @@
 // app/api/ca/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
@@ -99,27 +100,26 @@ export async function POST(req: NextRequest) {
       
       const cqId = (d.metaJson as any)?.cqId || `aif_attack_${created.id}`;
       
-      // Create ATTACK move linked to this ConflictApplication
-      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-      const attackMove = await prisma.dialogueMove.create({
-        data: {
-          deliberationId: d.deliberationId,
-          targetType: targetType as TargetType,
-          targetId,
-          kind: 'ATTACK', // 👈 Use ATTACK not WHY for actual attacks
-          actorId: String(userId),
-          payload: {
-            cqId,
-            schemeKey: d.schemeKey || undefined,
-            locusPath: '0',
-            expression: (d.metaJson as any)?.cqContext || expression,
-            attackType: d.legacyAttackType,
-            conflictApplicationId: created.id, // Link back to AIF attack
-          },
-          signature: `ATTACK:${targetType}:${targetId}:${cqId}:${created.id}`,
-          endsWithDaimon: false,
+      // Create ATTACK move linked to this ConflictApplication via the H1 seam.
+      const seamResult = await createDialogueMove({
+        deliberationId: d.deliberationId,
+        targetType: targetType as TargetType,
+        targetId,
+        kind: 'ATTACK',
+        actorId: String(userId),
+        payload: {
+          cqId,
+          schemeKey: d.schemeKey || undefined,
+          locusPath: '0',
+          expression: (d.metaJson as any)?.cqContext || expression,
+          attackType: d.legacyAttackType,
+          conflictApplicationId: created.id,
         },
+        signature: `ATTACK:${targetType}:${targetId}:${cqId}:${created.id}`,
+        endsWithDaimon: false,
+        locusPath: '0',
       });
+      const attackMove = seamResult.move;
       
       attackMoveId = attackMove.id;
       
@@ -162,26 +162,24 @@ export async function POST(req: NextRequest) {
       const cqText = (d.metaJson as any)?.cqText;
       const schemeKey = (d.metaJson as any)?.schemeKey;
       
-      // Create WHY move linked to this attack
-      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-      await prisma.dialogueMove.create({
-        data: {
-          deliberationId: d.deliberationId,
-          targetType: targetType as TargetType,
-          targetId,
-          kind: 'WHY',
-          actorId: String(userId),
-          payload: {
-            cqId,
-            schemeKey: schemeKey || undefined,
-            locusPath: '0',
-            expression: (d.metaJson as any)?.cqContext || expression,
-            attackType: d.legacyAttackType,
-            conflictApplicationId: created.id, // Link back to AIF attack
-            cqText: cqText || undefined, // Include full CQ text for reference
-          },
-          signature: `WHY:${targetType}:${targetId}:${cqId}`,
+      // Create WHY move linked to this attack via the H1 seam.
+      await createDialogueMove({
+        deliberationId: d.deliberationId,
+        targetType: targetType as TargetType,
+        targetId,
+        kind: 'WHY',
+        actorId: String(userId),
+        payload: {
+          cqId,
+          schemeKey: schemeKey || undefined,
+          locusPath: '0',
+          expression: (d.metaJson as any)?.cqContext || expression,
+          attackType: d.legacyAttackType,
+          conflictApplicationId: created.id,
+          cqText: cqText || undefined,
         },
+        signature: `WHY:${targetType}:${targetId}:${cqId}`,
+        locusPath: '0',
       });
       
       console.log('[ca] Auto-created WHY move for AIF attack:', {

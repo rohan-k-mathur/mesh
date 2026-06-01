@@ -1,6 +1,7 @@
 // app/api/comments/lift/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { createDialogueMove } from "@/lib/ludics/createDialogueMove";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
 import { DeliberationHostType } from "@prisma/client";
@@ -64,19 +65,17 @@ export async function POST(req: NextRequest) {
       select: { id: true, text: true },
     });
 
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    const move = await prisma.dialogueMove.create({
-      data: {
-        deliberationId: d.id,
-        targetType: "claim",
-        targetId: claim.id,
-        kind: "ASSERT",
-        payload: { text: claim.text },
-        actorId: String(userId),
-        signature: `lift:${commentId}:${Date.now()}`,
-      },
-      select: { id: true },
+    const seamResult = await createDialogueMove({
+      deliberationId: d.id,
+      targetType: "claim",
+      targetId: claim.id,
+      kind: "ASSERT",
+      payload: { text: claim.text, locusPath: "0" },
+      actorId: String(userId),
+      signature: `lift:${commentId}:${Date.now()}`,
+      locusPath: "0",
     });
+    const move = seamResult.move;
 
     // ─────────────────────────────────────────────────────────────
     // Phase 2.2: Copy citations from comment to claim

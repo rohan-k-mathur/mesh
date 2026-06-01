@@ -9,7 +9,7 @@ import CyCanvas from './CyCanvas';
 import SchemeOverlayFetch from './SchemeOverlayFetch';
 import HullOverlay from './HullOverlay';
 import React from 'react';
-import type { AFNode, AFEdge } from '@/lib/argumentation/afEngine';
+import type { AFNode, AFEdge } from '@/lib/argumentation';
 
 
 cytoscape.use(navigator);

@@ -1,4 +1,4 @@
-import { grounded, preferred } from '@/lib/argumentation/afEngine'; // you already have these
+import { grounded, preferred } from '@/lib/argumentation';
 import { projectToAF } from './af';
 
 export function computeAcceptance(nodes, edges, mode: 'grounded'|'preferred'|'hybrid') {

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
+import { createDialogueMove } from "@/lib/ludics/createDialogueMove";
 import { applyToCS } from "@/packages/ludics-engine/commitments";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { Prisma } from "@prisma/client";
@@ -285,49 +286,35 @@ export async function POST(req: NextRequest) {
 
     let move: any;
     try {
-      // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-      move = await prisma.dialogueMove.create({
-        data: {
-          deliberationId,
-          targetType,
-          targetId,
-          kind: "GROUNDS",
-          payload,
-          actorId,
-          signature,
-          argumentId: argumentIdForGrounds, // Phase 1.1: Link to created Argument
-        },
-      });
-      
-      console.log("[answer-and-commit] Created GROUNDS move:", {
-        moveId: move.id,
-        argumentId: argumentIdForGrounds,
+      const seamResult = await createDialogueMove({
+        deliberationId,
         targetType,
         targetId,
+        kind: "GROUNDS",
+        payload,
+        actorId,
+        signature,
+        argumentId: argumentIdForGrounds,
+        locusPath: typeof (payload as any)?.locusPath === "string"
+          ? (payload as any).locusPath
+          : null,
       });
-    } catch (e: any) {
-      // Handle duplicate signatures gracefully
-      if (
-        e instanceof Prisma.PrismaClientKnownRequestError &&
-        e.code === "P2002"
-      ) {
+      move = seamResult.move;
+      if (seamResult.deduplicated) {
         console.log(
-          "[answer-and-commit] Duplicate GROUNDS move detected, fetching existing"
+          "[answer-and-commit] Duplicate GROUNDS move detected, returning existing",
         );
-        move = await prisma.dialogueMove.findFirst({
-          where: { deliberationId, signature },
-          orderBy: { createdAt: "desc" },
-        });
-        if (!move) {
-          return NextResponse.json(
-            { ok: false, error: "Failed to create or fetch GROUNDS move" },
-            { status: 500 }
-          );
-        }
       } else {
-        console.error("[answer-and-commit] Failed to create GROUNDS move:", e);
-        throw e;
+        console.log("[answer-and-commit] Created GROUNDS move:", {
+          moveId: move.id,
+          argumentId: argumentIdForGrounds,
+          targetType,
+          targetId,
+        });
       }
+    } catch (e: any) {
+      console.error("[answer-and-commit] Failed to create GROUNDS move:", e);
+      throw e;
     }
 
     // 3) Link Argument back to GROUNDS move (bidirectional provenance)

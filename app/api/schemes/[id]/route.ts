@@ -7,6 +7,10 @@ import {
   type DraftCq,
   type ParentSchemeShape,
 } from "@/lib/schemes/validation/validatePresentation";
+import {
+  buildFingerprintPeerIndex,
+  computeCatalogueHealth,
+} from "@/lib/schemes/catalogueHealth";
 
 export async function GET(
   _: NextRequest,
@@ -27,7 +31,25 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ scheme });
+    // Roadmap E1: attach the derived catalogue-health projection. Collision
+    // detection needs the fingerprint of every argument-pattern peer, so load a
+    // lightweight (key, fingerprint) projection over the catalogue.
+    const peers = await prisma.argumentScheme.findMany({
+      where: { kind: "argument-scheme" } as any,
+      select: { key: true, fingerprint: true } as any,
+    });
+    const peerIndex = buildFingerprintPeerIndex(peers as any);
+    const catalogueHealth = computeCatalogueHealth(
+      {
+        key: scheme.key,
+        kind: (scheme as any).kind,
+        clusterTag: (scheme as any).clusterTag,
+        fingerprint: (scheme as any).fingerprint,
+      },
+      peerIndex,
+    );
+
+    return NextResponse.json({ scheme: { ...scheme, catalogueHealth } });
   } catch (error) {
     console.error(`[GET /api/schemes/${params.id}] Error:`, error);
     return NextResponse.json(
@@ -162,7 +184,15 @@ export async function PUT(
         // Phase 6D: Clustering fields
         parentSchemeId: body.parentSchemeId !== undefined ? body.parentSchemeId : undefined,
         clusterTag: body.clusterTag !== undefined ? body.clusterTag : undefined,
-      },
+        // Spec 4 phase 4b: non-redundancy override audit trail.
+        nonRedundancyJustification:
+          body.nonRedundancyJustification !== undefined
+            ? typeof body.nonRedundancyJustification === "string" &&
+              body.nonRedundancyJustification.trim().length > 0
+              ? body.nonRedundancyJustification.trim()
+              : null
+            : undefined,
+      } as any,
     });
 
     // NEW: Sync CriticalQuestion records if CQs were updated

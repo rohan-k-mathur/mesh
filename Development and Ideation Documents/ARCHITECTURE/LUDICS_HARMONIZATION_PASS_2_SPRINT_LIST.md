@@ -426,6 +426,7 @@ matches `LUDICS_HARMONIZATION_PASS_1_THEORETICAL_MAP.md` terminology.
 | Retiring `LudicChronicle` breaks an unsuspected reader | H7 | H2's lint rule catches *substrate* readers; H2 ships `reconstructChronicle` so migrations can happen incrementally; do a repo-wide grep audit *before* the drop migration. |
 | `participantId` leaks through a substrate tool that joined legacy tables | H2, H6 | T4 snapshot test runs in CI; PR template adds a T4 checkbox. |
 | Commitment changes propagate only through legacy paths; substrate views show pre-concession state | (out of scope) | Document the boundary in Pass 1 (I-No-Commitment-Write); a future Session 3 commitment spec is required before the substrate can serve as the canonical commitment view. |
+| Future BF-incarnation migration (substrate-v2) requires schema changes to `Design.loci[]` (set→multiset), the `LudicMove` `(deliberationId, locus)` unique constraint, and re-proof of `I-Inc`/`I-Cone`/`I-Join` under non-uniform materiality | (post-H8, out of scope) | FQ-v1 first; revisit after [Q-030](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-030) commits an architectural option. H1's seam shape is forward-compatible (does not lock the design notion). H3's `I-Same-Scope` and `I-No-Additive-Silent` carve-outs will need revisiting under BF (τ-sums may absorb additives natively). See Pass 1 §9 for the full v1→v2 diff target. |
 
 ---
 

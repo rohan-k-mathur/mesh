@@ -8,6 +8,7 @@ import {
   resolveDeliberationName,
   defaultHostName,
 } from "@/lib/deliberations/resolveName";
+import { canRenameDeliberation } from "@/lib/deliberations/ownership";
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,11 @@ export async function GET(_req: Request, { params }:{ params:{ id:string }}) {
     hostName: defaultHostName(d.hostType, d.hostId),
   });
 
-  return NextResponse.json({ ...d, displayName });
+  // Whether the requesting user may rename it (creator OR host-object owner).
+  const userId = await getCurrentUserId().catch(() => null);
+  const canRename = await canRenameDeliberation(d, userId);
+
+  return NextResponse.json({ ...d, displayName, canRename });
 }
 
 const PatchBody = z.object({
@@ -59,9 +64,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  // Auth: only the deliberation creator may rename (host-admin convention:
-  // `createdById` is the stringified internal User.id — see lib/pathways/auth.ts).
-  if (existing.createdById !== String(userId)) {
+  // Auth: the deliberation creator OR the host-object owner (e.g. article
+  // author) may rename. `createdById` alone is unreliable for host-bound
+  // deliberations (created by whoever first loads the host page). All ids
+  // follow the stringified internal User.id convention.
+  if (!(await canRenameDeliberation(existing, userId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -92,7 +99,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   emitBus("deliberations:created", { id: params.id }); // nudge hub to refresh
 
-  return NextResponse.json({ ...updated, displayName });
+  // The caller just passed the rename auth check, so they can rename again.
+  return NextResponse.json({ ...updated, displayName, canRename: true });
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {

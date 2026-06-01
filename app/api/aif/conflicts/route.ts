@@ -1,6 +1,7 @@
 // app/api/aif/conflicts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 import { z } from 'zod';
 
 const Body = z.object({
@@ -65,25 +66,24 @@ export async function POST(req: NextRequest) {
     };
     const expression = attackLabels[p.schemeKey?.toUpperCase() || ''] || 'I challenge this';
     
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    const attackMove = await prisma.dialogueMove.create({
-      data: {
-        deliberationId: p.deliberationId,
-        targetType: targetType as any,
-        targetId,
-        kind: 'ATTACK',
-        actorId: p.createdById,
-        payload: {
-          schemeKey: p.schemeKey,
-          cqKey: p.cqKey,
-          locusPath: '0',
-          expression,
-          conflictApplicationId: ca.id,
-        },
-        signature: `ATTACK:${targetType}:${targetId}:aif_${ca.id}`,
-        endsWithDaimon: false,
+    const seamResult = await createDialogueMove({
+      deliberationId: p.deliberationId,
+      targetType: targetType as any,
+      targetId,
+      kind: 'ATTACK',
+      actorId: p.createdById,
+      payload: {
+        schemeKey: p.schemeKey,
+        cqKey: p.cqKey,
+        locusPath: '0',
+        expression,
+        conflictApplicationId: ca.id,
       },
+      signature: `ATTACK:${targetType}:${targetId}:aif_${ca.id}`,
+      endsWithDaimon: false,
+      locusPath: '0',
     });
+    const attackMove = seamResult.move;
     attackMoveId = attackMove.id;
     
     console.log('[aif/conflicts] Created ATTACK move:', {

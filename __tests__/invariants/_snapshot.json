@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-29T20:50:48.871Z",
+  "generatedAt": "2026-05-31T22:09:15.050Z",
   "programme": "ludics-harmonization",
   "sprint": "H0",
-  "totalFiles": 18,
-  "totalCases": 282,
+  "totalFiles": 20,
+  "totalCases": 286,
   "files": [
     {
       "file": "__tests__/invariants/aif-from-arguments.test.ts",
@@ -17,6 +17,20 @@
       "caseCount": 10,
       "describes": [
         "H1 — createDialogueMove seam (I-Seam, I-AIF-min, idempotency)"
+      ]
+    },
+    {
+      "file": "__tests__/invariants/h2-no-legacy-read.test.ts",
+      "caseCount": 1,
+      "describes": [
+        "H2 — I-No-Legacy-Read invariant"
+      ]
+    },
+    {
+      "file": "__tests__/invariants/h2-reconstruct-chronicle-parity.test.ts",
+      "caseCount": 3,
+      "describes": [
+        "H2 — reconstructChronicle parity"
       ]
     },
     {

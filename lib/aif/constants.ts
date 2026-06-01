@@ -275,6 +275,20 @@ export const MESH_PARENT_SCHEME = `${MESH_NAMESPACE}parentScheme`;
  */
 export const MESH_INHERITED_QUESTION = `${MESH_NAMESPACE}inheritedQuestion`;
 
+/**
+ * Mesh property: behaviourFingerprint
+ *
+ * Spec 4 §3.5 / §4.3 — sha256 hex of the canonical CQ-bundle digest for an
+ * `ArgumentScheme`. Stamped on AIF exports of schemes (and on every RA node
+ * that references a scheme) so the import path can use it as a cheap
+ * candidate-set pre-filter before invoking the behaviour-equality verifier.
+ *
+ * The fingerprint is a NECESSARY condition for behaviour equality, never a
+ * sufficient one — the verifier is what decides on import whether to attach
+ * a presentation as a variant or mint a new top-level scheme.
+ */
+export const MESH_BEHAVIOUR_FINGERPRINT = `${MESH_NAMESPACE}behaviourFingerprint`;
+
 // ============================================================================
 // XSD Datatypes
 // ============================================================================

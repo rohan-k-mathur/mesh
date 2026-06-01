@@ -222,16 +222,169 @@ function the seam will call.
   `aif-sync.ts` (which itself creates DMs for CONCEDE/DAIMON sync) will
   be folded into the seam during call-site conversion.
 
-**Not done (the bulk of H1's work).**
+**Call-site conversion (2026-05-29 / continuation).**
 
-- Convert the 20 `HARMONIZATION-FREEZE (H0)` sites listed above to call
-  `createDialogueMove(...)` and delete the freeze marker on each.
-  Acceptance is `rg "prisma.dialogueMove.create\("` returning *only*
-  `lib/ludics/createDialogueMove.ts`.
+- **Pilot.** `app/api/dialogue/move/route.ts` converted first to
+  validate seam shape under the busiest production path. Replaced the
+  27-line P2002 try/catch + dedup-fetch with a single
+  `await createDialogueMove({...})`; freeze marker removed; typecheck
+  clean.
+- **Mass conversion.** Remaining 19 sites converted in two batches:
+  - 16 simple sites (single argument-or-claim DM creates) swapped via
+    one `multi_replace_string_in_file`: `attacks/create`,
+    `attacks/undercut`, `arguments/[id]/cqs/[cqKey]/ask`, `arguments`,
+    `comments/lift`, `non-canonical/approve`,
+    `cqs/dialogue-move` (×2), `cq`, `smoke_seed` (×2),
+    `aif/conflicts`, `missing-premises/[id]/accept`, `ca` (×2),
+    `experiments/polarization-1/.../dialogue-move-mint`.
+  - 3 special-case sites:
+    - `app/api/dialogue/answer-and-commit/route.ts` — GROUNDS move with
+      Argument back-link; legacy `findFirst` fallback dropped (seam
+      handles dedup).
+    - `app/api/commitments/export-from-ludics/route.ts` — runs inside
+      an outer `prisma.$transaction(async (tx) => {...})`. To preserve
+      atomicity the seam was extended with an optional
+      `options.tx?: Prisma.TransactionClient`; when present the seam
+      runs its body on the caller's tx instead of opening its own.
+      All 10 invariants still green after that refactor.
+    - `app/api/monological/bridge/route.ts` — converted the batched
+      `prisma.$transaction(movesToUpsert.map(prisma.dialogueMove.upsert))`
+      into a sequential `for (const cfg of movesToUpsert)` loop calling
+      the seam. P2002 dedup matches the original `update: {}` no-op
+      upsert semantics. The `Parameters<typeof prisma.dialogueMove.upsert>`
+      type expression on `movesToUpsert` was inlined to a literal
+      shape.
+- **Imports.** Each converted file now imports
+  `import { createDialogueMove } from "@/lib/ludics/createDialogueMove"`.
 
-**Next action.** Decide call-site conversion strategy: pilot one route
-end-to-end (recommendation: `app/api/dialogue/move/route.ts`, the
-busiest and most representative) to validate the seam shape against
-production traffic, then mass-convert the remaining 19 sites; or batch
-the lot. Either way each converted file removes its `HARMONIZATION-FREEZE`
-marker so the H1 acceptance test reduces to a single grep.
+**Acceptance — H1 done.**
+
+- `rg "HARMONIZATION-FREEZE" --type ts` — **0 matches.**
+- `rg "prisma\.dialogueMove\.(create|upsert)\(" --type ts` — only the
+  out-of-scope sites remain (seed scripts under `scripts/seed*`,
+  `scripts/test-*`, `scripts/ludicsPatterns.ts`,
+  `scripts/fix-argument-move.ts`, `scripts/backfill-commitment-alignment.ts`,
+  `__tests__/integration/cq-to-aif-provenance.test.ts`, and
+  `packages/ludics-engine/__tests__/scopedDesigns.test.ts`). These
+  exercise the legacy pipeline directly by design.
+- `npx tsc --noEmit -p tsconfig.json` — only the pre-existing
+  `app/robots.ts(10,17)` / `(10,50)` errors remain (unchanged from H0
+  baseline).
+- `npx jest __tests__/invariants/h1-creation-seam.test.ts` —
+  **10/10 green.**
+- `_snapshot.json` re-run: **18 files, 282 cases** (unchanged — the
+  seam tests were already counted in the previous refresh).
+
+**Next.** H2 — substrate read-path consolidation
+(`lib/ludics/substrate/read.ts`) plus the `chronicles/reconstruct.ts`
+helper. Awaiting explicit go-ahead before opening H2.
+
+## Forward-compatibility (FQ-substrate-v1) — 2026-05-30
+
+Per [LUDICS_HARMONIZATION_PASS_1_THEORETICAL_MAP.md §9](LUDICS_HARMONIZATION_PASS_1_THEORETICAL_MAP.md#9-substrate-v1-commitments-and-the-bfmell-question)
+this whole programme is now formally tagged **FQ-substrate-v1**. A
+future Basaldella–Faggian designs-with-repetitions migration
+(Q-030 Phase 2+, MELL coverage) would land as a separately-scoped
+*substrate-v2* and is not on the H0–H8 schedule.
+
+**What we shipped in H1 sits on the "survives v2 unchanged" list.** The
+`createDialogueMove` seam, the AIF p/c bridge it writes through, the
+records-only `WitnessRecord` `ι`, T4 anonymity, the `⊢A.` locus prefix,
+and `I-No-Commitment-Write` are all orthogonal to the design-notion
+choice (FQ vs BF). H2's planned `reconstructChronicle` and chronicle
+retirement (H7) are also on that list.
+
+**One v1/v2 diff target is touched by H1's seam:** the `LudicMove`
+upsert key `(deliberationId, locus)` (`I-Loc`). Under BF, coherence
+allows distinct negative moves at the same address, so v2 may relax
+this to `(deliberationId, locus, moveType, repetitionTag)`. A
+forward-compat note now lives in the seam doc-comment so a future v2
+schema migration has a clear hook. **No v1 change required.**
+
+The other four v1 commitments named as v2 diff targets (`I-Inc`
+antichain, `I-Cone`/`I-Join` cone partition under FQ separation,
+`Design.loci[]` as a set, `I-No-Additive-Silent`) live in
+substrate-side code and proofs we do not modify here; they are correct
+as written for v1.
+
+---
+
+## H2 status (2026-05-30) — substrate read consolidation + chronicle reconstruction
+
+H2 lands the **single substrate read path** plus the **chronicle
+reconstruction helper** that future readers will use once H7 drops
+`LudicChronicle` / `LudicChronicleCache`.
+
+### Files added
+
+- `lib/ludics/substrate/read.ts` — façade exporting `getBehaviour`,
+  `getDesign`, `getIncarnations`, `getWitnesses`, `getExposureMap`.
+  T4-anonymous by default; the only identity knob is
+  `getWitnesses(_, { includeIdentity: true })`, which forwards to the
+  canonical `findByLudicMoveId` overload chain. New thin readers:
+  `getBehaviour` (`prisma.behaviour.findUnique`), `getDesign`
+  (`prisma.design.findUnique`); the rest are typed re-exports of the
+  T4-clean `server/ludics/*` functions.
+- `lib/ludics/chronicles/reconstruct.ts` — `reconstructChronicle(designId)`
+  rebuilds the chronicle on demand from `LudicAct.orderInDesign`,
+  returning `{ actId, order }[]` in canonical order. Drop-in
+  replacement for the row-set readers currently fetch from
+  `prisma.ludicChronicle.findMany`. Survives H7 because `LudicAct`
+  is *not* on the H7 retirement list. Deliberately scoped *outside*
+  `lib/ludics/substrate/**` so the no-legacy-read lint can keep its
+  bright-line rule.
+- `scripts/lint-no-legacy-ludics-read.ts` — enforces invariant
+  **I-No-Legacy-Read**: regex over source under `lib/ludics/substrate/**`
+  rejecting `prisma.ludicDesign|ludicAct|ludicChronicle|ludicChronicleCache`.
+  Block-comment-aware so JSDoc that names the forbidden APIs in prose
+  does not trip the rule. Wired as `npm run lint:no-legacy-ludics-read`.
+- `__tests__/invariants/h2-no-legacy-read.test.ts` — invariant test
+  shadow of the lint, so the rule fires even when the standalone CLI
+  is not invoked.
+- `__tests__/invariants/h2-reconstruct-chronicle-parity.test.ts` —
+  three-case parity test (typical, empty, ordering preserved). Uses
+  the H1 mock-prisma pattern (`jest.mock("@/lib/prismaclient", …)`).
+
+### Acceptance evidence
+
+- `npx tsc --noEmit -p tsconfig.json` — clean modulo the pre-existing
+  `app/robots.ts(10,17)/(10,50)` errors that predate this programme.
+- `npx jest __tests__/invariants/` — 20 suites / 326 passing + 1 todo.
+  H2 contributed two new suites (4 cases).
+- `npm run lint:no-legacy-ludics-read` — exits 0 against `main`.
+- Snapshot refreshed: `__tests__/invariants/_snapshot.json` now reports
+  **20 files / 286 cases** (up from 18 / 282 at H1 close).
+
+### Invariant added
+
+- **I-No-Legacy-Read.** Files under `lib/ludics/substrate/**` may not
+  read `prisma.ludicDesign | ludicAct | ludicChronicle | ludicChronicleCache`.
+  Enforced by `scripts/lint-no-legacy-ludics-read.ts` and
+  `__tests__/invariants/h2-no-legacy-read.test.ts`. The
+  `lib/ludics/chronicles/reconstruct.ts` helper is the deliberate,
+  scoped escape hatch and is *not* under enforcement.
+
+### Deferred follow-up (intentional, named)
+
+The Pass 2 §H2 spec also calls for migrating the substrate MCP tool
+handlers in `packages/isonomia-mcp/src/server.ts` to call the
+consolidated read path. The façade re-exports (and where new, mirrors)
+the same names handlers already use, so this migration is an
+import-path swap with no runtime change. Tracked as a non-blocking
+follow-up to keep H2 a clean "add façade + lint" landing; it is
+*not* a prerequisite for H3.
+
+### Forward-compat (FQ-substrate-v1 → BF substrate-v2)
+
+The H2 façade's public signatures do not assume any of the v1-specific
+`LudicMove` keying (the place where v2 will diverge per Pass 1 §9).
+All five public functions return data shapes that survive a v2 BF
+migration unchanged. The chronicle reconstruction helper is likewise
+v1/v2-stable because `LudicAct.orderInDesign` is preserved across the
+substrate version line.
+
+### Next: H3
+
+H3 — bridge same-scope and fail-loud-on-additive (Pass 2 sprint list
+lines 182–224). Begins with a recon of the existing AIF↔Ludics bridge
+write paths and the additive-locus invariant test surface.

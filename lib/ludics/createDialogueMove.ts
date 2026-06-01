@@ -40,12 +40,25 @@
  * @see scripts/bridge-legacy-to-substrate.ts (the batch counterpart)
  * @see services/aif/syncArgument.ts (the AIF helper this seam calls)
  * @see __tests__/invariants/h1-creation-seam.test.ts
+ *
+ * **Forward-compatibility (FQ-substrate-v1 → BF substrate-v2).** Per
+ * `LUDICS_HARMONIZATION_PASS_1_THEORETICAL_MAP.md` §9, this seam is on
+ * the "survives v2 unchanged" list. The one v2 diff target *touched*
+ * here is the `LudicMove` upsert key `(deliberationId, locus)` (`I-Loc`):
+ * under Basaldella–Faggian designs-with-repetitions (Q-030 Phase 2+) the
+ * key may relax to `(deliberationId, locus, moveType, repetitionTag)`
+ * because BF coherence allows distinct negative moves at the same
+ * address. No v1 change required — flagged here so a future v2 schema
+ * migration has a clear hook.
  */
 
 import { Prisma } from "@prisma/client";
 import type { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prismaclient";
 import { syncArgumentToAif } from "@/services/aif/syncArgument";
+
+/** A prisma client OR an interactive-transaction client. */
+type Db = PrismaClient | Prisma.TransactionClient | typeof defaultPrisma;
 
 /** Prefix the bridge applies to every legacy locus path. */
 const LOCUS_PREFIX = "⊢A.";
@@ -113,6 +126,13 @@ export interface CreateDialogueMoveResult {
 export interface CreateDialogueMoveOptions {
   /** Override the prisma client (e.g. for tests). */
   prisma?: typeof defaultPrisma;
+  /**
+   * Run inside an existing interactive transaction. When provided, the
+   * seam skips its own `$transaction` wrapper and uses this handle for
+   * all writes — required when the caller is itself inside a
+   * `prisma.$transaction(async (tx) => ...)` block.
+   */
+  tx?: Prisma.TransactionClient;
   /**
    * When false, skip the AIF write path. Default true. Useful for
    * scripts / tests that exercise only the substrate plumbing.
@@ -190,7 +210,23 @@ export async function createDialogueMove(
       : null);
   const substrateLocus = resolveSubstrateLocus(semanticLocus);
 
-  return db.$transaction(async (tx) => {
+  const run = (tx: Db) => seamBody(input, options, initialPayload, substrateLocus, tx);
+
+  if (options.tx) {
+    return run(options.tx);
+  }
+  return db.$transaction(async (tx) => run(tx));
+}
+
+async function seamBody(
+  input: CreateDialogueMoveInput,
+  options: CreateDialogueMoveOptions,
+  initialPayload: Record<string, unknown>,
+  substrateLocus: string | null,
+  tx: Db,
+): Promise<CreateDialogueMoveResult> {
+  const syncAif = options.syncAif !== false;
+  {
     // ── 1. DialogueMove row (with P2002 dedup) ─────────────────────────────
     let dm: { id: string; signature: string; deliberationId: string };
     try {
@@ -396,5 +432,5 @@ export async function createDialogueMove(
       witnessRecordId,
       unbridgeable: null,
     } satisfies CreateDialogueMoveResult;
-  });
+  }
 }

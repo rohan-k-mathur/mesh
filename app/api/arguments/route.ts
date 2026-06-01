@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 // import { getServerSession } from 'next-auth'; // if you use NextAuth
 import { getUserFromCookies, getCurrentUserId } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
@@ -288,24 +289,26 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
   const argId = created;
 
   // Create a DialogueMove to assert this argument in the deliberation
-  // This allows the ludics engine to compile it into designs
+  // This allows the ludics engine to compile it into designs.
+  // Note: the H1 seam (createDialogueMove) already runs syncArgumentToAif
+  // internally, so the standalone import below becomes a no-op (idempotent).
   try {
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    const assertMove = await prisma.dialogueMove.create({
-      data: {
-        deliberationId,
-        targetType: 'argument',
-        targetId: argId,
-        kind: 'ASSERT',
-        actorId: String(authorId),
-        signature: `assert-arg-${argId}`, // Unique signature for this argument assertion
-        payload: {
-          argumentId: argId,
-          conclusionClaimId,
-          schemeId: schemeId ?? null,
-        },
-      }
+    const seamResult = await createDialogueMove({
+      deliberationId,
+      targetType: 'argument',
+      targetId: argId,
+      kind: 'ASSERT',
+      actorId: String(authorId),
+      signature: `assert-arg-${argId}`,
+      payload: {
+        argumentId: argId,
+        conclusionClaimId,
+        schemeId: schemeId ?? null,
+        locusPath: '0',
+      },
+      locusPath: '0',
     });
+    const assertMove = seamResult.move;
 
     // Backfill the AIF graph (RA + I + premise/conclusion/asserts edges) for
     // this argument so the new generative substrate's Step 8 walk can populate

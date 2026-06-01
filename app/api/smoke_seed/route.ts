@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 
 export async function POST(_req: NextRequest) {
   if (process.env.NODE_ENV !== 'development') {
@@ -50,28 +51,36 @@ export async function POST(_req: NextRequest) {
   });
 
   // One WHY from opponent, one GROUNDS from proponent (CQ satisfied)
-  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-  const why = await prisma.dialogueMove.create({
-    data:{
-      deliberationId: delib.id, kind:'WHY', type:'WHY' as any, illocution:'Question' as any,
-      actorId: u2.id, authorId: u2.id,
-      targetType:'argument', targetId: arg.id,
-      signature: ['WHY','argument',arg.id,'cq_expert_bias'].join(':'),
-      payload: { cqId:'cq_expert_bias' }
-    } as any
+  const whySeam = await createDialogueMove({
+    deliberationId: delib.id,
+    kind: 'WHY',
+    type: 'WHY' as any,
+    illocution: 'Question' as any,
+    actorId: u2.id,
+    authorId: u2.id,
+    targetType: 'argument',
+    targetId: arg.id,
+    signature: ['WHY','argument',arg.id,'cq_expert_bias'].join(':'),
+    payload: { cqId: 'cq_expert_bias', locusPath: '0' },
+    locusPath: '0',
   });
+  const why = whySeam.move;
 
   await prisma.cQStatus.create({ data:{ argumentId: arg.id, cqKey:'cq_expert_bias', status:'open' } }).catch(()=>null);
 
-  // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-  await prisma.dialogueMove.create({
-    data:{
-      deliberationId: delib.id, kind:'GROUNDS', type:'GROUNDS' as any, illocution:'Argue' as any,
-      actorId: u1.id, authorId: u1.id,
-      targetType:'argument', targetId: arg.id, replyToMoveId: why.id,
-      signature: ['GROUNDS','argument',arg.id,'cq_expert_bias',Date.now()].join(':'),
-      payload: { cqId:'cq_expert_bias', acts:[{ polarity:'pos', locusPath:'0', openings:[], expression:'Expert shows no conflict of interest', additive:false }] }
-    } as any
+  await createDialogueMove({
+    deliberationId: delib.id,
+    kind: 'GROUNDS',
+    type: 'GROUNDS' as any,
+    illocution: 'Argue' as any,
+    actorId: u1.id,
+    authorId: u1.id,
+    targetType: 'argument',
+    targetId: arg.id,
+    replyToMoveId: why.id,
+    signature: ['GROUNDS','argument',arg.id,'cq_expert_bias',Date.now()].join(':'),
+    payload: { cqId: 'cq_expert_bias', locusPath: '0', acts:[{ polarity:'pos', locusPath:'0', openings:[], expression:'Expert shows no conflict of interest', additive:false }] },
+    locusPath: '0',
   });
 
   return NextResponse.json({ ok:true, deliberationId: delib.id, argumentId: arg.id, claimIds:[c1.id,c2.id,c3.id] }, { headers:{ 'Cache-Control':'no-store' }});

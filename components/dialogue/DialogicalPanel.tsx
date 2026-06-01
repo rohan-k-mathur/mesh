@@ -2,13 +2,13 @@
 'use client';
 
 import * as React from 'react';
-import type { AFNode, AFEdge } from '@/lib/argumentation/afEngine';
+import type { AFNode, AFEdge } from '@/lib/argumentation';
 import {
   projectToAF,
   grounded,
   preferred,
   labelingFromExtension,
-} from '@/lib/argumentation/afEngine';
+} from '@/lib/argumentation';
 import {
   inferSchemesFromText,
   questionsForScheme,

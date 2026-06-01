@@ -72,15 +72,33 @@ substrate-relevant.
 
 ## Mechanisation
 
-A representative-level toy lives at
+A **formal** representative-level mechanisation lives at
 [`../mechanisation/agda/C001/C001a.agda`](../mechanisation/agda/C001/C001a.agda)
-(2026-05-28; Agda 2.8.0 + agda-stdlib v2.0). It type-checks without
-postulates or holes, but carries an explicit `≈ᴰ` setoid because cone
-elements are represented as `List Move` rather than as quotient classes.
+(promoted 2026-05-30; Agda 2.7.0.1 + agda-stdlib v2.0, pinned). It
+type-checks under `--safe --without-K` with **no postulates and no
+holes**. The upgrade from the earlier exploratory toy makes every
+structural claim explicit against the standard library's order/lattice
+bundles:
+
+- cone equality is an `≈ᴰ` `Setoid` (`Relation.Binary.Bundles.Setoid`),
+  carried explicitly because cone elements are `List Move` rather than
+  quotient classes;
+- the per-cone JSL is built as a
+  `Relation.Binary.Lattice.Bundles.JoinSemilattice` (`Art : Design →
+  JoinSemilattice`), with `∪ᴰ-supremum`/`cone-supremum` discharging the
+  `Supremum` obligations;
+- JSL-homomorphisms are a first-class `record IsJSLHom` (preserving ⊥ and
+  ⊔) wrapped in `JSLHom`, and the hom-set is itself a `Setoid` under
+  pointwise `≈ᶜ`;
+- the bridge is exhibited as a setoid isomorphism
+  `bridge : ∀ Dᵢ → Inverse (Cone-setoid Dᵢ) (Hom-setoid Dᵢ)`
+  (`Function.Bundles.Inverse`), with the two triangles supplying the
+  `Inverseˡ`/`Inverseʳ` components.
+
 Under T001's equality convention (2026-05-29) the `≈ᴰ` content belongs
-to T001, not to T004; the toy is therefore **evidence for the
-representative-level obligations** that justify the quotient view, not a
-direct mechanisation of T004. See
+to T001, not to T004; the artefact is therefore a formal mechanisation
+of the **representative-level obligations** that justify the quotient
+view, not a direct mechanisation of T004. See
 [T004 §Corroborating mechanisation](../02_THEOREMS_AND_PROOFS/T004-jsl-fragment-bridge.md#corroborating-mechanisation).
 
 ## Bibliography

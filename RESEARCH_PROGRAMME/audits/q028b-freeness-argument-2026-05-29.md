@@ -161,6 +161,36 @@ The substrate must commit to a $\delta$. Two candidates are named in §5; the ch
 
 These are stress tests, not blockers. Recommend filing them as `next-action` substeps on Q-028b's revised entry rather than as new questions.
 
+### 9.1 Stress-test (1) finding — qualified obstruction (2026-05-30)
+
+Stress-test (1) executed 2026-05-30 (paper-only, no primary-source library access). **Verdict: qualified obstruction — the DP step does not type-check at MELL as currently stated, but the obstruction has a known structural fix.**
+
+**The obstruction.** FQ 2013's design-as-proof correspondence is established for the **MALL** fragment of Ludics (linear, non-uniform designs; visitable-paths technology is tailored to MALL behaviours). Ambler's $\lambda$-calculus uses intuitionistic logic with structural rules; under Girard 1987's $!$-translation $A \to B := \;!A \multimap B$, it lands in **MELL, not MALL**. The reduction's §6.1 phrase "linear shadow of $B$" therefore does real work — it implicitly restricts the bridge to behaviours whose linear shadow is MALL-typeable, which excludes any $B$ requiring contraction (use a premise twice) or weakening (discard a premise). Non-trivial defeasible argument chains use both. The MALL-only reduction is too narrow for the substrate's use case.
+
+**The known structural fix.** Basaldella & Faggian 2011 *Ludics with Repetitions* (LMCS 7:2:13; originally LICS 2009) extends Ludics to MELL via "designs with repetitions" (non-uniform → repetition-aware non-uniform), establishing full completeness / definability at MELL. Reading the audit's reduction with BF-incarnation in place of FQ-incarnation, the argument *shape* (free JSL on canonical generators → adjunction-forced bijection) goes through identically; what changes is which paper grounds the DP step, what `|Inc(B)|` looks like (repetition-rich), and the substrate's base design notion.
+
+**Three architectural options.**
+- **(a) Linear restriction.** Restrict the bridge to MALL Ambler instances. **Unacceptable** — kills the bridge for any non-trivial defeasible reasoning.
+- **(b) Upgrade to designs-with-repetitions.** Rebuild the substrate's base design notion on Basaldella–Faggian foundations. *Structurally correct, architecturally expensive.* Affects [LUDICS_GENERATIVE_SUBSTRATE.md](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/Ludics%20Generative%20Substrate%20Documents/LUDICS_GENERATIVE_SUBSTRATE.md), the per-cone JSL story (T001), possibly T002 (the antichain claim about $\mathsf{Inc}(B)$ may need restating with repetitions).
+- **(c) Canonical section.** Find a canonical section from MELL designs-with-repetitions to MALL designs handling the $!$-translation cases. *Speculative; may not exist for principled reasons* (repetitions encode contraction structure not recoverable from a linear shadow).
+
+**Calibrated verdict.** Stress-test (1) does **not refute** Q-028b's freeness/adjointness argument. The argument's shape is incarnation-notion-independent. The MELL obstruction is a substrate-level architectural question, filed as [Q-030](../01_OPEN_QUESTIONS_REGISTRY.md#q-030) (2026-05-30). Q-028b's reduction now reads as:
+> qualified positive on the MALL fragment of Ambler; open on the MELL extension pending the architectural answer to Q-030; conjecturally extends to MELL via BF-incarnation with structurally identical proof.
+
+**Primary-source verification still needed** (deferred into Q-030's first sub-step, not blocking Q-028b's status):
+- Basaldella–Faggian 2011 definability theorem: exact statement, hypotheses, applicability to the BF-incarnation analogue of $\mathsf{Inc}(B)$.
+- FQ 2013 §6 (extensions): whether FQ themselves give an explicit MELL extension or linear-restriction theorem (cheaper than going to BF if available).
+- The $!$-translation image of Ambler's defeat operator — confirm it lands inside MELL (vs. requiring fixpoints or modal operators outside).
+
+### 9.2 Phase 1 lit-review confirmation (2026-05-30)
+
+The Q-030 Phase 1 lit audit ([`MALL→MELL Incarnation Upgrade for the Isonomia Ludics Substrate.md`](../../Development%20and%20Ideation%20Documents/ARCHITECTURE/MALL%E2%86%92MELL%20Incarnation%20Upgrade%20for%20the%20Isonomia%20Ludics%20Substrate.md)) confirmed the obstruction and surfaced two corrections to the §9.1 reasoning that this audit's downstream readers should note:
+
+1. **Citation correction.** §9.1 above (and the audit's earlier sections referring to "FQ 2013 §4.2") used a wrong arXiv pointer. The actual LMCS 9(4:6) 2013 paper is *Incarnation in Ludics and maximal cliques of paths* (arXiv:1307.1028); the design-as-proof material lives in §§4–5 (Definition 2.11 + Propositions 5.2/5.3/5.9), not "§4.2." There is no §6 extension — §6 is a Conclusion. The 2018 companion arXiv:1403.3772 (LMCS 14(2:7), *Study of Behaviours via Visitable Paths*) is also MALL-only and explicitly defers exponentials.
+2. **BF is not a clean drop-in.** The §9.1 phrase "structurally identical proof" needs qualification. BF 2011 (LMCS 7(2:13)) replaces FQ-incarnation with operationally-defined *materiality* (Def 11.5) and proves **no** antichain/minimality theorem (FQ Props 5.2/5.3 explicitly invoke linearity). The substrate's T002 antichain claim has no BF-side analogue and must be re-established under non-uniformity — filed as Q-032. Separation also fails in BF (filed as Q-035). The argument *shape* (free JSL on canonical generators → adjunction-forced bijection) survives, but it now requires a fifth side-data item under option (b): the antichain witness on the BF side (since materiality is no longer minimality-by-theorem).
+
+**Net effect on Q-028b's status.** Unchanged at the structural level: still *qualified positive on MALL fragment; open on MELL pending Q-030*. The MELL extension's structural cost is higher than §9.1 estimated (Phase 3 net-new work for Q-032 is real, not notational), but the recommendation remains option (b). See Q-030's status note for the revised effort estimate (10–14 sessions) and the six follow-up questions Q-031–Q-036 surfaced by the lit review.
+
 ## 10. Bibliography
 
 - **Fouqueré, C. and Quatrini, M. (2013).** Study of Behaviours via Visitable Paths. *LMCS* 9(4:6). §4.2 (incarnation as cut-free-proof quotient); §6 (extensions). Cited for design-as-proof.

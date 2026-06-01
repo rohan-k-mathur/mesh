@@ -32,6 +32,7 @@
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prismaclient";
+import { AIF_VERSION_STAMP } from "@/lib/aif/version";
 
 export const ARGUMENT_AIF_EDGE_ROLES = {
   PREMISE: "premise",
@@ -256,6 +257,8 @@ async function ensureRaNode(
         sourceArgumentId: argumentId,
         createdBy: "syncArgument",
         createdAt: new Date().toISOString(),
+        aifVersion: AIF_VERSION_STAMP.aifVersion,
+        meshAifProfile: AIF_VERSION_STAMP.meshAifProfile,
       },
     },
     select: { id: true },
@@ -304,6 +307,8 @@ async function ensureINode(
         sourceClaimId: claimId,
         createdBy: "syncArgument",
         createdAt: new Date().toISOString(),
+        aifVersion: AIF_VERSION_STAMP.aifVersion,
+        meshAifProfile: AIF_VERSION_STAMP.meshAifProfile,
       },
     },
     select: { id: true },
@@ -426,6 +431,8 @@ async function ensureDmStub(
         timestamp: move.createdAt.toISOString(),
         ...(move.replyToMoveId ? { replyToMoveId: move.replyToMoveId } : {}),
         createdBy: "syncArgument",
+        aifVersion: AIF_VERSION_STAMP.aifVersion,
+        meshAifProfile: AIF_VERSION_STAMP.meshAifProfile,
       },
     },
     select: { id: true },

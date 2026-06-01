@@ -44,6 +44,7 @@
 // app/api/arguments/[id]/cqs/[cqKey]/ask/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { createDialogueMove } from '@/lib/ludics/createDialogueMove';
 
 export async function POST(req: Request, { params }: { params: { id: string; cqKey: string } }) {
   const body = await req.json().catch(()=> ({}));
@@ -78,14 +79,18 @@ export async function POST(req: Request, { params }: { params: { id: string; cqK
   }
 
   if (authorId && deliberationId) {
-    // HARMONIZATION-FREEZE (H0): legacy direct DM creation; migrate to lib/ludics/createDialogueMove (H1).
-    await prisma.dialogueMove.create({
-      data: {
-        deliberationId, authorId, type:'WHY', illocution:'Question' as any,
-        replyToMoveId: null, argumentId: null,
-        kind:'WHY', actorId: authorId, targetType:'argument', targetId: arg.id,
-        signature: ['WHY','argument',arg.id, params.cqKey].join(':'), payload: { cqId: params.cqKey }
-      } as any
+    await createDialogueMove({
+      deliberationId,
+      authorId,
+      actorId: String(authorId),
+      type: 'WHY',
+      kind: 'WHY',
+      illocution: 'Question' as any,
+      targetType: 'argument',
+      targetId: arg.id,
+      signature: ['WHY','argument',arg.id, params.cqKey].join(':'),
+      payload: { cqId: params.cqKey, locusPath: '0' },
+      locusPath: '0',
     }).catch(()=>void 0);
   }
 

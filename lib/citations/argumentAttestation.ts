@@ -26,6 +26,15 @@ import {
 } from "@/config/standingThresholds";
 import { toCitationBlock, type CitationBlock } from "@/lib/citation/serialize";
 import { toIsoId, toIsoUrl } from "@/lib/citations/isoIdentifier";
+import {
+  buildFingerprintPeerIndex,
+  computeCatalogueHealth,
+  type CatalogueHealth,
+} from "@/lib/schemes/catalogueHealth";
+import {
+  projectSchemeInstanceState,
+  type SchemeInstanceStateProjection,
+} from "@/lib/schemes/protocol/instanceState";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://isonomia.app";
 
@@ -66,6 +75,24 @@ export interface CriticalQuestionStatus {
   cqKey: string;
   text: string;
   attackKind: string | null;
+  /**
+   * Carneades premise classification of the CQ's target premise
+   * (`ORDINARY` | `ASSUMPTION` | `EXCEPTION`), read straight from the shipped
+   * `CriticalQuestion.premiseType` column (Spec 3 / Roadmap A.2). `null` when
+   * the catalogue row leaves it unset.
+   */
+  premiseType: "ORDINARY" | "ASSUMPTION" | "EXCEPTION" | null;
+  /**
+   * Derived (no column): a CQ must be actively adjudicated for the instance to
+   * close iff its premise is not a Carneades `ASSUMPTION` (assumptions
+   * auto-waive at gate-check time). Mirrors the E2 obligation projection.
+   */
+  isSchemeRequired: boolean;
+  /**
+   * Derived (no column): true iff the CQ definition is anchored on a different
+   * scheme than the argument's primary scheme (pulled in from a parent).
+   */
+  inheritedFromParentScheme: boolean;
   status:
     | "missing"
     | "open"
@@ -284,6 +311,16 @@ export interface ArgumentAttestation {
     key: string | null;
     name: string | null;
     title: string | null;
+    /**
+     * Canonical key when this scheme is a folksonomy duplicate-candidate
+     * (collides on `fingerprint` with a lexicographically-smaller sibling);
+     * equals `key` otherwise. From the E1 catalogue-health projection.
+     */
+    canonicalKey: string | null;
+    /** Materialised behaviour-equality fingerprint, or null (Spec 4). */
+    behaviourFingerprint: string | null;
+    /** Derived catalogue-health projection (Roadmap E1). */
+    catalogueHealth: CatalogueHealth | null;
   } | null;
 
   /** Evidence with provenance pointers (legacy shape) */
@@ -302,6 +339,16 @@ export interface ArgumentAttestation {
    * (Track AI-EPI Pt. 3 §2.)
    */
   criticalQuestions: CriticalQuestionsAggregate | null;
+
+  /**
+   * Play-time protocol state of the `SchemeInstance` attached to this
+   * argument's conclusion (Roadmap A.2 / E2). Mirrors the projection served
+   * by `GET /api/scheme-instances/[id]/state`: open vs discharged obligations
+   * and close-hook eligibility. `null` when no instance has been materialised
+   * for the conclusion + primary scheme pair (e.g. the argument predates the
+   * obligation apparatus, or carries no scheme).
+   */
+  schemeInstance: SchemeInstanceStateProjection | null;
 
   /** Confidence in [0, 1] (author-supplied) */
   confidence: number | null;
@@ -584,15 +631,20 @@ export async function buildArgumentAttestation(
               key: true,
               name: true,
               title: true,
+              kind: true,
+              clusterTag: true,
+              fingerprint: true,
               cqs: {
                 select: {
                   id: true,
                   cqKey: true,
                   text: true,
                   attackKind: true,
+                  premiseType: true,
+                  schemeId: true,
                 },
               },
-            },
+            } as any,
           },
         },
         orderBy: [{ isPrimary: "desc" }, { order: "asc" }],
@@ -609,14 +661,41 @@ export async function buildArgumentAttestation(
     argument.argumentSchemes[0] ||
     null;
 
-  const scheme = primarySchemeRow
-    ? {
-        id: primarySchemeRow.scheme.id,
-        key: primarySchemeRow.scheme.key ?? null,
-        name: primarySchemeRow.scheme.name ?? null,
-        title: primarySchemeRow.scheme.title ?? null,
-      }
-    : null;
+  // ---- Scheme catalogue-health projection (Roadmap A.2 / E1) ----
+  // Collision detection needs the fingerprint of every argument-pattern peer,
+  // so load a lightweight (key, fingerprint) projection over the catalogue.
+  let scheme: ArgumentAttestation["scheme"] = null;
+  if (primarySchemeRow) {
+    const sRow = primarySchemeRow.scheme as any;
+    let catalogueHealth: CatalogueHealth | null = null;
+    try {
+      const peers = await prisma.argumentScheme.findMany({
+        where: { kind: "argument-scheme" } as any,
+        select: { key: true, fingerprint: true } as any,
+      });
+      const peerIndex = buildFingerprintPeerIndex(peers as any);
+      catalogueHealth = computeCatalogueHealth(
+        {
+          key: sRow.key,
+          kind: sRow.kind,
+          clusterTag: sRow.clusterTag,
+          fingerprint: sRow.fingerprint,
+        },
+        peerIndex,
+      );
+    } catch {
+      catalogueHealth = null;
+    }
+    scheme = {
+      id: sRow.id,
+      key: sRow.key ?? null,
+      name: sRow.name ?? null,
+      title: sRow.title ?? null,
+      canonicalKey: catalogueHealth?.canonicalKey ?? sRow.key ?? null,
+      behaviourFingerprint: sRow.fingerprint ?? null,
+      catalogueHealth,
+    };
+  }
 
   const criticalQuestionsRequired = primarySchemeRow?.scheme.cqs.length ?? 0;
 
@@ -815,10 +894,26 @@ export async function buildArgumentAttestation(
         else if (e === "PENDING_REVIEW" || legacy === "pending_review") status = "pending_review";
         else if (e === "DISPUTED" || legacy === "disputed") status = "disputed";
         else status = "open";
+        // Derived premise-classification fields (Roadmap A.2). `premiseType`
+        // is a shipped column; the two booleans are derived exactly as in the
+        // E2 obligation projection so the two surfaces never drift.
+        const rawPremiseType =
+          typeof cq.premiseType === "string" ? cq.premiseType : null;
+        const premiseType =
+          rawPremiseType === "ORDINARY" ||
+          rawPremiseType === "ASSUMPTION" ||
+          rawPremiseType === "EXCEPTION"
+            ? rawPremiseType
+            : null;
+        const cqSchemeId = cq.schemeId ?? null;
         return {
           cqKey: key,
           text: (cq.text ?? "").toString(),
           attackKind: cq.attackKind ?? null,
+          premiseType,
+          isSchemeRequired: premiseType !== "ASSUMPTION",
+          inheritedFromParentScheme:
+            cqSchemeId != null && cqSchemeId !== primarySchemeRow.scheme.id,
           status,
         };
       },
@@ -834,6 +929,33 @@ export async function buildArgumentAttestation(
         (p) => p.status === "missing" || p.status === "open" || p.status === "disputed",
       ),
     };
+  }
+
+  // ---- Play-time SchemeInstance protocol state (Roadmap A.2 / E2) ----------
+  // The obligation apparatus materialises a `SchemeInstance` on the argument's
+  // conclusion claim for the primary scheme. Project its open/discharged
+  // obligations and close-hook eligibility, reusing the exact shape served by
+  // `GET /api/scheme-instances/[id]/state`. Best-effort: a missing instance
+  // (argument predates the apparatus, or carries no scheme) yields `null`.
+  let schemeInstance: SchemeInstanceStateProjection | null = null;
+  if (primarySchemeRow && conclusionClaimId) {
+    try {
+      const instanceRow = await prisma.schemeInstance.findFirst({
+        where: {
+          targetType: "claim",
+          targetId: conclusionClaimId,
+          schemeId: primarySchemeRow.scheme.id,
+        },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      });
+      if (instanceRow) {
+        const projection = await projectSchemeInstanceState(instanceRow.id);
+        schemeInstance = "error" in projection ? null : projection;
+      }
+    } catch {
+      schemeInstance = null;
+    }
   }
 
   // ---- Author lookup (best-effort; non-fatal) ----
@@ -973,6 +1095,7 @@ export async function buildArgumentAttestation(
     evidence,
     structuredCitations,
     criticalQuestions: criticalQuestionsAggregate,
+    schemeInstance,
     confidence:
       argument.confidence !== null && argument.confidence !== undefined
         ? Number(argument.confidence)

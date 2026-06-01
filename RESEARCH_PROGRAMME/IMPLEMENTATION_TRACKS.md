@@ -77,3 +77,110 @@ Q-NNN entries.
   index and the back-reference to the research-side entries section.
 - A track-internal open item resolves: move it out of "Track-internal
   open items" and into a brief "Closed" subsection with the resolution.
+
+---
+
+## Ludics↔Ambler bridge — runtime contract track
+
+**Opened:** 2026-05-31, following the positive close of
+[Q-037](01_OPEN_QUESTIONS_REGISTRY.md#q-037) (δ₁ ≅ δ₂ on the settled fragment)
+and the discovery-positive [Q-028a](01_OPEN_QUESTIONS_REGISTRY.md#q-028a)
+stratum-1. This track operationalises the bridge's *computational content* — the
+deterministic `Inc(B) → 𝒞/Γ` translation — and records the δ-scheduler decision.
+
+**Architectural premises:**
+
+- L1 — The deliberation runtime stays a **δ₂ (coroutine) engine**; Q-037 proved
+  its presentation faithful to the δ₁ proof semantics via `ν` (normalisation), so
+  **no scheduler rewrite**.
+- L2 — Faithfulness is a **runtime invariant** (run the coroutine to quiescence,
+  read off the surviving material design = the δ₁ design), not a DB constraint.
+- L3 — The contract is **fragment-scoped** (flat / one-level-nested defeat over
+  acyclic `Γ`, propositional generators); out-of-fragment inputs route to a
+  guarded fallback, never to a false correctness assertion.
+- L4 — **Aggregation is one level up** (`𝒫_fin(Inc(B))`), never a design-level
+  merge — the generator/power-set separation C001b′ relies on.
+
+### Spec index
+
+| # | Spec | Layer / Surface | Research items operationalised |
+|---|------|-----------------|--------------------------------|
+| L | [`LUDICS_AMBLER_BRIDGE_RUNTIME_CONTRACT.md`](../Development%20and%20Ideation%20Documents/ARCHITECTURE/LUDICS_AMBLER_BRIDGE_RUNTIME_CONTRACT.md) | challenge scheduler + `Inc(B)→𝒞/Γ` projection | Q-037 (δ scheduler decision); Q-028a stratum-1 (projection algorithm) |
+
+**Implementation order:** the contract is a *standing invariant + projection
+algorithm*, not a phased migration; wire the §6 test obligations (T-INV, T-PROJ,
+T-CARD, T-GUARD, T-ACCUM) first, then enforce I1–I3 in the scheduler.
+
+### Research-side back-references
+
+- [Q-037](01_OPEN_QUESTIONS_REGISTRY.md#q-037) — closed positive on the settled
+  fragment; operationalised by Spec L (§2 scheduler invariants, §6 T-INV).
+- [Q-028a](01_OPEN_QUESTIONS_REGISTRY.md#q-028a) — stratum-1 discovery-positive;
+  operationalised by Spec L §3 (the deterministic projection) + §6 T-PROJ.
+
+### Track-internal open items
+
+These gate the **unrestricted** contract (lifting Spec L §1 guards G1–G3); they
+are downstream of the research forks, not new engineering decisions.
+
+- **Defeat-depth bound threshold** (Spec L §4, §5). **CLOSED 2026-05-31.** Full
+  [Q-031](01_OPEN_QUESTIONS_REGISTRY.md#q-031) closed the cyclic /
+  unbounded-depth case: **no depth bound is needed** and **no μ-Ludics
+  infrastructure** — guards G1/G2 lifted. Cyclic inputs are in fragment; cycle
+  resolution is the finite acceptability fixpoint over
+  $\mathcal{P}_{\mathrm{fin}}(\mathsf{Inc}(B))$, one level up. The configured
+  depth-bound TODO at the config site is **removed**, not defaulted. See the
+  [cyclic-defeat audit](../Development%20and%20Ideation%20Documents/ARCHITECTURE/ARGUMENTATION_SEMANTICS_CONSOLIDATION_ROADMAP.md)
+  consumer track below, which operationalises this acceptability computation.
+- **Higher-order projection** (Spec L §4, §5). The §3 projection is proven
+  canonical only for propositional generators (Q-028a stratum-1). λ-abstraction
+  generators stay *unverified* until Q-028a stratum-2; do not persist them as
+  canonical bridge data.
+
+---
+
+## Argumentation-semantics engine — consolidation & strengthening track
+
+**Opened:** 2026-05-31, downstream of the
+[Q-031 cyclic-defeat closure](01_OPEN_QUESTIONS_REGISTRY.md#q-031). The closure
+established that the acceptability computation over
+$\mathcal{P}_{\mathrm{fin}}(\mathsf{Inc}(B))$ is a **finite, exact**
+Knaster–Tarski fixpoint, which removes the last justification for the repo's
+**approximate** Dung-AF fallbacks. This track consolidates the **four+
+overlapping AF engines** into one exact, labelling-based core and wires the
+runtime contract's §3/§4 in-fragment-vs-unverified split into the type system.
+
+**Architectural premises:**
+
+- A1 — **One engine of record** (`lib/argumentation/`); grounded/preferred/stable
+  reinvented ≥ 3× across `lib/` and route handlers today.
+- A2 — **Labelling is primitive** (complete labelling → derive all semantics);
+  UNDEC first-class (the odd-cycle case from the Q-031 verdict).
+- A3 — **Exact, never approximate** — delete the `>18 nodes → greedy/random`
+  fallbacks; use a SAT/ASP reduction for exact preferred/stable at scale.
+- A4 — **Level separation is a type invariant** — acceptability is a
+  $\mathcal{P}_{\mathrm{fin}}(\mathsf{Inc}(B))$ operation (Spec L L4), never a
+  design-level merge; provenance distinguishes verified-propositional from
+  unverified-higher-order nodes (Spec L §4).
+
+### Spec index
+
+| # | Spec | Layer / Surface | Research items operationalised |
+|---|------|-----------------|--------------------------------|
+| AS | [`ARGUMENTATION_SEMANTICS_CONSOLIDATION_ROADMAP.md`](../Development%20and%20Ideation%20Documents/ARCHITECTURE/ARGUMENTATION_SEMANTICS_CONSOLIDATION_ROADMAP.md) | Dung-AF engine + ASPIC+ instantiation + bridge acceptability | Q-031 (finite acceptability fixpoint); Q-037 (§4 fallback resolved); Q-028a stratum-2 (unverified higher-order guard) |
+
+**Implementation order:** Phase 0 (consolidate) → Phase 1 (labelling core +
+exact) → Phase 2 (ASPIC+ instantiation) ∥ Phase 3 (typed bridge integration) →
+Phase 4 (perf + policy + delete deprecated engines).
+
+### Research-side back-references
+
+- [Q-031](01_OPEN_QUESTIONS_REGISTRY.md#q-031) — closed positive (propositional);
+  operationalised by Spec AS Phase 1/3 (the finite acceptability fixpoint is the
+  engine's preferred/stable computation, *not* μ-infrastructure).
+- [Q-037](01_OPEN_QUESTIONS_REGISTRY.md#q-037) — closed positive; Spec L §4
+  fallback is resolved (neither depth-bound nor μ), which Spec AS Phase 3
+  enforces as the in-fragment cyclic path.
+- [Q-028a](01_OPEN_QUESTIONS_REGISTRY.md#q-028a) — stratum-2 open; Spec AS
+  Phase 3c keeps higher-order nodes on the *unverified* path (never persisted as
+  canonical), the engineering counterpart of the still-guarded G3.
