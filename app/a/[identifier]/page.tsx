@@ -20,6 +20,9 @@ import {
   toCslJson,
 } from "@/lib/citation/formats";
 import CitationExportWidget from "@/components/citation/CitationExportWidget";
+import AnsweredCriticalQuestions, {
+  type AnsweredCriticalQuestion,
+} from "@/components/citation/AnsweredCriticalQuestions";
 import { prisma } from "@/lib/prismaclient";
 import {
   Scale,
@@ -277,6 +280,54 @@ export default async function ArgumentPage({
   const citationMetaTags = attestation
     ? buildCitationMetaTags(attestation)
     : [];
+
+  // ---- Answered critical questions ----------------------------------------
+  // The attestation aggregate carries each answered CQ's question text +
+  // cqStatusId (primary scheme). Join those to the canonical CQResponse to
+  // surface the actual answer body + sources. Best-effort: a CQ marked
+  // satisfied without a canonical response (e.g. legacy/deprecated grounds) is
+  // skipped so the section never shows an empty answer.
+  const answeredCqAggregate = attestation?.criticalQuestions?.answered ?? [];
+  let answeredCriticalQuestions: AnsweredCriticalQuestion[] = [];
+  if (answeredCqAggregate.length > 0) {
+    const answeredStatusIds = answeredCqAggregate
+      .map((cq) => cq.cqStatusId)
+      .filter((id): id is string => !!id);
+    if (answeredStatusIds.length > 0) {
+      const statusRows = await prisma.cQStatus.findMany({
+        where: { id: { in: answeredStatusIds } },
+        select: {
+          id: true,
+          groundsText: true,
+          canonicalResponse: {
+            select: {
+              groundsText: true,
+              sourceUrls: true,
+              createdAt: true,
+            },
+          },
+        },
+      });
+      const rowById = new Map(statusRows.map((r) => [r.id, r]));
+      answeredCriticalQuestions = answeredCqAggregate
+        .map((cq): AnsweredCriticalQuestion | null => {
+          const row = cq.cqStatusId ? rowById.get(cq.cqStatusId) : undefined;
+          const answer =
+            row?.canonicalResponse?.groundsText ?? row?.groundsText ?? null;
+          if (!answer) return null;
+          return {
+            cqKey: cq.cqKey,
+            question: cq.text,
+            answer,
+            sourceUrls: row?.canonicalResponse?.sourceUrls ?? [],
+            schemeKey: cq.schemeKey,
+            answeredAt:
+              row?.canonicalResponse?.createdAt?.toISOString() ?? null,
+          };
+        })
+        .filter((cq): cq is AnsweredCriticalQuestion => cq !== null);
+    }
+  }
 
   const iframeEmbed = `<iframe src="${embedUrl}" width="600" height="400" frameborder="0" style="border:1px solid #e5e7eb;border-radius:8px;" title="Isonomia Argument" loading="lazy"></iframe>`;
 
@@ -588,6 +639,9 @@ export default async function ArgumentPage({
               </div>
             </section>
           )}
+
+        {/* Answered critical questions */}
+        <AnsweredCriticalQuestions items={answeredCriticalQuestions} />
 
         {/* Track AI-EPI E.1 — citation export widget */}
         {attestation && (

@@ -4,7 +4,24 @@ A single ordered checklist drawn from q018-ontoclean-20260528.md §3–§4, q020
 
 ---
 
-## Phase 0 — Catalogue hygiene (the cheap wins surfaced by Q-018)
+## Implementation status (as of 2026-05-31)
+
+Phases 0–4 have shipped; Phase 5 is partially landed; Phases 6–7 are not started. The catalogue is now **24 argument-scheme rows** (down from the 31 the Q-018 audit found), all behaviour-fingerprinted and `equal`-clean.
+
+| Phase | Status | Evidence of record |
+|---|---|---|
+| **0 — Catalogue hygiene** | ✅ **shipped** | `scripts/migrations/02-phase0-folksonomy-cleanup.ts`; `ArgumentScheme.kind` discriminator + `DialogueMeta` table (schema.prisma); test placeholders removed, cluster tags backfilled. *Phase 0.5 (repoint consumers off `dialogue-meta` rows) still pending.* |
+| **1 — Provenance & timestamps** | ✅ **shipped (columns landed)** | `scripts/migrations/03-phase1-provenance-timestamps.ts`; `sourceCatalogue/sourceId/sourceVersion/importedAt/importerVersion` + `createdAt/updatedAt/createdBy` on `ArgumentScheme`. Q-022/Q-024 remain open as *design-rationale* questions (columns vs. side-table) but the column form is in production. |
+| **2 — Behaviour-equality verifier** | ✅ **shipped** | `lib/schemes/verifier/` (`computeBehaviourFingerprint`, `verifyBehaviourEquality`); materialized `fingerprint` + partial unique index (`04-phase2-fingerprint-materialize.ts`); seed-corpus run `audits/verifier-seed-corpus-20260528.md` → all three Q-018 §3.1 pairs `incomparable` (no merges needed). `nonRedundancyJustification` audit column present. |
+| **3 — Well-formedness rules** | ✅ **shipped** | `lib/schemes/validation/validatePresentation.ts` (WF1/WF2/WF3 at error severity, wired into POST+PUT for `/api/schemes`); `inheritCQs` column dropped; catalogue surgery 25 → 24 rows (`05-phase3-catalogue-cleanup.ts`, `audits/phase3-closure-20260529.md`). |
+| **4 — Protocol soundness** | ✅ **shipped** | Soundness gate (`lib/schemes/protocol/soundnessGate.ts`), `SchemeInstance.status` + `CqObligationRecord`, close endpoint `POST /api/schemes/instances/[id]/close`, feature flag `MESH_SCHEME_SOUNDNESS_MODE` (off/warn/block), 113 catalogue CQs backfilled to `ORDINARY` premiseType, `LatentObligationsPanel` built and mounted (`audits/phase4-closure-20260529.md`, `phase4-deferred-closure-20260530.md`, `latent-panel-mount-closure-20260530.md`). |
+| **5 — Round-trip soundness** | 🟡 **partial** | Step 18 (catalogue-redundancy sweep) **done**: `audits/catalogue-redundancy-20260531.md` — 24 schemes, 276 pairs, `equal=0 / subset=0`. Steps 16 (AIF version pin, Q-023) and 17 (`≡_substrate-relevant` round-trip predicate) **not yet shipped**. |
+| **6 — Typology completion** | ⬜ **not started** | Q-025 (`isAxiomatic` vs `premiseType`) trending toward closed-in-favour-of-`premiseType`; Q-026 (`subjectType` for PTA) open. |
+| **7 — Inter-rater replication** | ⬜ **not started** | Second-analyst replication of Q-018 / Q-020 (Cohen's κ ≥ 0.6) outstanding; single-analyst caveat still stands. |
+
+---
+
+## Phase 0 — Catalogue hygiene (the cheap wins surfaced by Q-018) — ✅ shipped
 
 Required because no formal machinery is honest until the catalogue stops shipping test rows. Each item is a one-shot data migration.
 
@@ -18,7 +35,7 @@ Required because no formal machinery is honest until the catalogue stops shippin
 
 ---
 
-## Phase 1 — Provenance & timestamps (Q-022, Q-024)
+## Phase 1 — Provenance & timestamps (Q-022, Q-024) — ✅ shipped (columns landed)
 
 Required because duplicate-candidate diagnosis is currently a fuzzy name-match and chronological auditing is impossible. Without these, every later phase remains epistemically loose.
 
@@ -28,7 +45,7 @@ Required because duplicate-candidate diagnosis is currently a fuzzy name-match a
 
 ---
 
-## Phase 2 — Behaviour-equality verifier (Spec 4 phase 4a–4b)
+## Phase 2 — Behaviour-equality verifier (Spec 4 phase 4a–4b) — ✅ shipped
 
 Required because three duplicate-candidate pairs from Q-018 §3.1 cannot be resolved by inspection — they need a verifier verdict. This is where folksonomy detection becomes formal.
 
@@ -42,7 +59,7 @@ Required because three duplicate-candidate pairs from Q-018 §3.1 cannot be reso
 
 ---
 
-## Phase 3 — Well-formedness rules (Spec 2 phase 2b–2c)
+## Phase 3 — Well-formedness rules (Spec 2 phase 2b–2c) — ✅ shipped
 
 Required because the verifier handles *behaviour* equality but the catalogue also needs structural invariants. WF1–WF3 are the *prescriptive* discipline that converts a curated snapshot into a maintained ontology.
 
@@ -54,7 +71,7 @@ Required because the verifier handles *behaviour* equality but the catalogue als
 
 ---
 
-## Phase 4 — Protocol soundness (Spec 3 phase 3a–3d)
+## Phase 4 — Protocol soundness (Spec 3 phase 3a–3d) — ✅ shipped
 
 Required because the *behaviour* of schemes at play-time is what an ontology ultimately ranges over. Without a soundness gate the catalogue's commitments are not enforced where it matters.
 
@@ -64,7 +81,7 @@ Required because the *behaviour* of schemes at play-time is what an ontology ult
 
 ---
 
-## Phase 5 — Round-trip soundness (Spec 4 phase 4c–4d)
+## Phase 5 — Round-trip soundness (Spec 4 phase 4c–4d) — 🟡 partial (step 18 done; 16–17 pending)
 
 Required because an ontology that cannot round-trip through its peers (AIF / AIFdb) is a private vocabulary, not an ontology in the shared sense.
 
@@ -76,7 +93,7 @@ Required because an ontology that cannot round-trip through its peers (AIF / AIF
 
 ---
 
-## Phase 6 — Typology completion (Q-025, Q-026)
+## Phase 6 — Typology completion (Q-025, Q-026) — ⬜ not started
 
 Required only if the substrate's ontological commitment is to full external-typology placement (e.g. every scheme placeable in Wagemans's PTA). Optional if the substrate's commitment is narrower.
 
@@ -86,7 +103,7 @@ Required only if the substrate's ontological commitment is to full external-typo
 
 ---
 
-## Phase 7 — Inter-rater replication
+## Phase 7 — Inter-rater replication — ⬜ not started
 
 Required to discharge the single-analyst caveat that both Q-018 and Q-020 currently carry.
 

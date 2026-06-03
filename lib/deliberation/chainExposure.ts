@@ -49,8 +49,13 @@ export interface ChainProjection {
   chainStanding: StandingState;
   /** Aggregated fitness — sum of per-argument component counts, normalized. */
   chainFitness: FitnessBreakdown;
-  /** The argument with lowest fitness or most-unanswered CQs. */
-  weakestLink: { argumentId: string; reason: string };
+  /**
+   * The argument with lowest fitness, tie-broken by the largest *fraction* of
+   * unanswered critical questions. `null` when no link is differentiable from
+   * the others (e.g. every link sits at the untested-default floor) — in that
+   * case there is no honest weakest link to name.
+   */
+  weakestLink: { argumentId: string; reason: string } | null;
 }
 
 export interface ChainExposure {
@@ -216,19 +221,16 @@ export async function computeChainExposure(
     const topClaimId = conclusionNode?.argument?.conclusionClaimId ?? null;
     const topConclusionText = conclusionNode?.argument?.conclusion?.text ?? null;
 
-    // worst-link standing
-    let worstStanding: StandingState = "tested-survived";
-    let worstStandingRank = STANDING_RANK[worstStanding];
-    for (const a of argIds) {
-      const m = argMetrics.get(a);
-      if (!m) continue;
-      const rank = STANDING_RANK[m.standing];
-      if (rank < worstStandingRank) {
-        worstStanding = m.standing;
-        worstStandingRank = rank;
-      }
-    }
-    if (argIds.length === 0) worstStanding = "untested-default";
+    // worst-link standing — the minimum standing across ALL member arguments,
+    // independent of how the chain is wired. A SERIAL spine, a CONVERGENT
+    // fan-in, a TREE, and a general GRAPH (DAG) all reduce to "a chain is only
+    // as strong as its weakest argument" (PART 4 §6), so topology never changes
+    // how standing is derived.
+    const worstStanding = selectWorstStanding(
+      argIds
+        .map((a) => argMetrics.get(a)?.standing)
+        .filter((s): s is StandingState => !!s),
+    );
 
     // aggregated fitness: sum component counts, then re-derive contributions.
     // attackEdges uses the per-target *weighted* count so refuted attackers
@@ -252,23 +254,23 @@ export async function computeChainExposure(
     }
     const chainFitness = computeFitnessBreakdown(summed);
 
-    // weakest link: argument with lowest fitness; tie-break by most missing CQs.
-    let weakestArgId = argIds[0] ?? "";
-    let weakestReason = "lowest fitness in chain";
-    let weakestScore = Number.POSITIVE_INFINITY;
-    for (const a of argIds) {
-      const m = argMetrics.get(a);
-      if (!m) continue;
-      if (m.fitness.total < weakestScore) {
-        weakestScore = m.fitness.total;
-        weakestArgId = a;
-        const missingCqs = m.cqRequired - m.cqAnswered;
-        weakestReason =
-          missingCqs > 0
-            ? `lowest fitness (${m.fitness.total}); ${missingCqs} unanswered CQ(s)`
-            : `lowest fitness (${m.fitness.total})`;
-      }
-    }
+    // weakest link: lowest fitness, tie-broken by the largest *fraction* of
+    // unanswered CQs (see selectWeakestLink). `null` when nothing differentiates
+    // the links (e.g. all at the untested-default floor with equal CQ pressure).
+    const weakestLink = selectWeakestLink(
+      argIds.flatMap((a) => {
+        const m = argMetrics.get(a);
+        if (!m) return [];
+        return [
+          {
+            argumentId: a,
+            fitnessTotal: m.fitness.total,
+            cqRequired: m.cqRequired,
+            cqAnswered: m.cqAnswered,
+          },
+        ];
+      }),
+    );
 
     const edges: ChainEdgeProjection[] = c.edges.map((e) => {
       const fromArg = nodeIdToArgId.get(e.sourceNodeId) ?? "";
@@ -290,7 +292,7 @@ export async function computeChainExposure(
       edges,
       chainStanding: worstStanding,
       chainFitness,
-      weakestLink: { argumentId: weakestArgId, reason: weakestReason },
+      weakestLink,
     };
   });
 
@@ -327,6 +329,106 @@ export async function computeChainExposure(
     chains: projections,
     uncoveredClaims,
   };
+}
+
+// ────────────────────────────────────────────────────────────
+// Internal: weakest-link selection (pure, unit-testable).
+// ────────────────────────────────────────────────────────────
+
+/**
+ * The chain's standing is its worst member's standing — the minimum over the
+ * `STANDING_RANK` order. This is **edge-shape-agnostic**: it ranges over the set
+ * of member standings only, never the edge wiring, so a SERIAL spine, a
+ * CONVERGENT fan-in, a TREE, and a general GRAPH (DAG) with the same member
+ * arguments all yield the same chain standing (PART 4 §6). An empty member set
+ * (no resolvable metrics) → `untested-default`.
+ */
+export function selectWorstStanding(
+  standings: StandingState[],
+): StandingState {
+  let worst: StandingState | null = null;
+  let worstRank = Number.POSITIVE_INFINITY;
+  for (const s of standings) {
+    const rank = STANDING_RANK[s];
+    if (rank < worstRank) {
+      worst = s;
+      worstRank = rank;
+    }
+  }
+  return worst ?? "untested-default";
+}
+
+
+export interface WeakestLinkInput {
+  argumentId: string;
+  /** Aggregate fitness for the link (lower = weaker). */
+  fitnessTotal: number;
+  /** CQs required by the link's primary scheme. */
+  cqRequired: number;
+  /** CQs answered (SATISFIED) for the link. */
+  cqAnswered: number;
+}
+
+/**
+ * Pick the weakest link in a chain.
+ *
+ * Primary key: lowest `fitnessTotal`. Tie-break: largest *fraction* of
+ * unanswered CQs — `(cqRequired - cqAnswered) / max(cqRequired, 1)` — so a
+ * 5-CQ scheme and a 3-CQ scheme at zero answered are equally exposed instead
+ * of the richer-CQ scheme ranking weaker purely for catalogue size.
+ *
+ * Returns `null` when nothing differentiates the links: with more than one
+ * link, identical fitness *and* identical CQ pressure across the spine means
+ * there is no honest weakest link to name (the untested-default floor). A
+ * single link is always its own weakest link.
+ */
+export function selectWeakestLink(
+  links: WeakestLinkInput[],
+): { argumentId: string; reason: string } | null {
+  if (links.length === 0) return null;
+
+  const cqFraction = (l: WeakestLinkInput) =>
+    Math.max(0, l.cqRequired - l.cqAnswered) / Math.max(l.cqRequired, 1);
+
+  let winner: WeakestLinkInput | null = null;
+  let winnerFraction = Number.NEGATIVE_INFINITY;
+  let minFitness = Number.POSITIVE_INFINITY;
+  let maxFitness = Number.NEGATIVE_INFINITY;
+  let minFraction = Number.POSITIVE_INFINITY;
+  let maxFraction = Number.NEGATIVE_INFINITY;
+
+  for (const l of links) {
+    const frac = cqFraction(l);
+    minFitness = Math.min(minFitness, l.fitnessTotal);
+    maxFitness = Math.max(maxFitness, l.fitnessTotal);
+    minFraction = Math.min(minFraction, frac);
+    maxFraction = Math.max(maxFraction, frac);
+    const better =
+      winner === null ||
+      l.fitnessTotal < winner.fitnessTotal ||
+      (l.fitnessTotal === winner.fitnessTotal && frac > winnerFraction);
+    if (better) {
+      winner = l;
+      winnerFraction = frac;
+    }
+  }
+
+  // No differentiation across the spine → no honest weakest link.
+  if (
+    links.length > 1 &&
+    minFitness === maxFitness &&
+    minFraction === maxFraction
+  ) {
+    return null;
+  }
+
+  if (!winner) return null;
+  const missingCqs = Math.max(0, winner.cqRequired - winner.cqAnswered);
+  const reason =
+    missingCqs > 0
+      ? `lowest fitness (${winner.fitnessTotal}); ${missingCqs}/${winner.cqRequired} CQ(s) unanswered`
+      : `lowest fitness (${winner.fitnessTotal})`;
+  return { argumentId: winner.argumentId, reason };
 }
 
 // ────────────────────────────────────────────────────────────

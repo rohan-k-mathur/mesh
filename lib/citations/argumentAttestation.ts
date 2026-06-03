@@ -76,6 +76,19 @@ export interface CriticalQuestionStatus {
   text: string;
   attackKind: string | null;
   /**
+   * Stable handle to the underlying `CQStatus` row for this CQ on this
+   * argument (Roadmap S2). `null` when no status row exists yet — the CQ is
+   * open but never touched, and the answer route will create the row on first
+   * answer. Pass this (or `cqKey` + `schemeKey`) to `answer_critical_question`.
+   */
+  cqStatusId: string | null;
+  /**
+   * Scheme the CQ is anchored on (Roadmap S2). Mirrors
+   * `CriticalQuestionsAggregate.schemeKey` for the primary scheme; surfaced
+   * per-item so the answer caller can disambiguate inherited CQs.
+   */
+  schemeKey: string | null;
+  /**
    * Carneades premise classification of the CQ's target premise
    * (`ORDINARY` | `ASSUMPTION` | `EXCEPTION`), read straight from the shipped
    * `CriticalQuestion.premiseType` column (Spec 3 / Roadmap A.2). `null` when
@@ -748,7 +761,7 @@ export async function buildArgumentAttestation(
           { targetType: "argument" as any, targetId: argument.id },
         ],
       },
-      select: { statusEnum: true, status: true, schemeKey: true, cqKey: true },
+      select: { statusEnum: true, status: true, schemeKey: true, cqKey: true, id: true },
     }),
   ]);
 
@@ -910,6 +923,8 @@ export async function buildArgumentAttestation(
           cqKey: key,
           text: (cq.text ?? "").toString(),
           attackKind: cq.attackKind ?? null,
+          cqStatusId: row?.id ?? null,
+          schemeKey,
           premiseType,
           isSchemeRequired: premiseType !== "ASSUMPTION",
           inheritedFromParentScheme:

@@ -40,6 +40,14 @@ export interface IsoFetchInit extends RequestInit {
      * that has the deliberationId in its args.
      */
     ludicsDeliberationId?: string;
+    /**
+     * Per-request timeout override in ms. Defaults to TIMEOUT_MS (30000). Heavy
+     * one-shot writes (e.g. a `mint-and-link` argument chain whose single
+     * transaction mints many arguments, schemes, edges, scopes and citations)
+     * can exceed the default; pass a larger value so the call returns the real
+     * result instead of aborting client-side while the write commits server-side.
+     */
+    timeoutMs?: number;
 }
 /**
  * Fetch wrapper with timeout + UA + optional bearer + JSON parsing.

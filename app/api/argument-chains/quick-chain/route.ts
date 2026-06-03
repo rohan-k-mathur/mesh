@@ -27,6 +27,32 @@ import {
   type WriteVerifierVerdict,
 } from "@/lib/schemes/writeGate";
 import { computeChainExposure } from "@/lib/deliberation/chainExposure";
+import {
+  resolveChainTopology,
+  resolveChainAttacks,
+  isSupportEdgeType,
+  CHAIN_EDGE_TYPES,
+  type ResolvedEdge,
+  type DerivedChainType,
+  type AttackLinkInput,
+  type ResolvedAttack,
+} from "@/lib/argument-chains/chainTopology";
+import {
+  resolveChainScopes,
+  SCOPE_TYPES,
+  EPISTEMIC_STATUSES,
+  DIALECTICAL_ROLES,
+  type ScopeInput,
+  type ResolvedScopeLink,
+} from "@/lib/argument-chains/chainScopes";
+import {
+  validateEvidenceAnchor,
+  intentContradictsSupport,
+  isExecutableEvidence,
+  CITATION_ANCHOR_TYPES,
+  CITATION_INTENTS,
+} from "@/lib/argument-chains/chainEvidence";
+import { upsertSourceFromUrlOrDoi } from "@/lib/sources/upsertSource";
 import { mintClaimMoid } from "@/lib/ids/mintMoid";
 import { ensureArgumentSupportInTx } from "@/lib/arguments/ensure-support";
 import { markArgumentAsComposedInTx } from "@/lib/arguments/detect-composition";
@@ -78,6 +104,13 @@ const EvidenceItem = z
     title: z.string().max(500).optional(),
     quote: z.string().max(2000).optional(),
     summary: z.string().max(2000).optional(),
+    // PART 5 Step 3 (§4.5): executable anchor + semantic intent. Superset of
+    // the PART-3 shape — every PART-3 evidence item stays valid.
+    locator: z.string().max(200).optional(),
+    anchorType: z.enum(CITATION_ANCHOR_TYPES).optional(),
+    anchorData: z.any().optional(),
+    anchorId: z.string().max(200).optional(),
+    intent: z.enum(CITATION_INTENTS).optional(),
   })
   .transform((ev) => ({ ...ev, citationText: ev.summary ?? ev.quote }));
 
@@ -109,7 +142,12 @@ const ReusePremiseItem = z.object({
 });
 
 // Reuse variant is tried first: only it carries `reuseClaimId`.
-const LinkPremiseItem = z.union([ReusePremiseItem, OrdinaryPremiseItem]);
+// A bare string premise is coerced to `{ text }` before the union (forgiving
+// input — LLM callers naturally emit premises as strings).
+const LinkPremiseItem = z.preprocess(
+  (val) => (typeof val === "string" ? { text: val } : val),
+  z.union([ReusePremiseItem, OrdinaryPremiseItem]),
+);
 
 type ReusePremiseInput = z.infer<typeof ReusePremiseItem>;
 type OrdinaryPremiseInput = z.infer<typeof OrdinaryPremiseItem>;
@@ -135,6 +173,46 @@ const LinkItem = z.object({
   implicitWarrant: z.string().max(2000).optional().transform((s) => s && strip(s)),
   epistemicMode: z.enum(["factual", "hypothetical", "counterfactual"]).optional(),
   evidence: z.array(EvidenceItem).max(10).optional().default([]),
+  // Semantics (PART 5 §4.1): place this link inside a declared scope by index,
+  // and/or label its epistemic status and dialectical role. Omit ⇒ the PART-3
+  // actual world (ASSERTED, scopeId null).
+  scope: z.number().int().min(0).optional(),
+  epistemicStatus: z.enum(EPISTEMIC_STATUSES).optional(),
+  dialecticalRole: z.enum(DIALECTICAL_ROLES).optional(),
+  // Topology (PART 4 §4.2): instead of threading a claim, this link may attack
+  // a prior link's claim (`attacksNode`, REBUTS/UNDERMINES) or attack an
+  // inference edge (`attacksEdge`, UNDERCUTS — targets the reasoning link
+  // itself). A link attacks at most one target; attacks never thread claims.
+  attacksNode: z.number().int().min(0).optional(),
+  attacksEdge: z
+    .object({ from: z.number().int().min(0), to: z.number().int().min(0) })
+    .optional(),
+  attackType: z.enum(["REBUTS", "UNDERMINES"]).optional(),
+});
+
+// Topology (PART 4 §4.1): an optional typed edge between two links by index.
+// Omitting `edges[]` entirely keeps the PART-3 serial SUPPORTS spine, so every
+// legacy payload is unchanged.
+const EdgeItem = z.object({
+  from: z.number().int().min(0),
+  to: z.number().int().min(0),
+  edgeType: z.enum(CHAIN_EDGE_TYPES).optional().default("SUPPORTS"),
+  strength: z.number().min(0).max(1).optional().default(1.0),
+  description: z.string().max(2000).optional().transform((s) => s && strip(s)),
+});
+
+// Semantics (PART 5 §4.1): an optional declared supposition. Links reference a
+// scope by index; `parentScope` nests one scope inside another. Omit `scopes[]`
+// entirely to keep the PART-3 actual world (every node ASSERTED).
+const ScopeItem = z.object({
+  scopeType: z.enum(SCOPE_TYPES),
+  assumption: z
+    .string()
+    .min(1, "A scope assumption is required")
+    .max(1000, "Assumption must be 1000 characters or fewer")
+    .transform(strip),
+  description: z.string().max(2000).optional().transform((s) => s && strip(s)),
+  parentScope: z.number().int().min(0).optional(),
 });
 
 const QuickChainSchema = z.object({
@@ -148,14 +226,112 @@ const QuickChainSchema = z.object({
   deliberationId: z.string().optional(),
   isPublic: z.boolean().optional().default(false),
   mode: z.enum(["mint-and-link", "compose"]).optional().default("mint-and-link"),
-  // mint-and-link: 2..12 links forming the serial spine.
+  // Idempotency: a caller-supplied key (the MCP `requestId`) that makes chain
+  // creation retry-safe — a retry carrying the same key returns the chain that
+  // already landed instead of minting a duplicate (see §5.2 / option A).
+  requestId: z.string().min(1).max(200).optional(),
+  // mint-and-link: 2..12 links forming the spine.
   links: z.array(LinkItem).min(2).max(12).optional(),
   // compose: existing arguments in spine order.
   argumentIds: z.array(z.string().min(1)).optional(),
+  // Topology (PART 4): declare a typed edge set instead of inferring a serial
+  // spine. Omit ⇒ serial SUPPORTS spine. `chainType` is DERIVED from the edges
+  // (§4.3); `expectChainType` pins it and errors on disagreement.
+  edges: z.array(EdgeItem).max(60).optional(),
+  expectChainType: z
+    .enum(["SERIAL", "CONVERGENT", "DIVERGENT", "TREE", "GRAPH"])
+    .optional(),
+  // Semantics (PART 5): declare suppositional scopes; links attach by index.
+  scopes: z.array(ScopeItem).max(12).optional(),
+  // Per-session capability token (roadmap S1). Threaded into every minted
+  // link's `aiProvenance.sessionId` so the same MCP session can later
+  // self-canonicalise its answers to those links' critical questions.
+  sessionId: z.string().min(1).max(200).optional(),
 });
 
 type Warning = { code: string; detail: string };
 type LinkInput = z.infer<typeof LinkItem>;
+type EdgeInput = z.infer<typeof EdgeItem>;
+
+// ─── Idempotency (option A) ────────────────────────────────────────────────
+// A chain write carrying a `requestId` is retry-safe: the key is stored on the
+// row (unique per creator), so a retry — e.g. the MCP client re-issuing after
+// an HTTP-layer timeout while the first write was still committing — returns
+// the chain that already landed instead of minting a duplicate spine.
+
+async function findChainByIdempotencyKey(ownerId: bigint, requestId: string) {
+  return prisma.argumentChain.findFirst({
+    where: { createdBy: ownerId, idempotencyKey: requestId },
+    select: {
+      id: true,
+      deliberationId: true,
+      name: true,
+      rootNodeId: true,
+      chainType: true,
+    },
+  });
+}
+
+async function idempotentReplayResponse(chain: {
+  id: string;
+  deliberationId: string;
+  name: string;
+  rootNodeId: string | null;
+  chainType: string;
+}): Promise<NextResponse> {
+  const [nodes, edges] = await Promise.all([
+    prisma.argumentChainNode.findMany({
+      where: { chainId: chain.id },
+      select: {
+        id: true,
+        nodeOrder: true,
+        argument: { select: { id: true, conclusionClaimId: true } },
+      },
+      orderBy: { nodeOrder: "asc" },
+    }),
+    prisma.argumentChainEdge.findMany({
+      where: { chainId: chain.id },
+      select: {
+        id: true,
+        sourceNodeId: true,
+        targetNodeId: true,
+        edgeType: true,
+        strength: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+  return NextResponse.json(
+    {
+      ok: true,
+      idempotentReplay: true,
+      chain: {
+        id: chain.id,
+        name: chain.name,
+        chainType: chain.chainType,
+        rootNodeId: chain.rootNodeId,
+        deliberationId: chain.deliberationId,
+        permalink: `${BASE_URL}/deliberations/${chain.deliberationId}/chains/${chain.id}`,
+      },
+      links: nodes.map((n) => ({
+        nodeId: n.id,
+        argumentId: n.argument?.id ?? null,
+        conclusionClaimId: n.argument?.conclusionClaimId ?? null,
+        nodeOrder: n.nodeOrder,
+      })),
+      edges: edges.map((e) => ({
+        id: e.id,
+        sourceNodeId: e.sourceNodeId,
+        targetNodeId: e.targetNodeId,
+        edgeType: e.edgeType,
+        strength: e.strength,
+      })),
+      threading: [],
+      warnings: [],
+    },
+    { status: 200, ...NO_STORE },
+  );
+}
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
@@ -211,6 +387,11 @@ export async function POST(req: NextRequest) {
     mode,
     links,
     argumentIds,
+    requestId,
+    edges,
+    expectChainType,
+    scopes,
+    sessionId,
   } = parsed.data;
 
   if (mode === "mint-and-link") {
@@ -225,6 +406,11 @@ export async function POST(req: NextRequest) {
       userIdStr,
       viaMcp,
       retryAfterMs,
+      requestId,
+      edges,
+      expectChainType,
+      scopes,
+      sessionId,
     });
   }
 
@@ -239,6 +425,9 @@ export async function POST(req: NextRequest) {
     ownerId,
     viaMcp,
     retryAfterMs,
+    requestId,
+    edges,
+    expectChainType,
   });
 }
 
@@ -264,6 +453,11 @@ async function mintAndLinkChain(opts: {
   userIdStr: string;
   viaMcp: boolean;
   retryAfterMs: number;
+  requestId?: string;
+  edges?: EdgeInput[];
+  expectChainType?: DerivedChainType;
+  scopes?: ScopeInput[];
+  sessionId?: string;
 }) {
   const {
     name,
@@ -276,9 +470,21 @@ async function mintAndLinkChain(opts: {
     userIdStr,
     viaMcp,
     retryAfterMs,
+    requestId,
+    edges,
+    expectChainType,
+    scopes,
+    sessionId,
   } = opts;
 
   const warnings: Warning[] = [];
+
+  // Idempotency pre-flight: if this key already produced a chain, replay it
+  // instead of re-minting (retry-safe — see §5.2).
+  if (requestId) {
+    const existing = await findChainByIdempotencyKey(ownerId, requestId);
+    if (existing) return idempotentReplayResponse(existing);
+  }
 
   if (links.length < 2) {
     return NextResponse.json(
@@ -293,6 +499,90 @@ async function mintAndLinkChain(opts: {
     );
   }
 
+  // ─── Pre-flight: topology (PART 4 §4) — resolve & validate the edge set, ─────
+  // derive the chain type, and verify acyclicity. Nothing is written here.
+  const topology = resolveChainTopology(links.length, edges, expectChainType);
+  if (!topology.ok) {
+    return NextResponse.json(
+      {
+        error: topology.detail,
+        code: topology.code,
+        ...(topology.derivedChainType
+          ? { derivedChainType: topology.derivedChainType }
+          : {}),
+      },
+      { status: 400, ...NO_STORE },
+    );
+  }
+  warnings.push(...topology.warnings);
+  const {
+    resolvedEdges,
+    derivedChainType,
+    rootIndex,
+    supportEdgeCount,
+    attackEdgeCount,
+  } = topology;
+
+  // ─── Pre-flight: scopes (PART 5 §4.1–4.4) — validate the supposition forest, ─
+  // assign each link its scope/status/role, and verify containment over the
+  // SUPPORT edges (a conclusion drawn inside a scope may not leak out). Nothing
+  // is written here. Omit `scopes[]` and any per-link `scope` ⇒ the PART-3
+  // actual world (every node ASSERTED).
+  const scopeResult = resolveChainScopes({
+    scopes,
+    links: links.map((l) => ({
+      scope: l.scope,
+      epistemicStatus: l.epistemicStatus,
+      dialecticalRole: l.dialecticalRole,
+    })),
+    supportEdges: resolvedEdges
+      .filter((e) => isSupportEdgeType(e.edgeType))
+      .map((e) => ({ from: e.from, to: e.to })),
+  });
+  if (!scopeResult.ok) {
+    return NextResponse.json(
+      {
+        error: scopeResult.detail,
+        code: scopeResult.code,
+        ...(scopeResult.linkIndex !== undefined
+          ? { linkIndex: scopeResult.linkIndex }
+          : {}),
+      },
+      { status: 400, ...NO_STORE },
+    );
+  }
+  warnings.push(...scopeResult.warnings);
+  const resolvedScopes = scopeResult.resolvedScopes;
+  const scopeLinks: ResolvedScopeLink[] = scopeResult.links;
+
+  // ─── Pre-flight: attacks (PART 4 §4.2, Steps 3–4) — resolve each link's ──────
+  // optional attack on a prior node (REBUTS/UNDERMINES) or inference edge
+  // (UNDERCUTS). Validates indices and that an attacked edge is a real support
+  // edge (depth-1 cap). Nothing is written here. Omit all attacks ⇒ PART-3.
+  const attackResult = resolveChainAttacks(
+    links.length,
+    resolvedEdges,
+    links.map<AttackLinkInput>((l) => ({
+      attacksNode: l.attacksNode,
+      attacksEdge: l.attacksEdge,
+      attackType: l.attackType,
+    })),
+  );
+  if (!attackResult.ok) {
+    return NextResponse.json(
+      {
+        error: attackResult.detail,
+        code: attackResult.code,
+        ...(attackResult.linkIndex !== undefined
+          ? { linkIndex: attackResult.linkIndex }
+          : {}),
+      },
+      { status: 400, ...NO_STORE },
+    );
+  }
+  warnings.push(...attackResult.warnings);
+  const resolvedAttacks = attackResult.attacks;
+
   // SSRF guard on every evidence URL (conclusion-level + per-premise).
   for (const link of links) {
     const urls: NormalizedEvidence[] = [
@@ -305,6 +595,38 @@ async function mintAndLinkChain(opts: {
           { error: `Unsafe or non-public URL: ${ev.url}` },
           { status: 400, ...NO_STORE },
         );
+      }
+    }
+  }
+
+  // ─── Pre-flight: evidence anchor well-formedness (§4.6) + intent advisory ────
+  // A citation cannot anchor at a coordinate it does not carry the data for, so
+  // a malformed anchor is rejected before any write (mirrors PART 3's fork
+  // guard). A `refutes` intent on a non-attacking support link is allowed but
+  // flagged (`evidence_intent_contrary`, §4.5) so the mismatch is visible.
+  for (let li = 0; li < links.length; li++) {
+    const link = links[li];
+    const linkEvidence: NormalizedEvidence[] = [
+      ...link.evidence,
+      ...link.premises.flatMap((p) => (isReusePremise(p) ? [] : p.evidence)),
+    ];
+    const isAttacker =
+      link.attacksNode !== undefined || link.attacksEdge !== undefined;
+    let intentFlagged = false;
+    for (const ev of linkEvidence) {
+      const anchorCheck = validateEvidenceAnchor(ev);
+      if (!anchorCheck.ok) {
+        return NextResponse.json(
+          { error: anchorCheck.detail, code: anchorCheck.code, linkIndex: li },
+          { status: 400, ...NO_STORE },
+        );
+      }
+      if (!isAttacker && !intentFlagged && intentContradictsSupport(ev.intent)) {
+        intentFlagged = true;
+        warnings.push({
+          code: "evidence_intent_contrary",
+          detail: `Link ${li} carries evidence with intent "refutes" on a support link (advisory — possibly a steelman).`,
+        });
       }
     }
   }
@@ -482,6 +804,23 @@ async function mintAndLinkChain(opts: {
     if (sid) schemeSeen.add(sid);
   }
 
+  // Reconcile per-link epistemic mode with its scope (PART 5 §4.4): a node in a
+  // HYPOTHETICAL / COUNTERFACTUAL / OPPONENT scope coerces its argument mode to
+  // match the supposition, so a hypothetical never reads as factual.
+  for (let i = 0; i < resolutions.length; i++) {
+    const coerced = scopeLinks[i]?.coercedMode;
+    if (coerced && resolutions[i].resolvedEpistemicMode !== coerced) {
+      const scopeIdx = scopeLinks[i].scopeIndex;
+      const scopeType =
+        scopeIdx !== null ? resolvedScopes[scopeIdx]?.scopeType : null;
+      warnings.push({
+        code: "scope_mode_coerced",
+        detail: `Link ${i + 1}: epistemic mode coerced from '${resolutions[i].resolvedEpistemicMode ?? "FACTUAL"}' to '${coerced}' to match its ${scopeType ?? "scope"} scope.`,
+      });
+      resolutions[i].resolvedEpistemicMode = coerced;
+    }
+  }
+
   // chainRedundancyFlag (§8): ≥1 link verifier verdict in {equal,subset,inconclusive}.
   const chainRedundancyFlag = resolutions.some(
     (r) =>
@@ -502,17 +841,67 @@ async function mintAndLinkChain(opts: {
     evidenceByClaimId.set(claimId, [...existing, ...items]);
   };
 
+  // ─── Pre-flight: resolve every evidence URL to a Source (§7 step 3) ──────────
+  // Executable citations require a resolvable `Source`. Resolve (find-or-create,
+  // idempotent) up-front so an unresolvable URL fails fast
+  // (`EVIDENCE_SOURCE_UNRESOLVED`) before the chain is minted. Sources are
+  // deduped reusable entities, so resolving them ahead of the txn is safe even
+  // if a later pre-flight rejects the chain. Plain PART-3 evidence (no anchor /
+  // intent / locator) does NOT resolve a Source — it stays a pure ClaimEvidence
+  // snapshot, so a PART-3 payload is unchanged (§9 backward-compat).
+  const sourceIdByUrl = new Map<string, string>();
+  {
+    const evidenceUrls = new Set<string>();
+    for (const link of links) {
+      for (const ev of link.evidence) {
+        if (isExecutableEvidence(ev)) evidenceUrls.add(ev.url);
+      }
+      for (const p of link.premises) {
+        if (!isReusePremise(p)) {
+          for (const ev of p.evidence) {
+            if (isExecutableEvidence(ev)) evidenceUrls.add(ev.url);
+          }
+        }
+      }
+    }
+    for (const url of evidenceUrls) {
+      try {
+        const { source } = await upsertSourceFromUrlOrDoi({
+          url,
+          createdById: userIdStr,
+        });
+        if (!source?.id) throw new Error("source id missing");
+        sourceIdByUrl.set(url, source.id);
+      } catch {
+        return NextResponse.json(
+          {
+            error: `Evidence URL could not be resolved to a source: ${url}`,
+            code: "EVIDENCE_SOURCE_UNRESOLVED",
+          },
+          { status: 400, ...NO_STORE },
+        );
+      }
+    }
+  }
+
   let result: {
     chainId: string;
     rootNodeId: string | null;
     nodes: { id: string; argumentId: string; nodeOrder: number }[];
-    edges: { id: string; sourceNodeId: string; targetNodeId: string }[];
+    edges: {
+      id: string;
+      sourceNodeId: string;
+      targetNodeId: string;
+      edgeType: string;
+      strength: number;
+    }[];
     perLink: {
       argumentId: string;
       conclusionClaimId: string;
       schemeInstanceId: string | null;
     }[];
     threading: ThreadEntry[];
+    scopeIds: (string | null)[];
   };
 
   try {
@@ -528,24 +917,46 @@ async function mintAndLinkChain(opts: {
         schemeInstanceId: string | null;
       }[] = [];
 
+      // Batch-resolve every claim the chain needs (all conclusions + all fresh,
+      // non-reuse premises) by MOID identity up front: one createMany
+      // (skipDuplicates) + one findMany, instead of a sequential upsert per
+      // claim. Claims are globally keyed by MOID, so this is the same find-or-
+      // create-by-MOID semantics the per-claim upserts had — threading in the
+      // loop below just reads this map (no further claim round-trips per link).
+      const claimTextByMoid = new Map<string, string>();
+      for (const link of links) {
+        claimTextByMoid.set(mintClaimMoid(link.conclusion), link.conclusion);
+        for (const p of link.premises) {
+          if (isReusePremise(p)) continue;
+          claimTextByMoid.set(mintClaimMoid(p.text), p.text);
+        }
+      }
+      const allMoids = [...claimTextByMoid.keys()];
+      if (allMoids.length > 0) {
+        await tx.claim.createMany({
+          data: [...claimTextByMoid.entries()].map(([moid, text]) => ({
+            text,
+            moid,
+            createdById: userIdStr,
+            deliberationId: targetDelibId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      const claimRows = await tx.claim.findMany({
+        where: { moid: { in: allMoids } },
+        select: { id: true, moid: true },
+      });
+      const moidToClaimId = new Map(claimRows.map((c) => [c.moid, c.id]));
+
       for (let i = 0; i < links.length; i++) {
         const link = links[i];
         const res = resolutions[i];
 
-        // Mint conclusion claim by MOID.
+        // Conclusion claim — resolved by MOID from the batch upsert above.
         const conclusionMoid = mintClaimMoid(link.conclusion);
-        const conclusionClaim = await tx.claim.upsert({
-          where: { moid: conclusionMoid },
-          create: {
-            text: link.conclusion,
-            moid: conclusionMoid,
-            createdById: userIdStr,
-            deliberationId: targetDelibId,
-          },
-          update: {},
-          select: { id: true },
-        });
-        pushEvidence(conclusionClaim.id, link.evidence);
+        const conclusionClaimId = moidToClaimId.get(conclusionMoid)!;
+        pushEvidence(conclusionClaimId, link.evidence);
 
         // Resolve premises (dedup within link; auto-thread onto prior conclusions).
         const premiseClaimIds: string[] = [];
@@ -613,34 +1024,24 @@ async function mintAndLinkChain(opts: {
             continue;
           }
 
-          // Ordinary fresh premise — mint by MOID, dedup within link.
-          const claim = await tx.claim.upsert({
-            where: { moid: pMoid },
-            create: {
-              text: p.text,
-              moid: pMoid,
-              createdById: userIdStr,
-              deliberationId: targetDelibId,
-            },
-            update: {},
-            select: { id: true },
-          });
-          if (seenInLink.has(claim.id)) {
+          // Ordinary fresh premise — resolved by MOID from the batch upsert.
+          const claimId = moidToClaimId.get(pMoid)!;
+          if (seenInLink.has(claimId)) {
             warnings.push({
               code: "premise_deduped",
               detail: `Link ${i + 1}: premise '${p.text.slice(0, 60)}…' collapsed to an existing claim by content hash.`,
             });
-            pushEvidence(claim.id, p.evidence);
+            pushEvidence(claimId, p.evidence);
             continue;
           }
-          seenInLink.add(claim.id);
-          premiseClaimIds.push(claim.id);
+          seenInLink.add(claimId);
+          premiseClaimIds.push(claimId);
           premiseMeta.push({
-            claimId: claim.id,
+            claimId,
             isAxiom: p.isAxiom,
             premiseType: p.premiseType ?? "ordinary",
           });
-          pushEvidence(claim.id, p.evidence);
+          pushEvidence(claimId, p.evidence);
         }
 
         if (premiseClaimIds.length === 0) {
@@ -654,7 +1055,7 @@ async function mintAndLinkChain(opts: {
           data: {
             deliberationId: targetDelibId,
             authorId: userIdStr,
-            conclusionClaimId: conclusionClaim.id,
+            conclusionClaimId,
             schemeId: res.schemeId ?? null,
             implicitWarrant: link.implicitWarrant || null,
             text: link.reasoning || "",
@@ -665,6 +1066,7 @@ async function mintAndLinkChain(opts: {
                     via: "mcp",
                     tool: "propose_argument_chain",
                     createdAt: new Date().toISOString(),
+                    ...(sessionId ? { sessionId } : {}),
                   },
                 }
               : {}),
@@ -674,7 +1076,7 @@ async function mintAndLinkChain(opts: {
 
         await ensureArgumentSupportInTx(tx, {
           argumentId: argument.id,
-          claimId: conclusionClaim.id,
+          claimId: conclusionClaimId,
           deliberationId: targetDelibId,
           base: 0.7,
         });
@@ -720,11 +1122,11 @@ async function mintAndLinkChain(opts: {
 
         perLink.push({
           argumentId: argument.id,
-          conclusionClaimId: conclusionClaim.id,
+          conclusionClaimId,
           schemeInstanceId,
         });
-        priorConclusions.set(conclusionMoid, { linkIndex: i, claimId: conclusionClaim.id });
-        priorConclusionLinkById.set(conclusionClaim.id, i);
+        priorConclusions.set(conclusionMoid, { linkIndex: i, claimId: conclusionClaimId });
+        priorConclusionLinkById.set(conclusionClaimId, i);
       }
 
       // Create the chain shell.
@@ -734,47 +1136,80 @@ async function mintAndLinkChain(opts: {
           name,
           description,
           purpose,
-          chainType: "SERIAL",
+          chainType: derivedChainType,
           isPublic,
           isEditable: false,
           createdBy: ownerId,
+          idempotencyKey: requestId ?? null,
         },
         select: { id: true },
       });
 
-      // Nodes — one per link, in spine order.
-      const nodes: { id: string; argumentId: string; nodeOrder: number }[] = [];
-      for (let i = 0; i < perLink.length; i++) {
-        const created = await tx.argumentChainNode.create({
-          data: {
-            chainId: chain.id,
-            argumentId: perLink[i].argumentId,
-            nodeOrder: i,
-            role: i === perLink.length - 1 ? "CONCLUSION" : "PREMISE",
-            addedBy: ownerId,
-          },
-          select: { id: true, argumentId: true, nodeOrder: true },
-        });
-        nodes.push(created);
+      // Nodes — one per link, in spine order. A node is a CONCLUSION when it has
+      // no outgoing SUPPORT edge (a sink in the support sub-graph), else PREMISE.
+      // For a serial spine this reduces to "last node = CONCLUSION". An attacking
+      // link (PART 4 §4.2) instead carries an OBJECTION/REBUTTAL role.
+      const hasOutgoingSupport = new Set<number>();
+      for (const e of resolvedEdges) {
+        if (isSupportEdgeType(e.edgeType)) hasOutgoingSupport.add(e.from);
       }
+      const attackRoleByIndex = new Map<
+        number,
+        "OBJECTION" | "REBUTTAL"
+      >();
+      for (const atk of resolvedAttacks) {
+        // A conclusion-rebuttal reads as a REBUTTAL; a premise-undercut or an
+        // inference-undercut reads as an OBJECTION.
+        attackRoleByIndex.set(
+          atk.attackerIndex,
+          atk.edgeType === "REBUTS" ? "REBUTTAL" : "OBJECTION",
+        );
+      }
+      await tx.argumentChainNode.createMany({
+        data: perLink.map((pl, i) => ({
+          chainId: chain.id,
+          argumentId: pl.argumentId,
+          nodeOrder: i,
+          role:
+            attackRoleByIndex.get(i) ??
+            (hasOutgoingSupport.has(i) ? "PREMISE" : "CONCLUSION"),
+          addedBy: ownerId,
+        })),
+      });
+      const nodes: { id: string; argumentId: string; nodeOrder: number }[] =
+        await tx.argumentChainNode.findMany({
+          where: { chainId: chain.id },
+          select: { id: true, argumentId: true, nodeOrder: true },
+          orderBy: { nodeOrder: "asc" },
+        });
 
-      // Serial SUPPORTS edges over the spine.
-      const edgeData = nodes.slice(0, -1).map((n, i) => ({
+      // Typed edges from the resolved topology (PART 4). For an omitted edge set
+      // this is exactly the serial SUPPORTS spine.
+      const nodeIdByIndex = nodes.map((n) => n.id); // nodeOrder === link index
+      const edgeData = resolvedEdges.map((e) => ({
         chainId: chain.id,
-        sourceNodeId: n.id,
-        targetNodeId: nodes[i + 1].id,
-        edgeType: "SUPPORTS" as const,
+        sourceNodeId: nodeIdByIndex[e.from],
+        targetNodeId: nodeIdByIndex[e.to],
+        edgeType: e.edgeType,
+        strength: e.strength,
+        description: e.description ?? null,
       }));
       if (edgeData.length > 0) {
         await tx.argumentChainEdge.createMany({ data: edgeData, skipDuplicates: true });
       }
       const edges = await tx.argumentChainEdge.findMany({
         where: { chainId: chain.id },
-        select: { id: true, sourceNodeId: true, targetNodeId: true },
+        select: {
+          id: true,
+          sourceNodeId: true,
+          targetNodeId: true,
+          edgeType: true,
+          strength: true,
+        },
         orderBy: { createdAt: "asc" },
       });
 
-      const rootNodeId = nodes[0]?.id ?? null;
+      const rootNodeId = nodeIdByIndex[rootIndex] ?? nodes[0]?.id ?? null;
       if (rootNodeId) {
         await tx.argumentChain.update({
           where: { id: chain.id },
@@ -782,9 +1217,155 @@ async function mintAndLinkChain(opts: {
         });
       }
 
-      return { chainId: chain.id, rootNodeId, nodes, edges, perLink, threading };
-    });
+      // Scopes (PART 5 §7 steps 6–7). Create scope rows parents-first so the
+      // self-relation FK resolves, then assign each scoped node its scopeId,
+      // epistemicStatus, and dialecticalRole in a second pass (scope ids are
+      // only known now). Nodes left in the actual world are untouched (ASSERTED,
+      // scopeId null — the createMany defaults).
+      const scopeIds: (string | null)[] = new Array(resolvedScopes.length).fill(null);
+      if (resolvedScopes.length > 0) {
+        const parentsFirst = [...resolvedScopes].sort((a, b) => a.depth - b.depth);
+        for (const s of parentsFirst) {
+          const createdScope = await tx.argumentScope.create({
+            data: {
+              chainId: chain.id,
+              scopeType: s.scopeType,
+              assumption: s.assumption,
+              description: s.description ?? null,
+              parentScopeId:
+                s.parentIndex !== null ? scopeIds[s.parentIndex] : null,
+              depth: s.depth,
+              createdBy: ownerId,
+            },
+            select: { id: true },
+          });
+          scopeIds[s.index] = createdScope.id;
+        }
+      }
+      for (let i = 0; i < nodes.length; i++) {
+        const sl = scopeLinks[i];
+        if (!sl) continue;
+        const needsUpdate =
+          sl.scopeIndex !== null ||
+          sl.epistemicStatus !== "ASSERTED" ||
+          sl.dialecticalRole !== null;
+        if (!needsUpdate) continue;
+        await tx.argumentChainNode.update({
+          where: { id: nodes[i].id },
+          data: {
+            scopeId: sl.scopeIndex !== null ? scopeIds[sl.scopeIndex] : null,
+            epistemicStatus: sl.epistemicStatus,
+            dialecticalRole: sl.dialecticalRole,
+          },
+        });
+      }
+
+      // Attacks (PART 4 §4.2, §7 step 8). After the support edges exist, wire
+      // each resolved attack: a node→node attack lays a REBUTS/UNDERMINES edge
+      // attacker→target; a node→edge attack additionally flips the attacker
+      // node to targetType=EDGE/targetEdgeId and lays an UNDERCUTS edge
+      // attacker→(target edge's source node). Attack edges never thread claims.
+      const edgeIdByPair = new Map<string, string>();
+      for (const e of edges) {
+        edgeIdByPair.set(`${e.sourceNodeId}->${e.targetNodeId}`, e.id);
+      }
+      const attackRecords: {
+        attackerNodeId: string;
+        targetType: "NODE" | "EDGE";
+        targetNodeId: string | null;
+        targetEdgeId: string | null;
+        edgeType: ResolvedAttack["edgeType"];
+      }[] = [];
+      for (const atk of resolvedAttacks) {
+        const attackerNodeId = nodeIdByIndex[atk.attackerIndex];
+        if (atk.targetType === "NODE") {
+          const targetNodeId = nodeIdByIndex[atk.targetNodeIndex!];
+          // Self-counter advisory: the objection's conclusion is the very claim
+          // it attacks (a node arguing against its own conclusion).
+          if (
+            perLink[atk.attackerIndex]?.conclusionClaimId &&
+            perLink[atk.attackerIndex].conclusionClaimId ===
+              perLink[atk.targetNodeIndex!]?.conclusionClaimId
+          ) {
+            warnings.push({
+              code: "chain_self_attack",
+              detail: `Link ${atk.attackerIndex} attacks link ${atk.targetNodeIndex} but shares its conclusion claim (self-counter).`,
+            });
+          }
+          await tx.argumentChainEdge.create({
+            data: {
+              chainId: chain.id,
+              sourceNodeId: attackerNodeId,
+              targetNodeId,
+              edgeType: atk.edgeType,
+              strength: 1.0,
+            },
+          });
+          attackRecords.push({
+            attackerNodeId,
+            targetType: "NODE",
+            targetNodeId,
+            targetEdgeId: null,
+            edgeType: atk.edgeType,
+          });
+        } else {
+          const ref = atk.targetEdge!;
+          const targetEdgeId = edgeIdByPair.get(
+            `${nodeIdByIndex[ref.from]}->${nodeIdByIndex[ref.to]}`,
+          );
+          // The pre-flight guaranteed this edge exists; guard defensively.
+          if (!targetEdgeId) {
+            throw new Error(
+              `attacksEdge (${ref.from} → ${ref.to}) did not resolve to a materialised edge`,
+            );
+          }
+          await tx.argumentChainNode.update({
+            where: { id: attackerNodeId },
+            data: { targetType: "EDGE", targetEdgeId },
+          });
+          // Lay the UNDERCUTS edge attacker → the attacked inference's source,
+          // so the undercut is visible as a standing-bearing edge too.
+          await tx.argumentChainEdge.create({
+            data: {
+              chainId: chain.id,
+              sourceNodeId: attackerNodeId,
+              targetNodeId: nodeIdByIndex[ref.from],
+              edgeType: "UNDERCUTS",
+              strength: 1.0,
+            },
+          });
+          attackRecords.push({
+            attackerNodeId,
+            targetType: "EDGE",
+            targetNodeId: null,
+            targetEdgeId,
+            edgeType: "UNDERCUTS",
+          });
+        }
+      }
+
+      return {
+        chainId: chain.id,
+        rootNodeId,
+        nodes,
+        edges,
+        perLink,
+        threading,
+        scopeIds,
+        attacks: attackRecords,
+      };
+    },
+    // upserts, argument + premises + scheme instance, then chain/nodes/edges).
+    // The default 5s interactive-transaction timeout is too tight for a
+    // multi-link chain against a remote Postgres, so widen the window.
+    { timeout: 30_000, maxWait: 10_000 });
   } catch (err: any) {
+    // Lost the unique-key race: a concurrent retry with the same requestId
+    // already committed this chain. Replay it rather than surfacing an error.
+    if (requestId && err?.code === "P2002") {
+      const existing = await findChainByIdempotencyKey(ownerId, requestId);
+      if (existing) return idempotentReplayResponse(existing);
+    }
     console.error("[POST /api/argument-chains/quick-chain] mint-and-link failed", err);
     return NextResponse.json(
       { error: err?.message ?? "chain minting failed" },
@@ -796,6 +1377,17 @@ async function mintAndLinkChain(opts: {
   let provenancePending = false;
   const createdEvidenceIds: string[] = [];
   const unfurlCache = new Map<string, string | undefined>();
+  // PART 5 §5.1: executable citations echoed per link, keyed by claim id.
+  const citationsByClaimId = new Map<
+    string,
+    {
+      id: string;
+      sourceId: string;
+      locator: string | null;
+      anchorType: string | null;
+      intent: string | null;
+    }[]
+  >();
   for (const [claimId, items] of evidenceByClaimId) {
     if (items.length === 0) continue;
     const seenUrls = new Set<string>();
@@ -840,6 +1432,58 @@ async function mintAndLinkChain(opts: {
     } catch {
       // best-effort
     }
+
+    // PART 5 Step 3 (§4.5): alongside the ClaimEvidence snapshot, write an
+    // executable Citation against the link's claim. Idempotent on the
+    // [targetType, targetId, sourceId, locator] unique key.
+    try {
+      const citationData = enriched
+        .map((ev) => {
+          // Plain PART-3 evidence writes only ClaimEvidence (§9 backward-compat).
+          if (!isExecutableEvidence(ev)) return null;
+          const sourceId = sourceIdByUrl.get(ev.url);
+          if (!sourceId) return null;
+          return {
+            targetType: "claim",
+            targetId: claimId,
+            sourceId,
+            locator: ev.locator ?? null,
+            quote: ev.quote ?? null,
+            note: ev.citationText ?? null,
+            anchorType: ev.anchorType ?? null,
+            anchorId: ev.anchorId ?? null,
+            anchorData: ev.anchorData ?? undefined,
+            intent: ev.intent ?? null,
+            createdById: userIdStr,
+          };
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null);
+      if (citationData.length > 0) {
+        await prisma.citation.createMany({
+          data: citationData,
+          skipDuplicates: true,
+        });
+        const createdCitations = await prisma.citation.findMany({
+          where: {
+            targetType: "claim",
+            targetId: claimId,
+            sourceId: { in: citationData.map((c) => c.sourceId) },
+          },
+          select: {
+            id: true,
+            sourceId: true,
+            locator: true,
+            anchorType: true,
+            intent: true,
+          },
+        });
+        if (createdCitations.length > 0) {
+          citationsByClaimId.set(claimId, createdCitations);
+        }
+      }
+    } catch {
+      // best-effort: a citation write failure never fails the committed chain.
+    }
   }
   if (createdEvidenceIds.length > 0) {
     enrichEvidenceProvenanceInBackground(createdEvidenceIds);
@@ -847,7 +1491,11 @@ async function mintAndLinkChain(opts: {
 
   // ─── Worst-link standing echo (outside the txn) ─────────────────────────────
   let chainStanding: string | null = null;
-  let weakestLink: { argumentId: string; reason: string } | null = null;
+  let weakestLink: {
+    argumentId: string;
+    reason: string;
+    epistemicStatus?: string;
+  } | null = null;
   try {
     const exposure = await computeChainExposure(targetDelibId);
     const projection = exposure?.chains.find((c) => c.id === result.chainId);
@@ -860,6 +1508,19 @@ async function mintAndLinkChain(opts: {
       "[POST /api/argument-chains/quick-chain] chainStanding echo failed",
       err,
     );
+  }
+  // PART 5 §6: tag the weakest link with its epistemic status so a reader can
+  // see whether the chain's weakest point is merely *supposed* rather than
+  // asserted (a hypothetical weakest link reads very differently).
+  if (weakestLink) {
+    const widx = result.perLink.findIndex(
+      (pl) => pl.argumentId === weakestLink!.argumentId,
+    );
+    weakestLink = {
+      ...weakestLink,
+      epistemicStatus:
+        widx >= 0 ? scopeLinks[widx]?.epistemicStatus ?? "ASSERTED" : "ASSERTED",
+    };
   }
 
   // ─── Response shape (§5.1) ──────────────────────────────────────────────────
@@ -881,8 +1542,38 @@ async function mintAndLinkChain(opts: {
           : null,
       schemeHealth: res.schemeHealth,
       verifierVerdict: res.verifierVerdict?.kind ?? "skipped",
+      // Semantics (PART 5): the node's epistemic standing and scope membership.
+      epistemicStatus: scopeLinks[i]?.epistemicStatus ?? "ASSERTED",
+      scopeId:
+        scopeLinks[i] && scopeLinks[i].scopeIndex !== null
+          ? result.scopeIds[scopeLinks[i].scopeIndex as number]
+          : null,
+      dialecticalRole: scopeLinks[i]?.dialecticalRole ?? null,
+      // Semantics (PART 5 Step 3 §5.1): executable citations on this link's claim.
+      citations: citationsByClaimId.get(pl.conclusionClaimId) ?? [],
     };
   });
+
+  // Semantics (PART 5 §5.1): echo the created scopes with their members.
+  const responseScopes = result.scopeIds
+    .map((id, idx) =>
+      id
+        ? {
+            id,
+            scopeType: resolvedScopes[idx].scopeType,
+            assumption: resolvedScopes[idx].assumption,
+            parentScopeId:
+              resolvedScopes[idx].parentIndex !== null
+                ? result.scopeIds[resolvedScopes[idx].parentIndex as number]
+                : null,
+            depth: resolvedScopes[idx].depth,
+            nodeIds: result.nodes
+              .filter((_, i) => scopeLinks[i]?.scopeIndex === idx)
+              .map((n) => n.id),
+          }
+        : null,
+    )
+    .filter((s): s is NonNullable<typeof s> => s !== null);
 
   return NextResponse.json(
     {
@@ -890,18 +1581,28 @@ async function mintAndLinkChain(opts: {
       chain: {
         id: result.chainId,
         name,
-        chainType: "SERIAL" as const,
+        chainType: derivedChainType,
         rootNodeId: result.rootNodeId,
         deliberationId: targetDelibId,
         permalink: `${BASE_URL}/deliberations/${targetDelibId}/chains/${result.chainId}`,
       },
       links: responseLinks,
+      scopes: responseScopes,
       edges: result.edges.map((e) => ({
         id: e.id,
         sourceNodeId: e.sourceNodeId,
         targetNodeId: e.targetNodeId,
-        edgeType: "SUPPORTS" as const,
+        edgeType: e.edgeType,
+        strength: e.strength,
       })),
+      attacks: result.attacks,
+      topology: {
+        derivedChainType,
+        rootNodeId: result.rootNodeId,
+        isDag: true,
+        supportEdgeCount,
+        attackEdgeCount,
+      },
       threading: result.threading,
       chainStanding,
       weakestLink,
@@ -924,6 +1625,9 @@ async function composeChain(opts: {
   ownerId: bigint;
   viaMcp: boolean;
   retryAfterMs: number;
+  requestId?: string;
+  edges?: EdgeInput[];
+  expectChainType?: DerivedChainType;
 }) {
   const {
     name,
@@ -934,7 +1638,16 @@ async function composeChain(opts: {
     argumentIds,
     ownerId,
     retryAfterMs,
+    requestId,
+    edges,
+    expectChainType,
   } = opts;
+
+  // Idempotency pre-flight (retry-safe — see §5.2).
+  if (requestId) {
+    const existing = await findChainByIdempotencyKey(ownerId, requestId);
+    if (existing) return idempotentReplayResponse(existing);
+  }
 
   // Dedup while preserving spine order.
   const seen = new Set<string>();
@@ -962,6 +1675,31 @@ async function composeChain(opts: {
       { status: 400, ...NO_STORE },
     );
   }
+
+  // ─── Pre-flight: topology (PART 4 §4) over the deduped spine. Edge indices ───
+  // refer to positions in the (deduped) argument list. Omit ⇒ serial spine.
+  const warnings: Warning[] = [];
+  const topology = resolveChainTopology(orderedIds.length, edges, expectChainType);
+  if (!topology.ok) {
+    return NextResponse.json(
+      {
+        error: topology.detail,
+        code: topology.code,
+        ...(topology.derivedChainType
+          ? { derivedChainType: topology.derivedChainType }
+          : {}),
+      },
+      { status: 400, ...NO_STORE },
+    );
+  }
+  warnings.push(...topology.warnings);
+  const {
+    resolvedEdges,
+    derivedChainType,
+    rootIndex,
+    supportEdgeCount,
+    attackEdgeCount,
+  } = topology;
 
   // Load the referenced arguments.
   const args = await prisma.argument.findMany({
@@ -1024,7 +1762,6 @@ async function composeChain(opts: {
   // ─── Per-link scheme-health re-check (non-fatal) ────────────────────────────
   // A composed argument may reference a since-deprecated scheme; surface that
   // as a warning so the caller knows the spine includes an unhealthy pattern.
-  const warnings: Warning[] = [];
   const schemeKeysToCheck = new Set<string>();
   for (const a of args) {
     for (const s of a.argumentSchemes) {
@@ -1057,7 +1794,13 @@ async function composeChain(opts: {
     chainId: string;
     rootNodeId: string | null;
     nodes: { id: string; argumentId: string; nodeOrder: number }[];
-    edges: { id: string; sourceNodeId: string; targetNodeId: string }[];
+    edges: {
+      id: string;
+      sourceNodeId: string;
+      targetNodeId: string;
+      edgeType: string;
+      strength: number;
+    }[];
   };
   try {
     result = await prisma.$transaction(async (tx) => {
@@ -1067,17 +1810,22 @@ async function composeChain(opts: {
           name,
           description,
           purpose,
-          chainType: "SERIAL",
+          chainType: derivedChainType,
           isPublic,
           isEditable: false,
           createdBy: ownerId,
+          idempotencyKey: requestId ?? null,
         },
         select: { id: true },
       });
 
-      // Nodes — one per argument, in spine order. Last node is the chain's
-      // CONCLUSION; earlier nodes are PREMISE (helps chainExposure pick the
-      // top claim and lets rootNodeId resolve to the first node).
+      // Nodes — one per argument, in spine order. A node is a CONCLUSION when it
+      // has no outgoing SUPPORT edge (a sink), else PREMISE. For a serial spine
+      // this reduces to "last node = CONCLUSION".
+      const hasOutgoingSupport = new Set<number>();
+      for (const e of resolvedEdges) {
+        if (isSupportEdgeType(e.edgeType)) hasOutgoingSupport.add(e.from);
+      }
       const nodes: { id: string; argumentId: string; nodeOrder: number }[] = [];
       for (let i = 0; i < orderedIds.length; i++) {
         const created = await tx.argumentChainNode.create({
@@ -1085,7 +1833,7 @@ async function composeChain(opts: {
             chainId: chain.id,
             argumentId: orderedIds[i],
             nodeOrder: i,
-            role: i === orderedIds.length - 1 ? "CONCLUSION" : "PREMISE",
+            role: hasOutgoingSupport.has(i) ? "PREMISE" : "CONCLUSION",
             addedBy: ownerId,
           },
           select: { id: true, argumentId: true, nodeOrder: true },
@@ -1093,12 +1841,16 @@ async function composeChain(opts: {
         nodes.push(created);
       }
 
-      // Serial SUPPORTS edges over the spine.
-      const edgeData = nodes.slice(0, -1).map((n, i) => ({
+      // Typed edges from the resolved topology (PART 4). For an omitted edge
+      // set this is exactly the serial SUPPORTS spine.
+      const nodeIdByIndex = nodes.map((n) => n.id); // nodeOrder === spine index
+      const edgeData = resolvedEdges.map((e) => ({
         chainId: chain.id,
-        sourceNodeId: n.id,
-        targetNodeId: nodes[i + 1].id,
-        edgeType: "SUPPORTS" as const,
+        sourceNodeId: nodeIdByIndex[e.from],
+        targetNodeId: nodeIdByIndex[e.to],
+        edgeType: e.edgeType,
+        strength: e.strength,
+        description: e.description ?? null,
       }));
       if (edgeData.length > 0) {
         await tx.argumentChainEdge.createMany({
@@ -1108,11 +1860,17 @@ async function composeChain(opts: {
       }
       const edges = await tx.argumentChainEdge.findMany({
         where: { chainId: chain.id },
-        select: { id: true, sourceNodeId: true, targetNodeId: true },
+        select: {
+          id: true,
+          sourceNodeId: true,
+          targetNodeId: true,
+          edgeType: true,
+          strength: true,
+        },
         orderBy: { createdAt: "asc" },
       });
 
-      const rootNodeId = nodes[0]?.id ?? null;
+      const rootNodeId = nodeIdByIndex[rootIndex] ?? nodes[0]?.id ?? null;
       if (rootNodeId) {
         await tx.argumentChain.update({
           where: { id: chain.id },
@@ -1121,8 +1879,16 @@ async function composeChain(opts: {
       }
 
       return { chainId: chain.id, rootNodeId, nodes, edges };
-    });
+    },
+    // Compose only writes chain/nodes/edges, but a 20-argument spine is still
+    // many sequential node inserts — give the default 5s window some headroom.
+    { timeout: 20_000, maxWait: 10_000 });
   } catch (err: any) {
+    // Lost the unique-key race to a concurrent retry — replay the winner.
+    if (requestId && err?.code === "P2002") {
+      const existing = await findChainByIdempotencyKey(ownerId, requestId);
+      if (existing) return idempotentReplayResponse(existing);
+    }
     console.error("[POST /api/argument-chains/quick-chain] compose failed", err);
     return NextResponse.json(
       { error: err?.message ?? "chain composition failed" },
@@ -1132,7 +1898,11 @@ async function composeChain(opts: {
 
   // ─── Worst-link standing echo (outside the transaction) ─────────────────────
   let chainStanding: string | null = null;
-  let weakestLink: { argumentId: string; reason: string } | null = null;
+  let weakestLink: {
+    argumentId: string;
+    reason: string;
+    epistemicStatus?: string;
+  } | null = null;
   try {
     const exposure = await computeChainExposure(targetDelibId);
     const projection = exposure?.chains.find((c) => c.id === result.chainId);
@@ -1145,6 +1915,11 @@ async function composeChain(opts: {
       "[POST /api/argument-chains/quick-chain] chainStanding echo failed",
       err,
     );
+  }
+  // PART 5 §6: compose nodes are all in the actual world (ASSERTED); tag the
+  // weakest link for response-shape parity with mint-and-link.
+  if (weakestLink) {
+    weakestLink = { ...weakestLink, epistemicStatus: "ASSERTED" };
   }
 
   // ─── Response shape (§5.1) ──────────────────────────────────────────────────
@@ -1164,6 +1939,12 @@ async function composeChain(opts: {
         : null,
       schemeHealth: usesUnhealthy ? "rejected" : "ok",
       verifierVerdict: "skipped" as const,
+      // Compose composes existing arguments into the actual world only.
+      epistemicStatus: "ASSERTED" as const,
+      scopeId: null,
+      dialecticalRole: null,
+      // Compose mode accepts no per-link evidence, so no executable citations.
+      citations: [] as never[],
     };
   });
 
@@ -1173,18 +1954,28 @@ async function composeChain(opts: {
       chain: {
         id: result.chainId,
         name,
-        chainType: "SERIAL" as const,
+        chainType: derivedChainType,
         rootNodeId: result.rootNodeId,
         deliberationId: targetDelibId,
         permalink: `${BASE_URL}/deliberations/${targetDelibId}/chains/${result.chainId}`,
       },
       links,
+      scopes: [],
       edges: result.edges.map((e) => ({
         id: e.id,
         sourceNodeId: e.sourceNodeId,
         targetNodeId: e.targetNodeId,
-        edgeType: "SUPPORTS" as const,
+        edgeType: e.edgeType,
+        strength: e.strength,
       })),
+      attacks: [],
+      topology: {
+        derivedChainType,
+        rootNodeId: result.rootNodeId,
+        isDag: true,
+        supportEdgeCount,
+        attackEdgeCount,
+      },
       threading: [],
       chainStanding,
       weakestLink,

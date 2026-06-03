@@ -279,12 +279,23 @@ const ProposeStructuredArgumentInput = z.object({
             .string()
             .min(1)
             .max(1000)
-            .describe("Premise text. Each premise becomes its own Claim row, so attackers can later undermine specific premises rather than the whole argument."),
+            .optional()
+            .describe("Premise text. Each premise becomes its own Claim row, so attackers can later undermine specific premises rather than the whole argument. Omit ONLY when threading via `reuseClaimId`."),
+        reuseClaimId: z
+            .string()
+            .min(1)
+            .max(200)
+            .optional()
+            .describe("Thread this premise onto an EXISTING claim by id instead of supplying text — pass the `claim.id` an earlier `propose_structured_argument` call returned (typically a prior chain link's conclusion). This argument's premise then SHARES that same content-hashed Claim row (fork-proof — no reliance on byte-exact text repetition). The reused claim must live in the same deliberation; an unknown/cross-deliberation id is rejected (`PREMISE_CLAIM_NOT_FOUND`). This is the robust way to build a chain modularly: mint each link, then thread the next link's premise onto the prior link's returned `claim.id`."),
         isAxiom: z
             .boolean()
             .optional()
             .default(false)
             .describe("Mark this premise as an axiom (no further justification expected). Defaults false."),
+        premiseType: z
+            .enum(["ordinary", "assumption", "exception"])
+            .optional()
+            .describe("Carneades premise classification. 'ordinary' (default) must always be supported; 'assumption' is accepted unless questioned; 'exception' must be proven to apply by a challenger. Persisted on the premise row."),
         evidence: z
             .array(z.object({
             url: z.string().url(),
@@ -295,11 +306,11 @@ const ProposeStructuredArgumentInput = z.object({
             .max(5)
             .optional()
             .default([])
-            .describe("Per-premise evidence (up to 5). Attaches to THIS premise's minted Claim row, not the conclusion. Use this when each premise has its own distinct source (e.g. premise about cardiovascular risk → Riley Children's Health link; premise about neurocognitive interference → PLOS link). If a premise is deduped (collapses into another premise or the conclusion), its evidence is merged into the surviving claim and a `premise_evidence_merged` warning is emitted."),
+            .describe("Per-premise evidence (up to 5). Attaches to THIS premise's minted Claim row, not the conclusion. Use this when each premise has its own distinct source (e.g. premise about cardiovascular risk → Riley Children's Health link; premise about neurocognitive interference → PLOS link). Ignored on a `reuseClaimId` premise (the existing claim keeps its own evidence). If a premise is deduped (collapses into another premise or the conclusion), its evidence is merged into the surviving claim and a `premise_evidence_merged` warning is emitted."),
     }))
         .min(1)
         .max(10)
-        .describe("1–10 premises. Premises that hash to the same content as each other or as the conclusion will be deduped (surfaced as `premise_deduped` warnings)."),
+        .describe("1–10 premises. Each premise supplies EITHER `text` (a fresh Claim, content-hashed) OR `reuseClaimId` (thread onto an existing claim by id — the fork-proof way to chain modular links). Premises that hash to the same content as each other or as the conclusion are deduped (surfaced as `premise_deduped` warnings)."),
     reasoning: z
         .string()
         .max(5000)
@@ -316,6 +327,10 @@ const ProposeStructuredArgumentInput = z.object({
         .default("DEFEASIBLE")
         .describe("ASPIC+ rule type. Almost always 'DEFEASIBLE'; use 'STRICT' only for definitional / mathematical inferences."),
     ruleName: z.string().max(200).optional().describe("Optional human-readable name for STRICT rules."),
+    epistemicMode: z
+        .enum(["FACTUAL", "HYPOTHETICAL", "COUNTERFACTUAL"])
+        .optional()
+        .describe("Epistemic mode for this argument. Defaults to the resolved scheme's catalogue value. Overriding it shifts the behaviour-fingerprint domain (the instance no longer matches the scheme's catalogue fingerprint exactly) and returns an `EPISTEMIC_MODE_CHANGED_FINGERPRINT` warning — only override when the reasoning is genuinely hypothetical or counterfactual."),
     implicitWarrant: z
         .string()
         .max(2000)
@@ -337,6 +352,289 @@ const ProposeStructuredArgumentInput = z.object({
         .string()
         .optional()
         .describe("Target deliberation id. Omit to land in the caller's 'My Arguments' room."),
+    sessionId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Per-session capability token. Generate a fresh UUIDv4 ONCE at the start of your agent session and reuse the SAME value across every write (this tool, propose_argument_chain, propose_warrant) AND every answer_critical_question call. Recorded in the argument's provenance so that you can later self-canonicalise your OWN answers to this argument's critical questions (answer_critical_question with a matching sessionId promotes directly to CANONICAL; a mismatch or omission leaves the answer as a pending proposal a human approves). Never log or surface this token."),
+});
+// ── propose_argument_chain input ───────────────────────────────────
+// Serial argument chain: N structured-argument links where link k's
+// conclusion claim is reused as one of link k+1's premises (threaded by
+// MOID identity or by explicit `reuseClaimId`). Each link runs the same
+// Phase B scheme-health gate as `propose_structured_argument`.
+const ChainEvidenceItem = z.object({
+    url: z.string().url(),
+    title: z.string().max(500).optional(),
+    quote: z.string().max(2000).optional(),
+    summary: z.string().max(2000).optional(),
+    // PART 5 Step 3 (§4.5) executable-citation upgrade. Superset of the plain
+    // {url, quote} shape — supply NONE of these and the item stays a plain
+    // ClaimEvidence snapshot (no Citation row). Supply any one and the server
+    // resolves the url to a reusable Source and writes a resolvable Citation
+    // against the link's conclusion claim.
+    locator: z
+        .string()
+        .max(200)
+        .optional()
+        .describe('Human-readable pointer within the source — "p. 13", "fig. 2", "08:14", "§3.2". For a `page` anchor this carries the page number.'),
+    anchorType: z
+        .enum(["annotation", "text_range", "timestamp", "page", "coordinates"])
+        .optional()
+        .describe("Executable anchor kind. `anchorData` MUST match: `page` → none (locator carries the page); `text_range` → { start, end } character offsets, OR — when you have the words but not their indices (e.g. a quote from a PDF) — just set the item's `quote` to the verbatim passage and omit anchorData; `timestamp` → { start, end? } seconds; `coordinates` → { x, y, width, height }; `annotation` → resolves to an existing Annotation via `anchorId`. A mismatch → EVIDENCE_ANCHOR_MALFORMED (nothing written)."),
+    anchorData: z
+        .any()
+        .optional()
+        .describe("Anchor payload whose shape must match `anchorType` (see above). Omit for `page`/`annotation`."),
+    anchorId: z
+        .string()
+        .max(200)
+        .optional()
+        .describe("For `anchorType: 'annotation'` — the id of an existing Annotation this citation resolves to."),
+    intent: z
+        .enum(["supports", "refutes", "context", "defines", "method", "background", "acknowledges", "example"])
+        .optional()
+        .describe("Semantic stance of this evidence toward the link's claim. Advisory, not gating: `refutes` on a support link is allowed (a steelman) but emits an `evidence_intent_contrary` warning."),
+});
+const ChainLinkPremiseItem = z
+    .preprocess(
+// Forgiving input: a bare string premise is the natural thing for an LLM to
+// emit, so coerce "foo" → { text: "foo" } before the object union runs.
+(val) => (typeof val === "string" ? { text: val } : val), z.union([
+    z
+        .object({
+        reuseClaimId: z
+            .string()
+            .min(1)
+            .describe("Thread this premise onto a PRIOR link's conclusion by claim id — pass the `conclusionClaimId` an earlier link returned. Skips minting and wires the shared Claim directly (fork-proof). Must reference a prior link's conclusion in THIS request and the same deliberation; forward references / cycles → CHAIN_LINK_INVALID_THREAD."),
+        text: z
+            .string()
+            .max(1000)
+            .optional()
+            .describe("Optional sanity declaration of the reused claim's text. If supplied and its content hash diverges from the referenced claim, the chain is rejected with CHAIN_LINK_BROKEN (no silent fork)."),
+    })
+        .describe("Explicit thread: reuse a prior link's conclusion claim by id."),
+    z.object({
+        text: z
+            .string()
+            .min(1)
+            .max(1000)
+            .describe("Premise text. Minted as its own content-hashed Claim row. If it canonicalises to the same MOID as a prior link's conclusion, it is auto-threaded (a `chain_link_autothreaded` warning is emitted)."),
+        isAxiom: z.boolean().optional().default(false).describe("Mark as an axiom (no further justification expected). Defaults false."),
+        premiseType: z
+            .enum(["ordinary", "assumption", "exception"])
+            .optional()
+            .describe("Carneades premise classification. 'ordinary' (default) must always be supported; 'assumption' accepted unless questioned; 'exception' must be proven to apply by a challenger."),
+        evidence: z.array(ChainEvidenceItem).max(5).optional().default([]).describe("Per-premise evidence (up to 5) attached to this premise's minted Claim row."),
+    }),
+]))
+    .describe("A premise is either an ordinary text premise (an object `{ text }`, or just a bare string which is treated as `{ text }`) or a `reuseClaimId` thread onto a prior link's conclusion.");
+const ChainLinkItem = z.object({
+    conclusion: z
+        .string()
+        .min(1)
+        .max(2000)
+        .describe("This link's conclusion. Minted as a content-hashed Claim; a later link can reuse it as a premise (pass its returned `conclusionClaimId` as `reuseClaimId`, or repeat this exact text to thread by content hash)."),
+    premises: z
+        .array(ChainLinkPremiseItem)
+        .min(1)
+        .max(10)
+        .describe("1–10 premises. Each premise is either a bare string (premise text), an object `{ text, isAxiom?, premiseType?, evidence? }`, or `{ reuseClaimId }` to thread a prior link's conclusion. At least one must be a fresh (non-threaded) premise per link."),
+    reasoning: z.string().max(5000).optional().describe("Free-text narrative tying this link's premises to its conclusion. Stored on `Argument.text`."),
+    schemeKey: z
+        .string()
+        .max(100)
+        .optional()
+        .describe("Argumentation-scheme key for THIS link. The Phase B health gate applies per link — an unhealthy/non-argument scheme on any link rejects the WHOLE chain (atomic). Call `list_schemes(excludeUnhealthy: true)` if unsure. Omit to let the server infer one (`scheme_inferred` warning)."),
+    ruleType: z.enum(["STRICT", "DEFEASIBLE"]).optional().default("DEFEASIBLE").describe("ASPIC+ rule type for this link. Almost always 'DEFEASIBLE'."),
+    implicitWarrant: z.string().max(2000).optional().describe("Optional inference-license warrant text for this link."),
+    epistemicMode: z
+        .enum(["factual", "hypothetical", "counterfactual"])
+        .optional()
+        .describe("Epistemic mode for this link. Defaults to the resolved scheme's catalogue value; overriding returns an EPISTEMIC_MODE_CHANGED_FINGERPRINT warning."),
+    evidence: z.array(ChainEvidenceItem).max(10).optional().default([]).describe("Conclusion-level evidence for this link (up to 10). Plain {url, quote} items stay as ClaimEvidence; items carrying locator/anchorType/anchorData/intent additionally write a resolvable Citation."),
+    // PART 5 §4.1 — semantics: place this link inside a declared supposition, and/
+    // or label its epistemic standing and dialectical role. Omit all three ⇒ the
+    // actual world (ASSERTED, no scope).
+    scope: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Index into the top-level `scopes[]` array — places this link INSIDE that supposition. Nodes in a scope are recorded with the scope's epistemic status and cannot leak as asserted premises outside it (SCOPE_LEAK). Omit ⇒ the actual/asserted world."),
+    epistemicStatus: z
+        .enum(["ASSERTED", "HYPOTHETICAL", "COUNTERFACTUAL", "CONDITIONAL", "QUESTIONED", "DENIED", "SUSPENDED"])
+        .optional()
+        .describe("Explicit epistemic standing for this link. Usually inferred from its `scope`; set it for finer control. Contradicting the scope (e.g. ASSERTED inside a COUNTERFACTUAL scope) → SCOPE_STATUS_CONFLICT."),
+    dialecticalRole: z
+        .enum(["THESIS", "ANTITHESIS", "SYNTHESIS", "OBJECTION", "RESPONSE", "CONCESSION"])
+        .optional()
+        .describe("Optional thesis/antithesis labelling for this link's role in the dialectic."),
+    // PART 4 §4.2 — topology: instead of (or as well as) threading a claim, a link
+    // may ATTACK a prior link. A link attacks at most one target; attacks never
+    // thread claims.
+    attacksNode: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Index of a prior link whose CLAIM this link attacks — REBUTS its conclusion or UNDERMINES a premise (set `attackType`). Mutually exclusive with `attacksEdge`."),
+    attacksEdge: z
+        .object({ from: z.number().int().min(0), to: z.number().int().min(0) })
+        .optional()
+        .describe("Attack the INFERENCE itself (UNDERCUT) — the support edge `from`→`to`, not the claims. The target must be an existing SUPPORT edge in `edges[]`; attacking an attack edge → CHAIN_ATTACK_ON_ATTACK (depth-1 cap). Mutually exclusive with `attacksNode`."),
+    attackType: z
+        .enum(["REBUTS", "UNDERMINES"])
+        .optional()
+        .describe("For `attacksNode`: REBUTS (attack the conclusion, default) or UNDERMINES (attack a premise). Ignored for `attacksEdge` (always UNDERCUTS)."),
+});
+// PART 4 §4.1 — an optional typed edge between two links by index. Omitting
+// `edges[]` entirely keeps the serial SUPPORTS spine, so every legacy payload
+// is unchanged. The server DERIVES the chainType from the support sub-graph.
+const ChainEdgeItem = z.object({
+    from: z.number().int().min(0).describe("Source link index."),
+    to: z.number().int().min(0).describe("Target link index."),
+    edgeType: z
+        .enum([
+        "SUPPORTS",
+        "ENABLES",
+        "PRESUPPOSES",
+        "REFUTES",
+        "QUALIFIES",
+        "EXEMPLIFIES",
+        "GENERALIZES",
+        "REBUTS",
+        "UNDERCUTS",
+        "UNDERMINES",
+    ])
+        .optional()
+        .default("SUPPORTS")
+        .describe("Typed relation. SUPPORTS/ENABLES/PRESUPPOSES are support edges (thread claims, counted in the DAG check + chainType derivation); the rest are attack edges (excluded from the acyclicity check — backward rebuttal is legitimate)."),
+    strength: z.number().min(0).max(1).optional().default(1.0).describe("Edge strength 0..1 (defaults 1)."),
+    description: z.string().max(2000).optional().describe("Optional free-text label for this edge."),
+});
+// PART 5 §4.1 — an optional declared supposition. Links reference a scope by
+// index via `links[i].scope`; `parentScope` nests one scope inside another.
+// Omit `scopes[]` entirely to keep every node in the asserted/actual world.
+const ChainScopeItem = z.object({
+    scopeType: z
+        .enum(["HYPOTHETICAL", "COUNTERFACTUAL", "CONDITIONAL", "OPPONENT", "MODAL"])
+        .describe("The kind of supposition. HYPOTHETICAL ('suppose X'), COUNTERFACTUAL ('had X been so'), CONDITIONAL, OPPONENT (a steelmanned opposing view), MODAL."),
+    assumption: z.string().min(1).max(1000).describe("The supposition this scope opens — e.g. 'If the carbon tax passes'."),
+    description: z.string().max(2000).optional().describe("Optional elaboration of the supposition."),
+    parentScope: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Index of a parent scope to nest this one inside (max depth 4). Omit for a top-level scope. Cyclic/over-deep nesting → SCOPE_CYCLE_DETECTED / SCOPE_TOO_DEEP."),
+});
+const ProposeArgumentChainInput = z.object({
+    name: z.string().min(1).max(255).describe("Chain name (≤255 chars)."),
+    description: z.string().max(5000).optional().describe("Optional chain description."),
+    purpose: z.string().max(5000).optional().describe("Optional statement of the chain's purpose."),
+    deliberationId: z.string().optional().describe("Target deliberation id. Omit to land in the caller's 'My Arguments' room."),
+    isPublic: z.boolean().optional().default(false).describe("Whether the chain is public. Defaults false."),
+    mode: z
+        .enum(["mint-and-link", "compose"])
+        .optional()
+        .default("mint-and-link")
+        .describe("'compose' is the RECOMMENDED default for PLAIN SERIAL chains you build from scratch: first mint each link with `propose_structured_argument` (small, fast writes that return real `argumentId`s), then bind them here by id (pass `argumentIds`, no minting); use it for simple A→B→C reasoning, since a large one-shot can exceed the request timeout. **BUT `compose` carries ONLY ids — it CANNOT express any advanced structure.** If you need branching (`edges[]`), objections (`attacksNode`/`attacksEdge`), suppositions (`scopes[]` + per-link `scope`), or anchored evidence (`anchorType`/`intent`), you MUST use 'mint-and-link', because all of those ride on `links[]`. Keep such a chain focused (≤12 links) so the single transaction stays under the timeout."),
+    links: z
+        .array(ChainLinkItem)
+        .min(2)
+        .max(12)
+        .optional()
+        .describe("mint-and-link mode: 2–12 links forming the serial spine. Order them so each link's conclusion feeds the next link's premise."),
+    argumentIds: z
+        .array(z.string().min(1))
+        .min(2)
+        .max(20)
+        .optional()
+        .describe("compose mode: 2–20 existing argument ids in spine order. They must share one deliberation."),
+    requestId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Idempotency key for retry-safety — ALWAYS set this, on EVERY mode. Pass a stable unique id (e.g. a UUID you generate ONCE for this chain). If a write times out at the HTTP layer, RETRY the SAME call with the SAME requestId — the server returns the chain that already landed (`idempotentReplay: true`) instead of creating a duplicate. Do NOT change it on retry, and do NOT `get_chains`-then-recreate to 'check' whether it landed."),
+    // PART 4 §4.1 — declare a typed edge set instead of the inferred serial spine.
+    // Omit ⇒ serial SUPPORTS spine (legacy behaviour). chainType is DERIVED from
+    // the support sub-graph; `expectChainType` pins it and errors on disagreement.
+    edges: z
+        .array(ChainEdgeItem)
+        .max(60)
+        .optional()
+        .describe("mint-and-link mode: typed edges between links by index, for branching (CONVERGENT/DIVERGENT/TREE/GRAPH) or attack structures. Omit to keep the serial SUPPORTS spine. The server validates the support sub-graph is acyclic (CHAIN_CYCLE_DETECTED) and reports the derived `chainType`."),
+    expectChainType: z
+        .enum(["SERIAL", "CONVERGENT", "DIVERGENT", "TREE", "GRAPH"])
+        .optional()
+        .describe("Optional assertion of the shape you intend; the server derives the actual chainType from `edges[]` and rejects a mismatch (CHAIN_TYPE_MISMATCH, echoing the derived type)."),
+    // PART 5 §4.1 — declare suppositional scopes; links attach by `links[i].scope`.
+    scopes: z
+        .array(ChainScopeItem)
+        .max(12)
+        .optional()
+        .describe("mint-and-link mode: up to 12 declared suppositions ('If the carbon tax passes…'). Put links inside one with `links[i].scope: <index>`; those nodes are recorded as hypothetical/counterfactual and cannot leak into the asserted world (SCOPE_LEAK). Omit ⇒ every node is in the actual world."),
+    sessionId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Per-session capability token, threaded into EVERY minted link's provenance. Generate a fresh UUIDv4 ONCE per agent session and reuse the SAME value across all writes and answer_critical_question calls, so you can later self-canonicalise your own answers to any link's critical questions. Never log or surface this token."),
+});
+// ── answer_critical_question input ─────────────────────────────────
+// Answer a scheme-typed critical question on an existing argument. Submits a
+// CQResponse and, when the answering sessionId matches the AI argument's
+// creating MCP session, self-canonicalises in one server transaction. Backed
+// by POST /api/cqs/answer.
+const AnswerCriticalQuestionInput = z.object({
+    argumentId: z
+        .string()
+        .min(1)
+        .describe("Id of the argument whose critical question you are answering. Get it (and the cqKey / schemeKey / cqStatusId) from `get_argument`'s `criticalQuestions` aggregate (a single object with `unanswered[]` / `partiallyAnswered[]` / `answered[]` arrays)."),
+    cqKey: z
+        .string()
+        .min(1)
+        .describe("The critical-question key to answer (e.g. 'expertise', 'bias', 'backup_evidence'). Read it from a `criticalQuestions.unanswered[].cqKey` entry on `get_argument` (`criticalQuestions` is a single aggregate object, not an array)."),
+    schemeKey: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Scheme the CQ is anchored on. REQUIRED only when the same cqKey exists on more than one of the argument's schemes (inherited CQs) — the server returns CQ_AMBIGUOUS_SCHEME asking for it. Otherwise omit; it is inferred."),
+    groundsText: z
+        .string()
+        .min(10)
+        .max(5000)
+        .describe("The actual answer to the critical question — the grounds that satisfy it. 10–5000 chars. Make it self-contained: state what addresses the CQ and why."),
+    evidenceClaimIds: z
+        .array(z.string())
+        .optional()
+        .default([])
+        .describe("Ids of existing Claim rows that serve as evidence for this answer. Each must exist (else CQ_EVIDENCE_NOT_FOUND)."),
+    sourceUrls: z
+        .array(z.string().url())
+        .optional()
+        .default([])
+        .describe("External citation URLs backing the answer."),
+    sessionId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Per-session capability token. Pass the SAME UUIDv4 you used when you CREATED this argument (via propose_structured_argument / propose_argument_chain / propose_warrant). When it matches the argument's AI provenance, your answer is promoted directly to CANONICAL. A mismatch, an omission, or a human-authored argument leaves the answer as a PENDING proposal (with a CQ_SELF_CANONICAL_DENIED warning) that a human approves on the web CQ panel."),
+    promoteToCanonical: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Attempt self-canonicalisation when eligible (default true). It is a SOFT request: when you are not eligible (different/absent session, or a human-authored target) the answer is still recorded as PENDING — never a hard error. Set false to deliberately submit a pending proposal even on your own argument."),
+    requestId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Idempotency key for retry-safety. Pass a stable unique id; if the write times out, RETRY with the SAME requestId — the server replays the answer that already landed (`idempotentReplay: true`) instead of creating a duplicate."),
 });
 // ── list_schemes (read tool) ────────────────────────────────────
 // Discovery primer for the upcoming `propose_structured_argument`
@@ -347,12 +645,17 @@ const ListSchemesInput = z.object({
     clusterTag: z
         .string()
         .optional()
-        .describe("Optional filter by `clusterTag` (e.g. 'expert', 'causal', 'practical', 'analogical'). Schemes are grouped by clusterTag in the catalog; pass this when you already know the family of reasoning you're after."),
+        .describe("Optional filter by `clusterTag` (the reasoning family). Stored tags are like `expert_family`, `causal_family`, `practical_reasoning_family`, `analogical_family` — but matching is FORGIVING and case-insensitive, so the bare family word ('expert', 'causal', 'practical', 'analogical') also matches. The exact set present in this catalogue is echoed back as `availableClusterTags` on every response; consult it if a filter returns nothing."),
     includeExamples: z
         .boolean()
         .optional()
         .default(false)
         .describe("When true, include the `examples` array per scheme (concrete worked examples). Off by default to keep payloads small — each example can be ~100 tokens."),
+    excludeUnhealthy: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("When true (default), omit schemes whose `catalogueHealth` flags them as NON-argument-patterns — i.e. dialogue-meta machinery (`isDialogueMeta`) and test/placeholder rows (`isTestPlaceholder`). These cannot anchor an argument and `propose_structured_argument` will refuse them, so they are hidden from selection by default. Folksonomy duplicates (`duplicateOf`) are NOT filtered — they are advisory and auto-redirected to canonical on write. Set false only when auditing the raw catalogue."),
     limit: z
         .number()
         .int()
@@ -361,6 +664,81 @@ const ListSchemesInput = z.object({
         .optional()
         .default(100)
         .describe("Max number of schemes to return. Default 100; the catalog is small (~30–60 schemes) so the default usually returns everything."),
+});
+// ── Phase C — verifier "structural radar" read tools ────────────
+// Thin read-only wrappers over the shipped behaviour-equality verifier and the
+// materialised fingerprint. The cardinal discipline (P3 / Q-021): a fingerprint
+// match is a NECESSARY but NOT SUFFICIENT condition for behaviour equality — the
+// verifier supplies the authoritative verdict, the fingerprint is only a filter.
+const VerifySchemeEqualityInput = z.object({
+    keyA: z
+        .string()
+        .min(1)
+        .describe("First scheme key (ArgumentScheme.key, e.g. 'good_consequences'). Use list_schemes to find keys."),
+    keyB: z
+        .string()
+        .min(1)
+        .describe("Second scheme key to compare against keyA."),
+    searchBoundMs: z
+        .number()
+        .int()
+        .positive()
+        .max(60_000)
+        .optional()
+        .describe("Optional verifier search budget in milliseconds (1..60000). Exceeding it yields an 'inconclusive' verdict rather than a wrong answer. Defaults to the server's standard bound."),
+});
+const ComputeSchemeFingerprintInput = z.object({
+    schemeKey: z
+        .string()
+        .min(1)
+        .describe("Scheme key (ArgumentScheme.key) to fingerprint. Use list_schemes to find keys."),
+});
+const FindSimilarSchemesInput = z.object({
+    schemeKey: z
+        .string()
+        .min(1)
+        .describe("Scheme key whose behavioural near-duplicates you want to find."),
+    k: z
+        .number()
+        .int()
+        .min(1)
+        .max(25)
+        .optional()
+        .default(5)
+        .describe("Max number of similar schemes to return (1..25, default 5)."),
+    searchBoundMs: z
+        .number()
+        .int()
+        .positive()
+        .max(60_000)
+        .optional()
+        .describe("Optional per-candidate verifier search budget in milliseconds (1..60000)."),
+});
+// ── Phase D — provenance read tools (Q-022 source-of-record + Q-024 audit) ──
+// Echo the shipped provenance columns; compare_scheme_provenance composes the
+// two reads with the verifier to answer "same scheme under two presentations?".
+const GetSchemeProvenanceInput = z.object({
+    schemeKey: z
+        .string()
+        .min(1)
+        .describe("Scheme key (ArgumentScheme.key) whose provenance you want. Use list_schemes to find keys."),
+});
+const CompareSchemeProvenanceInput = z.object({
+    keyA: z
+        .string()
+        .min(1)
+        .describe("First scheme key (ArgumentScheme.key)."),
+    keyB: z
+        .string()
+        .min(1)
+        .describe("Second scheme key to compare against keyA."),
+    searchBoundMs: z
+        .number()
+        .int()
+        .positive()
+        .max(60_000)
+        .optional()
+        .describe("Optional verifier search budget in milliseconds (1..60000) for the behaviour-equality leg. Defaults to the server's standard bound."),
 });
 // ── Track AI-EPI Pt. 4 — deliberation-scope read tools ──────────
 const DeliberationIdInput = z.object({
@@ -438,6 +816,12 @@ const ProposeWarrantInput = z.object({
     promptHash: z.string().optional(),
     sourceUrls: z.array(z.string().url()).optional(),
     hint: z.string().optional(),
+    sessionId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Per-session capability token, recorded in the warrant argument's provenance. Reuse the SAME UUIDv4 you use for your other writes and answer_critical_question calls so you can later self-canonicalise your own answers to this warrant's critical questions. Never log or surface this token."),
 });
 // ── Cluster B: articulation lattice ──────────────────────────────────────
 const GetArticulationLatticeInput = z.object({
@@ -734,7 +1118,7 @@ const tools = [
     },
     {
         name: "get_argument",
-        description: "Fetch a structured representation of an argument permalink. Default format='attestation' returns the compact citation envelope (conclusion, premises, scheme, evidence with sha256 + archive URL, dialectical status, standingState). The envelope also carries: `structuredCitations` (canonical CitationBlock[] with url/doi/publisher/quote/quoteAnchor) for citation-grade serialization; `criticalQuestions` (per-CQ status aggregate — `answered`, `partiallyAnswered`, `unanswered` — so consumers can see which CQs are open without inferring from absence); `fitnessBreakdown` decomposing the dialectical-fitness score into weighted contributors; `standingDepth` annotating the standing label with distinct-author challenger/reviewer counts and a `confidence` tier (thin|moderate|dense) so 'tested-survived (1 challenger)' is not read as 'vetted by the field'; and `author.kind` (HUMAN|AI|HYBRID) plus `author.aiProvenance` so AI-authored arguments are explicitly flagged. Pass format='jsonld' for the rich Schema.org composite (Claim + ScholarlyArticle + ClaimReview + AIF) or format='aif' for the AIF-JSON-LD subgraph with critical questions. → also use this to verify the round-trip after `propose_argument` writes a new argument. → next: if standingState is not 'tested-survived' with standingDepth.confidence ≥ moderate, hedge per the parent deliberation's writingConstraints (or refuse if it appears in mustNotAssert); do not cite as settled evidence.",
+        description: "Fetch a structured representation of an argument permalink. Default format='attestation' returns the compact citation envelope (conclusion, premises, scheme, evidence with sha256 + archive URL, dialectical status, standingState). The envelope also carries: `structuredCitations` (canonical CitationBlock[] with url/doi/publisher/quote/quoteAnchor) for citation-grade serialization; `criticalQuestions` (per-CQ status aggregate — `answered`, `partiallyAnswered`, `unanswered` — so consumers can see which CQs are open without inferring from absence); `fitnessBreakdown` decomposing the dialectical-fitness score into weighted contributors; `standingDepth` annotating the standing label with distinct-author challenger/reviewer counts and a `confidence` tier (thin|moderate|dense) so 'tested-survived (1 challenger)' is not read as 'vetted by the field'; and `author.kind` (HUMAN|AI|HYBRID) plus `author.aiProvenance` so AI-authored arguments are explicitly flagged. The `scheme` block is enriched with `canonicalKey`, `behaviourFingerprint`, and `catalogueHealth` (E1 — folksonomy duplicate/dialogue-meta/cluster diagnostics); each `criticalQuestions` item carries `premiseType` (ORDINARY|ASSUMPTION|EXCEPTION), `isSchemeRequired`, and `inheritedFromParentScheme`. A `schemeInstance` block mirrors `get_scheme_instance_state` (open vs discharged obligations + `closeHookEligible`) for the argument's conclusion when an obligation instance exists. Pass format='jsonld' for the rich Schema.org composite (Claim + ScholarlyArticle + ClaimReview + AIF) or format='aif' for the AIF-JSON-LD subgraph with critical questions — the aif body adds `mesh:roundTripSoundness`, the per-premise-group exposed-vs-absent classification flagging whether ASSUMPTION/EXCEPTION obligations survive the AIF round-trip (`lossy: true` means a dialectical obligation has no carrier in the exported subgraph). → also use this to verify the round-trip after `propose_argument` writes a new argument. → next: if standingState is not 'tested-survived' with standingDepth.confidence ≥ moderate, hedge per the parent deliberation's writingConstraints (or refuse if it appears in mustNotAssert); do not cite as settled evidence.",
         inputSchema: zodToJsonSchema(GetArgumentInput),
         async handler(args) {
             const input = GetArgumentInput.parse(args);
@@ -1298,7 +1682,7 @@ const tools = [
     },
     {
         name: "list_schemes",
-        description: "READ TOOL — list the catalog of argumentation schemes (Walton + Mesh extensions) available for argument-write tools. **Call this BEFORE `propose_structured_argument` whenever you are unsure which `schemeKey` matches the reasoning pattern you're recording** (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Each entry returns: `key` (pass as `schemeKey` to write tools), `name`, `summary`, `whenToUse` (free-text guidance on identification conditions), `slotHints` (role-slots the scheme expects, e.g. expert_opinion expects `expert` + `proposition`), `materialRelation`, `reasoningType`, `epistemicMode`, `clusterTag` (family — 'expert' | 'causal' | 'practical' | 'analogical' | …), `difficulty` (beginner | intermediate | advanced), `tags`, and CQ counts (`ownCQCount`, `totalCQCount` including inheritance). Pass `includeExamples: true` to additionally receive concrete worked examples per scheme (off by default to keep the payload small). Pass `clusterTag` to narrow to one family. → next: `propose_structured_argument` with the chosen `schemeKey` (or omit `schemeKey` and the server will infer one). Anonymous; no API token required.",
+        description: "READ TOOL — list the catalog of argumentation schemes (Walton + Mesh extensions) available for argument-write tools. **Call this BEFORE `propose_structured_argument` whenever you are unsure which `schemeKey` matches the reasoning pattern you're recording** (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Each entry returns: `key` (pass as `schemeKey` to write tools), `name`, `summary`, `whenToUse` (free-text guidance on identification conditions), `slotHints` (role-slots the scheme expects, e.g. expert_opinion expects `expert` + `proposition`), `materialRelation`, `reasoningType`, `epistemicMode`, `clusterTag` (family — stored as e.g. 'expert_family' | 'causal_family' | 'practical_reasoning_family' | …; the `clusterTag` filter matches these case-insensitively from the bare word too, and the response echoes `availableClusterTags`), `difficulty` (beginner | intermediate | advanced), `tags`, CQ counts (`ownCQCount`, `totalCQCount` including inheritance), `behaviourFingerprint` (the materialised behaviour-equality fingerprint, or null), and `catalogueHealth` (`{ isArgumentPattern, isDialogueMeta, isTestPlaceholder, duplicateOf, canonicalKey, clusterTagMissing, fingerprintMaterialised }`). **By default (`excludeUnhealthy: true`) only healthy argument patterns are returned** — dialogue-meta and test/placeholder rows are hidden because `propose_structured_argument` refuses them; pass `excludeUnhealthy: false` to audit the raw catalogue. Folksonomy duplicates are kept (advisory — they auto-redirect to canonical on write). The top-level `catalogueOntologyState` rollup summarises the catalogue's health counts (argumentPatterns, dialogueMeta, testPlaceholders, duplicateCandidates, missingClusterTag, fingerprintMaterialised, hiddenByExcludeUnhealthy). Pass `includeExamples: true` to additionally receive concrete worked examples per scheme (off by default to keep the payload small). Pass `clusterTag` to narrow to one family. → next: `propose_structured_argument` with the chosen `schemeKey` (or omit `schemeKey` and the server will infer one). Anonymous; no API token required.",
         inputSchema: zodToJsonSchema(ListSchemesInput),
         async handler(args) {
             const input = ListSchemesInput.parse(args);
@@ -1307,9 +1691,37 @@ const tools = [
             // self-hosted instances may gate it behind auth.
             const raw = (await isoFetch(`/api/schemes`, { authenticated: true }));
             const all = Array.isArray(raw?.items) ? raw.items : [];
-            const filtered = input.clusterTag
-                ? all.filter((s) => s?.clusterTag === input.clusterTag)
+            // Forgiving clusterTag match. The catalogue stores family tags like
+            // `practical_reasoning_family` / `causal_family` / `expert_family`, but
+            // callers naturally pass the bare family word ("practical", "causal").
+            // Match case-insensitively when the stored tag CONTAINS the query token
+            // (so "practical" → "practical_reasoning_family"); fall back to the query
+            // containing the tag for the reverse. Always returning a superset beats
+            // returning nothing for a near-miss tag.
+            const clusterQuery = input.clusterTag?.trim().toLowerCase() ?? null;
+            const clusterFiltered = clusterQuery
+                ? all.filter((s) => {
+                    const tag = typeof s?.clusterTag === "string" ? s.clusterTag.toLowerCase() : "";
+                    return tag === clusterQuery || tag.includes(clusterQuery) || clusterQuery.includes(tag);
+                })
                 : all;
+            // Distinct family tags present in the catalogue, so a caller whose filter
+            // matched nothing (or who is exploring) can pick a real tag value rather
+            // than guessing — surfaced on every response.
+            const availableClusterTags = Array.from(new Set(all
+                .map((s) => (typeof s?.clusterTag === "string" ? s.clusterTag : null))
+                .filter((t) => !!t))).sort();
+            // A.1 — health-selection filter. Hide non-argument-pattern rows
+            // (dialogue-meta / test-placeholder) by default so agents don't pick a
+            // key the write tool will refuse. Duplicates stay visible (advisory).
+            const filtered = input.excludeUnhealthy
+                ? clusterFiltered.filter((s) => {
+                    const h = s?.catalogueHealth;
+                    if (!h)
+                        return true; // no health signal → keep (backward compat)
+                    return !h.isDialogueMeta && !h.isTestPlaceholder;
+                })
+                : clusterFiltered;
             const projected = filtered.slice(0, input.limit).map((s) => {
                 const out = {
                     key: s.key,
@@ -1325,18 +1737,108 @@ const tools = [
                     tags: Array.isArray(s.tags) ? s.tags : [],
                     ownCQCount: s.ownCQCount ?? 0,
                     totalCQCount: s.totalCQCount ?? 0,
+                    // A.1 — behaviour fingerprint + derived catalogue-health projection.
+                    behaviourFingerprint: s.fingerprint ?? null,
+                    catalogueHealth: s.catalogueHealth ?? null,
                 };
                 if (input.includeExamples) {
                     out.examples = Array.isArray(s.examples) ? s.examples : [];
                 }
                 return out;
             });
+            // A.1 — top-level catalogue ontology rollup so an agent can triage the
+            // catalogue's overall health in one read (computed over the post-cluster,
+            // pre-limit set so the counts describe the catalogue, not the page).
+            const healthOf = (s) => s?.catalogueHealth ?? null;
+            const catalogueOntologyState = {
+                total: clusterFiltered.length,
+                argumentPatterns: clusterFiltered.filter((s) => healthOf(s)?.isArgumentPattern).length,
+                dialogueMeta: clusterFiltered.filter((s) => healthOf(s)?.isDialogueMeta).length,
+                testPlaceholders: clusterFiltered.filter((s) => healthOf(s)?.isTestPlaceholder).length,
+                duplicateCandidates: clusterFiltered.filter((s) => healthOf(s)?.duplicateOf).length,
+                missingClusterTag: clusterFiltered.filter((s) => healthOf(s)?.clusterTagMissing).length,
+                fingerprintMaterialised: clusterFiltered.filter((s) => healthOf(s)?.fingerprintMaterialised).length,
+                hiddenByExcludeUnhealthy: input.excludeUnhealthy
+                    ? clusterFiltered.length - filtered.length
+                    : 0,
+            };
             return {
                 total: filtered.length,
                 returned: projected.length,
                 clusterTag: input.clusterTag ?? null,
+                availableClusterTags,
+                excludeUnhealthy: input.excludeUnhealthy,
+                catalogueOntologyState,
                 items: projected,
             };
+        },
+    },
+    // ── Phase C — verifier structural-radar read tools ──────────────
+    {
+        name: "verify_scheme_equality",
+        description: "READ TOOL — run the behaviour-equality VERIFIER between two argumentation schemes addressed by key. Returns `{ keyA, keyB, verdict, witnessOrCounter, runtimeMs, fingerprintsMatched, note }`. `verdict` is one of: `equal` (the two schemes accept exactly the same attacks/CQs — interchangeable), `subset` (one's behaviour is contained in the other — a specialisation), `incomparable` (each licenses an attack the other doesn't — genuinely distinct), or `inconclusive` (the verifier hit its search bound and could NOT decide — this is NOT the same as 'incomparable'; treat as 'unknown'). `witnessOrCounter` carries the structural certificate (for equal/subset/incomparable) or the reason (for inconclusive). **A `fingerprintsMatched: true` is NECESSARY but NOT SUFFICIENT for `equal`** — there is no canonical form (P3/Q-021), so always read `verdict`, not the fingerprint, as the authoritative answer. Use this to decide whether two folksonomy keys are true duplicates before merging, or to confirm a `find_behaviourally_similar_schemes` candidate. Anonymous; no API token required.",
+        inputSchema: zodToJsonSchema(VerifySchemeEqualityInput),
+        async handler(args) {
+            const input = VerifySchemeEqualityInput.parse(args);
+            const params = new URLSearchParams({ keyA: input.keyA, keyB: input.keyB });
+            if (input.searchBoundMs)
+                params.set("searchBoundMs", String(input.searchBoundMs));
+            return await isoFetch(`/api/schemes/verify-equality?${params.toString()}`, {
+                authenticated: true,
+            });
+        },
+    },
+    {
+        name: "compute_scheme_fingerprint",
+        description: "READ TOOL — return the BEHAVIOUR FINGERPRINT of a scheme: `{ schemeKey, behaviourFingerprint, materialised, note }`. The fingerprint is a content hash over the scheme's structural behaviour-surface (CQ-bundle digest, premise/conclusion arity, epistemicMode). `materialised: true` means it was read from the stored column; `false` means it was recomputed on the fly (column was null). **The fingerprint is a STRUCTURAL PRE-FILTER, not a proof of equality** — two schemes sharing a fingerprint are equality CANDIDATES that must be confirmed with `verify_scheme_equality`. Use it to cheaply bucket the catalogue or to detect that an imported scheme structurally collides with an existing one. Anonymous; no API token required.",
+        inputSchema: zodToJsonSchema(ComputeSchemeFingerprintInput),
+        async handler(args) {
+            const input = ComputeSchemeFingerprintInput.parse(args);
+            const params = new URLSearchParams({ key: input.schemeKey });
+            return await isoFetch(`/api/schemes/fingerprint?${params.toString()}`, {
+                authenticated: true,
+            });
+        },
+    },
+    {
+        name: "find_behaviourally_similar_schemes",
+        description: "READ TOOL — the REDUNDANCY RADAR. Given a scheme key, find catalogue schemes that are behaviourally similar to it. Mechanism: bucket the catalogue by the target's fingerprint (necessary condition, indexed) then VERIFIER-CONFIRM each candidate (authoritative). Returns `{ schemeKey, behaviourFingerprint, candidatesConsidered, hits, note }` where each hit is `{ schemeKey, schemeName, verdict, fingerprintMatched }`, ordered `equal` → `subset` → `incomparable` → `inconclusive`. **An empty `hits` list means 'no behavioural near-duplicate found', NOT 'not checked'.** Use before authoring or importing a new scheme to avoid creating a folksonomy duplicate, or to audit the catalogue for redundancy. Anonymous; no API token required.",
+        inputSchema: zodToJsonSchema(FindSimilarSchemesInput),
+        async handler(args) {
+            const input = FindSimilarSchemesInput.parse(args);
+            const params = new URLSearchParams({ key: input.schemeKey, k: String(input.k) });
+            if (input.searchBoundMs)
+                params.set("searchBoundMs", String(input.searchBoundMs));
+            return await isoFetch(`/api/schemes/similar?${params.toString()}`, {
+                authenticated: true,
+            });
+        },
+    },
+    // ── Phase D — provenance read tools ─────────────────────────────
+    {
+        name: "get_scheme_provenance",
+        description: "READ TOOL — return the PROVENANCE of an argumentation scheme: `{ schemeKey, sourceCatalogue, sourceId, sourceVersion, importedAt, importerVersion, createdBy, createdAt }`. Every field echoes a stored column verbatim (Q-022 source-of-record + Q-024 chronological audit) — nothing is derived. `sourceCatalogue` is the upstream catalogue of record (one of `AIF`, `AIFdb`, `Argdown`, `WRM-2008`, `admin-authored`); the `sourceId`/`sourceVersion`/`importedAt`/`importerVersion` fields are populated only for rows imported from an external catalogue and are `null` for admin-authored rows. `createdBy` is `null` for pre-Q024 migrated rows (their `createdAt` is the migration moment, not the true authoring time). Use this to attribute a scheme to its catalogue of record before citing it, or to audit where a folksonomy key came from. Anonymous; no API token required.",
+        inputSchema: zodToJsonSchema(GetSchemeProvenanceInput),
+        async handler(args) {
+            const input = GetSchemeProvenanceInput.parse(args);
+            const params = new URLSearchParams({ key: input.schemeKey });
+            return await isoFetch(`/api/schemes/provenance?${params.toString()}`, {
+                authenticated: true,
+            });
+        },
+    },
+    {
+        name: "compare_scheme_provenance",
+        description: "READ TOOL — the 'same scheme under two presentations?' DIAGNOSTIC. Composes two `get_scheme_provenance` reads with the behaviour-equality VERIFIER. Returns `{ keyA, keyB, provenanceA, provenanceB, sameSource, sourceDelta, behaviourFingerprintEqual, verifierVerdict, note }`. `sameSource` is true iff both rows share the same `sourceCatalogue` + `sourceId`. `sourceDelta` is a per-field diff (each field maps to `{ a, b }` when the sides disagree, or `null` when they match). `behaviourFingerprintEqual` is a NECESSARY-but-NOT-SUFFICIENT pre-filter; `verifierVerdict` (`equal` | `subset` | `incomparable` | `inconclusive`) is the AUTHORITATIVE behaviour-equality answer — never read `inconclusive` as `incomparable`. Two keys that are `sameSource: false` but `verifierVerdict: 'equal'` are strong duplicate-import candidates; two that share a source but differ behaviourally have drifted across versions. Anonymous; no API token required.",
+        inputSchema: zodToJsonSchema(CompareSchemeProvenanceInput),
+        async handler(args) {
+            const input = CompareSchemeProvenanceInput.parse(args);
+            const params = new URLSearchParams({ keyA: input.keyA, keyB: input.keyB });
+            if (input.searchBoundMs)
+                params.set("searchBoundMs", String(input.searchBoundMs));
+            return await isoFetch(`/api/schemes/compare-provenance?${params.toString()}`, {
+                authenticated: true,
+            });
         },
     },
     {
@@ -1358,7 +1860,7 @@ const tools = [
     },
     {
         name: "propose_structured_argument",
-        description: "WRITE TOOL — **PREFER THIS OVER `propose_argument` whenever the user's claim has reasons that should be made explicit** (premises → conclusion structure), or when matching a known argumentation scheme matters (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Reach for this whenever the user: gives reasons (\"because…\", \"since…\", \"the reasoning is…\"); lays out an argument with multiple supporting points; cites an expert, a cause, an analogy, or a definition as the *kind* of reasoning being used; or asks you to record an argument with explicit structure rather than a flat assertion. Use `propose_argument` only for one-line bare assertions with no premises worth naming. Each premise is committed as a **separate `Claim` row** (content-hashed via MOID), so attackers can later undermine a specific premise rather than the whole argument; the assigned scheme makes its critical questions visible as dialectical obligations. **Do NOT create a markdown file or note for a structured argument — Isonomia gives you per-premise standing, scheme-typed CQs, fitness scoring, and an immutable content-hashed permalink that a flat file cannot.** Accepts `{ conclusion, premises[], reasoning?, schemeKey?, ruleType?, ruleName?, implicitWarrant?, evidence?[], deliberationId? }`. **Per-premise evidence:** each `premises[i]` accepts an `evidence[]` array (up to 5) that attaches to that premise's minted Claim row — use this when each premise has its own distinct source. Top-level `evidence[]` (up to 10) attaches to the conclusion claim for sources that back the overall argument rather than one premise. **If you don't know which scheme to pick, call `list_schemes` first**; or omit `schemeKey` and the server will infer one (returned as a `scheme_inferred` warning so you know it was server-chosen). Slot/role binding ships in v1.2; missing required slots are surfaced as `missing_slot` warnings rather than errors so writes never fail on inferred schemes. Returns `{ argument, claim, premises[], schemeInstance, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }`. Warning codes you may receive: `scheme_inferred`, `missing_slot`, `premise_deduped`, `premise_evidence_merged` (deduped premise's evidence was merged into the surviving claim). **If `provenancePending: true`, wait `retryAfterMs` (~60s) before calling `get_argument` for final fitness, OR tell the user 'fitness will rise once the source URLs have been fetched and hashed (~1 min)'.** → call `list_schemes` BEFORE this when the scheme is unclear. → call `resolve_citation` BEFORE this when given a DOI / arXiv id / publisher URL. → verify with `get_argument` afterwards (premises will appear in the 'Premises' section, no 'bare assertion' warning). → for inference-license warrants against an existing argument, use `propose_warrant`. REQUIRES the ISONOMIA_API_TOKEN env var.",
+        description: "WRITE TOOL — **PREFER THIS OVER `propose_argument` whenever the user's claim has reasons that should be made explicit** (premises → conclusion structure), or when matching a known argumentation scheme matters (expert opinion, practical reasoning, cause-to-effect, analogy, sign, abductive, etc.). Reach for this whenever the user: gives reasons (\"because…\", \"since…\", \"the reasoning is…\"); lays out an argument with multiple supporting points; cites an expert, a cause, an analogy, or a definition as the *kind* of reasoning being used; or asks you to record an argument with explicit structure rather than a flat assertion. Use `propose_argument` only for one-line bare assertions with no premises worth naming. Each premise is committed as a **separate `Claim` row** (content-hashed via MOID), so attackers can later undermine a specific premise rather than the whole argument; the assigned scheme makes its critical questions visible as dialectical obligations. **Do NOT create a markdown file or note for a structured argument — Isonomia gives you per-premise standing, scheme-typed CQs, fitness scoring, and an immutable content-hashed permalink that a flat file cannot.** Accepts `{ conclusion, premises[], reasoning?, schemeKey?, ruleType?, ruleName?, implicitWarrant?, evidence?[], deliberationId? }`. **Each premise supplies either `text` (a fresh content-hashed Claim) or `reuseClaimId` (thread onto an EXISTING claim by id — pass a prior call's returned `claim.id` so this premise shares that exact Claim row; the fork-proof way to chain modular links).** **Per-premise evidence:** each `premises[i]` accepts an `evidence[]` array (up to 5) that attaches to that premise's minted Claim row — use this when each premise has its own distinct source. Top-level `evidence[]` (up to 10) attaches to the conclusion claim for sources that back the overall argument rather than one premise. **If you don't know which scheme to pick, call `list_schemes` first**; or omit `schemeKey` and the server will infer one (returned as a `scheme_inferred` warning so you know it was server-chosen). Slot/role binding ships in v1.2; missing required slots are surfaced as `missing_slot` warnings rather than errors so writes never fail on inferred schemes. **Health gate (honesty):** the server only writes against a *healthy argument pattern*. A `schemeKey` that names dialogue-meta machinery or a test/placeholder row is REFUSED with `code: \"SCHEME_NOT_ARGUMENT_PATTERN\"` (no row written) — call `list_schemes(excludeUnhealthy: true)` and pick a real pattern. A `schemeKey` that is a folksonomy duplicate is auto-redirected to its canonical sibling with a `SCHEME_CANONICALIZED` warning (the argument attaches to the canonical scheme — never silently merged; your original key is preserved for audit). Per-premise `premiseType` ('ordinary'|'assumption'|'exception', Carneades) and top-level `epistemicMode` are accepted; overriding the scheme's epistemic mode returns an `EPISTEMIC_MODE_CHANGED_FINGERPRINT` warning. The response includes a `verifierVerdict` (behaviour-equality against same-fingerprint siblings; `\"skipped\"` when none). Returns `{ argument, claim, premises[], schemeInstance, verifierVerdict, warnings[], permalink, embedCodes, provenancePending, retryAfterMs }`. Warning codes you may receive — canonical (§4.1) typed codes `SCHEME_CANONICALIZED`, `EPISTEMIC_MODE_CHANGED_FINGERPRINT`, `VERIFIER_INCONCLUSIVE` (each carries a `canonical` field with the corrected/applied value), plus operational diagnostics `scheme_inferred`, `scheme_behaviour_verdict`, `missing_slot`, `premise_deduped`, `premise_evidence_merged` (deduped premise's evidence was merged into the surviving claim). Refusals return a top-level `code` + `canonical` (`null` when there is no automatic fix): `SCHEME_UNKNOWN` (key not in `list_schemes`) or `SCHEME_NOT_ARGUMENT_PATTERN` (dialogue-meta / test placeholder). **If `provenancePending: true`, wait `retryAfterMs` (~60s) before calling `get_argument` for final fitness, OR tell the user 'fitness will rise once the source URLs have been fetched and hashed (~1 min)'.** → call `list_schemes` BEFORE this when the scheme is unclear. → call `resolve_citation` BEFORE this when given a DOI / arXiv id / publisher URL. → verify with `get_argument` afterwards (premises will appear in the 'Premises' section, no 'bare assertion' warning). → for inference-license warrants against an existing argument, use `propose_warrant`. REQUIRES the ISONOMIA_API_TOKEN env var.",
         inputSchema: zodToJsonSchema(ProposeStructuredArgumentInput),
         async handler(args) {
             if (!API_TOKEN) {
@@ -1366,6 +1868,46 @@ const tools = [
             }
             const input = ProposeStructuredArgumentInput.parse(args);
             return await isoFetch(`/api/arguments/quick-structured`, {
+                method: "POST",
+                authenticated: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+            });
+        },
+    },
+    {
+        name: "propose_argument_chain",
+        description: "WRITE TOOL — author a **serial argument chain**: a sequence of structured arguments where each link's conclusion becomes the next link's premise. **Use this when the user lays out multi-step reasoning** (\"A, therefore B; and B, therefore C\") rather than a single argument — prefer it over emitting several disconnected `propose_structured_argument` calls, because this tool wires the links into one navigable chain and reports the worst-link standing. Each link is committed as a full structured argument (per-premise content-hashed `Claim` rows, an assigned scheme with its critical questions); consecutive links are wired by **reusing the prior link's conclusion claim** — pass `reuseClaimId` from the previous link's returned `conclusionClaimId` (robust — this is the **recommended** threading mechanism), or repeat the prior link's exact conclusion text and the server threads it by content hash (a `chain_link_autothreaded` warning confirms it). The server runs the **same scheme-health gate as `propose_structured_argument` on EVERY link** and refuses unhealthy/non-argument scheme keys — one bad link rolls back the whole chain (atomic). A reuse that forks (declared text mis-hashes) → `CHAIN_LINK_BROKEN`; a forward/cyclic thread → `CHAIN_LINK_INVALID_THREAD`. **Do NOT write a markdown file for multi-step reasoning — Isonomia gives you per-link standing, scheme-typed CQs, a shared-claim graph, and an immutable permalink a flat file cannot.** Accepts `{ name, description?, purpose?, deliberationId?, isPublic?, mode?, links[], argumentIds? }`. `mode='mint-and-link'` (default) mints 2–12 links; `mode='compose'` chains 2–20 EXISTING arguments by id. Returns the chain id/permalink, per-link `schemeInstance`/`schemeHealth`/`verifierVerdict`, the `threading` map (which links share which claim), and the worst-link `chainStanding` — **a chain is only as citable as its weakest link.** **BRANCHING, ATTACKS & SUPPOSITIONS (optional, default off):** to author a non-serial structure supply `edges[]` declaring typed relations between links by index (`SUPPORTS` threads a claim forward; `CONVERGENT`/`DIVERGENT`/`TREE`/`GRAPH` shapes emerge from the edge set and the server reports the derived `chainType` — pin it with `expectChainType`, mismatch → `CHAIN_TYPE_MISMATCH`; a support cycle → `CHAIN_CYCLE_DETECTED`). To **object** to a link, give it `attacksNode: <i>` (REBUTS the conclusion / UNDERMINES a premise via `attackType`) or `attacksEdge: { from, to }` (**UNDERCUT the inference itself** — the reasoning link, not the claims). To reason **under a supposition**, declare `scopes[]` (e.g. `{ scopeType: \"HYPOTHETICAL\", assumption: \"If the carbon tax passes\" }`) and place links inside one with `scope: <index>`; those nodes are recorded as hypothetical/counterfactual and cannot leak into the asserted world (`SCOPE_LEAK`). Evidence items may now carry an executable `anchorType` + `anchorData` (page / passage / timestamp / region) and a semantic `intent` (supports / refutes / context / …), stored as a resolvable `Citation` against the link's claim. **All of these advanced structures (`edges[]`, attacks, `scopes[]`, anchored evidence) require `mode: 'mint-and-link'` — they ride on `links[]`, so `mode: 'compose'` (ids only) cannot express them.** All are optional — omit them for the plain serial-chain behaviour. Call `list_schemes(excludeUnhealthy:true)` first if unsure of scheme keys. **ALWAYS pass a stable `requestId`** (a UUID you generate ONCE for this chain) on EVERY mode — it makes the write retry-safe: if a call times out at the HTTP layer, RETRY the SAME call with the SAME `requestId` and the server replays the chain that already landed (`idempotentReplay:true`) instead of duplicating it (never `get_chains`-then-recreate to 'check'). **RECOMMENDED WORKFLOW — build modular, then compose:** for any chain you are minting from scratch (and ALWAYS for >3 links or evidence-heavy links), do NOT one-shot it. Instead: (1) call `propose_structured_argument` once per link — each is a small, fast write whose response carries the just-minted `argument.id` and conclusion-claim `claim` (`{ id, text, moid }`); (2) thread each link by giving the next link a `{ reuseClaimId: <prior link's claim.id> }` premise — fork-proof claim sharing, no reliance on byte-exact text (an unknown/cross-deliberation id is rejected with `PREMISE_CLAIM_NOT_FOUND`); (3) call this tool with `mode='compose'`, the collected `argument.id`s in spine order (as `argumentIds`), and a `requestId` — compose wires them into a serial spine in the order given (it does NOT re-thread, so the shared-claim threading must already be done in step 2). The payoff: every write stays under the timeout, a single failed link can be retried in isolation instead of rolling back the whole chain, and threading is fork-proof. **One-shot `mode='mint-and-link'`** (passing `links[]` directly) is a convenience for SMALL, evidence-light chains (2–3 links) only. → next: `get_chains` to verify the chain's standing before citing its terminal conclusion.",
+        inputSchema: zodToJsonSchema(ProposeArgumentChainInput),
+        async handler(args) {
+            if (!API_TOKEN) {
+                throw new Error("propose_argument_chain requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set to a valid Isonomia bearer token.");
+            }
+            const input = ProposeArgumentChainInput.parse(args);
+            return await isoFetch(`/api/argument-chains/quick-chain`, {
+                method: "POST",
+                authenticated: true,
+                // A mint-and-link chain commits arguments, schemes, edges, scopes and
+                // citations in ONE transaction, which routinely runs past the default
+                // 30s client timeout for a ~10-link chain. Give it 120s so the FIRST
+                // call returns the persisted result instead of aborting mid-write and
+                // forcing a trust-the-idempotency-replay round trip.
+                timeoutMs: 120_000,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+            });
+        },
+    },
+    {
+        name: "answer_critical_question",
+        description: "WRITE TOOL — answer a scheme-typed **critical question** on an existing argument, satisfying one of its open dialectical obligations. **Use this whenever a `get_argument` result shows entries under `criticalQuestions.unanswered[]`** (the `criticalQuestions` field is a single aggregate object: `{ schemeKey, total, answered[], partiallyAnswered[], unanswered[] }`) — e.g. you authored an expert-opinion argument and can now supply the expert's credentials (the 'expertise' CQ), or you want to discharge a cause-to-effect argument's 'other-causes' CQ. Each CQ is a named challenge the argument's scheme demands be met; answering it raises the argument's dialectical fitness and closes the obligation. **WORKFLOW:** call `get_argument` first, read its `criticalQuestions` aggregate, pick an entry from `unanswered[]` (or `partiallyAnswered[]`), and pass that entry's `cqKey` (plus its `schemeKey` if the same key appears on multiple schemes) here with your `groundsText`. **SELF-CANONICALISATION:** pass the SAME `sessionId` you used when you created the argument — when it matches the argument's AI provenance, your answer is promoted directly to **CANONICAL** (the official answer, CQ marked SATISFIED) in one transaction. Answering with a different/absent session, or answering **someone else's** (or a human-authored) argument, records your answer as a **PENDING** proposal — visible, but a human approves it on the web CQ panel — and returns a non-fatal `CQ_SELF_CANONICAL_DENIED` warning. `promoteToCanonical` defaults true but is a SOFT request (denied → still recorded PENDING, never an error). Accepts `{ argumentId, cqKey, schemeKey?, groundsText, evidenceClaimIds?[], sourceUrls?[], sessionId?, promoteToCanonical?, requestId? }`. Returns `{ cqStatusId, responseId, responseStatus, canonical, cqStatusEnum, permalink, warnings[] }`. Error codes: CQ_ARGUMENT_NOT_FOUND, CQ_NOT_FOUND (no such cqKey on the argument's schemes), CQ_AMBIGUOUS_SCHEME (pass schemeKey), CQ_EVIDENCE_NOT_FOUND, CQ_DUPLICATE_PENDING (409 — you already have a pending answer on this CQ).",
+        inputSchema: zodToJsonSchema(AnswerCriticalQuestionInput),
+        async handler(args) {
+            if (!API_TOKEN) {
+                throw new Error("answer_critical_question requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set to a valid Isonomia bearer token.");
+            }
+            const input = AnswerCriticalQuestionInput.parse(args);
+            return await isoFetch(`/api/cqs/answer`, {
                 method: "POST",
                 authenticated: true,
                 headers: { "Content-Type": "application/json" },
@@ -1543,7 +2085,7 @@ const tools = [
                 throw new Error("propose_warrant requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set to a valid Isonomia bearer token.");
             }
             const input = ProposeWarrantInput.parse(args);
-            const { deliberationId, argumentId, warrantText, authorKind, model, promptHash, sourceUrls, hint } = input;
+            const { deliberationId, argumentId, warrantText, authorKind, model, promptHash, sourceUrls, hint, sessionId } = input;
             return await isoFetch(`/api/v3/deliberations/${encodeURIComponent(deliberationId)}/ecc/propose-warrant`, {
                 method: "POST",
                 authenticated: true,
@@ -1553,6 +2095,7 @@ const tools = [
                     warrantText,
                     authorKind,
                     aiProvenance: { model, promptHash, sourceUrls, hint },
+                    ...(sessionId ? { sessionId } : {}),
                 }),
             });
         },

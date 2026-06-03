@@ -47,6 +47,10 @@ const ProposeWarrantSchema = z.object({
   ludicMoveId: z.string().optional(),
   dialogueMoveId: z.string().optional(),
   schemeKey: z.string().optional(),
+  // Per-session capability token (roadmap S1). Recorded in
+  // `aiProvenance.sessionId` so the same MCP session can later
+  // self-canonicalise its answers to this warrant argument's critical questions.
+  sessionId: z.string().min(1).max(200).optional(),
 });
 
 async function resolveCallerUserId(req: NextRequest): Promise<string | null> {
@@ -108,6 +112,7 @@ export async function POST(
     ...body.aiProvenance,
     generatedAt: new Date().toISOString(),
     via: "mcp:propose_warrant",
+    ...(body.sessionId ? { sessionId: body.sessionId } : {}),
   };
 
   const warrantClaim = await prisma.claim.upsert({

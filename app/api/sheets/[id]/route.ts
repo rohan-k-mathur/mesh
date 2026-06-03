@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
-import { buildAttackGraph, preferredExtensions, groundedExtension } from '@/lib/argumentation';
+import {
+  buildAttackGraph,
+  toDefeatGraphFromAttackMap,
+  labellingToSets,
+  policyLabelling,
+  resolveSemanticsPolicy,
+} from '@/lib/argumentation';
 
 const Q = z.object({
-  semantics: z.enum(['preferred','grounded']).default('preferred'),
+  // Optional per-request override; when absent the stored per-deliberation
+  // setting (Deliberation.argumentSemantics) is used, then the engine default.
+  semantics: z.enum(['preferred','grounded','stable']).optional(),
 });
 
 // Enhanced type with Phase 2 metadata
@@ -134,12 +142,22 @@ export const revalidate = 0;
  */
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const { semantics } = Q.parse(Object.fromEntries(new URL(req.url).searchParams));
+  const { semantics: semanticsOverride } = Q.parse(Object.fromEntries(new URL(req.url).searchParams));
   const rawId = decodeURIComponent(params.id || '').trim();
   if (!rawId) return NextResponse.json({ error: 'Missing sheet id' }, { status: 400 });
 
   // --- Mode A: explicit deliberation sheet via "delib:<id>" or a bare deliberation id
   const deliberationId = rawId.startsWith('delib:') ? rawId.slice(6) : rawId;
+
+  // Phase 4b: the acceptance-semantics policy is a stored per-deliberation
+  // setting; an explicit ?semantics= query param overrides it for this request.
+  const delibSetting = await prisma.deliberation
+    .findUnique({ where: { id: deliberationId }, select: { argumentSemantics: true } })
+    .catch(() => null);
+  const policy = resolveSemanticsPolicy({
+    override: semanticsOverride,
+    stored: delibSetting?.argumentSemantics ?? null,
+  });
 
   // If a DebateSheet with this id exists, prefer the *sheet-backed* view.
   const sheet = await prisma.debateSheet.findUnique({
@@ -149,7 +167,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   let nodes: SheetNode[] = [];
   let edges: SheetEdge[] = [];
-  let acceptance: { semantics: string; labels: Record<string, AcceptanceLabel> } = { semantics, labels: {} };
+  let acceptance: { semantics: string; labels: Record<string, AcceptanceLabel> } = { semantics: policy, labels: {} };
   let resolvedDelibId: string | null = null;
 
   
@@ -248,18 +266,11 @@ edges = dEdges
       .filter(e => e.kind === 'rebut' || e.kind === 'undercut')
       .map(e => ({ from: e.fromId, to: e.toId, type: e.kind }));
     const attackMap = buildAttackGraph(ids, attacks);
-    let IN = new Set<string>();
-    if (semantics === 'grounded') {
-      IN = groundedExtension(ids, attackMap);
-    } else {
-      const exts = preferredExtensions(ids, attackMap) ?? [];
-      if (exts.length) for (const n of exts[0]) if (exts.every(E => E.has(n))) IN.add(n);
-    }
-    const OUT = new Set<string>();
-    for (const [att, tos] of attackMap) if (IN.has(att)) for (const t of tos) if (!IN.has(t)) OUT.add(t);
+    const dg = toDefeatGraphFromAttackMap(ids, attackMap);
+    const { IN, OUT } = labellingToSets(policyLabelling(dg, policy));
     const labels: Record<string, AcceptanceLabel> = {};
     for (const id of ids) labels[id] = IN.has(id) ? 'accepted' : OUT.has(id) ? 'rejected' : 'undecided';
-    acceptance = { semantics, labels };
+    acceptance = { semantics: policy, labels };
 
     // resolvedDelibId already set earlier in this block
   } else {
@@ -301,18 +312,11 @@ edges = dEdges
       .filter(e => e.type === 'rebut' || e.type === 'undercut')
       .map(e => ({ from: e.fromArgumentId, to: e.toArgumentId, type: e.type as 'rebut'|'undercut' }));
     const attackMap = buildAttackGraph(A, attacks);
-    let IN = new Set<string>();
-    if (semantics === 'grounded') {
-      IN = groundedExtension(A, attackMap);
-    } else {
-      const exts = preferredExtensions(A, attackMap) ?? [];
-      if (exts.length) for (const n of exts[0]) if (exts.every(E => E.has(n))) IN.add(n);
-    }
-    const OUT = new Set<string>();
-    for (const [att, tos] of attackMap) if (IN.has(att)) for (const t of tos) if (!IN.has(t)) OUT.add(t);
+    const dg = toDefeatGraphFromAttackMap(A, attackMap);
+    const { IN, OUT } = labellingToSets(policyLabelling(dg, policy));
     const labels: Record<string, AcceptanceLabel> = {};
     for (const id of A) labels[id] = IN.has(id) ? 'accepted' : OUT.has(id) ? 'rejected' : 'undecided';
-    acceptance = { semantics, labels };
+    acceptance = { semantics: policy, labels };
     resolvedDelibId = deliberationId;
   }
 

@@ -48,6 +48,14 @@ export interface IsoFetchInit extends RequestInit {
    * that has the deliberationId in its args.
    */
   ludicsDeliberationId?: string;
+  /**
+   * Per-request timeout override in ms. Defaults to TIMEOUT_MS (30000). Heavy
+   * one-shot writes (e.g. a `mint-and-link` argument chain whose single
+   * transaction mints many arguments, schemes, edges, scopes and citations)
+   * can exceed the default; pass a larger value so the call returns the real
+   * result instead of aborting client-side while the write commits server-side.
+   */
+  timeoutMs?: number;
 }
 
 /**
@@ -61,7 +69,8 @@ export async function isoFetch<T = unknown>(
 ): Promise<T> {
   const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeoutMs = init.timeoutMs ?? TIMEOUT_MS;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const headers = new Headers(init.headers);
   headers.set("User-Agent", USER_AGENT);
 
@@ -118,7 +127,7 @@ export async function isoFetch<T = unknown>(
     }
   } catch (err: any) {
     if (err?.name === "AbortError") {
-      throw new Error(`Request to ${url} timed out after ${TIMEOUT_MS}ms`);
+      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
     }
     throw err;
   } finally {

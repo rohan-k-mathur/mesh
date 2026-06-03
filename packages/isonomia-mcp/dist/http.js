@@ -37,7 +37,8 @@ export const USER_AGENT = "isonomia-mcp/0.1.0 (+https://isonomia.app/mcp)";
 export async function isoFetch(path, init = {}) {
     const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timeoutMs = init.timeoutMs ?? TIMEOUT_MS;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const headers = new Headers(init.headers);
     headers.set("User-Agent", USER_AGENT);
     // Ludics auto-mint takes precedence over the static API_TOKEN when configured
@@ -93,7 +94,7 @@ export async function isoFetch(path, init = {}) {
     }
     catch (err) {
         if (err?.name === "AbortError") {
-            throw new Error(`Request to ${url} timed out after ${TIMEOUT_MS}ms`);
+            throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
         }
         throw err;
     }
