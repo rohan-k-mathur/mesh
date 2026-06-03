@@ -4285,6 +4285,11 @@ model CQResponse {
   // Provenance
   contributorId String // Who wrote this response (auth_id string)
 
+  // Idempotency (Roadmap S3 §4.6) — caller-supplied key (the MCP `requestId`)
+  // that makes an answer write retry-safe. NULLs are distinct in Postgres, so
+  // keyless answers are unaffected. Mirrors `ArgumentChain.idempotencyKey`.
+  requestId String? @db.VarChar(200)
+
   reviewedAt  DateTime?
   reviewedBy  String? // Author or moderator who approved/rejected (auth_id)
   reviewNotes String? // Why approved/rejected
@@ -4307,6 +4312,7 @@ model CQResponse {
   // Activity log
   activities CQActivityLog[]
 
+  @@unique([contributorId, requestId])
   @@index([cqStatusId, responseStatus])
   @@index([contributorId])
   @@index([responseStatus, createdAt])
@@ -4618,6 +4624,16 @@ enum ProofMode {
   asymmetric // stricter burden for Proponent
 }
 
+// Acceptance-semantics policy for the abstract-argumentation (Dung) layer.
+// Surfaced as a stored per-deliberation setting (consolidation roadmap Phase 4b)
+// so the choice is explicit rather than a scattered query-param default: an odd
+// defeat cycle has no grounded verdict (Q-031), so the semantics must be chosen.
+enum ArgumentSemantics {
+  grounded // skeptical, unique least labelling
+  preferred // skeptical over maximal admissible extensions
+  stable // skeptical over extensions with no undecided argument
+}
+
 model Deliberation {
   id              String               @id @default(cuid())
   hostType        DeliberationHostType
@@ -4650,6 +4666,10 @@ model Deliberation {
   IssueLink IssueLink[]
 
   proofMode ProofMode @default(symmetric)
+
+  // Consolidation roadmap Phase 4b: stored acceptance-semantics policy for the
+  // Dung layer (skeptical-grounded vs skeptical-preferred vs skeptical-stable).
+  argumentSemantics ArgumentSemantics @default(preferred)
 
   // Phase 2.3: Dempster-Shafer mode toggle
   dsMode Boolean @default(false)
@@ -7790,6 +7810,12 @@ model ArgumentChain {
   isPublic   Boolean @default(false)
   isEditable Boolean @default(false)
 
+  // Idempotency: a caller-supplied request key (e.g. the MCP `requestId`) that
+  // makes chain creation retry-safe. A retry carrying the same key returns the
+  // already-created chain instead of minting a duplicate. Unique per creator;
+  // NULL for chains created without a key (Postgres treats NULLs as distinct).
+  idempotencyKey String? @db.VarChar(200)
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -7807,6 +7833,7 @@ model ArgumentChain {
 
   @@index([deliberationId])
   @@index([createdBy])
+  @@unique([createdBy, idempotencyKey])
 }
 
 // Scope for grouping hypothetical/counterfactual arguments

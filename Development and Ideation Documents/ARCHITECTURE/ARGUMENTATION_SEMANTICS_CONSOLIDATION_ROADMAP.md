@@ -170,6 +170,14 @@ optimisation behind the same `semantics.ts` surface.
 Makes preferences actually bind on preferred/stable (today they only reach
 grounded via [`lib/aspic/`](../../lib/aspic/)).
 
+**Status: ✅ done (2026-06-01).** Bridge in
+[`lib/argumentation/instantiate.ts`](../../lib/argumentation/instantiate.ts);
+[`lib/aspic/semantics.ts`](../../lib/aspic/semantics.ts) `computeGroundedExtension`
+now delegates to the shared core. Tests in
+[`__tests__/instantiate.test.ts`](../../lib/argumentation/__tests__/instantiate.test.ts);
+existing ASPIC+ suites (`tests/aspic/semantics`, `rationality`, `core`,
+`strictRules`, `transposition`) remain green as the regression gate.
+
 - 2a. Implement `instantiate.ts`: ASPIC+ attacks +
   [`defeats.ts`](../../lib/aspic/defeats.ts) preference resolution → typed
   `DefeatGraph` consumed by the Dung core.
@@ -181,7 +189,42 @@ grounded via [`lib/aspic/`](../../lib/aspic/)).
   defeat graph; preferences influence every semantics.
 - **Gate:** postulate tests pass on the aspirin fact-base fixtures.
 
-### Phase 3 — Typed bridge integration (level separation + provenance)
+**Phase 2 outcome.** `instantiateDefeatGraph(args, defeats)` turns a
+preference-resolved ASPIC+ `Defeat[]` relation (defeater → defeated) into the
+representation-neutral `DefeatGraph`, so structured theories now get the *same*
+exact grounded / preferred / stable / semi-stable as every other caller —
+preferences carried by `defeats.ts` reach preferred/stable for the first time
+(tested: a⇄b instantiates to two preferred/stable extensions; an asymmetric
+preference-resolved defeat yields a single winner). `computeGroundedExtension`
+keeps its `GroundedExtension` shape (incl. the `iterations` diagnostic, now fed
+by the core's `groundedLabellingDetailed`) but no longer runs a private fixpoint
+loop; its dead `characteristicFunction`/`computeDefeatedBy` helpers were removed.
+Deviation: 2b's rationality postulates were already implemented in
+[`lib/aspic/rationality.ts`](../../lib/aspic/rationality.ts) and exercised by
+`tests/aspic/rationality.test.ts` — kept as-is (they operate on the ASPIC+
+`GroundedExtension`, which is now core-derived), rather than re-encoded against
+the raw `DefeatGraph`.
+
+### Phase 3 — Typed bridge integration (level separation + provenance) ✅ done
+
+> **Outcome.** The runtime contract's §3/§4 in-fragment vs unverified split is
+> now a type-level invariant. `types.ts` `DefeatGraph` carries optional
+> `preferences` and a per-argument `provenance` map (`verified-propositional` |
+> `unverified-higher-order`, C3); absent entries default to verified so all
+> Phase 1/2 callers and `instantiateDefeatGraph` stay backward-compatible. New
+> `acceptability.ts` exposes (a) the level-separated aggregation layer — a
+> branded `FiniteArgumentSet` for `𝒫_fin(Inc(B))` with the free-JSL join
+> (`liftToPowerSet` / `joinArgumentSets` / `joinAll`, C4) so route handlers
+> cannot merge designs inside `Inc(B)`; (b) the **acceptability functor**
+> `acceptability(dg): Labelling` (the finite grounded fixpoint, Q-031); and
+> (c) the contract §4 guard — `unverifiedArguments`, `isCanonicalPersistable`,
+> `assertCanonicalPersistable` (throws), `partitionByProvenance`. All re-exported
+> from `@/lib/argumentation`. Gate met: `acceptability.test.ts` feeds a
+> λ-abstraction instance and asserts it is *labelled* but routed to the
+> unverified path and refused as canonical (T-GUARD), and feeds odd/even
+> cyclic-`Γ` instances and asserts they are in-fragment and resolved by the
+> finite fixpoint (odd → all-UNDEC). 22 AF/bridge tests + 48 ASPIC+ regression
+> tests green.
 
 - 3a. `types.ts`: `DefeatGraph = { arguments, attacks, preferences, provenance }`
   where `provenance ∈ { verified-propositional, unverified-higher-order }` (C3).
@@ -197,7 +240,31 @@ grounded via [`lib/aspic/`](../../lib/aspic/)).
   instance and asserts it is **in fragment** and resolved by the finite
   acceptability fixpoint.
 
-### Phase 4 — Performance & policy (incremental, deferrable)
+### Phase 4 — Performance & policy (incremental, deferrable) ✅ done
+
+> **Outcome.** All three parts landed. (4a) `incremental.ts` recomputes the
+> grounded labelling on graph extension by recomputing only the *affected
+> region* — newly-added arguments, arguments whose attacker set changed, and the
+> forward-reachable closure along attack edges — reusing the previous labels for
+> the untouched part. It is exact, not approximate (C2): `relabelOnExtend` is
+> proven bit-for-bit identical to a full recompute, asserted on 40 randomised
+> extensions plus chain/cycle cases. (4b) The acceptance semantics is now a
+> stored per-deliberation setting: schema enum `ArgumentSemantics { grounded |
+> preferred | stable }` with `Deliberation.argumentSemantics @default(preferred)`
+> (pushed via `prisma db push`), and `policy.ts` exposes
+> `resolveSemanticsPolicy({ override, stored })` (precedence: query-param override
+> → stored setting → default) and `policyLabelling(dg, policy)` as the single
+> dispatch point. The two route handlers
+> ([`sheets/[id]`](../../app/api/sheets/[id]/route.ts),
+> [`deliberations/[id]/dialectic`](../../app/api/deliberations/[id]/dialectic/route.ts))
+> now resolve the stored policy and delegate to `policyLabelling`, deleting their
+> inline grounded/preferred branching. (4c) The deprecated `lib/deepdive/af.ts`
+> and `lib/argumentation/afEngine.ts` engines were deleted; their still-needed
+> adapter content (attack-map + edge-list ↔ `DefeatGraph` translation) moved into
+> the non-deprecated `lib/argumentation/adapters.ts`, leaving zero references to
+> the removed modules. Gate met: lint clean on all changed files; 14 new Phase 4
+> tests + 112 AF/ASPIC+ tests green (the lone failure is the pre-existing
+> DB-dependent `schemeInference.phase4` suite, unrelated to the engine).
 
 - 4a. `incremental.ts`: monotone grounded relabelling on graph extension —
   adding arguments only shifts IN→UNDEC/OUT downstream, so deliberation updates

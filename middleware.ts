@@ -19,6 +19,9 @@ const PUBLIC_API = [
   // Crawlers, LLM agents, and oEmbed consumers need unauthenticated access.
   /^\/api\/a\/[^/]+(\/.*)?$/,
   /^\/api\/c\/[^/]+(\/.*)?$/,
+  // Public argument-chain machine-citable surface (PUBLIC_CHAIN_PAGE_SPEC).
+  // Route returns only `isPublic` chains; 404 otherwise.
+  /^\/api\/chains\/[^/]+(\/.*)?$/,
   /^\/api\/og\/argument\//,
   /^\/api\/og\/claim\//,
   /^\/api\/oembed/,
@@ -54,6 +57,9 @@ const PUBLIC_API = [
   // Chain-creation write seam for the MCP `propose_argument_chain` tool
   // (route enforces bearer / session).
   /^\/api\/argument-chains\/quick-chain\/?$/,
+  // CQ-answer write seam for the MCP `answer_critical_question` tool
+  // (route enforces bearer / session; self-canonicalisation is server-gated).
+  /^\/api\/cqs\/answer\/?$/,
   // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
   /^\/api\/v3\/openapi\.json$/,
   /^\/api\/v3\/docs\/?$/,
@@ -79,6 +85,10 @@ const PUBLIC_API = [
 const PUBLIC_PAGES_RX = [
   /^\/a\/[^/]+\/?$/,
   /^\/c\/[^/]+\/?$/,
+  // Public argument-chain page (PUBLIC_CHAIN_PAGE_SPEC). Server component
+  // renders the empty state for private/missing chains, so anonymous GETs
+  // are safe to let through.
+  /^\/chains\/[^/]+\/?$/,
   /^\/embed\//,
 ];
 

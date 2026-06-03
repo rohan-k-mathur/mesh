@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
+import { CHAIN_PAGE_INCLUDE } from "@/lib/chains/chainInclude";
+import { serializeChain } from "@/lib/chains/serializeChain";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
@@ -9,185 +11,15 @@ export async function GET(
   { params }: { params: { chainId: string } }
 ) {
   try {
+    // Resolve the viewer optionally: public chains are readable by anyone,
+    // so we do not short-circuit to 401 before loading the chain.
     const user = await getUserFromCookies();
-    if (!user || !user.userId) {
-      return NextResponse.json(
-        { ok: false, error: "Unauthorized" },
-        { status: 401, ...NO_STORE }
-      );
-    }
 
     const { chainId } = params;
 
     const chain = await prisma.argumentChain.findUnique({
       where: { id: chainId },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-        deliberation: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-        nodes: {
-          include: {
-            argument: {
-              select: {
-                id: true,
-                text: true,
-                authorId: true,
-                createdAt: true,
-                // Include conclusion claim for proper display text
-                conclusion: {
-                  select: {
-                    id: true,
-                    text: true,
-                  },
-                },
-                // Include actual premises for prose structure analysis
-                premises: {
-                  include: {
-                    claim: {
-                      select: {
-                        id: true,
-                        text: true,
-                      },
-                    },
-                  },
-                },
-                // Include implicit warrant if any
-                implicitWarrant: true,
-                argumentSchemes: {
-                  include: {
-                    scheme: {
-                      select: {
-                        id: true,
-                        key: true,
-                        name: true,
-                        description: true,
-                        summary: true,
-                        cq: true,
-                        premises: true,
-                        conclusion: true,
-                        purpose: true,
-                        source: true,
-                        materialRelation: true,
-                        reasoningType: true,
-                        ruleForm: true,
-                        conclusionType: true,
-                        whenToUse: true,
-                        tags: true,
-                      },
-                    },
-                  },
-                },
-                schemeNet: {
-                  include: {
-                    steps: {
-                      include: {
-                        scheme: {
-                          select: {
-                            id: true,
-                            key: true,
-                            name: true,
-                            description: true,
-                            summary: true,
-                            cq: true,
-                            premises: true,
-                            conclusion: true,
-                            purpose: true,
-                            materialRelation: true,
-                            reasoningType: true,
-                          },
-                        },
-                      },
-                      orderBy: {
-                        stepOrder: "asc",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            contributor: {
-              select: {
-                id: true,
-                name: true,
-                image: true,
-              },
-            },
-            // Phase 4: Include scope information
-            scope: {
-              select: {
-                id: true,
-                scopeType: true,
-                assumption: true,
-                color: true,
-              },
-            },
-          },
-          orderBy: {
-            nodeOrder: "asc",
-          },
-        },
-        edges: {
-          include: {
-            sourceNode: {
-              include: {
-                argument: {
-                  select: {
-                    id: true,
-                    text: true,
-                    conclusion: {
-                      select: {
-                        id: true,
-                        text: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            targetNode: {
-              include: {
-                argument: {
-                  select: {
-                    id: true,
-                    text: true,
-                    conclusion: {
-                      select: {
-                        id: true,
-                        text: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        // Phase 4: Include all scopes for the chain
-        scopes: {
-          select: {
-            id: true,
-            scopeType: true,
-            assumption: true,
-            color: true,
-            parentScopeId: true,
-            createdBy: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
-      },
+      include: CHAIN_PAGE_INCLUDE,
     });
 
     if (!chain) {
@@ -197,11 +29,20 @@ export async function GET(
       );
     }
 
-    // Check permissions
-    const isCreator = chain.createdBy === BigInt(user.userId);
+    // Check permissions. Public chains are readable by anyone (including
+    // anonymous visitors). Private chains: anonymous → 404 (don't leak
+    // existence); authed non-creator → 403.
+    const isCreator =
+      !!user?.userId && chain.createdBy === BigInt(user.userId);
     const canView = isCreator || chain.isPublic;
 
     if (!canView) {
+      if (!user?.userId) {
+        return NextResponse.json(
+          { ok: false, error: "Chain not found" },
+          { status: 404, ...NO_STORE }
+        );
+      }
       return NextResponse.json(
         { ok: false, error: "Forbidden" },
         { status: 403, ...NO_STORE }
@@ -209,42 +50,7 @@ export async function GET(
     }
 
     // Serialize BigInt fields for JSON
-    const serializedChain = {
-      ...chain,
-      createdBy: chain.createdBy.toString(),
-      creator: {
-        ...chain.creator,
-        id: chain.creator.id.toString(),
-      },
-      nodes: chain.nodes.map((node) => ({
-        ...node,
-        addedBy: node.addedBy.toString(),
-        contributor: {
-          ...node.contributor,
-          id: node.contributor.id.toString(),
-        },
-        argument: node.argument ? {
-          ...node.argument,
-          authorId: node.argument.authorId?.toString() ?? null,
-        } : null,
-      })),
-      edges: chain.edges.map((edge) => ({
-        ...edge,
-        sourceNode: edge.sourceNode ? {
-          ...edge.sourceNode,
-          addedBy: edge.sourceNode.addedBy.toString(),
-        } : null,
-        targetNode: edge.targetNode ? {
-          ...edge.targetNode,
-          addedBy: edge.targetNode.addedBy.toString(),
-        } : null,
-      })),
-      // Phase 4: Serialize scopes
-      scopes: chain.scopes?.map((scope) => ({
-        ...scope,
-        createdBy: scope.createdBy.toString(),
-      })) || [],
-    };
+    const serializedChain = serializeChain(chain);
 
     return NextResponse.json({ ok: true, chain: serializedChain }, NO_STORE);
   } catch (error) {

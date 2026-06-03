@@ -16,6 +16,8 @@ import type {
   JustificationStatus,
   ArgumentationTheory,
 } from "./types";
+import { instantiateDefeatGraph } from "@/lib/argumentation/instantiate";
+import { groundedLabellingDetailed } from "@/lib/argumentation/labelling";
 
 // ============================================================================
 // GROUNDED EXTENSION
@@ -56,6 +58,13 @@ export interface GroundedExtension {
  * 
  * Complexity: O(n²) where n = |Args|
  * Iterations: ≤ |Args|/2 + 1 in practice
+ *
+ * As of Phase 2 of the argumentation-semantics consolidation, this delegates to
+ * the shared labelling core (`@/lib/argumentation`) via the ASPIC+
+ * instantiation contract (`instantiateDefeatGraph`) instead of running its own
+ * fixpoint loop. The structured (ASPIC+) and abstract (Dung) layers now share
+ * one engine of record; the `GroundedExtension` shape below is preserved for
+ * existing callers.
  * 
  * @param args All arguments in the framework
  * @param defeats All defeat relations
@@ -65,45 +74,21 @@ export function computeGroundedExtension(
   args: Argument[],
   defeats: Defeat[]
 ): GroundedExtension {
-  // Build defeat graph: argId -> set of defeater IDs
-  const defeatersMap = buildDefeatersMap(args, defeats);
+  // Instantiate the shared Dung defeat graph from the ASPIC+ defeat relation.
+  const dg = instantiateDefeatGraph(args, defeats);
+  const { labelling, rounds } = groundedLabellingDetailed(dg);
 
-  // Initialize: empty extension
-  let inSet = new Set<string>();
-  let outSet = new Set<string>();
-  let iteration = 0;
-  const maxIterations = args.length + 1; // Safety limit
-
-  // Fixed-point iteration
-  while (iteration < maxIterations) {
-    const prevSize = inSet.size;
-
-    // Apply characteristic function F
-    const newIn = characteristicFunction(args, defeatersMap, outSet);
-
-    // Update IN set
-    inSet = newIn;
-
-    // Update OUT set: arguments defeated by IN
-    outSet = computeDefeatedBy(args, defeats, inSet);
-
-    // Check for fixpoint
-    if (inSet.size === prevSize) {
-      break;
-    }
-
-    iteration++;
-  }
-
-  // UNDECIDED: arguments that are neither IN nor OUT
+  const inSet = new Set<string>();
+  const outSet = new Set<string>();
   const undecidedSet = new Set<string>();
   for (const arg of args) {
-    if (!inSet.has(arg.id) && !outSet.has(arg.id)) {
-      undecidedSet.add(arg.id);
-    }
+    const label = labelling.get(arg.id);
+    if (label === "IN") inSet.add(arg.id);
+    else if (label === "OUT") outSet.add(arg.id);
+    else undecidedSet.add(arg.id);
   }
 
-  // Build status map
+  // Build status map (ASPIC+ JustificationStatus vocabulary).
   const statusMap = new Map<string, JustificationStatus>();
   for (const id of inSet) {
     statusMap.set(id, "defended");
@@ -120,7 +105,7 @@ export function computeGroundedExtension(
     outArguments: outSet,
     undecidedArguments: undecidedSet,
     status: statusMap,
-    iterations: iteration + 1,
+    iterations: rounds,
   };
 }
 
@@ -131,62 +116,12 @@ export function computeGroundedExtension(
  * An argument is acceptable w.r.t. S if S defends it against all attacks.
  * 
  * F(S) = {A ∈ Args | ∀B: B defeats A → B ∈ OUT(S)}
- * 
- * @param args All arguments
- * @param defeatersMap Mapping from argument ID to its defeaters
- * @param outSet Arguments currently in OUT
- * @returns Set of argument IDs acceptable w.r.t. current state
+ *
+ * NOTE (Phase 2): the grounded fixpoint that used to drive
+ * `computeGroundedExtension` now lives in the shared labelling core
+ * (`@/lib/argumentation`). `buildDefeatersMap` below is retained because it is
+ * still consumed by the labelling/diagnostic helpers later in this module.
  */
-function characteristicFunction(
-  args: Argument[],
-  defeatersMap: Map<string, Set<string>>,
-  outSet: Set<string>
-): Set<string> {
-  const acceptable = new Set<string>();
-
-  for (const arg of args) {
-    const defeaters = defeatersMap.get(arg.id) || new Set();
-
-    // Check if all defeaters are in OUT
-    const allDefeatersOut = Array.from(defeaters).every((defeaterId) =>
-      outSet.has(defeaterId)
-    );
-
-    if (allDefeatersOut) {
-      acceptable.add(arg.id);
-    }
-  }
-
-  return acceptable;
-}
-
-/**
- * Compute all arguments defeated by a set S
- * 
- * An argument A is defeated by S if:
- * ∃B ∈ S: B defeats A
- * 
- * @param args All arguments
- * @param defeats All defeat relations
- * @param inSet Set of arguments in the extension
- * @returns Set of argument IDs defeated by inSet
- */
-function computeDefeatedBy(
-  args: Argument[],
-  defeats: Defeat[],
-  inSet: Set<string>
-): Set<string> {
-  const defeated = new Set<string>();
-
-  for (const defeat of defeats) {
-    // If defeater is IN, then defeated argument is OUT
-    if (inSet.has(defeat.defeater.id)) {
-      defeated.add(defeat.defeated.id);
-    }
-  }
-
-  return defeated;
-}
 
 /**
  * Build mapping from argument ID to set of defeater IDs

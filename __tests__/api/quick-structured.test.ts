@@ -24,7 +24,7 @@ import { NextRequest } from "next/server";
 const prismaMock: any = {
   deliberation: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
   argumentScheme: { findUnique: jest.fn(), findMany: jest.fn() },
-  claim: { upsert: jest.fn() },
+  claim: { upsert: jest.fn(), findMany: jest.fn() },
   claimEvidence: { createMany: jest.fn(), findMany: jest.fn() },
   argument: { create: jest.fn() },
   argumentPremise: { createMany: jest.fn() },
@@ -144,6 +144,9 @@ beforeEach(() => {
   prismaMock.argumentPremise.createMany.mockResolvedValue({ count: 0 });
   prismaMock.claimEvidence.createMany.mockResolvedValue({ count: 0 });
   prismaMock.claimEvidence.findMany.mockResolvedValue([]);
+
+  // Reuse-claim resolution: no reusable claims by default.
+  prismaMock.claim.findMany.mockResolvedValue([]);
 });
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -705,6 +708,107 @@ describe("POST /api/arguments/quick-structured", () => {
       // Persisted on the instance.
       const instData = prismaMock.argumentSchemeInstance.create.mock.calls[0][0].data;
       expect(instData.epistemicMode).toBe("HYPOTHETICAL");
+    });
+  });
+
+  // ─── Modular threading: reuseClaimId premises ───────────────────────────────
+
+  describe("reuseClaimId threading", () => {
+    it("threads a premise onto an existing claim by id without minting it", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      prismaMock.deliberation.findUnique.mockResolvedValueOnce({ id: "delib-x" });
+      // The prior link's conclusion claim, living in the target deliberation.
+      prismaMock.claim.findMany.mockResolvedValueOnce([
+        {
+          id: "claim_prior",
+          text: "Cordon pricing reduces central traffic",
+          moid: "moid_prior",
+          deliberationId: "delib-x",
+        },
+      ]);
+
+      const res = await POST(
+        makeReq({
+          conclusion: "Authorities should adopt cordon pricing",
+          premises: [
+            { reuseClaimId: "claim_prior" },
+            { text: "The objections are addressable by design" },
+          ],
+          deliberationId: "delib-x",
+        }),
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+
+      // The reused claim was NOT minted — only the one fresh premise upserts.
+      const upsertedMoids = prismaMock.claim.upsert.mock.calls.map(
+        (c: any) => c[0].where.moid,
+      );
+      expect(upsertedMoids).not.toContain("moid_prior");
+      expect(upsertedMoids).toContain(
+        "moid_the objections are addressable by design",
+      );
+
+      // The response includes the shared claim id, confirming the thread.
+      const premiseIds = body.premises.map((p: any) => p.id);
+      expect(premiseIds).toContain("claim_prior");
+
+      // premise_threaded warning surfaced.
+      expect(body.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "premise_threaded" }),
+        ]),
+      );
+
+      // The ArgumentPremise row points at the shared claim.
+      const premiseRows = prismaMock.argumentPremise.createMany.mock.calls[0][0].data;
+      expect(premiseRows.map((r: any) => r.claimId)).toContain("claim_prior");
+    });
+
+    it("returns 400 PREMISE_CLAIM_NOT_FOUND when the reuseClaimId does not exist", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      prismaMock.deliberation.findUnique.mockResolvedValueOnce({ id: "delib-x" });
+      prismaMock.claim.findMany.mockResolvedValueOnce([]); // nothing resolves
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ reuseClaimId: "claim_missing" }, { text: "P2" }],
+          deliberationId: "delib-x",
+        }),
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.code).toBe("PREMISE_CLAIM_NOT_FOUND");
+      expect(body.error).toMatch(/claim_missing/);
+      // Nothing written.
+      expect(prismaMock.argument.create).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when the reused claim lives in a different deliberation", async () => {
+      inferAndAssignSchemeMock.mockResolvedValueOnce(null);
+      prismaMock.deliberation.findUnique.mockResolvedValueOnce({ id: "delib-x" });
+      prismaMock.claim.findMany.mockResolvedValueOnce([
+        {
+          id: "claim_other",
+          text: "Foreign claim",
+          moid: "moid_foreign",
+          deliberationId: "delib-OTHER",
+        },
+      ]);
+
+      const res = await POST(
+        makeReq({
+          conclusion: "C",
+          premises: [{ reuseClaimId: "claim_other" }, { text: "P2" }],
+          deliberationId: "delib-x",
+        }),
+      );
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.code).toBe("PREMISE_CLAIM_NOT_FOUND");
+      expect(body.error).toMatch(/different deliberation/);
+      expect(prismaMock.argument.create).not.toHaveBeenCalled();
     });
   });
 });

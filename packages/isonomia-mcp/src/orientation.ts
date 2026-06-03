@@ -26,7 +26,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.11.0" as const;
+export const ORIENTATION_VERSION = "1.17.0" as const;
 
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
@@ -45,16 +45,18 @@ WORKFLOW:
 For any deliberation question, call \`get_orientation\` once at session start, then \`get_synthetic_readout\` once per deliberation. Read its \`writingConstraints\` before composing output — it tells you what you must include, what you must not assert, and what you must hedge. Drill into specific arguments with \`get_argument\` and specific claims with \`find_counterarguments\` only after orientation.
 
 WRITING TO THE GRAPH (these tools commit rows; treat as first-class, not as fallback):
-Whenever the user states a position, asks you to "record / log / capture / save / register" a claim or counter-claim, drafts a thesis, or sketches an evidence-backed argument, reach for a write tool instead of replying in prose. Two write surfaces:
+Whenever the user states a position, asks you to "record / log / capture / save / register" a claim or counter-claim, drafts a thesis, or sketches an evidence-backed argument, reach for a write tool instead of replying in prose. Three write surfaces:
   • \`propose_argument\` — bare assertion. \`{ claim, reasoning?, evidence?[], deliberationId? }\`. Use only when the user has a one-line claim with no premises worth naming.
   • \`propose_structured_argument\` — PREFER THIS whenever the user gives reasons ("because…", "since…"), names an argumentation pattern (expert opinion, analogy, cause-to-effect, practical reasoning), or expects per-premise standing/CQs. \`{ conclusion, premises[], reasoning?, schemeKey?, evidence?[], deliberationId? }\`. Each premise becomes its own Claim row, so attackers can later undermine specific premises rather than the whole argument. If unsure which scheme applies, call \`list_schemes\` first; or omit \`schemeKey\` and the server will infer one (returned as a \`scheme_inferred\` warning).
+  • \`propose_argument_chain\` — USE FOR MULTI-STEP REASONING ("A, therefore B; and B, therefore C") rather than several disconnected structured-argument calls. \`{ name, links[], mode?, deliberationId? }\`. Mints 2–12 links (\`mode='mint-and-link'\`) or chains existing arguments by id (\`mode='compose'\`), wiring each link's conclusion claim into the next link's premise (thread by \`reuseClaimId\` from the prior link's \`conclusionClaimId\`, or repeat the exact text to thread by content hash). The SAME health gate runs PER LINK and one bad link rolls back the whole chain. Returns the worst-link \`chainStanding\` — a chain is only as citable as its weakest link.
 HEALTH-SELECTION GATE (honesty, write-time): the server only writes against a *healthy argument pattern*. Prefer \`list_schemes(excludeUnhealthy: true)\` so you never pick a dialogue-meta / test-placeholder row — those are REFUSED with \`code: "SCHEME_NOT_ARGUMENT_PATTERN"\` (nothing written). A folksonomy-duplicate key is auto-redirected to its canonical sibling with a \`SCHEME_CANONICALIZED\` warning (never a silent merge; the warning's \`canonical\` field is the key the argument actually attached to). Typed write codes carry a \`canonical\` corrected value: errors \`SCHEME_UNKNOWN\` / \`SCHEME_NOT_ARGUMENT_PATTERN\`; warnings \`SCHEME_CANONICALIZED\`, \`EPISTEMIC_MODE_CHANGED_FINGERPRINT\`, \`VERIFIER_INCONCLUSIVE\`.
 Both tools return a permalink + immutable content-addressed URL. Omit \`deliberationId\` to land in the caller's "My Arguments" room; pass one to land in a specific debate. For warrants/inference-licenses against an existing argument, use \`propose_warrant\`. After any write, call \`get_argument\` on the returned id (after \`retryAfterMs\` if \`provenancePending\` is true) to verify the round-trip before claiming success. Do not invent ids or permalinks — only echo what the write tool returned.
+ANSWERING CRITICAL QUESTIONS: \`answer_critical_question\` discharges a scheme's open dialectical obligations on an existing argument — call it whenever a \`get_argument\` card shows entries under \`criticalQuestions.unanswered[]\` (\`criticalQuestions\` is a single aggregate object holding \`answered[]\`/\`partiallyAnswered[]\`/\`unanswered[]\`). Pass the SAME \`sessionId\` you used to create the argument and your answer self-canonicalises (promotes straight to CANONICAL, CQ → SATISFIED) in one transaction; answering with a different/absent session, or answering someone else's (or a human-authored) argument, records a PENDING proposal a human approves (non-fatal \`CQ_SELF_CANONICAL_DENIED\` warning). Reuse one UUIDv4 as your \`sessionId\` across every write this session — see Recipe E.4.
 
-TOOL-CLUSTER MAP (52 tools / 6 clusters — route here before scanning tool descriptions):
+TOOL-CLUSTER MAP (54 tools / 6 clusters — route here before scanning tool descriptions):
   1. Session start: \`get_orientation\` (full glossary + recipes), \`get_capabilities\` (cheap auth/identity probe — no round-trip).
   2. Retrieval: \`search_arguments\`, \`get_argument\`, \`get_claim\`, \`get_claim_stances\`, \`find_counterarguments\`, \`cite_argument\`, \`resolve_citation\`, \`resolve_citations_bulk\`.
-  3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_warrant\` (see above).
+  3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_argument_chain\` (multi-step reasoning → a serial chain), \`propose_warrant\`, \`answer_critical_question\` (discharge an argument's open critical questions; \`sessionId\` self-canonicalises — see above).
   4. Deliberation synthesis: \`get_synthetic_readout\` (primary), \`get_deliberation_fingerprint\`, \`get_contested_frontier\`, \`get_missing_moves\`, \`get_chains\`, \`get_cross_context\`, \`summarize_debate\`, \`get_deliberation_evidence_context\`.
   5. Algebraic/ECC: \`ecc_arrow\`, \`ecc_culprits\`, \`ecc_confidence\`, \`ecc_enthymemes\`, \`ecc_transport\`, \`ecc_aggregate\`, \`ecc_evidential\`, \`ecc_belief_revision_proposals\`; scheme catalog + analysis: \`list_schemes\` (browse; pass \`excludeUnhealthy: true\` before writing), \`verify_scheme_equality\`, \`compute_scheme_fingerprint\`, \`find_behaviourally_similar_schemes\`, \`get_scheme_provenance\`, \`compare_scheme_provenance\`.
   6. Ludics generative substrate (only when the user mentions locus / design / behaviour / incarnation / cone / witness / articulation lattice / daimon / bind / synthesis): reads \`get_deliberation_schema\` (START HERE), \`list_behaviours\` (enumerate behaviours before probing loci), \`get_behaviour_at_locus\`, \`get_exposure_map\`; lattice algebra \`get_articulation_lattice\`, \`find_minimal_incarnations\`, \`find_equivalent_articulations\`, \`find_substitute_premises\`, \`compress_articulation\`, \`compute_articulation_join\`; witness reads \`get_witnesses\`, \`get_unwitnessed_exposure\`, \`get_instantiation\`, \`get_fossil_record\`; helpers/writes \`list_bindable_moves\` (CALL BEFORE BIND — pre-pairs ludicMoveId + dialogueMoveId + canonicalText), \`bind_participant_to_design\` (iota seam — only path that mints WitnessRecord), \`propose_synthesis\` (Art(B) join write seam). Ludics rules: Inc(B) is an antichain — there is NO global bottom of a behaviour, only per-cone minima; cones are disjoint (cross-cone joins/meets return \`cross-cone-rejected\` — that's a value, not an error); never hand-build \`canonicalText\` (copy verbatim from \`list_bindable_moves\`); never echo \`participantId\` back to the user (T4 non-attribution). For the full Ludics workflow recipes (explore-layer / bind-participant) and glossary, call \`get_orientation\`.`;
@@ -69,7 +71,7 @@ Version: ${ORIENTATION_VERSION}
 
 ## Tool clusters — route here first
 
-52 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
+54 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
 
 ### Cluster 1 — Session start (1 tool)
 - \`get_orientation\` — you are reading its output. Call once per session; cache against \`contentHash\`.
@@ -85,11 +87,13 @@ Use when finding, fetching, or citing specific arguments or claims.
 - \`resolve_citation\` — DOI/arXiv/URL → canonical citation record (call before \`propose_*\`)
 - \`resolve_citations_bulk\` — batch version of \`resolve_citation\`
 
-### Cluster 3 — Argument authoring / WRITE surface (3 tools)
+### Cluster 3 — Argument authoring / WRITE surface (5 tools)
 Use when the user wants to record, log, register, or save a position.
 - \`propose_argument\` — bare assertion (one-line claim, no explicit premises)
 - \`propose_structured_argument\` — **PREFER.** Premise-typed, scheme-annotated, evidence-attached. Enables per-premise standing + CQ tracking.
+- \`propose_argument_chain\` — **multi-step reasoning** ("A, therefore B; B, therefore C"). Mints a serial chain of structured-argument links (or composes existing arguments by id), threading each link's conclusion claim into the next link's premise. Same per-link health gate; returns the worst-link \`chainStanding\`. Optionally branches (\`edges[]\` → CONVERGENT/DIVERGENT/TREE/GRAPH), objects (\`attacksNode\`/\`attacksEdge\`), reasons under suppositions (\`scopes[]\`), and carries executable evidence anchors — see E.3. → verify with \`get_chains\`.
 - \`propose_warrant\` — attach an inference-license warrant to an existing argument.
+- \`answer_critical_question\` — discharge a scheme's open **critical question** on an existing argument. Read the target CQ from \`get_argument.criticalQuestions.unanswered[]\` (\`criticalQuestions\` is a single aggregate object); pass the SAME \`sessionId\` you used to author the argument to self-canonicalise (CQ → SATISFIED) or land a PENDING proposal otherwise. See E.4.
 
 ### Cluster 4 — Deliberation synthesis (8 tools)
 Use when working with a whole deliberation room, not individual arguments.
@@ -289,7 +293,57 @@ Use this whenever the user states a position, says "log this claim / save this a
 5. **Verify the round-trip** with \`get_argument(argumentId)\` (after \`retryAfterMs\` if \`provenancePending: true\`). The result should show all premises in the "Premises" section (no "bare assertion" warning), the assigned scheme, and any critical questions.
 6. Do not invent ids, permalinks, or hashes — only echo values the write tool returned.
 
+#### E.3 — Argument chain (\`propose_argument_chain\`)
+
+Use when the user lays out **multi-step reasoning** — "A, therefore B; and B, therefore C", a derivation, or a several-stage justification — rather than one argument. Prefer this over emitting several disconnected \`propose_structured_argument\` calls: it wires the links into one navigable chain and reports the worst-link standing.
+
+**Two non-negotiable best practices for every chain:**
+- **Build modular, then compose** — do NOT one-shot a chain you are minting from scratch. Mint each link as its own \`propose_structured_argument\` call, then bind the finished arguments with \`mode: 'compose'\`. (One-shot \`mint-and-link\` is a convenience for SMALL, evidence-light chains of 2–3 links only.)
+- **Always pass a stable \`requestId\`** (a UUID generated ONCE for the chain) on every \`propose_argument_chain\` call — it makes the write retry-safe.
+
+**Recommended flow (modular — use this by default):**
+1. (Optional) \`list_schemes(excludeUnhealthy: true)\` to pick a healthy \`schemeKey\` per link.
+2. For each link in spine order, call \`propose_structured_argument({ conclusion, premises[], schemeKey?, evidence?[], deliberationId })\`. Each is a small, fast write; its response carries the just-minted argument under \`argument.id\` and the conclusion claim under \`claim.id\` (a \`{ id, text, moid }\` object).
+3. **Thread as you go (fork-proof):** when minting link *k+1*, include a premise \`{ reuseClaimId: "<link k's claim.id>" }\` — the conclusion-claim id from link *k*'s response. That premise then SHARES link *k*'s exact Claim row, with no reliance on byte-exact text repetition (an unknown or cross-deliberation id is rejected with \`PREMISE_CLAIM_NOT_FOUND\`, so typos fail fast instead of silently forking). A link that branches gets that reused premise plus its own fresh \`{ text }\` premises. (Exact-text repetition still works as a fallback — content-hashing dedups identical text onto the same claim — but \`reuseClaimId\` is the robust choice.)
+4. Bind them: \`propose_argument_chain({ mode: 'compose', argumentIds: [<each link's argument.id, spine order>], name, deliberationId, requestId })\`. \`compose\` does NO minting and does NOT re-thread — it wires the existing arguments into a serial spine **in the order you pass them** and computes the worst-link standing, so the genuine claim-sharing must already be in place from step 3.
+
+Why modular is the default: every write stays well under the request timeout; a single failed link can be retried in isolation instead of rolling back the whole chain; and \`reuseClaimId\` threading is fork-proof.
+
+**One-shot mint-and-link (small chains only):** \`propose_argument_chain({ name, links[], requestId, deliberationId })\` mints 2–12 links and threads them in a single transaction. Each \`links[i]\` is a \`propose_structured_argument\` payload. Thread by either (a) \`{ reuseClaimId }\` referencing a *prior* link's conclusion, or (b) repeating the prior link's **exact** conclusion text as a \`{ text }\` premise (the server content-hash-threads it; a \`chain_link_autothreaded\` warning confirms). The health gate runs **per link** — one unhealthy/non-argument scheme rolls back the WHOLE chain (atomic). Use this ONLY for short, evidence-light chains; reach for the modular flow above the moment a chain is large, evidence-heavy, or a one-shot times out.
+
+**On a timeout:** RETRY the SAME call with the SAME \`requestId\` — the server replays the chain that already landed (\`idempotentReplay: true\`) instead of duplicating it. That replay is NOT a hopeful guess: it is the persisted chain read back from the database, so the \`idempotentReplay: true\` response IS your authoritative confirmation of exactly what landed — treat it as the result of the write, not a promise. Do NOT change the requestId, and do NOT \`get_chains\`-then-recreate to "check"; just retry with the same key. (The one-shot chain write now allows up to 120s before the client gives up, so a focused chain usually returns on the first call.)
+
+The response gives \`{ chain{ id, rootNodeId, permalink }, links[], edges[], threading[], chainStanding, weakestLink, warnings[], chainRedundancyFlag, provenancePending, retryAfterMs }\` (or, on an idempotent retry, the same \`chain\`/\`links\`/\`edges\` with \`idempotentReplay: true\`). **Read it:**
+   - \`threading[]\` confirms which links share which claim (\`mode: "moid" | "explicit"\`). If a link you meant to thread is absent, the texts didn't hash-match — fix the wording or use \`reuseClaimId\`.
+   - \`chainStanding\` is the **worst link's** standing — a chain is only as citable as its weakest link; \`weakestLink.argumentId\` names where it collapses.
+   - Per-link \`schemeHealth\` / \`verifierVerdict\`; \`chain_link_scheme_repeat\` warns when two links share a behaviourally-equal scheme (advisory); \`chainRedundancyFlag: true\` flags a redundant link for the catalogue audit.
+   - Error codes (nothing written): \`CHAIN_LINK_BROKEN\` (a declared reuse text forked into a different claim), \`CHAIN_LINK_INVALID_THREAD\` (a \`reuseClaimId\` was a forward/cyclic/non-prior reference), \`CHAIN_TOO_SHORT\`/\`CHAIN_TOO_LONG\`, \`CHAIN_LINK_NOT_FOUND\` (compose id missing / wrong deliberation), plus the per-link \`SCHEME_NOT_ARGUMENT_PATTERN\`.
+
+**Advanced structure (optional — all default off, so a plain serial chain ignores them):** these ALL require \`mode: 'mint-and-link'\` (they ride on \`links[]\`; \`compose\` carries ids only and cannot express branching, attacks, scopes, or anchored evidence). Keep such a chain focused (≤12 links) so the one-shot transaction stays under the timeout.
+
+- **Branching** — supply \`edges[]\` (typed relations between links by index) to author a non-serial shape: \`SUPPORTS\`/\`ENABLES\`/\`PRESUPPOSES\` thread a claim forward; the server derives the \`chainType\` (\`SERIAL\`/\`CONVERGENT\`/\`DIVERGENT\`/\`TREE\`/\`GRAPH\`) from the support sub-graph, validates it is acyclic (\`CHAIN_CYCLE_DETECTED\`), and rejects a mismatch with an \`expectChainType\` you pin (\`CHAIN_TYPE_MISMATCH\`, echoing the derived type). The response gains \`topology\` + \`edges[]\` (with real edgeType/strength).
+- **Attacks** — give a link \`attacksNode: <i>\` to REBUT a prior link's conclusion or UNDERMINE its premise (\`attackType\`), or \`attacksEdge: { from, to }\` to **UNDERCUT the inference itself** (the reasoning link, not the claims). Attacks never thread claims; only support edges do. Attacking an attack edge → \`CHAIN_ATTACK_ON_ATTACK\` (depth-1 cap). The response gains an \`attacks[]\` register.
+- **Suppositions** — declare \`scopes[]\` (e.g. \`{ scopeType: "HYPOTHETICAL", assumption: "If the carbon tax passes" }\`) and place links inside one with \`scope: <index>\`. Those nodes are recorded as hypothetical/counterfactual and **cannot leak** as asserted premises outside the scope (\`SCOPE_LEAK\`); nest scopes with \`parentScope\` (max depth 4). Each link gains \`epistemicStatus\` + \`scopeId\` in the response, and \`scopes[]\` echoes the declared suppositions. Use per-link \`epistemicStatus\` / \`dialecticalRole\` for finer epistemic / thesis-antithesis labelling.
+- **Executable evidence** — an \`evidence[]\` item may carry a \`locator\` ("p. 13", "08:14"), an \`anchorType\` + \`anchorData\` (\`page\` / \`text_range {start,end}\` / \`timestamp {start,end?}\` / \`coordinates {x,y,width,height}\` / \`annotation\` via \`anchorId\`), and a semantic \`intent\` (supports / refutes / context / …). For \`text_range\` you rarely have character offsets when citing a PDF/report — in that case just set the item's \`quote\` to the verbatim passage (omit \`anchorData\`) and the anchor is accepted as a passage. Such items resolve the url to a \`Source\` and write a resolvable \`Citation\` against the link's claim (surfaced as \`citations[]\` per link); a malformed anchor → \`EVIDENCE_ANCHOR_MALFORMED\`, an unresolvable url → \`EVIDENCE_SOURCE_UNRESOLVED\`, and a contrary \`intent\` (e.g. \`refutes\` on a support link) → an \`evidence_intent_contrary\` warning (advisory, still written). Plain \`{ url, quote }\` evidence is unchanged (ClaimEvidence only, no Citation).
+
+**Then verify** with \`get_chains(deliberationId)\` before citing the chain's terminal conclusion.
+
 Sibling write tool — \`propose_warrant\` — attaches an inference-license warrant to an existing argument inside an ECC-typed deliberation. Use it when the user says "add a warrant" / "license this inference" against a specific argument id, not for freestanding claims.
+
+#### E.4 — Answer a critical question (\`answer_critical_question\`)
+
+Use when you can DISCHARGE one of an argument's open dialectical obligations — the literature-required critical questions a scheme demands. Every scheme attaches named CQs (expert-opinion → \`expertise\`, \`bias\`, \`backup_evidence\`; cause-to-effect → \`other_causes\`; etc.); answering one raises the argument's dialectical fitness and closes the obligation.
+
+1. \`get_argument(idOrPermalink)\` → read the \`criticalQuestions\` aggregate (a single object: \`{ schemeKey, total, answered[], partiallyAnswered[], unanswered[] }\`, or \`null\` when the scheme defines no CQs). Pick an entry from \`unanswered[]\` (or \`partiallyAnswered[]\`) and take its \`cqKey\`, its \`schemeKey\`, and (for reference) \`cqStatusId\`.
+2. \`answer_critical_question({ argumentId, cqKey, schemeKey?, groundsText, evidenceClaimIds?, sourceUrls?, sessionId, promoteToCanonical?, requestId })\`:
+   - \`argumentId\` / \`cqKey\` (required) — the target from step 1.
+   - \`schemeKey\` — pass it ONLY when the server returns \`CQ_AMBIGUOUS_SCHEME\` (the same \`cqKey\` is inherited by more than one of the argument's schemes); otherwise omit and it is inferred.
+   - \`groundsText\` (required, 10–5000) — the actual answer: state what satisfies the CQ and why. Make it self-contained.
+   - \`evidenceClaimIds[]\` / \`sourceUrls[]\` — optional backing (existing Claim ids must resolve, else \`CQ_EVIDENCE_NOT_FOUND\`).
+   - \`requestId\` — a stable UUID; on a timeout RETRY with the SAME value (server replays \`idempotentReplay: true\`).
+3. **\`sessionId\` discipline (the self-canonicalisation rule):** pass the SAME \`sessionId\` you used when you CREATED the argument (the per-session UUIDv4 you thread through every \`propose_*\` write). When it matches the argument's AI provenance your answer is promoted directly to **CANONICAL** (response \`canonical: true\`, \`responseStatus: CANONICAL\`, the CQ's \`CQStatus.statusEnum → SATISFIED\`). A different/absent \`sessionId\`, a human-authored target, or \`promoteToCanonical: false\` records a **PENDING** proposal (\`canonical: false\`, non-fatal \`CQ_SELF_CANONICAL_DENIED\` warning) that a human approves on the web CQ panel. \`promoteToCanonical\` defaults true and is a SOFT request — denial is never an error.
+4. The response gives \`{ cqStatusId, responseId, responseStatus, canonical, cqStatusEnum, permalink, warnings[] }\`. Error codes (nothing written): \`CQ_ARGUMENT_NOT_FOUND\`, \`CQ_NOT_FOUND\` (no such cqKey on the argument's schemes), \`CQ_AMBIGUOUS_SCHEME\` (resend with \`schemeKey\`), \`CQ_EVIDENCE_NOT_FOUND\`, \`CQ_DUPLICATE_PENDING\` (409 — you already have a pending answer on this CQ).
+5. **Verify** with \`get_argument(argumentId)\` — the CQ should move out of \`unanswered[]\` (canonical → its \`answered\` count reflects your answer).
 
 ### Recipe F — Explore a deliberation's Ludics layer
 

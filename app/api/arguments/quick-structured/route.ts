@@ -78,7 +78,7 @@ const EvidenceItem = z
     citationText: ev.summary ?? ev.quote,
   }));
 
-const PremiseItem = z.object({
+const TextPremiseItem = z.object({
   text: z
     .string()
     .min(1, "Premise text is required")
@@ -93,6 +93,30 @@ const PremiseItem = z.object({
   // keep total per-request evidence in line with the conclusion cap.
   evidence: z.array(EvidenceItem).max(5).optional().default([]),
 });
+
+// Modular threading — a premise may thread onto an EXISTING claim by id
+// instead of supplying text. The canonical use is the modular chain flow:
+// pass a prior link's returned conclusion-claim id here so this argument's
+// premise shares the SAME Claim row (fork-proof — no reliance on byte-exact
+// text repetition). The reused claim must live in the target deliberation.
+const ReusePremiseItem = z.object({
+  reuseClaimId: z.string().min(1).max(200),
+  isAxiom: z.boolean().optional().default(false),
+  premiseType: z.enum(["ordinary", "assumption", "exception"]).optional(),
+});
+
+// A premise is either a `reuseClaimId` thread (tried first — only it carries
+// that key) or an ordinary text premise.
+const PremiseItem = z.union([ReusePremiseItem, TextPremiseItem]);
+type TextPremiseInput = z.infer<typeof TextPremiseItem>;
+type ReusePremiseInput = z.infer<typeof ReusePremiseItem>;
+type PremiseInput = z.infer<typeof PremiseItem>;
+function isReusePremise(p: PremiseInput): p is ReusePremiseInput {
+  return "reuseClaimId" in p;
+}
+function isTextPremise(p: PremiseInput): p is TextPremiseInput {
+  return !("reuseClaimId" in p);
+}
 
 const QuickStructuredArgSchema = z.object({
   conclusion: z
@@ -124,6 +148,10 @@ const QuickStructuredArgSchema = z.object({
   evidence: z.array(EvidenceItem).max(10).optional().default([]),
   isPublic: z.boolean().optional().default(true),
   deliberationId: z.string().optional(),
+  // Per-session capability token (roadmap S1). When present, it is recorded in
+  // `aiProvenance.sessionId` so that the same MCP session can later
+  // self-canonicalise its own answers to this argument's critical questions.
+  sessionId: z.string().min(1).max(200).optional(),
 });
 
 // ─── "My Arguments" deliberation helper (mirrors quick/route.ts) ─────────────
@@ -172,6 +200,7 @@ function buildEmbedCodes(shortCode: string, claimText: string) {
 type OperationalWarningCode =
   | "missing_slot"
   | "premise_deduped"
+  | "premise_threaded"
   | "scheme_inferred"
   | "premise_evidence_merged"
   | "scheme_behaviour_verdict";
@@ -250,12 +279,13 @@ export async function POST(req: NextRequest) {
     evidence,
     deliberationId,
     epistemicMode: epistemicModeInput,
+    sessionId,
   } = parsed.data;
 
   // SSRF guard on every evidence URL (top-level + per-premise).
   const allEvidenceForGuard: NormalizedEvidence[] = [
     ...evidence,
-    ...premises.flatMap((p) => p.evidence ?? []),
+    ...premises.flatMap((p) => (isTextPremise(p) ? p.evidence ?? [] : [])),
   ];
   for (const ev of allEvidenceForGuard) {
     if (!isSafePublicUrl(ev.url)) {
@@ -370,7 +400,7 @@ export async function POST(req: NextRequest) {
   } else {
     const inferenceText =
       (reasoning && reasoning.length > 0 && reasoning) ||
-      premises.map((p) => p.text).join(" ; ") ||
+      premises.filter(isTextPremise).map((p) => p.text).join(" ; ") ||
       conclusion;
     schemeId = await inferAndAssignScheme(inferenceText, conclusion);
     if (schemeId) {
@@ -411,6 +441,58 @@ export async function POST(req: NextRequest) {
       select: { id: true, text: true, moid: true },
     });
 
+    // ─── Resolve reused premise claims (modular threading) ────────────────────
+    // A premise may thread onto an EXISTING claim by id (e.g. the conclusion
+    // claim a prior modular link returned) instead of supplying text. Resolve
+    // every reuseClaimId against the target deliberation up front so a typo or
+    // a cross-deliberation reference fails fast (400) rather than silently
+    // minting a fresh, un-threaded claim. Mirrors the chain route's pre-flight.
+    const reuseIds = [
+      ...new Set(premises.filter(isReusePremise).map((p) => p.reuseClaimId)),
+    ];
+    const reusedById = new Map<
+      string,
+      { id: string; text: string; moid: string }
+    >();
+    if (reuseIds.length > 0) {
+      const rows = await prisma.claim.findMany({
+        where: { id: { in: reuseIds } },
+        select: { id: true, text: true, moid: true, deliberationId: true },
+      });
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      const notFound: string[] = [];
+      const wrongDelib: string[] = [];
+      for (const id of reuseIds) {
+        const row = byId.get(id);
+        if (!row) {
+          notFound.push(id);
+          continue;
+        }
+        if (row.deliberationId !== targetDelibId) {
+          wrongDelib.push(id);
+          continue;
+        }
+        reusedById.set(id, { id: row.id, text: row.text, moid: row.moid });
+      }
+      if (notFound.length > 0 || wrongDelib.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              (notFound.length > 0
+                ? `reuseClaimId not found: ${notFound.join(", ")}. `
+                : "") +
+              (wrongDelib.length > 0
+                ? `reuseClaimId belongs to a different deliberation than '${targetDelibId}': ${wrongDelib.join(
+                    ", ",
+                  )}. Reuse only claims that live in the target deliberation.`
+                : ""),
+            code: "PREMISE_CLAIM_NOT_FOUND",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     // ─── Mint premise claims (dedup by moid) ──────────────────────────────────
     // If two premise texts produce the same moid (or collide with the
     // conclusion), they collapse to a single Claim row. We surface this as
@@ -418,13 +500,29 @@ export async function POST(req: NextRequest) {
     // length may be less than the request's. Per-premise evidence on a
     // deduped premise is merged into the surviving claim and surfaced as a
     // `premise_evidence_merged` warning so per-source provenance survives.
-    const premiseMoids = premises.map((p) => ({
-      text: p.text,
-      moid: mintClaimMoid(p.text),
-      isAxiom: p.isAxiom,
-      premiseType: p.premiseType,
-      evidence: p.evidence ?? [],
-    }));
+    // Reuse premises carry the resolved claim's text/moid plus a `reusedClaimId`
+    // so they thread (by moid) onto the same Claim row and skip minting.
+    const premiseMoids = premises.map((p) => {
+      if (isReusePremise(p)) {
+        const c = reusedById.get(p.reuseClaimId)!;
+        return {
+          text: c.text,
+          moid: c.moid,
+          isAxiom: p.isAxiom,
+          premiseType: p.premiseType,
+          evidence: [] as NormalizedEvidence[],
+          reusedClaimId: c.id as string | undefined,
+        };
+      }
+      return {
+        text: p.text,
+        moid: mintClaimMoid(p.text),
+        isAxiom: p.isAxiom,
+        premiseType: p.premiseType,
+        evidence: p.evidence ?? [],
+        reusedClaimId: undefined as string | undefined,
+      };
+    });
 
     // Map of claim-moid → evidence to attach to that claim. Pre-populated
     // with conclusion-level evidence so a premise that collapses onto the
@@ -482,19 +580,31 @@ export async function POST(req: NextRequest) {
 
     const premiseClaims = await Promise.all(
       dedupedPremises.map((p) =>
-        prisma.claim.upsert({
-          where: { moid: p.moid },
-          create: {
-            text: p.text,
-            moid: p.moid,
-            createdById: userIdStr,
-            deliberationId: targetDelibId,
-          },
-          update: {},
-          select: { id: true, text: true, moid: true },
-        })
-      )
+        p.reusedClaimId
+          ? // Threaded premise — the claim already exists; reuse its row
+            // directly (no upsert) so this argument shares it with the origin.
+            Promise.resolve({ id: p.reusedClaimId, text: p.text, moid: p.moid })
+          : prisma.claim.upsert({
+              where: { moid: p.moid },
+              create: {
+                text: p.text,
+                moid: p.moid,
+                createdById: userIdStr,
+                deliberationId: targetDelibId,
+              },
+              update: {},
+              select: { id: true, text: true, moid: true },
+            }),
+      ),
     );
+
+    const threadedCount = dedupedPremises.filter((p) => p.reusedClaimId).length;
+    if (threadedCount > 0) {
+      warnings.push({
+        code: "premise_threaded",
+        detail: `${threadedCount} premise(s) threaded onto existing claim(s) by reuseClaimId — they share the same content-hashed Claim row as the origin (fork-proof).`,
+      });
+    }
 
     // ─── Auto-unfurl evidence titles where missing ────────────────────────────
     // Run unfurls once per unique URL across all evidence buckets so we
@@ -597,6 +707,7 @@ export async function POST(req: NextRequest) {
                   via: "mcp",
                   tool: "propose_structured_argument",
                   createdAt: new Date().toISOString(),
+                  ...(sessionId ? { sessionId } : {}),
                 },
               }
             : {}),

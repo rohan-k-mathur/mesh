@@ -2,21 +2,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import type { Edge, NodeID } from '@/lib/argumentation';
-import { buildAttackGraph, preferredExtensions, groundedExtension } from '@/lib/argumentation';
+import {
+  buildAttackGraph,
+  toDefeatGraphFromAttackMap,
+  labellingToSets,
+  policyLabelling,
+  resolveSemanticsPolicy,
+} from '@/lib/argumentation';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const deliberationId = params.id;
   const url = new URL(req.url);
-  const lens = (url.searchParams.get('lens') ?? 'preferred').toLowerCase();
+  // `lens` is an optional per-request override; otherwise the stored
+  // per-deliberation policy (Deliberation.argumentSemantics) applies (Phase 4b).
+  const lensOverride = url.searchParams.get('lens');
 
   /* ---------------- A) Build AF from arguments + defeating edges ---------------- */
-  const [args, edgeRows] = await Promise.all([
+  const [args, edgeRows, delibSetting] = await Promise.all([
     prisma.argument.findMany({ where: { deliberationId }, select: { id: true } }),
     prisma.argumentEdge.findMany({
       where: { deliberationId, type: { in: ['rebut', 'undercut'] } },
       select: { fromArgumentId: true, toArgumentId: true, type: true },
     }),
+    prisma.deliberation
+      .findUnique({ where: { id: deliberationId }, select: { argumentSemantics: true } })
+      .catch(() => null),
   ]);
+
+  const policy = resolveSemanticsPolicy({
+    override: lensOverride,
+    stored: delibSetting?.argumentSemantics ?? null,
+  });
 
   const nodes: NodeID[] = args.map(a => a.id);
   const edges: Edge[] = edgeRows.map(e => ({ from: e.fromArgumentId, to: e.toArgumentId, type: e.type as Edge['type'] }));
@@ -28,25 +44,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   for (const n of nodes) status[n] = 'UNDEC';
 
   if (nodes.length) {
-    if (lens === 'grounded') {
-      const ext = groundedExtension(nodes, attackMap);
-      // IN: in grounded extension; OUT: attacked by an IN; else UNDEC
-      for (const n of ext) status[n] = 'IN';
-      for (const [att, tos] of attackMap) {
-        if (status[att] === 'IN') for (const t of tos) if (status[t] !== 'IN') status[t] = 'OUT';
-      }
-    } else { // preferred (skeptical acceptance = in all preferred extensions)
-      const exts = preferredExtensions(nodes, attackMap) ?? [];
-      const inAll = new Set<string>();
-      if (exts.length > 0) {
-        const first = exts[0];
-        for (const n of first) if (exts.every(s => s.has(n))) inAll.add(n);
-      }
-      for (const n of inAll) status[n] = 'IN';
-      for (const [att, tos] of attackMap) {
-        if (status[att] === 'IN') for (const t of tos) if (status[t] !== 'IN') status[t] = 'OUT';
-      }
-    }
+    const dg = toDefeatGraphFromAttackMap(nodes, attackMap);
+    const { IN, OUT } = labellingToSets(policyLabelling(dg, policy));
+    for (const n of nodes) status[n] = IN.has(n) ? 'IN' : OUT.has(n) ? 'OUT' : 'UNDEC';
   }
 
   /* ---------------- C) Per-target WHY stats (compat with old UI) ---------------- */
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 
   return NextResponse.json(
-    { ok: true, lens, status, stats, now: new Date().toISOString() },
+    { ok: true, lens: policy, status, stats, now: new Date().toISOString() },
     { headers: { 'Cache-Control': 'no-store' } }
   );
 }

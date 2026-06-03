@@ -1,15 +1,67 @@
-// lib/argumentation/afEngine.ts
+// lib/argumentation/adapters.ts
 //
-// @deprecated Import the AF engine from `@/lib/argumentation` (the consolidated
-// engine of record) rather than this module directly. This file remains the
-// edge-list (`Array<[string, string]>`) adapter surface and is re-exported by
-// `lib/argumentation/index.ts`. As of Phase 1, `grounded` and `preferred` here
-// delegate to the exact labelling core (`./labelling`, `./semantics`); the
-// previous unsound random-restart fallback for large frameworks is gone.
-import { toDefeatGraphFromEdgeList, groundedExtension as groundedExtensionCore } from "@/lib/argumentation/labelling";
+// Representation adapters for the consolidated Dung engine. Two legacy surface
+// shapes are supported on top of the labelling-based core (`./labelling`,
+// `./semantics`):
+//
+//   • attack-map  — `Map<NodeID, Set<NodeID>>`
+//   • edge-list   — `Array<[string, string]>`  (bipolar `AFNode`/`AFEdge`)
+//
+// Both delegate their semantics to the exact core (commitments C1/C2); these
+// adapters only translate between the surface shapes and `DefeatGraph`. This
+// file replaces the former `lib/deepdive/af.ts` and `lib/argumentation/afEngine.ts`
+// (consolidation roadmap Phase 4c).
+
+import {
+  toDefeatGraphFromEdgeList,
+  toDefeatGraphFromAttackMap,
+  groundedExtension as groundedExtensionCore,
+} from "@/lib/argumentation/labelling";
 import { preferredExtensions as preferredExtensionsCore } from "@/lib/argumentation/semantics";
 
-export type EdgeType = 'support' | 'rebut' | 'undercut' | 'attack';
+// ============================================================================
+// Attack-map representation (Map<NodeID, Set<NodeID>>)
+// ============================================================================
+
+export type NodeID = string;
+
+export type Edge = {
+  from: NodeID;
+  to: NodeID;
+  type: "rebut" | "undercut" | "support";
+};
+
+/**
+ * Build an attack graph (Dung AF) from edges. `rebut` and `undercut` are
+ * treated as attacks; `support` is ignored for conflict.
+ */
+export function buildAttackGraph(nodes: NodeID[], edges: Edge[]): Map<NodeID, Set<NodeID>> {
+  const attackMap = new Map<NodeID, Set<NodeID>>();
+  for (const n of nodes) attackMap.set(n, new Set());
+  for (const e of edges) {
+    if (e.type === "rebut" || e.type === "undercut") {
+      attackMap.get(e.from)?.add(e.to);
+    }
+  }
+  return attackMap;
+}
+
+/**
+ * Preferred extensions (⊆-maximal admissible sets) over the attack-map
+ * representation. Exact for all framework sizes via the labelling core.
+ */
+export function preferredExtensions(
+  nodes: NodeID[],
+  attackMap: Map<NodeID, Set<NodeID>>
+): Set<NodeID>[] {
+  return preferredExtensionsCore(toDefeatGraphFromAttackMap(nodes, attackMap));
+}
+
+// ============================================================================
+// Edge-list representation (Array<[string, string]>) — bipolar projection
+// ============================================================================
+
+export type EdgeType = "support" | "rebut" | "undercut" | "attack";
 
 export type AFNode = { id: string; label?: string; text?: string };
 export type AFEdge = { from: string; to: string; type: EdgeType };
@@ -23,11 +75,11 @@ export type BuildOptions = {
   supportClosure?: boolean;
 };
 
-const asAttack = (t: EdgeType) => t === 'attack' || t === 'rebut' || t === 'undercut';
+const asAttack = (t: EdgeType) => t === "attack" || t === "rebut" || t === "undercut";
 
-/** Project our bipolar graph to a plain AF (Dung): only attacks R ⊆ A×A. */
+/** Project a bipolar graph to a plain AF (Dung): only attacks R ⊆ A×A. */
 export function projectToAF(nodes: AFNode[], edges: AFEdge[], opts: BuildOptions = {}): AF {
-  const A = nodes.map(n => n.id);
+  const A = nodes.map((n) => n.id);
   const idSet = new Set(A);
 
   const attacks: Array<[string, string]> = [];
@@ -37,7 +89,7 @@ export function projectToAF(nodes: AFNode[], edges: AFEdge[], opts: BuildOptions
   for (const e of edges) {
     if (!idSet.has(e.from) || !idSet.has(e.to)) continue;
     if (asAttack(e.type)) attacks.push([e.from, e.to]);
-    if (e.type === 'support') {
+    if (e.type === "support") {
       if (!supportsByTarget.has(e.to)) supportsByTarget.set(e.to, new Set());
       supportsByTarget.get(e.to)!.add(e.from);
       if (!supportOut.has(e.from)) supportOut.set(e.from, new Set());
@@ -45,11 +97,10 @@ export function projectToAF(nodes: AFNode[], edges: AFEdge[], opts: BuildOptions
     }
   }
 
-  // Optional: compute support transitive closure (s1 supports s2 supports b ⇒ s1 supports b)
+  // Optional: support transitive closure (s1 supports s2 supports b ⇒ s1 supports b)
   let supportClosure: Map<string, Set<string>> | undefined;
   if (opts.supportClosure) {
     supportClosure = new Map();
-    // BFS from each supporter
     for (const s of supportOut.keys()) {
       const seen = new Set<string>();
       const q = [s];
@@ -70,32 +121,27 @@ export function projectToAF(nodes: AFNode[], edges: AFEdge[], opts: BuildOptions
 
   if (opts.supportDefensePropagation) {
     const add = (a: string, b: string) => {
-      // avoid duplicates
       for (const [x, y] of attacks) if (x === a && y === b) return;
       attacks.push([a, b]);
     };
-    // For each attack x→b, every supporter s of b gets a derived attack s→x.
     for (const [x, b] of attacks.slice()) {
       const supporters = new Set<string>();
-      // direct supporters
       const direct = supportsByTarget.get(b);
-      if (direct) direct.forEach(s => supporters.add(s));
-      // transitive supporters
+      if (direct) direct.forEach((s) => supporters.add(s));
       if (supportClosure) {
         for (const s of supportClosure.keys()) {
           if (supportClosure.get(s)!.has(b)) supporters.add(s);
         }
       }
-      supporters.forEach(s => add(s, x));
+      supporters.forEach((s) => add(s, x));
     }
   }
 
-  // Filter self-attacks if you wish (often allowed but we skip by default)
   const R = attacks.filter(([x, y]) => x !== y);
   return { A, R };
 }
 
-/* ---------- Dung semantics ---------- */
+/* ---------- Dung semantics (edge-list helpers) ---------- */
 
 function attackersOf(a: string, R: Array<[string, string]>): string[] {
   const arr: string[] = [];
@@ -111,8 +157,7 @@ export function conflictFree(S: Set<string>, R: Array<[string, string]>): boolea
   return true;
 }
 export function defends(S: Set<string>, a: string, R: Array<[string, string]>): boolean {
-  const atks = attackersOf(a, R);
-  for (const b of atks) {
+  for (const b of attackersOf(a, R)) {
     if (!attacks(S, b, R)) return false;
   }
   return true;
@@ -123,33 +168,29 @@ export function characteristicF(A: string[], R: Array<[string, string]>, S: Set<
   return out;
 }
 
-/** Grounded extension via least fixpoint of characteristic function.
- *
- * Delegates to the exact labelling core (`./labelling`) so the whole engine
- * shares one grounded implementation (Phase 1, commitment C1).
- */
+/** Grounded extension — delegates to the exact labelling core (C1). */
 export function grounded(A: string[], R: Array<[string, string]>): Set<string> {
   return groundedExtensionCore(toDefeatGraphFromEdgeList(A, R));
 }
 
-/** Check admissibility: conflict-free and defends all its members. */
+/** Admissibility: conflict-free and defends all its members. */
 export function isAdmissible(A: string[], R: Array<[string, string]>, S: Set<string>): boolean {
   if (!conflictFree(S, R)) return false;
   for (const a of S) if (!defends(S, a, R)) return false;
   return true;
 }
 
-/** Preferred extensions: maximal (w.r.t inclusion) admissible sets.
- *
- * Delegates to the exact labelling-based core (`./semantics`). The previous
- * random multi-start greedy fallback for large frameworks has been removed —
- * the core is exact for all sizes (Phase 1, commitment C2).
- *
- * `maxExplore` is retained for backward signature compatibility and ignored.
+/**
+ * Preferred extensions — ⊆-maximal admissible sets. Exact for all sizes via the
+ * labelling core (C2). `_maxExplore` is retained for backward signature
+ * compatibility and ignored.
  */
-export function preferred(A: string[], R: Array<[string, string]>, _maxExplore = 20000): Array<Set<string>> {
-  const dg = toDefeatGraphFromEdgeList(A, R);
-  return preferredExtensionsCore(dg);
+export function preferred(
+  A: string[],
+  R: Array<[string, string]>,
+  _maxExplore = 20000
+): Array<Set<string>> {
+  return preferredExtensionsCore(toDefeatGraphFromEdgeList(A, R));
 }
 
 /** Labeling from one extension: IN = E; OUT = attacked by E; UNDEC = rest. */

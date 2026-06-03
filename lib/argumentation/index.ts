@@ -5,27 +5,28 @@
 // Phase 0 (consolidation) of the argumentation-semantics roadmap:
 // `Development and Ideation Documents/ARCHITECTURE/ARGUMENTATION_SEMANTICS_CONSOLIDATION_ROADMAP.md`.
 //
-// Until Phase 0 lands, grounded/preferred/labelling were reimplemented in ≥ 3
-// places (lib/deepdive/af.ts, lib/argumentation/afEngine.ts, and inline copies
-// in app/api/.../route.ts). This module is the engine of record: all call sites
-// should import from `@/lib/argumentation` rather than the underlying modules.
+// Historically, grounded/preferred/labelling were reimplemented in ≥ 3 places
+// and inline copies in app/api/.../route.ts. This module is the engine of
+// record: all call sites import from `@/lib/argumentation` and the duplicate
+// engines have been removed (Phase 4c).
 //
-// Two graph representations coexist (both re-exported here, unchanged for now):
-//   • attack-map  — `Map<NodeID, Set<NodeID>>` (lib/deepdive/af.ts)
-//   • edge-list   — `Array<[string, string]>`  (lib/argumentation/afEngine.ts)
+// Two graph representations coexist (both re-exported here):
+//   • attack-map  — `Map<NodeID, Set<NodeID>>`
+//   • edge-list   — `Array<[string, string]>`
 //
-// Phase 1 will unify these behind a labelling-based core; Phase 0 only removes
-// the duplication by routing everything through this surface.
+// Both surface shapes are translated to the labelling-based core in
+// `./adapters`; the former standalone `lib/deepdive/af.ts` and
+// `lib/argumentation/afEngine.ts` engines were removed in Phase 4c.
 
 // ----------------------------------------------------------------------------
 // Attack-map representation (Map<NodeID, Set<NodeID>>)
 // ----------------------------------------------------------------------------
 
-import type { NodeID } from "@/lib/deepdive/af";
-import { preferredExtensions as preferredExtensionsImpl } from "@/lib/deepdive/af";
+import type { NodeID } from "@/lib/argumentation/adapters";
+import { preferredExtensions as preferredExtensionsImpl } from "@/lib/argumentation/adapters";
 
-export type { NodeID, Edge } from "@/lib/deepdive/af";
-export { buildAttackGraph, preferredExtensions } from "@/lib/deepdive/af";
+export type { NodeID, Edge } from "@/lib/argumentation/adapters";
+export { buildAttackGraph, preferredExtensions } from "@/lib/argumentation/adapters";
 
 /**
  * Grounded extension over the attack-map representation — the least fixpoint of
@@ -107,7 +108,7 @@ export function skepticalPreferred(
 // Edge-list representation (Array<[string, string]>)
 // ----------------------------------------------------------------------------
 
-export type { AFNode, AFEdge, AF, EdgeType, BuildOptions } from "@/lib/argumentation/afEngine";
+export type { AFNode, AFEdge, AF, EdgeType, BuildOptions } from "@/lib/argumentation/adapters";
 export {
   projectToAF,
   conflictFree,
@@ -117,7 +118,7 @@ export {
   grounded,
   preferred,
   labelingFromExtension,
-} from "@/lib/argumentation/afEngine";
+} from "@/lib/argumentation/adapters";
 
 // ----------------------------------------------------------------------------
 // Labelling core (Phase 1) — the engine of record's exact, semantics-complete
@@ -140,3 +141,51 @@ export {
   stableExtensions,
   semiStableExtensions,
 } from "@/lib/argumentation/semantics";
+
+// ----------------------------------------------------------------------------
+// ASPIC+ instantiation contract (Phase 2) — structured layer → shared core.
+// ----------------------------------------------------------------------------
+
+export type { InstantiableArgument, InstantiableDefeat } from "@/lib/argumentation/instantiate";
+export { instantiateDefeatGraph } from "@/lib/argumentation/instantiate";
+export { groundedLabellingDetailed } from "@/lib/argumentation/labelling";
+
+// ----------------------------------------------------------------------------
+// Typed bridge (Phase 3) — level separation (C4) + provenance (C3).
+// ----------------------------------------------------------------------------
+
+export type { Provenance, Preference } from "@/lib/argumentation/types";
+export type { FiniteArgumentSet } from "@/lib/argumentation/acceptability";
+export {
+  liftToPowerSet,
+  joinArgumentSets,
+  joinAll,
+  nodesOf,
+  acceptability,
+  provenanceOf,
+  unverifiedArguments,
+  isCanonicalPersistable,
+  assertCanonicalPersistable,
+  partitionByProvenance,
+} from "@/lib/argumentation/acceptability";
+
+// ----------------------------------------------------------------------------
+// Performance & policy (Phase 4) — incremental relabelling + semantics policy.
+// ----------------------------------------------------------------------------
+
+export type { IncrementalResult } from "@/lib/argumentation/incremental";
+export {
+  relabelOnExtend,
+  relabelFrom,
+  dirtySeed,
+  affectedRegion,
+} from "@/lib/argumentation/incremental";
+
+export type { SemanticsPolicy } from "@/lib/argumentation/policy";
+export {
+  SEMANTICS_POLICIES,
+  DEFAULT_SEMANTICS_POLICY,
+  isSemanticsPolicy,
+  resolveSemanticsPolicy,
+  policyLabelling,
+} from "@/lib/argumentation/policy";

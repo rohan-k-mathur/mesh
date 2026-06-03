@@ -109,12 +109,25 @@ export function isComplete(dg: DefeatGraph, S: Set<ArgId>): boolean {
  * acceptability computation is a finite Knaster–Tarski fixpoint, Q-031).
  */
 export function groundedLabelling(dg: DefeatGraph): Labelling {
+  return groundedLabellingDetailed(dg).labelling;
+}
+
+/**
+ * Grounded labelling plus the number of fixpoint sweeps performed. Exposed so
+ * structured (ASPIC+) callers can keep reporting an `iterations` diagnostic
+ * while still delegating the actual computation to this single core.
+ */
+export function groundedLabellingDetailed(
+  dg: DefeatGraph
+): { labelling: Labelling; rounds: number } {
   const lab: Labelling = new Map();
   for (const a of dg.args) lab.set(a, "UNDEC");
 
   let changed = true;
+  let rounds = 0;
   while (changed) {
     changed = false;
+    rounds++;
     for (const a of dg.args) {
       if (lab.get(a) !== "UNDEC") continue;
       const atts = attackersOf(dg, a);
@@ -129,7 +142,7 @@ export function groundedLabelling(dg: DefeatGraph): Labelling {
       }
     }
   }
-  return lab;
+  return { labelling: lab, rounds };
 }
 
 /** The grounded extension (the IN-labelled arguments of the grounded labelling). */
