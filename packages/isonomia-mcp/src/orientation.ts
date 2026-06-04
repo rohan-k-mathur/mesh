@@ -26,7 +26,7 @@
  * Bump when ORIENTATION_PAYLOAD changes. Returned alongside the payload
  * as `version`; agents can hash + cache against this.
  */
-export const ORIENTATION_VERSION = "1.17.0" as const;
+export const ORIENTATION_VERSION = "1.18.0" as const;
 
 /**
  * Loaded once per MCP session via `InitializeResult.instructions`.
@@ -52,11 +52,12 @@ Whenever the user states a position, asks you to "record / log / capture / save 
 HEALTH-SELECTION GATE (honesty, write-time): the server only writes against a *healthy argument pattern*. Prefer \`list_schemes(excludeUnhealthy: true)\` so you never pick a dialogue-meta / test-placeholder row — those are REFUSED with \`code: "SCHEME_NOT_ARGUMENT_PATTERN"\` (nothing written). A folksonomy-duplicate key is auto-redirected to its canonical sibling with a \`SCHEME_CANONICALIZED\` warning (never a silent merge; the warning's \`canonical\` field is the key the argument actually attached to). Typed write codes carry a \`canonical\` corrected value: errors \`SCHEME_UNKNOWN\` / \`SCHEME_NOT_ARGUMENT_PATTERN\`; warnings \`SCHEME_CANONICALIZED\`, \`EPISTEMIC_MODE_CHANGED_FINGERPRINT\`, \`VERIFIER_INCONCLUSIVE\`.
 Both tools return a permalink + immutable content-addressed URL. Omit \`deliberationId\` to land in the caller's "My Arguments" room; pass one to land in a specific debate. For warrants/inference-licenses against an existing argument, use \`propose_warrant\`. After any write, call \`get_argument\` on the returned id (after \`retryAfterMs\` if \`provenancePending\` is true) to verify the round-trip before claiming success. Do not invent ids or permalinks — only echo what the write tool returned.
 ANSWERING CRITICAL QUESTIONS: \`answer_critical_question\` discharges a scheme's open dialectical obligations on an existing argument — call it whenever a \`get_argument\` card shows entries under \`criticalQuestions.unanswered[]\` (\`criticalQuestions\` is a single aggregate object holding \`answered[]\`/\`partiallyAnswered[]\`/\`unanswered[]\`). Pass the SAME \`sessionId\` you used to create the argument and your answer self-canonicalises (promotes straight to CANONICAL, CQ → SATISFIED) in one transaction; answering with a different/absent session, or answering someone else's (or a human-authored) argument, records a PENDING proposal a human approves (non-fatal \`CQ_SELF_CANONICAL_DENIED\` warning). Reuse one UUIDv4 as your \`sessionId\` across every write this session — see Recipe E.4.
+CHALLENGING ANSWERED CRITICAL QUESTIONS: \`challenge_critical_question\` is the dual — it RE-OPENS a CQ that already has a canonical answer. Call it when a \`get_argument\` card shows an entry under \`criticalQuestions.answered[]\` whose answer you dispute. Pick an \`attackType\` (REBUT the conclusion / UNDERMINE a premise or its evidence / UNDERCUT the inference; UNDERMINE and challenger-burden CQs must cite evidence) and it files an objection claim + a typed attack edge and flips the CQ SATISFIED → DISPUTED. There is NO self-canonical floor — any caller, the original author included, files on equal footing (no sessionId needed). See Recipe E.5.
 
-TOOL-CLUSTER MAP (54 tools / 6 clusters — route here before scanning tool descriptions):
+TOOL-CLUSTER MAP (55 tools / 6 clusters — route here before scanning tool descriptions):
   1. Session start: \`get_orientation\` (full glossary + recipes), \`get_capabilities\` (cheap auth/identity probe — no round-trip).
   2. Retrieval: \`search_arguments\`, \`get_argument\`, \`get_claim\`, \`get_claim_stances\`, \`find_counterarguments\`, \`cite_argument\`, \`resolve_citation\`, \`resolve_citations_bulk\`.
-  3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_argument_chain\` (multi-step reasoning → a serial chain), \`propose_warrant\`, \`answer_critical_question\` (discharge an argument's open critical questions; \`sessionId\` self-canonicalises — see above).
+  3. Authoring/WRITE: \`propose_argument\`, \`propose_structured_argument\`, \`propose_argument_chain\` (multi-step reasoning → a serial chain), \`propose_warrant\`, \`answer_critical_question\` (discharge an argument's open critical questions; \`sessionId\` self-canonicalises — see above), \`challenge_critical_question\` (RE-OPEN an answered CQ via a typed attack; flips SATISFIED → DISPUTED — see above).
   4. Deliberation synthesis: \`get_synthetic_readout\` (primary), \`get_deliberation_fingerprint\`, \`get_contested_frontier\`, \`get_missing_moves\`, \`get_chains\`, \`get_cross_context\`, \`summarize_debate\`, \`get_deliberation_evidence_context\`.
   5. Algebraic/ECC: \`ecc_arrow\`, \`ecc_culprits\`, \`ecc_confidence\`, \`ecc_enthymemes\`, \`ecc_transport\`, \`ecc_aggregate\`, \`ecc_evidential\`, \`ecc_belief_revision_proposals\`; scheme catalog + analysis: \`list_schemes\` (browse; pass \`excludeUnhealthy: true\` before writing), \`verify_scheme_equality\`, \`compute_scheme_fingerprint\`, \`find_behaviourally_similar_schemes\`, \`get_scheme_provenance\`, \`compare_scheme_provenance\`.
   6. Ludics generative substrate (only when the user mentions locus / design / behaviour / incarnation / cone / witness / articulation lattice / daimon / bind / synthesis): reads \`get_deliberation_schema\` (START HERE), \`list_behaviours\` (enumerate behaviours before probing loci), \`get_behaviour_at_locus\`, \`get_exposure_map\`; lattice algebra \`get_articulation_lattice\`, \`find_minimal_incarnations\`, \`find_equivalent_articulations\`, \`find_substitute_premises\`, \`compress_articulation\`, \`compute_articulation_join\`; witness reads \`get_witnesses\`, \`get_unwitnessed_exposure\`, \`get_instantiation\`, \`get_fossil_record\`; helpers/writes \`list_bindable_moves\` (CALL BEFORE BIND — pre-pairs ludicMoveId + dialogueMoveId + canonicalText), \`bind_participant_to_design\` (iota seam — only path that mints WitnessRecord), \`propose_synthesis\` (Art(B) join write seam). Ludics rules: Inc(B) is an antichain — there is NO global bottom of a behaviour, only per-cone minima; cones are disjoint (cross-cone joins/meets return \`cross-cone-rejected\` — that's a value, not an error); never hand-build \`canonicalText\` (copy verbatim from \`list_bindable_moves\`); never echo \`participantId\` back to the user (T4 non-attribution). For the full Ludics workflow recipes (explore-layer / bind-participant) and glossary, call \`get_orientation\`.`;
@@ -71,7 +72,7 @@ Version: ${ORIENTATION_VERSION}
 
 ## Tool clusters — route here first
 
-54 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
+55 tools across 6 clusters. Use this map before scanning individual tool descriptions. For a cheap runtime probe of auth / identity / orientation hash without re-reading this payload, call \`get_capabilities\`.
 
 ### Cluster 1 — Session start (1 tool)
 - \`get_orientation\` — you are reading its output. Call once per session; cache against \`contentHash\`.
@@ -87,13 +88,14 @@ Use when finding, fetching, or citing specific arguments or claims.
 - \`resolve_citation\` — DOI/arXiv/URL → canonical citation record (call before \`propose_*\`)
 - \`resolve_citations_bulk\` — batch version of \`resolve_citation\`
 
-### Cluster 3 — Argument authoring / WRITE surface (5 tools)
+### Cluster 3 — Argument authoring / WRITE surface (6 tools)
 Use when the user wants to record, log, register, or save a position.
 - \`propose_argument\` — bare assertion (one-line claim, no explicit premises)
 - \`propose_structured_argument\` — **PREFER.** Premise-typed, scheme-annotated, evidence-attached. Enables per-premise standing + CQ tracking.
 - \`propose_argument_chain\` — **multi-step reasoning** ("A, therefore B; B, therefore C"). Mints a serial chain of structured-argument links (or composes existing arguments by id), threading each link's conclusion claim into the next link's premise. Same per-link health gate; returns the worst-link \`chainStanding\`. Optionally branches (\`edges[]\` → CONVERGENT/DIVERGENT/TREE/GRAPH), objects (\`attacksNode\`/\`attacksEdge\`), reasons under suppositions (\`scopes[]\`), and carries executable evidence anchors — see E.3. → verify with \`get_chains\`.
 - \`propose_warrant\` — attach an inference-license warrant to an existing argument.
 - \`answer_critical_question\` — discharge a scheme's open **critical question** on an existing argument. Read the target CQ from \`get_argument.criticalQuestions.unanswered[]\` (\`criticalQuestions\` is a single aggregate object); pass the SAME \`sessionId\` you used to author the argument to self-canonicalise (CQ → SATISFIED) or land a PENDING proposal otherwise. See E.4.
+- \`challenge_critical_question\` — the **dual** of answering: RE-OPEN an already-answered CQ you dispute. Read the target from \`get_argument.criticalQuestions.answered[]\`; pick an \`attackType\` (REBUT / UNDERMINE / UNDERCUT — UNDERMINE and challenger-burden CQs must cite evidence) and it files an objection claim + typed attack edge and flips the CQ SATISFIED → DISPUTED. No self-canonical floor — any caller files on equal footing. See E.5.
 
 ### Cluster 4 — Deliberation synthesis (8 tools)
 Use when working with a whole deliberation room, not individual arguments.
@@ -344,6 +346,21 @@ Use when you can DISCHARGE one of an argument's open dialectical obligations —
 3. **\`sessionId\` discipline (the self-canonicalisation rule):** pass the SAME \`sessionId\` you used when you CREATED the argument (the per-session UUIDv4 you thread through every \`propose_*\` write). When it matches the argument's AI provenance your answer is promoted directly to **CANONICAL** (response \`canonical: true\`, \`responseStatus: CANONICAL\`, the CQ's \`CQStatus.statusEnum → SATISFIED\`). A different/absent \`sessionId\`, a human-authored target, or \`promoteToCanonical: false\` records a **PENDING** proposal (\`canonical: false\`, non-fatal \`CQ_SELF_CANONICAL_DENIED\` warning) that a human approves on the web CQ panel. \`promoteToCanonical\` defaults true and is a SOFT request — denial is never an error.
 4. The response gives \`{ cqStatusId, responseId, responseStatus, canonical, cqStatusEnum, permalink, warnings[] }\`. Error codes (nothing written): \`CQ_ARGUMENT_NOT_FOUND\`, \`CQ_NOT_FOUND\` (no such cqKey on the argument's schemes), \`CQ_AMBIGUOUS_SCHEME\` (resend with \`schemeKey\`), \`CQ_EVIDENCE_NOT_FOUND\`, \`CQ_DUPLICATE_PENDING\` (409 — you already have a pending answer on this CQ).
 5. **Verify** with \`get_argument(argumentId)\` — the CQ should move out of \`unanswered[]\` (canonical → its \`answered\` count reflects your answer).
+
+#### E.5 — Challenge an answered critical question (\`challenge_critical_question\`)
+
+The **dual** of E.4. Use when an argument's CQ already has a canonical answer (it sits under \`criticalQuestions.answered[]\`) and you believe that answer is wrong, unsupported, or fallacious. Filing a challenge mints a scheme-free objection claim, draws a typed attack edge at the canonical answer, and flips the CQ **SATISFIED → DISPUTED**. This is an *admissibility* move — it re-opens the question; it does NOT by itself decide who wins (defeat is evaluated separately by the grounded-semantics pass that feeds standing). There is **no self-canonical floor** — any caller, the argument's original author included, files on equal footing, so no \`sessionId\` is involved.
+
+1. \`get_argument(idOrPermalink)\` → read \`criticalQuestions.answered[]\`. Pick the entry you dispute and take its \`cqKey\` and \`schemeKey\`.
+2. \`challenge_critical_question({ argumentId, cqKey, schemeKey?, attackType, groundsText, evidenceClaimIds?, sourceUrls?, requestId })\`:
+   - \`argumentId\` / \`cqKey\` (required) — the answered CQ from step 1.
+   - \`schemeKey\` — pass it ONLY when the server returns \`CQ_AMBIGUOUS_SCHEME\`; otherwise omit.
+   - \`attackType\` (required, **never inferred**) — choose how you attack the answer: **REBUT** (its conclusion is false — you assert the contrary), **UNDERMINE** (a premise / the cited evidence is false or unreliable), **UNDERCUT** (the inference fails even granting the premises). An **UNDERMINE always requires evidence** (≥1 \`evidenceClaimIds\`/\`sourceUrls\`), and some CQs additionally place the evidential burden on the challenger — the server enforces both with \`CQ_CHALLENGE_NEEDS_EVIDENCE\`.
+   - \`groundsText\` (required, 10–5000) — the objection itself: what is wrong with the canonical answer and why. Self-contained.
+   - \`evidenceClaimIds[]\` / \`sourceUrls[]\` — backing for the challenge (existing Claim ids must resolve, else \`CQ_EVIDENCE_NOT_FOUND\`).
+   - \`requestId\` — a stable UUID; on a timeout RETRY with the SAME value (server replays \`idempotentReplay: true\`).
+3. The response gives \`{ ok, cqStatusId, challengeClaimId, answerClaimId, claimEdgeId, cqAttackId, cqStatusEnum, attackType, permalink, idempotentReplay? }\` — \`cqStatusEnum\` is now \`DISPUTED\`. Error codes (nothing written): \`CQ_ARGUMENT_NOT_FOUND\`, \`CQ_NOT_FOUND\`, \`CQ_AMBIGUOUS_SCHEME\` (resend with \`schemeKey\`), \`CQ_NOT_ANSWERED\` (409 — the CQ has no canonical answer to challenge; use \`answer_critical_question\` instead), \`CQ_CHALLENGE_NEEDS_EVIDENCE\` (422 — UNDERMINE / challenger-burden CQ with no evidence), \`CQ_EVIDENCE_NOT_FOUND\`, \`CQ_DUPLICATE_CHALLENGE\` (409 — you already have a live challenge on this answer).
+4. **Verify** with \`get_argument(argumentId)\` — the CQ should now read DISPUTED (it leaves \`answered[]\` and carries the challenge).
 
 ### Recipe F — Explore a deliberation's Ludics layer
 

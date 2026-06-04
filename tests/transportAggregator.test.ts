@@ -10,6 +10,7 @@ import {
   combineLocalAndImported,
   type TransportSource,
 } from "@/lib/argumentation/transportAggregator";
+import { corroborateProbs } from "@/lib/argumentation/logodds";
 
 describe("transportAggregator — payload", () => {
   test("empty source produces empty payload", () => {
@@ -79,7 +80,9 @@ describe("transportAggregator — reduce", () => {
   test("empty → 0 in every mode", () => {
     expect(reduceImportedScores([], "min")).toBe(0);
     expect(reduceImportedScores([], "product")).toBe(0);
-    expect(reduceImportedScores([], "ds")).toBe(0);
+    // Phase 5b: logodds keeps the `0` sentinel even though 0.5 is its identity,
+    // so the `imported === 0` short-circuit in combine still fires.
+    expect(reduceImportedScores([], "logodds")).toBe(0);
   });
 
   test("min mode reduces with max (the join in the min-monoid)", () => {
@@ -90,12 +93,23 @@ describe("transportAggregator — reduce", () => {
     // 1 - (1-0.5)(1-0.5) = 0.75
     expect(reduceImportedScores([0.5, 0.5], "product")).toBeCloseTo(0.75, 6);
   });
+
+  test("logodds mode corroborates (weight-of-evidence sum)", () => {
+    // 0.6 ⊕ 0.6 ≈ 0.6923 (non-idempotent, vs noisy-OR's 0.84)
+    expect(reduceImportedScores([0.6, 0.6], "logodds")).toBeCloseTo(
+      corroborateProbs([0.6, 0.6]),
+      6,
+    );
+    expect(reduceImportedScores([0.6, 0.6], "logodds")).toBeGreaterThan(0.6);
+    expect(reduceImportedScores([0.6, 0.6], "logodds")).toBeLessThan(0.84);
+  });
 });
 
 describe("transportAggregator — combine", () => {
   test("identity: combine(local, 0) === local", () => {
     expect(combineLocalAndImported(0.42, 0, "min")).toBe(0.42);
     expect(combineLocalAndImported(0.42, 0, "product")).toBe(0.42);
+    expect(combineLocalAndImported(0.42, 0, "logodds")).toBe(0.42);
   });
 
   test("monotone in imported (Ambler p.171, §0.5.6)", () => {
@@ -112,5 +126,18 @@ describe("transportAggregator — combine", () => {
   test("product mode combines with noisy-OR", () => {
     // 1 - (1-0.4)(1-0.5) = 0.7
     expect(combineLocalAndImported(0.4, 0.5, "product")).toBeCloseTo(0.7, 6);
+  });
+
+  test("logodds mode combines via log-odds corroboration", () => {
+    expect(combineLocalAndImported(0.6, 0.6, "logodds")).toBeCloseTo(
+      corroborateProbs([0.6, 0.6]),
+      6,
+    );
+  });
+
+  test("logodds is the signed-evidence exception: below-neutral imports lower the total", () => {
+    // Corroborating with imported support < 0.5 drops the total below local —
+    // the deliberate log-odds departure from the monotone min/product bands.
+    expect(combineLocalAndImported(0.6, 0.3, "logodds")).toBeLessThan(0.6);
   });
 });

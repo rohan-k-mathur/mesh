@@ -13,6 +13,7 @@ import {
   combineLocalAndImported,
   type TransportSnapshotPayload,
 } from "@/lib/argumentation/transportAggregator";
+import { corroborateProbs } from "@/lib/argumentation/logodds";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,12 +24,22 @@ export const revalidate = 0;
 // inputs (asserted by `tests/eccAdapter.test.ts` parity suite).
 const ECC_TYPED_PIPELINE = process.env.ECC_TYPED_PIPELINE === "1";
 
-type Mode = 'product'|'min'|'ds';
+type Mode = 'product'|'min'|'ds'|'logodds';
+
+// Phase 5b step 1 (confidence-algebra migration): the lawful log-odds semiring
+// is now the *default* confidence algebra. Explicit `?mode=` requests are always
+// honoured, so this only changes the no-mode default. Revert by setting
+// `CONFIDENCE_DEFAULT_MODE=product` (env-only, no schema or data change) during
+// the real-world bake; `product` is deleted entirely in Phase 5b step 2.
+const DEFAULT_CONFIDENCE_MODE: Mode =
+  process.env.CONFIDENCE_DEFAULT_MODE === 'product' ? 'product' : 'logodds';
 const clamp01 = (x:number) => Math.max(0, Math.min(1, x));
+// compose = conjunction within an argument (base × premises × assumptions).
+// `logodds` shares product-style conjunction; it differs only in `join`.
 const compose = (xs:number[], mode:Mode)=> !xs.length ? 0 : (mode==='min' ? Math.min(...xs) : xs.reduce((a,b)=>a*b,1));
-const join    = (xs:number[], mode:Mode)=> !xs.length ? 0 : (mode==='min' ? Math.max(...xs) : 1 - xs.reduce((a,s)=>a*(1-s),1));
-
-
+// join = corroboration across independent arguments for a claim. `logodds`
+// uses the lawful weight-of-evidence sum (stacks, no noisy-OR ceiling).
+const join    = (xs:number[], mode:Mode)=> !xs.length ? 0 : (mode==='min' ? Math.max(...xs) : mode==='logodds' ? corroborateProbs(xs) : 1 - xs.reduce((a,s)=>a*(1-s),1));
 
 
 // const join = (xs: number[], mode: Mode) =>
@@ -42,14 +53,15 @@ const join    = (xs:number[], mode:Mode)=> !xs.length ? 0 : (mode==='min' ? Math
 // };
 
 
-
-
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const url = new URL(req.url);
   const deliberationId = params.id;
 
-  const qMode = (url.searchParams.get('mode') ?? 'product').toLowerCase();
-  const mode: Mode = (qMode === 'min' || qMode === 'ds') ? (qMode as Mode) : 'product';
+  const qMode = (url.searchParams.get('mode') ?? '').toLowerCase();
+  const mode: Mode =
+    (qMode === 'min' || qMode === 'logodds' || qMode === 'product')
+      ? (qMode as Mode)
+      : DEFAULT_CONFIDENCE_MODE;
   const imports = (url.searchParams.get('imports') ?? 'off').toLowerCase() as 'off'|'materialized'|'virtual'|'all';
 
   // 1) claims and concluding args
@@ -64,7 +76,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // 2) base supports in this room (materialized)
   const base = await prisma.argumentSupport.findMany({
     where: { deliberationId, claimId: { in: claimIds } },
-    select: { claimId:true, argumentId:true, base:true, provenanceJson:true }
+    select: { id:true, claimId:true, argumentId:true, base:true, provenanceJson:true }
   });
 
   // Phase 3: Lazy recomputation - recompute stale composed arguments
@@ -222,12 +234,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       assumptionStatus.set(u.id, (u.status as any) ?? "PROPOSED");
     }
 
-    const negationEdges = mode === "ds"
-      ? Array.from(negationMappings.entries()).flatMap(([cid, list]) =>
-          list.map((nid) => ({ claimId: cid, negatedClaimId: nid }))
-        )
-      : [];
-
     const inputs: EvidentialInputs = {
       claims,
       concludingArgumentByClaim: conclByClaim,
@@ -250,7 +256,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       })),
       assumptionStatus,
       legacyAssumptionsByArg: legacyAssump,
-      negationMap: negationEdges,
       defaultArgumentConfidence: DEFAULT_ARGUMENT_CONFIDENCE,
       defaultPremiseBase: DEFAULT_PREMISE_BASE,
     };
@@ -268,7 +273,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // band. The flat `support` map keeps the **total** so existing readers
     // that ignore the band stay correct (band-aware UIs read `supportBand`).
     const supportBand: Record<string, { local: number; imported: number; total: number }> = {};
-    if (includeMat && (mode === "min" || mode === "product")) {
+    if (includeMat && (mode === "min" || mode === "product" || mode === "logodds")) {
       const snapshots = await prisma.roomTransportSnapshot.findMany({
         where: { toRoomId: deliberationId },
         select: { payloadJson: true },
@@ -285,8 +290,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }
       for (const c of claims) {
         const local = typed.support[c.id] ?? 0;
-        const imp = reduceImportedScores(importedByClaim.get(c.id) ?? [], mode as "min" | "product");
-        const total = combineLocalAndImported(local, imp, mode as "min" | "product");
+        const imp = reduceImportedScores(importedByClaim.get(c.id) ?? [], mode as "min" | "product" | "logodds");
+        const total = combineLocalAndImported(local, imp, mode as "min" | "product" | "logodds");
         supportBand[c.id] = { local: +local.toFixed(4), imported: +imp.toFixed(4), total: +total.toFixed(4) };
         typed.support[c.id] = +total.toFixed(4);
       }
@@ -299,7 +304,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       pipeline: "typed",
       support: typed.support,
       ...(Object.keys(supportBand).length ? { supportBand } : {}),
-      ...(mode === "ds" ? { dsSupport: typed.dsSupport } : {}),
       hom: typed.hom,
       nodes: typed.nodes,
       arguments: argumentsMeta,
@@ -316,37 +320,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const contribs = (contributionsByClaim.get(c.id) ?? []).sort((a,b)=>b.score - a.score);
     const s = join(contribs.map(x=>x.score), mode);
     support[c.id] = +s.toFixed(4);
-    
-    // DS interval: compute bel and pl with conflict mass
-    if (mode === "ds") {
-      const bel = support[c.id];
-      let conflictMass = 0;
-      
-      // Find negated claims and compute their support (conflict mass)
-      const negatedIds = negationMappings.get(c.id) ?? [];
-      if (negatedIds.length > 0) {
-        const negContribs: number[] = [];
-        for (const negId of negatedIds) {
-          const negSupports = contributionsByClaim.get(negId) ?? [];
-          const negScore = join(negSupports.map(x => x.score), mode);
-          negContribs.push(negScore);
-        }
-        // Conflict mass = join of all negation supports
-        conflictMass = negContribs.length > 0 ? join(negContribs, mode) : 0;
-      }
-      
-      // Uncertainty mass (uncommitted belief)
-      const uncertaintyMass = Math.max(0, 1 - bel - conflictMass);
-      
-      // Plausibility: bel + uncertainty = 1 - conflict
-      const pl = Math.min(1, bel + uncertaintyMass);
-      
-      dsSupport[c.id] = { 
-        bel: +bel.toFixed(4), 
-        pl: +pl.toFixed(4) 
-      };
-    }
-    
+
     const top = contribs.slice(0,5).map(x => ({ argumentId: x.argumentId, score: +x.score.toFixed(4) }));
     return { id:c.id, diagramId: conclByClaim.get(c.id) ?? null, type:"claim" as const, text:c.text, score: support[c.id], top };
   });
@@ -363,7 +337,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Sprint C3 (legacy branch parity): apply transport snapshots so the
   // band is available regardless of `ECC_TYPED_PIPELINE`.
   const supportBand: Record<string, { local: number; imported: number; total: number }> = {};
-  if (includeMat && (mode === "min" || mode === "product")) {
+  if (includeMat && (mode === "min" || mode === "product" || mode === "logodds")) {
     const snapshots = await prisma.roomTransportSnapshot.findMany({
       where: { toRoomId: deliberationId },
       select: { payloadJson: true },
@@ -380,15 +354,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
     for (const c of claims) {
       const local = support[c.id] ?? 0;
-      const imp = reduceImportedScores(importedByClaim.get(c.id) ?? [], mode as "min" | "product");
-      const total = combineLocalAndImported(local, imp, mode as "min" | "product");
+      const imp = reduceImportedScores(importedByClaim.get(c.id) ?? [], mode as "min" | "product" | "logodds");
+      const total = combineLocalAndImported(local, imp, mode as "min" | "product" | "logodds");
       supportBand[c.id] = { local: +local.toFixed(4), imported: +imp.toFixed(4), total: +total.toFixed(4) };
       support[c.id] = +total.toFixed(4);
     }
   }
 
   return NextResponse.json({
-    ok:true, deliberationId, mode, support, ...(Object.keys(supportBand).length ? { supportBand } : {}), ...(mode==='ds' ? { dsSupport } : {}),
+    ok:true, deliberationId, mode, support, ...(Object.keys(supportBand).length ? { supportBand } : {}),
     hom, nodes, arguments: argumentsMeta,
     meta: { claims: claims.length, supports: allSupports.length, edges: edges.length, conclusions: conclusions.length }
   }, { headers: { 'Cache-Control':'no-store' } });

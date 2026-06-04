@@ -21,9 +21,11 @@ import {
   MIN_MONOID,
   PRODUCT_MONOID,
   DS_MONOID,
+  LOGODDS_MONOID,
   withMinScores,
   withProductScores,
   withDsScores,
+  withLogoddsScores,
   getConfidenceMonoid,
   registerConfidenceMonoid,
   type ConfidenceMonoid,
@@ -813,6 +815,16 @@ describe("Sprint A — confidence monoids (Ambler §3, Lemma 26)", () => {
     expect(confidence(a, m)).toBeCloseTo(0.75);
   });
 
+  test("withLogoddsScores: log-odds corroboration over derivations (non-idempotent)", () => {
+    const m = withLogoddsScores(new Map([["d1", 0.6], ["d2", 0.6]]));
+    const a = arr("A", "B", [["d1", []], ["d2", []]]);
+    const c = confidence(a, m);
+    // 0.6 ⊕ 0.6 ≈ 0.6923 — above either input, below noisy-OR's 0.84.
+    expect(c).toBeCloseTo(0.6923, 3);
+    expect(c).toBeGreaterThan(0.6);
+    expect(c).toBeLessThan(0.84);
+  });
+
   test("withDsScores: pointwise noisy-OR over derivations", () => {
     const m = withDsScores(
       new Map([
@@ -855,9 +867,10 @@ describe("Sprint A — confidence monoids (Ambler §3, Lemma 26)", () => {
 });
 
 describe("Sprint A — confidence monoid registry (ECC plan §4 row 5)", () => {
-  test("the three built-ins are pre-registered", () => {
+  test("the four built-ins are pre-registered", () => {
     expect(getConfidenceMonoid("min")?.key).toBe("min");
     expect(getConfidenceMonoid("product")?.key).toBe("product");
+    expect(getConfidenceMonoid("logodds")?.key).toBe("logodds");
     expect(getConfidenceMonoid("ds")?.key).toBe("ds");
   });
 

@@ -7,7 +7,7 @@ const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 export function ClaimConfidence({
   deliberationId, claimId, mode='min', tau=0.7,
-}: { deliberationId: string; claimId: string; mode?: 'min'|'prod'|'ds'; tau?: number; }) {
+}: { deliberationId: string; claimId: string; mode?: 'min'|'prod'|'logodds'; tau?: number; }) {
   const qs = new URLSearchParams({ deliberationId, mode, tau: String(tau) }).toString();
   const { data } = useSWR<{ ok:boolean; items:Array<{id:string; score:number; bel?:number; pl?:number; accepted:boolean}> }>(
     `/api/evidential/score?${qs}`, fetcher, { revalidateOnFocus:false }

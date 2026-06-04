@@ -16,22 +16,21 @@ import {
   type AssumptionId,
   type DerivationId,
   type ConfidenceMonoid,
-  type DSValue,
   zero,
   join,
   withMinScores,
   withProductScores,
-  withDsScores,
   confidence,
   isLogical,
   isSelected,
   isSimple,
   isEntire,
 } from "./ecc";
+import { corroborateProbs } from "./logodds";
 
 // ── Types: pure inputs (no Prisma import) so tests can stub freely ─────────
 
-export type Mode = "min" | "product" | "ds";
+export type Mode = "min" | "product" | "logodds";
 
 export interface SupportRow {
   /** ArgumentSupport.id — the derivation id in the algebra. */
@@ -69,11 +68,6 @@ export interface DerivationAssumptionRow {
   weight: number;
 }
 
-export interface NegationEdge {
-  claimId: string;
-  negatedClaimId: string;
-}
-
 export interface ClaimRow {
   id: string;
   text: string;
@@ -91,8 +85,6 @@ export interface EvidentialInputs {
   assumptionStatus: Map<AssumptionId, AssumptionStatus>;
   /** Legacy fallback: argument-level assumption weights. */
   legacyAssumptionsByArg: Map<string, number[]>;
-  /** Optional negation map (only consulted in DS mode). */
-  negationMap: NegationEdge[];
   /** Default for ArgumentSupport.base when missing. */
   defaultArgumentConfidence: number;
   /** Default base for premises lacking a baseByArg entry. */
@@ -116,7 +108,6 @@ export interface EvNode {
 
 export interface EvidentialPayload {
   support: Record<string, number>;
-  dsSupport: Record<string, { bel: number; pl: number }>;
   hom: Record<string, { args: string[] }>;
   nodes: EvNode[];
 }
@@ -178,13 +169,20 @@ function monoidForMode(mode: Mode, scoresByDeriv: Map<DerivationId, number>): Co
   switch (mode) {
     case "min": return withMinScores(scoresByDeriv);
     case "product": return withProductScores(scoresByDeriv);
-    case "ds":
-      // For DS, the per-claim join is computed separately (DS conflict mass
-      // requires negation lookups). We expose a product-shaped monoid here
-      // so the `support` field still carries a scalar (matching the legacy
-      // route, which returned a single noisy-OR value as `support[claimId]`
-      // alongside `dsSupport[claimId]`).
-      return withProductScores(scoresByDeriv);
+    case "logodds":
+      // Weight-of-evidence semiring (lib/argumentation/logodds.ts). `join`
+      // corroborates across derivations by adding log-odds (stacks; the
+      // identity is the neutral p=0.5, w=0). Corroboration is associative +
+      // commutative, so the pairwise fold in `confidence()` equals the n-ary
+      // `corroborateProbs` the route applies — preserving parity. Note: unlike
+      // the built-ins this `join` is NOT idempotent (that is the point).
+      return {
+        key: "logodds",
+        top: 0.5,
+        combine: (x, y) => corroborateProbs([x, y]),
+        join: (x, y) => corroborateProbs([x, y]),
+        base: (d) => scoresByDeriv.get(d) ?? 0.5,
+      };
   }
 }
 
@@ -215,7 +213,6 @@ export function evaluateEvidentialTyped(
     derivationAssumptions,
     assumptionStatus,
     legacyAssumptionsByArg,
-    negationMap,
     defaultArgumentConfidence,
     defaultPremiseBase,
   } = inputs;
@@ -227,7 +224,7 @@ export function evaluateEvidentialTyped(
 
   // Empty payload — match the route's early-return shape.
   if (allSupports.length === 0) {
-    return { support: {}, dsSupport: {}, hom: {}, nodes: claimsToEmptyNodes(claims, concludingArgumentByClaim) };
+    return { support: {}, hom: {}, nodes: claimsToEmptyNodes(claims, concludingArgumentByClaim) };
   }
 
   // Build lookup maps the legacy route also builds (kept identical for parity).
@@ -360,36 +357,13 @@ export function evaluateEvidentialTyped(
     });
   }
 
-  // DS branch — replicate the legacy negation-driven conflict-mass formula.
-  const dsSupport: Record<string, { bel: number; pl: number }> = {};
-  if (mode === "ds") {
-    const negByClaim = new Map<string, string[]>();
-    for (const n of negationMap) {
-      const list = negByClaim.get(n.claimId) ?? [];
-      list.push(n.negatedClaimId);
-      negByClaim.set(n.claimId, list);
-    }
-    const noisyOr = (xs: number[]) =>
-      xs.length === 0 ? 0 : 1 - xs.reduce((a, x) => a * (1 - x), 1);
-
-    for (const c of claims) {
-      const bel = support[c.id] ?? 0;
-      const negIds = negByClaim.get(c.id) ?? [];
-      const negScores = negIds.map((nid) => support[nid] ?? 0);
-      const conflict = noisyOr(negScores);
-      const uncertainty = Math.max(0, 1 - bel - conflict);
-      const pl = Math.min(1, bel + uncertainty);
-      dsSupport[c.id] = { bel: round4(bel), pl: round4(pl) };
-    }
-  }
-
   // hom map: deduplicated argument id list per claim, keyed `I|claimId`.
   const hom: Record<string, { args: string[] }> = {};
   for (const [claimId, list] of argsByClaim) {
     hom[`I|${claimId}`] = { args: Array.from(new Set(list)) };
   }
 
-  return { support, dsSupport, hom, nodes };
+  return { support, hom, nodes };
 }
 
 function claimsToEmptyNodes(

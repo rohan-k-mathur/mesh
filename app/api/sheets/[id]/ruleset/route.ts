@@ -8,7 +8,10 @@ export const revalidate = 0;
 
 const Body = z.object({
   confidence: z.object({
-    mode: z.enum(['min','product','ds'])
+    // Phase 5a (2026-06-03): "ds" retired from the confidence algebra. New
+    // rulesets persist min/product/logodds only; any legacy persisted "ds" is
+    // coerced to "product" at read time in app/api/evidential/score/route.ts.
+    mode: z.enum(['min','product','logodds'])
   })
 });
 

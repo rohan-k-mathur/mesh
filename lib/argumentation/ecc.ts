@@ -3,6 +3,8 @@
 // Implements categorical operations for argumentation with derivation sets.
 // Phase: Gap 4 - Per-Derivation Assumption Tracking
 
+import { corroborateProbs } from "./logodds";
+
 export type DerivationId = string;
 export type AssumptionId = string;
 
@@ -554,6 +556,34 @@ export function withProductScores(scores: ReadonlyMap<DerivationId, number>): Co
 }
 
 /**
+ * `logodds` weight-of-evidence monoid (Phase 5b — confidence-algebra migration).
+ * combine = `*` (premise conjunction, parity with the product monoid's compose);
+ * join = log-odds corroboration `prob(weight(x) + weight(y))` so independent
+ * derivations stack as additive weights of evidence. top = 1 (identity for
+ * `combine`, absorbing for `join`).
+ *
+ * Unlike `product`, `join` is NON-idempotent: `0.6 ⊕ 0.6 ≈ 0.6923` (vs
+ * noisy-OR's 0.84), matching `corroborateProbs` in `evidential/route.ts`.
+ *
+ * @invariant `join` is associative + commutative (weight/prob are an inverse
+ *   pair, so `join` is addition in log-odds space). Pairwise folding in
+ *   `confidence()` therefore equals the n-ary `corroborateProbs`.
+ * @invariant base default = 0.5 (the log-odds neutral, weight 0) so a missing
+ *   per-derivation score contributes no evidence rather than absorbing.
+ */
+export const LOGODDS_MONOID: ConfidenceMonoid<number> = {
+  key: "logodds",
+  top: 1,
+  combine: (x, y) => x * y,
+  join: (x, y) => corroborateProbs([x, y]),
+  base: () => 0.5,
+};
+
+export function withLogoddsScores(scores: ReadonlyMap<DerivationId, number>): ConfidenceMonoid<number> {
+  return { ...LOGODDS_MONOID, base: (d) => scores.get(d) ?? 0.5 };
+}
+
+/**
  * `ds` Dempster-Shafer monoid (Ambler Theorem 30).
  * Carrier is `{bel, pl}`; combine = pointwise product, join = pointwise
  * noisy-OR, top = `{bel: 1, pl: 1}`.
@@ -587,6 +617,7 @@ export function withDsScores(
 const _registry: Map<string, ConfidenceMonoid<any>> = new Map([
   [MIN_MONOID.key, MIN_MONOID as ConfidenceMonoid<any>],
   [PRODUCT_MONOID.key, PRODUCT_MONOID as ConfidenceMonoid<any>],
+  [LOGODDS_MONOID.key, LOGODDS_MONOID as ConfidenceMonoid<any>],
   [DS_MONOID.key, DS_MONOID as ConfidenceMonoid<any>],
 ]);
 

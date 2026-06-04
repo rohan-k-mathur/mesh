@@ -184,3 +184,114 @@ Phase 4 (perf + policy + delete deprecated engines).
 - [Q-028a](01_OPEN_QUESTIONS_REGISTRY.md#q-028a) — stratum-2 open; Spec AS
   Phase 3c keeps higher-order nodes on the *unverified* path (never persisted as
   canonical), the engineering counterpart of the still-guarded G3.
+
+---
+
+## Confidence algebra — log-odds semiring migration track
+
+**Opened:** 2026-06-03, downstream of
+[session 01 — confidence algebra: semiring vs. quantale](10_IDEATION_SESSIONS/01-confidence-algebra-semiring-vs-quantale-2026-06-02.md)
+(Resolved, documentation-level) and the
+[`09_FUTURE_DIRECTIONS_BRAINSTORM.md`](09_FUTURE_DIRECTIONS_BRAINSTORM.md) §3
+decisions block. The session settled the algebra question: adopt a **log-odds /
+weight-of-evidence semiring** for confidence, deprecate the noisy-OR `product`
+reducer (algebraically unsound — `×` does not distribute over noisy-OR, so it is
+not a semiring; see the session's counterexample at `h=0.5, f=0.6, g=0.7`),
+reclassify `min` as the distributive-quantale skeptical projection, and **replace
+Dempster–Shafer outright** with signed evidence. The decision is made; this track
+operationalises it as a **non-destructive, flag-gated code migration**.
+
+**Architectural premises:**
+
+- M1 — **One composition law of record**: corroboration ⊕ = addition in log-odds
+  space `w(c) = log(c/(1−c))` (identity `0` = `c=0.5` = "no evidence"); pro/con =
+  signed addition (`w₊ + w₋`). Lawful, associative, monotone, unbounded stacking.
+- M2 — **Persistence stays in `[0,1]`; the algebra lives at the reducer
+  boundary.** The log-odds space is the *composition* space, not the *storage*
+  space (see schema decision below). Convert `p → w` on read, add in ℝ, squash
+  `w → p` on write/display. No destructive data migration in the critical path.
+- M3 — **`min` survives as a named mode** (the distributive quantale / skeptical
+  projection), not the default — *not* deleted, unlike `product`/`ds`.
+- M4 — **Dempster–Shafer retires**: the `NegationMap` conflict-mass band and the
+  Zadeh high-conflict normalisation are subsumed by signed evidence and removed
+  only in the final, explicitly-gated phase.
+- M5 — **Byte-parity discipline preserved**: the inline reducers in the route and
+  the typed `eccAdapter` pipeline must stay parity-equal (or both update together
+  with the parity suite) at every phase, behind `ECC_TYPED_PIPELINE`.
+
+### Schema decision (resolved 2026-06-03) — store `[0,1]`, compose in log-odds
+
+The one genuinely-open design question from the session hand-off
+(`ArgumentSupport.strength`/`base` are `Float [0,1]`; log-odds is ℝ — store which?)
+is resolved in favour of **keep `[0,1]` storage, convert at the reducer
+boundary** (Option B), *not* migrating the persisted columns to ℝ. Rationale:
+
+- **No destructive migration.** Existing
+  [`ArgumentSupport`](../lib/models/schema.prisma) rows (`strength @default(0.6)`,
+  `base Float?`, both `[0,1]`) stay valid as-written; the cutover touches *code*,
+  not *data*. This is what keeps the track reversible and off the prod-DB critical
+  path.
+- **`[0,1]` is the human / UI / provenance scale.** Sliders, `clamp01`,
+  `DEFAULT_ARGUMENT_CONFIDENCE`/`DEFAULT_PREMISE_BASE`
+  ([`lib/config/confidence.ts`](../lib/config/confidence.ts)), and the import
+  `provenanceJson` fingerprints all assume `[0,1]`; log-odds ℝ is not meaningfully
+  displayable.
+- **The algebra change is about *how you compose*, not *what you store*.** Atomic
+  support strengths are *inputs*; composition (`composed=true` rows) is a
+  **recomputable cache** (lazy-recompute,
+  [`lib/evidential/lazy-recompute.ts`](../lib/evidential/lazy-recompute.ts)), so
+  composed values can always be re-derived in log-odds on demand and squashed back
+  to `[0,1]` for the cache — no need to persist unbounded magnitudes.
+- **Precision guard.** Clamp `p` to `[ε, 1−ε]` (e.g. `ε = 1e−6`) before `logit` to
+  keep `w` finite at the extremes; the squash `σ(w) = 1/(1+e^{−w})` is total.
+- **Deferred, not foreclosed.** If a concrete need later arises to persist exact
+  unbounded composed magnitude (e.g. audit of very-high-evidence chains), add a
+  *nullable* `weight Float?` (log-odds) column then — an additive, non-breaking
+  migration. Do **not** add it now; it is unjustified ahead of need.
+
+### Phase plan (ordered; safest first)
+
+| Phase | Scope | Reversible? | Gate |
+|---|---|---|---|
+| 0 | **This entry** — track opened, schema decision recorded, session promoted. | n/a (docs) | — |
+| 1 | **DONE (2026-06-03).** Pure log-odds kernel [`lib/argumentation/logodds.ts`](../lib/argumentation/logodds.ts) (`weight`/`prob` inverse pair, `corroborate`, `corroborateProbs`, `combineSignedProbs`, `EPS`-clamp) + property tests [`tests/argumentation/logodds.test.ts`](../tests/argumentation/logodds.test.ts) (19/19 green: round-trip, identity at `p=0.5`, commutative-monoid corroboration, monotonicity, signed pro/con cancellation, no high-conflict pathology). No callers yet. | fully | — |
+| 2 | **DONE (2026-06-03).** Added `"logodds"` to the `Mode` union at both reducer sites alongside the existing modes (no default change). Route ([`evidential/route.ts`](../app/api/deliberations/%5Bid%5D/evidential/route.ts)): `join` corroborates via `corroborateProbs` (compose stays product-style conjunction); `?mode=logodds` accepted. Typed adapter ([`eccAdapter.ts`](../lib/argumentation/eccAdapter.ts)): `monoidForMode` returns a weight-of-evidence monoid whose non-idempotent `join` adds log-odds — the pairwise fold in `confidence()` equals the route's n-ary corroboration (commutative+associative ⇒ parity). Parity suite [`tests/eccAdapter.test.ts`](../tests/eccAdapter.test.ts) extended (24/24 green; `0.6⊕0.6=0.6923` stacking, commutativity, premise/assumption product-compose). Note: cross-room `supportBand` import folding still gated to `min`/`product` only (deferred). | fully | parity 24/24 |
+| 3 | **DONE (2026-06-03).** Flipped the *default* algebra to `logodds` behind a flag: [`evidential/route.ts`](../app/api/deliberations/%5Bid%5D/evidential/route.ts) reads `DEFAULT_CONFIDENCE_MODE` from `CONFIDENCE_DEFAULT_MODE=logodds` (else `product`); explicit `?mode=` (incl. `product`) is always honoured, so the change is no-mode-default only. Differential test [`tests/argumentation/logodds-differential.test.ts`](../tests/argumentation/logodds-differential.test.ts) (6/6 green) pins the product↔logodds delta: singleton parity; `p=0.5` is the log-odds identity but noisy-OR still raises to 0.75; below-neutral evidence *lowers* support under log-odds (0.3⊕0.3<0.3) vs the noisy-OR pathology that raises it to 0.51; log-odds is more conservative above neutral (0.6⊕0.6=0.6923 vs noisy-OR 0.84) and does not saturate toward 1 on weak agreement; symmetry about 0.5. | flag-revertible (env only) | diff 6/6 |
+| 2 | Wire a new `"logodds"` value into the `Mode` union in **both** reducer sites — the inline `compose`/`join` in [`app/api/deliberations/[id]/evidential/route.ts`](../app/api/deliberations/%5Bid%5D/evidential/route.ts) and `composeScalar` in [`lib/argumentation/eccAdapter.ts`](../lib/argumentation/eccAdapter.ts) — **alongside** existing modes; extend `tests/eccAdapter.test.ts` parity to the new mode. No default change. | fully (additive) | Phase 1 green |
+| 3 | Flip the **default** confidence mode to `"logodds"` behind a flag/config; `product` marked deprecated (kept, warns). Differential-test new-vs-old outputs on a fixture corpus to characterise the behaviour delta before anyone relies on it. | flag-revertible | Phase 2 green |
+| 4 | **DONE (2026-06-03).** Retired Dempster–Shafer from the evidential pipeline. Removed the `ds` mode + `dsSupport`/bel-pl conflict band from [`evidential/route.ts`](../app/api/deliberations/%5Bid%5D/evidential/route.ts), [`arguments/full/route.ts`](../app/api/deliberations/%5Bid%5D/arguments/full/route.ts), and [`eccAdapter.ts`](../lib/argumentation/eccAdapter.ts) (`Mode` union, `monoidForMode` ds case, `negationMap`-driven `noisyOr`/conflict block, `EvidentialPayload.dsSupport`, `EvidentialInputs.negationMap`, `NegationEdge`). All `prisma.negationMap` reads removed (**code-only deprecation — table left in DB, no `prisma db push`; fully reversible**, per decision). The agora confidence picker swaps the **DS (Bel/Pl)** option for **corroboration (log-odds)** ([`ConfidenceControls.tsx`](../components/agora/ConfidenceControls.tsx), [`useConfidence.tsx`](../components/agora/useConfidence.tsx) migrates persisted `ds`→`product`); `logodds` wired through [`arguments/full`](../app/api/deliberations/%5Bid%5D/arguments/full/route.ts) + [`evidential/score`](../app/api/evidential/score/route.ts) + client types. **Signed-evidence collapse: DS→scalar now; `combineSignedProbs`/rebut-edge con wiring deferred** (decision). Library primitives `DS_MONOID`/`withDsScores`/`DSValue` kept in [`ecc.ts`](../lib/argumentation/ecc.ts) (lawful monoids, still tested). Deleted obsolete Playwright `ds-mode-toggle.test.ts`; removed the eccAdapter DS-parity test. Suites green: 133/133 (logodds, differential, eccAdapter, ecc). **Wider DS footprint left for a follow-up** (out of this phase's captured scope): `evidential/score` dormant `dsCombine`, `eccLoader`/`v3 ecc/confidence`, `kb/transclude`, `sheets/ruleset`, `isonomiaOpenapi` docs, `weightedBAF`. | **partly destructive — code-only NegationMap deprecation, table retained (reversible)** | Phase 3 validated in practice; suites 133/133 |
+| 5a | **DONE (2026-06-03).** Retired the wider DS footprint Phase 4 left out of scope. Dead code removed: `dsCombine()` + both `mode==="ds"` branches + `"ds"` from the `Mode` union in [`evidential/score/route.ts`](../app/api/evidential/score/route.ts) (persisted/inbound `ds` now coerced to `prod`); `"ds"` dropped from `reduceImportedScores`/`combineLocalAndImported` in [`transportAggregator.ts`](../lib/argumentation/transportAggregator.ts). Dormant-reachable removed: `"ds"` from `Mode` + the `dsScoresByDeriv` map + `withDsScores`/`DSValue` imports + the `if (mode==="ds")` branch in [`eccLoader.ts`](../lib/argumentation/eccLoader.ts) (`evaluateConfidence` now returns `number | null`); `"ds"` dropped from `ALLOWED_MODES` in [`v3/.../ecc/confidence/route.ts`](../app/api/v3/deliberations/%5Bid%5D/ecc/confidence/route.ts) with inbound `ds`→`product` coercion. Zod enums narrowed (+`logodds`): [`kb/transclude/route.ts`](../app/api/kb/transclude/route.ts) (also removed dead `dsSupport` reads — Phase 4 dropped that field) and [`sheets/[id]/ruleset/route.ts`](../app/api/sheets/%5Bid%5D/ruleset/route.ts). UI pickers feeding `kb/transclude` swapped `ds`→`logodds`: [`app/kb/[id]/page.tsx`](../app/kb/%5Bid%5D/page.tsx), [`app/kb/spaces/[spaceId]/page.tsx`](../app/kb/spaces/%5BspaceId%5D/page.tsx), [`lib/kb/types.ts`](../lib/kb/types.ts). Docs de-DS'd: [`isonomiaOpenapi.ts`](../lib/api/isonomiaOpenapi.ts) (ecc_confidence + ecc_evidential enums/descriptions) and the [`.well-known/argument-graph`](../app/.well-known/argument-graph/route.ts) manifest. **DECISION (2026-06-03, user): OK to drop `ds` from the public MCP/Isonomia API** (recorded for traceability; inbound `ds` is coerced, not hard-rejected, for one deprecation cycle). `DS_MONOID`/`withDsScores`/`DSValue` + `tests/ecc.test.ts` kept (lawful primitives). Suites green: 146/146 (transportAggregator, ecc, eccAdapter, logodds, logodds-differential). **Still bearing a DS UI option (separate subsystems, NOT touched — report-only):** `app/test/plexus-features/page.tsx` (dev sandbox), `components/deepdive/v3/debate-sheet/DebateSheetHeader.tsx`+`ArgumentNetworkCard.tsx` ("UI only" DS toggle), display-type unions in `components/evidence/SupportBar.tsx` + `components/confidence/ConfidenceBreakdown.tsx`. | mostly non-breaking (dead/dormant); public-API enum narrowed w/ coercion | Phase 4 shipped; suites 146/146 |
+| 5b | **Delete `product` and collapse `Mode` to `logodds`+`min`.** **DECISION (2026-06-03, user): delete `product` outright (not merely demote).** Order: (1) **DONE (2026-06-03)** — flipped the no-flag default to `logodds` at every `product` fallback site: [`evidential/route.ts`](../app/api/deliberations/%5Bid%5D/evidential/route.ts) `DEFAULT_CONFIDENCE_MODE` now `product` only when `CONFIDENCE_DEFAULT_MODE=product` else `logodds` (revert hatch kept for the bake); [`arguments/full/route.ts`](../app/api/deliberations/%5Bid%5D/arguments/full/route.ts) `confidenceMode = mode ?? "logodds"`; [`evidential/score/route.ts`](../app/api/evidential/score/route.ts) no-mode default → `logodds`; `.default('logodds')` in [`kb/transclude`](../app/api/kb/transclude/route.ts); UI initial state → `logodds` in [`useConfidence.tsx`](../components/agora/useConfidence.tsx) + both [kb](../app/kb/%5Bid%5D/page.tsx) [pages](../app/kb/spaces/%5BspaceId%5D/page.tsx). **NOTE: cross-room `supportBand` import folding is still gated to `min`/`product` (deferred), so the `logodds` default does not fold imported support yet — local confidence is fully log-odds.** v3 ecc routes (`eccLoader` typed pipeline) keep `product` default — they have no `logodds` mode (separate surface). Suites 146/146. **NOW BAKING — real-world testing before steps 2–3.** Then: (2) delete the `product`/noisy-OR branch from every `join()` + `Mode` union, collapsing to `min`+`logodds`; (3) coerce inbound/persisted `product`→`logodds` at the read boundary (same pattern as the `ds`→`product` migration). Update architecture doc §2.2 + §11.3 correction notes to the shipped state. | **destructive — gated, explicit go-ahead** | Phase 5a shipped + default-flip baked |
+| 5b-followups | **DONE (2026-06-03).** Closed the two watch-items the default-flip left open. **(1) Cross-room imports now fold under `logodds`.** [`transportAggregator.ts`](../lib/argumentation/transportAggregator.ts) `reduceImportedScores`/`combineLocalAndImported` widened to `"min" | "product" | "logodds"`; the `logodds` branch corroborates via `corroborateProbs` (imported support stacks as signed weight of evidence). The empty-list→`0` sentinel is kept for **all** modes (0.5 is the log-odds identity, but `0` must stay the "no imports" flag so the `imported === 0` short-circuit still fires). `logodds` is the **signed-evidence exception**: the monotone `≥ local` band invariant is deliberately dropped — below-neutral (`< 0.5`) imports *lower* the total. Gate lifted at [`evidential/route.ts`](../app/api/deliberations/%5Bid%5D/evidential/route.ts) (both typed + legacy branches) and [`arguments/full/route.ts`](../app/api/deliberations/%5Bid%5D/arguments/full/route.ts). **(2) Log-odds monoid wired into the MCP/v3 surface.** New `LOGODDS_MONOID` + `withLogoddsScores` factory in [`ecc.ts`](../lib/argumentation/ecc.ts) (`key "logodds"`, `top 1`, `combine = ×`, `join = corroborateProbs`, `base() = 0.5`), registered in the closed registry (now 4 built-ins); `join` is associative+commutative so the pairwise fold in `confidence()` equals the route's n-ary `corroborateProbs`. [`eccLoader.ts`](../lib/argumentation/eccLoader.ts) `Mode` → `min|product|logodds`, `evaluateConfidence` branches to the log-odds monoid. v3 [`ecc/confidence`](../app/api/v3/deliberations/%5Bid%5D/ecc/confidence/route.ts) + [`ecc/aggregate`](../app/api/v3/deliberations/%5Bid%5D/ecc/aggregate/route.ts) routes: `logodds` added to the allow-list, **default flipped to `logodds`**, inbound `ds`→`logodds` coercion. [`isonomiaOpenapi.ts`](../lib/api/isonomiaOpenapi.ts) confidence + aggregate enums re-add `logodds` (default `logodds`). Suites **150/150** (4 new `logodds` tests across `transportAggregator` + `ecc`). Not touched: the v3 `ecc/evidential` route (separate surface, still `min|product`+`ds` allow-list). `DS_MONOID`/`withDsScores` kept. | fully (additive) | 150/150 green |
+
+**Implementation order:** 0 → 1 → 2 → 3 → (4 ∥ doc cleanup) → 5. Phases 1–2 are
+additive and carry no data risk; phase 3 is flag-revertible; phases 4–5 are
+destructive and require explicit confirmation (model retirement, mode deletion).
+
+### Spec index
+
+| # | Spec | Layer / Surface | Research items operationalised |
+|---|------|-----------------|--------------------------------|
+| CA | *(this track)* — no separate architecture doc yet; the [session](10_IDEATION_SESSIONS/01-confidence-algebra-semiring-vs-quantale-2026-06-02.md) + this entry are the spec. | confidence reducers (route + typed pipeline), `ArgumentSupport` scoring, DS retirement | session 01 (resolved); brainstorm §3; CATEGORICAL_FOUNDATIONS §2.2 correction |
+
+### Research-side back-references
+
+- [session 01 — confidence algebra](10_IDEATION_SESSIONS/01-confidence-algebra-semiring-vs-quantale-2026-06-02.md)
+  — Resolved (documentation-level); operationalised by this track's phases 1–5.
+  The session's "open items / hand-off" promotion request is satisfied by Phase 0.
+- [`09_FUTURE_DIRECTIONS_BRAINSTORM.md`](09_FUTURE_DIRECTIONS_BRAINSTORM.md) §3 —
+  decisions block; the semiring-vs-quantale fork is closed in favour of the
+  log-odds semiring, with the Lawvere-enrichment prize parked (it needs the
+  idempotent quantale join = `min`; log-odds is non-idempotent).
+
+### Track-internal open items
+
+- **Lawvere-enrichment prize (parked).** The enrichment conjecture needs an
+  idempotent complete-lattice join (the `min` quantale); the log-odds default is
+  non-idempotent, so choosing stacking corroboration declines the structure the
+  enrichment would enrich over. If pursued, it attaches to the surviving `min`
+  mode (M3), not the default. To be promoted to [`03_CONJECTURES/`](03_CONJECTURES)
+  if/when taken up — out of scope for this migration.
+- **Composed-cache magnitude (deferred).** Whether to ever persist exact log-odds
+  magnitude (nullable `weight Float?`) is left open per the schema decision; revisit
+  only on a concrete audit need.

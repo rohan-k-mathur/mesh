@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prismaclient';
 import type { StepResult, DaimonHint } from 'packages/ludics-core/types';
 import { Hooks } from './hooks';
 import { detectDirectoryCollisions } from './detect-collisions';
+import { stepCore } from './stepCore';
 
 type Locus = { path: string; openings: string[]; additive?: boolean };
 type Act   = { polarity:'pos'|'neg'|'daimon'; locus:string; openings:string[]; additive?:boolean };
@@ -26,20 +27,6 @@ export function closedLocusSuggestions(locus: { path: string; openings?: string[
 function chooseAdditiveChild(openings: string[], chosen?: string): string[] {
   if (!openings?.length) return [];
   return [chosen ?? openings[0]];
-}
-
-function allowInPhase(
-  phase: 'focus-P'|'focus-O'|'neutral'|undefined,
-  nextPosAct: any
-) {
-  if (!phase || phase === 'neutral') return true;
-  if (phase === 'focus-P') {
-    return nextPosAct?.kind === 'PROPER' && nextPosAct?.polarity === 'P' && !!nextPosAct?.isAdditive;
-  }
-  if (phase === 'focus-O') {
-    return nextPosAct?.kind === 'PROPER' && nextPosAct?.polarity === 'P' && !nextPosAct?.isAdditive;
-  }
-  return true;
 }
 
 // Explain-why slice (unchanged)
@@ -185,9 +172,6 @@ export async function stepInteraction(opts: {
     drawAtPaths = [],
   } = opts;
 
-  const fuel = Math.max(1, Math.min(maxPairs, 10_000));
-  const virtualNegByPath = new Set(virtualNegPaths);
-  const drawAt = new Set(drawAtPaths);
   const mode = opts.compositionMode ?? 'assoc';
 
 
@@ -277,126 +261,31 @@ export async function stepInteraction(opts: {
     usedAdditive = (prevTrace.extJson as any).usedAdditive ?? {};
   }
 
-  // -- finders
-  const findNextPositive = (acts: typeof posDesign.acts, from: number) => {
-    for (let i = from; i < acts.length; i++) {
-      const a = acts[i];
-      if (opts.focusAt) {
-        // skip positives that are not under focusAt prefix
-        const p = pathById.get(a.locusId!);
-        if (!p || !(p === opts.focusAt || p.startsWith(opts.focusAt + '.'))) continue;
-      }
-      if (a.kind === 'DAIMON') return { idx: i, act: a };
-      if (a.kind === 'PROPER' && a.polarity === 'P') return { idx: i, act: a };
-    }
-    
-    return null;
-  };
-
-  // Track which O-acts have been used in pairs to avoid reusing them
-  const usedNegActIds = new Set<string>();
-
-  const findNextNegativeAtLocus = (acts: typeof posDesign.acts, _from: number, locusId: string) => {
-    // Search ALL acts for a matching O-act at this locus (not just from cursor)
-    // This handles dialogues where acts were appended out of order (e.g., concessions)
-    for (let i = 0; i < acts.length; i++) {
-      const a = acts[i];
-      if (a.kind === 'PROPER' && a.polarity === 'O' && a.locusId === locusId) {
-        // Skip if already used in a previous pair
-        if (usedNegActIds.has(a.id)) continue;
-        return { idx: i, act: a };
-      }
-    }
-    // virtual negative synthesized by tester
-    const p = pathById.get(locusId);
-    if (p && virtualNegByPath.has(p)) {
-      return { idx: _from, act: { id: undefined, kind:'PROPER', polarity:'O', locusId } as any };
-    }
-    return null;
-  };
-
-  // -- additive parent detector
-  const isAdditiveParent = (childPath?: string | null) => {
-    if (!childPath || childPath.indexOf('.') < 0) return null;
-    const parentPath = childPath.split('.').slice(0, -1).join('.');
-    const parentId = idByPath.get(parentPath);
-    if (!parentId) return null;
-    const parentAdd =
-      A.acts.some(a => a.locusId === parentId && a.isAdditive) ||
-      B.acts.some(a => a.locusId === parentId && a.isAdditive);
-    return parentAdd ? parentPath : null;
-  };
-  const childSuffixOf = (path: string) => path.split('.').slice(-1)[0];
-
-  // -- traversal
-  let cursorA = 0, cursorB = 0;
-  let side: 'A'|'B' = 'A';
-  const pairs: { posActId: string; negActId: string; locusPath: string; ts: number }[] = [];
-  let status: StepResult['status'] = 'ONGOING';
-  let reason: StepResult['reason'] | undefined;
-  let endedAtDaimonForParticipantId: 'Proponent'|'Opponent'|undefined;
-
-  for (let steps = 0; steps < fuel; steps++) {
-    const posSide   = side === 'A' ? A : B;
-    const negSide   = side === 'A' ? B : A;
-    const posCursor = side === 'A' ? cursorA : cursorB;
-    const negCursor = side === 'A' ? cursorB : cursorA;
-
-    const nextPos = findNextPositive(posSide.acts, posCursor);
-    if (!nextPos) { status = 'STUCK'; reason = 'no-response'; break; }
-
-    if (!allowInPhase(phase, nextPos.act)) { status = 'ONGOING'; break; }
-
-    if (nextPos.act.kind === 'DAIMON') {
-      status = 'CONVERGENT';
-      endedAtDaimonForParticipantId = posSide.design.participantId as any;
-      break;
-    }
-
-    const locusPath = nextPos.act.locusId ? pathById.get(nextPos.act.locusId) : undefined;
-    const parentPath = isAdditiveParent(locusPath);
-    if (parentPath) {
-      const chosen = childSuffixOf(locusPath!);
-      const prev = usedAdditive[parentPath];
-      if (prev && prev !== chosen) { status = 'DIVERGENT'; reason = 'additive-violation'; break; }
-      usedAdditive[parentPath] = chosen;
-    }
-
-    let dual = findNextNegativeAtLocus(negSide.acts, negCursor, nextPos.act.locusId!);
-    if (!dual) {
-      const p = pathById.get(nextPos.act.locusId!);
-      if (p && virtualNegByPath.has(p)) {
-        // synthesize a "virtual" O at this locus to continue the run
-        dual = { idx: negCursor, act: { id: `virt:${p}:${Date.now()}`, kind: 'PROPER', polarity: 'O', locusId: nextPos.act.locusId } as any };
-      }
-    }
-    if (!dual) {
-      const p = pathById.get(nextPos.act.locusId!);
-      if (p && drawAt.has(p)) {
-        status = 'DIVERGENT';
-        reason = 'consensus-draw';
-      } else {
-        status = 'DIVERGENT';
-        reason = reason ?? 'incoherent-move';
-      }
-      break;
-    }
-
-    // Mark this O-act as used so it won't be matched again
-    if (dual.act.id) {
-      usedNegActIds.add(dual.act.id);
-    }
-
-    pairs.push({
-             posActId: nextPos.act.id,
-             negActId: dual.act.id,
-             locusPath: locusPath ?? '0',
-             ts: Date.now(),
-           });
-
-    if (side === 'A') { cursorA = nextPos.idx + 1; cursorB = dual.idx + 1; side = 'B'; }
-    else              { cursorB = nextPos.idx + 1; cursorA = dual.idx + 1; side = 'A'; }
-  }
+  // -- traversal (pure kernel — see ./stepCore.ts). The loop body below was
+  //    lifted verbatim into `stepCore`; `stepInteraction` keeps the DB I/O
+  //    (design/loci/trace resolution, persistence, hints, endorsement) and now
+  //    delegates the decision procedure. Any test exercising `stepInteraction`
+  //    therefore exercises the same kernel; pure unit/bridge tests can drive
+  //    `stepCore` directly with hand-built act lists and no database.
+  const core = stepCore({
+    posActs: A.acts,
+    negActs: B.acts,
+    pathById,
+    idByPath,
+    posParticipantId: A.design.participantId,
+    negParticipantId: B.design.participantId,
+    fuel: maxPairs,
+    phase,
+    focusAt: opts.focusAt,
+    virtualNegPaths,
+    drawAtPaths,
+    usedAdditive,
+  });
+  const status = core.status;
+  const reason = core.reason;
+  const endedAtDaimonForParticipantId = core.endedAtDaimonForParticipantId;
+  usedAdditive = core.usedAdditive;
+  const pairs = core.pairs as { posActId: string; negActId: string; locusPath: string; ts: number }[];
 
   // hints for † at closed loci (no openings)
  // hints for † at closed loci (no openings) -> full DaimonHint objects

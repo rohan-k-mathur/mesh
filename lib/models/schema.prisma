@@ -3881,6 +3881,10 @@ model Claim {
   conflictingApplications ConflictApplication[] @relation("ConflictingClaimApplications")
   conflictedApplications  ConflictApplication[] @relation("ConflictedClaimApplications")
 
+  // Challenging-answered-CQ: this Claim materialises one or more CQResponses'
+  // groundsText so the answer can be the TARGET of a challenge edge (§4.1).
+  cqAnswerFor CQResponse[] @relation("CQAnswerClaim")
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -4290,6 +4294,13 @@ model CQResponse {
   // keyless answers are unaffected. Mirrors `ArgumentChain.idempotencyKey`.
   requestId String? @db.VarChar(200)
 
+  // Challenging-answered-CQ (§4.1): the scheme-free Claim that materialises this
+  // answer's groundsText so the answer can be the TARGET of a challenge edge.
+  // Lazily created on first challenge; null until then (most answers are never
+  // contested). Plain cuid FK matching Claim.id.
+  answerClaimId String?
+  answerClaim   Claim?  @relation("CQAnswerClaim", fields: [answerClaimId], references: [id], onDelete: SetNull)
+
   reviewedAt  DateTime?
   reviewedBy  String? // Author or moderator who approved/rejected (auth_id)
   reviewNotes String? // Why approved/rejected
@@ -4316,6 +4327,7 @@ model CQResponse {
   @@index([cqStatusId, responseStatus])
   @@index([contributorId])
   @@index([responseStatus, createdAt])
+  @@index([answerClaimId])
 }
 
 enum ResponseStatus {
@@ -4395,6 +4407,7 @@ enum CQAction {
   CANONICAL_SELECTED
   ENDORSEMENT_ADDED
   CLARIFICATION_REQUESTED
+  CHALLENGE_FILED // a challenge-claim + attack edge was filed against an answer
 }
 
 enum Illocution {
@@ -6828,6 +6841,14 @@ model SharedAuthorRoomEdge {
 /// - Transport Functor UI: Interface for defining negation mappings during import
 /// - Evidential API: Uses negation maps to compute DS conflict mass
 /// - ArgumentImport: Negation maps enable functor-based attack propagation
+///
+/// **DEPRECATED (2026-06-03, confidence-algebra log-odds migration Phase 4):**
+/// The Dempster–Shafer conflict band that consumed this model has been retired
+/// from the evidential pipeline (evidential/route.ts, arguments/full/route.ts,
+/// eccAdapter.ts) in favour of the signed log-odds / weight-of-evidence algebra.
+/// No production reducer reads `prisma.negationMap` any more. The table is
+/// retained (code-only deprecation, intentionally NOT dropped) so the change is
+/// fully reversible; drop it only after Phase 5 + a confirmed migration window.
 model NegationMap {
   /// Unique identifier
   id String @id @default(cuid())

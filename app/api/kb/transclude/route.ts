@@ -8,10 +8,11 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const EvalZ = z.object({
-  mode: z.enum(['product', 'min', 'ds']).default('product'),
+  // Phase 5b step 1: log-odds is the default confidence algebra (was 'product').
+  mode: z.enum(['product', 'min', 'logodds']).default('logodds'),
   tau: z.number().min(0).max(1).optional(),
   imports: z.enum(['off', 'materialized', 'virtual', 'all']).default('off'),
-}).default({ mode: 'product', imports: 'off' });
+}).default({ mode: 'logodds', imports: 'off' });
 
 const ItemZ = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('claim'), id: z.string().min(6), lens: z.string().optional(), roomId: z.string().optional() }),
@@ -73,8 +74,10 @@ export async function POST(req: NextRequest) {
           if (!ev.ok) throw new Error(`evidential HTTP ${ev.status}`);
           const ej = await ev.json();
 
-          const bel = ej?.dsSupport?.[it.id]?.bel ?? ej?.support?.[it.id] ?? 0;
-          const pl  = ej?.dsSupport?.[it.id]?.pl  ?? bel;
+          // Phase 5a: `dsSupport` retired from the evidential response (Phase 4).
+          // bel/pl now collapse to the scalar support for the legacy belpl lens.
+          const bel = ej?.support?.[it.id] ?? 0;
+          const pl  = bel;
           const node = (ej?.nodes || []).find((n:any)=>n.id===it.id);
           const top  = node?.top ?? [];
 
@@ -122,8 +125,8 @@ export async function POST(req: NextRequest) {
             .slice(0, (it as any).limit ?? 5)
             .map((n:any)=>({
               id:n.id, text:n.text, score:n.score,
-              bel: ej?.dsSupport?.[n.id]?.bel ?? n.score,
-              pl:  ej?.dsSupport?.[n.id]?.pl  ?? n.score,
+              bel: n.score,
+              pl:  n.score,
               diagramId: n.diagramId ?? null
             }));
           results.push({

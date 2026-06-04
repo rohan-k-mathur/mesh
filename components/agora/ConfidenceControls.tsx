@@ -49,7 +49,7 @@ export default function ConfidenceControls({ compact = false }: { compact?: bool
           >
             <option value="min">weakest‑link (min)</option>
             <option value="product">independent (product)</option>
-            <option value="ds">DS (Bel/Pl)</option>
+            <option value="logodds">corroboration (log‑odds)</option>
           </select>
           
           <Tooltip>
@@ -75,10 +75,11 @@ export default function ConfidenceControls({ compact = false }: { compact?: bool
                   </p>
                 </div>
                 <div>
-                  <strong className="text-slate-900">DS (Bel/Pl):</strong>
+                  <strong className="text-slate-900">Corroboration (log-odds):</strong>
                   <p className="text-slate-600 mt-0.5">
-                    Dempster-Shafer theory. Handles ignorance explicitly by showing 
-                    belief intervals [bel, pl]. Use when uncertainty matters.
+                    Lawful weight-of-evidence mode. Independent supporting arguments
+                    add their log-odds, so evidence stacks without an artificial
+                    noisy-OR ceiling. The neutral point is 0.5 (no evidence either way).
                   </p>
                 </div>
               </div>

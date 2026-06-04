@@ -265,11 +265,11 @@ export const ISONOMIA_OPENAPI_SPEC = {
         operationId: "eccConfidence",
         summary: "confidence(arrow, monoid) for a single claim",
         description:
-          "Returns the scalar (or `{bel,pl}` pair for DS) confidence of `Hom(I, claim)` under one named monoid. `mode` is a closed enum (ECC plan §4 row 5): `min` (Ambler Ex. 25), `product` (Ambler Ex. 28), `ds` (Ambler Thm. 30). Honest-empty: claims with no derivations return `confidence: null`.",
+          "Returns the scalar confidence of `Hom(I, claim)` under one named monoid. `mode` is a closed enum (ECC plan §4 row 5): `min` (Ambler Ex. 25), `product` (Ambler Ex. 28), `logodds` (weight-of-evidence corroboration). Default is `logodds` (Phase 5b, 2026-06-03). Honest-empty: claims with no derivations return `confidence: null`. (The `ds` Dempster–Shafer mode was retired 2026-06-03; inbound `ds` is coerced to `logodds` for one deprecation cycle.)",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string" } },
           { name: "claimId", in: "query", required: true, schema: { type: "string" } },
-          { name: "mode", in: "query", required: true, schema: { type: "string", enum: ["min", "product", "ds"] } },
+          { name: "mode", in: "query", required: false, schema: { type: "string", enum: ["min", "product", "logodds"], default: "logodds" } },
         ],
         responses: { "200": { description: "Confidence value.", content: { "application/json": { schema: { type: "object" } } } } },
       },
@@ -308,11 +308,11 @@ export const ISONOMIA_OPENAPI_SPEC = {
         operationId: "eccAggregate",
         summary: "{ local, imported, total } band per claim",
         description:
-          "Combines local `confidence(arrow, monoid)` with the noisy-OR (or min) of every cached `RoomTransportSnapshot` payload landing on the claim. `mode` restricted to {`min`, `product`} — DS aggregation is not cached. Isonomia construction (ECC plan §0.5.7), one-hop only.",
+          "Combines local `confidence(arrow, monoid)` with the per-mode reduction of every cached `RoomTransportSnapshot` payload landing on the claim. `mode` restricted to {`min`, `product`, `logodds`} (default `logodds`, Phase 5b) — DS aggregation is not cached. Under `logodds`, imported support folds as signed log-odds corroboration. Isonomia construction (ECC plan §0.5.7), one-hop only.",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string" } },
           { name: "claimId", in: "query", required: true, schema: { type: "string" } },
-          { name: "mode", in: "query", required: true, schema: { type: "string", enum: ["min", "product"] } },
+          { name: "mode", in: "query", required: false, schema: { type: "string", enum: ["min", "product", "logodds"], default: "logodds" } },
         ],
         responses: { "200": { description: "Aggregated band + per-source contributions.", content: { "application/json": { schema: { type: "object" } } } } },
       },
@@ -323,10 +323,10 @@ export const ISONOMIA_OPENAPI_SPEC = {
         operationId: "eccEvidential",
         summary: "Whole-deliberation typed evidential projection",
         description:
-          "Whole-deliberation projection: `support[claimId]` (scalar), `dsSupport[claimId]` ({bel,pl} when mode=ds), `hom['I|claimId'].args[]`, `nodes[]` with strict logical/selected flags, plus `supportBand[claimId] = { local, imported, total }` when `imports` ∈ {`materialized`, `all`} and mode ∈ {`min`, `product`}. Bypasses the `ECC_TYPED_PIPELINE` env feature flag.",
+          "Whole-deliberation projection: `support[claimId]` (scalar), `hom['I|claimId'].args[]`, `nodes[]` with strict logical/selected flags, plus `supportBand[claimId] = { local, imported, total }` when `imports` ∈ {`materialized`, `all`} and mode ∈ {`min`, `product`}. Bypasses the `ECC_TYPED_PIPELINE` env feature flag. (The `ds` mode + `dsSupport` band were retired 2026-06-03.)",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string" } },
-          { name: "mode", in: "query", required: true, schema: { type: "string", enum: ["min", "product", "ds"] } },
+          { name: "mode", in: "query", required: true, schema: { type: "string", enum: ["min", "product"] } },
           { name: "imports", in: "query", required: true, schema: { type: "string", enum: ["off", "materialized", "virtual", "all"] } },
         ],
         responses: { "200": { description: "Typed evidential projection.", content: { "application/json": { schema: { type: "object" } } } } },

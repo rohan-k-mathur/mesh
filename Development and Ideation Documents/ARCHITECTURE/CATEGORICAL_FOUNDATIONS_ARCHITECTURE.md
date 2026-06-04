@@ -27,7 +27,7 @@
 
 ## 1. Executive Summary
 
-The Mesh/Agora system implements a sophisticated **categorical semantics for argumentation** based on Simon Ambler's work on "Evidential Closed Categories" (ECCs). This architecture provides:
+Isonomia implements a **categorical semantics for argumentation** based on Simon Ambler's work on "Evidential Closed Categories" (ECCs). This architecture provides:
 
 - **Formal rigor**: Arguments as morphisms, claims as objects, with well-defined composition and aggregation
 - **Quantified uncertainty**: Confidence measures that map to Dempster-Shafer belief theory
@@ -117,6 +117,24 @@ The system is grounded in Ambler's categorical approach to argumentation semanti
 │                                                                         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+> **⚠️ Correction (2026-06-02, research-programme session).** Law 5 above
+> (distributivity, `h∘(f∨g) = (h∘f)∨(h∘g)`) is **only satisfied in `min`
+> mode**, not in `product`/`ds` mode. The implemented reducers in
+> [`evidential/route.ts`](../../../app/api/deliberations/[id]/evidential/route.ts)
+> use `compose=×` with `join=` noisy-OR (`1-∏(1-x)`) for product mode, and
+> product does **not** distribute over noisy-OR. Counterexample with
+> `h=0.5, f=0.6, g=0.7`: `h∘(f∨g) = 0.5·(1-0.4·0.3) = 0.44` while
+> `(h∘f)∨(h∘g) = 1-(0.7·0.65) = 0.545`. Therefore product/noisy-OR is **not
+> a semiring** and the SLat-enrichment (law 4) / distributivity (law 5)
+> claims hold rigorously **only for `min` mode** (the tropical/Gödel
+> quantale, which is genuinely distributive: the same test gives
+> `0.5 = 0.5`). The research programme has consequently resolved to adopt a
+> log-odds / weight-of-evidence semiring for stacking corroboration,
+> deprecate noisy-OR, and replace DS — see
+> [`RESEARCH_PROGRAMME/09_FUTURE_DIRECTIONS_BRAINSTORM.md`](../../../RESEARCH_PROGRAMME/09_FUTURE_DIRECTIONS_BRAINSTORM.md)
+> §3 decisions block. The laws are retained here as the *intended* algebra,
+> but `product`/`ds` mode does not currently realize them.
 
 ### 2.3 Theoretical Source Documents
 
@@ -301,7 +319,7 @@ const join = (xs: number[], mode: Mode) =>
 
 ### 5.1 Hom-Set Structure
 
-In categorical terms, **Hom(A, B)** is the set of all morphisms from A to B. In Mesh:
+In categorical terms, **Hom(A, B)** is the set of all morphisms from A to B. In Isonomia:
 
 ```
 Hom(A, B) = { arguments supporting claim B given claim A }
@@ -1234,7 +1252,7 @@ the same fixture, with no LLM in the loop.
 
 ## Appendix B: Categorical Glossary
 
-| Term | Definition | Mesh Equivalent |
+| Term | Definition | Isonomia Equivalent |
 |------|------------|-----------------|
 | **Object** | Element of a category | `Claim` |
 | **Morphism** | Arrow between objects | `Argument` + `ArgumentSupport` |

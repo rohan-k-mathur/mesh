@@ -106,6 +106,44 @@ export interface CriticalQuestionStatus {
    * scheme than the argument's primary scheme (pulled in from a parent).
    */
   inheritedFromParentScheme: boolean;
+  /**
+   * Raw `CQStatus.statusEnum` for this CQ (null when no status row exists).
+   * `DISPUTED` is the challenge state (Challenging-Answered-CQ §11.6): the CQ
+   * had a canonical answer that a structural contester has re-opened.
+   */
+  cqStatusEnum:
+    | "OPEN"
+    | "PENDING_REVIEW"
+    | "PARTIALLY_SATISFIED"
+    | "SATISFIED"
+    | "DISPUTED"
+    | null;
+  /** True iff at least one challenge (`CQAttack`) is on file for this CQ. */
+  challenged: boolean;
+  /** Number of challenges (`CQAttack` rows) filed against this CQ (§11.6). */
+  challengeCount: number;
+  /**
+   * Catalogue `CriticalQuestion.requiresEvidence` for this CQ (master switch
+   * for the challenge-evidence bar, §11.2.1). Lets a client mirror the server
+   * admissibility check before a round-trip. False when unset.
+   */
+  cqRequiresEvidence: boolean;
+  /**
+   * Catalogue `CriticalQuestion.burdenOfProof` for this CQ. With
+   * `cqRequiresEvidence`, drives who must cite evidence to challenge / exit
+   * DISPUTED (§12.3). Defaults `PROPONENT`.
+   */
+  cqBurden: "PROPONENT" | "CHALLENGER" | "OPPONENT";
+  /**
+   * Whether the argument carrying this CQ's canonical answer was self-asserted
+   * by an AI agent over MCP (§12.1) — derived from the argument's `authorKind` +
+   * `aiProvenance` with the same predicate as `isSelfCanonicalEligible`, minus
+   * the session-match clause. Feeds the "answered by an AI agent" challenge
+   * nudge; never gates anything.
+   */
+  answerSelfCanonical: boolean;
+  /** The argument's `AuthorKind` (the answer's authorship proxy, §12.1). */
+  answerAuthorKind: "HUMAN" | "AI" | "HYBRID";
   status:
     | "missing"
     | "open"
@@ -601,6 +639,8 @@ export async function buildArgumentAttestation(
       createdAt: true,
       lastUpdatedAt: true,
       authorId: true,
+      authorKind: true,
+      aiProvenance: true,
       conclusionClaimId: true,
       conclusion: {
         select: {
@@ -655,6 +695,8 @@ export async function buildArgumentAttestation(
                   attackKind: true,
                   premiseType: true,
                   schemeId: true,
+                  burdenOfProof: true,
+                  requiresEvidence: true,
                 },
               },
             } as any,
@@ -761,7 +803,7 @@ export async function buildArgumentAttestation(
           { targetType: "argument" as any, targetId: argument.id },
         ],
       },
-      select: { statusEnum: true, status: true, schemeKey: true, cqKey: true, id: true },
+      select: { statusEnum: true, status: true, schemeKey: true, cqKey: true, id: true, _count: { select: { attacks: true } } },
     }),
   ]);
 
@@ -885,6 +927,26 @@ export async function buildArgumentAttestation(
   let criticalQuestionsAggregate: CriticalQuestionsAggregate | null = null;
   if (primarySchemeRow) {
     const schemeKey = primarySchemeRow.scheme.key ?? null;
+    // ---- Answer-provenance nudge inputs (§12.1) -------------------------
+    // Derive whether this argument's canonical CQ answers were self-asserted
+    // by an AI agent over MCP. Same predicate as `isSelfCanonicalEligible`
+    // (lib/cqs/answerOverMcp.ts) MINUS the session-match clause — here we only
+    // care THAT it was AI-self-asserted, not whose session matched. Read off
+    // the argument's own `authorKind` + `aiProvenance` (selected above).
+    const answerAuthorKind: "HUMAN" | "AI" | "HYBRID" = (() => {
+      const k =
+        typeof (argument as any).authorKind === "string"
+          ? (argument as any).authorKind
+          : "HUMAN";
+      return k === "AI" || k === "HYBRID" ? k : "HUMAN";
+    })();
+    const argProv = (argument as any).aiProvenance as Record<string, unknown> | null;
+    const provVia =
+      argProv && typeof argProv.via === "string" ? (argProv.via as string) : null;
+    const answerSelfCanonical =
+      (answerAuthorKind === "AI" || answerAuthorKind === "HYBRID") &&
+      provVia != null &&
+      provVia.startsWith("mcp");
     // Build a lookup keyed by cqKey (case-insensitive) over status rows
     // that match this scheme. We scope to the primary scheme so cross-
     // scheme CQ labels can't bleed into the aggregate.
@@ -919,6 +981,24 @@ export async function buildArgumentAttestation(
             ? rawPremiseType
             : null;
         const cqSchemeId = cq.schemeId ?? null;
+        const rawStatusEnum = ((row?.statusEnum as unknown as string) || "").toUpperCase();
+        const cqStatusEnum =
+          rawStatusEnum === "OPEN" ||
+          rawStatusEnum === "PENDING_REVIEW" ||
+          rawStatusEnum === "PARTIALLY_SATISFIED" ||
+          rawStatusEnum === "SATISFIED" ||
+          rawStatusEnum === "DISPUTED"
+            ? (rawStatusEnum as CriticalQuestionStatus["cqStatusEnum"])
+            : null;
+        const challengeCount = (row as any)?._count?.attacks ?? 0;
+        const rawBurden =
+          typeof cq.burdenOfProof === "string" ? cq.burdenOfProof.toUpperCase() : null;
+        const cqBurden =
+          rawBurden === "PROPONENT" ||
+          rawBurden === "CHALLENGER" ||
+          rawBurden === "OPPONENT"
+            ? (rawBurden as CriticalQuestionStatus["cqBurden"])
+            : "PROPONENT";
         return {
           cqKey: key,
           text: (cq.text ?? "").toString(),
@@ -929,6 +1009,13 @@ export async function buildArgumentAttestation(
           isSchemeRequired: premiseType !== "ASSUMPTION",
           inheritedFromParentScheme:
             cqSchemeId != null && cqSchemeId !== primarySchemeRow.scheme.id,
+          cqStatusEnum,
+          challenged: challengeCount > 0,
+          challengeCount,
+          cqRequiresEvidence: cq.requiresEvidence === true,
+          cqBurden,
+          answerSelfCanonical,
+          answerAuthorKind,
           status,
         };
       },
