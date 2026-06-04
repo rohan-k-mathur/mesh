@@ -8,7 +8,7 @@ import type { AifSubgraph } from '@/lib/arguments/diagram';
 
 
 /** ---------- Shared types (match your API shapes) ---------- */
-type EvalMode = 'product'|'min'|'ds';
+type EvalMode = 'product'|'min'|'logodds';
 type ImportsQ = 'off'|'materialized'|'virtual'|'all';
 
 type KbBlockKind =
@@ -306,7 +306,7 @@ export default function KbPageViewer({
   });
 
   // UI eval overrides (default to page defaults)
-  const [mode, setMode] = React.useState<EvalMode>('product');
+  const [mode, setMode] = React.useState<EvalMode>('logodds');
   const [tau, setTau] = React.useState<number | null>(null);
   const [imports, setImports] = React.useState<ImportsQ>('off');
   const [at, setAt] = React.useState<string>(''); // ISO or snapshot id
@@ -315,7 +315,7 @@ export default function KbPageViewer({
   React.useEffect(() => {
     if (!page) return;
     const d = page.evalDefaults ?? {};
-    setMode((d.mode ?? 'product') as EvalMode);
+    setMode((d.mode ?? 'logodds') as EvalMode);
     setTau((d.tau ?? null) as number | null);
     setImports((d.imports ?? 'off') as ImportsQ);
   }, [page?.id]);
@@ -409,7 +409,7 @@ export default function KbPageViewer({
             <select value={mode} onChange={e=>setMode(e.target.value as EvalMode)} className="px-1 py-0.5 rounded border bg-white/70">
               <option value="product">product</option>
               <option value="min">min</option>
-              <option value="ds">ds</option>
+              <option value="logodds">logodds</option>
             </select>
           </label>
           <label className="inline-flex items-center gap-1">

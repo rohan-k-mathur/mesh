@@ -118,14 +118,30 @@ export interface BehaviourComputationOptions {
 
 /**
  * Check if two designs converge (D ⊥ E)
- * 
+ *
  * Two designs converge if their interaction terminates with a daimon.
  * Divergence occurs when the interaction gets stuck (no legal move).
- * 
+ *
+ * ⚠️ APPROXIMATION ONLY — NOT THE CANONICAL ORTHOGONALITY PREDICATE.
+ * This in-memory checker (predicate "A") is faithful to Ludics orthogonality
+ * ONLY on the linear, daimon-terminated, additive-free fragment. The Phase-0
+ * audit (`RESEARCH_PROGRAMME/10_IDEATION_SESSIONS/02-foundational-bridge-dung-ludics-2026-06-02.md`
+ * §0b) established it is NOT equivalent to the production predicate in general:
+ * it follows only `ramification[0]` (a single linear path), its loop guard is
+ * dead code (see below), it can short-circuit on the `hasDaimon` flag, and it
+ * has no notion of additives / directory collisions / consensus draws.
+ *
+ * The canonical orthogonality relation (D0.1) is
+ *   D ⊥ E  ⟺  stepInteraction(D, E).status === 'CONVERGENT'
+ * — see `packages/ludics-engine/behaviourClosure.ts` and `checkOrthogonal.ts`.
+ * Do NOT rest any bridge / behaviour-completeness result on this function.
+ *
  * @param d1 First design (plays as P)
  * @param d2 Second design (plays as O)
  * @param maxDepth Maximum interaction depth
  * @returns Whether the designs converge
+ * @deprecated For canonical orthogonality use `makeCanonicalOracle` /
+ *   `biorthogonalClosureForDialogue` in `packages/ludics-engine/behaviourClosure.ts`.
  */
 export function converges(
   d1: LudicDesignTheory,
@@ -167,6 +183,13 @@ export function checkConvergence(
     const addrKey = addressToKey(currentAddress);
 
     // Check for loops
+    // ⚠️ KNOWN-UNSOUND (D0.4): including `depth` in the key makes every state
+    // distinct (depth strictly increases), so this guard never fires and the
+    // `termination: "loop"` branch is effectively dead — real loops silently
+    // fall through to `max_depth`. A faithful guard would key on
+    // `${addrKey}:${activePolarity}` only; left as-is because this whole
+    // function is approximation-only (see the `converges` banner) and changing
+    // the guard alters its (already non-canonical) verdicts.
     const stateKey = `${addrKey}:${activePolarity}:${depth}`;
     if (visited.has(stateKey)) {
       return {
@@ -317,6 +340,13 @@ function findResponse(
 
 /**
  * Check if a design has a daimon at a specific address
+ *
+ * ⚠️ KNOWN-UNSOUND short-circuit (D0.4): this reports a daimon whenever the
+ * design carries the `hasDaimon` flag AND has a daimon action at `address`,
+ * independent of whether the strict alternating traversal would actually reach
+ * it. The canonical predicate (`stepInteraction`) only converges when a DAIMON
+ * act is the next positive act genuinely reached. This is one of the reasons
+ * `converges` is approximation-only.
  */
 function checkDaimonAt(
   design: LudicDesignTheory,
@@ -350,9 +380,16 @@ function checkDaimonAt(
  * The orthogonal is the set of all designs that converge with
  * every design in the input set.
  * 
+ * ⚠️ APPROXIMATION ONLY — built on the non-canonical `converges` predicate
+ * (see its banner). The canonical replacement is `orthogonalSet` /
+ * `biorthogonalClosureForDialogue` in
+ * `packages/ludics-engine/behaviourClosure.ts` (D0.3). Do not rest bridge
+ * results on this.
+ *
  * @param designs The set of designs G
  * @param candidatePool Optional pool of candidate designs to check
  * @returns The orthogonal G⊥
+ * @deprecated Use the canonical closure in `packages/ludics-engine/behaviourClosure.ts`.
  */
 export function computeOrthogonal(
   designs: LudicDesignTheory[],
@@ -392,10 +429,20 @@ export function computeOrthogonal(
  * 
  * The biorthogonal closure is the smallest behaviour containing G.
  * A set is a behaviour iff G = G⊥⊥.
- * 
+ *
+ * ⚠️ APPROXIMATION ONLY — NOT CANONICAL. This is the function the §1 bridge
+ * conjecture is *about*, but it is built on the non-canonical `converges`
+ * heuristic (predicate "A"). Per the Phase-0 audit (D0.3), no bridge or
+ * behaviour-completeness result may rest on it as it stands. The canonical
+ * replacement is `biorthogonalClosure` / `biorthogonalClosureForDialogue` in
+ * `packages/ludics-engine/behaviourClosure.ts`, which is founded on
+ * `stepInteraction` orthogonality (D0.1).
+ *
  * @param designs The set of designs G
  * @param options Computation options
  * @returns The biorthogonal closure G⊥⊥
+ * @deprecated Use `biorthogonalClosureForDialogue` in
+ *   `packages/ludics-engine/behaviourClosure.ts`.
  */
 export function computeBiorthogonalClosure(
   designs: LudicDesignTheory[],

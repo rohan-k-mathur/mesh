@@ -28,3 +28,5 @@
 - [C003 — Exposure-map refinement of Prakken expansions](C003-exposure-map-refines-prakken.md)
 - [C004 — Joint saturation as closure operator](C004-joint-saturation-closure.md)
 - [C005 — Time-indexed behaviours form a directed system](C005-behaviours-directed-system.md)
+- [C010 — Grounded extension ⟺ canonical Ludics-orthogonality acceptance](C010-grounded-orthogonality-bridge.md) — *partially-resolved: grounded fragment proved by [T005](../02_THEOREMS_AND_PROOFS/T005-grounded-ludics-keystone.md)*
+- [C011 — Additive Ludics structure ⟺ branching of preferred / stable argument games](C011-additive-preferred-games-bridge.md) — *open: the Phase-4 lift of T005 past the additive-free boundary*

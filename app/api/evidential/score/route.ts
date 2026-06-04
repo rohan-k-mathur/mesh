@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { TargetType } from "@prisma/client";
+import { corroborateProbs } from "@/lib/argumentation/logodds";
 
-type Mode = "min"|"prod"|"ds";
+type Mode = "min"|"prod"|"logodds";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,8 +25,15 @@ const idsParam = (u.searchParams.get("ids") || "").trim();
     select: { rulesetJson: true }
   });
   
-  const defaultMode = (sheet?.rulesetJson as any)?.confidence?.mode ?? "product";
-  const rawMode = String(u.searchParams.get("mode") ?? defaultMode).toLowerCase();
+  // Phase 5a: "ds" retired from the evidential pipeline. Coerce any persisted/inbound
+  // "ds" mode to "prod" (its closest surviving reducer) for one deprecation cycle.
+  // Phase 5b step 1: the no-mode default is now "logodds" (was "product"); explicit
+  // persisted/query modes are still honoured. Revert the bake via the persisted
+  // sheet mode or an explicit ?mode=product.
+  const persistedMode = (sheet?.rulesetJson as any)?.confidence?.mode;
+  const defaultMode = persistedMode === "ds" ? "product" : (persistedMode ?? "logodds");
+  const rawModeIn = String(u.searchParams.get("mode") ?? defaultMode).toLowerCase();
+  const rawMode = rawModeIn === "ds" ? "product" : rawModeIn;
   const mode: Mode = (rawMode === "product" ? "prod" : (rawMode as Mode)) || "min";
 
   // Pull minimal neighborhood for this room + CQ statuses for arguments
@@ -98,55 +106,11 @@ const idsParam = (u.searchParams.get("ids") || "").trim();
   function combineChains(chains:number[]): number {
     if (!chains.length) return 0;
     if (mode === "min") return Math.max(...chains);               // best single line
+    // weight-of-evidence corroboration: log-odds add (no noisy-OR ceiling)
+    if (mode === "logodds") return corroborateProbs(chains);
     // noisy-OR for independent lines
     const prodNot = chains.reduce((p, s) => p * (1 - s), 1);
     return 1 - prodNot;
-  }
-
-  /**
-   * Dempster-Shafer combination for belief/plausibility intervals.
-   * 
-   * IMPLEMENTATION NOTE: This is a simplified DS implementation with limitations:
-   * 
-   * 1. POSITIVE-ONLY EVIDENCE: Assumes all evidence supports φ (no explicit mass on ¬φ).
-   *    Each argument score s is mapped to: m({φ})=s, m({Θ})=1-s.
-   *    There is no direct representation of counter-evidence.
-   * 
-   * 2. NO CONFLICT RESOLUTION: Uses basic Dempster's rule with k=1 (no conflict).
-   *    Does NOT implement PCR5/PCR6 (Proportional Conflict Redistribution) rules.
-   *    May produce unintuitive results when expert opinions strongly disagree.
-   * 
-   * 3. SIMPLIFIED PLAUSIBILITY: Returns pl=1 (no explicit mass on ¬φ).
-   *    In full DS theory, pl(φ) = 1 - m(¬φ), but we don't track ¬φ mass.
-   * 
-   * USE CASES:
-   * - ✅ WORKS WELL: Multiple independent arguments supporting same conclusion
-   * - ✅ WORKS WELL: Accumulating positive evidence with uncertainty
-   * - ⚠️ LIMITED: Conflicting expert opinions (no PCR redistribution)
-   * - ⚠️ LIMITED: Direct rebuttals (handled separately in supportClaim, not here)
-   * 
-   * For advanced conflict resolution with highly contradictory evidence,
-   * consider implementing PCR5 or PCR6 rules (see research literature on
-   * Proportional Conflict Redistribution in Dempster-Shafer theory).
-   * 
-   * @param bels - Array of belief values (0..1) to combine
-   * @returns {bel, pl} - Belief and plausibility interval
-   */
-  function dsCombine(bels:number[]): { bel:number, pl:number } {
-    // light-weight DS: combine independent masses on {φ}, {Θ};
-    // treat each line score s => m({φ})=s, m({Θ})=1-s; Dempster's rule on binary frame.
-    let mBel = 0, mIgn = 1; // start with vacuous mass
-    for (const s of bels) {
-      const a = s, aIgn = 1 - s;
-      const conflict = 0; // binary positive-only evidence; no direct support for ¬φ here
-      const k = 1 - conflict;
-      const newBel = (mBel*a + mBel*aIgn + mIgn*a) / (k || 1);
-      const newIgn = (mIgn*aIgn) / (k || 1);
-      mBel = newBel; mIgn = newIgn;
-    }
-    const bel = mBel;
-    const pl = 1 - 0; // no explicit mass on ¬φ in this first cut
-    return { bel: Math.max(0, Math.min(1, bel)), pl: Math.max(bel, Math.min(1, pl)) };
   }
 
   function supportClaim(claimId: string): { score:number, bel?:number, pl?:number, explain?:any } {
@@ -184,7 +148,8 @@ const idsParam = (u.searchParams.get("ids") || "").trim();
         // Start with scheme base, then modulate by premises
         let chain = schemeBase * (
           mode === "min"  ? premMin :
-          mode === "prod" ? premProd : premMin
+          mode === "prod" ? premProd :
+          mode === "logodds" ? premProd : premMin
         );
 
         // Apply CQ penalty: 0.85^(unsatisfiedCount)
@@ -215,9 +180,7 @@ const idsParam = (u.searchParams.get("ids") || "").trim();
       }
 
       // combine multiple lines
-      const score = mode === "ds"
-        ? dsCombine(chainScores).bel
-        : combineChains(chainScores);
+      const score = combineChains(chainScores);
 
       // rebut attacks (to the conclusion) down‑adjust
       const rebuts = rebutByClaim.get(claimId) ?? [];
@@ -229,9 +192,7 @@ const idsParam = (u.searchParams.get("ids") || "").trim();
         memo.set(claimId, result); return result;
       }
 
-      const result = mode === "ds"
-        ? { score, ...dsCombine(chainScores), explain: explain ? { lines: chainExpls } : undefined }
-        : { score, explain: explain ? { lines: chainExpls } : undefined };
+      const result = { score, explain: explain ? { lines: chainExpls } : undefined };
 
       memo.set(claimId, result);
       return result;

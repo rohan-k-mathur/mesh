@@ -10,6 +10,7 @@
 // §4 row 2 (one-hop only).
 
 import { createHash } from "crypto";
+import { corroborateProbs } from "./logodds";
 
 /** Per-claim support produced by the source room. */
 export interface SourceClaimSupport {
@@ -85,29 +86,40 @@ export function computeTransportHash(source: TransportSource): string {
  * the same join semantics as the local pipeline.
  *
  * @invariant Mode parity with `lib/argumentation/eccAdapter.ts`:
- *   - `min`  → max (the join in the min-monoid)
- *   - others → noisy-OR (the join in the product/DS monoids)
- * @invariant Empty list ⇒ 0 (no imports = no imported contribution).
+ *   - `min`     → max (the join in the min-monoid)
+ *   - `logodds` → log-odds corroboration (the join in the weight-of-evidence
+ *                monoid — imported support stacks as signed evidence)
+ *   - `product` → noisy-OR (the join in the product monoid)
+ * @invariant Empty list ⇒ 0 (no imports = no imported contribution). NOTE:
+ *   `0` is the "no imports" sentinel for **every** mode (even though `0.5`,
+ *   not `0`, is the log-odds identity) so the `imported === 0` short-circuit
+ *   in `combineLocalAndImported` keeps working under `logodds`.
  */
-export function reduceImportedScores(scores: number[], mode: "min" | "product" | "ds"): number {
+export function reduceImportedScores(scores: number[], mode: "min" | "product" | "logodds"): number {
   if (scores.length === 0) return 0;
   if (mode === "min") return Math.max(...scores);
+  if (mode === "logodds") return corroborateProbs(scores);
   return 1 - scores.reduce((a, x) => a * (1 - x), 1);
 }
 
 /**
  * Combine local + imported into the `total` band shown in the UI.
  *
- * @invariant Aggregation is monotone (Ambler p. 171, ECC plan §0.5.6):
- *   `combineLocalAndImported(local, imported) >= local` for every mode.
- * @invariant Identity: `combineLocalAndImported(local, 0) === local`.
+ * @invariant Identity: `combineLocalAndImported(local, 0) === local` (the
+ *   `imported === 0` sentinel means "no imports", honoured in every mode).
+ * @invariant Monotone for `min`/`product` (Ambler p. 171, ECC plan §0.5.6):
+ *   `combineLocalAndImported(local, imported) >= local`. `logodds` is the
+ *   deliberate signed-evidence exception — corroboration with below-neutral
+ *   (`< 0.5`) imported support *lowers* the total, matching the log-odds
+ *   semantics (`0.3 ⊕ 0.3 < 0.3`).
  */
 export function combineLocalAndImported(
   local: number,
   imported: number,
-  mode: "min" | "product" | "ds"
+  mode: "min" | "product" | "logodds"
 ): number {
   if (imported === 0) return local;
   if (mode === "min") return Math.max(local, imported);
+  if (mode === "logodds") return corroborateProbs([local, imported]);
   return 1 - (1 - local) * (1 - imported);
 }

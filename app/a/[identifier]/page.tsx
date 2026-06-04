@@ -287,7 +287,18 @@ export default async function ArgumentPage({
   // surface the actual answer body + sources. Best-effort: a CQ marked
   // satisfied without a canonical response (e.g. legacy/deprecated grounds) is
   // skipped so the section never shows an empty answer.
-  const answeredCqAggregate = attestation?.criticalQuestions?.answered ?? [];
+  //
+  // A CQ that was answered and is now contested moves to `statusEnum=DISPUTED`,
+  // which the aggregate buckets under `unanswered` (Challenging-Answered-CQ
+  // §11.6). Those still carry a canonical answer, so we fold them into this
+  // card too — the component renders the amber "Disputed" badge + challenge
+  // ledger for them.
+  const answeredCqAggregate = [
+    ...(attestation?.criticalQuestions?.answered ?? []),
+    ...(attestation?.criticalQuestions?.unanswered ?? []).filter(
+      (cq) => cq.cqStatusEnum === "DISPUTED",
+    ),
+  ];
   let answeredCriticalQuestions: AnsweredCriticalQuestion[] = [];
   if (answeredCqAggregate.length > 0) {
     const answeredStatusIds = answeredCqAggregate
@@ -323,6 +334,13 @@ export default async function ArgumentPage({
             schemeKey: cq.schemeKey,
             answeredAt:
               row?.canonicalResponse?.createdAt?.toISOString() ?? null,
+            cqStatusEnum: cq.cqStatusEnum,
+            challengeCount: cq.challengeCount,
+            argumentId,
+            cqRequiresEvidence: cq.cqRequiresEvidence,
+            cqBurden: cq.cqBurden,
+            answerSelfCanonical: cq.answerSelfCanonical,
+            answerAuthorKind: cq.answerAuthorKind,
           };
         })
         .filter((cq): cq is AnsweredCriticalQuestion => cq !== null);

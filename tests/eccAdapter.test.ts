@@ -7,6 +7,7 @@ import {
   type EvidentialInputs,
   type Mode,
 } from "../lib/argumentation/eccAdapter";
+import { corroborateProbs } from "../lib/argumentation/logodds";
 
 // Minimal helper to spin up an EvidentialInputs fixture inline.
 function makeInputs(overrides: Partial<EvidentialInputs>): EvidentialInputs {
@@ -19,7 +20,6 @@ function makeInputs(overrides: Partial<EvidentialInputs>): EvidentialInputs {
     derivationAssumptions: [],
     assumptionStatus: new Map(),
     legacyAssumptionsByArg: new Map(),
-    negationMap: [],
     defaultArgumentConfidence: 0.6,
     defaultPremiseBase: 0.6,
     ...overrides,
@@ -34,7 +34,7 @@ function legacyEvaluate(inputs: EvidentialInputs, mode: Mode): Record<string, nu
   const compose = (xs: number[]): number =>
     !xs.length ? 0 : (mode === "min" ? Math.min(...xs) : xs.reduce((a, b) => a * b, 1));
   const join = (xs: number[]): number =>
-    !xs.length ? 0 : (mode === "min" ? Math.max(...xs) : 1 - xs.reduce((a, s) => a * (1 - s), 1));
+    !xs.length ? 0 : (mode === "min" ? Math.max(...xs) : mode === "logodds" ? corroborateProbs(xs) : 1 - xs.reduce((a, s) => a * (1 - s), 1));
 
   const allSupports = [
     ...inputs.localSupports.map((s) => ({
@@ -197,19 +197,67 @@ describe("Sprint B1 — eccAdapter parity with legacy reducer", () => {
     const out = evaluateEvidentialTyped(inputs, "product");
     expect(out.hom["I|c1"].args.sort()).toEqual(["a1", "a2"]);
   });
+});
 
-  test("DS mode populates dsSupport with bel ≤ pl", () => {
+describe("Phase 2 — logodds mode parity (weight-of-evidence join)", () => {
+  test("single argument: logodds support equals the row score (no corroboration)", () => {
     const inputs = makeInputs({
-      claims: [{ id: "c1", text: "C" }, { id: "c2", text: "¬C" }],
+      claims: [{ id: "c1", text: "C" }],
+      localSupports: [{ id: "s1", claimId: "c1", argumentId: "a1", base: 0.7 }],
+    });
+    const typed = evaluateEvidentialTyped(inputs, "logodds");
+    expect(typed.support).toEqual(legacyEvaluate(inputs, "logodds"));
+    expect(typed.support["c1"]).toBeCloseTo(0.7, 4);
+  });
+
+  test("two equal arguments stack above the noisy-OR/product result", () => {
+    const inputs = makeInputs({
+      claims: [{ id: "c1", text: "C" }],
       localSupports: [
         { id: "s1", claimId: "c1", argumentId: "a1", base: 0.6 },
-        { id: "s2", claimId: "c2", argumentId: "a2", base: 0.3 },
+        { id: "s2", claimId: "c1", argumentId: "a2", base: 0.6 },
       ],
-      negationMap: [{ claimId: "c1", negatedClaimId: "c2" }],
     });
-    const out = evaluateEvidentialTyped(inputs, "ds");
-    expect(out.dsSupport["c1"]).toBeDefined();
-    expect(out.dsSupport["c1"].bel).toBeLessThanOrEqual(out.dsSupport["c1"].pl);
+    const typed = evaluateEvidentialTyped(inputs, "logodds");
+    expect(typed.support).toEqual(legacyEvaluate(inputs, "logodds"));
+    // 0.6 ⊕ 0.6 = 0.6923… — the lawful stacking diagnostic from session 01.
+    expect(typed.support["c1"]).toBeCloseTo(0.6923, 4);
+  });
+
+  test("corroboration is order-independent (commutative join)", () => {
+    const base = makeInputs({
+      claims: [{ id: "c1", text: "C" }],
+      localSupports: [
+        { id: "s1", claimId: "c1", argumentId: "a1", base: 0.55 },
+        { id: "s2", claimId: "c1", argumentId: "a2", base: 0.7 },
+        { id: "s3", claimId: "c1", argumentId: "a3", base: 0.6 },
+      ],
+    });
+    const reversed = makeInputs({
+      claims: [{ id: "c1", text: "C" }],
+      localSupports: [
+        { id: "s3", claimId: "c1", argumentId: "a3", base: 0.6 },
+        { id: "s2", claimId: "c1", argumentId: "a2", base: 0.7 },
+        { id: "s1", claimId: "c1", argumentId: "a1", base: 0.55 },
+      ],
+    });
+    expect(evaluateEvidentialTyped(base, "logodds").support["c1"])
+      .toBeCloseTo(evaluateEvidentialTyped(reversed, "logodds").support["c1"], 4);
+  });
+
+  test("premise edge + assumptions still compose product-style under logodds", () => {
+    const inputs = makeInputs({
+      claims: [{ id: "c1", text: "C" }],
+      localSupports: [
+        { id: "s1", claimId: "c1", argumentId: "a1", base: 0.8 },
+        { id: "s2", claimId: "cP", argumentId: "aP", base: 0.5 },
+      ],
+      premiseEdges: [{ fromArgumentId: "aP", toArgumentId: "a1" }],
+      derivationAssumptions: [{ derivationId: "s1", assumptionId: "λ1", weight: 0.5 }],
+      assumptionStatus: new Map([["λ1", "PROPOSED"]]),
+    });
+    expect(evaluateEvidentialTyped(inputs, "logodds").support["c1"])
+      .toEqual(legacyEvaluate(inputs, "logodds")["c1"]);
   });
 });
 

@@ -1,4 +1,4 @@
-export type EvalParams = { mode?: 'min'|'product'|'ds'; tau?: number|null };
+export type EvalParams = { mode?: 'min'|'product'|'logodds'; tau?: number|null };
 
 export type BaseBlock = {
   id: string;

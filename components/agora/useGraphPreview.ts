@@ -6,7 +6,7 @@ import { useConfidence } from "./useConfidence";
 type Preview = { acceptedShare: number, counted: number };
 
 function key(roomId: string, mode: string, tau: number|null) {
-  const m = mode === "ds" ? "product" : mode;
+  const m = mode === "logodds" ? "product" : mode;
   const t = tau == null ? "na" : String(tau);
   return `/api/deliberations/${roomId}/graph?semantics=preferred&mode=${m}` + (tau==null ? "" : `&confidence=${t}`);
 }

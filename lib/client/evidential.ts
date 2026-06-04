@@ -3,7 +3,7 @@ export type ClaimScore = { id: string; score?: number; bel?: number; pl?: number
 
 export async function fetchClaimScores(params: {
   deliberationId: string;
-  mode: 'min'|'product'|'ds';
+  mode: 'min'|'product'|'logodds';
   tau?: number|null;
   claimIds?: string[]; // optional: to limit the set
 }) {
@@ -23,7 +23,7 @@ export async function fetchClaimScores(params: {
 export type HomSetResponse = {
   ok: boolean;
   deliberationId: string;
-  mode: 'min' | 'product' | 'ds';
+  mode: 'min' | 'product' | 'logodds';
   support: Record<string, number>; // claimId → confidence score
   hom: Record<string, { args: string[] }>; // "I|claimId" → list of argument IDs
   nodes: Array<{
@@ -54,7 +54,7 @@ export type HomSetResponse = {
  * 
  * @param params - Configuration for hom-set retrieval
  * @param params.deliberationId - The deliberation/room to query
- * @param params.mode - Confidence accrual mode ('min' = weakest-link, 'product' = probabilistic, 'ds' = Dempster-Shafer)
+ * @param params.mode - Confidence accrual mode ('min' = weakest-link, 'product' = probabilistic, 'logodds' = weight-of-evidence corroboration)
  * @param params.imports - How to handle imported arguments ('off' = local only, 'materialized' = copied imports, 'virtual' = read-only view, 'all' = both)
  * 
  * @returns Promise resolving to hom-set structure with confidence scores
@@ -74,7 +74,7 @@ export type HomSetResponse = {
  */
 export async function fetchHomSets(params: {
   deliberationId: string;
-  mode?: 'min' | 'product' | 'ds';
+  mode?: 'min' | 'product' | 'logodds';
   imports?: 'off' | 'materialized' | 'virtual' | 'all';
 }): Promise<HomSetResponse> {
   const mode = params.mode ?? 'product';

@@ -261,7 +261,7 @@ React.useEffect(() => {
   const fetchGated = React.useCallback(
     async (rid: string) => {
       if (gatedShare.current.has(rid)) return gatedShare.current.get(rid)!;
-      const gm = mode === "ds" ? "product" : mode;
+      const gm = mode === "logodds" ? "product" : mode;
       const qs = new URLSearchParams({
         semantics: "preferred",
         mode: gm,

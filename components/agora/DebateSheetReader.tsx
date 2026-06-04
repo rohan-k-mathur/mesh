@@ -39,12 +39,11 @@ type EvNode = {
 type EvResp = {
   ok: boolean;
   deliberationId: string;
-  mode: "min" | "product" | "ds";
+  mode: "min" | "product" | "logodds";
   nodes: EvNode[];
   arguments: { id: string; text?: string }[];
   meta: any;
   support?: Record<string, number>;
-  dsSupport?: Record<string, { bel:number; pl:number }>;
 };
 
 
@@ -66,7 +65,7 @@ export function ClaimsPane({ deliberationId, claims }: { deliberationId: string;
       {items.map(c => {
         const s = c._s;
         const v = s?.score ?? s?.bel ?? 0;
-        const upperBound = mode === 'ds' ? s?.pl : undefined;
+        const upperBound = undefined;
         return (
           <li key={c.id} className="flex items-center gap-2">
             <span className="text-sm">{c.text}</span>
@@ -210,9 +209,6 @@ export default function DebateSheetReader({
     const arg = fullData.items.find((a: any) => a.aif?.conclusion?.id === claimId);
     if (!arg) return null;
     
-    if (mode === 'ds' && typeof arg.support === 'object') {
-      return { kind: 'ds', bel: arg.support.bel, pl: arg.support.pl };
-    }
     const s = typeof arg.support === 'number' ? arg.support : arg.support?.bel ?? 0;
     // Sprint C4: pass cross-room transport band through when present.
     return { kind: 'scalar', s, ...(arg.supportBand ? { band: arg.supportBand } : {}) };
@@ -235,7 +231,7 @@ export default function DebateSheetReader({
       }
     }
     return m;
-  }, [fullData, mode]);
+  }, [fullData]);
 
   // Build contributing arguments map from API data
   const contributingByClaimId = useMemo(() => {

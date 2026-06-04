@@ -636,6 +636,52 @@ const AnswerCriticalQuestionInput = z.object({
         .optional()
         .describe("Idempotency key for retry-safety. Pass a stable unique id; if the write times out, RETRY with the SAME requestId — the server replays the answer that already landed (`idempotentReplay: true`) instead of creating a duplicate."),
 });
+// ── challenge_critical_question input ──────────────────────────────
+// Contest an ALREADY-ANSWERED critical question on an existing argument. Files
+// an objection claim + a typed attack edge (REBUT/UNDERMINE/UNDERCUT) against
+// the canonical answer and flips the CQ SATISFIED → DISPUTED. There is NO
+// self-canonical floor here: challenging is not a self-discharging act, so any
+// caller (the original author included) files on equal footing. Backed by
+// POST /api/cqs/challenge.
+const ChallengeCriticalQuestionInput = z.object({
+    argumentId: z
+        .string()
+        .min(1)
+        .describe("Id of the argument whose ANSWERED critical question you are contesting. The target CQ must already be SATISFIED with a canonical answer — read it from a `get_argument` entry under `criticalQuestions.answered[]` (the `criticalQuestions` field is a single aggregate object, not an array). Challenging an unanswered CQ returns CQ_NOT_ANSWERED — answer tools are for unanswered CQs, this tool is only for answered ones."),
+    cqKey: z
+        .string()
+        .min(1)
+        .describe("The critical-question key whose canonical answer you dispute (e.g. 'expertise', 'bias'). Read it from a `criticalQuestions.answered[].cqKey` entry on `get_argument`."),
+    schemeKey: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Scheme the CQ is anchored on. REQUIRED only when the same cqKey exists on more than one of the argument's schemes (the server returns CQ_AMBIGUOUS_SCHEME asking for it). Otherwise omit; it is inferred."),
+    attackType: z
+        .enum(["REBUT", "UNDERMINE", "UNDERCUT"])
+        .describe("How your challenge attacks the answer — NEVER inferred, you must choose. REBUT: the answer's conclusion is false (you assert the contrary). UNDERMINE: a premise / the cited evidence of the answer is false or unreliable — an UNDERMINE ALWAYS requires at least one `evidenceClaimIds` / `sourceUrls` entry (it contests evidence, so it must cite some). UNDERCUT: the answer's inference does not hold even granting its premises (a defeater on the warrant)."),
+    groundsText: z
+        .string()
+        .min(10)
+        .max(5000)
+        .describe("The objection itself — what is wrong with the canonical answer and why. 10–5000 chars, self-contained. Becomes a scheme-free objection Claim (it carries no CQs of its own, keeping the dispute finite)."),
+    evidenceClaimIds: z
+        .array(z.string())
+        .optional()
+        .default([])
+        .describe("Ids of existing Claim rows backing your challenge. REQUIRED (≥1, combined with sourceUrls) for an UNDERMINE, and for any CQ that places the evidential burden on the challenger; otherwise optional. Each must exist (else CQ_EVIDENCE_NOT_FOUND)."),
+    sourceUrls: z
+        .array(z.string().url())
+        .optional()
+        .default([])
+        .describe("External citation URLs backing the challenge. Counts toward the evidence requirement alongside evidenceClaimIds."),
+    requestId: z
+        .string()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe("Idempotency key for retry-safety. Pass a stable unique id; if the write times out, RETRY with the SAME requestId — the server replays the challenge that already landed (`idempotentReplay: true`) instead of filing a duplicate."),
+});
 // ── list_schemes (read tool) ────────────────────────────────────
 // Discovery primer for the upcoming `propose_structured_argument`
 // write tool: lets an LLM browse the scheme catalog and pick a
@@ -1908,6 +1954,23 @@ const tools = [
             }
             const input = AnswerCriticalQuestionInput.parse(args);
             return await isoFetch(`/api/cqs/answer`, {
+                method: "POST",
+                authenticated: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+            });
+        },
+    },
+    {
+        name: "challenge_critical_question",
+        description: "WRITE TOOL — contest an **already-answered** critical question on an existing argument. **Use this when a `get_argument` result shows an entry under `criticalQuestions.answered[]` whose canonical answer you believe is wrong, unsupported, or fallacious** (the `criticalQuestions` field is a single aggregate object: `{ schemeKey, total, answered[], partiallyAnswered[], unanswered[] }`). This is the dual of `answer_critical_question`: answering discharges an OPEN obligation, challenging RE-OPENS a closed one. Filing a challenge mints a scheme-free objection claim, draws a typed attack edge at the canonical answer, and flips the CQ **SATISFIED → DISPUTED** (an admissibility move — it does NOT by itself decide who wins; defeat is evaluated separately by the grounded-semantics pass). There is **no self-canonical floor**: any caller — including the argument's original author — files on equal footing, so you never need a matching sessionId. **WORKFLOW:** call `get_argument`, read its `criticalQuestions.answered[]`, pick the entry you dispute, and pass that entry's `cqKey` (plus its `schemeKey` if the same key sits on multiple schemes) with your `attackType` and `groundsText`. **ATTACK TYPE (required, never inferred):** REBUT = the answer's conclusion is false; UNDERMINE = a premise / the cited evidence is false (ALWAYS needs ≥1 evidenceClaimIds/sourceUrls); UNDERCUT = the inference fails even granting the premises. Some CQs also place the evidential burden on the challenger (the server enforces this) — supply evidence then too. Accepts `{ argumentId, cqKey, schemeKey?, attackType, groundsText, evidenceClaimIds?[], sourceUrls?[], requestId? }`. Returns `{ ok, cqStatusId, challengeClaimId, answerClaimId, claimEdgeId, cqAttackId, cqStatusEnum, attackType, permalink, idempotentReplay? }`. Error codes: CQ_ARGUMENT_NOT_FOUND, CQ_NOT_FOUND (no such cqKey), CQ_AMBIGUOUS_SCHEME (pass schemeKey), CQ_NOT_ANSWERED (the CQ has no canonical answer to challenge — use answer_critical_question instead), CQ_CHALLENGE_NEEDS_EVIDENCE (UNDERMINE / challenger-burden CQ with no evidence), CQ_EVIDENCE_NOT_FOUND, CQ_DUPLICATE_CHALLENGE (you already have a live challenge on this answer).",
+        inputSchema: zodToJsonSchema(ChallengeCriticalQuestionInput),
+        async handler(args) {
+            if (!API_TOKEN) {
+                throw new Error("challenge_critical_question requires the ISONOMIA_API_TOKEN env var. Restart the MCP server with that variable set to a valid Isonomia bearer token.");
+            }
+            const input = ChallengeCriticalQuestionInput.parse(args);
+            return await isoFetch(`/api/cqs/challenge`, {
                 method: "POST",
                 authenticated: true,
                 headers: { "Content-Type": "application/json" },

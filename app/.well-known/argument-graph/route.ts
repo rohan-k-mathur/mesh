@@ -159,7 +159,7 @@ const MANIFEST = {
         "Sprint E — Ambler §4 retraction candidates per claim, hydrated with AssumptionUse text/status. Answers 'what would I have to retract to reject claim X?'",
     },
     eccConfidence: {
-      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/confidence?claimId={claimId}&mode=min|product|ds`,
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/confidence?claimId={claimId}&mode=min|product`,
       method: "GET",
       description:
         "Sprint E — `confidence(arrow, monoid)` per claim. Closed-enum monoid (ECC plan §4 row 5).",
@@ -185,10 +185,10 @@ const MANIFEST = {
         "Sprint E — `{ local, imported, total }` band per claim via aggregateAcrossRooms. Isonomia construction (ECC plan §0.5.7).",
     },
     eccEvidential: {
-      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/evidential?mode=min|product|ds&imports=off|materialized|virtual|all`,
+      url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/evidential?mode=min|product&imports=off|materialized|virtual|all`,
       method: "GET",
       description:
-        "Sprint E — typed evidential projection for the whole deliberation (bypasses the ECC_TYPED_PIPELINE feature flag). Returns support, dsSupport, hom, nodes, plus supportBand when imports are folded in.",
+        "Sprint E — typed evidential projection for the whole deliberation (bypasses the ECC_TYPED_PIPELINE feature flag). Returns support, hom, nodes, plus supportBand when imports are folded in.",
     },
     eccBeliefRevision: {
       url: `${BASE_URL}/api/v3/deliberations/{id}/ecc/belief-revision?claimId={claimId}`,
@@ -319,7 +319,7 @@ const MANIFEST = {
       {
         name: "ecc_confidence",
         description:
-          "Sprint E — confidence(arrow, monoid) with mode in {min, product, ds} (closed enum, ECC plan §4 row 5).",
+          "Sprint E — confidence(arrow, monoid) with mode in {min, product} (closed enum, ECC plan §4 row 5; ds retired 2026-06-03).",
       },
       {
         name: "ecc_enthymemes",

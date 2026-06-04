@@ -26,7 +26,6 @@ import {
   type DerivationId,
   type DerivationProvenance,
   type ConfidenceMonoid,
-  type DSValue,
   arrowMeta,
   confidence,
   culpritSets as algebraCulpritSets,
@@ -34,24 +33,22 @@ import {
   isLogical,
   isSelected,
   isSimple,
-  withDsScores,
   withMinScores,
   withProductScores,
+  withLogoddsScores,
   zero,
   type CulpritSet,
 } from "./ecc";
 
-export type Mode = "min" | "product" | "ds";
+export type Mode = "min" | "product" | "logodds";
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 export interface LoadedClaimArrow {
   claimId: string;
   arrow: Arrow<"I", string>;
-  /** Per-derivation scalar score (used as `base(d)` in non-DS monoids). */
+  /** Per-derivation scalar score (used as `base(d)` in the confidence monoids). */
   scoresByDeriv: Map<DerivationId, number>;
-  /** Per-derivation DS valuation. */
-  dsScoresByDeriv: Map<DerivationId, DSValue>;
   /** AssumptionUse.status keyed by id — drives the strict `logical` predicate. */
   assumptionStatus: Map<AssumptionId, AssumptionStatus>;
   /** Per-derivation provenance (authorKind + ratification). */
@@ -126,7 +123,6 @@ export async function loadClaimArrow(
 
   const arrow: Arrow<"I", string> = zero("I", claimId);
   const scoresByDeriv = new Map<DerivationId, number>();
-  const dsScoresByDeriv = new Map<DerivationId, DSValue>();
   const derivationProvenance = new Map<DerivationId, DerivationProvenance>();
   const derivationRows: LoadedClaimArrow["derivations"] = [];
 
@@ -143,7 +139,6 @@ export async function loadClaimArrow(
 
     const base = clamp01(s.base ?? 0.5);
     scoresByDeriv.set(s.id, base);
-    dsScoresByDeriv.set(s.id, { bel: base, pl: base });
 
     const arg = argById.get(s.argumentId);
     const authorKind: AuthorKind = (arg?.authorKind as AuthorKind) ?? "HUMAN";
@@ -175,7 +170,6 @@ export async function loadClaimArrow(
     claimId,
     arrow,
     scoresByDeriv,
-    dsScoresByDeriv,
     assumptionStatus,
     derivationProvenance,
     derivations: derivationRows,
@@ -186,14 +180,14 @@ export async function loadClaimArrow(
  * Confidence value for a loaded arrow under the requested closed-enum mode.
  * Returns `null` when the arrow is empty (caller should surface honest-empty).
  */
-export function evaluateConfidence(loaded: LoadedClaimArrow, mode: Mode): number | DSValue | null {
+export function evaluateConfidence(loaded: LoadedClaimArrow, mode: Mode): number | null {
   if (!isEntire(loaded.arrow)) return null;
-  if (mode === "ds") {
-    const m = withDsScores(loaded.dsScoresByDeriv);
-    return confidence(loaded.arrow, m);
-  }
   const m: ConfidenceMonoid<number> =
-    mode === "min" ? withMinScores(loaded.scoresByDeriv) : withProductScores(loaded.scoresByDeriv);
+    mode === "min"
+      ? withMinScores(loaded.scoresByDeriv)
+      : mode === "logodds"
+        ? withLogoddsScores(loaded.scoresByDeriv)
+        : withProductScores(loaded.scoresByDeriv);
   return confidence(loaded.arrow, m);
 }
 

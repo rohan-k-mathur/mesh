@@ -9,7 +9,7 @@ export function useRoomGraphPrefetch() {
   const { mode, tau } = useConfidence();
 
   return React.useCallback((roomId: string) => {
-    const m = mode === "ds" ? "product" : mode; // graph API accepts 'min'|'product'
+    const m = mode === "logodds" ? "product" : mode; // graph API accepts 'min'|'product'
     const qs = new URLSearchParams({ semantics: "preferred", mode: m, ...(tau!=null ? { confidence:String(tau) } : {}) });
     const url = `/api/deliberations/${roomId}/graph?` + qs.toString();
     if (cache.has(url)) return;

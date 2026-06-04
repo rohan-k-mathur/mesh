@@ -30,7 +30,7 @@
 "use client";
 import React from 'react';
 
-export type Mode = 'min'|'product'|'ds';
+export type Mode = 'min'|'product'|'logodds';
 type Ctx = {
   mode: Mode; setMode: (m:Mode)=>void;
   tau: number|null; setTau: (t:number|null)=>void;
@@ -39,7 +39,8 @@ type Ctx = {
 const ConfidenceContext = React.createContext<Ctx | null>(null);
 
 export function ConfidenceProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = React.useState<Mode>('product');
+  // Phase 5b step 1: log-odds is the default confidence algebra (was 'product').
+  const [mode, setMode] = React.useState<Mode>('logodds');
   const [tau, setTau]   = React.useState<number|null>(null);
 
   // Persist globally (so graph + sheet stay in sync between page loads)
@@ -48,7 +49,8 @@ export function ConfidenceProvider({ children }: { children: React.ReactNode }) 
       const raw = localStorage.getItem('agora:confidence');
       if (raw) {
         const j = JSON.parse(raw);
-        if (j.mode) setMode(j.mode);
+        // Phase 4: DS mode retired — migrate any persisted 'ds' to 'product'.
+        if (j.mode) setMode(j.mode === 'ds' ? 'product' : j.mode);
         if ('tau' in j) setTau(j.tau);
       }
     } catch {}

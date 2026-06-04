@@ -6,6 +6,7 @@ import { PaginationQuery, makePage } from "@/lib/server/pagination";
 import type { TargetType } from "@prisma/client";
 import { DEFAULT_ARGUMENT_CONFIDENCE, DEFAULT_PREMISE_BASE } from "@/lib/config/confidence";
 import { batchLazyRecompute } from "@/lib/evidential/lazy-recompute";
+import { corroborateProbs } from "@/lib/argumentation/logodds";
 import {
   reduceImportedScores,
   combineLocalAndImported,
@@ -27,18 +28,21 @@ const Query = z.object({
   limit: z.coerce.number().min(1).max(1000).optional().default(100), // Higher limit for debate sheets
   claimId: z.string().optional(),
   sort: z.string().optional(),
-  mode: z.enum(["product", "min", "ds"]).optional(),
+  mode: z.enum(["product", "min", "logodds"]).optional(),
   imports: z.enum(["off", "materialized", "virtual", "all"]).optional(),
 });
 
-type Mode = "product" | "min" | "ds";
+type Mode = "product" | "min" | "logodds";
 
 // Utility functions for evidential computation
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const compose = (xs: number[], mode: Mode) =>
   !xs.length ? 0 : mode === "min" ? Math.min(...xs) : xs.reduce((a, b) => a * b, 1);
+// join = corroboration across independent arguments. `logodds` uses the
+// lawful weight-of-evidence sum (lib/argumentation/logodds.ts); `product`
+// uses noisy-OR; `min` takes the max.
 const join = (xs: number[], mode: Mode) =>
-  !xs.length ? 0 : mode === "min" ? Math.max(...xs) : 1 - xs.reduce((a, s) => a * (1 - s), 1);
+  !xs.length ? 0 : mode === "min" ? Math.max(...xs) : mode === "logodds" ? corroborateProbs(xs) : 1 - xs.reduce((a, s) => a * (1 - s), 1);
 
 /**
  * Unified endpoint that returns arguments with:
@@ -69,8 +73,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { cursor, limit, sort, claimId, mode, imports } = parsed.data;
   const [field, dir] = (sort ?? "createdAt:desc").split(":") as ["createdAt", "asc" | "desc"];
   
-  // Ensure mode is always defined (defaults to 'product')
-  const confidenceMode: Mode = mode ?? "product";
+  // Phase 5b step 1: log-odds is the default confidence algebra (was 'product').
+  // NOTE: cross-room supportBand import folding (line ~421) is still gated to
+  // min/product, so the logodds default does not fold imported support yet
+  // (deferred); local confidence is fully log-odds.
+  const confidenceMode: Mode = mode ?? "logodds";
 
   // ==================== STEP 1: Fetch base argument rows ====================
   // Performance: Ensure indexes on (deliberationId, createdAt, id) and (deliberationId, conclusionClaimId)
@@ -395,25 +402,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   // Compute support scores per claim (only for claims in current page)
   const supportByClaimId: Record<string, number> = {};
-  const dsSupportByClaimId: Record<string, { bel: number; pl: number }> = {};
-
-  // For DS mode, fetch negation mappings (only for relevant claims)
-  let negationMappings: Map<string, string[]> = new Map();
-  if (confidenceMode === "ds" && allClaimIds.length > 0) {
-    const negMaps = await prisma.negationMap.findMany({
-      where: { 
-        deliberationId: params.id,
-        claimId: { in: allClaimIds } // Only fetch negations for relevant claims
-      },
-      select: { claimId: true, negatedClaimId: true },
-    });
-
-    for (const nm of negMaps) {
-      const list = negationMappings.get(nm.claimId) ?? [];
-      list.push(nm.negatedClaimId);
-      negationMappings.set(nm.claimId, list);
-    }
-  }
 
   // Process only the claims referenced by current page arguments
   for (const claimId of allClaimIds) {
@@ -424,43 +412,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       confidenceMode
     );
     supportByClaimId[c.id] = +s.toFixed(4);
-
-    if (confidenceMode === "ds") {
-      const bel = supportByClaimId[c.id];
-      let conflictMass = 0;
-
-      const negatedIds = negationMappings.get(c.id) ?? [];
-      if (negatedIds.length > 0) {
-        const negContribs: number[] = [];
-        for (const negId of negatedIds) {
-          const negSupports = contributionsByClaim.get(negId) ?? [];
-          const negScore = join(
-            negSupports.map((x) => x.score),
-            confidenceMode
-          );
-          negContribs.push(negScore);
-        }
-        conflictMass = negContribs.length > 0 ? join(negContribs, confidenceMode) : 0;
-      }
-
-      const uncertaintyMass = Math.max(0, 1 - bel - conflictMass);
-      const pl = Math.min(1, bel + uncertaintyMass);
-
-      dsSupportByClaimId[c.id] = {
-        bel: +bel.toFixed(4),
-        pl: +pl.toFixed(4),
-      };
-    }
   }
 
   // ── Sprint C3/C4: cross-room transport band ────────────────────────────
   // Fold cached `RoomTransportSnapshot` rows into a `{ local, imported, total }`
   // band per claim. The flat `supportByClaimId` is rewritten to `total` so
   // existing readers get the combined value; band-aware UIs read `bandByClaimId`.
-  // One-hop only (ECC plan §4 row 2). Skipped for DS mode (band semantics
-  // for belief intervals will land in Sprint D).
+  // One-hop only (ECC plan §4 row 2). Phase 5b: `logodds` folds imported support
+  // as signed log-odds corroboration (transportAggregator handles the per-mode join).
   const bandByClaimId: Record<string, { local: number; imported: number; total: number }> = {};
-  if (includeMat && (confidenceMode === "min" || confidenceMode === "product") && allClaimIds.length > 0) {
+  if (includeMat && (confidenceMode === "min" || confidenceMode === "product" || confidenceMode === "logodds") && allClaimIds.length > 0) {
     const snapshots = await prisma.roomTransportSnapshot.findMany({
       where: { toRoomId: params.id },
       select: { payloadJson: true },
@@ -519,9 +480,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const conclusionClaimId = r.conclusionClaimId ?? null;
     const conclusionSupport = conclusionClaimId ? supportByClaimId[conclusionClaimId] ?? 0 : 0;
-    const conclusionDsSupport = confidenceMode === "ds" && conclusionClaimId 
-      ? dsSupportByClaimId[conclusionClaimId] 
-      : undefined;
     const conclusionBand = conclusionClaimId ? bandByClaimId[conclusionClaimId] : undefined;
 
     return {
@@ -533,7 +491,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       mediaType: (r.mediaType as any) ?? "text",
       
       // Evidential support
-      support: confidenceMode === "ds" ? conclusionDsSupport : conclusionSupport,
+      support: conclusionSupport,
       ...(conclusionBand ? { supportBand: conclusionBand } : {}),
       acceptance: getAcceptanceLabel(conclusionClaimId),
       

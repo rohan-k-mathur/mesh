@@ -60,6 +60,9 @@ const PUBLIC_API = [
   // CQ-answer write seam for the MCP `answer_critical_question` tool
   // (route enforces bearer / session; self-canonicalisation is server-gated).
   /^\/api\/cqs\/answer\/?$/,
+  // CQ-challenge write seam for the MCP `challenge_critical_question` tool
+  // (route enforces bearer / session; status flip is server-gated).
+  /^\/api\/cqs\/challenge\/?$/,
   // Track B.3 — public OpenAPI 3.1 spec + Scalar-rendered docs page.
   /^\/api\/v3\/openapi\.json$/,
   /^\/api\/v3\/docs\/?$/,
