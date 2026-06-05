@@ -36,6 +36,7 @@ import type {
   FrontierUnansweredUndermine,
   FrontierUnansweredCQ,
   FrontierTerminalLeaf,
+  MinimalDisagreement,
 } from "@/lib/deliberation/frontier";
 
 const fetcher = (u: string) =>
@@ -112,6 +113,7 @@ export function FrontierLane({
           {items.length} open thread{items.length === 1 ? "" : "s"}
         </div>
       </div>
+      <MinimalDisagreementBanner value={frontier.minimalDisagreement} />
       <div
         className="flex gap-3 overflow-x-auto custom-scrollbar rounded-xl pb-3 px-1 snap-x"
         data-testid="frontier-lane-scroll"
@@ -208,6 +210,104 @@ function collectItems(f: ContestedFrontier): LaneItem[] {
   };
   items.sort((a, b) => rank[a.severity] - rank[b.severity]);
   return items;
+}
+
+// ────────────────────────────────────────────────────────────────
+// Minimal-disagreement banner
+// ────────────────────────────────────────────────────────────────
+//
+// The `basis` tag is load-bearing: per the dev spec
+// (RESEARCH_PROGRAMME/DEV_SPEC-minimal-disagreement-extractor-2026-06-04.md §6)
+// the surface may render "minimal" copy ONLY when `basis === "minimal-T008"`.
+// Off the faithful region we say "first point of divergence" or render nothing,
+// never "minimal".
+
+function MinimalDisagreementBanner({
+  value,
+}: {
+  value: MinimalDisagreement | null | undefined;
+}) {
+  if (!value) return null;
+
+  // Heuristic fallback carries no verified locus claim — keep the surface quiet.
+  if (value.basis === "heuristic-fallback") return null;
+
+  const isMinimal = value.basis === "minimal-T008";
+  const isBranching = value.basis === "smyth-minimal-T009";
+
+  // Branching (T009): the Smyth-minimal separating ANTICHAIN — a minimal SET of
+  // per-line divergence points (never a single ⊑-least locus; branching has none).
+  // Each element is a genuine first-divergence locus (T006/T008 per line); the
+  // SET's Smyth-minimality is proven (T009, established). We say "minimal set of
+  // unshared commitments, one per open line" — a minimal set, not a single point.
+  if (isBranching) {
+    const loci = value.loci ?? [];
+    return (
+      <div
+        className="mx-1 mb-2 rounded-lg border border-indigo-200 bg-indigo-50/60 p-2"
+        data-testid="frontier-minimal-disagreement"
+        data-basis={value.basis}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wide font-semibold text-indigo-900">
+            Minimal disagreement set — one per open line
+          </span>
+          <span className="text-[10px] font-mono text-slate-400">
+            {loci.length} line{loci.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="text-[11px] text-slate-700 leading-snug mt-1">
+          This dispute branches: it diverges at several incomparable points, one
+          per open line. This is the minimal SET of unshared commitments — proven
+          the Smyth-minimal separating context (T009) — not a single smallest
+          point (a branching dispute has none).
+        </div>
+        {loci.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {loci.map((l) => (
+              <span
+                key={l}
+                className="text-[10px] font-mono text-indigo-700 bg-white/70 rounded px-1 py-0.5 border border-indigo-100"
+              >
+                {l}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const label = isMinimal
+    ? "Minimal unshared commitment"
+    : "First point of divergence";
+  const detail = isMinimal
+    ? "The ⊑-smallest commitment the two sides do not share — proven minimal (T008) on this single dispute line."
+    : "Where this dispute line first diverges. Not necessarily the smallest point of disagreement.";
+
+  return (
+    <div
+      className={`mx-1 mb-2 rounded-lg border p-2 ${
+        isMinimal
+          ? "border-violet-300 bg-violet-50/70"
+          : "border-slate-200 bg-slate-50"
+      }`}
+      data-testid="frontier-minimal-disagreement"
+      data-basis={value.basis}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`text-[10px] uppercase tracking-wide font-semibold ${
+            isMinimal ? "text-violet-900" : "text-slate-600"
+          }`}
+        >
+          {label}
+        </span>
+        <span className="text-[10px] font-mono text-slate-400">{value.locus}</span>
+      </div>
+      <div className="text-[11px] text-slate-700 leading-snug mt-1">{detail}</div>
+    </div>
+  );
 }
 
 // ────────────────────────────────────────────────────────────────

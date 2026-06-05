@@ -295,3 +295,233 @@ destructive and require explicit confirmation (model retirement, mode deletion).
 - **Composed-cache magnitude (deferred).** Whether to ever persist exact log-odds
   magnitude (nullable `weight Float?`) is left open per the schema decision; revisit
   only on a concrete audit need.
+
+---
+
+## Foundational program — research-direction sequencing (post-T005)
+
+> Cross-track planning entry, not a code track. Records the sequencing decision
+> taken on 2026-06-03 over the six directions of
+> [`09_FUTURE_DIRECTIONS_BRAINSTORM.md`](09_FUTURE_DIRECTIONS_BRAINSTORM.md)
+> once Direction 1's keystone landed
+> ([T005](02_THEOREMS_AND_PROOFS/T005-grounded-ludics-keystone.md), established)
+> and Direction 3's quantitative core shipped (log-odds adopted, DS retired —
+> the Confidence algebra track above). Append-only: revise by adding a dated
+> superseding sub-entry, do not edit in place.
+
+### The decision (2026-06-03)
+
+**Next focus: Direction 2 (separation as the locus-of-disagreement theorem), with
+Direction 5 (mechanizing the Ludics core in Agda) as a parallel low-risk track.**
+
+Full ordering:
+
+> **2 (+5 in parallel) → 1 (remaining semantics) → 4 (after coherence) → 3's
+> cut-elimination crown last.** Direction 6 (the philosophy bridge) stays a
+> continuous honesty-check, not a scheduled phase.
+
+### Rationale
+
+- **Direction 3's load-bearing core is already shipped, so it no longer gates
+  anything.** The quantitative claim the platform makes is now lawful: the
+  log-odds (weight-of-evidence) semiring is adopted as the default confidence
+  algebra and Dempster–Shafer is retired from the pipeline and public API
+  (Confidence algebra track, Phases 1–5b, 150/150 green). What remains of
+  Direction 3 — the graded substructural logic + cut-elimination "crown" — is
+  the single highest-effort item in the whole program, and the **non-idempotent**
+  log-odds choice *raised* its cost (it declines the idempotent quantale join the
+  Lawvere-enrichment prize would have enriched over; see this track's parked
+  open item). So 3's remainder is correctly scheduled **last**, not because it is
+  unimportant but because it is the most expensive and now unblocks nothing.
+
+- **Direction 2 is the most achievable load-bearing result still open.** It
+  converts the platform's flagship "locate where you disagree" feature from a
+  heuristic into a consequence of Girard's separation theorem (the Ludics
+  analogue of Böhm's theorem). The required Ludics machinery already exists in
+  the engine — interaction/orthogonality
+  ([`packages/ludics-engine/stepper.ts`](../packages/ludics-engine/stepper.ts),
+  [`checkOrthogonal.ts`](../packages/ludics-engine/checkOrthogonal.ts)) and the
+  pure decision kernel
+  ([`packages/ludics-engine/stepCore.ts`](../packages/ludics-engine/stepCore.ts)),
+  which already locates the divergence address (`DIVERGENT` at a determinate
+  `locusId`). It is self-contained, and it is a **prerequisite for Direction 1's
+  realizability result** (the separating-context machinery is what a
+  "minimal-commitment" reading of acceptance ultimately rests on).
+
+- **The real theorem in Direction 2 is minimality, not uniqueness.** Uniqueness
+  of the first-divergence address *within a single dispute* is the easy half.
+  The load-bearing claim is **minimality across all opponent designs** — that the
+  divergence locus is *the* minimal separating context (a minimal unshared
+  commitment), not merely *a* separating one. That minimality argument is the
+  paper. Per program discipline: if minimality resists, the precise obstruction
+  is itself the result.
+
+- **Direction 5 runs in parallel because it is low-risk and independently
+  valuable.** A mechanized Ludics core (associativity of interaction, the
+  separation theorem, internal completeness) in Agda is wanted by the
+  proof-theory community and essentially does not exist in the literature; it is
+  independent of the platform, and the discipline is already in hand (T002 and
+  C004 are machine-checked). Crucially, **formalizing separation in Agda is both
+  the Direction-5 deliverable and the strongest available check on Direction 2's
+  minimality argument** — the two tracks corroborate each other.
+
+- **1, 4, 6 in their slots.** Direction 1's remaining semantics (stable,
+  preferred — [Q-039](01_OPEN_QUESTIONS_REGISTRY.md#q-039) /
+  [C011](03_CONJECTURES/C011-additive-preferred-games-bridge.md)) follow Direction
+  2 because they reuse its separating-context machinery. Direction 4 (sheaf /
+  cohomology-of-disagreement) waits until cross-room coherence is settled. Direction
+  6 is a continuous check, never a premise.
+
+### Starting artifacts (Direction 2)
+
+- Problem statement / scoping session:
+  [`10_IDEATION_SESSIONS/03-separation-locus-of-disagreement-2026-06-03.md`](10_IDEATION_SESSIONS/03-separation-locus-of-disagreement-2026-06-03.md).
+- Minimality conjecture:
+  [`03_CONJECTURES/C012-separation-minimal-locus.md`](03_CONJECTURES/C012-separation-minimal-locus.md).
+- Open-questions registry entry:
+  [`Q-040`](01_OPEN_QUESTIONS_REGISTRY.md#q-040).
+
+---
+
+## Separation — minimal-disagreement operationalisation track
+
+**Opened:** 2026-06-04, downstream of the Direction-2 separation result reaching a
+proved-and-cross-checked state:
+[T006](02_THEOREMS_AND_PROOFS/T006-first-divergence-locus-e0.md) (E0, established),
+[T007](02_THEOREMS_AND_PROOFS/T007-minimal-separating-locus.md) (determinate
+separating context + anchor-chain, established-narrowed after its cross-check
+refuted the original leastness claim), and
+[T008](02_THEOREMS_AND_PROOFS/T008-minimal-separating-context-daimon-closed.md)
+(established, cross-checked — minimality **recovered abstractly** over complete
+daimon-closed counter-designs; the kernel is faithful on proper tests, unfaithful
+exactly on raw truncations). The R1-vs-R2 fork was ratified **lead R2** in
+[session 04](10_IDEATION_SESSIONS/04-separating-context-predicate-decision-2026-06-04.md);
+this track operationalises the *gate* T008 left: surface the provably-minimal locus
+of disagreement on the contested-frontier surface **without** a kernel change, by
+feeding `stepCore` only proper (frontier-complete) tests on the single-chronicle path.
+
+**Architectural premises:**
+
+- S1 — **No kernel change (R1 parked).** The extractor works by controlling *inputs*
+  (proper tests), never by editing `stepCore`/`stepInteraction` or the orthogonality
+  verdict (T008 §Faithfulness). T005's discharge test and the
+  `stepInteraction == stepCore` witnesses cannot regress — the extractor only reads.
+- S2 — **The prime invariant is enforced, not assumed.** Every test handed to
+  `stepCore` is frontier-complete *by construction* and re-checked by a mandatory
+  guard; "minimal" is claimed only on a single realized chronicle. Violating either
+  re-opens the exact defect T007's cross-check found.
+- S3 — **Honesty-gated surface, fail-closed.** The minimal-locus label fires only when
+  `basis === "minimal-T008"` (single chronicle ∧ proper test); otherwise the surface
+  degrades to "first point of divergence" (T006) or the existing
+  `loadBearingnessRanking` heuristic — never an overclaim, never a thrown route.
+- S4 — **Branching is the measured boundary, not a silent gap.** The linearity gate
+  (`isSingleChronicle`) that refuses to claim minimality off the linear path is also
+  the **empirical meter** for how load-bearing Q-041 O2 is — the input the session-04
+  fork wanted before committing Direction-5/R1 effort.
+
+### Spec index
+
+| # | Spec | Layer / Surface | Research items operationalised |
+|---|------|-----------------|--------------------------------|
+| MD | [`DEV_SPEC-minimal-disagreement-extractor-2026-06-04.md`](DEV_SPEC-minimal-disagreement-extractor-2026-06-04.md) | pure extractor (`packages/ludics-engine/`) + additive `ContestedFrontier` field + `FrontierLane` copy gate | T008 (faithful region); T006 (`divergenceLocus`); Q-040 (operational sourcing); Q-041 (O2 boundary, measured) |
+
+**Implementation order & status:** (1) **DONE (2026-06-04)** — pure module
+[`packages/ludics-engine/properTest.ts`](../packages/ludics-engine/properTest.ts):
+`buildProperTest` (Refuse/Concede_j, frontier-complete by construction),
+`isFrontierComplete`/`assertFrontierComplete` (the mandatory pre-`stepCore` guard),
+`isSingleChronicle` (O2 gate), `extractMinimalDisagreementLocus` (honesty-tagged,
+fail-closed — `minimal-T008` only when single-chronicle ∧ frontier-complete ∧
+`DIVERGENT`). (2) **DONE (2026-06-04)** — tests
+[`tests/bridge/minimal-disagreement-extractor.test.ts`](../tests/bridge/minimal-disagreement-extractor.test.ts)
+(12/12): frozen length-5/3 witnesses, truncation contrast, prime-invariant safety
+net, branching gate, oracle agreement vs the daimon-closed harness over `allAFs(n)`,
+`n ≤ 3`. Full bridge suite **8 suites / 52 tests green** (was 7/40); T005 differential
++ truncation contrast unmodified; lint clean. (3) **DONE (2026-06-04)** — additive
+`ContestedFrontier.minimalDisagreement?` field
+([`lib/deliberation/frontier.ts`](../lib/deliberation/frontier.ts), existing fields /
+route / consumers untouched) + `basis`-gated copy in
+[`components/deliberation/FrontierLane.tsx`](../components/deliberation/FrontierLane.tsx)
+("Minimal unshared commitment" **only** for `basis === "minimal-T008"`, else "First
+point of divergence", `heuristic-fallback` → renders nothing). (4) **GATED** —
+round-trip `⟦·⟧` locus↔edge test and the live graph→chronicle derivation that would
+make `minimal-T008` fire on the real surface; `minimalDisagreement` is currently set
+`null` (fail-closed) because building a *verified* single chronicle from the prisma
+graph is O2-adjacent work (real deliberations branch). No phase is destructive; all
+are additive and read-only against the kernel.
+
+**Independently cross-checked (2026-06-04, non-author):** re-ran the bridge suite
+(8/52 green), confirmed the honesty gate renders "minimal" only on `minimal-T008`, the
+guard refuses partial designs, and the extractor fails closed. The verified pure
+pipeline is sound; the only residue is the gated live-surface wiring (phase 4).
+
+**Branching (C013) extension — DONE (2026-06-04).** The set-valued branching path
+landed alongside the [C013](03_CONJECTURES/C013-branching-smyth-minimal-separating-context.md)
+conjecture: `smythMinimalSeparatingContext`
+([`packages/ludics-engine/properTest.ts`](../packages/ludics-engine/properTest.ts))
+returns the `⊑`-antichain of per-line first-divergence loci (the Smyth-least separating
+set) via `maximalLoci` / `commonStem`
+([`packages/ludics-engine/separation.ts`](../packages/ludics-engine/separation.ts)),
+with `MinimalDisagreement` gaining an additive `loci?: string[]` set and a new
+**`per-line-divergence-C013`** basis. **Honesty boundary held:** that basis is *never*
+`minimal-T008` — each element is a genuine first-divergence locus (T006/T008 per line,
+established) but the *set's* Smyth-minimality rests on C013 (corroborated, **not
+proved**), so [`FrontierLane.tsx`](../components/deliberation/FrontierLane.tsx) renders
+"Points of divergence — one per open line" (with the per-line set listed), never
+"proven minimal". Tests: extractor suite **15/15** (+3 branching); full bridge **10
+suites / 65 green**; lint clean. The graph→chronicle live wiring stays gated (phase 4);
+this specifies and verifies the branching *output object* the gated path will emit.
+
+**Promotion — DONE (2026-06-05, [T009](02_THEOREMS_AND_PROOFS/T009-branching-smyth-minimal-separating-context.md) `established`, cross-checked).**
+The C013 abstract proof landed and was independently signed off, so the branching basis is
+promoted `per-line-divergence-C013` → **`smyth-minimal-T009`**: the *set* is now the *proven*
+Smyth-minimal separating context. The honesty boundary is preserved — it is a minimal
+**antichain** (a SET), **never** a single `⊑`-least locus (branching has none) and never
+`minimal-T008` — and the computation still runs `stepCore` **per line**, never combined
+([`FrontierLane.tsx`](../components/deliberation/FrontierLane.tsx) now renders "Minimal
+disagreement set — one per open line", proven the Smyth-minimal separating context). The
+parallel Agda mechanization (`mechanisation/agda/T009/`) remains the Direction-5 follow-up.
+
+### Research-side back-references
+
+- [T008](02_THEOREMS_AND_PROOFS/T008-minimal-separating-context-daimon-closed.md) —
+  established; this track is its operational follow-through (feed proper tests; the
+  spec §2 contract restates T008 §Faithfulness as the extractor's invariant).
+- [Q-040](01_OPEN_QUESTIONS_REGISTRY.md#q-040) — open (minimality refuted-as-stated,
+  recovered abstractly for proper tests); this track is the *operational sourcing*
+  the registry entry defers to "a verified extractor (feed proper tests) or R1."
+- [Q-041](01_OPEN_QUESTIONS_REGISTRY.md#q-041) — open; the branching-gate test (spec
+  §5.4) is the empirical measurement of O2's prevalence that should drive whether
+  O2/Direction-5/R1 is the right next investment.
+
+### Track-internal open items
+
+- **Graph→chronicle translation (gated — the live-surface unblock).** The extractor is
+  built and tested, but `computeContestedFrontier` sets `minimalDisagreement = null`
+  until a *verified* single chronicle can be derived from the prisma argument graph.
+  That derivation is O2-adjacent (real deliberations are branching) and is the next
+  concrete step to make `minimal-T008` fire on the live surface; it lands with phase 4.
+- **`⟦·⟧` locus↔edge invertibility** (spec §8, phase 4). Mapping `ξ` (a kernel locus
+  path) back to the argument-graph edge/premise relies on the translation assigning
+  distinct subaddresses per advanced argument
+  ([session 02b §1](10_IDEATION_SESSIONS/02b-translation-spec-af-to-designs-2026-06-02.md));
+  it holds on the chronicle but must be pinned by a round-trip test, not assumed.
+- **Branching prevalence (feeds Q-041 sequencing).** **Synthetic baseline DONE
+  (2026-06-04):** [`tests/bridge/branching-prevalence.test.ts`](../tests/bridge/branching-prevalence.test.ts)
+  classifies every `(AF, claim)` dispute over `allAFs(n)`, `n ≤ 3`, single-chronicle
+  vs branching via the extractor's own `isSingleChronicle` gate. Result over
+  **non-trivial** disputes: n=2 → 58.3% single / **41.7% branching**; n=3 → 28.1%
+  single / **71.9% branching** (leaf-line counts run into the tens — up to 54
+  incomparable lines). Branching dominates and grows fast with AF size; since this
+  enumerable corpus is *optimistic* for the linear path (real deliberations are
+  richer and branch more), the `minimal-T008` linear path is a **minority case** and
+  **O2 ([Q-041](01_OPEN_QUESTIONS_REGISTRY.md#q-041)) is load-bearing for the product,
+  not a deferrable edge.** The **live-deliberation telemetry** (reading the prisma
+  argument graph to count single-vs-branching on real frontiers) is the gated
+  follow-up — it reads shared data, so it is a separate, confirmed step. This baseline
+  is the empirical input the [session-04](10_IDEATION_SESSIONS/04-separating-context-predicate-decision-2026-06-04.md)
+  fork wanted: it argues for prioritising O2 over treating linear-only as sufficient.
+- **R1 remains parked.** The faithfulness failure spec (T008 §Faithfulness) is the
+  exact change R1 would implement; this track makes it *unnecessary for the linear
+  surface*. Reviving R1 stays a separate, guarded decision
+  ([session 04 §6](10_IDEATION_SESSIONS/04-separating-context-predicate-decision-2026-06-04.md#6-decisions-recorded)).
+

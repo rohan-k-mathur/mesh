@@ -99,6 +99,12 @@ export type StepResult = {
   daimonHints?: DaimonHint[];                              // NEW
   endorsement?: Endorsement;
   reason?: 'timeout'|'incoherent-move'|'additive-violation'|'no-response'|'consensus-draw'|'dir-collision';
+  /**
+   * First-divergence address (path, e.g. "0.1.2") on `DIVERGENT` runs — the
+   * locus of the first unmatched positive (warm-up object E0 of Q-040 / C012).
+   * Surfaced verbatim from the pure kernel `stepCore`; `undefined` otherwise.
+   */
+  divergenceLocus?: string;
   collisions?: { base: string; dirs: string[] }[];
   shiftInserted?: boolean;
   terminated?: boolean;

@@ -59,6 +59,17 @@ export type StepCoreResult = {
   pairs: { posActId?: string; negActId?: string; locusPath: string; ts: number }[];
   endedAtDaimonForParticipantId?: 'Proponent' | 'Opponent';
   usedAdditive: Record<string, string>;
+  /**
+   * First-divergence address (path, e.g. "0.1.2") — the locus of the offending
+   * positive act at the moment the alternating loop broke `DIVERGENT`. This is
+   * the warm-up object E0 of C012 / Q-040 (separation / locus of disagreement):
+   * the deterministic run's *first unmatched positive*. Populated only on the
+   * `DIVERGENT` branches (additive-violation, consensus-draw, incoherent-move);
+   * `undefined` for CONVERGENT / STUCK / ONGOING and where no offending act
+   * carries a resolvable locus. Extraction only — the decision logic is
+   * byte-for-byte unchanged.
+   */
+  divergenceLocus?: string;
 };
 
 /**
@@ -167,6 +178,9 @@ export function stepCore(input: StepCoreInput): StepCoreResult {
   let status: StepResult['status'] = 'ONGOING';
   let reason: StepResult['reason'] | undefined;
   let endedAtDaimonForParticipantId: 'Proponent' | 'Opponent' | undefined;
+  // First-divergence address (E0): the path of the offending positive at the
+  // DIVERGENT break. Recorded alongside the existing decision, never affecting it.
+  let divergenceLocus: string | undefined;
 
   for (let steps = 0; steps < fuel; steps++) {
     const posSide = side === 'A' ? A : B;
@@ -200,6 +214,7 @@ export function stepCore(input: StepCoreInput): StepCoreResult {
       if (prev && prev !== chosen) {
         status = 'DIVERGENT';
         reason = 'additive-violation';
+        divergenceLocus = locusPath;
         break;
       }
       usedAdditive[parentPath] = chosen;
@@ -225,6 +240,7 @@ export function stepCore(input: StepCoreInput): StepCoreResult {
         status = 'DIVERGENT';
         reason = reason ?? 'incoherent-move';
       }
+      divergenceLocus = p;
       break;
     }
 
@@ -251,5 +267,15 @@ export function stepCore(input: StepCoreInput): StepCoreResult {
     }
   }
 
-  return { status, reason, pairs, endedAtDaimonForParticipantId, usedAdditive };
+  return { status, reason, pairs, endedAtDaimonForParticipantId, usedAdditive, divergenceLocus };
+}
+
+/**
+ * Thin pure projection of {@link stepCore}: the first-divergence address (E0).
+ * Returns the path of the first unmatched positive when `⟨pos ∣ neg⟩` diverges,
+ * else `undefined`. Keeps the locus-extraction usable without reading the rest
+ * of the {@link StepCoreResult}; carries the same zero-I/O guarantee.
+ */
+export function divergenceLocusOf(input: StepCoreInput): string | undefined {
+  return stepCore(input).divergenceLocus;
 }

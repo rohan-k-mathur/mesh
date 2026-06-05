@@ -19,6 +19,9 @@
 
 import { prisma } from "@/lib/prismaclient";
 import { computeMissingMoves } from "@/lib/deliberation/missingMoves";
+import type { MinimalDisagreement } from "packages/ludics-engine/properTest";
+
+export type { MinimalDisagreement } from "packages/ludics-engine/properTest";
 
 export interface FrontierUnansweredUndercut {
   targetArgumentId: string;
@@ -99,6 +102,18 @@ export interface ContestedFrontier {
    * Additive — pre-existing consumers can ignore this field.
    */
   loadBearingnessScores: Record<string, number>;
+  /**
+   * The provably-minimal locus of disagreement (T008), when the dispute's
+   * contested region is a single chronicle and the test fed to the kernel is a
+   * proper (frontier-complete) test; otherwise a first-divergence (T006) or
+   * heuristic fallback, or `null` when no verified extraction is attempted.
+   *
+   * The `basis` tag is load-bearing: the surface may only render "minimal" copy
+   * when `basis === "minimal-T008"`. Additive — pre-existing consumers may
+   * ignore this field. See
+   * `RESEARCH_PROGRAMME/DEV_SPEC-minimal-disagreement-extractor-2026-06-04.md`.
+   */
+  minimalDisagreement?: MinimalDisagreement | null;
 }
 
 export async function computeContestedFrontier(
@@ -390,6 +405,16 @@ export async function computeContestedFrontier(
   }
   // recency: arguments are already pulled in insertion order; no further sort.
 
+  // ────────────────────────────────────────────────────────────
+  // minimalDisagreement: the verified T008 extractor runs only on a single
+  // realized dispute chronicle (one ⊑-chain). Building that chronicle faithfully
+  // from the prisma argument graph is gated work (the contested region of a real
+  // deliberation is typically branching, where minimality must NOT be claimed —
+  // Q-041 O2). Until that translation lands we FAIL CLOSED: leave the field null
+  // so the surface keeps the honest heuristic and never overclaims "minimal".
+  // ────────────────────────────────────────────────────────────
+  const minimalDisagreement: MinimalDisagreement | null = null;
+
   return {
     deliberationId,
     unansweredUndercuts,
@@ -399,5 +424,6 @@ export async function computeContestedFrontier(
     loadBearingnessRanking,
     contestednessRanking,
     loadBearingnessScores,
+    minimalDisagreement,
   };
 }
