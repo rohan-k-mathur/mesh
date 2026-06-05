@@ -30,3 +30,5 @@
 - [C005 — Time-indexed behaviours form a directed system](C005-behaviours-directed-system.md)
 - [C010 — Grounded extension ⟺ canonical Ludics-orthogonality acceptance](C010-grounded-orthogonality-bridge.md) — *partially-resolved: grounded fragment proved by [T005](../02_THEOREMS_AND_PROOFS/T005-grounded-ludics-keystone.md)*
 - [C011 — Additive Ludics structure ⟺ branching of preferred / stable argument games](C011-additive-preferred-games-bridge.md) — *open: the Phase-4 lift of T005 past the additive-free boundary*
+- [C012 — First-divergence locus is the minimal separating context (minimal unshared commitment)](C012-separation-minimal-locus.md) — *open: Direction 2 (separation / locus-of-disagreement); minimality across all opponent designs is the real theorem, not first-divergence uniqueness*
+- [C013 — Smyth-minimal separating context of a branching dispute = the per-line first-divergence antichain](C013-branching-smyth-minimal-separating-context.md) — *open (corroborated): Direction 2 / Q-041 O2 (branching); abstract daimon-closed-tree proof outstanding — the Direction-5 target*

@@ -284,6 +284,7 @@ export async function stepInteraction(opts: {
   const status = core.status;
   const reason = core.reason;
   const endedAtDaimonForParticipantId = core.endedAtDaimonForParticipantId;
+  const divergenceLocus = core.divergenceLocus;
   usedAdditive = core.usedAdditive;
   const pairs = core.pairs as { posActId: string; negActId: string; locusPath: string; ts: number }[];
 
@@ -425,5 +426,6 @@ export async function stepInteraction(opts: {
     usedAdditive,
     daimonHints,
     reason,
+    divergenceLocus,
   };
 }
