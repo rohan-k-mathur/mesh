@@ -32,9 +32,7 @@ const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r
 
 export default function ArticlesDashboard({
   initialItems,
-}: {
-  initialItems: Item[];
-}) {
+}: Props) {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>(initialItems);
   const [q, setQ] = useState("");

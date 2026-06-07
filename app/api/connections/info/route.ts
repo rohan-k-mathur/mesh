@@ -3,11 +3,10 @@ import { NextResponse } from "next/server";
 
 
 import {
-  getConnectionClient as getConnection,
-  upsertConnectionTokensClient as upsertConnectionTokens,
-  requireScopesClient as requireScopes,
-  MissingScopesError
-} from '@/lib/connections/client'
+  getConnection,
+  upsertConnectionTokens,
+  requireScopes,
+} from '@/lib/connections/service'
 
 export const dynamic = "force-dynamic"; // no caching
 

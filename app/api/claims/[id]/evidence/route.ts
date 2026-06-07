@@ -106,12 +106,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // 3) Optional EvidenceLink for counts/back-compat
   const uriForCount = ref.kind === "uri" ? ref.url : resolved?.source?.url ?? "";
   await prisma.evidenceLink
-    .create({ data: { claimId, kind: role, uri: uriForCount } })
+    .create({ data: { targetKind: "claim", targetId: claimId, note: role, uri: uriForCount } })
     .catch(() => null);
 
   // Quick counts
   const [evidenceCount, citationCount] = await Promise.all([
-    prisma.evidenceLink.count({ where: { claimId } }),
+    prisma.evidenceLink.count({ where: { targetKind: "claim", targetId: claimId } }),
     prisma.citation.count({ where: { targetType: "claim", targetId: claimId } }),
   ]);
 

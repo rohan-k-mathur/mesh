@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     // 2) then check against each b ⊥
     const checks = [];
     for (const bPerp of Bperp) {
-      const r = await stepInteraction({ dialogueId, posDesignId: rDa?.posDesignId ?? D, negDesignId: bPerp, maxPairs: fuel });
+      const r = await stepInteraction({ dialogueId, posDesignId: (rDa as any)?.posDesignId ?? D, negDesignId: bPerp, maxPairs: fuel });
       checks.push({ bPerp, status: r.status, reason: r.reason, decisiveIndices: r.decisiveIndices ?? [] });
       if (r.status !== 'CONVERGENT') ok = false;
     }

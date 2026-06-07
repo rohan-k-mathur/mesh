@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userIdStr = userId.toString();
 
   const parsed = SubmitResponseSchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
       roomId: true,
       schemeKey: true,
       cqKey: true,
+      statusEnum: true,
     },
   });
 
@@ -47,7 +49,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Check permissions
-  const permissions = await getCQPermissions(userId, cqStatusId);
+  const permissions = await getCQPermissions(userIdStr, cqStatusId);
   if (!permissions.canSubmitResponse) {
     return NextResponse.json(
       { error: "You do not have permission to submit responses to this CQ" },
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
   const existingPending = await prisma.cQResponse.findFirst({
     where: {
       cqStatusId,
-      contributorId: userId,
+      contributorId: userIdStr,
       responseStatus: "PENDING",
     },
   });
@@ -93,7 +95,7 @@ export async function POST(req: NextRequest) {
       evidenceClaimIds,
       sourceUrls,
       responseStatus: "PENDING",
-      contributorId: userId,
+      contributorId: userIdStr,
     },
   });
 
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
     data: {
       cqStatusId,
       action: "RESPONSE_SUBMITTED",
-      actorId: userId,
+      actorId: userIdStr,
       responseId: response.id,
       metadata: {
         evidenceCount: evidenceClaimIds.length,

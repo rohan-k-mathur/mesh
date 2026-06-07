@@ -204,7 +204,7 @@ export async function GET(
   { params }: { params: { chainId: string } }
 ) {
   try {
-    const user = await getUserFromCookies(req);
+    const user = await getUserFromCookies();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -249,7 +249,7 @@ export async function GET(
 
     return NextResponse.json({
       edgeId: edge.id,
-      attacks: serialize(edge.attackingNodes),
+      attacks: JSON.parse(JSON.stringify(edge.attackingNodes, (_, v) => typeof v === "bigint" ? v.toString() : v)),
       count: edge.attackingNodes.length,
     });
   } catch (error) {

@@ -70,10 +70,10 @@ export async function POST(req: NextRequest) {
   try {
     if (shouldUseClaimEdge) {
       // Path 1: ClaimEdge (lightweight, CriticalQuestionsV3 pattern)
-      return await createClaimEdgeAttack(input, userId);
+      return await createClaimEdgeAttack(input, userId.toString());
     } else {
       // Path 2: ConflictApplication (complex, SchemeSpecificCQsModal pattern)
-      return await createConflictApplicationAttack(input, userId);
+      return await createConflictApplicationAttack(input, userId.toString());
     }
   } catch (error) {
     console.error("[Unified Attack API] Error:", error);
@@ -97,10 +97,9 @@ async function createClaimEdgeAttack(input: CreateAttackInput, userId: string) {
   // Get suggestion for proper attack typing
   const suggestion = input.schemeKey && input.cqKey 
     ? suggestionForCQ(input.schemeKey, input.cqKey)
-    : {
-        type: input.attackType === "UNDERCUTS" ? "undercut" as const : "rebut" as const,
-        scope: (input.targetScope || "conclusion") as "premise" | "conclusion",
-      };
+    : input.attackType === "UNDERCUTS"
+      ? ({ type: "undercut" as const })
+      : ({ type: "rebut" as const, scope: (input.targetScope || "conclusion") as "premise" | "conclusion" });
 
   if (!suggestion) {
     return NextResponse.json({ 
@@ -195,7 +194,7 @@ async function createConflictApplicationAttack(input: CreateAttackInput, userId:
   const conflictApplication = await prisma.conflictApplication.create({
     data: {
       deliberationId: input.deliberationId,
-      ...(scheme?.id ? { scheme: { connect: { id: scheme.id } } } : {}),
+      ...(scheme?.id ? { schemeId: scheme.id } : {}),
       createdById: String(userId),
       
       // Set conflicting/conflicted based on type
@@ -214,7 +213,7 @@ async function createConflictApplicationAttack(input: CreateAttackInput, userId:
       metaJson,
       aspicAttackType: aspicMetadata.aspicAttackType,
       aspicDefeatStatus: aspicMetadata.aspicDefeatStatus,
-      aspicMetadata: aspicMetadata.aspicMetadata,
+      aspicMetadata: aspicMetadata.aspicMetadata ?? undefined,
     },
     select: { id: true, createdAt: true },
   });

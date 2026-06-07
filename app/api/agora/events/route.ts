@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
 
   const ringItems = since
-    ? RING.buf.filter((e) => Number.isFinite(e.ts) && e.ts > since).slice(-limit)
+    ? RING.buf.filter((e: FeedEvent) => Number.isFinite(e.ts) && e.ts > since).slice(-limit)
     : RING.buf.slice(-limit);
 
   // Fast path: ring has useful items or client asked for limit=0 probe

@@ -13,7 +13,7 @@ export default async function WorkViewPage({
   const id = params.id;
   const mode = (Array.isArray(searchParams?.mode) ? searchParams?.mode[0] : searchParams?.mode) ?? 'full';
 
-  const w = await prisma.theoryWork.findUnique({
+  const work = await prisma.theoryWork.findUnique({
     where: { id },
     select: {
       id: true, title: true, slug: true, summary: true, body: true,
@@ -29,7 +29,8 @@ export default async function WorkViewPage({
       pascalModel:               { select: { decision: true, propositions: true, actions: true, assumption: true } },
     }
   });
-  if (!w) return <div className="p-6 text-sm text-rose-600">Work not found.</div>;
+  if (!work) return <div className="p-6 text-sm text-rose-600">Work not found.</div>;
+  const w = work;
 
   const isIH = w.theoryType === 'IH';
   const isDN = w.theoryType === 'DN';
@@ -48,7 +49,7 @@ export default async function WorkViewPage({
     );
   }
   function IhSummary() {
-    const ih = w.ihTheses ?? {};
+    const ih = (w.ihTheses ?? {}) as { structure?: string | null; function?: string | null; objectivity?: string | null };
     const H = (w.hermeneuticProject as any) || {};
     const PJ = (w.practicalJustification?.result as any) || {};
     const selIds: string[] = Array.isArray(H.selectedIds) ? H.selectedIds : [];
@@ -181,7 +182,7 @@ export default async function WorkViewPage({
               <Section title="Pascal Decision (as-if)">
                 <div className="text-sm">
                   {w.pascalModel.assumption && <div><b>Assumption:</b> {w.pascalModel.assumption}</div>}
-                  {w.pascalModel.decision?.bestActionId && <div><b>Best action:</b> {String((w.pascalModel.decision as any).bestActionId)}</div>}
+                  {(w.pascalModel.decision as any)?.bestActionId && <div><b>Best action:</b> {String((w.pascalModel.decision as any).bestActionId)}</div>}
                 </div>
               </Section>
             )}

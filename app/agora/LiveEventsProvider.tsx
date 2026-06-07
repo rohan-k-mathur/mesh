@@ -32,14 +32,15 @@ const BUNDLE_WINDOW_MS = 3 * 60 * 1000;
 const CITATION_BUNDLE_WINDOW_MS = 2 * 60 * 1000;
 
 function coalesce(prev: any[], ev: AnyEvent): any[] {
+  const evTs = ev.ts ?? Date.now();
   if (ev.type === 'citations:changed') {
     const key = `${ev.targetType}:${ev.targetId}`;
     const i = prev.findIndex((e:any) =>
-      e.type==='bundle' && e.subtype==='citations' && e.tgtKey===key && ev.ts - e.ts <= CITATION_BUNDLE_WINDOW_MS
+      e.type==='bundle' && e.subtype==='citations' && e.tgtKey===key && evTs - e.ts <= CITATION_BUNDLE_WINDOW_MS
     );
     if (i >= 0) {
       const b = prev[i]; const count = (b.count || 1) + 1;
-      const upd = { ...b, ts: ev.ts, count, title: `${count} sources attached` };
+      const upd = { ...b, ts: evTs, count, title: `${count} sources attached` };
       const out = [upd, ...prev.filter((_, idx) => idx !== i)];
       return out.slice(0, FEED_CAP);
     }
@@ -47,14 +48,14 @@ function coalesce(prev: any[], ev: AnyEvent): any[] {
   if (ev.type === 'dialogue:changed' && ev.deliberationId) {
     const room = ev.deliberationId;
     const i = prev.findIndex((e:any) =>
-      e.type==='bundle' && e.deliberationId===room && ev.ts - e.ts <= BUNDLE_WINDOW_MS
+      e.type==='bundle' && e.deliberationId===room && evTs - e.ts <= BUNDLE_WINDOW_MS
     );
     if (i >= 0) {
       const b = prev[i];
       const kinds = { ...(b.kinds || {}) };
       const k = (ev.chips?.[0] || 'MOVE') as string;
       kinds[k] = (kinds[k] || 0) + 1;
-      const upd = { ...b, ts: ev.ts, kinds, meta: Object.entries(kinds).map(([kk,v])=>`${v} ${kk}`).join(' · ') };
+      const upd = { ...b, ts: evTs, kinds, meta: Object.entries(kinds).map(([kk,v])=>`${v} ${kk}`).join(' · ') };
       const out = [upd, ...prev.filter((_, idx) => idx !== i)];
       return out.slice(0, FEED_CAP);
     }

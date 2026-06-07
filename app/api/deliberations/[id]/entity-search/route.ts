@@ -148,8 +148,8 @@ export async function GET(
         },
         select: {
           id: true,
-          fromId: true,
-          toId: true,
+          fromArgumentId: true,
+          toArgumentId: true,
           type: true,
           createdAt: true,
         },
@@ -159,7 +159,7 @@ export async function GET(
 
       const items = rows.map((r) => ({
         id: r.id,
-        label: `${r.type}: ${r.fromId.slice(0, 6)}… → ${r.toId.slice(0, 6)}…`,
+        label: `${r.type}: ${r.fromArgumentId.slice(0, 6)}… → ${r.toArgumentId.slice(0, 6)}…`,
         subtitle: new Date(r.createdAt).toLocaleDateString(),
       }));
 

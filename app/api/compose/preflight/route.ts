@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const out = await preflightComposition(parsed.data);
-    return NextResponse.json({ ok: true, ...out }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ ...out, ok: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e: any) {
     return NextResponse.json({ ok:false, error: String(e?.message ?? e) }, { status: 400 });
   }

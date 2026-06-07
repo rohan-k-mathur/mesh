@@ -172,7 +172,7 @@ async function handleSingleCreation(body: unknown, userId: string) {
       aiConfidence: input.aiConfidence,
       humanVerified: !input.extractedByAI, // Manual entries are auto-verified
       ...(input.deliberationId 
-        ? { deliberation: { connect: { id: input.deliberationId } } } 
+        ? { deliberationId: input.deliberationId } 
         : {}),
       urns: {
         create: {
@@ -260,7 +260,7 @@ async function handleBatchCreation(body: unknown, userId: string) {
         aiConfidence: claimData.aiConfidence,
         humanVerified: false,
         ...(input.deliberationId 
-          ? { deliberation: { connect: { id: input.deliberationId } } } 
+          ? { deliberationId: input.deliberationId } 
           : {}),
         urns: {
           create: {

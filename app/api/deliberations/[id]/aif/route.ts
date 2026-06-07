@@ -39,8 +39,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     where: { deliberationId },
     select: {
       id: true, scheme: { select: { key: true } },
-      preferredKind: true,   preferredArgumentId: true,   preferredClaimId: true,   preferredSchemeId: true,
-      dispreferredKind: true, dispreferredArgumentId: true, dispreferredClaimId: true, dispreferredSchemeId: true,
+      preferredArgumentId: true,   preferredClaimId: true,   preferredSchemeId: true,
+      dispreferredArgumentId: true, dispreferredClaimId: true, dispreferredSchemeId: true,
     },
   });
 

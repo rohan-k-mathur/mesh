@@ -146,6 +146,11 @@ export async function POST(request: NextRequest) {
       const proposition = ludicElement.label;
       const participantId = targetParticipantId || ludicElement.ownerId;
 
+      if (!proposition) {
+        skipped.push({ ludicElementId: ludicElement.id, reason: "missing label" });
+        continue;
+      }
+
       // Check if commitment already exists
       const existingCommitment = await prisma.commitment.findFirst({
         where: {
@@ -216,9 +221,6 @@ export async function POST(request: NextRequest) {
           targetId: claim.id,
           signature,
         },
-        // We are inside a prisma.$transaction; pass the tx through so all
-        // writes commit/rollback as one unit.
-        { tx: tx as any },
       );
       const dialogueMove = seamResult.move;
 

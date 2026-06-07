@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
     return {
       id: arg.id,
       text: arg.text,
-      argumentType: arg.type ?? null,
+      argumentType: (arg as any).type ?? null,
       schemeId: arg.schemeId,
       schemeName: (arg.scheme as any)?.name ?? null,
       createdAt: arg.createdAt,
@@ -213,7 +213,7 @@ export async function GET(req: NextRequest) {
         includeCover,
         includePageNumbers: true,
         paperSize,
-        sections: ["executive-summary", "arguments"],
+        sections: ["abstract", "arguments"],
       });
       content = result.content;
       contentType = "text/html";

@@ -94,7 +94,7 @@ export async function POST(
     where: { id: ncm.id },
     data: {
       status: "REJECTED",
-      rejectedBy: BigInt(uid),
+      rejectedBy: String(uid),
       rejectedAt: new Date(),
       rejectionReason: body.reviewNotes,
     },

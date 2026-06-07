@@ -5,11 +5,11 @@
  *   - /a/*               public argument permalinks (the citation unit)
  *   - /c/*               public claims by canonical MOID
  *   - /search/arguments  the consumer search surface
- *   - /api/v3/search/*   so LLM agents discovering via the OpenAPI spec
+ *   - /api/v3/search/    so LLM agents discovering via the OpenAPI spec
  *                        can hit the JSON endpoint directly
- *   - /api/a/*/aif       attestation/jsonld/aif representations
- *   - /api/c/*           claim JSON
- *   - /.well-known/*     argument-graph manifest + llms.txt
+ *   - /api/a/.../aif     attestation/jsonld/aif representations
+ *   - /api/c/            claim JSON
+ *   - /.well-known/      argument-graph manifest + llms.txt
  *
  * Disallow rules:
  *   - /api/*             everything else under /api (auth, internal, etc.)

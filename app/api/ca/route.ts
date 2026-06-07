@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   const created = await prisma.conflictApplication.create({
     data: {
       deliberationId: d.deliberationId,
-      ...(scheme?.id ? { scheme: { connect: { id: scheme.id } } } : {}),
+      ...(scheme?.id ? { schemeId: scheme.id } : {}),
       createdById: String(userId),
       conflictingClaimId: d.conflictingClaimId ?? null,
       conflictingArgumentId: d.conflictingArgumentId ?? null,
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       // Phase 1d: ASPIC+ Integration
       aspicAttackType: aspicMetadata.aspicAttackType,
       aspicDefeatStatus: aspicMetadata.aspicDefeatStatus,
-      aspicMetadata: aspicMetadata.aspicMetadata,
+      aspicMetadata: aspicMetadata.aspicMetadata ?? undefined,
       // Phase 1 dialogue provenance: will be linked to ATTACK move below
       // createdByMoveId: <set after ATTACK move created>
     },

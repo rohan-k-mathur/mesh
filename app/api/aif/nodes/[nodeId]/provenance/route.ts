@@ -59,7 +59,7 @@ export async function GET(
     }
 
     // Get the provenance information
-    const provenance = await getNodeProvenance(nodeId);
+    const provenance = await getNodeProvenance(nodeId, node.deliberationId);
 
     return NextResponse.json(provenance, { status: 200 });
   } catch (error) {

@@ -409,8 +409,9 @@ export async function POST(req: NextRequest) {
         select: { id: true, key: true, name: true, epistemicMode: true } as any,
       });
       if (row) {
-        schemeMeta = { id: row.id, key: row.key, name: row.name };
-        resolvedEpistemicMode = epistemicModeInput ?? ((row as any).epistemicMode ?? null);
+        const r = row as any;
+        schemeMeta = { id: r.id, key: r.key, name: r.name };
+        resolvedEpistemicMode = epistemicModeInput ?? (r.epistemicMode ?? null);
         warnings.push({
           code: "scheme_inferred",
           detail: `Scheme '${row.key}' (${row.name}) was inferred server-side. Pass an explicit \`schemeKey\` to override; call \`list_schemes\` to browse the catalog.`,
@@ -696,7 +697,7 @@ export async function POST(req: NextRequest) {
           authorId: userIdStr,
           conclusionClaimId: conclusionClaim.id,
           schemeId: schemeId ?? null,
-          implicitWarrant: implicitWarrant ?? null,
+          implicitWarrant: implicitWarrant ?? undefined,
           // Argument.text holds the reasoning gloss when present. UI/fitness
           // code keys on conclusionClaim.text for the actual conclusion.
           text: reasoning ?? "",

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: { brief: stri
   });
 
   await writeLogbook({
-    roomId: p.data.roomId,
+    roomId: p.roomId,
     entryType: 'NOTE',
     summary: `Brief published: ${brief.title} (v${version.number})`,
     payload: { briefId: brief.id, versionId: version.id },

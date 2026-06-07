@@ -4,7 +4,7 @@ import React from "react";
 import clsx from "clsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useBusEffect } from "@/lib/client/useBusEffect";
-import type AgoraEvent from "@/lib/server/bus";
+import type { AgoraEvent } from "@/lib/server/bus";
 import { EventCard } from "./EventCard";
 import { FiltersPanel } from "./FiltersPanels";
 import { RightRail } from "./RightRail";

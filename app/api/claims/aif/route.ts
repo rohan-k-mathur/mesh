@@ -1,6 +1,7 @@
 // app/api/claims/aif/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { z } from 'zod';
 
 export async function GET(req: NextRequest) {
@@ -30,6 +31,6 @@ export async function POST(req: NextRequest) {
   const parsed = Create.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status: 400 });
   const { deliberationId, authorId, text } = parsed.data;
-  const c = await prisma.claim.create({ data: { deliberationId, createdById: authorId, text } });
+  const c = await prisma.claim.create({ data: { deliberationId, createdById: authorId, text, moid: mintClaimMoid(text) } });
   return NextResponse.json({ ok: true, id: c.id }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
 }

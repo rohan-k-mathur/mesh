@@ -268,6 +268,8 @@ export interface ChainNodeData {
     assumption: string;
     color?: string | null;
   } | null;
+  // Index signature to satisfy ReactFlow Node<T> generic constraint.
+  [key: string]: unknown;
 }
 
 // ReactFlow edge data
@@ -278,6 +280,8 @@ export interface ChainEdgeData {
   slotMapping?: any;
   isTargeted?: boolean;
   attackCount?: number;
+  // Index signature to satisfy ReactFlow Edge<T> generic constraint.
+  [key: string]: unknown;
 }
 
 // Epistemic status types (Phase 4)

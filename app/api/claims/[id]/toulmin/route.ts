@@ -95,7 +95,7 @@ const schemes = await prisma.schemeInstance.findMany({
 
   const [citationCount, evidenceCount] = await Promise.all([
     prisma.claimCitation.count({ where: { claimId } }),
-    prisma.evidenceLink.count({ where: { claimId } }),
+    prisma.evidenceLink.count({ where: { targetKind: "claim", targetId: claimId } }),
   ]);
 
   // 4) Qualifier (from arguments promoted to this claim)

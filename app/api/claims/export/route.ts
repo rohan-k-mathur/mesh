@@ -237,11 +237,11 @@ export async function GET(req: NextRequest) {
     }
 
     case "pdf": {
-      const result = generateClaimsPDFHtml(exportableClaims, exportableSources, {
+      const result = generateClaimsPDFHtml(exportableClaims, {
         includeCover,
         includePageNumbers: true,
         paperSize,
-        sections: ["executive-summary", "claims", "bibliography"],
+        sections: ["abstract", "claims", "bibliography"],
       });
       content = result.content;
       contentType = "text/html";

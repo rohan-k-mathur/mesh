@@ -304,9 +304,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         source: edge.fromClaimId,
         target: edge.toClaimId,
         type: edgeType,
-        attackType: edge.attackType ?? undefined,
+        attackType: (edge.attackType ?? undefined) as any,
         confidence: conf,
-        targetScope: edge.targetScope,
+        targetScope: edge.targetScope as any,
       });
 
       // Update degrees

@@ -283,7 +283,6 @@ export function buildCitationMetaTags(
   const isoDate = att.createdAt ? att.createdAt.split("T")[0] : null;
   // Lazy import to avoid a circular dep between the JSON-LD module and
   // the format module (formats.ts already imports the attestation type).
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { renderAuthorPlain } = require("@/lib/citation/formats") as {
     renderAuthorPlain: (a: ArgumentAttestation["author"]) => string;
   };

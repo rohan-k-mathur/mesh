@@ -253,7 +253,7 @@ export async function GET(
           includePageNumbers: true,
           paperSize,
           sections: [
-            "executive-summary",
+            "abstract",
             "claims",
             "arguments",
             "timeline",

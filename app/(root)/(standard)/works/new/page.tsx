@@ -18,10 +18,10 @@ export default function NewWorkPage() {
 
     (async () => {
       try {
-        const title         = q.get('title') || 'Untitled Work';
-        const deliberationId= q.get('deliberationId') || null;
-        const standardOutput= q.get('standardOutput') || null;
-        const tt = (q.get('theoryType') || 'IH').toUpperCase();
+        const title         = q?.get('title') || 'Untitled Work';
+        const deliberationId= q?.get('deliberationId') || null;
+        const standardOutput= q?.get('standardOutput') || null;
+        const tt = (q?.get('theoryType') || 'IH').toUpperCase();
         const theoryType: TheoryType = (['DN','IH','TC','OP'] as const).includes(tt as TheoryType)
           ? (tt as TheoryType)
           : 'IH';
