@@ -11,6 +11,7 @@ import {
   removeSchemeFromArgument,
 } from "@/lib/db/argument-net-queries";
 import { prisma } from "@/lib/prismaclient";
+import { isDeliberationParticipant } from "@/lib/cqs/permissions";
 import { z } from "zod";
 
 const UpdateSchemeSchema = z.object({
@@ -67,14 +68,12 @@ export async function PATCH(
     }
 
     // Authorization check
-    if (instance.argument.authorId !== userId) {
+    if (instance.argument.authorId !== userId.toString()) {
       // Check deliberation membership
-      const membership = await prisma.participant.findFirst({
-        where: {
-          deliberationId: instance.argument.deliberationId,
-          userId: BigInt(userId),
-        },
-      });
+      const membership = await isDeliberationParticipant(
+        userId.toString(),
+        instance.argument.deliberationId
+      );
 
       if (!membership) {
         return NextResponse.json(
@@ -188,14 +187,12 @@ export async function DELETE(
     }
 
     // Authorization check
-    if (instance.argument.authorId !== userId) {
+    if (instance.argument.authorId !== userId.toString()) {
       // Check deliberation membership
-      const membership = await prisma.participant.findFirst({
-        where: {
-          deliberationId: instance.argument.deliberationId,
-          userId: BigInt(userId),
-        },
-      });
+      const membership = await isDeliberationParticipant(
+        userId.toString(),
+        instance.argument.deliberationId
+      );
 
       if (!membership) {
         return NextResponse.json(

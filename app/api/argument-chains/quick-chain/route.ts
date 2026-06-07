@@ -902,6 +902,13 @@ async function mintAndLinkChain(opts: {
     }[];
     threading: ThreadEntry[];
     scopeIds: (string | null)[];
+    attacks: {
+      attackerNodeId: string;
+      targetType: "NODE" | "EDGE";
+      targetNodeId: string | null;
+      targetEdgeId: string | null;
+      edgeType: ResolvedAttack["edgeType"];
+    }[];
   };
 
   try {
@@ -1057,7 +1064,7 @@ async function mintAndLinkChain(opts: {
             authorId: userIdStr,
             conclusionClaimId,
             schemeId: res.schemeId ?? null,
-            implicitWarrant: link.implicitWarrant || null,
+            implicitWarrant: link.implicitWarrant || undefined,
             text: link.reasoning || "",
             ...(viaMcp
               ? {

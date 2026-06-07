@@ -158,7 +158,7 @@ export function listMessagesFor(userId: string) {
   for (const m of DB.messages.values()) {
     const visible = visibleFacetsFor(ctx, m.facets);
     if (visible.length === 0) continue; // nothing to show to this user
-    const def = (m.defaultFacetId && visible.find(f => f.id === m.defaultFacetId)) ?? visible[0];
+    const def = (m.defaultFacetId ? visible.find(f => f.id === m.defaultFacetId) : undefined) ?? visible[0];
     out.push({
       id: m.id,
       threadId: m.threadId,

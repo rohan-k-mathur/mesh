@@ -16,7 +16,7 @@ const schema = z.object({
     { params }: { params: { id: string } }
   ) {
     const user = await getUserFromCookies()
-    if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+    if (!user?.userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
 
 

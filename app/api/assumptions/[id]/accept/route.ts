@@ -60,9 +60,6 @@ export async function POST(
         statusChangedBy: user.userId.toString(),
         challengeReason: null, // Clear challenge reason if any
       },
-      include: {
-        // Include related data for response
-      },
     });
 
     return NextResponse.json(updated, { status: 200 });

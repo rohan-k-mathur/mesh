@@ -29,10 +29,8 @@ export async function POST(req: NextRequest) {
     data: {
       deliberationId: p.deliberationId, createdById: p.createdById,
       schemeId: scheme?.id ?? null,
-      preferredKind: p.preferred.kind as any,
       preferredClaimId:    p.preferred.kind==='CLAIM' ? p.preferred.id : null,
       preferredArgumentId: p.preferred.kind==='RA'    ? p.preferred.id : null,
-      dispreferredKind: p.dispreferred.kind as any,
       dispreferredClaimId:    p.dispreferred.kind==='CLAIM' ? p.dispreferred.id : null,
       dispreferredArgumentId: p.dispreferred.kind==='RA'    ? p.dispreferred.id : null,
     },

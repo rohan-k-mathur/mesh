@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
     // Phase 2.2: Emit event for lifted citations
     if (copiedCitations.length > 0) {
-      emitBus("citations:lifted", {
+      emitBus("citations:changed", {
         claimId: claim.id,
         citationCount: copiedCitations.length,
         fromCommentId: String(commentId),

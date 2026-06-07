@@ -79,7 +79,7 @@ export async function POST(
     where: { id: ncm.id },
     data: {
       status: "APPROVED",
-      approvedBy: BigInt(uid),
+      approvedBy: String(uid),
       approvedAt: new Date(),
     },
   });

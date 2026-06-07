@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: { id: string } }) {
   return (
     <WorkDetailClient
       id={work.id}
-      deliberationId={work.deliberationId}
+      deliberationId={work.deliberationId ?? ''}
       title={work.title}
       theoryType={work.theoryType as any}
       standardOutput={work.standardOutput ?? undefined}

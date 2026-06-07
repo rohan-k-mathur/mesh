@@ -4,7 +4,7 @@ import { getUserFromCookies } from '@/lib/serverutils'
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  if (!user?.userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
   const a = await prisma.article.findUnique({ where: { id: params.id } })
   if (!a || a.authorId !== user.userId.toString())

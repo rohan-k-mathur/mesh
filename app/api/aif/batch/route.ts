@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { TargetType } from '@prisma/client';
 import { checkAifVersionStamp } from '@/lib/aif/version';
+import { mintClaimMoid } from '@/lib/ids/mintMoid';
 
 type Mode = 'validate'|'upsert';
 
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
   await prisma.$transaction(async (tx) => {
     // Create claims
     for (const [nodeId, text] of IText) {
-      const c = await tx.claim.create({ data: { text, createdById: authorId, deliberationId } });
+      const c = await tx.claim.create({ data: { text, moid: mintClaimMoid(text), createdById: authorId, deliberationId } });
       claimIdByNode.set(nodeId, c.id);
     }
 

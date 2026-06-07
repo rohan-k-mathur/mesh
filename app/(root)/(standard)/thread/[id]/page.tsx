@@ -13,7 +13,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!user?.onboarded) redirect("/onboarding");
   const post = await fetchPostTreeById(BigInt(params.id));
   if (!post) notFound();
-  const currentUserLike = user
+  const currentUserLike = user?.userId
     ? await fetchLikeForCurrentUser({ feedPostId: post.id, userId: user.userId })
     : null;
   const mappedPost = mapFeedPost(post);
@@ -47,7 +47,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
 
       <CommentTree
       
-        comments={post.children}
+        comments={(post as any).children}
         currentUserId={user.userId!}
         currentUserImg={user.photoURL!}
         depth={1}

@@ -14,12 +14,14 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const { data, error } = await supabase.storage.from('snapshots').download(cit.snapshotKey);
   if (error || !data) return NextResponse.json({ verified: false, reason: 'snapshot download failed' });
 
-  // Simple verify: check raw body contains a substring hashing to excerptHash
+  // Best-effort verify: re-hash the excerpt at the stored locator range and
+  // compare against the recorded excerptHash.
   const body = await data.text();
-  const contains = body.includes; // perf: substring search
-  const ok = contains && body.includes; // (presence check only; exact re-hash is client-side UI)
-  // Minimal server-side check: body contains the excerpt characters (best-effort)
-  const verified = !!ok; // keep simple; your UI also recomputes client-side on the stored excerpt
+  let verified = false;
+  if (cit.locatorStart != null && cit.locatorEnd != null) {
+    const excerpt = body.slice(cit.locatorStart, cit.locatorEnd);
+    verified = excerpt.length > 0 && sha256Hex(excerpt) === cit.excerptHash;
+  }
 
   return NextResponse.json({ verified });
 }

@@ -291,14 +291,14 @@ function spellOut(n: number): string {
 // holds that …", "Two questions remain open for the critical reader:",
 // "The reasoning rests on multiple considerations.", etc.). The first
 // occurrence frames the discourse for the reader; subsequent
-// occurrences read as filler. `useBoilerplateKey` returns `true` the
+// occurrences read as filler. `takeBoilerplateKey` returns `true` the
 // first time a given key is requested per essay and `false` thereafter,
 // so callers can choose between a full and a short / skipped form.
 //
 // `_renderedBoilerplateKeys`, `_renderedConclusionKeys`, and
 // `_thesisAnaphorCursor` are private fields on `innerOptions` (see
 // `generateEssay`) so the dedupe state is per-essay, not global.
-function useBoilerplateKey(key: string, options: EssayOptions): boolean {
+function takeBoilerplateKey(key: string, options: EssayOptions): boolean {
   const set = (options as any)._renderedBoilerplateKeys;
   if (!(set instanceof Set)) return true;
   if (set.has(key)) return false;
@@ -1522,7 +1522,7 @@ function generateArgumentProse(
       // M3.8 G: only emit the framing sentence the first time; downstream
       // paragraphs let the `First, … Additionally, … Finally, …`
       // discourse markers carry the enumeration on their own.
-      if (useBoilerplateKey("multi_premise_intro", options)) {
+      if (takeBoilerplateKey("multi_premise_intro", options)) {
         parts.push(sample(premiseIntros));
       }
       
@@ -1564,7 +1564,7 @@ function generateArgumentProse(
         // paragraph. Emit once per relation, then skip on subsequent
         // paragraphs of the same scheme family.
         const relKey = `scheme_relation:${scheme.materialRelation.toLowerCase()}`;
-        if (useBoilerplateKey(relKey, options)) {
+        if (takeBoilerplateKey(relKey, options)) {
           parts.push(relationContexts[scheme.materialRelation.toLowerCase()]);
         }
       }
@@ -1592,7 +1592,7 @@ function generateArgumentProse(
     // and use a leaner connective — the reader has already been taught
     // what the warrant role is.
     const warrantBody = preserveAcronymLowercase(warrant).replace(/\.$/, "");
-    if (useBoilerplateKey("warrant_gloss", options)) {
+    if (takeBoilerplateKey("warrant_gloss", options)) {
       parts.push(`The underlying warrant—the principle that licenses this inference—holds that ${warrantBody}.`);
     } else {
       parts.push(`The warrant here holds that ${warrantBody}.`);
@@ -1647,7 +1647,7 @@ function generateArgumentProse(
         const questions = cleaned.map(q => `${q}?`).join(" ");
         // M3.8 G: first CQ block gets the full pedagogical framing;
         // subsequent blocks use a leaner "Further open questions" lead-in.
-        const cqFirst = useBoilerplateKey("cq_intro", options);
+        const cqFirst = takeBoilerplateKey("cq_intro", options);
         if (relevantCQs.length === 1) {
           parts.push(
             cqFirst

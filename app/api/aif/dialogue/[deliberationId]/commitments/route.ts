@@ -63,6 +63,7 @@ export async function GET(
 
     // Check room access if deliberation has a roomId
     if (deliberation.roomId) {
+      // @ts-ignore - roomMember exists but types not yet refreshed
       const roomMember = await prisma.roomMember.findFirst({
         where: {
           roomId: deliberation.roomId,

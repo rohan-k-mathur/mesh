@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     const blocked = infer.contradictions.length > 0;
 
     return NextResponse.json({
-      ok: true,
       ...applyRes,
+      ok: true,
       derivedFacts: infer.derivedFacts,
       contradictions: infer.contradictions,
       persistedDerivedIds: persisted,

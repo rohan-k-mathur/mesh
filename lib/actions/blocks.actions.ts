@@ -88,3 +88,64 @@ export async function createBlockFromSpec(args: {
   await renderBlockThumbnail(row.id);
   return row;
 }
+
+export async function createBlockFromElement(args: {
+  pageSlug: string;
+  elementId: string;
+  component?: string;
+  props?: any;
+  ownerId?: bigint | number | string;
+}) {
+  const user = await getUserFromCookies().catch(() => null);
+  const owner = toBigIntId(args.ownerId ?? user?.id);
+  if (!owner) throw new Error("Unauthorized");
+
+  const id = nanoid();
+  const row = await prisma.blockManifest.create({
+    data: {
+      id,
+      ownerId: owner,
+      component: args.component ?? "ElementCapture",
+      props: args.props ?? {},
+      originSlug: args.pageSlug,
+      originElId: args.elementId,
+      isPublic: true,
+    },
+    select: { id: true, component: true, props: true },
+  });
+
+  await renderBlockThumbnail(row.id);
+  return row;
+}
+
+export async function forkBlock(args: {
+  blockId: string;
+  ownerId?: bigint | number | string;
+}) {
+  const user = await getUserFromCookies().catch(() => null);
+  const owner = toBigIntId(args.ownerId ?? user?.id);
+  if (!owner) throw new Error("Unauthorized");
+
+  const source = await prisma.blockManifest.findUnique({
+    where: { id: args.blockId },
+    select: { component: true, props: true, originSlug: true, originElId: true },
+  });
+  if (!source) throw new Error("Block not found");
+
+  const id = nanoid();
+  const row = await prisma.blockManifest.create({
+    data: {
+      id,
+      ownerId: owner,
+      component: source.component,
+      props: source.props ?? {},
+      originSlug: source.originSlug ?? null,
+      originElId: source.originElId ?? null,
+      isPublic: true,
+    },
+    select: { id: true, component: true, props: true },
+  });
+
+  await renderBlockThumbnail(row.id);
+  return row;
+}

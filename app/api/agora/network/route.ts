@@ -126,6 +126,7 @@ const claims = await prisma.claim.findMany({
 });
       const byCanon = new Map<string, string[]>();
       for (const c of claims) {
+        if (!c.deliberationId) continue;
         const arr = byCanon.get(c.canonicalClaimId!) ?? [];
         arr.push(c.deliberationId);
         byCanon.set(c.canonicalClaimId!, arr);
@@ -194,28 +195,32 @@ const claims = await prisma.claim.findMany({
         deliberationId: true,
         institutionId: true,
         status: true,
-        currentPacket: { select: { version: true } },
+        currentPacket: {
+          select: {
+            version: true,
+            submissions: {
+              orderBy: { submittedAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                responses: {
+                  orderBy: { respondedAt: 'desc' },
+                  take: 1,
+                  select: {
+                    responseStatus: true,
+                    items: { select: { disposition: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
         institution: {
           select: {
             id: true,
             name: true,
             kind: true,
             linkedDeliberationId: true,
-          },
-        },
-        submissions: {
-          orderBy: { submittedAt: 'desc' },
-          take: 1,
-          select: {
-            id: true,
-            responses: {
-              orderBy: { respondedAt: 'desc' },
-              take: 1,
-              select: {
-                status: true,
-                items: { select: { decision: true } },
-              },
-            },
           },
         },
       },
@@ -239,10 +244,10 @@ const claims = await prisma.claim.findMany({
           currentPacketVersion: p.currentPacket?.version ?? null,
         },
       });
-      const latestResp = p.submissions[0]?.responses[0];
+      const latestResp = p.currentPacket?.submissions[0]?.responses[0];
       if (latestResp) {
         const items = latestResp.items;
-        const accepted = items.filter((i) => i.decision === 'ACCEPT').length;
+        const accepted = items.filter((i) => i.disposition === 'ACCEPTED').length;
         const acceptedRatio = items.length > 0 ? accepted / items.length : 0;
         meta.push({
           from: `inst:${p.institutionId}`,
@@ -251,7 +256,7 @@ const claims = await prisma.claim.findMany({
           weight: 1,
           meta: {
             pathwayId: p.id,
-            responseStatus: latestResp.status,
+            responseStatus: latestResp.responseStatus,
             acceptedRatio,
           },
         });

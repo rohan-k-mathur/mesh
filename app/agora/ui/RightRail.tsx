@@ -2,7 +2,7 @@
 "use client";
 import useSWR from "swr";
 import { useFollowing } from "@/lib/client/useFollowing";
-import type AgoraEvent from "@/lib/server/bus";
+import type { AgoraEvent } from "@/lib/server/bus";
 import { StackSummaryCard } from "./StackSummaryCard";
 
 const fetcher = (u:string)=>fetch(u,{cache:"no-store"}).then(r=>r.json());

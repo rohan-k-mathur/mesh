@@ -6,8 +6,8 @@ import AccountForm from "./(client)/AccountForm";
 
 export default async function Page() {
   const user = await getUserFromCookies();
-  if (!user) redirect("/login");
+  if (!user?.userId) redirect("/login");
 
-  const settings = await getUserSettings(user.userId);
+  const settings = (await getUserSettings(user.userId)) as { account?: Record<string, unknown> };
   return <AccountForm initial={settings.account ?? {}} />;
 }

@@ -923,6 +923,87 @@ describe("Sprint A — transport (Isonomia extension; ECC plan §4 row 2)", () =
   });
 });
 
+// ── A1 — two-functor composition (Direction 4, sub-program A coherence) ──────
+// Audit: RESEARCH_PROGRAMME/audits/a0-onehop-contract-laxity-vs-policy-2026-06-07.md
+//
+// These tests DEMONSTRATE that object-level functor composition and the
+// symbolic arrow algebra already support multi-hop transport — i.e. the
+// one-hop contract (ECC plan §4 row 2) is a *scalar-band provenance* guardrail,
+// not a categorical wall. Per the A0 audit, two-functor composition is defined
+// LOCALLY here and is deliberately NOT added to lib/argumentation/ecc.ts: the
+// production surface keeps the one-hop contract because the scalar log-odds
+// band loses source identity (audit §1.3). This suite characterizes WHEN the
+// guardrail could lift; it does not lift it.
+describe("A1 — two-functor composition (coherence sub-program; NOT a prod surface)", () => {
+  // Object-level functor composition: partial-function composition of claim
+  // maps, with null propagation. The whole audit §1.1 finding in one helper.
+  const composeFunctors = (G: Functor, F: Functor): Functor => ({
+    mapClaim: (id) => {
+      const mid = F.mapClaim(id);
+      return mid === null ? null : G.mapClaim(mid);
+    },
+  });
+
+  const F: Functor = { mapClaim: (id) => (id === "A" ? "B" : id === "P" ? "Q" : null) };
+  const G: Functor = { mapClaim: (id) => (id === "B" ? "C" : id === "Q" ? "R" : null) };
+
+  test("arrow-level: transport(G, transport(F, a)) === transport(compose(G,F), a)", () => {
+    // Audit §1.2: transport is identity on derivations + relabels endpoints, so
+    // composing the relabelings equals relabeling by the composite.
+    const a = arr("A", "P", [["d1", ["λ1"]]]);
+    const twoStep = transport(G, transport(F, a)!)!;
+    const oneStep = transport(composeFunctors(G, F), a)!;
+    expect(oneStep.from).toBe("C");
+    expect(oneStep.to).toBe("R");
+    expect(oneStep.from).toBe(twoStep.from);
+    expect(oneStep.to).toBe(twoStep.to);
+    expect(oneStep.derivs).toEqual(twoStep.derivs);
+    expect(minimalAssumptions(oneStep)).toEqual(minimalAssumptions(twoStep));
+  });
+
+  test("partiality propagates: composite is null iff a hop drops an endpoint", () => {
+    // G' maps P→R (so an arrow's `to` survives) but DROPS B (the arrow's `from`
+    // image under F). Two-step and composite must agree: both null.
+    const Gdrop: Functor = { mapClaim: (id) => (id === "Q" ? "R" : null) };
+    const a = arr("A", "P", [["d1", []]]);
+    const mid = transport(F, a)!; // B → Q
+    expect(transport(Gdrop, mid)).toBeNull(); // B has no Gdrop-image
+    expect(transport(composeFunctors(Gdrop, F), a)).toBeNull();
+  });
+
+  test("object-level composition is associative (H∘(G∘F) = (H∘G)∘F)", () => {
+    // Audit §1.1: partial-function composition is associative ⇒ no categorical
+    // obstruction to chaining functors.
+    const H: Functor = { mapClaim: (id) => (id === "C" ? "D" : id === "R" ? "S" : null) };
+    const a = arr("A", "P", [["d1", ["λ1"]]]);
+    const left = transport(composeFunctors(H, composeFunctors(G, F)), a)!;
+    const right = transport(composeFunctors(composeFunctors(H, G), F), a)!;
+    expect(left.from).toBe("D");
+    expect(left.to).toBe("S");
+    expect(left.from).toBe(right.from);
+    expect(left.to).toBe(right.to);
+    expect(left.derivs).toEqual(right.derivs);
+  });
+
+  test("band caveat: symbolic aggregation is idempotent (Set union) so it does NOT double-count — the scalar log-odds band is the real one-hop obstruction (audit §1.3)", () => {
+    // Re-importing the SAME remote arrow twice dedupes by derivation id, so the
+    // symbolic layer is already multi-hop-safe. The double-count the one-hop
+    // contract guards against lives in transportAggregator's scalar reducer
+    // (corroboration = addition, no derivation identity), NOT here.
+    const Fid: Functor = { mapClaim: (id) => (id === "A" || id === "B" ? id : null) };
+    const local = arr("A", "B", [["dL", []]]);
+    const remote = arr("A", "B", [["dR", ["λR"]]]);
+    const once = aggregateAcrossRooms(local, [{ functor: Fid, remote }]);
+    const twice = aggregateAcrossRooms(local, [
+      { functor: Fid, remote },
+      { functor: Fid, remote },
+    ]);
+    expect(once.derivs).toEqual(new Set(["dL", "dR"]));
+    expect(twice.derivs).toEqual(once.derivs); // idempotent ⇒ no symbolic double-count
+  });
+});
+
+
 describe("Sprint A — aggregateAcrossRooms (one-hop)", () => {
   const F: Functor = { mapClaim: (id) => id === "A" ? "A" : id === "B" ? "B" : null };
 

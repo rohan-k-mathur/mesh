@@ -74,7 +74,7 @@ const PatchSchema = z.object({
 })
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  if (!user?.userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
   const parsed = PatchSchema.safeParse(body)
@@ -92,7 +92,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  if (!user?.userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
   const a = await prisma.article.findUnique({ where: { id: params.id } })
   if (!a || a.authorId !== user.userId.toString())

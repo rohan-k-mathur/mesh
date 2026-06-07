@@ -158,9 +158,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       id: `issuelink_${l.issueId}_${l.argumentId}`,
       type: 'ISSUE_LINK',
       createdAt: (l.issue?.createdAt ?? new Date()).toISOString(),
-      actorId: l.issue?.createdById ?? null,
+      actorId: l.issue?.createdById != null ? String(l.issue.createdById) : null,
       targetType: 'argument',
-      targetId: l.argumentId,
+      targetId: l.argumentId ?? undefined,
       summary: `Issue linked: ${l.issue?.label ?? ''}`,
       payload: { issueId: l.issueId, label: l.issue?.label },
     }));

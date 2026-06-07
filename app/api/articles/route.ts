@@ -75,7 +75,7 @@ const CreateSchema = z.object({
 export async function POST(req: Request) {
   try {
     const user = await getUserFromCookies()
-    if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+    if (!user?.userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
     // tolerate empty body
     const safe = await req.json().catch(() => ({} as unknown))
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
         slug,
         template,
         heroImageKey,
-        astJson,
+        astJson: astJson as any,
         status: 'DRAFT',
       },
       select: { id: true },

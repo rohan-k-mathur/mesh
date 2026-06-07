@@ -5,7 +5,7 @@ import { getUserFromCookies } from '@/lib/serverutils';
 
 export async function GET(req: Request) {
   const user = await getUserFromCookies();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  if (!user?.userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const pageSize = Math.min(Number(searchParams.get('limit') ?? 20), 100);

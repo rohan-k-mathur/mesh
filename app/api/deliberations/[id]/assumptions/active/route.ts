@@ -37,10 +37,6 @@ export async function GET(
     // Fetch active assumptions with related data
     const assumptions = await prisma.assumptionUse.findMany({
       where,
-      include: {
-        // TODO: Add relations to Argument and Claim once they exist in schema
-        // For now, return basic data
-      },
       orderBy: {
         statusChangedAt: "desc",
       },
@@ -50,14 +46,16 @@ export async function GET(
     const enriched = await Promise.all(
       assumptions.map(async (assumption) => {
         const [argument, claim] = await Promise.all([
-          prisma.argument.findUnique({
-            where: { id: assumption.argumentId },
-            select: {
-              id: true,
-              text: true,
-              conclusionClaimId: true,
-            },
-          }),
+          assumption.argumentId
+            ? prisma.argument.findUnique({
+                where: { id: assumption.argumentId },
+                select: {
+                  id: true,
+                  text: true,
+                  conclusionClaimId: true,
+                },
+              })
+            : null,
           assumption.assumptionClaimId
             ? prisma.claim.findUnique({
                 where: { id: assumption.assumptionClaimId },

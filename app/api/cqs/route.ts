@@ -44,7 +44,6 @@ export async function GET(req: NextRequest) {
     .filter(Boolean) as string[];
 
   // Phase 0.1: Fetch burden of proof metadata for CQs
-  // @ts-expect-error - burdenOfProof, requiresEvidence, premiseType exist but Prisma types may be cached
   const criticalQuestions = await prisma.criticalQuestion.findMany({
     where: {
       schemeId: { in: keys },
@@ -52,11 +51,8 @@ export async function GET(req: NextRequest) {
     select: {
       schemeId: true,
       cqKey: true,
-      // @ts-expect-error - Phase 0.1 fields, Prisma types may be cached
       burdenOfProof: true,
-      // @ts-expect-error - Phase 0.1 fields, Prisma types may be cached
       requiresEvidence: true,
-      // @ts-expect-error - Phase 0.1 fields, Prisma types may be cached
       premiseType: true,
     },
   });
@@ -92,7 +88,7 @@ export async function GET(req: NextRequest) {
       schemeKey: true,
       cqKey: true,
       satisfied: true,
-      // @ts-expect-error - groundsText exists in schema but Prisma types may be cached
+      // @ts-ignore - groundsText exists in schema but Prisma types may be cached
       groundsText: true,
       statusEnum: true,
       canonicalResponseId: true,
@@ -182,9 +178,9 @@ export async function GET(req: NextRequest) {
   }
   
   statuses.forEach((s) => {
-    // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+    // @ts-ignore - Prisma types may be cached, these fields exist in schema
     const pendingCount = s.responses.filter((r: any) => r.responseStatus === "PENDING").length;
-    // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+    // @ts-ignore - Prisma types may be cached, these fields exist in schema
     const approvedCount = s.responses.filter(
       (r: any) => r.responseStatus === "APPROVED" || r.responseStatus === "CANONICAL"
     ).length;
@@ -195,15 +191,15 @@ export async function GET(req: NextRequest) {
     statusMap.get(s.schemeKey)?.set(s.cqKey, {
       id: s.id, // ✅ Include CQ status ID for frontend queries
       satisfied: s.satisfied,
-      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+      // @ts-ignore - Prisma types may be cached, these fields exist in schema
       groundsText: s.groundsText ?? undefined,
-      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+      // @ts-ignore - Prisma types may be cached, these fields exist in schema
       statusEnum: s.statusEnum,
-      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+      // @ts-ignore - Prisma types may be cached, these fields exist in schema
       canonicalResponse: s.canonicalResponse,
       pendingCount,
       approvedCount,
-      // @ts-expect-error - Prisma types may be cached, these fields exist in schema
+      // @ts-ignore - Prisma types may be cached, these fields exist in schema
       totalResponseCount: s.responses.length,
       whyCount: dialogueCounts.whyCount, // Phase 8
       groundsCount: dialogueCounts.groundsCount, // Phase 8
@@ -298,9 +294,9 @@ export async function POST(req: NextRequest) {
     } else if (targetType === 'argument') {
       const arg = await prisma.argument.findUnique({
         where: { id: targetId },
-        select: { createdById: true }
+        select: { authorId: true }
       });
-      targetAuthorId = arg ? String(arg.createdById) : null;
+      targetAuthorId = arg ? String(arg.authorId) : null;
     }
 
     const isAuthor = targetAuthorId === String(userId);
@@ -324,7 +320,7 @@ export async function POST(req: NextRequest) {
       },
       update: {
         satisfied,
-        // @ts-expect-error - Prisma types may be cached, groundsText exists in schema
+        // @ts-ignore - Prisma types may be cached, groundsText exists in schema
         groundsText: groundsText ?? null,
         updatedAt: new Date(),
       },
@@ -334,7 +330,7 @@ export async function POST(req: NextRequest) {
         schemeKey,
         cqKey,
         satisfied,
-        // @ts-expect-error - Prisma types may be cached, groundsText exists in schema
+        // @ts-ignore - Prisma types may be cached, groundsText exists in schema
         groundsText: groundsText ?? null,
         createdById: String(userId), // ✅ Use actual user ID, not 'system'
         statusEnum: satisfied ? 'SATISFIED' : 'OPEN',

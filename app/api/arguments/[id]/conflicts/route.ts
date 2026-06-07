@@ -7,7 +7,7 @@ export async function GET(_req: Request, { params }: { params:{ id:string }}) {
     where: { OR: [
       { conflictingArgumentId: id }, { conflictedArgumentId: id },
     ]},
-    select: { id: true, schemeId: true, conflictingKind: true, conflictedKind: true }
+    select: { id: true, schemeId: true, conflictingClaimId: true, conflictingArgumentId: true, conflictedClaimId: true, conflictedArgumentId: true }
   });
   return NextResponse.json({ ok:true, items }, { headers: { 'Cache-Control':'no-store' } });
 }

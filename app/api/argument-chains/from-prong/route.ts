@@ -36,6 +36,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
+import { ArgumentChainEdgeType } from "@prisma/client";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
@@ -218,7 +219,7 @@ export async function POST(req: NextRequest) {
         mainline[mainline.length - 1] ??
         null;
 
-      const edgeData: { chainId: string; sourceNodeId: string; targetNodeId: string; edgeType: string }[] = [];
+      const edgeData: { chainId: string; sourceNodeId: string; targetNodeId: string; edgeType: ArgumentChainEdgeType }[] = [];
       for (let i = 0; i < mainline.length - 1; i++) {
         edgeData.push({
           chainId: chain.id,

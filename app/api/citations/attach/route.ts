@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
           // Phase 2.1: Anchor fields
           anchorType: d.anchorType ? (d.anchorType as CitationAnchorType) : null,
           anchorId: d.anchorId ?? null,
-          anchorData: finalAnchorData,
+          anchorData: (finalAnchorData ?? undefined) as any,
           // Phase 2.3: Citation intent (optional)
           intent: d.intent ? (d.intent as CitationIntent) : null,
         },

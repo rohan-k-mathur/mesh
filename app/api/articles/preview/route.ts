@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
   if (!article) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const isAuthor = user && article.authorId === user.userId.toString()
+  const isAuthor = user?.userId && article.authorId === user.userId.toString()
   const isPublished = article.status === 'PUBLISHED'
   if (!isPublished && !isAuthor) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

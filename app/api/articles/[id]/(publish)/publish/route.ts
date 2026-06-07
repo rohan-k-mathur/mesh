@@ -108,7 +108,7 @@ function titleFromAst(ast: any): string | null {
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  if (!user?.userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
   const article = await prisma.article.findUnique({ where: { id: params.id } })
   if (!article || article.authorId !== user.userId.toString()) {
@@ -199,7 +199,7 @@ const payload = {
           articleId: updated.id,
         })
   } catch (e) {
-    console.error('createFeedPost failed:', e?.message, e)
+    console.error('createFeedPost failed:', (e as any)?.message, e)
     }
 
   return NextResponse.json({ slug: updated.slug }, { status: 201 })

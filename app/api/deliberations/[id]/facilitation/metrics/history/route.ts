@@ -58,11 +58,11 @@ export async function GET(
       limit: parsed.data.limit ?? 200,
     });
     if (parsed.data.since) {
-      const since = parsed.data.since;
+      const since = new Date(parsed.data.since);
       items = items.filter((s) => s.windowEnd >= since);
     }
     if (parsed.data.until) {
-      const until = parsed.data.until;
+      const until = new Date(parsed.data.until);
       items = items.filter((s) => s.windowEnd <= until);
     }
     return NextResponse.json({
