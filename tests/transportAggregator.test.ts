@@ -141,3 +141,123 @@ describe("transportAggregator — combine", () => {
     expect(combineLocalAndImported(0.6, 0.3, "logodds")).toBeLessThan(0.6);
   });
 });
+
+// ── L2 — band soundness needs origin dedupe (C014 discharge 2) ──────────────
+// RESEARCH_PROGRAMME/03_CONJECTURES/C014-plexus-transport-pseudofunctor.md §C014.b
+// and Q-042 (Direction 4, sub-program A coherence).
+//
+// A0 §1.3 finding, made executable: the production scalar reducer
+// `reduceImportedScores(number[], mode)` carries NO source identity, so when the
+// SAME ultimate origin reaches a target claim by two transport paths (the exact
+// multi-hop double-count the one-hop contract guards against), product/logodds
+// corroborate it TWICE. `min` is the only mode that is accidentally safe
+// (max is idempotent). This block:
+//   (1) freezes the double-count as a regression witness (P1), then
+//   (2) defines the PROPOSED fix `reduceImportedByOrigin` — the C014 discharge-2
+//       shape: dedupe by ultimate origin BEFORE reducing — and proves it is
+//       idempotent-by-origin (P2), path-independent (P3), and makes multi-hop
+//       agree with iterated one-hop (P4, the C014.b equality).
+//
+// TEST-ONLY: `reduceImportedByOrigin` is NOT added to the production
+// transportAggregator. Shipping it (with the matching `RoomTransportSnapshot
+// .payloadJson.sources[]` path-provenance extension) is the gated production
+// change C014 licenses once the full coherence theorem (discharge 3) lands.
+
+/** Proposed origin-keyed reducer (C014 discharge-2 fix shape; test-only).
+ *  Collapses contributions to one score per ULTIMATE origin, then reduces with
+ *  the existing per-mode join. A source reached by N paths corroborates ONCE. */
+function reduceImportedByOrigin(
+  contributions: Array<{ originId: string; score: number }>,
+  mode: "min" | "product" | "logodds",
+): number {
+  const byOrigin = new Map<string, number>();
+  for (const { originId, score } of contributions) byOrigin.set(originId, score);
+  return reduceImportedScores([...byOrigin.values()], mode);
+}
+
+describe("L2 — band soundness needs origin dedupe (C014 discharge 2)", () => {
+  test("P1 regression: the positional reducer double-counts a twice-arriving origin (product/logodds)", () => {
+    // Origin O has support 0.6, reaches the target via two paths ⇒ [0.6, 0.6].
+    const once = reduceImportedScores([0.6], "product");
+    const twice = reduceImportedScores([0.6, 0.6], "product");
+    expect(twice).toBeGreaterThan(once); // product double-counts (0.84 > 0.6)
+
+    const onceL = reduceImportedScores([0.6], "logodds");
+    const twiceL = reduceImportedScores([0.6, 0.6], "logodds");
+    expect(twiceL).toBeGreaterThan(onceL); // logodds double-counts (0.69 > 0.6)
+  });
+
+  test("P1b: min mode is accidentally safe (max is idempotent) — not a general fix", () => {
+    expect(reduceImportedScores([0.6, 0.6], "min")).toBe(reduceImportedScores([0.6], "min"));
+  });
+
+  test("P2 origin-dedupe is idempotent by origin in every mode", () => {
+    for (const mode of ["min", "product", "logodds"] as const) {
+      const single = reduceImportedByOrigin([{ originId: "O", score: 0.6 }], mode);
+      const doubled = reduceImportedByOrigin(
+        [{ originId: "O", score: 0.6 }, { originId: "O", score: 0.6 }],
+        mode,
+      );
+      expect(doubled).toBeCloseTo(single, 12); // same origin twice ⇒ counted once
+    }
+  });
+
+  test("P3 path-independence: any multiset of paths reaching the same origin SET gives the same band", () => {
+    // Origin set {A:0.7, B:0.6} reached by three different path multisets.
+    const pathsX = [
+      { originId: "A", score: 0.7 },
+      { originId: "B", score: 0.6 },
+    ];
+    const pathsY = [
+      { originId: "A", score: 0.7 },
+      { originId: "A", score: 0.7 }, // A reached twice
+      { originId: "B", score: 0.6 },
+    ];
+    const pathsZ = [
+      { originId: "B", score: 0.6 },
+      { originId: "B", score: 0.6 },
+      { originId: "A", score: 0.7 },
+      { originId: "A", score: 0.7 },
+    ];
+    for (const mode of ["min", "product", "logodds"] as const) {
+      const x = reduceImportedByOrigin(pathsX, mode);
+      const y = reduceImportedByOrigin(pathsY, mode);
+      const z = reduceImportedByOrigin(pathsZ, mode);
+      expect(y).toBeCloseTo(x, 12);
+      expect(z).toBeCloseTo(x, 12);
+    }
+  });
+
+  test("P4 C014.b: multi-hop band = iterated one-hop band under origin dedupe", () => {
+    // Scenario: target claim ψ gets local support 0.5. Origin A (score 0.7)
+    // reaches ψ directly (A→ψ) AND via B (A→B→ψ). Iterated ONE-HOP, attributing
+    // to ultimate origin, A contributes once. The positional reducer would add
+    // A twice; the origin-keyed reducer matches the one-hop truth.
+    const local = 0.5;
+    for (const mode of ["min", "product", "logodds"] as const) {
+      // one-hop truth: A counted once
+      const oneHopImported = reduceImportedByOrigin([{ originId: "A", score: 0.7 }], mode);
+      const oneHopTotal = combineLocalAndImported(local, oneHopImported, mode);
+
+      // multi-hop: A arrives by two paths, deduped by origin
+      const multiHopImported = reduceImportedByOrigin(
+        [
+          { originId: "A", score: 0.7 }, // A→ψ direct
+          { originId: "A", score: 0.7 }, // A→B→ψ (same ultimate origin)
+        ],
+        mode,
+      );
+      const multiHopTotal = combineLocalAndImported(local, multiHopImported, mode);
+
+      expect(multiHopTotal).toBeCloseTo(oneHopTotal, 12); // C014.b equality
+
+      // and the POSITIONAL reducer would have broken this for product/logodds:
+      if (mode !== "min") {
+        const naiveImported = reduceImportedScores([0.7, 0.7], mode);
+        const naiveTotal = combineLocalAndImported(local, naiveImported, mode);
+        expect(naiveTotal).toBeGreaterThan(oneHopTotal); // the double-count bug
+      }
+    }
+  });
+});
+

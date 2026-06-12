@@ -405,7 +405,32 @@ These foundations are fully implemented and operational. They are also fully inv
 
 ---
 
-## VIII. Technical Stack
+## VIII. Original Theoretical Contributions
+
+The frameworks in §VII are public, published, and copyable; the platform inherits them deliberately and cites them to the literature. They are the system's *declared inheritance*, not its theoretical contribution. The contribution is a distinct body of results — maintained as a standing research programme — that connects, extends, refutes, and re-founds those public formalisms in ways no published source does. The programme is its own internal source of truth: an append-only registry of open questions, a directory of theorems with proofs and a cross-check policy, a directory of conjectures each stating what would settle it positively or negatively, and pre-registered empirical studies. Nothing ships unless it is justified from there. The results below are not restatements of published theorems; with one explicitly flagged exception they do not exist in the literature.
+
+**Argumentation as interaction, not representation.** The organizing thesis separates this programme from the IBIS / Toulmin / AIF / Dung lineage, which treats argumentation as a *representation* problem (how to encode arguments so downstream systems can operate on them). Here argumentation is an *interaction* problem: Ludics is the one framework in which the primary objects are not propositions or proofs but strategies for interacting, and validity is survival of every well-formed counter-interaction (orthogonality). In Ludics the interaction *is* the meaning rather than a test for a meaning fixed elsewhere. Concretely, this lets "certification" of a deliberation's outcome mean a narrow, machine-checkable thing — *orthogonality testing replaces majority vote and expert adjudication* — rather than a metaphor.
+
+**Bridge theorems between formalisms whose literatures have never cited each other.** Most of the programme's results are interface theorems: a competitor can clone any single framework off the shelf, but the connections between them exist nowhere in print.
+
+- **Grounded ⇔ Ludics keystone.** For every finite abstract argumentation framework and argument, membership in the grounded extension is proven equivalent to acceptance by interaction (existence of a Proponent design orthogonal to every Opponent test), and the correspondence is *strategy-preserving*. This is what licenses orthogonality testing as a certification procedure as a theorem rather than an analogy. The argumentation-games literature has the grounded discussion game; nobody had translated it into additive-free Ludics designs with a strategy-preserving bijection onto canonical orthogonality.
+- **Ludics ⇔ Ambler bridge.** The join-semilattice fragment of a bridge between Ludics incarnations and Ambler's evidential categories is established; the confidence-graded, cartesian-closed remainder is an open conjecture with its load-bearing diagram identified. The two literatures had not previously cited each other.
+- **Schemes ⇔ design-semantics.** A Walton scheme is shown to be three mutually consistent layers at once — a behaviour (semantic footprint), a presentation (locus tree with typed holes), and a protocol (dialogue rules) — resolving a scheme-ontology trilemma no published source poses, let alone adjudicates.
+- **Transport ⇔ pseudofunctor.** Cross-room (Plexus) transport is shown to form a bicategory on which transport is a lax functor, restricting to a *pseudofunctor* exactly on the monodromy-free sub-bicategory; multi-hop transport is sound precisely when no claims drop or drift. This is what makes the one-hop, auditable-to-a-single-source-room transport contract a theorem about when more-than-one-hop is safe.
+
+**Substrate-original Ludics results.** A per-cone join-semilattice decomposition of a behaviour (the global version of this claim was *refuted* and reformulated per-cone — the negative knowledge is part of the asset); the incarnation set as an antichain forcing that aggregation cannot cross cones (the structural fact behind the synthetic-readout's refusal surface); and a four-theorem arc constructing the *minimal unshared commitment* — the locus at which two positions first diverge — from the linear case up to branching disputes under the Smyth order, including an exact characterization of where a materialized kernel stays faithful to symbolic Ludics and where it does not. This arc is the formal content behind the product's minimal-disagreement extractor.
+
+**A candidate extension to a fifty-year-old typology.** Pollock's rebut / undermine / undercut trichotomy is treated as exhaustive throughout the argumentation literature. The programme conjectures a fourth, *structural* category — scheme-rivalry, where two schemes have disjoint behaviours over the same claim and no Pollock primitive applies. This is the sharpest single open claim in the programme and, if it survives, the first structural addition to Pollock's typology rather than a subdivision within it.
+
+**Negative knowledge a copyist never inherits.** Two load-bearing claims were refuted and narrowed: the original global semilattice result (false; the per-cone version is true) and a first form of cross-opponent minimality (false under raw truncations; recovered only under a proper-test redefinition). The programme keeps the map of what does not work and why — recorded as audited, redirected questions — because reproducing the system means reproducing that map, not just reading a paper.
+
+**Pre-registered empirical contributions.** Among the studies, two are publishable independent of the platform: an ablation isolating identification-pattern features from a scheme classifier, and an inter-annotator agreement study conditioning κ on pattern-match with a primed/unprimed arm — neither of which exists in the scheme-classification literature. Others test substrate-specific instruments (cone-coverage as a convergence predictor; AI-versus-human survival under structural attack).
+
+Taken together, these are the layer the §VII citations sit beneath: the formalism is shared, but the bridges between the formalisms, the substrate-original theorems, the paid-for refutations, and the integration that makes them shippable on one data model are the system's own. The programme is open, self-documenting, and cross-checked precisely so the reasoning behind what ships is itself addressable, citable, and contestable — the same standard the platform holds its users' arguments to.
+
+---
+
+## IX. Technical Stack
 
 - **Framework:** Next.js
 - **Database:** Prisma ORM with Supabase (PostgreSQL)
@@ -418,7 +443,7 @@ These foundations are fully implemented and operational. They are also fully inv
 
 ---
 
-## IX. Data Ownership and Privacy
+## X. Data Ownership and Privacy
 
 - All data is owned by the user and the community that produced it.
 - Data is exportable at any time in open formats (JSON, AIF, BibTeX, Markdown, PDF).
@@ -429,7 +454,7 @@ These foundations are fully implemented and operational. They are also fully inv
 
 ---
 
-## X. Distribution and Governance
+## XI. Distribution and Governance
 
 **Open Source.** The entire codebase is public. Contributions are welcome. The platform's architecture, including the formal argumentation engine, is available for inspection, audit, and extension by any party.
 
@@ -437,7 +462,7 @@ These foundations are fully implemented and operational. They are also fully inv
 
 ---
 
-## XI. Applications
+## XII. Applications
 
 **Community organizations** use the social layer for ongoing community engagement (forums, rooms, messaging, shared documents) and the reasoning layer when participatory input needs structure: planning processes, budget deliberations, program evaluations, needs assessments. The platform preserves the reasoning behind community decisions, not just the decisions themselves.
 
@@ -457,7 +482,27 @@ These foundations are fully implemented and operational. They are also fully inv
 
 ---
 
-## XII. Summary
+## XIII. Future Directions
+
+The sections above describe what is built and operational. The directions below describe where the substrate is headed: each one is a natural extension of infrastructure that already ships, not a departure from it.
+
+**A web of machine-citable arguments.** A crawlable public corpus where every claim carries support, opposition, provenance, and standing — with canonical argument identifiers, DOI-style references, cited-by graphs, browser extensions that expand Isonomia links inline, and bridges to established argument and structured-data formats.
+
+**An agent reasoning backend.** The service an agent calls when it needs to know whether a claim has survived challenge, where the disagreement lives, or what it must retract to reject a conclusion — through hosted orientation contracts, citation preflight, graph-derived constraints injected into prompts, and automatic refusal when the graph blocks a conclusion.
+
+**Provenance-aware AI writing.** A writing layer for reports, briefs, and reviews, with living documents that bind generated statements to live arguments, real-time attack registers on written conclusions, confidence cards explaining why a statement is licensed, snapshot-and-diff over cited states, and automated hedging keyed to standing.
+
+**Structured debate data for training and evaluation.** The corpus itself — arguments with premises, schemes, evidence, critical questions, attack types, standings, provenance, and resolution trajectories — as supervised data for argument mining and scheme classification, preference data over critical-question answers, and benchmarks for counterargument retrieval and citation-grounded reasoning.
+
+**Minimal-disagreement debuggers.** The Ludics layer enables a debugger for disagreement: rather than declaring two parties globally opposed, it locates the minimal unshared commitment, or the minimal set of divergence points in branching cases — powering critique constrained to the actual divergence locus and agent tools that ask the single shortest question needed to resolve a dispute.
+
+**Cross-context knowledge transport.** The Plexus network moves arguments between rooms, organizations, and knowledge spaces with provenance, confidence bands, and one-hop auditability — enabling institutional knowledge reuse, cross-context claim mapping, transport confidence gates, and privacy-preserving federated search.
+
+**Evidence algebra as a trust substrate.** Log-odds folding and culprit-set revision give a lawful alternative to opaque confidence scores: signed pro/con aggregation, queries asking what must be retracted to reject a claim, local, imported, and total confidence bands, monotonicity tests, and model-readable confidence explanations.
+
+---
+
+## XIV. Summary
 
 Isonomia is one platform spanning two functions that normally require separate tools. The social layer is a complete community platform: a chronological feed, profiles and follows, persistent rooms and lounges, real-time and layered messaging, spatial canvases, long-form articles, and shared document libraries. The reasoning layer is a formal deliberation engine: argumentation schemes with critical questions, typed dialogue moves and commitment stores, ASPIC+ and Ludics evaluation, executable citations with provenance, and a category-theoretic evidence algebra. Both layers share one data model. Any conversation upgrades to a tracked deliberation through a single reversible action, and each community sets its own pace between informal and formal work.
 

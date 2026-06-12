@@ -369,7 +369,17 @@ Full ordering:
   preferred — [Q-039](01_OPEN_QUESTIONS_REGISTRY.md#q-039) /
   [C011](03_CONJECTURES/C011-additive-preferred-games-bridge.md)) follow Direction
   2 because they reuse its separating-context machinery. Direction 4 (sheaf /
-  cohomology-of-disagreement) waits until cross-room coherence is settled. Direction
+  cohomology-of-disagreement) waits until cross-room coherence is settled — and
+  **that coherence sub-program is now active** (sub-program A): the empirical 0b
+  topology check is green, B2b showed the live obstruction is claim-map *monodromy*
+  (= a coherence failure), and the coherence theorem is stated as
+  [C014](03_CONJECTURES/C014-plexus-transport-pseudofunctor.md) /
+  [Q-042](01_OPEN_QUESTIONS_REGISTRY.md#q-042) with discharges 1 (L1 strict-functor
+  lemma) and 2 (L2 band origin-dedupe) landed and discharge 3 (the lax-functor
+  pentagon) scoped in
+  [`DEV_SPEC-c014-discharge3-plexus-coherence-pentagon-2026-06-07.md`](DEV_SPEC-c014-discharge3-plexus-coherence-pentagon-2026-06-07.md).
+  The quantitative sheaf-cohomology bet (sub-program B) stays gated on that theorem.
+  Direction
   6 is a continuous check, never a premise.
 
 ### Starting artifacts (Direction 2)
