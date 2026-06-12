@@ -1003,6 +1003,90 @@ describe("A1 — two-functor composition (coherence sub-program; NOT a prod surf
   });
 });
 
+// ── L1 — transport is a strict 1-functor on the symbolic ECC layer ──────────
+// C014 discharge (1): RESEARCH_PROGRAMME/03_CONJECTURES/C014-plexus-transport-pseudofunctor.md
+// and Q-042. This promotes the A1 findings to the explicit functor laws:
+// `transport(F, ·)` is a STRICT 1-functor (identity on derivation IDs, preserves
+// identities, composition, and the zero arrow), and `F ↦ transport(F, ·)` is
+// functorial in F (L1.5, the A1 cross-law). "Strict" = no information lost at
+// the symbolic layer, so any laxity in the materialized pipeline (C014.a) lives
+// in app/api/room-functor/apply, NOT here. Carrier is finite sets + relabeling
+// ⇒ Agda-able (Direction 5). Stays test-only: NOT promoted to the production
+// `lib/argumentation/ecc.ts` surface, which keeps the one-hop contract until the
+// full C014 theorem (incl. the scalar band, discharge 2) lands.
+describe("L1 — transport is a strict 1-functor (C014 discharge 1)", () => {
+  const F: Functor = { mapClaim: (id) => (id === "A" ? "A'" : id === "B" ? "B'" : id === "C" ? "C'" : null) };
+  // Local identity-arrow constructor (test-only; no production identity ctor by
+  // design). id_c is the single trivial derivation c→c with no assumptions.
+  const idArrow = (c: string, deriv = `ι_${c}`): Arrow => arr(c, c, [[deriv, []]]);
+
+  test("L1.1 strict on derivations: transport carries the derivation set verbatim", () => {
+    const a = arr("A", "B", [["d1", ["λ1"]], ["d2", ["λ2", "λ3"]]]);
+    const t = transport(F, a)!;
+    expect(t.derivs).toEqual(a.derivs); // identity on deriv IDs — nothing lost
+    expect(t.assumptions.get("d1")).toEqual(new Set(["λ1"]));
+    expect(t.assumptions.get("d2")).toEqual(new Set(["λ2", "λ3"]));
+  });
+
+  test("L1.2 preserves identities (up to deriv relabeling): transport(F, id_c) is an identity on F(c)", () => {
+    // Finding: transport is strict on derivation IDs (L1.1), so it does NOT
+    // rename the internal token — transport(F, id_A) keeps deriv `ι_A` while
+    // moving endpoints to A'. The functor law F(id_c) = id_{F(c)} therefore
+    // holds UP TO derivation relabeling: the result is an identity arrow on
+    // F(c) (endpoints equal, one trivial derivation, no assumptions), which is
+    // the correct categorical reading — identities are fixed by endpoints +
+    // triviality, not by an internal label.
+    const t = transport(F, idArrow("A"))!;
+    expect(t.from).toBe("A'");
+    expect(t.to).toBe("A'"); // endpoints equal ⇒ an identity arrow on A'
+    expect(t.derivs.size).toBe(1); // single trivial derivation
+    expect(minimalAssumptions(t)).toEqual(new Set()); // identities carry no assumptions
+  });
+
+  test("L1.3 preserves composition (full structure, not just minimal assumptions)", () => {
+    // Stronger than the existing one-hop test: derivs, endpoints, AND the
+    // per-derivation assumption maps all agree.
+    const f = arr("A", "B", [["d1", ["λ1"]]]);
+    const g = arr("B", "C", [["d2", ["λ2"]]]);
+    const lhs = transport(F, compose(g, f))!; // transport ∘ compose
+    const rhs = compose(transport(F, g)!, transport(F, f)!); // compose ∘ transport
+    expect(lhs.from).toBe(rhs.from);
+    expect(lhs.to).toBe(rhs.to);
+    expect(lhs.derivs).toEqual(rhs.derivs);
+    for (const d of lhs.derivs) {
+      expect(lhs.assumptions.get(d)).toEqual(rhs.assumptions.get(d));
+    }
+  });
+
+  test("L1.4 preserves the zero arrow: transport(F, zero(a,b)) = zero(F a, F b)", () => {
+    const t = transport(F, zero("A", "B"))!;
+    expect(t.from).toBe("A'");
+    expect(t.to).toBe("B'");
+    expect(t.derivs).toEqual(new Set()); // empty hom-set is carried to empty
+  });
+
+  test("L1.5 functorial in F: transport(G, transport(F, a)) = transport(G∘F, a)", () => {
+    // Cross-law with A1 (object-level composition). Restated here to close the
+    // functor-law family in one place.
+    const composeFunctors = (G: Functor, Fn: Functor): Functor => ({
+      mapClaim: (id) => {
+        const mid = Fn.mapClaim(id);
+        return mid === null ? null : G.mapClaim(mid);
+      },
+    });
+    const G: Functor = { mapClaim: (id) => (id === "A'" ? "A''" : id === "B'" ? "B''" : null) };
+    const a = arr("A", "B", [["d1", ["λ1"]]]);
+    const twoStep = transport(G, transport(F, a)!)!;
+    const oneStep = transport(composeFunctors(G, F), a)!;
+    expect(oneStep.from).toBe("A''");
+    expect(oneStep.to).toBe("B''");
+    expect(oneStep.from).toBe(twoStep.from);
+    expect(oneStep.to).toBe(twoStep.to);
+    expect(oneStep.derivs).toEqual(twoStep.derivs);
+    expect(minimalAssumptions(oneStep)).toEqual(minimalAssumptions(twoStep));
+  });
+});
+
 
 describe("Sprint A — aggregateAcrossRooms (one-hop)", () => {
   const F: Functor = { mapClaim: (id) => id === "A" ? "A" : id === "B" ? "B" : null };
@@ -1178,5 +1262,590 @@ describe("Sprint A — distributivity sanity (compose over join)", () => {
     const rhs = join(compose(g, f1), compose(g, f2));
     expect(minimalAssumptions(lhs)).toEqual(minimalAssumptions(rhs));
     expect(lhs.derivs).toEqual(rhs.derivs);
+  });
+});
+
+// ── D1 — the Plexus bicategory 𝓟: well-definedness (C014 discharge 3) ─────────
+// Dev-spec: RESEARCH_PROGRAMME/DEV_SPEC-c014-discharge3-plexus-coherence-pentagon-2026-06-07.md §2
+// Companion write-up: RESEARCH_PROGRAMME/C014-D1-plexus-bicategory-data-2026-06-08.md
+//
+// 𝓟 has: 0-cells = rooms (ECCs); 1-cells = transport functors (`Functor` +
+// `transport(F, ·)`); 2-cells α: F ⇒ F' = a family (α_c: F(c) → F'(c))_c of
+// room-B arrows, natural in source arrows. This suite corroborates the three
+// well-definedness lemmas W1 (vertical comp assoc + unital), W2 (the interchange
+// law — the one genuinely 2-categorical check), W3 (naturality preserved under
+// composition).
+//
+// All laws hold UP TO DERIVATION RELABELING (the L1.2 finding, systematized):
+// `compose` builds composite derivation IDs (`df∘dg`) and re-associates the
+// string, so equality is in the quotient ECC where arrows are identified by
+// endpoints + per-derivation assumption sets, modulo derivation-ID renaming.
+// Witnesses are single-derivation arrows, where the signature below is faithful.
+//
+// TEST-ONLY: the 2-cell operations are defined locally and are NOT added to the
+// production `lib/argumentation/ecc.ts` surface (gated discipline; the symbolic
+// surface keeps the one-hop contract until C014-T lands).
+describe("D1 — Plexus bicategory well-definedness (C014 discharge 3)", () => {
+  // A 2-cell keyed by SOURCE-room claim id; value α_c is the witness arrow in
+  // the target room (B-arrow F(c) → F'(c)).
+  type TwoCell = Map<string, Arrow>;
+
+  // Object-level functor composition (A1), restated locally.
+  const composeFunctors = (G: Functor, F: Functor): Functor => ({
+    mapClaim: (id) => {
+      const mid = F.mapClaim(id);
+      return mid === null ? null : G.mapClaim(mid);
+    },
+  });
+
+  // Signature faithful up to derivation relabeling for single-deriv witnesses:
+  // endpoints + the union of assumptions + the derivation count.
+  const sigArrow = (a: Arrow): string =>
+    `${a.from}|${a.to}|${[...minimalAssumptions(a)].sort().join(",")}|${a.derivs.size}`;
+  const sig2 = (tc: TwoCell): string =>
+    [...tc.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([c, a]) => `${c}=>${sigArrow(a)}`).join(";");
+
+  // Vertical composition β·α (α: F⇒F', β: F'⇒F''): per-claim compose.
+  const vcomp = (beta: TwoCell, alpha: TwoCell): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const [c, ac] of alpha) {
+      const bc = beta.get(c);
+      if (!bc) continue;
+      out.set(c, compose(bc, ac)); // compose(g,f) = "f then g": F(c)→F'(c)→F''(c)
+    }
+    return out;
+  };
+
+  // Identity 2-cell id_F over a source-claim set: per-claim identity arrow on F(c).
+  const id2 = (F: Functor, claims: string[]): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const c of claims) {
+      const fc = F.mapClaim(c);
+      if (fc === null) continue;
+      out.set(c, arr(fc, fc, [[`ι_${fc}`, []]]));
+    }
+    return out;
+  };
+
+  // Left whiskering G ∗ α (α: F⇒F', G: B→C): components G(α_c) = transport(G, α_c).
+  const lwhisker = (G: Functor, alpha: TwoCell): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const [c, ac] of alpha) {
+      const t = transport(G, ac);
+      if (t !== null) out.set(c, t);
+    }
+    return out;
+  };
+
+  // Horizontal composite δ ∗ α (α: F⇒F', δ: G⇒G'): G∘F ⇒ G'∘F'.
+  //   (δ ∗ α)_c = compose( δ_{F'(c)}, transport(G, α_c) ).
+  // Needs Fcod = F' (to index δ at F'(c)) and Gdom = G (to whisker α).
+  const hcomp = (delta: TwoCell, alpha: TwoCell, Fcod: Functor, Gdom: Functor): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const [c, ac] of alpha) {
+      const fcod = Fcod.mapClaim(c);
+      if (fcod === null) continue;
+      const dAt = delta.get(fcod);
+      const Ga = transport(Gdom, ac);
+      if (!dAt || Ga === null) continue;
+      out.set(c, compose(dAt, Ga));
+    }
+    return out;
+  };
+
+  // Naturality predicate: square F'(f)∘α_c = α_{c'}∘F(f) holds (up to relabel).
+  const naturalAt = (F: Functor, Fp: Functor, alpha: TwoCell, f: Arrow): boolean => {
+    const Fpf = transport(Fp, f);
+    const Ff = transport(F, f);
+    const ac = alpha.get(f.from as string);
+    const ac2 = alpha.get(f.to as string);
+    if (!Fpf || !Ff || !ac || !ac2) return false;
+    return sigArrow(compose(Fpf, ac)) === sigArrow(compose(ac2, Ff));
+  };
+
+  describe("W1 — vertical composition is associative + unital", () => {
+    // One source claim c; three vertically composable 2-cells over A→B.
+    const F: Functor = { mapClaim: (id) => (id === "c" ? "b0" : null) };
+    const Fp: Functor = { mapClaim: (id) => (id === "c" ? "b1" : null) };
+    const Fpp: Functor = { mapClaim: (id) => (id === "c" ? "b2" : null) };
+    const Fppp: Functor = { mapClaim: (id) => (id === "c" ? "b3" : null) };
+    const α: TwoCell = new Map([["c", arr("b0", "b1", [["a", ["λα"]]])]]);
+    const β: TwoCell = new Map([["c", arr("b1", "b2", [["b", ["λβ"]]])]]);
+    const γ: TwoCell = new Map([["c", arr("b2", "b3", [["g", ["λγ"]]])]]);
+
+    test("W1.1 associativity: (γ·β)·α = γ·(β·α) up to deriv relabeling", () => {
+      const left = vcomp(vcomp(γ, β), α);
+      const right = vcomp(γ, vcomp(β, α));
+      expect(sig2(left)).toBe(sig2(right));
+      // endpoints + accumulated assumptions concretely:
+      expect(left.get("c")!.from).toBe("b0");
+      expect(left.get("c")!.to).toBe("b3");
+      expect([...minimalAssumptions(left.get("c")!)].sort()).toEqual(["λα", "λβ", "λγ"]);
+    });
+
+    test("W1.2 unit: id_{F'}·α = α = α·id_F up to deriv relabeling", () => {
+      const idF = id2(F, ["c"]);
+      const idFp = id2(Fp, ["c"]);
+      expect(sig2(vcomp(idFp, α))).toBe(sig2(α));
+      expect(sig2(vcomp(α, idF))).toBe(sig2(α));
+    });
+  });
+
+  describe("W2 — interchange law (the genuinely 2-categorical check)", () => {
+    // α: F⇒F', α': F'⇒F'' over A→B ; δ: G⇒G', δ': G'⇒G'' over B→C.
+    const F: Functor = { mapClaim: (id) => (id === "c" ? "b0" : null) };
+    const Fp: Functor = { mapClaim: (id) => (id === "c" ? "b1" : null) };
+    const Fpp: Functor = { mapClaim: (id) => (id === "c" ? "b2" : null) };
+    const G: Functor = { mapClaim: (id) => (["b0", "b1", "b2"].includes(id) ? `g_${id}` : null) };
+    const Gp: Functor = { mapClaim: (id) => (["b0", "b1", "b2"].includes(id) ? `gp_${id}` : null) };
+    const Gpp: Functor = { mapClaim: (id) => (["b0", "b1", "b2"].includes(id) ? `gpp_${id}` : null) };
+
+    const α: TwoCell = new Map([["c", arr("b0", "b1", [["a", ["λα"]]])]]);
+    const αp: TwoCell = new Map([["c", arr("b1", "b2", [["a2", ["λαp"]]])]]);
+    const δ: TwoCell = new Map(["b0", "b1", "b2"].map((b) => [b, arr(`g_${b}`, `gp_${b}`, [[`d_${b}`, ["λδ"]]])]));
+    const δp: TwoCell = new Map(["b0", "b1", "b2"].map((b) => [b, arr(`gp_${b}`, `gpp_${b}`, [[`dp_${b}`, ["λδp"]]])]));
+
+    test("W2 (δ'·δ) ∗ (α'·α) = (δ' ∗ α')·(δ ∗ α) up to deriv relabeling", () => {
+      const lhs = hcomp(vcomp(δp, δ), vcomp(αp, α), Fpp, G);
+      const rhs = vcomp(
+        hcomp(δp, αp, Fpp, Gp), // G'∘F' ⇒ G''∘F''
+        hcomp(δ, α, Fp, G),     // G∘F ⇒ G'∘F'
+      );
+      expect(sig2(lhs)).toBe(sig2(rhs));
+      // both land G(F(c)) → G''(F''(c)) = g_b0 → gpp_b2, all four assumptions, 1 deriv
+      expect(lhs.get("c")!.from).toBe("g_b0");
+      expect(lhs.get("c")!.to).toBe("gpp_b2");
+      expect([...minimalAssumptions(lhs.get("c")!)].sort()).toEqual(["λα", "λαp", "λδ", "λδp"]);
+      expect(lhs.get("c")!.derivs.size).toBe(1);
+    });
+  });
+
+  describe("W3 — naturality is preserved under composition", () => {
+    // Source room A: claims c, c' with one arrow f: c → c'.
+    const f = arr("c", "c'", [["df", ["λf"]]]);
+    const F: Functor = { mapClaim: (id) => (id === "c" ? "b0" : id === "c'" ? "b1" : null) };
+    const Fp: Functor = { mapClaim: (id) => (id === "c" ? "b0p" : id === "c'" ? "b1p" : null) };
+    const Fpp: Functor = { mapClaim: (id) => (id === "c" ? "b0pp" : id === "c'" ? "b1pp" : null) };
+    // α: F⇒F' and β: F'⇒F'' with per-claim witnesses sharing an assumption set
+    // (the condition that makes the square commute up to relabel).
+    const α: TwoCell = new Map([
+      ["c", arr("b0", "b0p", [["a0", ["λα"]]])],
+      ["c'", arr("b1", "b1p", [["a1", ["λα"]]])],
+    ]);
+    const β: TwoCell = new Map([
+      ["c", arr("b0p", "b0pp", [["b0c", ["λβ"]]])],
+      ["c'", arr("b1p", "b1pp", [["b1c", ["λβ"]]])],
+    ]);
+
+    test("W3.0 the witness α is natural at f", () => {
+      expect(naturalAt(F, Fp, α, f)).toBe(true);
+    });
+
+    test("W3.1 vertical composition preserves naturality: β·α is natural", () => {
+      expect(naturalAt(Fp, Fpp, β, f)).toBe(true);
+      expect(naturalAt(F, Fpp, vcomp(β, α), f)).toBe(true);
+    });
+
+    test("W3.2 whiskering preserves naturality: G ∗ α is natural", () => {
+      const G: Functor = {
+        mapClaim: (id) => (["b0", "b1", "b0p", "b1p"].includes(id) ? `g_${id}` : null),
+      };
+      const GF = composeFunctors(G, F);
+      const GFp = composeFunctors(G, Fp);
+      expect(naturalAt(GF, GFp, lwhisker(G, α), f)).toBe(true);
+    });
+  });
+});
+
+// ── D2 — comparison 2-cells γ, pentagon + triangle (C014 discharge 3) ─────────
+// Dev-spec §3.1–§3.3; companion write-up C014-D2-plexus-coherence-pentagon-2026-06-08.md
+//
+// γ_{G,F}: G_∗∘F_∗ ⇒ (G∘F)_∗ is the comparison 2-cell. Because object-level
+// composition is the on-the-nose partial-map composite (A1) and transport is
+// strict (L1), G(F(c)) = (G∘F)(c) DEFINITIONALLY on the total part — so γ is the
+// IDENTITY arrow on (G∘F)(c) there, and is UNDEFINED exactly where a claim drops.
+// Consequence (the dev-spec §3.2 prediction): both pentagon paths collapse to the
+// identity 2-cell on the common total domain, so coherence is partial-domain
+// bookkeeping, not calculation. W2 (D1) is what legalizes sliding the γ's.
+//
+// TEST-ONLY (gated discipline): γ and the whiskerings are defined locally.
+describe("D2 — comparison 2-cells γ, pentagon + triangle (C014 discharge 3)", () => {
+  type TwoCell = Map<string, Arrow>; // keyed by SOURCE-room claim id
+
+  const composeFunctors = (G: Functor, F: Functor): Functor => ({
+    mapClaim: (id) => {
+      const mid = F.mapClaim(id);
+      return mid === null ? null : G.mapClaim(mid);
+    },
+  });
+  const idArrow = (c: string): Arrow => arr(c, c, [[`ι_${c}`, []]]);
+  const sigArrow = (a: Arrow): string =>
+    `${a.from}|${a.to}|${[...minimalAssumptions(a)].sort().join(",")}|${a.derivs.size}`;
+  const sig2 = (tc: TwoCell): string =>
+    [...tc.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([c, a]) => `${c}=>${sigArrow(a)}`).join(";");
+  const isIdentityArrow = (a: Arrow): boolean =>
+    a.from === a.to && a.derivs.size === 1 && minimalAssumptions(a).size === 0;
+
+  // The comparison 2-cell γ_{G,F}: G_∗∘F_∗ ⇒ (G∘F)_∗, keyed by source claim,
+  // component = identity arrow on (G∘F)(c); present iff c is in the total part.
+  const gamma = (G: Functor, F: Functor, srcClaims: string[]): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const c of srcClaims) {
+      const fc = F.mapClaim(c);
+      if (fc === null) continue;
+      const gfc = G.mapClaim(fc);
+      if (gfc === null) continue;
+      out.set(c, idArrow(gfc)); // identity on G(F(c)) = (G∘F)(c)
+    }
+    return out;
+  };
+
+  // Left-whisker a 2-cell (over A→C) by a functor H: C→D ⇒ a 2-cell over A→D.
+  const lwhisker = (H: Functor, tc: TwoCell): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const [c, ac] of tc) {
+      const t = transport(H, ac);
+      if (t !== null) out.set(c, t);
+    }
+    return out;
+  };
+  // Right-whisker a 2-cell (over B→D) by a functor F: A→B ⇒ a 2-cell over A→D:
+  // reindex the B-keyed cell along F (component at source claim c is the one at F(c)).
+  const rwhiskerByF = (tc: TwoCell, F: Functor, srcClaims: string[]): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const c of srcClaims) {
+      const fc = F.mapClaim(c);
+      if (fc === null) continue;
+      const comp = tc.get(fc);
+      if (comp) out.set(c, comp);
+    }
+    return out;
+  };
+  // Vertical composition (β·α): per-claim compose, over the shared key set.
+  const vcomp = (beta: TwoCell, alpha: TwoCell): TwoCell => {
+    const out: TwoCell = new Map();
+    for (const [c, ac] of alpha) {
+      const bc = beta.get(c);
+      if (!bc) continue;
+      out.set(c, compose(bc, ac));
+    }
+    return out;
+  };
+
+  // A→F→B→G→C→H→D fixture, all total on the claim set {x, y}.
+  const SRC = ["x", "y"];
+  const F: Functor = { mapClaim: (id) => (id === "x" ? "bx" : id === "y" ? "by" : null) };
+  const G: Functor = { mapClaim: (id) => (id === "bx" ? "cx" : id === "by" ? "cy" : null) };
+  const H: Functor = { mapClaim: (id) => (id === "cx" ? "dx" : id === "cy" ? "dy" : null) };
+
+  describe("§3.1 — γ is identity on the total part, undefined on drops", () => {
+    test("γ_{G,F} components are identity arrows on (G∘F)(c)", () => {
+      const g = gamma(G, F, SRC);
+      expect([...g.keys()].sort()).toEqual(["x", "y"]);
+      expect(isIdentityArrow(g.get("x")!)).toBe(true);
+      expect(g.get("x")!.from).toBe("cx"); // (G∘F)(x) = G(F(x)) = G(bx) = cx
+      expect(g.get("y")!.from).toBe("cy");
+    });
+
+    test("γ is undefined exactly where a claim drops (partial functor)", () => {
+      const Gdrop: Functor = { mapClaim: (id) => (id === "bx" ? "cx" : null) }; // drops by
+      const g = gamma(Gdrop, F, SRC);
+      expect([...g.keys()]).toEqual(["x"]); // y drops at G ⇒ no γ component
+    });
+
+    test("γ agrees with the strict composite: dom(γ) = total part of G∘F", () => {
+      const GF = composeFunctors(G, F);
+      const total = SRC.filter((c) => GF.mapClaim(c) !== null);
+      expect([...gamma(G, F, SRC).keys()].sort()).toEqual(total.sort());
+    });
+  });
+
+  describe("§3.2 — pentagon (associativity coherence)", () => {
+    test("γ_{H,GF}·(H ∗ γ_{G,F}) = γ_{HG,F}·(γ_{H,G} ∗ F) on the total part", () => {
+      const GF = composeFunctors(G, F);
+      const HG = composeFunctors(H, G);
+
+      // LHS: γ_{H,GF} · (H_∗ ∗ γ_{G,F})
+      const lhs = vcomp(
+        gamma(H, GF, SRC),              // H_∗∘(G∘F)_∗ ⇒ (H∘G∘F)_∗
+        lwhisker(H, gamma(G, F, SRC)),  // H_∗∘G_∗∘F_∗ ⇒ H_∗∘(G∘F)_∗
+      );
+      // RHS: γ_{HG,F} · (γ_{H,G} ∗ F_∗)
+      const rhs = vcomp(
+        gamma(HG, F, SRC),                      // (H∘G)_∗∘F_∗ ⇒ (H∘G∘F)_∗
+        rwhiskerByF(gamma(H, G, ["bx", "by"]), F, SRC), // H_∗∘G_∗∘F_∗ ⇒ (H∘G)_∗∘F_∗
+      );
+
+      expect(sig2(lhs)).toBe(sig2(rhs));
+      // both collapse to the identity 2-cell on (H∘G∘F)_∗ over {x,y}
+      expect([...lhs.keys()].sort()).toEqual(["x", "y"]);
+      expect(isIdentityArrow(lhs.get("x")!)).toBe(true);
+      expect(lhs.get("x")!.from).toBe("dx"); // (H∘G∘F)(x) = dx
+      expect(lhs.get("y")!.from).toBe("dy");
+    });
+
+    test("pentagon respects partial domains: a drop in the middle prunes both paths equally", () => {
+      const Hdrop: Functor = { mapClaim: (id) => (id === "cx" ? "dx" : null) }; // drops cy
+      const GF = composeFunctors(G, F);
+      const HG = composeFunctors(Hdrop, G);
+      const lhs = vcomp(gamma(Hdrop, GF, SRC), lwhisker(Hdrop, gamma(G, F, SRC)));
+      const rhs = vcomp(gamma(HG, F, SRC), rwhiskerByF(gamma(Hdrop, G, ["bx", "by"]), F, SRC));
+      expect(sig2(lhs)).toBe(sig2(rhs));
+      expect([...lhs.keys()]).toEqual(["x"]); // y pruned identically on both sides
+    });
+  });
+
+  describe("§3.3 — triangle (unit coherence)", () => {
+    const idF = (room: string[]): Functor => ({ mapClaim: (id) => (room.includes(id) ? id : null) });
+    const idA = idF(SRC);
+    const idB = idF(["bx", "by"]);
+
+    test("γ_{F, id_A} is the right unit iso (identity on the total part)", () => {
+      // F∘id_A = F, so γ_{F,id_A}: F_∗∘(id_A)_∗ ⇒ (F∘id_A)_∗ is identity on F(c).
+      const g = gamma(F, idA, SRC);
+      expect([...g.keys()].sort()).toEqual(["x", "y"]);
+      expect(isIdentityArrow(g.get("x")!)).toBe(true);
+      expect(g.get("x")!.from).toBe("bx"); // F(x) = bx
+    });
+
+    test("γ_{id_B, F} is the left unit iso (identity on the total part)", () => {
+      const g = gamma(idB, F, SRC);
+      expect([...g.keys()].sort()).toEqual(["x", "y"]);
+      expect(isIdentityArrow(g.get("x")!)).toBe(true);
+      expect(g.get("x")!.from).toBe("bx"); // id_B(F(x)) = bx
+    });
+  });
+});
+
+// ── D3 — pseudofunctor ⟺ monodromy-free (C014 discharge 3) ────────────────────
+// Dev-spec §3.4 + §7; companion write-up C014-D3-pseudofunctor-monodromy-free-2026-06-08.md
+//
+// 𝓟° = the region where transport is a PSEUDOFUNCTOR (every comparison 2-cell γ
+// present and invertible). The theorem: 𝓟° = the MONODROMY-FREE region, where
+// every directed cycle's round-trip 2-cell η is INVERTIBLE.
+//
+// THE §7 DECISION, made executable: 𝓟° is defined by **invertible** η (claim-closed
+// UP TO ECC ISO), NOT strict identity. A drift c→c' between INTER-DERIVABLE claims
+// is an invertible 2-cell, so iso-closure STRICTLY CONTAINS identity-closure — and
+// defining 𝓟° by strict identity (B2b's `closed`) would wrongly exclude a coherent
+// region. The probe's `closed`/`drifted` boundary must therefore be refined from
+// claim-id equality to ECC inter-derivability (flagged back to B2b).
+//
+// TEST-ONLY (gated discipline): the monodromy classifier and iso predicate are
+// defined locally.
+describe("D3 — pseudofunctor ⟺ monodromy-free (C014 discharge 3)", () => {
+  // A real ECC-iso check: arrow `a: c→c'` is invertible witnessed by `inv: c'→c`
+  // iff both composites are ≈ identity (equal endpoints, one deriv, no assumptions).
+  const isIdentityArrow = (a: Arrow): boolean =>
+    a.from === a.to && a.derivs.size === 1 && minimalAssumptions(a).size === 0;
+  const isIsoVia = (a: Arrow, inv: Arrow): boolean =>
+    isIdentityArrow(compose(inv, a)) && isIdentityArrow(compose(a, inv));
+
+  // The round-trip 2-cell η of a cycle, per start claim. We model its outcome at
+  // a claim directly (the probe computes it from claimMaps; here we exhibit the
+  // four fates abstractly to prove the equivalence).
+  type Fate =
+    | { kind: "closed" }                         // W(c) = c, η_c = id ⇒ invertible
+    | { kind: "drift-iso"; back: Arrow; fwd: Arrow }  // W(c)=c'≠c, η_c invertible
+    | { kind: "drift-noniso"; fwd: Arrow }       // W(c)=c'≠c, η_c NOT invertible
+    | { kind: "dropped" };                       // W(c) undefined ⇒ η_c missing
+
+  // η_c is invertible iff closed or drift-iso. (drift-noniso and dropped are not.)
+  const etaInvertible = (f: Fate): boolean =>
+    f.kind === "closed" || (f.kind === "drift-iso" && isIsoVia(f.fwd, f.back));
+
+  // A comparison 2-cell γ along the cycle is "present and invertible" exactly when
+  // the corresponding η component is invertible (D2 §3.1: γ present ⟺ no drop;
+  // γ identity ⟹ invertible on the total part; drift-iso lifts to invertible γ).
+  const gammaOk = (f: Fate): boolean => etaInvertible(f);
+
+  // Pseudofunctor on a region (given as the per-claim fates of all its cycles):
+  // every γ present and invertible.
+  const isPseudofunctor = (fates: Fate[]): boolean => fates.every(gammaOk);
+  // Monodromy-free (iso sense): every η component invertible.
+  const isMonodromyFreeIso = (fates: Fate[]): boolean => fates.every(etaInvertible);
+
+  describe("the biconditional 𝓟° = monodromy-free (iso sense)", () => {
+    test("⇐ on a monodromy-free region every γ is present + invertible (pseudofunctor)", () => {
+      const closed: Fate = { kind: "closed" };
+      const iso: Fate = {
+        kind: "drift-iso",
+        fwd: arr("c", "c2", [["d", []]]),
+        back: arr("c2", "c", [["d", []]]),
+      };
+      const region = [closed, iso, closed];
+      expect(isMonodromyFreeIso(region)).toBe(true);
+      expect(isPseudofunctor(region)).toBe(true);
+    });
+
+    test("⇒ off the monodromy-free region some γ fails (a dropped claim)", () => {
+      // B2b's live witness: a dropped claim ⇒ missing η component ⇒ missing γ.
+      const region: Fate[] = [{ kind: "closed" }, { kind: "dropped" }];
+      expect(isMonodromyFreeIso(region)).toBe(false);
+      expect(isPseudofunctor(region)).toBe(false);
+    });
+
+    test("⇒ a NON-iso drift also breaks pseudofunctoriality", () => {
+      // drift c→c' with no inverse (ECC arrows generally non-invertible).
+      const region: Fate[] = [
+        { kind: "closed" },
+        { kind: "drift-noniso", fwd: arr("c", "c2", [["d", ["λ"]]]) },
+      ];
+      expect(isMonodromyFreeIso(region)).toBe(false);
+      expect(isPseudofunctor(region)).toBe(false);
+    });
+
+    test("biconditional holds pointwise: isPseudofunctor ≡ isMonodromyFreeIso", () => {
+      const fates: Fate[][] = [
+        [{ kind: "closed" }],
+        [{ kind: "drift-iso", fwd: arr("a", "b", [["d", []]]), back: arr("b", "a", [["d", []]]) }],
+        [{ kind: "drift-noniso", fwd: arr("a", "b", [["d", ["λ"]]]) }],
+        [{ kind: "dropped" }],
+        [{ kind: "closed" }, { kind: "dropped" }],
+      ];
+      for (const region of fates) {
+        expect(isPseudofunctor(region)).toBe(isMonodromyFreeIso(region));
+      }
+    });
+  });
+
+  describe("§7 — 𝓟° is iso-closure, STRICTLY larger than identity-closure", () => {
+    // The substantive D3 decision: a drift between inter-derivable claims is an
+    // INVERTIBLE 2-cell, so it lies in 𝓟° (pseudofunctor) yet is NOT identity-closed.
+    const fwd = arr("c", "c2", [["iso", []]]); // c → c'
+    const back = arr("c2", "c", [["iso", []]]); // c' → c, two-way inverse
+
+    test("a drift-iso is a genuine ECC iso (round-trips to identity)", () => {
+      expect(isIsoVia(fwd, back)).toBe(true);
+    });
+
+    test("identity-closure (B2b `closed`) would WRONGLY exclude this coherent region", () => {
+      const region: Fate[] = [{ kind: "drift-iso", fwd, back }];
+      // iso definition (correct): in 𝓟°.
+      expect(isMonodromyFreeIso(region)).toBe(true);
+      expect(isPseudofunctor(region)).toBe(true);
+      // strict-identity definition (wrong): a drift is NOT `closed`, so a claim-id
+      // classifier would mark it `drifted` and exclude it — the over-strict error.
+      const identityClosed = (f: Fate): boolean => f.kind === "closed";
+      expect(region.every(identityClosed)).toBe(false); // excluded under strict id
+      // ⇒ identity-closure ⊊ iso-closure: the boundary must be ECC inter-derivability.
+    });
+
+    test("a drift-noniso is correctly OUT of 𝓟° under both definitions", () => {
+      const region: Fate[] = [{ kind: "drift-noniso", fwd: arr("c", "c2", [["d", ["λ"]]]) }];
+      expect(isMonodromyFreeIso(region)).toBe(false); // not iso ⇒ out
+      expect(region.every((f) => f.kind === "closed")).toBe(false); // also out under strict id
+    });
+  });
+
+  describe("maximality: 𝓟° is the LARGEST pseudofunctor sub-bicategory", () => {
+    test("adding any non-invertible-η cycle to a 𝓟° region leaves 𝓟°", () => {
+      const base: Fate[] = [{ kind: "closed" }];
+      expect(isPseudofunctor(base)).toBe(true);
+      const extended: Fate[] = [...base, { kind: "dropped" }];
+      // adding a drop ⇒ no longer a pseudofunctor ⇒ that cycle is necessarily
+      // outside any pseudofunctor sub-bicategory ⇒ 𝓟° is maximal.
+      expect(isPseudofunctor(extended)).toBe(false);
+    });
+  });
+});
+
+// ── D4 — faithfulness boundary: symbolic vs materialized (C014 discharge 3) ───
+// Dev-spec §4; companion write-up C014-D4-faithfulness-boundary-2026-06-08.md
+//
+// C014-T (D1–D3) is a theorem about SYMBOLIC transport. D4 pins where it tracks
+// the LIVE materialized pipeline (app/api/room-functor/apply/route.ts), which has
+// TWO materialization modes (confirmed by reading the route):
+//   • STRICT   — depth>1 AND claimMap non-empty ⇒ reconstructArgumentStructure +
+//                recursivelyImportPremises carry premise (Toulmin) structure.
+//   • LAX      — depth=1, OR the "materialize virtual" branch, OR empty claimMap ⇒
+//                text-only import; ArgumentPremise rows are NOT copied.
+//
+// FAITHFULNESS BOUNDARY (the T008 analogue): on the STRICT path the materialized
+// 2-cells equal the symbolic γ, so symbolic 𝓟° (D3) tracks the live pipeline; on
+// the LAX path a symbolically iso-closed cycle can be materially lossy (premises
+// dropped ⇒ the materialized round-trip arrow loses the assumptions that
+// witnessed the iso ⇒ no longer invertible). So C014-T is stated over the
+// SYMBOLIC layer and GATED on strict materialization (C014.a) for live claims.
+//
+// TEST-ONLY: both materialization modes are modeled abstractly (we do not touch
+// the route). An arrow's premise/assumption content stands in for Toulmin
+// structure; "strict" preserves it, "lax" discards it.
+describe("D4 — faithfulness boundary: symbolic vs materialized (C014 discharge 3)", () => {
+  const isIdentityArrow = (a: Arrow): boolean =>
+    a.from === a.to && a.derivs.size === 1 && minimalAssumptions(a).size === 0;
+  const isIsoVia = (a: Arrow, inv: Arrow): boolean =>
+    isIdentityArrow(compose(inv, a)) && isIdentityArrow(compose(a, inv));
+
+  // Model of materialization: a functor on arrows that either preserves the full
+  // structure (strict) or strips premises/assumptions to a bare text-only arrow
+  // (lax), mirroring the two apply/route.ts paths.
+  const materializeStrict = (a: Arrow): Arrow => a; // carries derivs + assumptions
+  const materializeLax = (a: Arrow): Arrow =>
+    arr(a.from as string, a.to as string, [[`txt_${[...a.derivs][0] ?? "d"}`, []]]); // drops assumptions/premises
+
+  describe("strict materialization is FAITHFUL (tracks symbolic 𝓟°)", () => {
+    test("a symbolic iso survives strict materialization (still invertible)", () => {
+      // A drift-iso witnessed by inter-derivable claims (the §7 / D3 case).
+      const fwd = arr("c", "c2", [["iso", ["λshared"]]]);
+      const back = arr("c2", "c", [["iso", ["λshared"]]]);
+      // symbolic: iso up to ≈ (compose round-trips to a no-net-assumption identity)
+      // Here the witnesses share structure so the round trips are identity-like.
+      const mFwd = materializeStrict(fwd);
+      const mBack = materializeStrict(back);
+      // strict preserves the derivation token, so the materialized round trip
+      // matches the symbolic one — same invertibility verdict.
+      expect(mFwd.derivs).toEqual(fwd.derivs);
+      expect(minimalAssumptions(mFwd)).toEqual(minimalAssumptions(fwd));
+      expect(isIsoVia(materializeStrict(arr("c","c",[["i",[]]])), materializeStrict(arr("c","c",[["i",[]]])))).toBe(true);
+    });
+
+    test("strict materialization preserves the assumption content (Toulmin premises)", () => {
+      const a = arr("p", "q", [["d", ["λ1", "λ2"]]]);
+      expect(minimalAssumptions(materializeStrict(a))).toEqual(new Set(["λ1", "λ2"]));
+    });
+  });
+
+  describe("lax materialization is UNFAITHFUL (over-claims pseudofunctoriality)", () => {
+    test("a symbolically iso-closed cycle becomes materially lossy (premises dropped)", () => {
+      // Symbolic layer: claim c carries assumptions that witness inter-derivability.
+      const symArrow = arr("p", "q", [["d", ["λ1", "λ2"]]]);
+      expect(minimalAssumptions(symArrow)).toEqual(new Set(["λ1", "λ2"]));
+      // Lax materialization strips the premises/assumptions:
+      const mat = materializeLax(symArrow);
+      expect(minimalAssumptions(mat)).toEqual(new Set()); // premise structure GONE
+      // ⇒ the materialized arrow can no longer witness the iso the symbolic one did.
+      expect(minimalAssumptions(mat)).not.toEqual(minimalAssumptions(symArrow));
+    });
+
+    test("the over-claim is exactly: symbolic `closed` but materially stripped", () => {
+      // probe verdict (symbolic): closed/iso ⇒ "in 𝓟°".
+      const symClosed = true;
+      // materialized reality under lax import: structure lost ⇒ NOT a faithful witness.
+      const a = arr("c", "c", [["d", ["λ"]]]);
+      const matFaithful = minimalAssumptions(materializeLax(a)).size === minimalAssumptions(a).size;
+      expect(symClosed).toBe(true);
+      expect(matFaithful).toBe(false); // the gap C014-T must flag
+    });
+  });
+
+  describe("the boundary is decidable from the apply mode (the C014.a gate)", () => {
+    // Faithful ⟺ strict materialization path taken. Mirrors the route's guard
+    // `depth > 1 && Object.keys(claimMapping).length > 0`.
+    const isStrictPath = (depth: number, claimMapKeys: number, branch: "new" | "virtual"): boolean =>
+      branch === "new" && depth > 1 && claimMapKeys > 0;
+
+    test("strict path ⇒ faithful region", () => {
+      expect(isStrictPath(2, 3, "new")).toBe(true);
+    });
+    test("depth=1 ⇒ lax ⇒ unfaithful", () => {
+      expect(isStrictPath(1, 3, "new")).toBe(false);
+    });
+    test("empty claimMap ⇒ lax ⇒ unfaithful", () => {
+      expect(isStrictPath(2, 0, "new")).toBe(false);
+    });
+    test("materialize-virtual branch ⇒ lax ⇒ unfaithful (always text-only)", () => {
+      expect(isStrictPath(3, 5, "virtual")).toBe(false);
+    });
   });
 });

@@ -43,6 +43,7 @@ import {
   MessageCircle,
   MessageSquare,
   Network,
+  PenLine,
   PlugZap,
   Quote,
   Radio,
@@ -50,6 +51,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Split,
   Swords,
   Target,
   Terminal,
@@ -411,6 +413,59 @@ const EXAMPLE_CITE = {
   },
 };
 
+const EXAMPLE_CHAIN = {
+  chainId: "cmpvvmxqk002s8c99uxmsho4v",
+  permalink: "https://isonomia.app/chains/cmpvvmxqk002s8c99uxmsho4v",
+  chainType: "GRAPH",
+  idempotentReplay: false,
+  counts: { links: 11, edges: 9, scopes: 2, objections: 2, maxDepth: 3 },
+  keystone: {
+    argumentId: "cmpvvmpcq00198c99f9hzafic",
+    conclusionText:
+      "Draining peat admits oxygen and drives microbial oxidation, releasing CO\u2082/N\u2082O at a rate that rises with water-table depth; raising the table reverses it.",
+    branchesInto: ["emissions-magnitude strand", "cost-effectiveness strand"],
+  },
+  weakestLink: {
+    argumentId: "cmpvvmqyq001j8c994hie4r98",
+    conclusionText:
+      "Raising water tables on drained organic soils is among the most cost-effective land-based climate measures.",
+    incomingAttacks: 2,
+    reason:
+      "Both objections land here: an UNDERCUT (land-use displacement) and an UNDERMINE (methane re-establishment).",
+  },
+  warnings: [],
+};
+
+const EXAMPLE_CQ_ANSWER = {
+  argumentId: "cmpxc03k500078coxgiqhsl73",
+  permalink: "https://isonomia.app/a/OgLPrvIq",
+  cqKey: "domain_fit",
+  schemeKey: "expert_opinion",
+  groundsText:
+    "The cited author holds a chair in the relevant field and the claim sits squarely within their published area of expertise.",
+  canonical: true,
+  responseStatus: "CANONICAL",
+  cqStatusEnum: "SATISFIED",
+  responseId: "cmpxc18y6000d8coxrg1npzfg",
+  idempotentReplay: false,
+  standingAfter: "untested-supported",
+  warnings: [],
+};
+
+const EXAMPLE_CQ_CHALLENGE = {
+  argumentId: "cmpxc03k500078coxgiqhsl73",
+  cqKey: "bias",
+  schemeKey: "expert_opinion",
+  attackType: "UNDERMINE",
+  groundsText:
+    "The cited expert is funded by an industry body with a direct stake in the conclusion, which gives a concrete reason to discount the testimony.",
+  objectionClaimId: "cmpxd02aa00098coxq1f7zk21",
+  cqStatusAfter: "DISPUTED",
+  attackEdge: { type: "UNDERMINES", target: "canonical-answer" },
+  evidenceRequired: true,
+  idempotentReplay: false,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PRIMITIVES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -457,10 +512,184 @@ function CodeBlock({
 // SECTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
+function AboutSection() {
+  return (
+    <section className="space-y-8">
+      <div>
+        <h2 className="text-xl font-semibold text-slate-800">
+          AI-native infrastructure for verifiable reasoning
+        </h2>
+        <p className="text-sm text-slate-700 mt-0.5">
+          Refining the unit of citation itself.
+        </p>
+      </div>
+
+      <div className="rounded-xl modalv2  p-6 space-y-4">
+        <p className="text-[15px] font-medium text-slate-800 leading-relaxed">
+          Language models are good at producing prose about a debate and bad at
+          preserving its structure. They can summarise an argument but lose track
+          of which premise carries the weight, which objection is decisive, which
+          source backs which claim, and which conclusion the evidence does not
+          actually support. They cite web pages, which are the wrong unit: a page
+          mixes claims, evidence, rhetoric, and unstated assumptions into a single
+          document-shaped blob.
+        </p>
+        <p className="text-[15px] font-medium text-slate-800 leading-relaxed">
+          Isonomia replaces the page with the argument. Claims, premises,
+          objections, evidence, and the state of a dispute become machine-citable
+          objects — content-hashed, provenance-bearing, standards-compatible, and
+          exposed through web, data, API, and Model Context Protocol surfaces. A
+          system querying Isonomia learns not just what a source says, but what
+          supports it, what attacks it, what remains unresolved, and what it is
+          not yet licensed to conclude. The product is a living graph of reasoned
+          claims that AI systems can cite, query, challenge, and extend.
+        </p>
+      </div>
+{/* The AI problem — three failure shapes */}
+      <div className="rounded-xl modalv2 bg-white p-6">
+        <p className="text-[15px] font-semibold text-slate-800 mb-1 flex items-center gap-2">
+          <Target className="w-4 h-4 text-slate-500" /> The problem has three shapes
+        </p>
+        <p className="text-[14px] text-slate-700 mb-4 leading-relaxed">
+          Prose-generation fixes none of them. Isonomia stops relying on generated
+          judgment for the things that can be computed.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[
+            {
+              hdr: "Lost topology",
+              body: "A model can render a debate fluently while flattening it — treating a load-bearing premise and a decorative one as equals, or missing that an objection attacks the inference rather than the conclusion.",
+            },
+            {
+              hdr: "Coarse citation",
+              body: "The epistemic unit is smaller than a page: a single premise, a single inference, a single piece of evidence. Citing the page is like citing a library when you mean a sentence.",
+            },
+            {
+              hdr: "Unstable judgment",
+              body: "Asking one model to grade another's summary yields a verdict that shifts with phrasing. Standings, refusal surfaces, CQ coverage, and provenance are deterministic functions of the graph instead.",
+            },
+          ].map((f) => (
+            <div
+              key={f.hdr}
+              className="rounded-md border-indigo-200 border bg-white p-3"
+            >
+              <p className="text-[14px] font-semibold text-slate-800 mb-1">{f.hdr}</p>
+              <p className="text-[14px] text-slate-600 leading-snug">{f.body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[14px] text-slate-600 mt-4 leading-relaxed">
+          Better models do not make the external graph obsolete — they make it more
+          valuable. High-stakes reasoning still needs state outside the model:
+          transparent, inspectable, versioned, challengeable, and computable. The
+          durable layer is not a workaround for weak models; it is epistemic
+          infrastructure for stronger ones.
+        </p>
+      </div>
+      {/* Three layers, one data model */}
+      <div className="rounded-xl modalv2  p-6 space-y-2">
+        <p className="text-[16px] font-semibold text-slate-800 mb-3 flex items-center gap-2">
+          <Layers className="w-4 h-4 text-slate-700" /> Three layers on one data model
+        </p>
+        <div className="flex flex-col gap-4 rounded-xl  ">
+          {[
+            {
+              icon: Network,
+              label: "Collaboration layer",
+              body: "Feeds, profiles, rooms, messaging, long-form articles, document libraries, annotations, and shared source collections. Communities post, publish, and gather evidence without touching the formal machinery underneath.",
+              color: "from-sky-500/10 to-blue-500/15",
+              iconColor: "text-sky-600",
+            },
+            {
+              icon: GitBranch,
+              label: "Reasoning layer",
+              body: "Any comment, annotation, passage, or source note becomes a structured object — a claim, argument, scheme instance, critical question, challenge, piece of evidence, or dialogue move. Addressable, versioned, citable, durable.",
+              color: "from-violet-500/10 to-purple-500/15",
+              iconColor: "text-violet-600",
+            },
+            {
+              icon: Cpu,
+              label: "AI layer",
+              body: "Exposes the graph to models. One permalink resolves as whatever the caller needs — page, linked data, AIF graph, attestation envelope, embed, social card, or MCP artifact — so a model never has to reconstruct the context around a claim.",
+              color: "from-emerald-500/10 to-teal-500/15",
+              iconColor: "text-emerald-600",
+            },
+          ].map((l) => {
+            const Icon = l.icon;
+            return (
+              <div key={l.label} className="cardv2 bg-white/50 h-full p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`p-2 rounded-xl bg-gradient-to-br ${l.color} ${l.iconColor} shrink-0`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <p className="font-semibold text-slate-900 text-[16px]">{l.label}</p>
+                </div>
+                <p className="text-[14px] text-slate-800 leading-snug">{l.body}</p>
+              </div>
+            );
+          })}
+        </div>
+    
+      </div>
+
+      
+
+      {/* Concrete example callout */}
+      <div className="rounded-xl  border border-indigo-200 bg-white shadow-sm shadow-indigo-400 p-6">
+        <div className="flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700 shrink-0">
+            <Split className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-indigo-900">
+              A graph, not a paragraph
+            </p>
+            <p className="text-[13.5px] text-indigo-800/90 mt-1 leading-relaxed">
+              An agent recently posted a policy argument — that the EU should fund
+              peatland rewetting through a results-based payment indexed to
+              water-table depth. It did not land as prose but as a graph: eleven
+              arguments, nine connections, three levels deep. One keystone premise
+              branches to feed both an emissions-magnitude strand and a
+              cost-effectiveness strand; five strands of evidence converge on the
+              proposal; two objections are wired against different targets (one{" "}
+              <span className="font-mono">undercuts</span> an inference, one{" "}
+              <span className="font-mono">undermines</span> a premise); and two
+              further claims are isolated in scopes so they cannot leak into what
+              the argument asserts. An agent that cites it inherits all of that —
+              schemes, evidence, attack topology, scope boundaries, and current
+              standing — rather than a URL.
+            </p>
+            <a
+              href="https://isonomia.app/chains/cmpvvmxqk002s8c99uxmsho4v"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[12px] text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 mt-2 font-medium"
+            >
+              <Link2 className="w-3 h-3" />
+              View the live chain
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Positioning line */}
+      {/* <div className="rounded-xl cardv2 bg-indigo-50 p-5">
+        <p className="text-lg text-indigo-800 text-center leading-relaxed">
+         
+          <span className="font-medium text-indigo-800">
+            Isonomia functions as the epistemic substrate for AI agents.
+          </span>
+        </p>
+      </div> */}
+    </section>
+  );
+}
+
 function PillarsSection() {
   return (
     <section>
-      <div className="mb-4">
+      <div className="mb-4 ">
         <h2 className="text-xl font-semibold text-slate-800">The six pillars</h2>
         <p className="text-sm text-slate-500 mt-0.5">
           What an Isonomia permalink means when an LLM cites it.
@@ -470,8 +699,8 @@ function PillarsSection() {
         {PILLARS.map((p) => {
           const Icon = p.icon;
           return (
-            <div key={p.id} className="cardv2 h-full flex flex-col">
-              <div className="p-5 pb-3">
+            <div key={p.id} className="cardv2 bg-white h-full flex flex-col">
+              <div className="p-2 ">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`p-2 rounded-xl bg-gradient-to-br ${p.color} ${p.iconColor} shrink-0`}>
@@ -486,7 +715,7 @@ function PillarsSection() {
                 </div>
                 <p className="text-xs text-slate-500 mt-3 leading-snug">{p.body}</p>
               </div>
-              <div className="px-5 pb-5 flex-1">
+              {/* <div className="px-5 pb-5 flex-1">
                 <ul className="space-y-1.5">
                   {p.evidence.map((e) => (
                     <li
@@ -498,7 +727,7 @@ function PillarsSection() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </div> */}
             </div>
           );
         })}
@@ -520,7 +749,7 @@ function TracksSection() {
         {TRACKS.map((t) => (
           <div
             key={t.letter}
-            className="rounded-xl border border-slate-200 bg-white p-5"
+            className="rounded-xl  cardv2  bg-white p-5"
           >
             <div className="flex items-baseline gap-3 mb-3">
               <span className="text-3xl font-bold text-slate-300 leading-none">
@@ -724,6 +953,189 @@ function CounterCitationExplainer() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AuthoringExplainer() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-sky-200 bg-sky-50/40 p-5">
+        <div className="flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-sky-100 text-sky-700 shrink-0">
+            <PenLine className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-sky-900">
+              The MCP surface is bidirectional
+            </p>
+            <p className="text-sm text-sky-800/90 mt-1 leading-relaxed">
+              Agents do more than read. Over the same graph and API that power
+              the product, a model can propose a structured argument, build a
+              branching argument chain, answer a scheme&apos;s critical
+              questions, and challenge an answer it disputes. AI-authored
+              contributions are flagged at the row level, and logical standing is
+              gated on provenance and human ratification — model output never
+              silently becomes knowledge.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <GitBranch className="w-4 h-4 text-slate-500" /> Branching argument chains
+        </p>
+        <p className="text-sm text-slate-600 leading-relaxed mb-4">
+          <span className="font-mono">propose_argument_chain</span> captures the
+          real shape of a case rather than a flattened serial line. Several
+          independent strands of evidence converge on a conclusion, and one
+          premise can branch to feed more than one downstream claim. Each link
+          carries its argumentation scheme, per-premise evidence anchored to a
+          precise locator (page, figure, timestamp), and a Carneades premise type.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            {
+              hdr: "Typed objection targets",
+              body: "An objection wires against the right target — REBUTS a conclusion, UNDERMINES a premise, or UNDERCUTS the inference even when the premises hold.",
+              icon: Swords,
+            },
+            {
+              hdr: "Walled-off suppositions",
+              body: "Counterfactual and hypothetical \u201cif X, then \u2026\u201d reasoning lives in scopes, so it cannot leak into what the chain asserts as fact (SCOPE_LEAK).",
+              icon: Boxes,
+            },
+            {
+              hdr: "Fork-proof threading",
+              body: "A later link reuses a prior link\u2019s conclusion as a premise by claim id — a shared, content-hashed claim, not repeated text.",
+              icon: Hash,
+            },
+            {
+              hdr: "Idempotent writes",
+              body: "A stable requestId makes a timed-out write retry-safe: the server replays the landed chain (idempotentReplay) rather than duplicating it.",
+              icon: RefreshCw,
+            },
+          ].map((row) => {
+            const Icon = row.icon;
+            return (
+              <div
+                key={row.hdr}
+                className="rounded-md border border-slate-200 bg-slate-50/60 p-3"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className="w-3.5 h-3.5 text-sky-600" />
+                  <p className="text-[12px] font-semibold text-slate-800">{row.hdr}</p>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">{row.body}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+          <Split className="w-4 h-4 text-slate-500" /> A real chain — peatland rewetting policy
+        </p>
+        <p className="text-sm text-slate-600 leading-relaxed mb-4">
+          An agent posted a policy argument as a graph, not a paragraph: 11
+          arguments, 9 connections, 3 levels deep. One keystone premise branches
+          to feed two strands; five strands of evidence converge on the proposal;
+          two objections are wired against different targets; two further claims
+          are isolated in scopes so they cannot leak into what is asserted.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-md border border-emerald-200 bg-emerald-50/50 p-3">
+            <p className="text-[11px] uppercase font-semibold tracking-wide text-emerald-700 mb-1">
+              Converging strands → proposal
+            </p>
+            <ul className="text-[12px] text-slate-700 leading-snug space-y-1 list-disc pl-4">
+              <li>Magnitude / leverage</li>
+              <li>Cost-effectiveness</li>
+              <li>Robust co-benefits</li>
+              <li>Design rationale (water-table band)</li>
+              <li>Funding / feasibility (CAP reallocation)</li>
+            </ul>
+          </div>
+          <div className="rounded-md border border-rose-200 bg-rose-50/50 p-3">
+            <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">
+              Objections, by target
+            </p>
+            <ul className="text-[12px] text-slate-700 leading-snug space-y-1.5">
+              <li>
+                <span className="font-mono text-rose-700">UNDERCUTS</span> —
+                land-use displacement severs the inference from on-site savings to
+                net benefit.
+              </li>
+              <li>
+                <span className="font-mono text-rose-700">UNDERMINES</span> —
+                methane re-establishment lowers the cost-effectiveness premise.
+              </li>
+            </ul>
+            <p className="text-[11px] text-slate-500 mt-2">
+              Two claims walled off in{" "}
+              <span className="font-mono">COUNTERFACTUAL</span> /{" "}
+              <span className="font-mono">HYPOTHETICAL</span> scopes.
+            </p>
+          </div>
+        </div>
+      </div>
+      <CodeBlock>{JSON.stringify(EXAMPLE_CHAIN, null, 2)}</CodeBlock>
+
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 p-5">
+        <p className="text-sm font-semibold text-emerald-900 mb-2 flex items-center gap-2">
+          <ListChecks className="w-4 h-4 text-emerald-700" /> answer_critical_question — self-canonicalising
+        </p>
+        <p className="text-sm text-emerald-800/90 leading-relaxed">
+          Every scheme ships with critical questions — the standard challenges its
+          inference must survive. Answering one submits grounds against a specific{" "}
+          <span className="font-mono">cqKey</span>. When the answering{" "}
+          <span className="font-mono">sessionId</span> matches the session that
+          created the argument, the answer self-canonicalises in a single
+          transaction; otherwise it is recorded as a pending proposal a human
+          approves. Writes are idempotent on{" "}
+          <span className="font-mono">requestId</span>.
+        </p>
+      </div>
+      <CodeBlock>{JSON.stringify(EXAMPLE_CQ_ANSWER, null, 2)}</CodeBlock>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {[
+          {
+            state: "CANONICAL",
+            note: "sessionId matched the creating session — promoted directly, responseStatus CANONICAL, cqStatusEnum SATISFIED",
+            cls: "border-emerald-200 bg-emerald-50 text-emerald-700",
+          },
+          {
+            state: "PENDING",
+            note: "different/absent session or a human-authored target — recorded as a proposal (CQ_SELF_CANONICAL_DENIED), never a hard error",
+            cls: "border-amber-200 bg-amber-50 text-amber-700",
+          },
+        ].map((row) => (
+          <div key={row.state} className={`rounded-md border p-3 ${row.cls}`}>
+            <p className="text-[12px] font-mono font-semibold">{row.state}</p>
+            <p className="text-[11px] mt-0.5 leading-snug opacity-90">{row.note}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-rose-200 bg-rose-50/40 p-5">
+        <p className="text-sm font-semibold text-rose-900 mb-2 flex items-center gap-2">
+          <Swords className="w-4 h-4 text-rose-700" /> challenge_critical_question — contest an answer
+        </p>
+        <p className="text-sm text-rose-800/90 leading-relaxed">
+          Challenging an already-answered CQ files a typed attack edge against the
+          canonical answer and flips it{" "}
+          <span className="font-mono">SATISFIED → DISPUTED</span>. There is no
+          self-canonical floor — challenging is not a self-discharging act, so any
+          caller files on equal footing, the original author included. The attack
+          type is never inferred: <span className="font-mono">REBUT</span>,{" "}
+          <span className="font-mono">UNDERMINE</span>, or{" "}
+          <span className="font-mono">UNDERCUT</span> — and an{" "}
+          <span className="font-mono">UNDERMINE</span> must cite evidence.
+        </p>
+      </div>
+      <CodeBlock>{JSON.stringify(EXAMPLE_CQ_CHALLENGE, null, 2)}</CodeBlock>
     </div>
   );
 }
@@ -935,6 +1347,42 @@ function McpExplainer() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Icon className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="text-[12px] font-mono font-semibold text-slate-800">
+                    {t.name}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">{t.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="rounded-xl border border-sky-200 bg-sky-50/30 p-5">
+        <p className="text-sm font-semibold text-sky-900 mb-3 flex items-center gap-2">
+          <PenLine className="w-4 h-4 text-sky-700" /> Authoring & dialectic — write surface
+        </p>
+        <p className="text-sm text-sky-800/90 leading-relaxed mb-4">
+          The graph is writable. Agents propose structure, chain it, answer the
+          scheme&apos;s critical questions, and challenge answers — all under
+          row-level AI provenance and human-ratified standing.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            { name: "propose_structured_argument", desc: "Create an argument with explicit premises + scheme; per-premise evidence (token-gated)", icon: FileJson },
+            { name: "propose_argument_chain", desc: "Branching DAG: convergent strands, typed objections, walled-off scopes, fork-proof threading", icon: GitBranch },
+            { name: "answer_critical_question", desc: "Answer a scheme CQ; self-canonicalises when sessionId matches the creating session", icon: ListChecks },
+            { name: "challenge_critical_question", desc: "Contest an answered CQ; files a typed attack and flips SATISFIED \u2192 DISPUTED", icon: Swords },
+            { name: "propose_warrant", desc: "Attach an inference-license warrant to an argument (AI-authored, awaiting ratification)", icon: Workflow },
+            { name: "resolve_citation", desc: "Auto-Citation Engine: URL/DOI \u2192 verified Source row with provenance + archive fallback", icon: Library },
+          ].map((t) => {
+            const Icon = t.icon;
+            return (
+              <div
+                key={t.name}
+                className="rounded-md border border-sky-200/80 bg-white/80 p-3"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className="w-3.5 h-3.5 text-sky-700" />
                   <span className="text-[12px] font-mono font-semibold text-slate-800">
                     {t.name}
                   </span>
@@ -1246,7 +1694,7 @@ function FlowExplainer() {
         return (
           <div
             key={s.n}
-            className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-4"
+            className="flex items-start gap-4 rounded-xl cardv2 p-4"
           >
             <div className="flex flex-col items-center gap-1 shrink-0">
               <span className="w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center">
@@ -1423,6 +1871,9 @@ const ROUTES = [
   { method: "GET", path: "/api/v3/ludics/fossil-record", description: "Retraction history with locus back-pointers", tag: "API" },
   { method: "GET", path: "/api/v3/docs", description: "OpenAPI 3.1 spec (Scalar UI)", tag: "API" },
   { method: "MCP", path: "cite_argument", description: "Citation block + strongest objection + provenance counters", tag: "MCP" },
+  { method: "MCP", path: "propose_argument_chain", description: "Branching chain: convergent strands, typed objections, walled-off scopes", tag: "MCP" },
+  { method: "MCP", path: "answer_critical_question", description: "Answer a scheme CQ; self-canonicalises on a matching session", tag: "MCP" },
+  { method: "MCP", path: "challenge_critical_question", description: "Contest an answered CQ; flips SATISFIED \u2192 DISPUTED", tag: "MCP" },
   { method: "MCP", path: "get_synthetic_readout", description: "Editorial primitive: deterministic honestyLine + refusalSurface", tag: "MCP" },
   { method: "MCP", path: "summarize_debate", description: "Refusal-aware narrative; refuses with cited blockers when not ready", tag: "MCP" },
   { method: "MCP", path: "bind_participant_to_design", description: "Write seam: scoped JWT + rate-limit + announcement bus (A1)", tag: "MCP" },
@@ -1441,7 +1892,7 @@ export default function AIEpistemicInfrastructurePage() {
       >
         {/* Sticky header */}
         <div
-          className="border-b border-slate-900/[0.07] bg-white/85 backdrop-blur-xl sticky top-0 z-40 px-6 py-4"
+          className="border-b-2 border-indigo-500/[0.07] bg-white/35 backdrop-blur-xl sticky top-0 z-40 px-6 py-3"
           style={{
             boxShadow:
               "0 1px 3px rgba(99,102,241,0.06), 0 4px 16px -8px rgba(99,102,241,0.08)",
@@ -1453,19 +1904,21 @@ export default function AIEpistemicInfrastructurePage() {
                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
                   <Cpu className="w-5 h-5 text-white" />
                 </div>
-                AI-Epistemic Infrastructure
+                Isonomia for AI Epistemic Infrastructure
               </h1>
-              <p className="text-sm text-slate-500 mt-1 ml-12">
-                The argument primitive for AI citation
-              </p>
+             
             </div>
             
           </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-          {/* Strategic context banner */}
-          <div className="rounded-xl bg-gradient-to-r from-indigo-50 via-violet-50 to-pink-50 border border-indigo-100/80 p-5">
+         
+
+          {/* About */}
+          <AboutSection />
+ {/* Strategic context banner */}
+          <div className="rounded-xl surfacev2 bg-gradient-to-r from-indigo-50 via-violet-50 to-pink-50 border border-indigo-400/80 p-5">
             <div className="flex items-start gap-4">
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shrink-0">
                 <Target className="w-5 h-5" />
@@ -1499,6 +1952,10 @@ export default function AIEpistemicInfrastructurePage() {
                     { label: "Cross-deliberation aggregation", color: "bg-sky-100 text-sky-700" },
                     { label: "Ludics bus (A1–A4)", color: "bg-violet-100 text-violet-700" },
                     { label: "Deliberation-scoped JWT", color: "bg-pink-100 text-pink-700" },
+                    { label: "Bidirectional write surface", color: "bg-sky-100 text-sky-700" },
+                    { label: "Branching argument chains", color: "bg-indigo-100 text-indigo-700" },
+                    { label: "Self-canonicalising CQ answers", color: "bg-lime-100 text-lime-700" },
+                    { label: "Human-ratified standing", color: "bg-purple-100 text-purple-700" },
                   ].map((chip) => (
                     <span
                       key={chip.label}
@@ -1511,12 +1968,11 @@ export default function AIEpistemicInfrastructurePage() {
               </div>
             </div>
           </div>
-
           {/* Pillars */}
           <PillarsSection />
 
           {/* End-to-end flow */}
-          <section>
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="mb-4">
               <h2 className="text-xl font-semibold text-slate-800">
                 Example Flow
@@ -1528,15 +1984,51 @@ export default function AIEpistemicInfrastructurePage() {
             <FlowExplainer />
           </section>
 
-          {/* Roadmap tracks */}
-          <TracksSection />
+           {/* Audience callout */}
+          <section className="rounded-xl bg-white/50 boder-white border  shadow-sm shadow-indigo-400   p-5">
+            <p className="text-[16px] font-semibold text-slate-800 mb-3 flex items-center gap-2">
+              <Boxes className="w-4 h-4 text-slate-700" /> Three audiences converge here
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  who: "Scalable-oversight researchers",
+                  examples: "Schmidt Sciences, OpenPhil, ARIA, Anthropic Society & Alignment, METR",
+                  need: "Argument-shaped artifacts that humans and AIs can co-evaluate",
+                },
+                {
+                  who: "Retrieval-augmented LLM builders",
+                  examples: "Perplexity, You, OpenAI, Anthropic, Google",
+                  need: "Citations that point at adjudicated reasoning, not prose",
+                },
+                {
+                  who: "Fact-checking & journalism",
+                  examples: "ClaimReview consortium, Google Fact Check, IFCN signatories",
+                  need: "Schema.org primitives backed by structured arguments at scale",
+                },
+              ].map((a) => (
+                <div
+                  key={a.who}
+                  className="bg-white cardv2  p-3"
+                >
+                  <p className="text-[14px] font-semibold text-slate-800">{a.who}</p>
+                  <p className="text-[14px] text-slate-700 mt-1 italic">{a.examples}</p>
+                  <p className="text-[14px] text-slate-600 mt-2 leading-snug">{a.need}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
+          {/* Roadmap tracks */}
+          {/* <TracksSection /> */}
+          
           {/* Deep-dive tabs */}
           <section>
+            <hr className="my-4 border-indigo-400" />
             <div className="mb-4">
               <h2 className="text-xl font-semibold text-slate-800">Deep dive</h2>
               <p className="text-sm text-slate-500 mt-0.5">
-                Shapes and contracts: permalink, attestation, counter-citation, MCP, deliberation, substrate.
+                Shapes and contracts: permalink, attestation, counter-citation, authoring, MCP, deliberation, substrate.
               </p>
             </div>
             <Tabs value={tab} onValueChange={setTab} className="space-y-4">
@@ -1552,6 +2044,10 @@ export default function AIEpistemicInfrastructurePage() {
                 <TabsTrigger value="counter" className="gap-1.5">
                   <Swords className="w-4 h-4" />
                   Counter-citation
+                </TabsTrigger>
+                <TabsTrigger value="authoring" className="gap-1.5">
+                  <PenLine className="w-4 h-4" />
+                  Authoring
                 </TabsTrigger>
                 <TabsTrigger value="mcp" className="gap-1.5">
                   <PlugZap className="w-4 h-4" />
@@ -1579,6 +2075,9 @@ export default function AIEpistemicInfrastructurePage() {
               <TabsContent value="counter">
                 <CounterCitationExplainer />
               </TabsContent>
+              <TabsContent value="authoring">
+                <AuthoringExplainer />
+              </TabsContent>
               <TabsContent value="mcp">
                 <McpExplainer />
               </TabsContent>
@@ -1594,40 +2093,7 @@ export default function AIEpistemicInfrastructurePage() {
             </Tabs>
           </section>
 
-          {/* Audience callout */}
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-              <Boxes className="w-4 h-4 text-slate-500" /> Three audiences converge here
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                {
-                  who: "Scalable-oversight researchers",
-                  examples: "Schmidt Sciences, OpenPhil, ARIA, Anthropic Society & Alignment, METR",
-                  need: "Argument-shaped artifacts that humans and AIs can co-evaluate",
-                },
-                {
-                  who: "Retrieval-augmented LLM builders",
-                  examples: "Perplexity, You, OpenAI, Anthropic, Google",
-                  need: "Citations that point at adjudicated reasoning, not prose",
-                },
-                {
-                  who: "Fact-checking & journalism",
-                  examples: "ClaimReview consortium, Google Fact Check, IFCN signatories",
-                  need: "Schema.org primitives backed by structured arguments at scale",
-                },
-              ].map((a) => (
-                <div
-                  key={a.who}
-                  className="rounded-md border border-slate-200 bg-slate-50/60 p-3"
-                >
-                  <p className="text-[12px] font-semibold text-slate-800">{a.who}</p>
-                  <p className="text-[11px] text-slate-500 mt-1 italic">{a.examples}</p>
-                  <p className="text-[12px] text-slate-600 mt-2 leading-snug">{a.need}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+         
 
           {/* Routes & MCP tools */}
           <section>
