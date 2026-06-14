@@ -162,15 +162,17 @@ describe.skip("ASPIC+ Phase 4: Full Integration Tests", () => {
         testDeliberationId
       );
 
+      // Canonical rule key is the RA-node id `RA:<argumentId>` (roadmap decision Q1 /
+      // issue A fix), NOT scheme.id — that is what argument construction keys rules by.
       expect(rulePreferences).toHaveLength(1);
       expect(rulePreferences[0]).toEqual({
-        preferred: schemeB.id,
-        dispreferred: schemeA.id,
+        preferred: `RA:${argB.id}`,
+        dispreferred: `RA:${argA.id}`,
       });
 
       // STEP 3: Verify preferences are correctly mapped
-      expect(rulePreferences[0].preferred).toBe(schemeB.id); // Scientific study
-      expect(rulePreferences[0].dispreferred).toBe(schemeA.id); // Expert testimony
+      expect(rulePreferences[0].preferred).toBe(`RA:${argB.id}`); // Scientific study
+      expect(rulePreferences[0].dispreferred).toBe(`RA:${argA.id}`); // Expert testimony
 
       // Cleanup for next test
       await prisma.preferenceApplication.delete({ where: { id: pa.id } });

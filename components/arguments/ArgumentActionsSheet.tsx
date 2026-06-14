@@ -121,6 +121,7 @@ export function ArgumentActionsSheet({
               <CQsPanel
                 deliberationId={deliberationId}
                 authorId={authorId}
+                currentUserId={currentUserId}
                 argument={selectedArgument}
                 onRefresh={onRefresh}
               />
@@ -504,6 +505,7 @@ function DefendPanel({ deliberationId, authorId, argument, onRefresh }: DefendPa
 interface CQsPanelProps {
   deliberationId: string;
   authorId: string;
+  currentUserId?: string;
   argument: {
     id: string;
     schemeKey?: string;
@@ -516,9 +518,9 @@ interface CQsPanelProps {
   onRefresh?: () => void;
 }
 
-function CQsPanel({ deliberationId, authorId, argument, onRefresh }: CQsPanelProps) {
+function CQsPanel({ deliberationId, authorId, currentUserId, argument, onRefresh }: CQsPanelProps) {
   // Fetch CQs for this argument
-  const { data: cqData, mutate } = useSWR(
+  const { data: cqData, mutate, isLoading, error } = useSWR(
     argument.schemeKey ? `/api/arguments/${argument.id}/cqs` : null,
     fetcher,
     { revalidateOnFocus: false }
@@ -548,7 +550,7 @@ function CQsPanel({ deliberationId, authorId, argument, onRefresh }: CQsPanelPro
     );
   }
 
-  const cqs = cqData?.cqs || [];
+  const cqs = cqData?.items || [];
   const meta = {
     scheme: argument.schemeId
       ? {
@@ -601,7 +603,7 @@ function CQsPanel({ deliberationId, authorId, argument, onRefresh }: CQsPanelPro
               <SchemeSpecificCQsModal
                 argumentId={argument.id}
                 deliberationId={deliberationId}
-                authorId={authorId}
+                authorId={cqData?.authorId ?? authorId}
                 currentUserId={currentUserId}
                 cqs={cqs}
                 meta={meta}
@@ -616,7 +618,13 @@ function CQsPanel({ deliberationId, authorId, argument, onRefresh }: CQsPanelPro
             </div>
           ) : (
             <div className="text-center py-4">
-              <div className="text-sm text-white/50">Loading critical questions...</div>
+              {isLoading ? (
+                <div className="text-sm text-white/50">Loading critical questions…</div>
+              ) : error ? (
+                <div className="text-sm text-rose-300">Failed to load critical questions</div>
+              ) : (
+                <div className="text-sm text-white/50">No critical questions for this scheme yet</div>
+              )}
             </div>
           )}
         </div>

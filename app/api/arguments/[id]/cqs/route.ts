@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: { params:{ id:string } }) {
   const arg = await prisma.argument.findUnique({
     where: { id: params.id }, include: { scheme:{ include:{ cqs:true } } }
   });
-  if (!arg?.scheme) return NextResponse.json({ ok:true, items: [] }, { headers: { 'Cache-Control':'no-store' } });
+  if (!arg?.scheme) return NextResponse.json({ ok:true, items: [], authorId: arg?.authorId ?? null }, { headers: { 'Cache-Control':'no-store' } });
 
   const statuses = await prisma.cQStatus.findMany({ where: { argumentId: arg.id } });
   const byKey = new Map(statuses.map(s => [s.cqKey, s.status]));
@@ -41,8 +41,12 @@ export async function GET(_req: Request, { params }: { params:{ id:string } }) {
       text: cq.text,
       attackType: cq.attackType,
       targetScope: cq.targetScope,
+      premiseType: cq.premiseType,
       status: byKey.get(cqKey) ?? "open"
     };
   });
-  return NextResponse.json({ ok:true, items }, { headers: { 'Cache-Control':'no-store' } });
+  // `authorId` is the ARGUMENT's author (Argument.authorId), used by the CQ
+  // modal's role detection (is the viewer the author?). Distinct from the acting
+  // user that the UI passes for write operations.
+  return NextResponse.json({ ok:true, items, authorId: arg.authorId }, { headers: { 'Cache-Control':'no-store' } });
 }

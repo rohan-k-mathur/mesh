@@ -474,7 +474,7 @@ function ThreadCard({
 
           {/* Content */}
           <div className="mb-3">
-            <p className="text-sm text-gray-800 leading-relaxed">
+            <p className="text-sm text-gray-800 font-medium leading-relaxed">
               {node.text}
             </p>
           </div>
@@ -505,7 +505,7 @@ function ThreadCard({
             </div>
           )}
 
-          {/* Support bar */}
+          {/* Support bar
           {node.support != null && (
             <div className="mb-3">
               <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
@@ -515,7 +515,7 @@ function ThreadCard({
                 />
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Actions */}
           <div className="flex items-center gap-3">

@@ -197,22 +197,22 @@ const postAssumption = React.useCallback(
   }, []);
 
   const postPA = React.useCallback(async (body: any, signal?: AbortSignal) => {
-    const p = await fetch('/api/aif/preferences', {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({
-    deliberationId,
-    createdById: authorId,
-    schemeKey: null, // or e.g., 'source_track_record'
-    preferred:    { kind: 'RA', id: body.preferredArgumentId  },
-    dispreferred: { kind: 'RA', id: body.dispreferredArgumentId }
-  })
-});
-if (!p.ok) {
-  const j = await p.json().catch(() => ({}));
-  throw new Error(j?.error || `HTTP ${p.status}`);
-}
-  }, [authorId, deliberationId]);
+    // Phase 0.2: consolidated onto /api/pa (auth'd; derives createdById server-side).
+    const p = await fetch('/api/pa', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        deliberationId,
+        preferredArgumentId: body.preferredArgumentId,
+        dispreferredArgumentId: body.dispreferredArgumentId,
+      }),
+      signal,
+    });
+    if (!p.ok) {
+      const j = await p.json().catch(() => ({}));
+      throw new Error(j?.error || `HTTP ${p.status}`);
+    }
+  }, [deliberationId]);
   
   const fire = React.useCallback(async (kind: 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES') => {
     if (busy) return;

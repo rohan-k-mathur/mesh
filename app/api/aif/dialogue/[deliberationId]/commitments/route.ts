@@ -61,23 +61,9 @@ export async function GET(
       );
     }
 
-    // Check room access if deliberation has a roomId
-    if (deliberation.roomId) {
-      // @ts-ignore - roomMember exists but types not yet refreshed
-      const roomMember = await prisma.roomMember.findFirst({
-        where: {
-          roomId: deliberation.roomId,
-          userId: userId
-        }
-      });
-
-      if (!roomMember) {
-        return NextResponse.json(
-          { error: "Access denied to this deliberation" },
-          { status: 403 }
-        );
-      }
-    }
+    // TODO: Add room access check when RoomMember model is available.
+    // The schema currently has no RoomMember model, so access is gated only
+    // by authentication above (matching the commitment-analytics route).
 
     // Get commitment stores (with caching and pagination)
     const result = await getCommitmentStores(

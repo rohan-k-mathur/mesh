@@ -81,7 +81,6 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     color: "purple",
     schemeKeys: [
       "practical_reasoning",
-      "value_based_practical_reasoning",
       "value_based_pr",
       "negative_consequences",
       "positive_consequences",
@@ -155,7 +154,7 @@ export const semanticClusters: Record<string, SemanticCluster> = {
     icon: "◎",
     color: "red",
     schemeKeys: [
-      "value_based_practical_reasoning",
+      "value_based_pr",
       "commitment",
       "fairness",
       "two_wrongs",

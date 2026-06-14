@@ -1078,6 +1078,7 @@ const {
           onOpenChange={sheetActions.setRight}
           deliberationId={deliberationId}
           authorId={authorId || ""}
+          currentUserId={currentUserId}
           selectedArgument={selectedArgumentForActions}
           onRefresh={() => {
             // Increment refresh counter to force AIFArgumentsListPro revalidation

@@ -19,8 +19,25 @@ async function ensureArgumentForClaim(deliberationId: string, claimId: string) {
   return a.id;
 }
 
-/** Import minimal AIF JSON-LD produced by our exporter. */
+/**
+ * Import minimal AIF produced by `lib/aif/export.ts` — the `{ nodes, edges }`
+ * shape with scalar `@type`, a `text` field on I-nodes, and edges carrying a
+ * separate `role` field.
+ *
+ * NOTE (issue K / decision Q5 in PA_NODE_PREFERENCE_INTEGRATION_ROADMAP): the
+ * `@graph` JSON-LD emitted by `lib/aif/jsonld.ts` uses *different* conventions
+ * (array `@type`, `aif:text`, role-as-`@type` edges) and is NOT consumable here.
+ * `/api/batch/aif` previously passed that raw `@graph` straight in, so
+ * `graph.nodes` was undefined and this threw a cryptic `undefined.map`. We now
+ * fail fast with a clear message until the two formats are unified.
+ */
 export async function importAifJSONLD(deliberationId: string, graph: any) {
+  if (!graph || !Array.isArray(graph.nodes)) {
+    throw new Error(
+      "importAifJSONLD expects { nodes, edges } from lib/aif/export.ts. " +
+        "A raw JSON-LD { '@graph': [...] } (lib/aif/jsonld.ts) is not yet supported — see issue K / Q5.",
+    );
+  }
   const nodeById = new Map(graph.nodes.map((n:any) => [n['@id'], n]));
   const typeOf = (id: string) => nodeById.get(id)?.['@type'];
   const I_nodes = graph.nodes.filter((n:any) => n['@type'] === 'aif:InformationNode');
@@ -163,16 +180,17 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
       console.warn(`[AIF Import] Unknown preference scheme "${schemeKey}" on PA-node ${paId}, using null`);
     }
     
-    // Create PreferenceApplication
+    // Create PreferenceApplication.
+    // NOTE: the schema has no `preferredKind`/`dispreferredKind` columns — the
+    // element kind is implied by which *Id field is populated. Writing those
+    // phantom fields previously made this create() throw against real Prisma.
     await prisma.preferenceApplication.create({
       data: {
         deliberationId,
         createdById: 'importer',
         schemeId: scheme?.id ?? null,
-        preferredKind: prefType === 'aif:RA' ? 'ARGUMENT' : 'CLAIM',
         preferredArgumentId: prefType === 'aif:RA' ? raMap.get(prefEdge.from) ?? null : null,
         preferredClaimId: prefType === 'aif:InformationNode' ? claimMap.get(prefEdge.from) ?? null : null,
-        dispreferredKind: dispType === 'aif:RA' ? 'ARGUMENT' : 'CLAIM',
         dispreferredArgumentId: dispType === 'aif:RA' ? raMap.get(dispEdge.to) ?? null : null,
         dispreferredClaimId: dispType === 'aif:InformationNode' ? claimMap.get(dispEdge.to) ?? null : null,
       }

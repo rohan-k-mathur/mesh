@@ -88,22 +88,30 @@ async function getFormulaFromClaim(claimId: string): Promise<string | null> {
 }
 
 /**
- * Map Argument ID → Rule ID
- * Arguments are built from defeasible rules; extract the rule ID
- * 
+ * Map Argument ID → ASPIC+ rule ID.
+ *
+ * Canonical rule key (PA_NODE_PREFERENCE_INTEGRATION_ROADMAP decision Q1) is the
+ * RA-node id `RA:<argumentId>`. This is exactly the defeasible-rule id assigned
+ * during argument construction: `lib/aif/translation/aifToAspic.ts` builds rules
+ * with `id: ra.id`, and `app/api/aspic/evaluate/route.ts` sets the RA node id to
+ * `RA:<argumentId>`. The two layers MUST agree on this key or rule preferences
+ * silently never match (issue A).
+ *
+ * Previously this returned `argument.scheme.id`, which never matched the
+ * `RA:<argumentId>` rule ids, so every stored rule preference was inert.
+ *
  * @param argumentId The argument ID to look up
- * @returns The rule/scheme ID or null if not found
+ * @returns The `RA:<argumentId>` rule key, or null if the argument is missing
  */
 async function getRuleIdFromArgument(argumentId: string): Promise<string | null> {
   const argument = await prisma.argument.findUnique({
     where: { id: argumentId },
-    include: { scheme: true },
+    select: { id: true },
   });
 
-  if (!argument?.scheme) return null;
+  if (!argument) return null;
 
-  // Use scheme ID as rule ID (schemes are defeasible rules in ASPIC+)
-  return argument.scheme.id;
+  return `RA:${argument.id}`;
 }
 
 /**

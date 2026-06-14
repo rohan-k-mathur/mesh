@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { askCQ, getArgumentCQsWithProvenance } from "@/lib/client/aifApi";
+import { CqInsightChips } from "@/components/schemes/CqInsightChips";
 import CQResponseForm from "@/components/claims/CQResponseForm";
 import CQResponsesList from "@/components/claims/CQResponsesList";
 import CQActivityFeed from "@/components/claims/CQActivityFeed";
@@ -40,6 +41,7 @@ type CQItem = {
   status: "open" | "answered";
   attackType: string;
   targetScope: string;
+  premiseType?: string | null; // Carneades premise type (ASSUMPTION auto-waives)
   inherited?: boolean; // Phase 6: Whether this CQ comes from a parent scheme
   sourceSchemeId?: string; // Phase 6: Parent scheme ID
   sourceSchemeName?: string; // Phase 6: Parent scheme name
@@ -63,6 +65,8 @@ export function SchemeSpecificCQsModal({
   meta,
   onRefresh,
   triggerButton,
+  open: controlledOpen,
+  onOpenChange,
 }: {
   argumentId: string;
   deliberationId: string;
@@ -72,6 +76,10 @@ export function SchemeSpecificCQsModal({
   meta?: AifMeta;
   onRefresh: () => void;
   triggerButton?: React.ReactNode;
+  // Optional controlled mode: when `open` is provided, the parent owns the
+  // open state and no internal trigger is rendered (use a separate button).
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   // Role detection: is the current user the argument author?
   // Convert both to strings to ensure type compatibility
@@ -86,7 +94,16 @@ export function SchemeSpecificCQsModal({
   //   authorIdType: typeof authorId,
   //   stringComparison: String(currentUserId) === String(authorId),
   // });
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = React.useCallback(
+    (next: boolean) => {
+      if (!isControlled) setInternalOpen(next);
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange]
+  );
   const [expandedCQ, setExpandedCQ] = React.useState<string | null>(null);
   const [localCqs, setLocalCqs] = React.useState<CQItem[]>(cqs);
   const [posting, setPosting] = React.useState<string | null>(null);
@@ -361,9 +378,11 @@ export function SchemeSpecificCQsModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {triggerButton || defaultTrigger}
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {triggerButton || defaultTrigger}
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 custom-scrollbar">
         <DialogHeader className="space-y-2 pb-4 border-b border-slate-200">
@@ -611,6 +630,17 @@ export function SchemeSpecificCQsModal({
                         >
                           {cq.text}
                         </p>
+
+                        {/* Session 11b items 2/4/5 — shared insight chips
+                            (divergence type, CQ→scheme cross-references,
+                            presumption hint). Same component as the claim-level
+                            CriticalQuestionsV3 surface. */}
+                        <CqInsightChips
+                          schemeKey={meta?.scheme?.key ?? ""}
+                          cqKey={cq.cqKey}
+                          premiseType={cq.premiseType}
+                          satisfied={cq.status === "answered"}
+                        />
 
                         {/* Phase 8: Dialogue Move count badges */}
                         {((cq.whyCount ?? 0) > 0 || (cq.groundsCount ?? 0) > 0) && (
@@ -910,7 +940,7 @@ export function SchemeSpecificCQsModal({
                               </div>
                               <CQResponsesList
                                 cqStatusId={cq.id}
-                                currentUserId={authorId}
+                                currentUserId={currentUserId ?? authorId}
                                 canModerate={false}
                                 onEndorse={(responseId: string) => {
                                   setSelectedResponseForEndorse(responseId);

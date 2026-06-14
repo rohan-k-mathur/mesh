@@ -9,10 +9,19 @@ export type ArgSchemeWithCQs = {
 };
 
 
-export const ArgCQSchema = z.object({
-  key: z.string().min(1),
-  text: z.string().min(1),
-});
+export const ArgCQSchema = z
+  .object({
+    // Some scheme `cq` JSON uses `key`, others use `cqKey` (e.g. seed.practical-
+    // reasoning.ts writes `cqKey`). Accept either and normalize to `key` so the
+    // CQ panel renders every scheme, not only the `key`-shaped minority.
+    key: z.string().min(1).optional(),
+    cqKey: z.string().min(1).optional(),
+    text: z.string().min(1),
+  })
+  .refine((c) => !!(c.key ?? c.cqKey), {
+    message: "cq requires `key` or `cqKey`",
+  })
+  .transform((c) => ({ key: (c.key ?? c.cqKey) as string, text: c.text }));
 
 export const ArgCQArraySchema = z.array(ArgCQSchema);
 

@@ -57,3 +57,6 @@ node_modules/
 # Multi-agent deliberation experiment runtime artifacts (bot tokens, etc.)
 experiments/*/runtime/
 .env.bak
+
+# Claude Code local (per-user) settings
+.claude/settings.local.json
