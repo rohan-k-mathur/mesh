@@ -35,6 +35,9 @@ import {
   getCQEvidenceGuidance,
   getPremiseTypeDisplay,
 } from "@/lib/utils/cq-burden-helpers";
+// Session 11b items 2 + 5 — CQ→scheme cross-references and the divergence-type
+// read-model, rendered via the shared CqInsightChips component.
+import { CqInsightChips } from "@/components/schemes/CqInsightChips";
 import {
   CheckCircle2,
   Circle,
@@ -126,6 +129,9 @@ async function trySearchClaims(
     return [];
   }
 }
+
+// Session 11b item 5 — divergence-type chip styling now lives in the shared
+// CqInsightChips component (rendered on both CQ surfaces).
 
 export default function CriticalQuestionsV3({
   targetType,
@@ -729,6 +735,16 @@ export default function CriticalQuestionsV3({
                             )}
                           </div>
                         )}
+
+                        {/* Session 11b items 2/4/5 — divergence type, CQ→scheme
+                            cross-references, and the presumption hint (shared
+                            component; renders independently of the burden block). */}
+                        <CqInsightChips
+                          schemeKey={scheme.key}
+                          cqKey={cq.key}
+                          premiseType={cq.premiseType}
+                          satisfied={cq.satisfied}
+                        />
 
                         {cq.satisfied && cq.groundsText && (
                           <div className="mt-2 p-3 bg-white rounded-lg border border-emerald-200">

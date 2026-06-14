@@ -7,7 +7,8 @@
 - **positive-settlement:** a translation `⟦·⟧₊` extending [`buildDisputeDesign`](../../lib/bridge/dispute.ts) into the **additive** Ludics fragment (`&`/`⊕`) together with a keystone-style lemma showing the preferred (resp. stable) discussion game of Modgil–Caminada is strategy-preservingly isomorphic to interaction of the additively-translated designs — migrate to [`../02_THEOREMS_AND_PROOFS/`](../02_THEOREMS_AND_PROOFS/)
 - **negative-settlement:** a finite AF whose preferred/stable acceptance cannot be recovered by **any** additive quantifier over `stepInteraction`-orthogonality of the translated designs — i.e. the additive connectives are shown insufficient (or unnecessary) to capture the game branching — restricting the bridge permanently to the grounded fragment
 - **bibliography:** Modgil & Caminada 2009 (preferred discussion games); Vreeswijk & Prakken 2000 (credulous/skeptical dispute games); Caminada 2006; Girard 2001 *Locus Solum* §"additives"; in-repo [T005](../02_THEOREMS_AND_PROOFS/T005-grounded-ludics-keystone.md), [session 02 §1](../10_IDEATION_SESSIONS/02-foundational-bridge-dung-ludics-2026-06-02.md)
-- **last-reviewed:** 2026-06-03
+- **scoping-session:** [session 12 — the additive frontier](../10_IDEATION_SESSIONS/12-additive-frontier-preferred-stable-multiagent-2026-06-14.md) (clusters this conjecture's *vertical / semantics* axis with the *horizontal / participant* axis [C002](C002-reading-c-conservative.md) under one shared `&`/`⊕` translation layer; grades stable as tractable and preferred as the maximality obstruction; fixes the build order)
+- **last-reviewed:** 2026-06-14
 
 ## Statement
 

@@ -33,7 +33,7 @@ import {
   Network, // Week 5 Task 5.1: For ArgumentNetAnalyzer button
 } from 'lucide-react';
 
-import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifApi';
+import { listSchemes, askCQ, exportAif } from '@/lib/client/aifApi';
 import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { ClaimPicker } from '@/components/claims/ClaimPicker';
@@ -446,7 +446,7 @@ function Controls({
     <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1">
-          <h2 className="text-lg font-semibold text-slate-900">Arguments (AIF)</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Arguments</h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -593,16 +593,23 @@ function RowImpl({
   onViewChainGraph?: (chainId: string) => void; // Task 1.6: Chain participation graph callback
 }) {
   const [open, setOpen] = React.useState(false);
-  const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
+  const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string; premiseType?: string | null }>>([]);
+  const [cqAuthorId, setCqAuthorId] = React.useState<string | null>(null);
   const [showCopied, setShowCopied] = React.useState(false);
   const [cqsLoaded, setCqsLoaded] = React.useState(false);
 
-  // Lazy load CQs when modal opens
+  // Lazy load CQs when modal opens. Uses the standardized argument-CQ endpoint
+  // (`/api/arguments/[id]/cqs`) so the shape matches the SchemeSpecificCQsModal
+  // CQItem contract (cqKey/text/status/attackType/targetScope/premiseType).
   const loadCQs = React.useCallback(async () => {
     if (cqsLoaded) return;
     try {
-      const items = await getArgumentCQs(a.id);
-      setCqs(items || []);
+      const res = await fetch(`/api/arguments/${a.id}/cqs`, { cache: 'no-store' });
+      const j = await res.json().catch(() => ({ items: [] }));
+      setCqs(j.items || []);
+      // Prefer the real Argument.authorId returned by the endpoint for role
+      // detection (the AIF row's authorId can differ in format/value).
+      if (j.authorId != null) setCqAuthorId(String(j.authorId));
       setCqsLoaded(true);
     } catch (err) {
       console.error('[AIFArgumentsListPro] Failed to load CQs:', err);
@@ -822,40 +829,38 @@ function RowImpl({
           />
 
           {/* Scheme-specific Critical Questions Modal */}
-          {/* {meta?.scheme && (
-            <SchemeSpecificCQsModal
-              argumentId={a.id}
-              deliberationId={deliberationId}
-              authorId={a.authorId}
-              currentUserId={currentUserId || undefined}
-              cqs={cqs}
-              meta={meta}
-              onRefresh={() => {
-                onRefreshRow(a.id);
-                setCqsLoaded(false); // Force reload CQs next time
-              }}
-              triggerButton={
-                <button
-                  onClick={loadCQs}
-                  className="
-                    inline-flex items-center gap-2 px-3 py-1.5 btnv2--rose rounded-lg text-xs
-                    bg-white text-slate-600 
-                    
-                    transition-all duration-200
-                  "
-                  title="View and answer critical questions for this argument scheme"
-                >
-                  <LetterQOctagon className="w-4 h-4" />
-                  CQs
-                  {meta.cq && (
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-rose-100 text-slate-700 text-[10px] font-bold">
-                      {meta.cq.satisfied}/{meta.cq.required}
-                    </span>
-                  )}
-                </button>
-              }
-            />
-          )} */}
+          <SchemeSpecificCQsModal
+            argumentId={a.id}
+            deliberationId={deliberationId}
+            authorId={cqAuthorId ?? a.authorId}
+            currentUserId={currentUserId || undefined}
+            cqs={cqs}
+            meta={meta}
+            onRefresh={() => {
+              onRefreshRow(a.id);
+              setCqsLoaded(false); // Force reload CQs next time
+            }}
+            triggerButton={
+              <button
+                onClick={loadCQs}
+                className="
+                  inline-flex items-center gap-2 px-3 py-1.5 btnv2 rounded-lg text-xs font-medium
+                  bg-white text-slate-600 border border-slate-200
+                  hover:border-slate-300 hover:bg-slate-50
+                  transition-all duration-200
+                "
+                title="View and answer critical questions for this argument scheme"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Critical Questions
+                {meta?.cq && meta.cq.required > 0 && (
+                  <span className=" px-1.5 py-0.5 rounded-full bg-indigo-100 text-slate-700 text-[10px] font-bold">
+                    {meta.cq.satisfied}/{meta.cq.required}
+                  </span>
+                )}
+              </button>
+            }
+          />
 
           {/* Week 5 Task 5.1: ArgumentNetAnalyzer button */}
           {meta?.scheme && onAnalyzeArgument && (

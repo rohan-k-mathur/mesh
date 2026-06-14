@@ -2,6 +2,7 @@
 /* tslint:disable no-console */
 import { PrismaClient, AttackType, TargetScope } from '@prisma/client';
 import { CriticalQuestion } from '@prisma/client';
+import { premiseTypeFor } from '../lib/schemes/practical-premise-types';
 const prisma = new PrismaClient();
 
 type CqDef = {
@@ -33,7 +34,7 @@ const CATALOG: SchemeDef[] = [
     summary: 'From a goal/value and a means, infer that one ought to act.',
     purpose: 'action',
     source: 'internal',
-    materialRelation: 'cause',
+    materialRelation: 'practical',
     reasoningType: 'practical',
     ruleForm: 'defeasible_MP',
     conclusionType: 'ought',
@@ -173,6 +174,10 @@ async function upsertScheme(def: SchemeDef) {
 
   // Ensure CriticalQuestion rows (unique per (schemeId, cqKey))
   for (const cq of def.cqs) {
+    // Item 4: Carneades premiseType (open-by-default ASSUMPTION CQs auto-waive).
+    // Only set when there is a deliberate mapping; unmapped CQs stay as-is
+    // (ORDINARY default per Walton 2008 §11.1).
+    const premiseType = premiseTypeFor(def.key, cq.cqKey);
     await prisma.criticalQuestion.upsert({
       // This requires @@unique([schemeId, cqKey]) in your schema (already present)
       where: { schemeId_cqKey: { schemeId: scheme.id, cqKey: cq.cqKey } },
@@ -184,6 +189,7 @@ async function upsertScheme(def: SchemeDef) {
         attackType: cq.attackType,
         targetScope: cq.targetScope,
         status: 'open',
+        ...(premiseType ? { premiseType } : {}),
       },
       create: {
         // Use the relation form → lands on CreateInput (no Unchecked noise)
@@ -195,6 +201,7 @@ async function upsertScheme(def: SchemeDef) {
         targetScope: cq.targetScope,
         status: 'open',
         openedById: 'seed', // optional, but nice for provenance
+        ...(premiseType ? { premiseType } : {}),
       },
     });
   }

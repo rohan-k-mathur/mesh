@@ -60,49 +60,15 @@ const SEEDS: SchemeSeed[] = [
       { cqKey: "basis",      text: "Is E’s assertion based on evidence?", attackType: "UNDERMINES", targetScope: "premise" },
     ],
   },
-  {
-    key: "practical_reasoning",
-    name: "Practical Reasoning (Goal→Means→Ought)",
-    purpose: "action",
-    source: "internal",
-    materialRelation: "practical",
-    reasoningType: "practical",
-    ruleForm: "defeasible_MP",
-    conclusionType: "ought",
-    cqs: [
-      { cqKey: "alternatives", text: "Are there better alternatives to A?", attackType: "UNDERCUTS", targetScope: "inference" },
-      { cqKey: "feasible",     text: "Is A feasible?", attackType: "UNDERCUTS", targetScope: "inference" },
-      { cqKey: "side_effects", text: "Does A have significant negative consequences?", attackType: "UNDERCUTS", targetScope: "inference" },
-    ],
-  },
-  {
-    key: "positive_consequences",
-    name: "Argument from Positive Consequences",
-    purpose: "action",
-    source: "internal",
-    materialRelation: "cause",
-    reasoningType: "inductive",
-    ruleForm: "defeasible_MP",
-    conclusionType: "ought",
-    cqs: [
-      { cqKey: "tradeoffs", text: "Are there offsetting negative consequences?", attackType: "UNDERCUTS", targetScope: "inference" },
-      { cqKey: "uncertain", text: "Are the claimed benefits uncertain?", attackType: "UNDERCUTS", targetScope: "inference" },
-    ],
-  },
-  {
-    key: "negative_consequences",
-    name: "Argument from Negative Consequences",
-    purpose: "action",
-    source: "internal",
-    materialRelation: "cause",
-    reasoningType: "inductive",
-    ruleForm: "defeasible_MP",
-    conclusionType: "ought",
-    cqs: [
-      { cqKey: "mitigate", text: "Can A’s harms be mitigated?", attackType: "UNDERCUTS", targetScope: "inference" },
-      { cqKey: "exaggerated", text: "Are the harms exaggerated or unlikely?", attackType: "UNDERCUTS", targetScope: "inference" },
-    ],
-  },
+  // NOTE (2026-06-12): the practical-reasoning family — `practical_reasoning`,
+  // `positive_consequences`, `negative_consequences` (plus `value_based_pr` and
+  // `slippery_slope`) — is owned by `scripts/seed.practical-reasoning.ts`, which
+  // carries the canonical Walton CQ sets (PR.*, PC.*, NC.*) and slot hints.
+  // Those entries were removed from this script to make that the single source of
+  // truth: both scripts upsert CQs by (schemeId, cqKey) without deleting stale
+  // rows, so duplicate entries with *different* cqKeys would accumulate (e.g. PR
+  // would end up with 3 thin + 6 canonical = 9 CQs). See
+  // RESEARCH_PROGRAMME/10_IDEATION_SESSIONS/11b-practical-reasoning-enhancements-2026-06-12.md (item 1).
   {
     key: "analogy",
     name: "Argument from Analogy",

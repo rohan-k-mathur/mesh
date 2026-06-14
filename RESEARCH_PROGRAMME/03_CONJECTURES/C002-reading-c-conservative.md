@@ -4,7 +4,8 @@
 - **ring:** core
 - **depends-on:** T002, C001
 - **linked-open-questions:** Q-002
-- **last-reviewed:** 2026-05-27
+- **scoping-session:** [session 12 — the additive frontier](../10_IDEATION_SESSIONS/12-additive-frontier-preferred-stable-multiagent-2026-06-14.md) (clusters this conjecture's *horizontal / participant* axis — multi-agent Reading C as a `&`-superposition of opponents — with the *vertical / semantics* axis [C011](C011-additive-preferred-games-bridge.md) under one shared additive `&`/`⊕` treatment; flags the `T004` promotion-filename collision with the established JSL-fragment-bridge T004)
+- **last-reviewed:** 2026-06-14
 
 ## Statement
 

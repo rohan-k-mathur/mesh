@@ -144,7 +144,7 @@
 //             S.get('The city should install protected bike lanes on Maple Avenue'),
 //             'safety: missing conclusionId'
 //           ),
-//           schemeKey: 'value_based_practical_reasoning',
+//           schemeKey: 'value_based_pr',
 //           cqKeys: [],                                       // String[]
 //         },
 //         select: { id: true },
@@ -666,7 +666,7 @@ export async function POST(_req: NextRequest) {
         diagramId: safetyDiagram.id,
         kind: 'presumptive',
         conclusionId: must(S.get('The city should install protected bike lanes on Maple Avenue'), 'safety: missing conclusion'),
-        schemeKey: 'value_based_practical_reasoning',
+        schemeKey: 'value_based_pr',
         cqKeys: [],
       },
       select: { id: true }

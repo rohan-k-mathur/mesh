@@ -13,6 +13,7 @@ import {
   Target,
   AlertCircle,
   AlertTriangle,
+  HelpCircle,
   Sparkles,
   PanelBottomOpen,
   StepForward,
@@ -34,7 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { AttackMenuPro } from "./AttackMenuPro";
 import { ArgumentAttackModal } from "./ArgumentAttackModal";
 import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
-import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
+import { SchemeSpecificCQsModal } from "./SchemeSpecificCQsModal";
 import { SchemeBreakdownModal } from "./SchemeBreakdownModal";
 import { DialogueStateBadge } from "@/components/dialogue/DialogueStateBadge";
 import { StaleArgumentBadge } from "@/components/arguments/StaleArgumentBadge";
@@ -262,10 +263,13 @@ function CQStatusPill({
   type?: "claim" | "argument";
   onClick?: () => void;
 }) {
-  const percentage = required > 0 ? Math.round((satisfied / required) * 100) : 0;
-  const isComplete = percentage === 100;
-  const colorClass = isComplete 
-    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" 
+  const hasData = required > 0;
+  const percentage = hasData ? Math.round((satisfied / required) * 100) : 0;
+  const isComplete = hasData && percentage === 100;
+  const colorClass = !hasData
+    ? "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+    : isComplete
+    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
     : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100";
 
   return (
@@ -276,10 +280,18 @@ function CQStatusPill({
         ${colorClass}
         text-xs font-medium transition-all duration-200
       `}
-      title={`${satisfied}/${required} critical questions satisfied`}
+      title={hasData ? `${satisfied}/${required} critical questions satisfied` : "View critical questions"}
     >
-      {isComplete ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-      <span>{type === "claim" ? "Claim" : "Arg"} CQ {percentage}%</span>
+      {!hasData ? (
+        <HelpCircle className="w-3 h-3" />
+      ) : isComplete ? (
+        <CheckCircle2 className="w-3 h-3" />
+      ) : (
+        <AlertCircle className="w-3 h-3" />
+      )}
+      <span>
+        {type === "claim" ? "Claim" : "Arg"} CQ{hasData ? ` ${percentage}%` : ""}
+      </span>
     </button>
   );
 }
@@ -541,6 +553,15 @@ export function ArgumentCardV2({
   // Fetch CQ data for the argument itself (argument-level CQs)
   const { data: argCqData } = useSWR(
     id ? `/api/cqs?targetType=argument&targetId=${id}` : null,
+    fetcher
+  );
+
+  // Argument-level scheme CQs (relational shape) for the SchemeSpecificCQsModal.
+  // Returns `{ items: CQItem[], authorId }` — the items are correctly shaped
+  // (cqKey/text/status/attackType/targetScope/premiseType) and `authorId` is the
+  // argument's real author for role detection.
+  const { data: schemeCqData, mutate: mutateSchemeCqs } = useSWR(
+    id && argCqDialogOpen ? `/api/arguments/${id}/cqs` : null,
     fetcher
   );
 
@@ -1619,11 +1640,31 @@ export function ArgumentCardV2({
         </DialogContent>
       </Dialog>
 
-      <ArgumentCriticalQuestionsModal
+      <SchemeSpecificCQsModal
         open={argCqDialogOpen}
         onOpenChange={setArgCqDialogOpen}
         argumentId={id}
         deliberationId={deliberationId}
+        authorId={schemeCqData?.authorId ?? authorId}
+        currentUserId={currentUserId}
+        cqs={schemeCqData?.items ?? []}
+        meta={{
+          scheme: (() => {
+            const primary = schemes?.[0];
+            if (primary) {
+              return { id: primary.schemeId, key: primary.schemeKey, name: primary.schemeName };
+            }
+            return schemeKey
+              ? { id: schemeKey, key: schemeKey, name: schemeName ?? schemeKey }
+              : null;
+          })(),
+          conclusion: conclusion ? { id: conclusion.id, text: conclusion.text } : null,
+          premises: premises ?? null,
+        }}
+        onRefresh={() => {
+          mutateSchemeCqs();
+          onAnyChange?.();
+        }}
       />
 
       {/* Scheme Breakdown Modal */}

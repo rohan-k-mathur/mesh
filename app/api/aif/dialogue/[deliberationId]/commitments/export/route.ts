@@ -58,19 +58,9 @@ export async function GET(
     }
 
     if (deliberation.roomId) {
-      const member = await prisma.$queryRaw<Array<{ count: bigint }>>`
-        SELECT COUNT(*) as count
-        FROM "RoomMember"
-        WHERE "roomId" = ${deliberation.roomId}
-          AND "userId" = ${userId}
-      `;
-
-      if (!member[0] || Number(member[0].count) === 0) {
-        return NextResponse.json(
-          { error: "Access denied to this deliberation" },
-          { status: 403 }
-        );
-      }
+      // TODO: Add room access check when RoomMember model is available.
+      // The schema currently has no RoomMember model/table, so access is gated
+      // only by authentication above (matching the commitments route).
     }
 
     // Get commitment stores (all commitments for export)

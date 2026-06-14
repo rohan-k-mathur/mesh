@@ -53,6 +53,36 @@ Filed as `T-NNN-scheme-rivalry-attack.md` with `closes: Q-016` and
 relaxes the four-cell enum on `argument_scheme_cq.attackType` to add
 `RIVALS` (or a comparable label decided at implementation time).
 
+## Candidate witness supplied (2026-06-12, [Session 11](../10_IDEATION_SESSIONS/11-lumer-practical-arguments-2026-06-12.md) §8)
+
+The Lumerian material supplies a **ready-made candidate witness** for the
+positive settlement, stronger than a blind catalogue hunt: **Burkholder's
+deductivist reconstruction of Pascal's wager** — Pascal pressed into modus
+ponens (the "deductive minimum") — is **decision-theoretic-vs-deductive
+scheme-rivalry** on one claim. The decision-theoretic scheme
+(`practical/pascal`, whose behaviour is *profile-relative*) and the deductive
+reconstruction (whose behaviour is *monotonic / truth-functional*) target the
+*same* conclusion with **disjoint behaviours**, and no Pollock primitive applies
+(same conclusion ⇒ no rebut; independent premises ⇒ no undermine; both inferences
+apply correctly ⇒ no undercut). Lumer additionally supplies the historical corpus
+*and* the adjudication criteria for criterion 3 (clarity, authenticity,
+immanence, situational adequacy — which rival classification wins).
+
+**Boundary sharpening (not a narrowing).** Session 11 resolved an apparent
+tension with the practical-argument spec's §4, which keeps **profile-rivalry**
+(the same practical argument netted under two profiles yielding different
+verdicts — a `PROBE_PROFILE` flip) *out* of the attack typology. Profile-rivalry
+and scheme-rivalry are about **different objects**: profile-rivalry is a
+non-attack sensitivity datum over *which profile binds* (both nettings correct);
+scheme-rivalry is behaviour-disjointness between *distinct schemes*. The §4
+exclusion therefore **sharpens** C009's positive test — it removes the
+profile-sensitivity *false-positive* class — rather than narrowing C009's
+content. Criterion 2 above must be read as genuine behaviour-disjointness between
+distinct schemes, not profile-sensitivity within one.
+
+Handed to [session 10](../10_IDEATION_SESSIONS/10-scheme-rivalry-fourth-attack-2026-06-12.md)
+as a lead for the catalogue-witness search (step 3 of its attack-plan spine).
+
 ## Negative settlement
 
 Either:
