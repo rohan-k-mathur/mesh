@@ -5,11 +5,13 @@ import { importAifJSONLD } from '@/lib/aif/import';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Count @graph items for validate-mode reporting. Nodes carry an `@id`
+// (RA `@type` is an array, so don't filter on `@type` being a string); edges
+// are the role items carrying `aif:from`/`aif:to`.
 function normalize(jsonld: any) {
-  const nodes = (jsonld?.['@graph'] ?? [])
-    .filter((x:any) => typeof x['@id'] === 'string' && typeof x['@type'] === 'string');
-  const edges = (jsonld?.['@graph'] ?? [])
-    .filter((x:any) => typeof x['@type'] === 'string' && /aif:(Premise|Conclusion|ConflictingElement|ConflictedElement|PreferredElement|DispreferredElement)$/i.test(x['@type']));
+  const graph = (jsonld?.['@graph'] ?? []) as any[];
+  const nodes = graph.filter((x: any) => typeof x?.['@id'] === 'string');
+  const edges = graph.filter((x: any) => x?.['aif:from'] && x?.['aif:to']);
   return { nodes, edges };
 }
 

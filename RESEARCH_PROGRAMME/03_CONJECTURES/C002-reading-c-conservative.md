@@ -30,7 +30,11 @@ fidelity-of-verdicts theorem. The proof must explicitly handle:
   Reading C absorbs the shift into the behaviour, Reading A models it as a
   player change.
 
-Filed as `T004-reading-c-conservative.md` with `closes: Q-002`.
+Filed as `T012-reading-c-conservative.md` with `closes: Q-002`. (Originally
+planned as `T004-…`; renumbered 2026-06-14 to avoid colliding with the
+established JSL-fragment-bridge [T004](../02_THEOREMS_AND_PROOFS/T004-jsl-fragment-bridge.md).
+T012 is the next free theorem id — highest current is
+[T011](../02_THEOREMS_AND_PROOFS/T011-possibilistic-cohomology-iso-monodromy.md).)
 
 ## Negative settlement
 

@@ -6,6 +6,7 @@
  */
 
 import { prisma } from "@/lib/prismaclient";
+import { listableDeliberationWhere } from "@/lib/deliberations/visibility";
 import {
   CrossRoomSearchResult,
   CrossRoomSearchParams,
@@ -21,7 +22,13 @@ import {
  * Search claims across all deliberations via canonical claim registry
  */
 export async function searchClaimsAcrossRooms(
-  params: CrossRoomSearchParams
+  params: CrossRoomSearchParams,
+  /**
+   * Visibility key: the stringified internal `User.id` of the viewer (or null
+   * if anonymous). Claim instances in non-public deliberations the viewer is
+   * not a member of are filtered out. See lib/deliberations/visibility.ts.
+   */
+  viewerId: string | null = null,
 ): Promise<CrossRoomSearchResult[]> {
   const { query, excludeDeliberationId, fields, globalStatus, limit = 20 } = params;
 
@@ -48,9 +55,14 @@ export async function searchClaimsAcrossRooms(
     where,
     include: {
       instances: {
-        where: excludeDeliberationId
-          ? { deliberationId: { not: excludeDeliberationId } }
-          : undefined,
+        where: {
+          AND: [
+            { deliberation: listableDeliberationWhere(viewerId) },
+            ...(excludeDeliberationId
+              ? [{ deliberationId: { not: excludeDeliberationId } }]
+              : []),
+          ],
+        },
         include: {
           claim: {
             select: {

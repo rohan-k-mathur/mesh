@@ -24,7 +24,7 @@ export interface ExplainData {
 
 interface ConfidenceBreakdownProps {
   explain: ExplainData;
-  mode?: "min" | "product" | "ds";
+  mode?: "min" | "product" | "ds" | "logodds";
 }
 
 export function ConfidenceBreakdown({ explain, mode = "product" }: ConfidenceBreakdownProps) {

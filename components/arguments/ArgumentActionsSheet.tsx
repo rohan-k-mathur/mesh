@@ -3,11 +3,12 @@
 
 import * as React from "react";
 import { FloatingSheet } from "../ui/FloatingSheet";
-import { Zap, GitBranch, Shield, Target, MessageSquare } from "lucide-react";
+import { Zap, GitBranch, Shield, Target, MessageSquare, Scale } from "lucide-react";
 import clsx from "clsx";
 import useSWR from "swr";
 import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
 import { AttackMenuProV2 } from "./AttackMenuProV2";
+import { PreferenceAttackModal } from "@/components/agora/PreferenceAttackModal";
 import { SchemeSpecificCQsModal } from "./SchemeSpecificCQsModal";
 import { CommunityDefenseMenu } from "@/components/agora/CommunityDefenseMenu";
 
@@ -311,6 +312,9 @@ interface AttackPanelProps {
 }
 
 function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPanelProps) {
+  // Phase 2.2: preference (PA) creation, consolidated on /api/pa via the modal.
+  const [prefOpen, setPrefOpen] = React.useState(false);
+
   // Prepare target data for AttackMenuProV2
   const target = React.useMemo(() => {
     if (!argument.conclusionClaimId || !argument.conclusionText) {
@@ -392,12 +396,33 @@ function AttackPanel({ deliberationId, authorId, argument, onRefresh }: AttackPa
                 </div>
         </div>
                 {/* Attack Menu Component */}
-        <div className="p-4 mt-4 rounded-lg bg-white w-fit border border-white/10">
+        <div className="p-4 mt-4 rounded-lg bg-white w-fit border border-white/10 flex items-center gap-2">
           <AttackMenuProV2
             deliberationId={deliberationId}
             authorId={authorId}
             target={target}
             onDone={() => {
+              onRefresh?.();
+            }}
+          />
+
+          {/* Phase 2.2: express a preference (PA-node) over another argument */}
+          <button
+            type="button"
+            onClick={() => setPrefOpen(true)}
+            className="btnv2--violet inline-flex items-center gap-2 px-2 py-2 rounded-lg text-xs"
+            title="Express a preference between this argument and another"
+          >
+            <Scale className="w-3 h-3" />
+            Preference
+          </button>
+          <PreferenceAttackModal
+            open={prefOpen}
+            onOpenChange={setPrefOpen}
+            deliberationId={deliberationId}
+            sourceArgumentId={target.id}
+            onSuccess={() => {
+              setPrefOpen(false);
               onRefresh?.();
             }}
           />

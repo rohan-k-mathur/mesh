@@ -149,7 +149,7 @@ export function DeliberationStateCard({
       </div>
 
       {/* ── Stat tiles: own row, wraps cleanly on narrow widths ──── */}
-      <div className="flex items-center gap-x-4 gap-y-2 flex-wrap pt-2 border-t border-orange-200/70">
+      <div className="flex bg-white items-center gap-x-4 gap-y-2 flex-wrap pt-2 border-b border-b-orange-500/70 border-t border-t-orange-500/70">
         <Stat
           label="arguments"
           value={fp.argumentCount}
@@ -187,11 +187,11 @@ export function DeliberationStateCard({
 
       {/* ── Top frontier + missing move (one-liners) ─────────────── */}
       {(topFrontier || topMissing) && (
-        <div className="mt-3 pt-3 border-t border-orange-200/70 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className=" mt-4  grid grid-cols-1 md:grid-cols-2 gap-2">
           {topFrontier && (
             <button
               type="button"
-              className="text-left border-orange-300 text-xs text-slate-700 rounded-xl btnv2--ghost bg-orange-50 hover:bg-orange-50  px-3 py-1 transition"
+              className="text-left w-fit border-orange-400 text-xs text-slate-700 rounded-xl btnv2--ghost bg-orange-50 hover:bg-orange-50  px-3 py-1 transition"
               onClick={() => handleSeek("frontier")}
               data-testid="top-frontier-item"
             >
@@ -202,7 +202,7 @@ export function DeliberationStateCard({
           {topMissing && (
             <button
               type="button"
-              className="text-left border-orange-300 text-xs text-slate-700 rounded-xl btnv2--ghost bg-orange-50 hover:bg-orange-50  px-2 py-1 transition"
+              className="text-left w-fit border-orange-400 text-xs text-slate-700 rounded-xl btnv2--ghost bg-orange-50 hover:bg-orange-50  px-3 py-1 transition"
               onClick={() => handleSeek("frontier")}
               data-testid="top-missing-move"
             >
@@ -233,10 +233,10 @@ function Stat({
 }) {
   const inner = (
     <div className="flex flex-col items-center min-w-[60px]" data-testid={testId}>
-      <div className="text-base font-semibold text-slate-900 tabular-nums leading-none">
+      <div className="text-[14px] font-medium text-slate-900 tabular-nums leading-none">
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-wide text-slate-500 mt-0.5">
+      <div className="text-[10px] uppercase tracking-wide text-slate-500 mt-1">
         {label}
       </div>
     </div>

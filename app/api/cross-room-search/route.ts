@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/util/supabase/server";
 import { searchClaimsAcrossRooms } from "@/lib/crossDeliberation/crossRoomSearchService";
+import { getCurrentUserId } from "@/lib/serverutils";
+import { normalizeUserId } from "@/lib/deliberations/visibility";
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,12 +31,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const results = await searchClaimsAcrossRooms({
-      query,
-      excludeDeliberationId,
-      fields,
-      limit: Math.min(limit, 50),
-    });
+    // Membership is keyed on the internal User.id, not the Supabase auth id.
+    const viewerId = normalizeUserId(await getCurrentUserId().catch(() => null));
+
+    const results = await searchClaimsAcrossRooms(
+      {
+        query,
+        excludeDeliberationId,
+        fields,
+        limit: Math.min(limit, 50),
+      },
+      viewerId,
+    );
 
     return NextResponse.json(results);
   } catch (error) {

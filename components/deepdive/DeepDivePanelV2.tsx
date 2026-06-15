@@ -18,6 +18,7 @@ import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DeliberationSettingsPanel } from "../deliberations/DeliberationSettingsPanel";
+import { DeliberationSettingsModal } from "../deliberations/DeliberationSettingsModal";
 import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
 import { DeliberationLoadingScreen } from "@/components/deliberations/DeliberationLoadingScreen";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
@@ -303,7 +304,8 @@ const [issueTargetId, setIssueTargetId] = useState<string | null>(null);
   const [thesisViewerOpen, setThesisViewerOpen] = useState(false);
   const [viewedThesisId, setViewedThesisId] = useState<string | null>(null);
 
-  // Note: Sheet persistence now handled by useSheetPersistence hook
+  // Settings modal (visibility + moderators)
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // Load leftSheetTab from localStorage (other sheet state managed by hook)
   useEffect(() => {
     try {
@@ -693,6 +695,14 @@ const {
       <div className="w-full">
         <DeliberationTitle deliberationId={deliberationId} hostName={hostName} />
       </div>
+
+      {/* Deliberation Settings Modal (visibility + moderators) */}
+      <DeliberationSettingsModal
+        deliberationId={deliberationId}
+        currentUserId={currentUserId}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
 
       {/* Floating Toggle Buttons */}
       <SheetToggleButton
@@ -1312,7 +1322,7 @@ const {
                 </label>
               </ChipBar> */}
 
-              <ChipBar>
+              {/* <ChipBar>
                 <label className="text-xs text-neutral-600 flex items-center gap-1">
                   Confidence:
                   <select
@@ -1324,11 +1334,11 @@ const {
                     <option value="min">Min</option>
                   </select>
                 </label>
-              </ChipBar>
+              </ChipBar> */}
 
               {/* Phase 3: DS Mode Toggle */}
             
-                <button
+                {/* <button
                   onClick={delibActions.toggleDsMode}
                   className={`
                     text-xs px-3 py-.5 rounded-md menuv2--lite transition-all duration-200
@@ -1340,10 +1350,10 @@ const {
                   title="Toggle Dempster-Shafer interval mode"
                 >
                   DS Mode: {delibState.dsMode ? 'ON' : 'OFF'}
-                </button>
+                </button> */}
              
              
-                <button
+                {/* <button
                   onClick={delibActions.toggleDelibSettings}
                   className={`
                     text-xs px-3 py-.5 rounded-md menuv2--lite transition-all duration-200
@@ -1355,7 +1365,7 @@ const {
                   title="Toggle Deliberation Settings Panel"
                 >
                   Settings: {delibState.delibSettingsOpen ? 'HIDE' : 'SHOW'}
-                </button>
+                </button> */}
              
             </div>
 
@@ -1363,7 +1373,7 @@ const {
               <Link href="/admin/schemes" target="_blank">
                 <button
                  
-                  className="flex  px-2 py-.5 items-center menuv2--lite  bg-white/50 rounded-md  h-8 text-xs text-slate-600 "
+                  className="flex  px-4 py-.5 items-center btnv2--ghost  bg-white rounded-full  h-8 text-xs text-slate-800 "
                   title="Manage Argumentation Schemes"
                 >
 
@@ -1374,7 +1384,7 @@ const {
             {/* Dialogue Timeline Button - Week 4 Task 4.3 */}
             <Link href={`/deliberation/${deliberationId}/dialoguetimeline`} target="_blank" rel="noopener noreferrer">
               <button
-                className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white/50 hover:bg-white/70 rounded-md transition-colors menuv2--lite h-8"
+                className="flex  px-4 py-.5 items-center btnv2--ghost  bg-white rounded-full  h-8 text-xs text-slate-800 "
                 title="Open Dialogue Timeline in new tab"
               >
                 {/* <MessageSquare className="w-4 h-4" /> */}
@@ -1385,15 +1395,25 @@ const {
             {/* Link to Agora*/}
             <Link href={`/agora`} target="_blank" rel="noopener noreferrer">
               <button
-                className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white/50 hover:bg-white/70 rounded-md transition-colors menuv2--lite h-8"
+                className="flex  px-4 py-.5 items-center btnv2--ghost  bg-white rounded-full  h-8 text-xs text-slate-800 "
                 title="Open Agora in new tab"
               >
                 {/* <MessageSquare className="w-4 h-4" /> */}
                 <span>Agora</span>
               </button>
             </Link>
-            
-            <DiscusHelpPage />
+
+            {/* Deliberation Settings (visibility + moderators) */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="flex px-3 py-.5 items-center gap-1.5 btnv2--ghost bg-white rounded-full h-8 text-xs text-slate-800"
+              title="Deliberation settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Settings</span>
+            </button>
+
+            {/* <DiscusHelpPage /> */}
             {delibState.pending && <div className="text-xs text-neutral-500">Computing…</div>}
           </div>
         </div>

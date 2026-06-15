@@ -2,8 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
+import { getCurrentUserId } from '@/lib/serverutils';
+import {
+  listableDeliberationWhere,
+  normalizeUserId,
+} from '@/lib/deliberations/visibility';
 
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const Q = z.object({
@@ -41,8 +46,15 @@ export async function GET(req: NextRequest) {
   }
 
   if (p.k === 'room') {
+    const userId = normalizeUserId(await getCurrentUserId().catch(() => null));
+    // Visibility: search only surfaces public deliberations (plus viewer's own).
     const rows = await prisma.deliberation.findMany({
-      where: like ? { title: { contains: like, mode: 'insensitive' } } : undefined,
+      where: {
+        AND: [
+          listableDeliberationWhere(userId),
+          like ? { title: { contains: like, mode: 'insensitive' } } : {},
+        ],
+      },
       select: { id:true, title:true },
       take: p.limit,
       orderBy: { id: 'desc' },

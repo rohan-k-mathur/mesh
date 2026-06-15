@@ -282,7 +282,10 @@ export async function GET(
           schemeName: primaryScheme?.scheme?.name,
           cqRequired: cqs?.required || 0,
           cqSatisfied: cqs?.satisfied || 0,
-          support: arg.confidence || 0.6,
+          // Raw authored argument confidence (intrinsic weight), not an evidential
+          // accrual score. Use ?? so a legitimate stored 0 is preserved and a
+          // missing value stays null (the badge hides instead of fabricating 60%).
+          confidence: arg.confidence ?? null,
           attacks: {
             REBUTS: arg.outgoingEdges.filter(e => e.attackSubtype === "REBUT").length,
             UNDERCUTS: arg.outgoingEdges.filter(e => e.attackSubtype === "UNDERCUT").length,
