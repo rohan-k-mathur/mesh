@@ -21,7 +21,7 @@ interface SupportBarProps {
   label?: string;
   claimId?: string;
   deliberationId?: string;
-  mode?: "min" | "product" | "ds";
+  mode?: "min" | "product" | "ds" | "logodds";
   showBreakdown?: boolean;
 }
 

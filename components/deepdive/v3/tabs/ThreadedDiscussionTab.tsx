@@ -47,6 +47,7 @@ import { CQStatusIndicator } from "@/components/aif/CQStatusIndicator";
 import { AttackBadge } from "@/components/aif/AttackBadge";
 import { PreferenceBadge } from "@/components/aif/PreferenceBadge";
 import { ArgumentCardV2 } from "@/components/arguments/ArgumentCardV2";
+import { SupportBar } from "@/components/evidence/SupportBar";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
 import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
 import { AIFArgumentWithSchemeComposer } from "@/components/arguments/AIFArgumentWithSchemeComposer";
@@ -60,8 +61,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { DeliberationTab } from "../hooks/useDeliberationState";
+import { useConfidenceOptional } from "@/components/agora/useConfidence";
 
 const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((r) => r.json());
+
+/** Fallback confidence accrual mode when no <ConfidenceProvider> is in scope. */
+const DEFAULT_CONFIDENCE_MODE: "min" | "product" | "logodds" = "logodds";
 
 /**
  * Unified thread node representing any discussion element
@@ -86,7 +91,7 @@ interface ThreadNode {
   schemeName?: string;
   cqRequired?: number;
   cqSatisfied?: number;
-  support?: number;
+  confidence?: number;
   attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
   preferences?: { preferredBy: number; dispreferredBy: number };
 
@@ -398,6 +403,9 @@ function ThreadCard({
   depth = 0,
   userNames,
   aifMetadata,
+  supportByClaim,
+  deliberationId,
+  confidenceMode,
 }: {
   node: ThreadNode;
   isExpanded: boolean;
@@ -410,6 +418,9 @@ function ThreadCard({
   depth?: number;
   userNames: Map<string, string>;
   aifMetadata: Map<string, any>;
+  supportByClaim: Map<string, { score: number; accepted: boolean }>;
+  deliberationId: string;
+  confidenceMode: "min" | "product" | "logodds";
 }) {
   const timestamp = new Date(node.timestamp);
   const hasResponses = node.responses && node.responses.length > 0;
@@ -417,6 +428,10 @@ function ThreadCard({
 
   // Get AIF metadata if available
   const aif = node.argumentId ? aifMetadata.get(node.argumentId) : null;
+
+  // Computed evidential support for this argument's conclusion claim (same
+  // source as DebateSheetReader's SupportBar — attack/CQ/mode-aware accrual).
+  const claimSupport = node.claimId ? supportByClaim.get(node.claimId) : undefined;
 
   // Calculate indent based on depth (max 3 levels)
   const indent = Math.min(depth, 3) * 2; // 2rem per level
@@ -480,7 +495,7 @@ function ThreadCard({
           </div>
 
           {/* Metadata badges */}
-          {(aif || node.support != null) && (
+          {(aif || node.confidence != null || claimSupport) && (
             <div className="flex flex-wrap gap-2 mb-3">
               {aif?.scheme && (
                 <SchemeBadge schemeKey={aif.scheme.key} schemeName={aif.scheme.name} />
@@ -497,25 +512,31 @@ function ThreadCard({
                   dispreferredBy={aif.preferences.dispreferredBy}
                 />
               )}
-              {node.support != null && (
-                <Badge variant="secondary" className="text-xs">
-                  Support: {(node.support * 100).toFixed(0)}%
+              {claimSupport?.accepted && (
+                <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
+                  Accepted
+                </span>
+              )}
+              {node.confidence != null && (
+                <Badge variant="secondary" className="text-xs" title="Author-supplied confidence prior (time-decayed); distinct from computed support">
+                  Confidence: {(node.confidence * 100).toFixed(0)}%
                 </Badge>
               )}
             </div>
           )}
 
-          {/* Support bar
-          {node.support != null && (
+          {/* Computed evidential support (attack/CQ/mode-aware accrual on the
+              conclusion claim — same source as the debate sheet's SupportBar) */}
+          {claimSupport && node.claimId && (
             <div className="mb-3">
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 transition-all"
-                  style={{ width: `${Math.max(0, Math.min(1, node.support)) * 100}%` }}
-                />
-              </div>
+              <SupportBar
+                value={claimSupport.score}
+                mode={confidenceMode}
+                claimId={node.claimId}
+                deliberationId={deliberationId}
+              />
             </div>
-          )} */}
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-3">
@@ -538,14 +559,14 @@ function ThreadCard({
               onClick={() => onReply(node)}
               className="text-xs text-gray-600 hover:underline"
             >
-              Reply
+              Comment
             </button>
-            <button 
+            {/* <button 
               onClick={() => onSupport(node)}
               className="text-xs text-gray-600 hover:underline"
             >
               Support
-            </button>
+            </button> */}
             {/* Only show Attack for arguments with conclusion claims */}
             {node.argumentId && node.claimId && (
               <button 
@@ -576,6 +597,9 @@ function ThreadCard({
               depth={depth + 1}
               userNames={userNames}
               aifMetadata={aifMetadata}
+              supportByClaim={supportByClaim}
+              deliberationId={deliberationId}
+              confidenceMode={confidenceMode}
             />
           ))}
         </div>
@@ -642,6 +666,12 @@ export function ThreadedDiscussionTab({
   onTabChange,
   className,
 }: ThreadedDiscussionTabProps) {
+  // Respect the global confidence toggle when a <ConfidenceProvider> is in
+  // scope (e.g. inside DeepDivePanelV2), so the discussion tab and debate sheet
+  // share the same accrual mode; fall back to the default otherwise.
+  const confidenceCtx = useConfidenceOptional();
+  const confidenceMode = confidenceCtx?.mode ?? DEFAULT_CONFIDENCE_MODE;
+
   const [viewMode, setViewMode] = useState<"timeline" | "analytics">("timeline");
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterScheme, setFilterScheme] = useState<string | null>(null);
@@ -714,7 +744,7 @@ export function ThreadedDiscussionTab({
           schemeName: item.schemeName,
           cqRequired: item.cqRequired,
           cqSatisfied: item.cqSatisfied,
-          support: item.support,
+          confidence: item.confidence,
           attacks: item.attacks,
           metadata: item.metadata,
         });
@@ -741,7 +771,7 @@ export function ThreadedDiscussionTab({
         schemeName: item.schemeName,
         cqRequired: item.cqRequired,
         cqSatisfied: item.cqSatisfied,
-        support: item.support,
+        confidence: item.confidence,
         attacks: item.attacks,
         preferences: item.preferences,
       }),
@@ -750,6 +780,37 @@ export function ThreadedDiscussionTab({
       }),
     }));
   }, [items]);
+
+  // Computed evidential support (attack/CQ/mode-aware accrual) for the
+  // conclusion claims of argument nodes — the same endpoint DebateSheetReader
+  // uses, so the discussion tab and debate sheet report the same "support".
+  const supportClaimIds = useMemo(() => {
+    const ids = new Set<string>();
+    allNodes.forEach((n) => {
+      if (n.type === "argument" && n.claimId) ids.add(n.claimId);
+    });
+    return Array.from(ids);
+  }, [allNodes]);
+
+  const { data: scoreData } = useSWR(
+    supportClaimIds.length
+      ? `/api/evidential/score?deliberationId=${deliberationId}&mode=${confidenceMode}&ids=${supportClaimIds.join(",")}`
+      : null,
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 10000 }
+  );
+
+  const supportByClaim = useMemo(() => {
+    const map = new Map<string, { score: number; accepted: boolean }>();
+    const rows = scoreData?.items ?? [];
+    for (const row of rows) {
+      if (row?.id == null) continue;
+      const score = typeof row.score === "number" ? row.score : row.bel ?? null;
+      if (score == null) continue;
+      map.set(row.id, { score, accepted: !!row.accepted });
+    }
+    return map;
+  }, [scoreData]);
 
   // Apply filters
   const filteredNodes = useMemo(() => {
@@ -791,7 +852,9 @@ export function ThreadedDiscussionTab({
 
     // Apply sorting
     if (sortOrder === "support") {
-      hierarchy.sort((a, b) => (b.support || 0) - (a.support || 0));
+      const supportOf = (n: ThreadNode) =>
+        (n.claimId ? supportByClaim.get(n.claimId)?.score : undefined) ?? n.confidence ?? 0;
+      hierarchy.sort((a, b) => supportOf(b) - supportOf(a));
     } else if (sortOrder === "activity") {
       // Sort by number of responses
       hierarchy.sort((a, b) => (b.responses?.length || 0) - (a.responses?.length || 0));
@@ -799,7 +862,7 @@ export function ThreadedDiscussionTab({
     // "chrono" is already applied in buildThreadHierarchy
 
     return hierarchy;
-  }, [filteredNodes, sortOrder]);
+  }, [filteredNodes, sortOrder, supportByClaim]);
 
   // Get unique schemes for filter
   const availableSchemes = useMemo(() => {
@@ -1117,6 +1180,9 @@ export function ThreadedDiscussionTab({
                 onAttack={handleAttack}
                 userNames={userNames}
                 aifMetadata={aifMetadata}
+                supportByClaim={supportByClaim}
+                deliberationId={deliberationId}
+                confidenceMode={confidenceMode}
               />
             ))
           )}

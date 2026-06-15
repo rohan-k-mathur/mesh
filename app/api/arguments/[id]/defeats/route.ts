@@ -10,8 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { computeAspicSemantics, aifToASPIC } from "@/lib/aif/translation/aifToAspic";
-import { populateKBPreferencesFromAIF } from "@/lib/aspic/translation/aifToASPIC";
+import { getArgumentDefeats } from "@/lib/aspic/deliberationEvaluation";
 import { prisma } from "@/lib/prismaclient";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
@@ -35,7 +34,7 @@ export async function GET(
     // Verify argument exists and belongs to deliberation
     const argument = await prisma.argument.findUnique({
       where: { id: argumentId },
-      select: { id: true, deliberationId: true, conclusion: true },
+      select: { id: true, deliberationId: true },
     });
 
     if (!argument) {
@@ -52,52 +51,24 @@ export async function GET(
       );
     }
 
-    // For a complete implementation, we would:
-    // 1. Build the full AIF graph for the deliberation
-    // 2. Translate to ASPIC+ with preferences
-    // 3. Compute defeats
-    // 4. Filter defeats involving this argument
-    
-    // For now, return a simple response that can be enhanced
-    // when we have the full deliberation theory building in place
-    
-    // Fetch preferences to show if any apply to this argument
-    const { premisePreferences, rulePreferences } = await populateKBPreferencesFromAIF(deliberationId);
-    
-    // Count preferences involving this argument (simplified)
-    const argWithConclusion = await prisma.argument.findUnique({
-      where: { id: argumentId },
-      select: {
-        schemeId: true,
-        conclusion: {
-          select: { text: true },
-        },
-      },
-    });
+    // Real defeat computation (Phase 2.1): build the deliberation theory with
+    // stored preferences and extract defeats involving this argument.
+    const { defeatsBy, defeatedBy } = await getArgumentDefeats(deliberationId, argumentId);
 
-    const conclusionText = argWithConclusion?.conclusion?.text;
-    const schemeId = argWithConclusion?.schemeId;
-
-    const relatedPrefs = [
-      ...premisePreferences.filter(
-        p => p.preferred === conclusionText || p.dispreferred === conclusionText
-      ),
-      ...rulePreferences.filter(
-        p => p.preferred === schemeId || p.dispreferred === schemeId
-      ),
-    ];
+    // Accurate preference counts straight from PA rows (cheap, no theory needed).
+    const [preferred, dispreferred] = await Promise.all([
+      prisma.preferenceApplication.count({ where: { deliberationId, preferredArgumentId: argumentId } }),
+      prisma.preferenceApplication.count({ where: { deliberationId, dispreferredArgumentId: argumentId } }),
+    ]);
 
     return NextResponse.json(
       {
         ok: true,
         argumentId,
         deliberationId,
-        // Placeholder: Full defeat computation requires complete theory
-        defeatsOn: [],
-        defeatsBy: [],
-        relatedPreferences: relatedPrefs.length,
-        preferences: relatedPrefs,
-        note: "Full defeat computation requires building complete ASPIC+ theory. Use GET /api/aspic/evaluate for complete semantics.",
+        defeatsBy,   // arguments THIS argument defeats
+        defeatedBy,  // arguments that defeat THIS argument
+        preferenceStats: { preferred, dispreferred },
       },
       NO_STORE
     );

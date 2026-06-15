@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
+import { listableDeliberationWhere } from "@/lib/deliberations/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,13 @@ export async function GET(req: NextRequest) {
   const host = (url.searchParams.get("host") || "").trim();
   const [field, dir] = (url.searchParams.get("sort") || "updatedAt:desc").split(":") as [string, "asc"|"desc"];
 
-  const where: any = {};
-  if (mine) where.createdById = String(user.userId);
-  if (q) where.OR = [{ id: { contains: q } }, { hostId: { contains: q } }];
-  if (host) where.hostType = host;
+  const uid = String(user.userId);
+  // Visibility: non-public deliberations only listed to their members.
+  const and: any[] = [listableDeliberationWhere(uid)];
+  if (mine) and.push({ createdById: uid });
+  if (q) and.push({ OR: [{ id: { contains: q } }, { hostId: { contains: q } }] });
+  if (host) and.push({ hostType: host });
+  const where: any = { AND: and };
 
   const [total, rows] = await Promise.all([
     prisma.deliberation.count({ where }),

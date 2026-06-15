@@ -17,6 +17,7 @@ import { RoomPicker, DebatePicker, SheetPicker } from '@/components/agora/RoomAn
 import ConfidenceControls from '@/components/agora/ConfidenceControls';
 import { PlexusShell } from "./PlexusShell";
 import { NewKbButton } from "@/components/kb/NewKbButton";
+import { NewDeliberationButton } from "@/components/agora/NewDeliberationButton";
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
   if (fallback) return fallback;
@@ -665,6 +666,7 @@ React.useEffect(() => {
         onPause={() => setPaused((p) => !p)}
       />
       <div className="flex mt-3 mx-auto justify-end px-8">
+        <NewDeliberationButton />
 {/* <NewKbButton /> */}
 </div>
   <div className="flex w-full justify-center items-center mb-2 mx-auto">

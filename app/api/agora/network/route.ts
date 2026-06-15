@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
+import { getCurrentUserId } from '@/lib/serverutils';
+import {
+  listableDeliberationWhere,
+  filterVisibleDeliberationIds,
+  normalizeUserId,
+} from '@/lib/deliberations/visibility';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -37,26 +43,34 @@ export async function GET(req: NextRequest) {
   }
   const { scope, maxRooms } = parsed.data;
 
+  const userId = normalizeUserId(await getCurrentUserId().catch(() => null));
+
   /* --------------------- 1) Rooms --------------------- */
   let rooms: { id: string; title?: string | null }[] = [];
   try {
-    // Note: Deliberation doesn't have a visibility field, so we get all rooms
-    // and filter by related AgoraRoom visibility if needed in the future
+    // Visibility: only surface public deliberations (plus the viewer's own) in
+    // the Plexus network graph. See lib/deliberations/visibility.ts.
     rooms = await prisma.deliberation.findMany({
-      where: {}, // All rooms - visibility filter removed as field doesn't exist
+      where: listableDeliberationWhere(userId),
       select: { id: true, title: true },
       orderBy: { updatedAt: 'desc' },
       take: maxRooms,
     });
   } catch (err) {
     console.error("[agora/network] Error fetching deliberations:", err);
-    // fallback from arguments (should rarely trigger)
+    // fallback from arguments (should rarely trigger) — still visibility-gated.
     const rows = await prisma.argument.findMany({
       select: { deliberationId: true },
       distinct: ['deliberationId'],
       take: maxRooms,
     });
-    rooms = rows.map((r) => ({ id: r.deliberationId, title: null }));
+    const visible = await filterVisibleDeliberationIds(
+      rows.map((r) => r.deliberationId),
+      userId,
+    );
+    rooms = rows
+      .filter((r) => visible.has(r.deliberationId))
+      .map((r) => ({ id: r.deliberationId, title: null }));
   }
   const roomIds = rooms.map((r) => r.id);
   if (!roomIds.length) {

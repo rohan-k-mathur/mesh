@@ -71,3 +71,12 @@ export function useConfidence() {
   if (!ctx) throw new Error('useConfidence must be used within <ConfidenceProvider>');
   return ctx;
 }
+
+/**
+ * Non-throwing variant of {@link useConfidence}. Returns `null` when no
+ * `<ConfidenceProvider>` is in scope, so components that may render outside a
+ * provider (e.g. demo/test surfaces) can fall back to a default mode.
+ */
+export function useConfidenceOptional() {
+  return React.useContext(ConfidenceContext);
+}

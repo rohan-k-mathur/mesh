@@ -761,8 +761,10 @@ export async function GET(req: NextRequest) {
           axioms: Array.from(theory.axioms),
           premises: Array.from(theory.premises),
           assumptions: Array.from(theory.assumptions),
-          premisePreferences: theory.preferences || [],
-          rulePreferences: [],
+          // Phase 2.3: report the actual split, not the combined pool mislabeled
+          // as premisePreferences with an empty rulePreferences.
+          premisePreferences,
+          rulePreferences,
         },
       },
       semantics: {

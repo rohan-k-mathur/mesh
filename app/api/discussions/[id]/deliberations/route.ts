@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
+import {
+  listableDeliberationWhere,
+  normalizeUserId,
+} from "@/lib/deliberations/visibility";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -63,8 +67,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const include = (url.searchParams.get("include") || "").split(",").filter(Boolean);
   const includeDelib = include.includes("deliberation");
 
+  // Visibility: only surface links to deliberations the viewer may list.
+  const userId = normalizeUserId(await getCurrentUserId().catch(() => null));
   const items = await prisma.discussionDeliberation.findMany({
-    where: { discussionId: params.id },
+    where: {
+      discussionId: params.id,
+      deliberation: { is: listableDeliberationWhere(userId) },
+    },
     orderBy: [{ createdAt: "desc" }, { deliberationId: "asc" }],
     ...(includeDelib && {
       include: {

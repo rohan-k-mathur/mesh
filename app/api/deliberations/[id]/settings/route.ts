@@ -24,6 +24,8 @@ export async function GET(
         rule: true,
         k: true,
         nliThreshold: true,
+        visibility: true,
+        createdById: true,
       },
     });
 
@@ -62,7 +64,7 @@ export async function PATCH(
     const body = await request.json();
 
     // Validate allowed fields
-    const allowedFields = ["dsMode", "proofMode", "title", "rule", "k", "nliThreshold"];
+    const allowedFields = ["dsMode", "proofMode", "title", "rule", "k", "nliThreshold", "visibility"];
     const updates: any = {};
 
     for (const field of allowedFields) {
@@ -73,6 +75,16 @@ export async function PATCH(
           if (typeof value !== "number" || value < 0 || value > 1) {
             return NextResponse.json(
               { error: "nliThreshold must be a number between 0 and 1" },
+              { status: 400 }
+            );
+          }
+        }
+        // Validate visibility enum
+        if (field === "visibility") {
+          const value = body[field];
+          if (!(["public", "unlisted", "private"] as const).includes(value)) {
+            return NextResponse.json(
+              { error: "visibility must be one of: public, unlisted, private" },
               { status: 400 }
             );
           }
@@ -122,6 +134,8 @@ export async function PATCH(
         rule: true,
         k: true,
         nliThreshold: true,
+        visibility: true,
+        createdById: true,
       },
     });
 

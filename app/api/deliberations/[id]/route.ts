@@ -9,6 +9,7 @@ import {
   defaultHostName,
 } from "@/lib/deliberations/resolveName";
 import { canRenameDeliberation } from "@/lib/deliberations/ownership";
+import { canReadDeliberation, normalizeUserId } from "@/lib/deliberations/visibility";
 
 export const dynamic = 'force-dynamic';
 
@@ -29,12 +30,18 @@ export async function GET(_req: Request, { params }:{ params:{ id:string }}) {
   });
   if (!d) return NextResponse.json({ error:'not found' }, { status:404 });
 
+  // Visibility: `private` metadata is members-only. 404 (not 403) so we don't
+  // confirm existence to non-members.
+  const userId = normalizeUserId(await getCurrentUserId().catch(() => null));
+  if (!(await canReadDeliberation(d.id, userId))) {
+    return NextResponse.json({ error: 'not found' }, { status: 404 });
+  }
+
   const displayName = resolveDeliberationName(d, {
     hostName: defaultHostName(d.hostType, d.hostId),
   });
 
   // Whether the requesting user may rename it (creator OR host-object owner).
-  const userId = await getCurrentUserId().catch(() => null);
   const canRename = await canRenameDeliberation(d, userId);
 
   return NextResponse.json({ ...d, displayName, canRename });

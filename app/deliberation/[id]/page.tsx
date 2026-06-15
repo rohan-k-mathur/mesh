@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prismaclient";
 import NextLink from "next/link";
 import DeliberationReader from "../components/DeliberationPage";
 import { GridBG } from "@/components/ui/GridBG";
+import { getCurrentUserId } from "@/lib/serverutils";
+import { canReadDeliberation, normalizeUserId } from "@/lib/deliberations/visibility";
 
 export default async function DeliberationPage({
   params,
@@ -18,6 +20,11 @@ export default async function DeliberationPage({
     select: { id: true, hostType: true, hostId: true },
   });
   if (!delib) notFound();
+
+  // Visibility: `private` deliberations are readable only by their members.
+  // Render the same not-found surface to avoid confirming existence.
+  const userId = normalizeUserId(await getCurrentUserId().catch(() => null));
+  if (!(await canReadDeliberation(delib.id, userId))) notFound();
 
   // Fetch the host object to get its name/title
   let hostName: string | null = null;

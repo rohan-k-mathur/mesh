@@ -1,6 +1,11 @@
 // app/api/hub/deliberations/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { getCurrentUserId } from "@/lib/serverutils";
+import {
+  listableDeliberationWhere,
+  normalizeUserId,
+} from "@/lib/deliberations/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -10,14 +15,21 @@ export async function GET(req: NextRequest) {
   const calls = (url.searchParams.get("calls") || "any") as "any" | "open";
   const tags = (url.searchParams.get("tags") || "").split(",").filter(Boolean);
 
-  const where: any = {};
+  const userId = normalizeUserId(await getCurrentUserId().catch(() => null));
+
+  // Visibility: only surface public deliberations (plus the viewer's own) in
+  // this feed. See lib/deliberations/visibility.ts.
+  const filters: any[] = [listableDeliberationWhere(userId)];
   if (q) {
-    where.OR = [
-      { id: { contains: q, mode: "insensitive" } },
-      { hostId: { contains: q, mode: "insensitive" } },
-    ];
+    filters.push({
+      OR: [
+        { id: { contains: q, mode: "insensitive" } },
+        { hostId: { contains: q, mode: "insensitive" } },
+      ],
+    });
   }
   // (future) apply tags filter when deliberation.tags exist
+  const where: any = { AND: filters };
 
   const rows = await prisma.deliberation.findMany({
     where,

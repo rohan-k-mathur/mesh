@@ -110,6 +110,19 @@ appropriate design-space quantifier over canonical orthogonality.
   That is itself the publishable result (brainstorm §1: "either outcome is a real paper") and
   feeds Direction 6's symmetry axiom.
 
+> **Ratified-subgraph sensitivity (note, 2026-06-14).** The bridge is parametric in the AF
+> `F`, so [session 13](13-attack-ratification-layer-2026-06-14.md)'s attack-ratification layer
+> (which runs the bridge on the *ratified* attack subgraph `F_rat ⊆ F_full`) composes cleanly
+> with the grounded case — `grounded(F_rat)` is just another grounded extension. **Preferred /
+> stable do not inherit that benignity:** they are sensitive to *which* attack edges are
+> present (removing an edge can merge or split preferred extensions), and session 13's
+> *ratification debt* (§3.3 — a partial subgraph where a reinstating attack is still pending)
+> is exactly such a partial `F`. This does not threaten C011 (still parametric in `F`), but the
+> preferred-axis settlement must be explicit about *which* subgraph it realizes over, and it
+> sharpens the realizability fallback with a **governance dimension**: realizable over the full
+> attack graph or the ratified one. Start the lift aware of this; it is a scoping obligation,
+> not an obstruction.
+
 **Settlement path (C011 §"Settlement path", deferred Phase 4 — restated here):**
 1. Formalise the Modgil–Caminada **preferred** game over the existing `AF`/`attackersOf`
    substrate in [`dispute.ts`](../../lib/bridge/dispute.ts) (the grounded `G`-game is already
@@ -149,11 +162,13 @@ the analogue of T005 is wanted: a smallest-non-trivial three-agent base case wit
 exhaustive differential check, mirroring the grounded keystone's Phase-2-before-Phase-3
 discipline.
 
-> **Housekeeping (filed, not yet acted on).** C002's planned target filename
-> `T004-reading-c-conservative.md` **collides** with the established JSL-fragment-bridge
-> [T004](../02_THEOREMS_AND_PROOFS/T004-jsl-fragment-bridge.md). When C002 is promoted it must
-> take the next free `T0NN` id, not `T004`. Recorded so the collision is caught at promotion
-> time, not after.
+> **Housekeeping (resolved 2026-06-14).** C002's planned target filename was
+> `T004-reading-c-conservative.md`, which **collided** with the established
+> JSL-fragment-bridge [T004](../02_THEOREMS_AND_PROOFS/T004-jsl-fragment-bridge.md).
+> [C002](../03_CONJECTURES/C002-reading-c-conservative.md) has been renumbered to
+> promote as **`T012-reading-c-conservative.md`** (the next free theorem id —
+> highest current is [T011](../02_THEOREMS_AND_PROOFS/T011-possibilistic-cohomology-iso-monodromy.md)).
+> Recorded here so the collision history is visible at the cluster's home.
 
 ## 4. Dependency / sequencing structure
 
