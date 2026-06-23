@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getArgumentDefeats } from "@/lib/aspic/deliberationEvaluation";
+import { getArgumentDefeats, getPendingAttacks } from "@/lib/aspic/deliberationEvaluation";
 import { prisma } from "@/lib/prismaclient";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
@@ -34,7 +34,7 @@ export async function GET(
     // Verify argument exists and belongs to deliberation
     const argument = await prisma.argument.findUnique({
       where: { id: argumentId },
-      select: { id: true, deliberationId: true },
+      select: { id: true, deliberationId: true, conclusionClaimId: true },
     });
 
     if (!argument) {
@@ -52,13 +52,18 @@ export async function GET(
     }
 
     // Real defeat computation (Phase 2.1): build the deliberation theory with
-    // stored preferences and extract defeats involving this argument.
-    const { defeatsBy, defeatedBy } = await getArgumentDefeats(deliberationId, argumentId);
+    // stored preferences and extract defeats + preference-aware grounded
+    // standing (Phase 3) for this argument.
+    const { defeatsBy, defeatedBy, standing } = await getArgumentDefeats(deliberationId, argumentId);
 
     // Accurate preference counts straight from PA rows (cheap, no theory needed).
-    const [preferred, dispreferred] = await Promise.all([
+    // `pending` = un-ratified (PROPOSED) attacks targeting this argument — excluded
+    // from the grounded extension above (DEV_SPEC §4) but surfaced as a provisional
+    // "contested · pending k/N" label by the UI (§7.1).
+    const [preferred, dispreferred, pending] = await Promise.all([
       prisma.preferenceApplication.count({ where: { deliberationId, preferredArgumentId: argumentId } }),
       prisma.preferenceApplication.count({ where: { deliberationId, dispreferredArgumentId: argumentId } }),
+      getPendingAttacks(deliberationId, argumentId, argument.conclusionClaimId),
     ]);
 
     return NextResponse.json(
@@ -68,6 +73,8 @@ export async function GET(
         deliberationId,
         defeatsBy,   // arguments THIS argument defeats
         defeatedBy,  // arguments that defeat THIS argument
+        standing,    // Phase 3: preference-aware grounded standing { status, preferenceApplied }
+        pending,     // §7.1: { count, threshold, topSignoffs } of un-ratified attacks on this argument
         preferenceStats: { preferred, dispreferred },
       },
       NO_STORE

@@ -1,4 +1,4 @@
-# Isonomia: AI-Native Infrastructure for Citable Reasoning
+# Isonomia: Structured Argumentation Infrastructure for AI Agents
 
 ## Executive Summary
 
@@ -97,7 +97,7 @@ An ordinary research assistant ends at *"here is a summary of the debate."* Ison
 
 Isonomia does not generate better prose over the same web — it changes the unit of retrieval, citation, and grounding.
 
-## Product Wedges
+## Product Surfaces
 
 **AI citation primitive.** Packaged as a citation API, Isonomia lets any external agent cite structured arguments with provenance, standing, and opposition — immutable content-hash URLs, strongest-objection inclusion, source provenance and archive metadata, and model-readable standing and refusal fields. Buyers: AI research tools, enterprise knowledge assistants, legal and policy platforms, academic AI products, model-evaluation systems, and safety teams.
 
@@ -125,7 +125,7 @@ Isonomia does not generate better prose over the same web — it changes the uni
 
 **Evidence algebra as a trust substrate.** Log-odds folding and culprit-set revision give a lawful alternative to opaque confidence scores: signed pro/con aggregation, queries asking what must be retracted to reject a claim, local, imported, and total confidence bands, monotonicity tests, and model-readable confidence explanations.
 
-## Defensible Moats
+## Defensible Differentiation
 
 **The data model.** The core object is a structured argument graph — claims, premises, schemes, critical questions, attacks, evidence, commitments, confidence, provenance, live state — not a document, thread, or vector. That is very hard to bolt onto an ordinary content product after the fact.
 
@@ -140,27 +140,21 @@ Isonomia does not generate better prose over the same web — it changes the uni
 **The corpus.** Deployed at scale, Isonomia accumulates something no one else has: reasoning *trajectories* — attacks, revisions, warrants, concessions, retractions, and evidence updates tracked over time.
 
 
-## The Formal Moat
+## The Formal Differentiation
 
 *This section is for readers conducting technical diligence — AI labs, evaluation vendors, and institutions validating AI-assisted reasoning. It presumes familiarity with structured argumentation and Ludics; general readers can skip it without losing the argument above. Proofs referenced here are available for review under a cross-check policy.*
 
 The formalisms Isonomia builds on are public. ASPIC+, the Walton scheme taxonomy, the Argument Interchange Format, Girard's Ludics, log-odds confidence folding, and Ambler's categorical evidence semantics are all in the literature. 
 
-The original layer is the constructed above the inheritance. The results below are necessary for a number of the product surfaces in the platform. Each entry states what the theorem buys and why a reimplementation that lacks it ships a subtly wrong product.
+The original layer is the constructed above the inheritance. The results below are necessary for a number of the product surfaces in the platform. 
 
-**Certification is a theorem, not an analogy (T005).** Grounded acceptance in a finite argumentation framework corresponds, through a strategy-preserving bijection, to acceptance-by-interaction in multiplicative, additive-free Ludics — Proponent strategies to Proponent designs, orthogonality to convergence. This is what licenses "orthogonality testing is the certification procedure" as a proven equivalence to grounded-extension status rather than a heuristic that resembles one. A competitor can imitate the output; matching the *guarantee* requires the bridge. For a buyer asking whether a "survived" badge means anything procedurally, this is the claim under it.
+**Certification theorem** Grounded acceptance in a finite argumentation framework corresponds, through a strategy-preserving bijection, to acceptance-by-interaction in multiplicative, additive-free Ludics — Proponent strategies to Proponent designs, orthogonality to convergence. This is what licenses "orthogonality testing is the certification procedure" as a proven equivalence to grounded-extension status rather than a heuristic that resembles one. A competitor can imitate the output; matching the *guarantee* requires the bridge. For a buyer asking whether a "survived" badge means anything procedurally, this is the claim under it.
 
-**Minimal disagreement on branching disputes (T006–T009).** Over concession trees, the minimal separating context — the smallest set of points where two positions first diverge — is the antichain of per-line first-divergence loci under the Smyth (upper-powerdomain) order; under the Hoare order no minimum exists at all. The consequence is sharp: a reimplementation using a plausible-but-wrong notion of "minimal disagreement" returns incorrect loci on branching disputes, which are the common case, not the corner case. The minimal-disagreement extractor is correct because the order-relative result is proven; a heuristic version is silently wrong exactly where it is most often used.
+**Minimal disagreement on branching disputes** Over concession trees, the minimal separating context — the smallest set of points where two positions first diverge — is the antichain of per-line first-divergence loci under the Smyth (upper-powerdomain) order; under the Hoare order no minimum exists at all. The consequence is sharp: a reimplementation using a plausible-but-wrong notion of "minimal disagreement" returns incorrect loci on branching disputes, which are the common case, not the corner case. The minimal-disagreement extractor is correct because the order-relative result is proven; a heuristic version is silently wrong exactly where it is most often used.
 
-**The refusal surface rests on a geometric fact (T001–T002).** A behaviour decomposes into disjoint cones, and its incarnation set is an antichain, which yields a hard structural constraint — aggregation cannot cross cones. The refusal surface that tells an AI writer what it may not assert is computed from that constraint. Without the decomposition the constraint is a heuristic that can be violated without anyone noticing, which is the failure mode a refusal surface exists to prevent. (The original *global* join-semilattice version of this result is false; only the per-cone version holds — see below.)
+**The refusal surface geometry** A behaviour decomposes into disjoint cones, and its incarnation set is an antichain, which yields a hard structural constraint — aggregation cannot cross cones. The refusal surface that tells an AI writer what it may not assert is computed from that constraint. Without the decomposition the constraint is a heuristic that can be violated without anyone noticing, which is the failure mode a refusal surface exists to prevent. This canonical-generator constraint, first proven for first-order rules, now extends to the exponential layer — function-typed rules and reused premises (contraction), the shape of realistic higher-order argument chains — so the same guarantee governs chained and reconvergent disputes, not only flat ones. (The original *global* join-semilattice version of this result is false; only the per-cone version holds — see below.)
 
-**Multi-hop transport safety (T010).** Room-to-room transport functors form a bicategory; the transport map is a pseudofunctor exactly on the monodromy-free sub-bicategory, and multi-hop transport is sound iff no claims drop or drift across the path. This converts "one-hop, auditable to a single source room" from a contract assertion into a theorem about precisely when more than one hop is safe.
-
-**The map of dead ends is itself the asset.** A copyist working from the public description inherits none of the negative knowledge this program paid for, and two cases are load-bearing. The original global join-semilattice claim is false; only the per-cone result (T001) holds, so a reimplementation reading the surface description re-derives the false version. Minimality across opponents was refuted in its first form and recovered only under a proper-test redefinition (T008–T009). The record of what does not work, and why, exists only here and is expensive to reproduce — and unlike the theorems, it confers no benefit to anyone who has not already done the work.
-
-**What is not claimed.** The program has an active research frontier — among others, a candidate fourth, *structural* attack type for the case where two schemes have disjoint behaviours over the same claim and no rebut/undermine/undercut applies, and the confidence-graded, cartesian-closed remainder of the Ludics⇔Ambler bridge. These are owned open questions, stated with their settlement conditions, not results. Nothing in the moat above rests on them, and they are listed here to mark the boundary between what is proven and what is conjectured.
-
-**How to check this without reading the proofs.** Pre-registered ablation studies convert formal correctness into a measurable output difference, which is the form in which an evaluation team can verify it directly: a pattern-versus-content ablation on scheme classification, inter-annotator agreement conditioned on identification-pattern match against a published κ baseline, and cone-coverage as a convergence predictor — a quantity that only exists because of the per-cone decomposition. These are the instruments by which a buyer confirms that the theorems produce better outputs rather than taking the theorems on faith.
+**Multi-hop transport safety** Room-to-room transport functors form a bicategory; the transport map is a pseudofunctor exactly on the monodromy-free sub-bicategory, and multi-hop transport is sound iff no claims drop or drift across the path. This converts "one-hop, auditable to a single source room" from a contract assertion into a theorem about precisely when more than one hop is safe.
 
 ## Why Now
 
@@ -168,6 +162,6 @@ Three shifts make the timing right. Agents are moving from answering questions t
 
 ## Closing Position
 
-AI needs epistemic infrastructure, not just more context. The hard parts that AI companies tend to discover they need only later — structured claims and arguments, challenge topology, evidence provenance, content-hashed citations, agent-readable APIs, graph-derived constraints, and fidelity harnesses graded against mechanical ground truth — already exist here. The collaboration and publishing layers matter because they generate real human reasoning data, but the infrastructure is the center of the opportunity: the reasoning layer beneath AI research, writing, search, enterprise knowledge, policy, science, legal argument, and institutional decision support.
+AI needs epistemic infrastructure: structured claims and arguments, challenge topology, evidence provenance, content-hashed citations, agent-readable APIs, graph-derived constraints, and fidelity harnesses graded against mechanical ground truth. The collaboration and publishing layers matter because they generate real human reasoning data, but the infrastructure is the center of the opportunity: the reasoning layer beneath AI research, writing, search, enterprise knowledge, policy, science, legal argument, and institutional decision support.
 
-Isonomia makes arguments citable as objects rather than paragraphs, attaches provenance, standing, and opposition to every citation, and tells a model what the current state of reasoning does and does not license. It turns contested knowledge into an API.
+Isonomia makes arguments citable as objects rather than paragraphs, attaches provenance, standing, and opposition to every citation, and tells a model what the current state of reasoning does and does not license. 

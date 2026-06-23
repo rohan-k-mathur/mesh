@@ -95,6 +95,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error:'PA requires exactly one preferred and one dispreferred element' }, { status:400, ...NO_STORE });
   }
 
+  // Phase 4.4: referential validation. preferred/dispreferred IDs are polymorphic
+  // (claim | argument | scheme), so they can't be enforced as DB FKs; verify
+  // argument/claim refs exist in THIS deliberation to prevent dangling references.
+  // (Also rejects a self-preference where preferred === dispreferred: the count
+  // won't match the requested id count.) Scheme-side refs are rare and not
+  // deliberation-scoped; left unvalidated here.
+  const argIds = [d.preferredArgumentId, d.dispreferredArgumentId].filter(Boolean) as string[];
+  const claimIds = [d.preferredClaimId, d.dispreferredClaimId].filter(Boolean) as string[];
+  const [argCount, claimCount] = await Promise.all([
+    argIds.length ? prisma.argument.count({ where: { id: { in: argIds }, deliberationId: d.deliberationId } }) : Promise.resolve(0),
+    claimIds.length ? prisma.claim.count({ where: { id: { in: claimIds }, deliberationId: d.deliberationId } }) : Promise.resolve(0),
+  ]);
+  if (argCount !== argIds.length || claimCount !== claimIds.length) {
+    return NextResponse.json({ error:'Referenced preferred/dispreferred argument or claim not found in this deliberation' }, { status:400, ...NO_STORE });
+  }
+
   const scheme = d.schemeKey
     ? await prisma.preferenceScheme.findUnique({ where: { key: d.schemeKey }, select: { id:true } })
     : null;

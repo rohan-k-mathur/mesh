@@ -1,0 +1,30 @@
+# VERIFICATION PROMPT — Q-028b `!`-layer settlement (independent non-author cross-check)
+
+**You are an independent reviewer.** You did **not** author the Q-028b settlement. Your job is to try to **break** it, then return a verdict: **SIGNED OFF**, **NOT SIGNED OFF (defect)**, or **DEGRADATION** (true but mis-grounded). Do not be charitable; find the hole if there is one.
+
+## What is being claimed
+
+That **C001b′ b₁′∧b₂′ close uniformly at the `!`-layer** (ground `{→,×,atom}` higher-order fragment): the bridge `ε_{A,B} : 𝒫_fin(Gen!(B)) ⥲ 𝒞_semi(A,B^♯)` is a canonical JSL isomorphism, **forced uniformly in `B`** (no instance enumeration), via the `F⊣U`-on-generators argument with T012's generator bijection.
+
+## Documents to check (in this repo)
+
+- **Settlement Session 1:** `RESEARCH_PROGRAMME/audits/q028b-settlement-session1-2026-06-22.md` (O-1, O-2, **O-3 freeness crux**, lemma **L-AC!**).
+- **Settlement Session 2:** `RESEARCH_PROGRAMME/audits/q028b-settlement-session2-2026-06-22.md` (**O-4 δ-dissolution**, **O-5 reduction theorem** + `F⊣U` step).
+- **Inputs (treat as given / already cross-checked):** `T012-gen-b-antichain.md` (`established`); `q032-res-a-prime-2026-06-20.md` (Res-A′ SIGNED OFF, V-A′1 §8); `q032-res-c-materiality-2026-06-19.md` (Res-C cleared); `q028a-stratum2-2026-06-22.md` (discovery-positive).
+- **MALL template:** `q028b-freeness-argument-2026-05-29.md` §1, §6, §9.2.
+- **Substrate antichain backbone:** `Development and Ideation Documents/ARCHITECTURE/Ludics Generative Substrate Documents/LUDICS_OQ_JSL_PROOF.md` (Phase 2e: `Inc(B)` antichain + Cross-Cone Incompatibility).
+- **δ-dissolution sources:** `q031-cyclic-defeat-collapse-2026-05-31.md` (esp. §6); `r3-delta-iso-session-2026-05-30.md` (L-MERGE, ν-normalisation); Ambler 1996 p. 171 (monotone accrual, no object-level defeat operator).
+- **PDFs** (`RESEARCH_PROGRAMME/papers/`, extract with `/opt/homebrew/bin/python3.12 -m pypdf`): BT2010 (`ON THE MEANING OF LOGICAL COMPLETENESS.pdf`) §3.1/Thm 3.8; Terui (`Terui_ComputationalLudics.pdf`); BF (`LUDICS WITH REPETITIONS 1104.0504v3.pdf`) §11.
+
+## Items to verify (try hardest on V-3 and V-1 — the load-bearing ones)
+
+- **V-1 (L-AC! — the freeness crux).** Session-1 §3.2 claims distinct elements of `Gen!(B)` are `⊑`-incomparable / join-irreducible, **from totality + determinism of proof designs alone** (D1-free, no linear stability, no FQ minimality). **Check:** (a) is the "total ⇒ ⊑-maximal ⇒ no proper extension" step valid in the BT2010/BF setting (verify what "total" + "✠-free" + "deterministic" entail for `⊑` = chronicle-set inclusion)? (b) does join-irreducibility really follow, i.e. can a material proof design be a non-trivial **design-level** join of two others? (c) is it genuinely D1-free (no smuggled linear stability)? **Fail if** a total proof design can be properly `⊑`-extended within `B`, or can be a non-trivial design-join.
+- **V-2 (freeness assembly, O-3).** Session-1 §3.4–3.5 concludes `𝒞_semi(A,B^♯) = 𝒫_fin(Gen!(B))` is **free** (not a proper quotient), using L-AC! + Res-C (distinctness) + Prop 11.8 + T012(3) (generation) + Phase-2e Cross-Cone Incompatibility (free join = `𝒫_fin` set-union). **Check:** could BF materiality / bi-orthogonal closure impose an accidental relation among joins (e.g. a 2-set identified with a singleton, or two 2-sets identified) that `𝒫_fin` keeps distinct? Verify Phase-2e Cross-Cone Incompatibility and the "aggregation lives one level up" claim actually rule this out at the `!`-layer. **Fail if** the real Ludics hom is a proper quotient of `𝒫_fin(Gen!(B))`.
+- **V-3 (O-4 — δ stays dissolved at `!`).** Session-2 §1 claims `δ` introduces **no new encoding choice** for higher-order generators, via the **orthogonality** of defeat-depth (Q-031) and generator-order (T012). The load-bearing sub-claim is *"higher-order generators add no defeat depth."* **Check:** can a function-typed / `!`-bearing rule participate in a defeat configuration that the propositional Q-031/Q-037 analysis does **not** cover — e.g. defeating a higher-order rule, or a defeat cycle routed through a `!`-slot — in a way that re-introduces a fixpoint or an encoding choice? Verify Ambler p. 171 (no object-level defeat operator) and L-MERGE idempotence are genuinely order-blind. **Fail / DEGRADATION if** δ re-escalates to substantive at the `!`-layer (settlement would then carry an explicit δ parameter).
+- **V-4 (O-5 — the `F⊣U` uniform-forcing step).** Session-2 §2.2(iii) claims the adjunction makes `ε = 𝓕(φ_!)` the **unique** bridge iso, **uniformly in `B`**, because T012's `φ_!` is the *canonical* (B-determined, composition-compatible) generator map. **Check:** is the uniqueness genuine, or does it smuggle the conclusion (could a *different* generator bijection `ψ ≠ φ_!` also yield a composition-compatible JSL iso, i.e. the "negative-non-canonicality" branch surviving uniformly even though stratum-2 killed it on one instance)? Verify the canonicity of T012's completeness bijection (Statement (1)) actually pins `φ_!` uniquely, not just existentially. **Fail if** a rival composition-compatible bijection survives at the general level.
+- **V-5 (O-1 / O-2 assembly).** Confirm `φ_! = ` T012 `φ ∘ δ⁻¹` reproduces the §6 chain (V-5a), and that the §9.2 "fifth side-data item (antichain witness)" is genuinely discharged by T012 rather than re-introduced (V-5b). Light.
+- **V-6 (scope honesty).** Confirm the claim is correctly bounded: ground `{→,×,atom}` only (Q-033 out), b₁′∧b₂′ only (b₃′ out), and that the within-cone design-join residual is correctly flagged orthogonal.
+
+## Verdict format
+
+Return: per-item PASS / FAIL / DEGRADATION with the specific source line that decides it; then an overall **SIGNED OFF** (all PASS) / **NOT SIGNED OFF** (≥1 FAIL) / **DEGRADATION** (true but a grounding must be repaired). If NOT SIGNED OFF, name the defect (e.g. **D-S1**) and the smallest repair. On SIGNED OFF, Q-028b promotes to "positive on MELL (ground fragment)" and the promotion list in Session-2 §4 fires.

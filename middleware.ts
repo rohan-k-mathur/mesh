@@ -136,7 +136,17 @@ export async function middleware(req: Request) {
   // already do this). This unblocks server-to-server clients (Chrome
   // extension, experiment orchestrator bots, MCP) that don't carry the
   // __session cookie. Routes that need auth must enforce it themselves.
-  if (pathname.startsWith("/api/")) {
+  //
+  // EXCEPTION: the login/logout paths are handled by next-firebase-auth-edge's
+  // authMiddleware itself (there are no physical route handlers for them). The
+  // login request intentionally carries `Authorization: Bearer <idToken>` so the
+  // middleware can mint the __session cookie — so it must NOT be short-circuited
+  // here, otherwise it falls through to Next routing and 404s.
+  if (
+    pathname.startsWith("/api/") &&
+    pathname !== "/api/login" &&
+    pathname !== "/api/logout"
+  ) {
     const authz = req.headers.get("authorization") || "";
     if (/^Bearer\s+/i.test(authz)) {
       return NextResponse.next();

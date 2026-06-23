@@ -801,6 +801,11 @@ model Notification {
   message_id      BigInt?
   market_id       String?
   trade_id        String?
+  // Attack-ratification refs (DEV_SPEC §7.2). Plain nullable scalars (no FK
+  // relation) — the reasoning layer keys on cuid Deliberation/ConflictApplication
+  // ids and these notifications coexist with the social ones above.
+  deliberation_id          String?
+  conflict_application_id  String?
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   read            Boolean           @default(false)
   actor           User              @relation("NotificationActor", fields: [actor_id], references: [id], onDelete: Cascade)
@@ -1086,6 +1091,11 @@ enum notification_type {
   MESSAGE
   TRADE_EXECUTED
   MARKET_RESOLVED
+  // Attack ratification (docs/ATTACK_RATIFICATION_DEV_SPEC.md §7.2). `needed` →
+  // a human CA awaits ratification (recipient = target author); `cleared` → it
+  // reached threshold and now counts as a defeat (recipient = CA author).
+  ratification_needed
+  ratification_cleared
 }
 
 model UserSettings {
@@ -2963,6 +2973,15 @@ model ConflictApplication {
   aspicDefeatStatus Boolean? // true if attack succeeded as defeat (after preference check)
   aspicMetadata     Json? // Full ASPIC+ attack details: { attackerId, defenderId, targetPremiseIndex, ruleId, preferenceResult, ... }
 
+  // Attack ratification — see docs/ATTACK_RATIFICATION_DEV_SPEC.md.
+  // Status: PROPOSED | EFFECTIVE | WITHDRAWN. DEFAULT "EFFECTIVE" is load-bearing:
+  // `db push` backfills every existing row to EFFECTIVE, so the enforcement
+  // filter changes no current standing. New CAs under a gating policy are set
+  // "PROPOSED" at creation. Only EFFECTIVE rows enter defeat computation.
+  ratificationStatus String   @default("EFFECTIVE")
+  ratifiedAt         DateTime?
+  ratifications      ConflictRatification[]
+
   scheme ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
   // CQ Enhancement: Back-reference to CQAttack linkage
@@ -2973,6 +2992,23 @@ model ConflictApplication {
   @@index([conflictingArgumentId])
   @@index([conflictedClaimId])
   @@index([conflictedArgumentId])
+  @@index([deliberationId, ratificationStatus])
+}
+
+// Attack ratification ledger — one sign-off per (CA, ratifier). A sign-off
+// counts iff withdrawnAt IS NULL; withdrawal records (never deletes) the row.
+// See docs/ATTACK_RATIFICATION_DEV_SPEC.md §2.2.
+model ConflictRatification {
+  id                    String    @id @default(cuid())
+  conflictApplicationId String
+  ratifierId            String
+  createdAt             DateTime  @default(now())
+  withdrawnAt           DateTime?
+
+  conflictApplication ConflictApplication @relation(fields: [conflictApplicationId], references: [id], onDelete: Cascade)
+
+  @@unique([conflictApplicationId, ratifierId])
+  @@index([conflictApplicationId])
 }
 
 // ASPIC+ Explicit Contraries - Phase D-1
@@ -4941,6 +4977,10 @@ model DeliberationPref {
   minRelevance     Float    @default(0.5)
   minSufficiency   Float    @default(0.5)
   minAcceptability Float    @default(0.5)
+  // Attack ratification policy (docs/ATTACK_RATIFICATION_DEV_SPEC.md §2.3).
+  // null → resolve default from hostType on-demand (free→none, else→single).
+  // Values: "none" | "single" | "quorum:N".
+  attackRatificationPolicy String?
   updatedAt        DateTime @updatedAt
   createdAt        DateTime @default(now())
 }

@@ -1,6 +1,12 @@
 # Ludics↔Ambler Bridge — Runtime Contract (settled fragment)
 
-- **status:** draft (opened 2026-05-31; scope widened 2026-05-31 — cyclic guard lifted)
+- **status:** draft (opened 2026-05-31; scope widened 2026-05-31 — cyclic guard lifted;
+  widened again 2026-06-22 — **G3a** ground-higher-order generators lifted via §3 step 2′
+  after [Q-028a stratum-2](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md)
+  came back discovery-positive; **upgraded to settlement-proven 2026-06-22** after the
+  uniform [Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b) settlement
+  was independently cross-checked / signed off — b₁′∧b₂′ closed at the `!`-layer; the only
+  remaining out-of-fragment case is **G3b** schematic polymorphism, Q-033)
 - **scope:** **defeat of any depth / cycle structure over propositional
   (first-order) generators.** Originally *flat / one-level-nested over acyclic*
   rule-bases; the [cyclic-defeat audit](../../RESEARCH_PROGRAMME/audits/q031-cyclic-defeat-collapse-2026-05-31.md)
@@ -8,9 +14,17 @@
   closed the cyclic / unbounded-depth residue, so [Q-037](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-037)
   is now positive on the **full propositional** fragment and guards **G1
   (acyclicity)** and **G2 (depth ≤ 2)** are **lifted** (§1). [Q-028a](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028a)
-  stratum-1 is discovery-positive. The one remaining fork is **higher-order
-  generators** (Q-028a stratum-2 / Q-030); the contract stays bounded below G3
-  so that fork cannot invalidate it.
+  stratum-1 is discovery-positive, and **stratum-2 (higher-order, ground
+  `{→,×,atom}`) is now discovery-positive too** ([q028a-stratum2 audit](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md),
+  enabled by [T012](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md)
+  reaching `established`). The §3 projection is correspondingly **extended to ground
+  higher-order generators** (§3 step 2′, the `!`-scheme-locus disambiguation; guard
+  **G3a** lifted) and the §4 higher-order fallback is **narrowed** to the two residues
+  that remain genuinely out-of-fragment: **schematic / polymorphic** generators
+  (**G3b**, [Q-033](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-033)) and
+  the **settlement-grade** uniformity claim ([Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b)).
+  The contract makes a **settlement-grade** projection claim on ground higher-order
+  inputs and stays guarded above **G3b**.
 - **operationalises:** the `affects-implementation` clauses of
   [Q-037](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-037) (the δ
   scheduler decision) and [Q-028a](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028a)
@@ -65,16 +79,37 @@ the contract makes **no** correctness claim there.
   incarnation is a finite λ-term (R3 §2.1 T1) and globally the merged-chronicle
   set saturates (idempotent `μ`, cyclic-defeat audit §4), so `Inc(B)` stays
   finite at any depth over propositional `Γ`.
-- **G3 — propositional (first-order) generators. STILL REQUIRED.** Ambler
-  arguments without λ-abstraction / hypothetical-derivation rules. With
-  λ-abstraction `𝒞/Γ` can be infinite (Church-encoded combinators); this is the
-  one remaining out-of-fragment case — Q-028a stratum-2 / Q-030, **not** a
-  defeat-depth fixpoint (cyclic-defeat audit §6) — see §4/§5.
+- **G3 — generator order. PARTIALLY LIFTED (2026-06-22).** Splits into two:
+  - **G3a — propositional + ground higher-order. IN FRAGMENT (settlement-proven 2026-06-22).**
+    Propositional generators (as before) **and** ground `{→,×,atom}` λ-abstraction /
+    hypothetical-derivation generators are now projected by §3 (extended with the
+    `!`-scheme-locus step, §3 step 2′): [Q-028a stratum-2](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md)
+    is discovery-positive **and** the uniform [Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b)
+    settlement (`F⊣U`-on-generators) is now **independently cross-checked / signed off**
+    ([crosscheck](../../RESEARCH_PROGRAMME/audits/q028b-settlement-crosscheck-2026-06-22.md), 6/6 PASS) —
+    so the canonical generators ([T012](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md))
+    plus the uniquely-forced `φ` *are* the presentation, **uniformly in `B`**, and no
+    bridge-presentation side-data is needed. A runtime MAY tag ground higher-order
+    projections *settlement-proven* (b₁′∧b₂′ closed at the `!`-layer). *(Discovery was
+    the prior, weaker tag — superseded by the settlement.)*
+  - **G3b — schematic / polymorphic generators. STILL REQUIRED (out of fragment).**
+    Generators schematic over propositions (Church-encoded composition combinator
+    `(B→C)⇒(A→B)⇒(A→C)`, polymorphic over `A,B,C`) make `𝒞/Γ` infinite and have **no**
+    canonical ludics-side generator set — [Q-033](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-033),
+    the one remaining hard out-of-fragment case (**not** a defeat-depth fixpoint —
+    cyclic-defeat audit §6; **not** the in-scope ground Church *numerals*, which are
+    settled). Route these to the guarded fallback (§4). **Vacuous on the realized
+    catalogue (2026-06-22 triage, Path A — [q033 triage](../../RESEARCH_PROGRAMME/audits/q033-polymorphism-triage-2026-06-22.md)):**
+    no stored argument is propositionally polymorphic (premises bind concrete `claimId`s;
+    chains compose concrete schemes; no `MetaScheme`/combinator model), so this guard is a
+    **defensive check** — not an active route — on the current product.
 
-A runtime that may receive out-of-fragment inputs MUST detect **G3** violations
-and route them to the guarded fallback (§4), not silently apply this contract.
-(G1/G2 are retained above as historical guards now discharged; no runtime check
-is needed for them on propositional `Γ`.)
+A runtime that may receive out-of-fragment inputs MUST detect **G3b** violations
+(schematic / polymorphic generators) and route them to the guarded fallback (§4), not
+silently apply this contract. Ground higher-order (**G3a**) inputs are now projected by
+the extended §3 at **settlement strength** (Q-028b signed off 2026-06-22) and tagged
+*settlement-proven* — never the unverified path. (G1/G2 are retained above as historical
+guards now discharged; no runtime check is needed for them on propositional `Γ`.)
 
 ---
 
@@ -131,6 +166,22 @@ material designs of `Inc(B)`:
    sub-derivation uses rule `X` (E2 §4.5 Test 2). This step is forced by
    composition compatibility (the bridge commutes with cutting against the
    `ξ_X` probe), so it is deterministic, not heuristic.
+2′. **Disambiguate higher-order classes by `!`-scheme locus (the stratum-2 step;
+   ground `{→,×,atom}` only).** When a head-rule class contains **higher-order**
+   generators that share a head rule and differ only in the *abstracted derivation* in a
+   `!`-marked slot (e.g. two `chk`-generators differing only in which scheme occupies
+   `chk`'s `!`-argument), distinguish them by the **head action of the `!`-slot
+   sub-design**, read by **deterministic proof search descended into the
+   exponential/contraction structure** (BT2010 §3.1; the [T012](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md)
+   read-back). The generator whose `!`-slot scheme has head `X` maps to the Ambler term
+   whose abstracted scheme is `X`. Forced by composition compatibility against the
+   `X`-probe ([q028a-stratum2 audit](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md)
+   §S2 Test 2), so deterministic, not heuristic. Contraction is non-disrupting: all copies
+   of one abstracted scheme share a head, so the probe reads it single-valuedly. This step
+   carries a **settlement-proven** claim (the uniform [Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b)
+   settlement, cross-checked 2026-06-22; instance-corroborated by [Q-028a stratum-2](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028a))
+   and applies only to ground generators (**G3a**); schematic generators (**G3b**) are
+   routed to §4. Tag the result *settlement-proven*.
 3. **(No `U`-erasure step needed.)** `U`-erasure is non-discriminating at the
    generator level (E2 §4.5 Test 3); it only rules out cardinality mismatches,
    which I1–I3 + the fragment guards already preclude.
@@ -167,11 +218,21 @@ When G3 (§1) cannot be guaranteed:
   even cycle this yields two stable extensions; for an odd cycle the grounded
   extension marks the cycle *undecided* (a third value). Which extension to
   surface is a deliberation-engine UX/config choice, not a correctness concern.
-- **Higher-order generators (G3 violated):** the projection §3 is not yet proven
-  canonical for λ-abstraction generators (Q-028a stratum-2; `𝒞/Γ` may be
-  infinite, gated on the BF-incarnation antichain Q-032 / Q-030). The runtime
-  MUST mark such projections *unverified* and MUST NOT persist them as canonical
-  bridge data (doing so would bake in a choice that may need to become
+- **Ground higher-order generators (G3a) — SETTLED (2026-06-22), no unverified fallback.**
+  [Q-028a stratum-2](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md)
+  is discovery-positive **and** the uniform [Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b)
+  settlement is **cross-checked / signed off** ([crosscheck](../../RESEARCH_PROGRAMME/audits/q028b-settlement-crosscheck-2026-06-22.md)):
+  on the ground `{→,×,atom}` fragment the bridge data forces `φ` uniquely **and uniformly
+  in `B`**, so the earlier worry — that the projection might have to "bake in a choice that
+  becomes explicit bridge-presentation data" — **does not materialise**:
+  [T012](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md)'s
+  canonical generators + the uniquely-forced `φ` *are* the presentation. The runtime now
+  projects such generators via the **extended §3 (step 2′)** and tags them
+  *settlement-proven* (b₁′∧b₂′ closed at the `!`-layer).
+- **Schematic / polymorphic generators (G3b violated):** still out of fragment —
+  `𝒞/Γ` is infinite and there is no canonical ludics-side generator set ([Q-033](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-033)).
+  The runtime MUST mark such projections *unverified* and MUST NOT persist them as
+  canonical bridge data (doing so would bake in a choice that may need to become
   explicit bridge-presentation data — Q-028a `affects-implementation`).
 
 ---
@@ -189,17 +250,33 @@ does not block the propositional-fragment contract above.
   G1/G2 lifted. The only fixpoint is the finite-lattice acceptability fixpoint
   one level up. See [cyclic-defeat audit](../../RESEARCH_PROGRAMME/audits/q031-cyclic-defeat-collapse-2026-05-31.md).
 - **[Q-028a](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028a)
-  stratum-2 — higher-order canonicality (OPEN).** Decides whether the §3
-  projection extends canonically to function-type / exponential-behaviour
-  generators, or whether the substrate must carry the bridge-presentation choice
-  as data. Gated on the BF-incarnation antichain ([Q-032](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-032))
-  / [Q-030](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-030) — there
-  is no canonical Ludics-side generator set for `!`-behaviours until Q-032 lands.
-  Resolves §4's remaining fallback (G3).
+  stratum-2 — higher-order canonicality. DISCOVERY-POSITIVE (2026-06-22).**
+  [Q-032](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-032) landed
+  ([T012](../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md)
+  `established`), supplying the canonical `!`-layer generator set and the
+  deterministic-proof-search read-back; the stratum-2 sweep ([q028a-stratum2 audit](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md))
+  then forced `φ` **uniquely** on the worked ground higher-order instance. **§4's
+  ground-higher-order fallback is discharged at discovery strength** (G3a now in-fragment
+  via §3 step 2′); the bridge-presentation side-data worry does **not** materialise.
+  Residue: **schematic polymorphism** ([Q-033](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-033),
+  G3b) and **settlement** ([Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b)) — see next bullet.
+- **[Q-028b](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028b) — settlement of
+  higher-order canonicality (the uniform `F ⊣ U` argument). SIGNED OFF (2026-06-22).**
+  The uniform settlement was assembled and **independently cross-checked** ([crosscheck](../../RESEARCH_PROGRAMME/audits/q028b-settlement-crosscheck-2026-06-22.md),
+  6/6 PASS): `ε = 𝓕(φ_!)` is the unique composition-compatible iso forced uniformly in `B`
+  (freeness via the proof-layer antichain L-AC!; δ stays dissolved at `!`). So the
+  §3-step-2′ projection now carries a **settlement** (not merely discovery) correctness
+  claim on ground higher-order inputs. **b₁′∧b₂′ closed at the `!`-layer.**
 
-When Q-028a stratum-2 closes positive, guard G3 lifts and §3 becomes the
-unconditional bridge projection; this document should then be promoted from
-"settled fragment" to the full bridge runtime contract.
+With Q-028a stratum-2 discovery-positive **and Q-028b settlement signed off (2026-06-22)**,
+guard **G3a** is lifted at **settlement strength** (§3 step 2′ projects ground higher-order
+generators with b₁′∧b₂′ closed). **Q-033 (schematic polymorphism, G3b) was scoped out
+2026-06-22** ([triage](../../RESEARCH_PROGRAMME/audits/q033-polymorphism-triage-2026-06-22.md),
+Path A — the realized catalogue is ground, so G3b is vacuous on the product). **⇒ On the
+realized product this is now the full bridge runtime contract** (every realized generator
+is in-fragment at settlement strength); `G3b` is retained only as a **defensive guard**
+against a future polymorphic-generator model. This document may be promoted from "settled
+fragment" to "full bridge runtime contract" for the realized surface.
 
 ---
 
@@ -215,12 +292,19 @@ unconditional bridge projection; this document should then be promoted from
   steps.
 - **T-CARD (cardinality, §3).** Assert `|Inc(B)| == |𝒞/Γ|` on every in-fragment
   instance.
-- **T-GUARD (fallback, §4).** Feed a **λ-abstraction** (higher-order) instance;
-  assert the runtime routes it to the guarded path and marks it *unverified*
-  rather than asserting T-INV. Feed a **cyclic-`Γ`** instance and assert the
-  opposite — it is now **in fragment**: T-INV holds, and the cycle's
-  acceptability is computed as the finite grounded/stable fixpoint over
-  `𝒫_fin(Inc(B))` (§4), not routed to the unverified path.
+- **T-PROJ-HO (higher-order projection, §3 step 2′).** On the stratum-2 instance
+  (aspirin base + `t₃` + `chk : !(mp→asp) ⊸ mp ⊸ asp`; [q028a-stratum2 audit](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md)
+  §S0), assert the extended §3 reproduces the unique `φ` (head-`chk` block:
+  `!`-slot-`t₁` ↦ `b₁`, `!`-slot-`t₃` ↦ `b₃`) and that the scheme-swap `σ` fails the
+  `!`-scheme-locus probe; assert the result is tagged *settlement-proven*.
+- **T-GUARD (fallback, §4).** Feed a **schematic / polymorphic** (G3b) instance
+  (Church-encoded composition combinator); assert the runtime routes it to the guarded
+  path and marks it *unverified* rather than asserting T-INV. Feed a **ground
+  higher-order** (G3a) instance and assert it is now projected by the extended §3 (step
+  2′) and tagged *settlement-proven* — **not** routed to the unverified path. Feed a
+  **cyclic-`Γ`** instance and assert the same in-fragment treatment as before: T-INV
+  holds, and the cycle's acceptability is computed as the finite grounded/stable fixpoint
+  over `𝒫_fin(Inc(B))` (§4), not routed to the unverified path.
 - **T-ACCUM (the `μ` merge, I3).** Assert a defeated challenger's chronicle
   `χ_i` survives in the reinstated design (the depth-2 aspirin result lands on
   `D_{t₂}`, the stronger argument, not collapsing to `D_{t₁}` — E1).
@@ -232,7 +316,8 @@ unconditional bridge projection; this document should then be promoted from
 - [Q-037 registry entry](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-037)
   — the closed question; `affects-implementation` clause this contract enacts.
 - [Q-028a registry entry](../../RESEARCH_PROGRAMME/01_OPEN_QUESTIONS_REGISTRY.md#q-028a)
-  — stratum-1 discovery-positive (the §3 projection); stratum-2 open (§4/§5).
+  — stratum-1 + stratum-2 (ground higher-order) both discovery-positive (the §3
+  projection incl. step 2′); the stratum-2 sweep is [q028a-stratum2-2026-06-22.md](../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md).
 - [R3 working doc](../../RESEARCH_PROGRAMME/audits/r3-delta-iso-session-2026-05-30.md),
   [E1](../../RESEARCH_PROGRAMME/audits/e1-reinstatement-aspirin-2026-05-30.md),
   [E2](../../RESEARCH_PROGRAMME/audits/e2-cardinality-multireinstater-2026-05-31.md),

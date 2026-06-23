@@ -231,7 +231,9 @@ export async function GET(req: NextRequest) {
 
     // Step 1b: Fetch ConflictApplications (attacks) for this deliberation
     const conflictsList = await prisma.conflictApplication.findMany({
-      where: { deliberationId },
+      // Attack-ratification enforcement (DEV_SPEC §4): only EFFECTIVE conflicts
+      // enter the defeat computation. Inert until creation-status gating (PR2).
+      where: { deliberationId, ratificationStatus: "EFFECTIVE" },
       include: {
         scheme: true,
         createdByMove: true,
