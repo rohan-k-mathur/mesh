@@ -79,6 +79,20 @@ export default function NotificationsList({ initial }: Props) {
                         </p>
                       </Link>
                     )}
+                    {n.type === "ratification_needed" && n.deliberation_id && (
+                      <Link href={`/deliberation/${n.deliberation_id}`}>
+                        <p className="!text-base text-black">
+                          <span className="mr-2 text-blue">{n.actor?.name}</span> challenged your argument — it awaits ratification
+                        </p>
+                      </Link>
+                    )}
+                    {n.type === "ratification_cleared" && n.deliberation_id && (
+                      <Link href={`/deliberation/${n.deliberation_id}`}>
+                        <p className="!text-base text-black">
+                          Your attack was ratified and now counts as a defeat
+                        </p>
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

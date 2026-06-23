@@ -355,6 +355,31 @@ The adjunction $F \dashv U$ has unit and counit:
   $\bigvee_i f_i \in \mathcal{C}_\mathrm{semi}(A,B)$ — "fold free joins into
   actual evidence combination"
 
+> **2026-06-22 — `!`-layer (exponential) extension; Q-028b settlement SIGNED OFF.**
+> The $F \dashv U$ adjunction above is stated over FQ-linear incarnation
+> $\mathsf{Inc}(B)$. At the **`!`-translated (exponential) layer** it is taken over
+> **BF-incarnation**: the canonical generating set is
+> [T012](../../../RESEARCH_PROGRAMME/02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md)'s
+> $\mathsf{Gen!}(B)$ (material *proof* designs), the free JSL is
+> $\mathcal{P}_\mathrm{fin}(\mathsf{Gen!}(B))$, and the bridge counit
+> $\varepsilon = \mathcal{F}(\varphi_!)$ is the **unique** composition-compatible
+> isomorphism, **forced uniformly in $B$** — the
+> [Q-028b `!`-layer settlement](../../../RESEARCH_PROGRAMME/audits/q028b-settlement-session2-2026-06-22.md),
+> independently [cross-checked](../../../RESEARCH_PROGRAMME/audits/q028b-settlement-crosscheck-2026-06-22.md)
+> (6/6 PASS). Freeness of $\mathcal{P}_\mathrm{fin}(\mathsf{Gen!}(B))$ is the
+> proof-layer antichain **L-AC!** (totality + determinism + materiality + winning,
+> D1-free).
+>
+> **Grounding correction (cross-check note N-4).** The *uniqueness of the generator
+> bijection $\varphi_!$* among composition-compatible maps rests on **BT2010 §3.1
+> deterministic proof search** (reads every locus, *including recursively into
+> `!`-slots*) **+ unique βη-normal forms / Curry–Howard functoriality (cut = β =
+> composition; Res-A′ §8) + observational distinctness of material designs (Res-C)**
+> — **not** on T012 Statement (1) set-canonicity alone, which establishes canonicity
+> of the generating *set* (a necessary, not sufficient, ingredient). This is the same
+> machinery the [Q-028a stratum-2 Test 2](../../../RESEARCH_PROGRAMME/audits/q028a-stratum2-2026-06-22.md)
+> probe runs.
+
 ### II.4 What the counit says about C3
 
 > **2026-05-29 — redirect note.** The per-cone framing of this section

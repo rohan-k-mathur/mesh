@@ -9,6 +9,8 @@ import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { syncLudicsToAif } from '@/lib/ludics/syncToAif';
 import { invalidateInsightsCache } from '@/lib/ludics/insightsCache';
 import { computeAspicConflictMetadata } from '@/lib/aspic/conflictHelpers';
+import { resolveRatificationPolicy } from '@/lib/aspic/ratification/policy';
+import { createRatificationNeededNotif } from '@/lib/actions/notification.actions';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 const CreateCA = z.object({
@@ -58,11 +60,20 @@ export async function POST(req: NextRequest) {
     d.conflictedClaimId || d.conflictedArgumentId
   );
 
+  // Attack ratification (DEV_SPEC §3.2): under a gating policy a new CA starts
+  // PROPOSED and does not count as a defeat until ratified; under `none` it is
+  // EFFECTIVE immediately. The column default is EFFECTIVE, so system-generated
+  // CAs (translation/import paths) need no change.
+  const ratPolicy = await resolveRatificationPolicy(d.deliberationId);
+  const ratGated = ratPolicy.kind !== 'none';
+
   const created = await prisma.conflictApplication.create({
     data: {
       deliberationId: d.deliberationId,
       ...(scheme?.id ? { schemeId: scheme.id } : {}),
       createdById: String(userId),
+      ratificationStatus: ratGated ? 'PROPOSED' : 'EFFECTIVE',
+      ratifiedAt: ratGated ? null : new Date(),
       conflictingClaimId: d.conflictingClaimId ?? null,
       conflictingArgumentId: d.conflictingArgumentId ?? null,
       conflictedClaimId: d.conflictedClaimId ?? null,
@@ -81,7 +92,33 @@ export async function POST(req: NextRequest) {
     },
     select: { id:true }
   });
-  
+
+  // Attack ratification (DEV_SPEC §7.2): when a new attack is gated (PROPOSED),
+  // notify the attacked element's author that it awaits ratification. Best-effort
+  // — never fail the CA create on a notification error.
+  if (ratGated) {
+    try {
+      let targetAuthorId: string | null = null;
+      if (d.conflictedArgumentId) {
+        const a = await prisma.argument.findUnique({ where: { id: d.conflictedArgumentId }, select: { authorId: true } });
+        targetAuthorId = a?.authorId ?? null;
+      } else if (d.conflictedClaimId) {
+        const c = await prisma.claim.findUnique({ where: { id: d.conflictedClaimId }, select: { createdById: true } });
+        targetAuthorId = c?.createdById ?? null;
+      }
+      if (targetAuthorId) {
+        await createRatificationNeededNotif({
+          recipientUserId: targetAuthorId,
+          actorUserId: String(userId),
+          deliberationId: d.deliberationId,
+          conflictApplicationId: created.id,
+        });
+      }
+    } catch (err) {
+      console.error('[ca] Failed to send ratification-needed notification:', err);
+    }
+  }
+
   // ✨ PHASE 1: Create ATTACK DialogueMove when AIF attack is created
   // This completes bidirectional sync: ConflictApplication ↔ ATTACK move
   let attackMoveId: string | null = null;

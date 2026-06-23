@@ -20,6 +20,12 @@ interface DefeatDetails {
     preferred: number;
     dispreferred: number;
   };
+  // Phase 3: preference-aware grounded standing (distinct from the confidence
+  // float and from the count-based dialectical-standing taxonomy).
+  standing?: { status: "in" | "out" | "undec" | "unknown"; preferenceApplied: boolean };
+  // §7.1: un-ratified (PROPOSED) attacks targeting this argument. Surfaced as a
+  // provisional "contested · pending k/N" label — distinct from a real defeat.
+  pending?: { count: number; threshold: number; topSignoffs: number };
 }
 
 export function PreferenceBadge({ 
@@ -53,6 +59,8 @@ export function PreferenceBadge({
             preferred: data.preferenceStats?.preferred ?? preferredBy,
             dispreferred: data.preferenceStats?.dispreferred ?? dispreferredBy,
           },
+          standing: data.standing,
+          pending: data.pending,
         });
       })
       .catch(err => {
@@ -116,7 +124,54 @@ export function PreferenceBadge({
               <div className="font-semibold text-slate-900 border-b border-slate-200 pb-2">
                 Preference Summary
               </div>
-              
+
+              {/* Phase 3: preference-aware grounded standing (in/out/undec) */}
+              {details.standing && details.standing.status !== "unknown" && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-700">Standing</span>
+                  <span
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+                      details.standing.status === "in"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : details.standing.status === "out"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                    title="Grounded-extension standing — reflects stored preferences. Distinct from the confidence score."
+                  >
+                    {details.standing.status === "in"
+                      ? "IN"
+                      : details.standing.status === "out"
+                      ? "OUT"
+                      : "UNDECIDED"}
+                  </span>
+                  {details.standing.preferenceApplied && (
+                    <span className="text-[10px] text-violet-600" title="A stored preference gated a defeat involving this argument.">
+                      · preference applied
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* §7.1: provisional "contested" label for un-ratified attacks.
+                  These are NOT yet defeats — they await ratification. */}
+              {details.pending && details.pending.count > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-700">Contested</span>
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200"
+                    title="Un-ratified attack(s) on this argument. They do not count as a defeat until they reach the deliberation's ratification threshold."
+                  >
+                    PENDING {details.pending.topSignoffs}/{details.pending.threshold}
+                  </span>
+                  {details.pending.count > 1 && (
+                    <span className="text-[10px] text-slate-500">
+                      · {details.pending.count} pending attacks
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-emerald-700">Preferred by</div>

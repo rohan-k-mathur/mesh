@@ -1,15 +1,15 @@
 # C001b′ — Ambler-specific remainder, restated at the power-set-of-incarnations target
 
-- **status:** open (filed 2026-05-29)
+- **status:** **b₁′ ∧ b₂′ CLOSED at the `!`-layer (2026-06-22)** — the uniform $F \dashv U$ settlement ([Q-028b](../01_OPEN_QUESTIONS_REGISTRY.md#q-028b), positive on MELL ground `{→,×,atom}`) was independently cross-checked / **signed off** ([crosscheck](../audits/q028b-settlement-crosscheck-2026-06-22.md)); positive on the MALL fragment since 2026-05-31. **b₃′ (erasure-square naturality) remains open** ([Q-029](../01_OPEN_QUESTIONS_REGISTRY.md#q-029)). Filed 2026-05-29.
 - **ring:** core
 - **tier:** formal
 - **depends-on:** [T001](../02_THEOREMS_AND_PROOFS/T001-oq-jsl-per-cone.md) (per-cone JSL, used as a structural lemma even though the bridge target is at a different level), [T002](../02_THEOREMS_AND_PROOFS/T002-design-set-antichain.md) (`Inc(B)` antichain — the generating set on the Ludics side), [T004](../02_THEOREMS_AND_PROOFS/T004-jsl-fragment-bridge.md) (JSL-fragment categorical fact)
-- **gated-by:** [Q-028a](../01_OPEN_QUESTIONS_REGISTRY.md#q-028a) (discovery: generator-level bijection canonicality on small instances) ∧ [Q-028b](../01_OPEN_QUESTIONS_REGISTRY.md#q-028b) (settlement: uniform freeness/adjointness argument); Q-028a positive licenses pursuing Q-028b but does not close b₁′ ∧ b₂′ on its own.
+- **gated-by:** [Q-028a](../01_OPEN_QUESTIONS_REGISTRY.md#q-028a) (discovery: generator-level bijection canonicality on small instances) ∧ [Q-028b](../01_OPEN_QUESTIONS_REGISTRY.md#q-028b) (settlement: uniform freeness/adjointness argument); Q-028a positive licenses pursuing Q-028b but does not close b₁′ ∧ b₂′ on its own. **[settled 2026-06-22]** both are now positive — Q-028a discovery-positive on both strata, Q-028b's uniform settlement **signed off** on the ground `{→,×,atom}` fragment (incl. the `!`-layer / higher-order rules) — so **b₁′ ∧ b₂′ are closed there**; only b₃′ and schematic polymorphism ([Q-033](../01_OPEN_QUESTIONS_REGISTRY.md#q-033)) remain.
 - **parent:** [C001](C001-ambler-bridge-iso.md)
 - **sibling:** [C001a](C001a-jsl-fragment-bridge.md) (closed by T004 2026-05-29)
 - **supersedes:** [C001b](C001b-ambler-remainder.md) (per-cone bridge target ruled wrong-level by [Q-027 audit](../audits/q027-thin-cones-2026-05-29.md))
 - **linked-open-questions:** [Q-001](../01_OPEN_QUESTIONS_REGISTRY.md#q-001) (Ambler bridge), [Q-010](../01_OPEN_QUESTIONS_REGISTRY.md#q-010), [Q-027](../01_OPEN_QUESTIONS_REGISTRY.md#q-027) (resolved-with-redirect — this conjecture is the redirect), [Q-028a](../01_OPEN_QUESTIONS_REGISTRY.md#q-028a) (discovery content), [Q-028b](../01_OPEN_QUESTIONS_REGISTRY.md#q-028b) (settlement content)
-- **last-reviewed:** 2026-05-29
+- **last-reviewed:** 2026-06-22
 
 > **Origin note (2026-05-29).** Filed as the redirect resolution of the
 > Q-027 thin-cones diagnostic. The diagnostic (Ambler Example 1, Q3
@@ -23,7 +23,20 @@
 > but a set-of-designs operation one level up. The target match to
 > Ambler's `𝒮/Γ = 𝒫_fin(𝒞/Γ)` is structural: both sides are free JSLs
 > on a generating set of "atomic arguments" with set-union as join.
-
+> **Resolution note (2026-06-22) — b₁′ ∧ b₂′ closed at the `!`-layer.** The
+> settlement landed: [Q-028b](../01_OPEN_QUESTIONS_REGISTRY.md#q-028b)'s uniform
+> $F\dashv U$ freeness/adjointness argument was assembled at the exponential layer
+> ([Session 1](../audits/q028b-settlement-session1-2026-06-22.md) + [Session 2](../audits/q028b-settlement-session2-2026-06-22.md))
+> and **independently cross-checked / signed off** ([crosscheck](../audits/q028b-settlement-crosscheck-2026-06-22.md), 6/6 PASS).
+> The Ludics-side generating set is now [T012](../02_THEOREMS_AND_PROOFS/T012-gen-b-antichain.md)'s
+> $\mathsf{Gen!}(B)$ (material *proof* designs) in place of the FQ-linear
+> $\mathsf{Inc}(B)$/T002 antichain; freeness of $\mathcal{P}_\mathrm{fin}(\mathsf{Gen!}(B))$
+> is the proof-layer antichain **L-AC!** (totality + determinism + materiality +
+> winning, **D1-free**), and the bridge counit $\varepsilon = \mathcal{F}(\varphi_!)$
+> is the **unique** composition-compatible iso, forced uniformly in $B$. **Scope:**
+> ground `{→,×,atom}` (incl. function-typed rules and reused premises / contraction);
+> schematic / propositional-variable polymorphism is out ([Q-033](../01_OPEN_QUESTIONS_REGISTRY.md#q-033)).
+> **b₃′ remains the open content** ([Q-029](../01_OPEN_QUESTIONS_REGISTRY.md#q-029)).
 ## Substrate context (unchanged from C001b)
 
 - `C_semi` — the Ambler semilattice-enriched CCC. Hom-objects

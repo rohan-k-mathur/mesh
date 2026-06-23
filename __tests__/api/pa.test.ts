@@ -13,11 +13,16 @@ import { POST as deprecatedPrefs } from "@/app/api/aif/preferences/route";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 
+const mockArgCount = jest.fn(async () => 0);
+const mockClaimCount = jest.fn(async () => 0);
+
 jest.mock("@/lib/serverutils", () => ({ getCurrentUserId: jest.fn() }));
 jest.mock("@/lib/prismaclient", () => ({
   prisma: {
     preferenceApplication: { create: jest.fn(async () => ({ id: "pa-123" })) },
     preferenceScheme: { findUnique: jest.fn(async () => null) },
+    argument: { count: (a: any) => mockArgCount(a) },
+    claim: { count: (a: any) => mockClaimCount(a) },
   },
 }));
 
@@ -55,6 +60,7 @@ describe("POST /api/pa", () => {
 
   test("creates a PA with server-derived createdById on the happy path", async () => {
     (getCurrentUserId as jest.Mock).mockResolvedValue("user-1");
+    mockArgCount.mockResolvedValue(2); // both referenced arguments exist in the deliberation
 
     const res = await createPA(
       req({ deliberationId: "delib-123", preferredArgumentId: "arg-a", dispreferredArgumentId: "arg-b" }),
@@ -71,6 +77,18 @@ describe("POST /api/pa", () => {
       preferredArgumentId: "arg-a",
       dispreferredArgumentId: "arg-b",
     });
+  });
+
+  test("returns 400 when a referenced argument does not exist in the deliberation (Phase 4.4)", async () => {
+    (getCurrentUserId as jest.Mock).mockResolvedValue("user-1");
+    mockArgCount.mockResolvedValue(1); // only one of the two referenced args exists
+
+    const res = await createPA(
+      req({ deliberationId: "delib-123", preferredArgumentId: "arg-a", dispreferredArgumentId: "ghost" }),
+    );
+
+    expect(res.status).toBe(400);
+    expect((prisma.preferenceApplication.create as jest.Mock)).not.toHaveBeenCalled();
   });
 });
 

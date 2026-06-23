@@ -101,6 +101,58 @@ export async function createMarketResolvedNotif({ userId, actorId, marketId, out
   });
 }
 
+// --- Attack ratification (docs/ATTACK_RATIFICATION_DEV_SPEC.md §7.2) ---
+// Reasoning-layer actor ids are the stringified social User.id (a bigint). AI /
+// system actors (e.g. "mcp-bot") are non-numeric → skip rather than throw on
+// BigInt(). Self-notifications are suppressed.
+const NUMERIC_USER_ID = /^\d+$/;
+
+async function createRatificationNotif({
+  recipientUserId,
+  actorUserId,
+  deliberationId,
+  conflictApplicationId,
+  type,
+}: {
+  recipientUserId: string;
+  actorUserId: string;
+  deliberationId: string;
+  conflictApplicationId: string;
+  type: "ratification_needed" | "ratification_cleared";
+}) {
+  if (!NUMERIC_USER_ID.test(recipientUserId) || !NUMERIC_USER_ID.test(actorUserId)) return;
+  if (recipientUserId === actorUserId) return; // never notify yourself
+  await prisma.notification.create({
+    data: {
+      user_id: BigInt(recipientUserId),
+      actor_id: BigInt(actorUserId),
+      type,
+      deliberation_id: deliberationId,
+      conflict_application_id: conflictApplicationId,
+    },
+  });
+}
+
+/** A human attack needs ratification → notify the attacked element's author. */
+export async function createRatificationNeededNotif(args: {
+  recipientUserId: string;
+  actorUserId: string;
+  deliberationId: string;
+  conflictApplicationId: string;
+}) {
+  await createRatificationNotif({ ...args, type: "ratification_needed" });
+}
+
+/** An attack cleared the ratification threshold → notify the CA author. */
+export async function createRatificationClearedNotif(args: {
+  recipientUserId: string;
+  actorUserId: string;
+  deliberationId: string;
+  conflictApplicationId: string;
+}) {
+  await createRatificationNotif({ ...args, type: "ratification_cleared" });
+}
+
 export async function fetchNotifications({ userId }: { userId: bigint }) {
   return await prisma.notification.findMany({
     where: { user_id: userId },
