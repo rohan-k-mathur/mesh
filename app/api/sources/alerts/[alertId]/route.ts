@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/alerts/[alertId]/route.ts
 // Phase 3.1: Individual Alert Actions API
 // Mark alerts as seen or dismissed

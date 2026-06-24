@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Institutional reports endpoint
  * POST - generate a new report

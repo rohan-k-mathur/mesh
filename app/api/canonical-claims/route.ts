@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.3: Canonical Claims Registry API
  * GET /api/canonical-claims - Search canonical claims

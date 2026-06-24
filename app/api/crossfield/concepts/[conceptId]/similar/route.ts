@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 5.1: Find similar concepts across fields
  * GET — returns concepts from other fields with high embedding similarity

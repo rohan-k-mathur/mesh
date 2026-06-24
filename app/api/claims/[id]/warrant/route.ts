@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route to create or update a warrant for a claim
 //app/api/claims/[id]/warrant/route.ts
 import { NextRequest, NextResponse } from 'next/server';

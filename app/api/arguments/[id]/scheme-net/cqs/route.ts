@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/arguments/[id]/scheme-net/cqs/route.ts
 /**
  * GET /api/arguments/:id/scheme-net/cqs

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/nl/normalize/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';

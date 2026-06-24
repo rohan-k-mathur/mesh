@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/aspic/evaluate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { computeAspicSemantics, aifToASPIC } from "@/lib/aif/translation/aifToAspic";

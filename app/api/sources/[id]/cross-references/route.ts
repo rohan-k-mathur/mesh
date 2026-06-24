@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/[id]/cross-references/route.ts
 // Phase 3.3: Cross-Deliberation Citation Tracking API
 // Returns all contexts where a source is cited across the platform

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route to handle batch import of AIF JSON-LD data
 // app/api/aif/batch/route.ts
 import { NextRequest, NextResponse } from 'next/server';

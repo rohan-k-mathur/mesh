@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/deliberations/[id]/ratification-policy/route.ts
 //
 // Attack-ratification policy override (DEV_SPEC §3.3 / §12). API-only surface for

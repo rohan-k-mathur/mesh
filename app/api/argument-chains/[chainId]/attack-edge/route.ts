@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * API endpoint for creating recursive attacks (attacking edges/relationships)
  * 

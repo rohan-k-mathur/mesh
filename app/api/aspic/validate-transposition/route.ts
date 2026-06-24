@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * API Endpoint: Validate Transposition Closure
  * 

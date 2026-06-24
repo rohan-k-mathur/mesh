@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/deliberations/[id]/roles/route.ts
 //
 // Governance role management for a deliberation (docs/DELIBERATION_CREATION_DEV_SPEC.md §2.2).

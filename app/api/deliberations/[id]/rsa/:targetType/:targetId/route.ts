@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/deliberations/[id]/rsa/:targetType/:targetId/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 

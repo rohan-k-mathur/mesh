@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Token Exchange API route for the Chrome extension
 //

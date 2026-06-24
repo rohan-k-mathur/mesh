@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/citations/list/route.ts
 // Phase 2.4: Evidence List API with filtering, sorting, pagination
 

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { compileFromMoves, ScopingStrategy } from "@/packages/ludics-engine/compileFromMoves";
 import { z } from "zod";

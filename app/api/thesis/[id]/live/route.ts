@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/live/route.ts
 //
 // Living Thesis — Phase 1.1: batched live-stats endpoint.

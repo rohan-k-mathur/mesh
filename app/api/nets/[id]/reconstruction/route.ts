@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { NetReconstructionService } from "@/app/server/services/NetReconstructionService";
 import { NetIdentificationService } from "@/app/server/services/NetIdentificationService";

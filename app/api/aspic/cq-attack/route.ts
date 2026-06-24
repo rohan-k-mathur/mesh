@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/aspic/cq-attack/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { cqToAspicAttack } from "@/lib/aspic/cqMapping";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Claim Provenance API
  * GET /api/claims/[id]/provenance - Get claim provenance

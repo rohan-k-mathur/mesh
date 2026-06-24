@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/prongs/from-chain/route.ts
 //
 // D4 Week 4: materialize an ArgumentChain into a new ThesisProng.

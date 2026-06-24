@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/claims/[id]/threshold/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";

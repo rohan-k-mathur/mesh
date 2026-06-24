@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from 'next/server';
 import { prisma } from '../sheaf/_prisma';
 import { readJSON, ok, badRequest, toBigInt, s } from '@/app/api/sheaf/_util';

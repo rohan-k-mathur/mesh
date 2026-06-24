@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Strategy Innocence API - Alias Route
  * GET/POST /api/ludics/dds/strategy/innocence

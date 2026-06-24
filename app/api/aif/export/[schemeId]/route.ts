@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * AIF Export API Route
  * GET /api/aif/export/:schemeId or /api/aif/export/key/:schemeKey

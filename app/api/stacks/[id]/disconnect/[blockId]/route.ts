@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DELETE /api/stacks/[id]/disconnect/[blockId]
  * 

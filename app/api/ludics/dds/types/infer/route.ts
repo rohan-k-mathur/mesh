@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 5: Type Inference API
  * POST /api/ludics/dds/types/infer

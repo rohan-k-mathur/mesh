@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Undo conflict resolution
  * POST: Restore resolved preferences

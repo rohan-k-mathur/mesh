@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Canonical Claim Instances API
  * GET /api/claims/canonical/[canonicalId]/instances - Get all instances

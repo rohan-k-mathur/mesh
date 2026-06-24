@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { DependencyInferenceEngine } from "@/app/server/services/DependencyInferenceEngine";
 import { NetIdentificationService } from "@/app/server/services/NetIdentificationService";

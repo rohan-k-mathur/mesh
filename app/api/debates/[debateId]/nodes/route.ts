@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // src/app/api/debates/[debateId]/nodes/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/db/supabaseAdmin';

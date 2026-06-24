@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 5.1: Verify equivalence API
  * POST — add verification to an equivalence mapping (authenticated)

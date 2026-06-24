@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/arguments/[id]/dependencies/fix/route.ts
 // One-time migration endpoint to fix dependencies that were saved with instance IDs instead of scheme IDs
 import { NextRequest, NextResponse } from "next/server";

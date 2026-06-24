@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Sync works to ORCID
  * POST - trigger sync of eligible contributions

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/arguments/[id]/meta/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PUT as updateArg } from '../route'; // reuse the main PUT handler

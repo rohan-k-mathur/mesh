@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route to fetch multiple arguments by IDs with optional deliberation filter
 // app/api/arguments/batch/route.ts
 import { NextRequest, NextResponse } from 'next/server';

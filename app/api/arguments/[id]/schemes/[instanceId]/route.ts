@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Scheme Instance Management API
  * PATCH /api/arguments/[id]/schemes/[instanceId] - Update scheme instance

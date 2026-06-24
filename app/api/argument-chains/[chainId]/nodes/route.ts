@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies, getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";

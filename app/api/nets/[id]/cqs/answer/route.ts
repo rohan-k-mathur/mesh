@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 // TODO: Uncomment when ArgumentNet and NetCQAnswer models are added to Prisma schema
 // import { prisma } from "@/lib/prismaclient";

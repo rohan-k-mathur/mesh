@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { fetchIntegrations, saveIntegration } from "@/lib/actions/integration.actions";
 

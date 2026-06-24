@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS View Extraction API
  * POST /api/ludics/dds/views/extract

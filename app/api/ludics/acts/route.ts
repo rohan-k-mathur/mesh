@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { appendActs } from "packages/ludics-engine/appendActs";
 import { syncToAif, LudicsActionType } from "packages/ludics-engine/aif-sync";

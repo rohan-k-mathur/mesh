@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Transformation API Endpoint
  * 

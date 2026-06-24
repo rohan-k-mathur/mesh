@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/arguments/[id]/chains
  * Returns all argument chains that contain this argument

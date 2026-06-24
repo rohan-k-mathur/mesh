@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Ch(S) API Endpoint
  * 

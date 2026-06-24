@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Isomorphism Verification API Endpoint
  * 

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/[id]/archive/route.ts
 // Phase 3.1: Source Archiving API - Wayback Machine Integration
 

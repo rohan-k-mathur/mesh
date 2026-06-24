@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/aif/validate/route.ts
 type NodeRef = { type: 'I'|'RA'|'CA'|'PA'; id: string };
 type Edge = { from: NodeRef; to: NodeRef; role: 'premise'|'conclusion'|'conflictingElement'|'conflictedElement'|'preferredElement'|'dispreferredElement' };

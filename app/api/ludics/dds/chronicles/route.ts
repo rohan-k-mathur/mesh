@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Chronicles API - Main Entry Point
  * GET/POST /api/ludics/dds/chronicles

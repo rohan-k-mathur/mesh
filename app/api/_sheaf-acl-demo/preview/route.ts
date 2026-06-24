@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from 'next/server';
 import { ok, badRequest, readJSON, devOnlyGuard } from '../_util';
 import { DB, getUserCtx, labelForAudience, signPreview } from '../_store';

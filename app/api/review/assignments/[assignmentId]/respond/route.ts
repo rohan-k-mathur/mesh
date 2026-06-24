@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Respond to reviewer invitation
  */

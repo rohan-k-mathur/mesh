@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Disputes API
  * POST /api/ludics/dds/disputes - Create a dispute from designs

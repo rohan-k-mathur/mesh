@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 5.1: Academic fields API
  * GET  — list top-level fields, search, or get hierarchy

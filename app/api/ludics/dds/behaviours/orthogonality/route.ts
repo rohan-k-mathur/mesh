@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 5: Orthogonality Checking API
  * POST /api/ludics/dds/behaviours/orthogonality

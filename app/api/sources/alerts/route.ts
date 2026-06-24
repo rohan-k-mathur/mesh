@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/alerts/route.ts
 // Phase 3.1: Source Alerts API
 // Get pending alerts for the current user

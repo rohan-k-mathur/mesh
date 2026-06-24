@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserAuthId } from "@/lib/serverutils";

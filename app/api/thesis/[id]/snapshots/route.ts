@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/snapshots/route.ts
 //
 // Living Thesis — Phase 5.2: snapshot list & create endpoints.

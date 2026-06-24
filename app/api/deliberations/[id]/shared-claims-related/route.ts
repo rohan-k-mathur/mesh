@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.3: Cross-Deliberation Related API
  * GET /api/deliberations/:id/shared-claims-related - Find related deliberations by shared canonical claims

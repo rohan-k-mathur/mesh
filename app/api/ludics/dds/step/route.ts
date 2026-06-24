@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Step Endpoint
  * POST /api/ludics/dds/step

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getUserFromCookies } from "@/lib/serverutils";
 import { AccessToken } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";

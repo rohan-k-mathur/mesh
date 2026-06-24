@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 2: Propagation Checking API
  * POST /api/ludics/dds/strategies/propagation

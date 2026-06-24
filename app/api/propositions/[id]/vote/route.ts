@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 //app/api/propositions/[id]/vote/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';

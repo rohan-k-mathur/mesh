@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Strategies Generation API
  * POST /api/ludics/dds/strategies/generate

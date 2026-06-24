@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Individual Challenge (Attack) API
  * GET /api/claims/[id]/challenges/[challengeId] - Get challenge details

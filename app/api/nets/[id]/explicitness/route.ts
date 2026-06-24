@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { ExplicitnessClassifier } from "@/app/server/services/ExplicitnessClassifier";
 import { NetIdentificationService } from "@/app/server/services/NetIdentificationService";

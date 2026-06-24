@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Claim Challenges (Attacks) API
  * GET /api/claims/[id]/challenges - Get all challenges/attacks against claim

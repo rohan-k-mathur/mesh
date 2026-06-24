@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Reputation leaderboard endpoint
  * Phase 4.2: Argumentation-Based Reputation

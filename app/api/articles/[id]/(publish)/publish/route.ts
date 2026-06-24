@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 
 
 // app/api/articles/[id]/publish/route.ts

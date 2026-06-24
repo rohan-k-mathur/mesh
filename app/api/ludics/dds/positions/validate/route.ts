@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Position Validation API
  * POST /api/ludics/dds/positions/validate

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/feed/like/route.ts
 import { NextResponse } from "next/server";
 import { deleteFeedPost } from "@/lib/actions/feed.actions";

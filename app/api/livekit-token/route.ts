@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AccessToken } from "livekit-server-sdk";
 
 export async function GET(req: Request) {

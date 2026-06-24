@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 //app/api/propositions/[id]/endorse/route.ts
 
 

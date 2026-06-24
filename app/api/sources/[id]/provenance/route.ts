@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/[id]/provenance/route.ts
 // Phase 3.3: Evidence Provenance Chain API
 // Returns the provenance chain showing how evidence flows through the platform

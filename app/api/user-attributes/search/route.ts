@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { searchUsersByAttributes } from "@/lib/actions/userattributes.actions";
 

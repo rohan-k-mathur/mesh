@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Main Correspondence API Endpoint
  * GET /api/ludics/dds/correspondence?strategyId=xxx

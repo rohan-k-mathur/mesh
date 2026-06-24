@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 5: Biorthogonal Closure API
  * POST /api/ludics/dds/behaviours/closure

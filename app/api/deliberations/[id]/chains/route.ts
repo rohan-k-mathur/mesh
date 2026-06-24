@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/deliberations/[id]/chains
  * Returns all argument chains for a deliberation

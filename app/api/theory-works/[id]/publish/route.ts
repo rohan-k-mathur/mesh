@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/theory-works/[id]/publish/route.ts
 import { NextResponse } from 'next/server';
 import { z } from 'zod';

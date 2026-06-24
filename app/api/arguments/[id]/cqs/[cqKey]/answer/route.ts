@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // // app/api/arguments/[id]/cqs/[cqKey]/answer/route.ts
 
 import { NextResponse } from 'next/server';

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Public Stacks API - Get Single Stack
  *

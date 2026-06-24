@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { getNodeProvenance } from "@/lib/aif/graph-builder";
