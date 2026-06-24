@@ -22,7 +22,7 @@ export const BlockStyleTokens = Extension.create({
       },
     ];
   },
-  renderHTML({ HTMLAttributes, node }) {
+  renderHTML({ HTMLAttributes, node }: { HTMLAttributes: Record<string, any>; node: any }) {
     // We don't override default render; attributes get merged by TipTap.
     return [];
   },

@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
     
     // Determine if this is a DOI-based or manual creation
     if (body.doi) {
-      return handleDOICreation(body, userId);
+      return handleDOICreation(body, userId.toString());
     } else if (body.title) {
-      return handleManualCreation(body, userId);
+      return handleManualCreation(body, userId.toString());
     } else {
       return NextResponse.json(
         { error: "Either 'doi' or 'title' is required" },

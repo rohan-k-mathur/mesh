@@ -15,8 +15,8 @@ type Bus = {
 
 export const bus: Bus = (globalThis as any).__meshBus__ ??= {
   _h: {} as any,
-  on(t, h) { (this._h[t] ??= new Set()).add(h); return () => (this._h[t] as Set<Handler>).delete(h); },
-  emit(t, p) { for (const h of (this._h[t] ?? [])) try { h(p); } catch {} },
+  on(t: EventType, h: Handler) { (this._h[t] ??= new Set()).add(h); return () => (this._h[t] as Set<Handler>).delete(h); },
+  emit(t: EventType, p: any) { for (const h of (this._h[t] ?? [])) try { h(p); } catch {} },
 };
 
 

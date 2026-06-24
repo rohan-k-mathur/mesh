@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
         thesisClaimId: thesisClaimId ?? null,
         status: "DRAFT",
         template: template ?? "GENERAL",
-        content: null, // Empty document to start
+        content: undefined, // Empty document to start
       },
       select: {
         id: true,

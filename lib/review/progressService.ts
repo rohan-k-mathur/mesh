@@ -28,6 +28,7 @@ export async function getReviewProgress(
       reviewers: {
         include: {
           commitments: true,
+          user: { select: { name: true, username: true } },
         },
       },
     },
@@ -40,6 +41,8 @@ export async function getReviewProgress(
   // Calculate concerns
   let openConcerns = 0;
   let resolvedConcerns = 0;
+  let blockingConcerns = 0;
+  let totalCommitments = 0;
 
   const reviewerProgress = review.reviewers.map((r) => {
     const blocking = r.commitments.filter(
@@ -49,10 +52,13 @@ export async function getReviewProgress(
 
     openConcerns += blocking.length;
     resolvedConcerns += resolved.length;
+    blockingConcerns += blocking.length;
+    totalCommitments += r.commitments.length;
 
     return {
       reviewerId: r.userId,
-      status: r.status as string,
+      reviewerName: r.user?.name ?? r.user?.username ?? r.userId,
+      status: r.status,
       commitmentsMade: r.commitments.length,
       blockingConcerns: blocking.length,
     };
@@ -67,10 +73,19 @@ export async function getReviewProgress(
       status: p.status as PhaseStatus,
       startDate: p.startDate || undefined,
       endDate: p.endDate || undefined,
+      deadline: p.deadline || undefined,
+      isOverdue:
+        !!p.deadline &&
+        p.deadline.getTime() < Date.now() &&
+        p.status !== ("COMPLETED" as PhaseStatus),
     })),
     reviewerProgress,
-    openConcerns,
-    resolvedConcerns,
+    totals: {
+      openConcerns,
+      resolvedConcerns,
+      blockingConcerns,
+      totalCommitments,
+    },
   };
 }
 
@@ -383,7 +398,8 @@ export async function checkReviewHealth(reviewId: string) {
   const staleThreshold = 7 * 24 * 60 * 60 * 1000; // 7 days
   review.reviewers.forEach((r) => {
     if (r.status === "IN_PROGRESS") {
-      const staleDuration = Date.now() - r.startedAt!.getTime();
+      const startedAt = r.respondedAt ?? r.assignedAt;
+      const staleDuration = Date.now() - startedAt.getTime();
       if (staleDuration > staleThreshold) {
         warnings.push(`Reviewer ${r.userId} has been in progress for over 7 days`);
       }
@@ -406,7 +422,7 @@ export async function checkReviewHealth(reviewId: string) {
   }
 
   // Check for reviewers who haven't responded
-  const pendingReviewers = review.reviewers.filter((r) => r.status === "PENDING");
+  const pendingReviewers = review.reviewers.filter((r) => r.status === "INVITED");
   if (pendingReviewers.length > 0) {
     warnings.push(`${pendingReviewers.length} reviewer(s) haven't responded to invitation`);
   }

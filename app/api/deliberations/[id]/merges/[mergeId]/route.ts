@@ -81,7 +81,8 @@ export async function PATCH(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -102,7 +103,7 @@ export async function PATCH(
     const updatedMergeRequest = await updateMergeRequestStatus(
       mergeId,
       parsed.data.status,
-      session.user.id
+      userId
     );
 
     return NextResponse.json(updatedMergeRequest);
@@ -131,7 +132,8 @@ export async function POST(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -141,24 +143,14 @@ export async function POST(
 
     // Handle execute action
     if (action === "execute") {
-      const result = await executeMerge(mergeId, session.user.id);
-
-      if (!result.success) {
-        return NextResponse.json(
-          {
-            error: "Merge failed",
-            conflicts: result.conflicts,
-          },
-          { status: 409 }
-        );
-      }
+      // executeMerge throws on failure; a successful resolution means the
+      // merge completed and returns the counts of merged entities.
+      const result = await executeMerge(mergeId, userId);
 
       return NextResponse.json({
         success: true,
-        claimsMerged: result.claimsMerged,
-        argumentsMerged: result.argumentsMerged,
-        claimIdMappings: result.claimIdMappings,
-        argumentIdMappings: result.argumentIdMappings,
+        claimsMerged: result.mergedClaims,
+        argumentsMerged: result.mergedArguments,
       });
     }
 
@@ -176,7 +168,7 @@ export async function POST(
 
       const comment = await addMergeComment(
         mergeId,
-        session.user.id,
+        userId,
         parsed.data.content
       );
 

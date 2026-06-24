@@ -260,8 +260,9 @@ export function theoryDesignToLegacy(design: LudicDesignTheory): LegacyLudicDesi
  */
 export function legacyMoveToPosition(move: LegacyArenaMove): ArenaPositionTheory {
   const address = locusPathToAddress(move.address);
-  const ramification = move.ramification.map((i) => [...address, i]);
-  
+  // Theory ramification is the list of sub-address indices (number[])
+  const ramification: number[] = [...move.ramification];
+
   return {
     address,
     content: move.label ?? "",
@@ -280,9 +281,9 @@ export function theoryPositionToMove(
   position: ArenaPositionTheory,
   id: string
 ): LegacyArenaMove {
-  // Extract ramification indices
-  const ramification = position.ramification.map((r) => r[r.length - 1] ?? 0);
-  
+  // Theory ramification is already a list of indices (number[])
+  const ramification: number[] = [...position.ramification];
+
   return {
     id,
     address: addressToLocusPath(position.address),
@@ -315,7 +316,7 @@ export function legacyArenaToTheory(
     availableDesigns: [],
     statistics: {
       positionCount: positions.size,
-      maxDepth: Math.max(...Array.from(positions.values()).map((p) => p.depth)),
+      maxDepth: Math.max(0, ...Array.from(positions.values()).map((p) => p.depth ?? p.address.length)),
       branchingFactor: arena.moves.length > 0 
         ? arena.moves.reduce((sum, m) => sum + m.ramification.length, 0) / arena.moves.length
         : 0,

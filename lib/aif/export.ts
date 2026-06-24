@@ -239,7 +239,7 @@ export async function exportDeliberationAsAifJSONLD(deliberationId: string) {
     prisma.dialogueMove.findMany({ where:{ deliberationId } }),
     prisma.theoryWork.findMany({
       where: { deliberationId, theoryType: 'OP' },
-      include: { pascal: true }
+      include: { pascalModel: true }
     })
   ]);
 
@@ -259,7 +259,7 @@ export async function exportDeliberationAsAifJSONLD(deliberationId: string) {
   // CA-nodes (conflicts)
   for (const ca of cas) {
     const thisCA = idCA(ca.id);
-    nodes.push(N('aif:CA', thisCA, { schemeKey: ca.scheme?.key ?? null, attackType: ca.attackType ?? null, targetScope: ca.targetScope ?? null }));
+    nodes.push(N('aif:CA', thisCA, { schemeKey: ca.scheme?.key ?? null, attackType: ca.legacyAttackType ?? null, targetScope: ca.legacyTargetScope ?? null }));
     const conflicting = ca.conflictingArgumentId ? idRA(ca.conflictingArgumentId) : idI(ca.conflictingClaimId!);
     const conflicted  = ca.conflictedArgumentId  ? idRA(ca.conflictedArgumentId)  : idI(ca.conflictedClaimId!);
     edges.push(E(conflicting, thisCA, 'aif:ConflictingElement'));
@@ -279,16 +279,18 @@ export async function exportDeliberationAsAifJSONLD(deliberationId: string) {
   // Optional: AIF+ locutions (minimal)
   for (const m of moves) {
     const L = `:L|${m.id}`;
-    nodes.push(N('aif:L', L, { illocution: m.illocution ?? null, text: m.payload?.expression ?? null }));
+    const payload = (m.payload ?? null) as { expression?: string } | null;
+    const contentClaimId = m.targetType === 'claim' ? m.targetId : null;
+    nodes.push(N('aif:L', L, { illocution: m.illocution ?? null, text: payload?.expression ?? null }));
     if (m.argumentId)      edges.push(E(L, idRA(m.argumentId), 'aif:Illocutes'));
-    else if (m.contentClaimId) edges.push(E(L, idI(m.contentClaimId), 'aif:Illocutes'));
+    else if (contentClaimId) edges.push(E(L, idI(contentClaimId), 'aif:Illocutes'));
     if (m.replyToMoveId)   edges.push(E(`:L|${m.replyToMoveId}`, L, 'aif:Replies'));
   }
 
   // OP/Pascal preconditions bundle (if any OP work w/ pascal model exists)
-  const opWithPascal = works.find(w => !!w.pascal);
-  if (opWithPascal?.pascal) {
-    const { propositions, actions, utilities, method, assumption } = opWithPascal.pascal as any;
+  const opWithPascal = works.find(w => !!w.pascalModel);
+  if (opWithPascal?.pascalModel) {
+    const { propositions, actions, utilities, method, assumption } = opWithPascal.pascalModel as any;
     nodes.push(N('aif:PascalMeta', idPM(opWithPascal.id), {
       workId: opWithPascal.id,
       method,                                       // 'laplace' | 'minimax' | 'regret'

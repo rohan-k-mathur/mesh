@@ -85,11 +85,11 @@ export async function computeScopeTrace(
   // Determine convergence status
   let convergenceStatus: ScopeTraceResult['convergenceStatus'] = 'INCOMPLETE';
   
-  if (trace.status === 'CONVERGENT' || trace.status === 'DRAW') {
+  if (trace.status === 'CONVERGENT') {
     convergenceStatus = 'CONVERGENT';
   } else if (trace.status === 'DIVERGENT') {
     convergenceStatus = 'DIVERGENT';
-  } else if (trace.status === 'STUCK' || trace.status === 'ERROR') {
+  } else if (trace.status === 'STUCK') {
     convergenceStatus = 'STUCK';
   }
   

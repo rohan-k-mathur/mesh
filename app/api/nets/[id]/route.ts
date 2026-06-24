@@ -6,11 +6,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const net = await prisma.argumentNet.findUnique({
+    const net = await prisma.schemeNet.findUnique({
       where: { id: params.id },
       include: {
-        schemes: true,
-        relationships: true,
+        steps: { include: { scheme: true } },
       },
     });
 

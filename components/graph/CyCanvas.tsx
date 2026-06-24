@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import cytoscape, { Stylesheet, ElementDefinition, Core } from 'cytoscape';
+import cytoscape, { StylesheetStyle, StylesheetCSS, ElementDefinition, Core } from 'cytoscape';
+
+type Stylesheet = StylesheetStyle | StylesheetCSS;
 
 type Props = {
   elements: ElementDefinition[];

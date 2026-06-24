@@ -4,7 +4,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GalleryPostValidation } from "@/lib/validations/thread";
+import {
+  GalleryPostValidation,
+  GalleryEditValidation,
+} from "@/lib/validations/thread";
 import { z } from "zod";
 import GalleryNodeForm from "../forms/GalleryNodeForm";
 import Image from "next/image";
@@ -15,7 +18,11 @@ interface Props {
   id?: string;
   isOwned: boolean;
   isPublic: boolean;
-  onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
+  onSubmit?: (
+    values:
+      | z.infer<typeof GalleryPostValidation>
+      | z.infer<typeof GalleryEditValidation>
+  ) => void;
   currentImages: string[];
   currentCaption?: string;
 }
@@ -25,7 +32,11 @@ const renderCreate = ({
   currentIsPublic,
   currentCaption,
 }: {
-  onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
+  onSubmit?: (
+    values:
+      | z.infer<typeof GalleryPostValidation>
+      | z.infer<typeof GalleryEditValidation>
+  ) => void;
   currentIsPublic: boolean;
   currentCaption?: string;
 }) => (
@@ -51,7 +62,11 @@ const renderEdit = ({
   currentIsPublic,
   currentCaption,
 }: {
-  onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
+  onSubmit?: (
+    values:
+      | z.infer<typeof GalleryPostValidation>
+      | z.infer<typeof GalleryEditValidation>
+  ) => void;
   currentImages: string[];
   isOwned: boolean;
   currentIsPublic: boolean;

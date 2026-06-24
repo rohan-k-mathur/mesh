@@ -223,7 +223,7 @@ export async function upsertSchemeNet(
           stepOrder: step.stepOrder,
           label: step.label || null,
           inputFromStep: step.inputFromStep || null,
-          inputSlotMapping: step.inputSlotMapping || null,
+          inputSlotMapping: step.inputSlotMapping ?? undefined,
           stepText: step.stepText || null,
           confidence: step.confidence ?? 1.0,
         },

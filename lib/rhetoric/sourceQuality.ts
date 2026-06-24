@@ -66,7 +66,7 @@ export function classifySource(url: string, contextText = ''): SourceGrade {
     cls === 'edu'        ? 0.8 :
     cls === 'news_t1'    ? 0.7 :
     cls === 'news_t2'    ? 0.55 :
-    cls === 'ngo'        ? 0.65 :
+    (cls as SourceClass) === 'ngo' ? 0.65 :
     cls === 'blog_forum' ? 0.35 :
     0.5;
 

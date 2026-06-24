@@ -2,6 +2,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 
+// Runtime-only: depends on request params / DB; never statically prerender.
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } }

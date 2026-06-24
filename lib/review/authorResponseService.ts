@@ -81,7 +81,7 @@ export async function createAuthorResponse(
       moves: {
         include: {
           targetCommitment: { select: { id: true, topic: true } },
-          targetArgument: { select: { id: true, summary: true } },
+          targetArgument: { select: { id: true, text: true } },
         },
       },
       author: { select: { auth_id: true, name: true } },
@@ -99,7 +99,7 @@ export async function getAuthorResponses(reviewId: string) {
       moves: {
         include: {
           targetCommitment: { select: { id: true, topic: true } },
-          targetArgument: { select: { id: true, summary: true } },
+          targetArgument: { select: { id: true, text: true } },
         },
       },
       author: { select: { auth_id: true, name: true } },
@@ -119,8 +119,8 @@ export async function getAuthorResponse(responseId: string) {
       moves: {
         include: {
           targetCommitment: { select: { id: true, topic: true, description: true } },
-          targetArgument: { select: { id: true, summary: true, text: true } },
-          supportingArgument: { select: { id: true, summary: true, text: true } },
+          targetArgument: { select: { id: true, text: true } },
+          supportingArgument: { select: { id: true, text: true } },
         },
       },
       author: { select: { auth_id: true, name: true } },
@@ -337,7 +337,7 @@ export async function addResponseMove(
     },
     include: {
       targetCommitment: { select: { id: true, topic: true } },
-      targetArgument: { select: { id: true, summary: true } },
+      targetArgument: { select: { id: true, text: true } },
     },
   });
 }

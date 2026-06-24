@@ -15,7 +15,7 @@ type Props = { onOpenChange: (v: boolean) => void; stackId?: string };
 
 async function renderFirstPagePNG(file: File): Promise<string|null> {
   // Workerless to avoid any .mjs issues in Next
-  const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
+  const pdfjsLib: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   try {
     const data = await file.arrayBuffer();
@@ -46,7 +46,7 @@ async function renderFirstPagePNG(file: File): Promise<string|null> {
 }
 
 async function renderFirstPagePNGFromUrl(url: string): Promise<string|null> {
-  const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
+  const pdfjsLib: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
   try {
     // fetch via proxy to dodge CORS/redirects
@@ -263,9 +263,11 @@ if (tab === "url") {
         content: JSON.stringify(payload),
         caption,
         isPublic,
+        // `libraryPostId`/`stackId` are accepted server-side (createFeedPost)
+        // but absent from ClientCreateFeedPostArgs; cast to forward them.
         libraryPostId: count === 1 ? result.postIds?.[0] : undefined,
         stackId: stackId || result.stackId || undefined,
-      });
+      } as any);
 
       onOpenChange(false);
       router.refresh();

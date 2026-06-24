@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { generateHTML } from "@tiptap/html";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { tiptapSharedExtensions } from "@cp/lib/tiptap/shared";
+import { prisma } from "../../../../../lib/prisma";
+import { getCurrentAuthor } from "../../../../../lib/auth";
+import { tiptapSharedExtensions } from "../../../../../lib/tiptap/shared";
 
 type Params = { entryId: string; versionNumber: string };
 

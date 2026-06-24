@@ -71,8 +71,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         mainClaimId,
         order: nextOrder,
         role: role ?? "SUPPORT",
-        introduction: introduction ?? null,
-        conclusion: conclusion ?? null,
+        introduction: introduction ?? undefined,
+        conclusion: conclusion ?? undefined,
       },
       include: {
         mainClaim: {

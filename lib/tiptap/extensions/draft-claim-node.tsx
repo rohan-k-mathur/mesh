@@ -1,5 +1,5 @@
 // lib/tiptap/extensions/draft-claim-node.tsx
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, mergeAttributes, type CommandProps } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import React, { useState } from "react";
 import { ClaimComposerEmbeddable, type ClaimData } from "@/components/claims/ClaimComposerEmbeddable";
@@ -126,6 +126,18 @@ function DraftClaimNodeView({ node, editor, getPos, deleteNode }: NodeViewProps)
   );
 }
 
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    draftClaimNode: {
+      insertDraftClaim: (attributes?: {
+        deliberationId: string;
+        text?: string;
+        position?: string;
+      }) => ReturnType;
+    };
+  }
+}
+
 /**
  * TipTap extension for draft claim nodes
  * 
@@ -183,7 +195,7 @@ export const DraftClaimNode = Node.create({
     return {
       insertDraftClaim:
         (attributes?: { deliberationId: string; text?: string; position?: string }) =>
-        ({ commands }) => {
+        ({ commands }: CommandProps) => {
           const draftId = `draft_claim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           return commands.insertContent({
             type: this.name,

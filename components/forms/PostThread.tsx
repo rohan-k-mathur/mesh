@@ -18,7 +18,15 @@ import { Textarea } from "@/components/ui/textarea";
 //import { updateUser } from "@/lib/actions/user.actions"
 import { useRouter, usePathname } from "next/navigation";
 import { ThreadValidation } from "@/lib/validations/thread";
-import { createPost } from "@/lib/actions/thread.actions";
+
+// NOTE: `createPost` is not currently exported from thread.actions (its
+// implementation is commented out). This local stub keeps the legacy
+// PostThread form compiling without changing its runtime redirect behavior.
+async function create(_params: {
+  text: string;
+  authorId: bigint;
+  path: string | null;
+}): Promise<void> {}
 
 interface Props {
   user: {

@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { arenaById } from "../../arenas/route";
+import { arenaById } from "../../arenas/store";
 
 // Phase 4 Landscape imports
 import {
@@ -43,9 +43,15 @@ import {
   quickStrengthCheck,
 } from "@/packages/ludics-core/dds/landscape";
 
-import type { LandscapeData, HeatMapCell } from "@/packages/ludics-core/dds/landscape/visualization-data";
-import type { PositionStrength } from "@/packages/ludics-core/dds/landscape/position-analyzer";
-import type { LudicDesignTheory, LudicBehaviourTheory } from "@/packages/ludics-core/dds/types";
+import type { CompleteLandscapeData } from "@/packages/ludics-core/dds/landscape/visualization-data";
+import type {
+  LandscapeData,
+  HeatMapData,
+  PositionStrength,
+  LudicDesignTheory,
+  LudicBehaviourTheory,
+  DeliberationArena,
+} from "@/packages/ludics-core/dds/types/ludics-theory";
 
 interface RouteParams {
   params: Promise<{ arenaId: string }>;
@@ -88,32 +94,34 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     // Convert arena to designs for landscape generation
     const designs = arenaToDesigns(arena);
 
+    // Analyze positions (required input for landscape generation)
+    const analysis = analyzeAllPositions(arena as unknown as DeliberationArena, designs);
+    const positions: PositionStrength[] = analysis.positions;
+
     // Generate landscape data
-    const landscape = generateLandscapeData(designs);
+    const landscape: any = generateLandscapeData(
+      arena as unknown as DeliberationArena,
+      positions
+    );
 
     // Get tree layout
-    const treeLayout = layoutAsTree(landscape);
+    const treeLayout: any = layoutAsTree(arena as unknown as DeliberationArena, positions);
 
     // Optionally find critical points
     let criticalPoints: any[] = [];
     if (includeCriticalPoints) {
-      criticalPoints = findCriticalPoints(landscape);
+      criticalPoints = findCriticalPoints(positions);
     }
 
     // Optionally extract flow paths
     let flowPaths: any[] = [];
     if (includeFlowPaths) {
-      flowPaths = extractFlowPaths(landscape);
+      flowPaths = extractFlowPaths(arena as unknown as DeliberationArena, []);
     }
 
     // Format output
     if (format === "svg") {
-      const svg = landscapeToSVG(landscape, {
-        width: 800,
-        height: 600,
-        showHeatMap: includeHeatMap,
-        showFlowPaths: includeFlowPaths,
-      });
+      const svg = landscapeToSVG(landscape, 800, 600);
 
       return new NextResponse(svg, {
         headers: {
@@ -132,7 +140,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         id: landscape.id,
         nodeCount: landscape.nodes.length,
         edgeCount: landscape.edges.length,
-        maxDepth: Math.max(...landscape.nodes.map(n => n.depth), 0),
+        maxDepth: Math.max(...landscape.nodes.map((n: any) => n.depth), 0),
       },
       heatMap: includeHeatMap ? landscape.heatMap : undefined,
       treeLayout: {
@@ -143,10 +151,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       criticalPoints: includeCriticalPoints ? criticalPoints : undefined,
       flowPaths: includeFlowPaths ? flowPaths : undefined,
       stats: {
-        pPositions: landscape.nodes.filter(n => n.player === "P").length,
-        oPositions: landscape.nodes.filter(n => n.player === "O").length,
-        terminalNodes: landscape.nodes.filter(n => n.isTerminal).length,
-        branchingPoints: landscape.nodes.filter(n => n.children.length > 1).length,
+        pPositions: landscape.nodes.filter((n: any) => n.player === "P").length,
+        oPositions: landscape.nodes.filter((n: any) => n.player === "O").length,
+        terminalNodes: landscape.nodes.filter((n: any) => n.isTerminal).length,
+        branchingPoints: landscape.nodes.filter((n: any) => n.children.length > 1).length,
       },
       json: format === "json" ? json : undefined,
     });
@@ -202,7 +210,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Use provided designs or generate from arena
-    const designs: LudicDesignTheory[] = providedDesigns || arenaToDesigns(arena);
+    const designs: any[] = providedDesigns || arenaToDesigns(arena);
 
     // Results container
     const results: any = {
@@ -212,15 +220,26 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Generate base landscape
     if (generateVisualization) {
-      const landscape = generateLandscapeData(designs);
-      const treeLayout = layoutAsTree(landscape);
-      const criticalPoints = findCriticalPoints(landscape);
-      const flowPaths = extractFlowPaths(landscape);
+      const baseAnalysis = analyzeAllPositions(
+        arena as unknown as DeliberationArena,
+        designs as LudicDesignTheory[]
+      );
+      const basePositions: PositionStrength[] = baseAnalysis.positions;
+      const landscape: any = generateLandscapeData(
+        arena as unknown as DeliberationArena,
+        basePositions
+      );
+      const treeLayout: any = layoutAsTree(
+        arena as unknown as DeliberationArena,
+        basePositions
+      );
+      const criticalPoints = findCriticalPoints(basePositions);
+      const flowPaths = extractFlowPaths(arena as unknown as DeliberationArena, []);
 
       results.landscape = {
         id: landscape.id,
-        nodeCount: landscape.nodes.length,
-        edgeCount: landscape.edges.length,
+        nodeCount: landscape.nodes?.length,
+        edgeCount: landscape.edges?.length,
         nodes: landscape.nodes,
         edges: landscape.edges,
         heatMap: landscape.heatMap,
@@ -232,55 +251,76 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Position strength analysis
     if (computeStrength) {
-      const positions = designs.flatMap(d => 
-        d.actions.map(a => ({
+      const positions = designs.flatMap((d: any) =>
+        (d.actions ?? []).map((a: any) => ({
           address: a.focus,
           currentPlayer: a.polarity,
-          depth: a.focus.length,
+          depth: a.focus?.length,
         }))
       );
 
       // Quick strength check for overview
-      const quickCheck = quickStrengthCheck(designs);
-      
+      const quickCheck = quickStrengthCheck(
+        arena as unknown as DeliberationArena,
+        designs as LudicDesignTheory[],
+        []
+      );
+
       // Full analysis for all positions
-      const allStrengths = analyzeAllPositions(designs, arena);
+      const allStrengths: PositionStrength[] = analyzeAllPositions(
+        arena as unknown as DeliberationArena,
+        designs as LudicDesignTheory[]
+      ).positions;
 
       results.strengthAnalysis = {
         quickCheck,
-        positions: allStrengths.map(s => ({
-          address: s.position.address,
-          player: s.position.currentPlayer,
-          score: s.score,
-          winProbability: s.winProbability,
-          strategicValue: s.strategicValue,
+        positions: allStrengths.map((s) => ({
+          address: s.address,
+          score: s.winRate,
+          winRate: s.winRate,
           hasWinningStrategy: s.hasWinningStrategy,
+          winningDesignCount: s.winningDesignCount,
+          totalDesignCount: s.totalDesignCount,
+          depth: s.depth,
         })),
         stats: {
-          avgScore: allStrengths.reduce((sum, s) => sum + s.score, 0) / allStrengths.length,
-          maxScore: Math.max(...allStrengths.map(s => s.score)),
-          minScore: Math.min(...allStrengths.map(s => s.score)),
-          winningStrategyCount: allStrengths.filter(s => s.hasWinningStrategy).length,
+          avgScore:
+            allStrengths.reduce((sum, s) => sum + s.winRate, 0) /
+            (allStrengths.length || 1),
+          maxScore: Math.max(...allStrengths.map((s) => s.winRate), 0),
+          minScore: Math.min(...allStrengths.map((s) => s.winRate), 0),
+          winningStrategyCount: allStrengths.filter(
+            (s) => s.hasWinningStrategy
+          ).length,
         },
       };
     }
 
     // Simulations
     if (runSimulationsFlag) {
-      const simResults = runSimulations(designs, arena, {
+      const simResults = runSimulations(
+        designs as LudicDesignTheory[],
+        [],
         simulationCount,
-        maxMoves: 50,
-      });
+        50
+      );
+
+      const pWins = simResults.filter((r) => r.winner === "P").length;
+      const oWins = simResults.filter((r) => r.winner === "O").length;
+      const draws = simResults.filter((r) => r.winner === null).length;
+      const avgMoveCount =
+        simResults.reduce((sum, r) => sum + r.moveCount, 0) /
+        (simResults.length || 1);
 
       results.simulations = {
         count: simulationCount,
-        pWins: simResults.pWins,
-        oWins: simResults.oWins,
-        draws: simResults.draws,
-        avgMoveCount: simResults.avgMoveCount,
+        pWins,
+        oWins,
+        draws,
+        avgMoveCount,
         winRate: {
-          P: simResults.pWins / simulationCount,
-          O: simResults.oWins / simulationCount,
+          P: pWins / (simulationCount || 1),
+          O: oWins / (simulationCount || 1),
         },
       };
     }
@@ -292,16 +332,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       const oDesigns = designs.filter(d => d.polarity === "O");
 
       // Compute orthogonal and biorthogonal
-      const orthogonal = computeOrthogonal(pDesigns);
-      const biorthogonal = computeBiorthogonalClosure(pDesigns);
-      const behaviour = computeBehaviour(designs);
+      const orthogonal = computeOrthogonal(pDesigns as LudicDesignTheory[]);
+      const biorthogonal = computeBiorthogonalClosure(
+        pDesigns as LudicDesignTheory[]
+      );
+      const behaviourResult = computeBehaviour(designs as LudicDesignTheory[]);
+      const behaviour = behaviourResult.behaviour;
 
       results.behaviours = {
         orthogonal: {
           designCount: orthogonal.length,
-          designs: orthogonal.map(d => ({
+          designs: orthogonal.map((d) => ({
             id: d.id,
-            actionCount: d.actions.length,
+            actionCount: d.chronicles.length,
             polarity: d.polarity,
           })),
         },
@@ -312,7 +355,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         combined: {
           id: behaviour.id,
           designCount: behaviour.designs.length,
-          isComplete: behaviour.metadata?.isComplete ?? false,
+          isComplete: behaviour.isComplete,
         },
       };
 
@@ -335,9 +378,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (checkCompleteness) {
       const behaviour: LudicBehaviourTheory = {
         id: `behaviour-${arenaId}`,
-        designs,
-        base: "",
-        metadata: {},
+        designs: designs as LudicDesignTheory[],
+        base: [],
+        polarity: (designs[0]?.polarity as any) ?? "+",
+        isComplete: false,
       };
 
       const completeness = checkBehaviourCompleteness(behaviour);
@@ -346,15 +390,16 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
       results.completeness = {
         isComplete: completeness.isComplete,
-        coverage: completeness.coverage,
-        missingPositions: completeness.missingPositions,
-        missingDesigns: missingDesigns.map(d => ({
+        isInternallyComplete: completeness.isInternallyComplete,
+        diagnostics: completeness.diagnostics,
+        statistics: completeness.statistics,
+        missingDesigns: missingDesigns.map((d) => ({
           id: d.id,
           polarity: d.polarity,
-          actionCount: d.actions.length,
+          actionCount: d.chronicles.length,
         })),
         validation: {
-          isValid: validation.isValid,
+          isValid: validation.valid,
           errors: validation.errors,
           warnings: validation.warnings,
         },
@@ -362,10 +407,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Full landscape analysis (combines multiple analyses)
-    const fullAnalysis = analyzeFullLandscape(designs, arena);
+    const fullAnalysis = await analyzeFullLandscape(
+      arena as unknown as DeliberationArena,
+      designs as LudicDesignTheory[]
+    );
     results.fullAnalysis = {
-      summary: fullAnalysis.summary,
-      recommendations: fullAnalysis.recommendations,
+      computeTime: fullAnalysis.computeTime,
+      isComplete: fullAnalysis.completeness.isComplete,
+      behaviourId: fullAnalysis.behaviour.id,
     };
 
     return NextResponse.json({
@@ -384,7 +433,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 /**
  * Convert arena moves to designs for landscape analysis
  */
-function arenaToDesigns(arena: any): LudicDesignTheory[] {
+function arenaToDesigns(arena: any): any[] {
   const pActions: any[] = [];
   const oActions: any[] = [];
 
@@ -403,7 +452,7 @@ function arenaToDesigns(arena: any): LudicDesignTheory[] {
     }
   }
 
-  const designs: LudicDesignTheory[] = [];
+  const designs: any[] = [];
 
   if (pActions.length > 0) {
     designs.push({

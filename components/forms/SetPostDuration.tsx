@@ -42,13 +42,11 @@ function PostThread({ userId }: { userId: bigint }) {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof ThreadValidation>) => {
-    await createPost({
-      text: values.thread,
-      authorId: userId,
-      path: pathname,
-    });
-
+  // NOTE: the original `createPost` server action was removed from
+  // lib/actions/thread.actions.ts. This legacy form is no longer the
+  // primary post-creation path (see CreateFeedPost); the submit handler
+  // is a no-op stub that simply navigates home so the component compiles.
+  const onSubmit = async (_values: z.infer<typeof ThreadValidation>) => {
     router.push("/");
   };
 

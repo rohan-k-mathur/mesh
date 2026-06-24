@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     const res = await concede(parsed.data);
-    return NextResponse.json({ ok: true, ...res });
+    return NextResponse.json({ ...res, ok: true });
   } catch (err: any) {
     if (err instanceof LudicError) {
       return NextResponse.json(

@@ -1081,7 +1081,16 @@ export default function LudicsPanel({
   const compRef = React.useRef(false);
   const lastCompileAt = React.useRef(0);
   const [busy, setBusy] = React.useState<
-    false | "compile" | "step" | "nli" | "orth" | "append" | "fix-all"
+    | false
+    | "compile"
+    | "step"
+    | "nli"
+    | "orth"
+    | "append"
+    | "fix-all"
+    | "sync-aif"
+    | "sync-status"
+    | "sync-verify"
   >(false);
   const toast = useMicroToast();
 
@@ -1148,12 +1157,12 @@ export default function LudicsPanel({
       { locusPath?: string }
     >;
     if (!t) return hm;
-    (t.pairs ?? []).forEach((p) => {
-      const path = acts[p.posActId]?.locusPath ?? acts[p.negActId]?.locusPath;
+    (t.pairs ?? []).forEach((p: { posActId?: string; negActId?: string }) => {
+      const path = acts[p.posActId ?? ""]?.locusPath ?? acts[p.negActId ?? ""]?.locusPath;
       if (!path) return;
       hm[path] = (hm[path] ?? 0) + 1;
     });
-    (t.decisiveIndices ?? []).forEach((i) => {
+    (t.decisiveIndices ?? []).forEach((i: number) => {
       const p = t.pairs?.[i];
       if (!p) return;
       const path = acts[p.posActId]?.locusPath ?? acts[p.negActId]?.locusPath;
@@ -1178,8 +1187,8 @@ export default function LudicsPanel({
     (path: string) => {
       const idx = (trace?.pairs ?? []).findIndex(
         (p) =>
-          String(byAct.get(p.posActId)?.locus?.path) === path ||
-          String(byAct.get(p.negActId)?.locus?.path) === path
+          String(byAct.get(p.posActId ?? "")?.locus?.path) === path ||
+          String(byAct.get(p.negActId ?? "")?.locus?.path) === path
       );
       if (idx >= 0) setFocusIdx(idx);
     },
@@ -1505,8 +1514,8 @@ const suggestClose = React.useCallback((path: string) => {
     setBusy("nli");
     try {
       const pairs = (trace.pairs ?? []).map((p) => ({
-        premise: String(byAct.get(p.posActId)?.expression ?? ""),
-        hypothesis: String(byAct.get(p.negActId)?.expression ?? ""),
+        premise: String(byAct.get(p.posActId ?? "")?.expression ?? ""),
+        hypothesis: String(byAct.get(p.negActId ?? "")?.expression ?? ""),
       })).filter(p => p.premise && p.hypothesis); // Filter out empty pairs
       
       if (pairs.length === 0) {
@@ -3136,8 +3145,8 @@ const suggestClose = React.useCallback((path: string) => {
             /> */}
             <LociTreeWithControls
               dialogueId={deliberationId}
-              posDesignId={proDesignId}
-              negDesignId={oppDesignId}
+              posDesignId={proDesignId ?? ""}
+              negDesignId={oppDesignId ?? ""}
               defaultMode="assoc"
               suggestCloseDaimonAt={suggestClose}
             />

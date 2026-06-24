@@ -70,7 +70,8 @@ export async function POST(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -93,7 +94,7 @@ export async function POST(
         parsed.data.claimId,
         parsed.data.usageType as QuoteUsageType,
         parsed.data.annotation,
-        session.user.id
+        userId
       );
       return NextResponse.json(link, { status: 201 });
     } else {
@@ -104,7 +105,7 @@ export async function POST(
         parsed.data.usageType as QuoteUsageType,
         undefined, // premiseIndex - not in API schema yet
         parsed.data.annotation,
-        session.user.id
+        userId
       );
       return NextResponse.json(link, { status: 201 });
     }
@@ -138,7 +139,7 @@ export async function DELETE(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!(session?.user as { id?: string } | undefined)?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -52,7 +52,7 @@ type StackItemWithSource = StackItem & {
 
 type StackWithItems = Stack & {
   items: StackItemWithSource[];
-  owner: { name: string | null; displayName: string | null };
+  owner: { name: string | null };
 };
 
 export default async function StackEmbedPage({ params, searchParams }: PageProps) {
@@ -63,23 +63,14 @@ export default async function StackEmbedPage({ params, searchParams }: PageProps
     where: { id: stackId },
     include: {
       items: {
-        include: {
-          source: {
-            include: {
-              citations: {
-                take: 1,
-              },
-            },
-          },
-        },
         take: 12,
-        orderBy: { order: "asc" },
+        orderBy: { position: "asc" },
       },
       owner: {
-        select: { name: true, displayName: true },
+        select: { name: true },
       },
     },
-  }) as StackWithItems | null;
+  }) as unknown as StackWithItems | null;
 
   if (!stack) {
     notFound();
@@ -162,7 +153,7 @@ interface SourceThumbnailProps {
 
 function SourceThumbnail({ source, baseUrl, isCompact }: SourceThumbnailProps) {
   const hasCitations = source.citations && source.citations.length > 0;
-  const typeIcon = getSourceTypeIcon(source.type);
+  const typeIcon = getSourceTypeIcon(source.kind);
 
   return (
     <a

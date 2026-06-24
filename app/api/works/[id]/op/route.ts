@@ -34,10 +34,15 @@ export async function PUT(req: NextRequest, { params }:{ params:{ id:string }}) 
   const body = Body.safeParse(await req.json());
   if (!body.success) return NextResponse.json({ error: body.error.message }, { status: 400 });
 
+  const data = {
+    unrecognizability: body.data.unrecognizability ?? undefined,
+    alternatives: body.data.alternatives ?? undefined,
+  };
+
   const saved = await prisma.workOPTheses.upsert({
     where: { workId: params.id },
-    create: { workId: params.id, ...body.data },
-    update: { ...body.data },
+    create: { workId: params.id, ...data },
+    update: { ...data },
   });
   return NextResponse.json({ ok:true, op: saved });
 }

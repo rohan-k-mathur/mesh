@@ -57,6 +57,16 @@ export {
 } from "./legality";
 
 // Phase 2: Strategy Layer
+// Explicitly re-export the names that also appear in "./types" so the
+// Phase 2 (richer) definitions win and the `export *` ambiguity is resolved.
+export type {
+  Strategy,
+  Play,
+  InnocenceCheck,
+  PropagationCheck,
+  ViewsResult,
+  PlaysResult,
+} from "./strategy";
 export * from "./strategy";
 
 // Phase 3: Correspondences & Isomorphisms

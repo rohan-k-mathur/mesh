@@ -54,14 +54,14 @@ const ReplicateButton = ({ realtimePostId, feedpostId, type }: Props) => {
       await replicateRealtimePost({
         originalPostId: realtimePostId.toString(),
         userId: userObjectId.toString(),
-        path: pathname,
+        path: pathname ?? "",
         text,
       });
     } else if (feedpostId) {
       await replicateFeedPost({
         originalPostId: feedpostId.toString(),
         userId: userObjectId.toString(),
-        path: pathname,
+        path: pathname ?? "",
         text,
       });
     } else {

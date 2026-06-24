@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const post = await prisma.realtimePost.findUnique({
-    where: { id: params.id },
+    where: { id: BigInt(params.id) },
     include: { author: true, productReview: { include: { claims: true } } },
   });
 

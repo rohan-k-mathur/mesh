@@ -10,7 +10,7 @@ import {
 
 const QuerySchema = z.object({
   status: z
-    .enum(["OPEN", "IN_REVISION", "RESPONDED", "CLOSED"])
+    .enum(["OPEN", "AWAITING_RESPONSE", "IN_REVISION", "CLOSED"])
     .optional(),
   limit: z.coerce.number().int().positive().max(200).default(50),
   cursor: z.string().optional(),

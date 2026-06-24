@@ -2,11 +2,11 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "@cp/lib/supabase/client";
+import { createClient } from "../../lib/supabase/client";
 
 function LoginForm() {
   const params = useSearchParams();
-  const next = params.get("next") ?? "/write";
+  const next = params?.get("next") ?? "/write";
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(

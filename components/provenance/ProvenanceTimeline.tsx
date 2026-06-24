@@ -237,12 +237,12 @@ function EventDetails({ event, showVersionDiff }: EventDetailsProps) {
   if (event.type === "version") {
     return (
       <div className="mt-2 p-2 bg-muted/50 rounded text-sm">
-        {details.changeReason && (
+        {Boolean(details.changeReason) && (
           <p className="text-muted-foreground italic mb-1">
             &ldquo;{String(details.changeReason)}&rdquo;
           </p>
         )}
-        {showVersionDiff && details.text && (
+        {showVersionDiff && Boolean(details.text) && (
           <div className="mt-1 p-2 bg-background rounded border text-xs font-mono">
             {String(details.text).substring(0, 200)}
             {String(details.text).length > 200 && "..."}
@@ -269,7 +269,7 @@ function EventDetails({ event, showVersionDiff }: EventDetailsProps) {
             {String(details.status)}
           </Badge>
         </div>
-        {details.argumentText && (
+        {Boolean(details.argumentText) && (
           <p className="text-xs text-muted-foreground line-clamp-2">
             {String(details.argumentText)}
           </p>
@@ -285,13 +285,13 @@ function EventDetails({ event, showVersionDiff }: EventDetailsProps) {
           <Badge variant="outline" className="text-xs text-green-600 border-green-300">
             {formatDefenseType(String(details.defenseType))}
           </Badge>
-          {details.outcome && (
+          {Boolean(details.outcome) && (
             <Badge variant="secondary" className="text-xs">
               {String(details.outcome)}
             </Badge>
           )}
         </div>
-        {details.argumentText && (
+        {Boolean(details.argumentText) && (
           <p className="text-xs text-muted-foreground line-clamp-2">
             {String(details.argumentText)}
           </p>

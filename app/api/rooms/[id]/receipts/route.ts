@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { id: roomId } = p.parse(params);
 
   // Authorization: room admin only (adjust to your roles)
-  const room = await prisma.room.findUnique({ where: { id: roomId }, select: { id: true } });
+  const room = await prisma.room.findUnique({ where: { id: String(roomId) }, select: { id: true } });
   if (!room) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // TODO: verify me.userId is admin of room
 

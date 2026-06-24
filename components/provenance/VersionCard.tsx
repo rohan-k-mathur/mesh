@@ -146,6 +146,9 @@ export function VersionCard({
   const [isOpen, setIsOpen] = React.useState(false);
   const config = CHANGE_TYPE_CONFIG[version.changeType];
   const Icon = config.icon;
+  // `sourceIds` is not part of ClaimVersionSummary but may be present on
+  // richer runtime payloads; read it defensively without widening the type.
+  const sourceIds = (version as { sourceIds?: string[] }).sourceIds;
 
   return (
     <Card
@@ -209,7 +212,7 @@ export function VersionCard({
           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              {version.author?.name || "Unknown"}
+              {version.authorName || "Unknown"}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -252,21 +255,21 @@ export function VersionCard({
               )}
 
               {/* Source references */}
-              {version.sourceIds && version.sourceIds.length > 0 && (
+              {sourceIds && sourceIds.length > 0 && (
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-muted-foreground">
-                    Sources ({version.sourceIds.length})
+                    Sources ({sourceIds.length})
                   </h4>
                   <div className="flex flex-wrap gap-1">
-                    {version.sourceIds.slice(0, 5).map((sourceId, index) => (
+                    {sourceIds.slice(0, 5).map((sourceId: string, index: number) => (
                       <Badge key={index} variant="secondary" className="text-xs">
                         <ExternalLink className="h-2.5 w-2.5 mr-1" />
                         Source {index + 1}
                       </Badge>
                     ))}
-                    {version.sourceIds.length > 5 && (
+                    {sourceIds.length > 5 && (
                       <Badge variant="outline" className="text-xs">
-                        +{version.sourceIds.length - 5} more
+                        +{sourceIds.length - 5} more
                       </Badge>
                     )}
                   </div>

@@ -1,6 +1,7 @@
 // packages/aif-core/src/import.ts
 import { prisma } from '@/lib/prismaclient';
 import { resolveSchemeByFingerprint } from '@/lib/aif/behaviourFingerprint';
+import { mintClaimMoid } from '@/lib/ids/mintMoid';
 
 async function ensureArgumentForClaim(deliberationId: string, claimId: string) {
   const existing = await prisma.argument.findFirst({
@@ -22,7 +23,7 @@ async function ensureArgumentForClaim(deliberationId: string, claimId: string) {
 
 /** Import minimal AIF JSON-LD produced by our exporter. */
 export async function importAifJSONLD(deliberationId: string, graph: any) {
-  const nodeById = new Map(graph.nodes.map((n:any) => [n['@id'], n]));
+  const nodeById = new Map<string, any>(graph.nodes.map((n:any) => [n['@id'], n]));
   const typeOf = (id: string) => nodeById.get(id)?.['@type'];
   const I_nodes = graph.nodes.filter((n:any) => n['@type'] === 'aif:InformationNode');
   const RA_nodes = graph.nodes.filter((n:any) => n['@type'] === 'aif:RA');
@@ -36,8 +37,9 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
   // 1) Claims
   const claimMap = new Map<string,string>();
   for (const n of I_nodes) {
+    const claimText = (n.text ?? '').trim();
     const c = await prisma.claim.create({
-      data: { deliberationId, text: (n.text ?? '').trim(), createdById: "importer" }
+      data: { deliberationId, text: claimText, moid: mintClaimMoid(claimText), createdById: "importer" }
     });
     claimMap.set(n['@id'], c.id);
   }
@@ -121,6 +123,7 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
           deliberationId,
           fromArgumentId: attackerArgId,
           toArgumentId: raMap.get(tgt.to)!,
+          type: 'undercut',
           attackType: 'UNDERCUTS', targetScope: 'inference',
           createdById: 'importer',
         }
@@ -134,6 +137,7 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
             deliberationId,
             fromArgumentId: attackerArgId,
             toArgumentId: raMap.get(isPremOf.to)!,
+            type: 'undercut',
             attackType: 'UNDERMINES', targetScope: 'premise',
             targetPremiseId: cid, createdById: 'importer',
           }
@@ -144,6 +148,7 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
             deliberationId,
             fromArgumentId: attackerArgId,
             toArgumentId: attackerArgId,
+            type: 'rebut',
             attackType: 'REBUTS', targetScope: 'conclusion',
             targetClaimId: cid, createdById: 'importer',
           }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { prisma } from "@cp/lib/prisma";
+import { getCurrentAuthor } from "../../../../../lib/auth";
+import { prisma } from "../../../../../lib/prisma";
 
 /**
  * /api/entries/[entryId]/links

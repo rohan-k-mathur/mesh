@@ -224,7 +224,7 @@ export default function CriticalQuestionsV3({
       "arguments:changed",
       "claims:changed",
       "claims:edges:changed",
-    ],
+    ] as any,
     () => {
       globalMutate(cqsKey);
       globalMutate(attachKey);

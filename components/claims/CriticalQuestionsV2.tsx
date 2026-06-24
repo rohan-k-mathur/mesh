@@ -174,7 +174,7 @@ export default function CriticalQuestions({
       "arguments:changed",
       "claims:changed",
       "claims:edges:changed",
-    ],
+    ] as any,
     () => {
       mutateCQs();
       mutateAttach();

@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const me = await getUserFromCookies();
     if (!me?.userId) return new NextResponse("Unauthorized", { status: 401 });
+    const userId: bigint = me.userId;
 
     const { conversationId, title } = await req.json();
     if (!conversationId || !title || !String(title).trim()) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
       const anchor = await tx.message.create({
         data: {
           conversation_id: convoId,
-          sender_id: me.userId,
+          sender_id: userId,
           text: null,
           meta: { kind: "DRIFT_ANCHOR", title },
         },
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 const drift = await tx.drift.create({
   data: {
     conversation_id:   convoId,
-    created_by:        me.userId,
+    created_by:        userId,
     title:             String(title),
     kind:              "DRIFT",
     anchor_message_id: anchor.id, // ✅ required for DRIFT
@@ -98,7 +99,7 @@ const drift = await tx.drift.create({
           isArchived: created.drift.is_archived,
           messageCount: created.drift.message_count,
           lastMessageAt: created.drift.last_message_at ? created.drift.last_message_at.toISOString() : null,
-          anchorMessageId: created.drift.anchor_message_id.toString(),
+          anchorMessageId: created.drift.anchor_message_id?.toString() ?? null,
         },
       });
 
@@ -110,7 +111,7 @@ const drift = await tx.drift.create({
       isArchived: created.drift.is_archived,
       messageCount: created.drift.message_count,
       lastMessageAt: created.drift.last_message_at ? created.drift.last_message_at.toISOString() : null,
-      anchorMessageId: created.drift.anchor_message_id.toString(),
+      anchorMessageId: created.drift.anchor_message_id?.toString() ?? null,
     }}), { status: 201 });
   } catch (e: any) {
     console.error("[POST /api/drifts] error", e);

@@ -8,7 +8,7 @@ import {
   fetchUserByAuthId,
   createDefaultUser,
   clearUserCache,
-} from '@/lib/AuthContext/actions/user.actions';                     // server action is fine to import
+} from '@/lib/actions/user.actions';                     // server action is fine to import
 
 export async function toUser({ decodedToken }: Tokens): Promise<User> {
   const {

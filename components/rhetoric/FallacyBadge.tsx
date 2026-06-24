@@ -3,12 +3,12 @@
 import * as React from 'react';
 import { FALLACY_LEX, FallacyKey } from '@/lib/rhetoric/fallacies';
 
-const RX: Record<FallacyKey, RegExp> = Object.fromEntries(
+const RX = Object.fromEntries(
   (Object.keys(FALLACY_LEX) as FallacyKey[]).map(k => [
     k,
     new RegExp(`\\b(?:${FALLACY_LEX[k].map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')})\\b`,'i')
   ])
-);
+) as Record<FallacyKey, RegExp>;
 
 export function FallacyBadge({ text }: { text: string }) {
   const hits = (Object.keys(RX) as FallacyKey[]).filter(k => RX[k].test(text));

@@ -106,7 +106,7 @@ const DrawCanvas = ({ id, content }: DrawCanvasProps) => {
         const snapshot = editorRef.current.store.getStoreSnapshot();
         const json = JSON.stringify(snapshot);
         lastLoaded.current = json;
-        updateRealtimePost({ id, path, content: json });
+        updateRealtimePost({ id, path: path ?? "", content: json });
       }, 500);
     });
     return () => {

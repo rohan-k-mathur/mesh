@@ -56,17 +56,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         ...(include.includes("items") && {
           items: {
             take: itemLimit,
-            orderBy: { order: "asc" },
+            orderBy: { position: "asc" },
             include: {
-              source: {
+              block: {
                 select: {
                   id: true,
                   title: true,
-                  authors: true,
-                  publicationDate: true,
-                  doi: true,
-                  url: true,
-                  type: true,
+                  linkUrl: true,
+                  blockType: true,
+                  created_at: true,
                 },
               },
             },
@@ -76,7 +74,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         ...(include.includes("collaborators") && {
           collaborators: {
             select: {
-              id: true,
+              user_id: true,
               role: true,
               user: {
                 select: {
@@ -92,7 +90,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           select: {
             items: true,
             collaborators: true,
-            subscriptions: true,
+            subscribers: true,
           },
         },
       },
@@ -108,7 +106,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       stack.visibility === "public_closed" ||
       stack.visibility === "unlisted";
 
-    const isOwner = stack.ownerId === auth.user?.id;
+    const isOwner = stack.owner_id.toString() === auth.user?.id?.toString();
 
     if (!isPublic && !isOwner) {
       return apiError("forbidden", "This stack is private", 403);
@@ -120,8 +118,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       name: stack.name,
       description: stack.description,
       visibility: stack.visibility,
-      category: stack.category,
-      tags: stack.tags,
       owner: {
         id: stack.owner.id.toString(),
         username: stack.owner.username,
@@ -129,28 +125,22 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       },
       itemCount: stack._count.items,
       collaboratorCount: stack._count.collaborators,
-      subscriberCount: stack._count.subscriptions,
-      createdAt: stack.createdAt,
-      updatedAt: stack.updatedAt,
+      subscriberCount: stack._count.subscribers,
+      createdAt: stack.created_at,
     };
 
     // Add items if requested
-    if (include.includes("items") && stack.items) {
-      data.items = stack.items.map((item) => ({
+    if (include.includes("items") && "items" in stack && stack.items) {
+      data.items = (stack.items as any[]).map((item) => ({
         id: item.id,
-        order: item.order,
-        notes: item.notes,
-        source: item.source
+        order: item.position,
+        notes: item.note,
+        source: item.block
           ? {
-              id: item.source.id,
-              title: item.source.title,
-              authors: parseAuthors(item.source.authors),
-              year: item.source.publicationDate
-                ? new Date(item.source.publicationDate).getFullYear()
-                : null,
-              doi: item.source.doi,
-              url: item.source.url,
-              type: item.source.type,
+              id: item.block.id,
+              title: item.block.title,
+              url: item.block.linkUrl,
+              type: item.block.blockType,
             }
           : null,
         createdAt: item.createdAt,
@@ -158,9 +148,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // Add collaborators if requested
-    if (include.includes("collaborators") && stack.collaborators) {
-      data.collaborators = stack.collaborators.map((collab) => ({
-        id: collab.id,
+    if (
+      include.includes("collaborators") &&
+      "collaborators" in stack &&
+      stack.collaborators
+    ) {
+      data.collaborators = (stack.collaborators as any[]).map((collab) => ({
+        id: collab.user_id.toString(),
         role: collab.role,
         user: {
           id: collab.user.id.toString(),

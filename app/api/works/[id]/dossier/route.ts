@@ -239,7 +239,7 @@ export async function GET(req: NextRequest, { params }:{ params:{ id:string }}) 
 
   // ---------- IH export lens (Markdown) ----------
   if (format === 'md' && lens === 'ih' && w.theoryType === 'IH') {
-    const ih = w.ihTheses ?? {};
+    const ih = (w.ihTheses ?? {}) as any;
     const H  = w.hermeneuticProject ?? {};
     const PJ = w.practicalJustification ?? null;
 

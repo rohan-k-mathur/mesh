@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     const orthogonal = trace.status === 'CONVERGENT';
 
     // Build acts pack for Narrated Trace
-    const ids = Array.from(new Set(trace.pairs.flatMap(p => [p.posActId, p.negActId])));
+    const ids = Array.from(new Set(trace.pairs.flatMap(p => [p.posActId, p.negActId]))).filter((x): x is string => !!x);
     const rows = await prisma.ludicAct.findMany({
       where: { id: { in: ids } },
       include: { locus: true },

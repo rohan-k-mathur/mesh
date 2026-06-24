@@ -36,7 +36,7 @@ export async function generateClaimSnapshot(
     where: { deliberationId },
     include: {
       source: {
-        select: { id: true, name: true },
+        select: { id: true, title: true },
       },
       edgesFrom: {
         select: { type: true },
@@ -63,10 +63,10 @@ export async function generateClaimSnapshot(
   const snapshotItems: ClaimSnapshotItem[] = claims.map((claim) => {
     const user = userMap.get(claim.createdById);
     const attackCount = claim.edgesTo.filter(
-      (e) => e.type === "ATTACK" || e.type === "REBUT" || e.type === "UNDERCUT"
+      (e) => e.type === "rebuts"
     ).length;
     const supportCount = claim.edgesTo.filter(
-      (e) => e.type === "SUPPORT" || e.type === "ENTAIL"
+      (e) => e.type === "supports"
     ).length;
 
     return {
@@ -76,7 +76,7 @@ export async function generateClaimSnapshot(
       academicClaimType: claim.academicClaimType,
       status: claimStatuses.get(claim.id) || "UNRESOLVED",
       sourceId: claim.source?.id || null,
-      sourceTitle: claim.source?.name || null,
+      sourceTitle: claim.source?.title || null,
       createdById: claim.createdById,
       createdByName: user?.name || user?.username || "Unknown",
       attackCount,
@@ -106,7 +106,7 @@ export async function generateClaimSnapshot(
  * Calculate claim statuses based on attack/support relationships
  * Simplified heuristic - can be replaced with full ASPIC+ evaluation
  */
-async function calculateClaimStatuses(
+export async function calculateClaimStatuses(
   deliberationId: string
 ): Promise<Map<string, ClaimStatus>> {
   const statuses = new Map<string, ClaimStatus>();
@@ -117,7 +117,7 @@ async function calculateClaimStatuses(
     include: {
       edgesTo: {
         include: {
-          fromClaim: {
+          from: {
             include: {
               edgesTo: true, // To check if attacker is itself attacked
             },
@@ -129,18 +129,18 @@ async function calculateClaimStatuses(
 
   for (const claim of claims) {
     const attacks = claim.edgesTo.filter(
-      (e) => e.type === "ATTACK" || e.type === "REBUT" || e.type === "UNDERCUT"
+      (e) => e.type === "rebuts"
     );
     const supports = claim.edgesTo.filter(
-      (e) => e.type === "SUPPORT" || e.type === "ENTAIL"
+      (e) => e.type === "supports"
     );
 
     // Check if there are undefeated attacks
     const hasUndefeatedAttack = attacks.some((attack) => {
       // An attack is undefeated if the attacking claim is not itself attacked
-      const attackerClaim = attack.fromClaim;
+      const attackerClaim = attack.from;
       const attackerIsAttacked = attackerClaim.edgesTo.some(
-        (e) => e.type === "ATTACK" || e.type === "REBUT"
+        (e) => e.type === "rebuts"
       );
       return !attackerIsAttacked;
     });
@@ -180,7 +180,6 @@ export async function generateArgumentSnapshot(
             select: { id: true, text: true },
           },
         },
-        orderBy: { order: "asc" },
       },
       conclusion: {
         select: { id: true, text: true },
@@ -212,10 +211,10 @@ export async function generateArgumentSnapshot(
   // Build snapshot items
   const snapshotItems: ArgumentSnapshotItem[] = arguments_.map((arg) => {
     const user = userMap.get(arg.authorId);
-    const premises: PremiseSnapshot[] = arg.premises.map((p) => ({
+    const premises: PremiseSnapshot[] = arg.premises.map((p, idx) => ({
       claimId: p.claim.id,
       claimText: p.claim.text,
-      order: p.order,
+      order: idx,
     }));
 
     return {
@@ -229,10 +228,10 @@ export async function generateArgumentSnapshot(
       schemeName: arg.scheme?.name || null,
       acceptable: acceptability.get(arg.id) ?? true,
       attackedByIds: arg.incomingEdges
-        .filter((e) => e.type === "ATTACK" || e.type === "REBUT" || e.type === "UNDERCUT")
+        .filter((e) => e.type === "rebut" || e.type === "undercut")
         .map((e) => e.fromArgumentId),
       attacksIds: arg.outgoingEdges
-        .filter((e) => e.type === "ATTACK" || e.type === "REBUT" || e.type === "UNDERCUT")
+        .filter((e) => e.type === "rebut" || e.type === "undercut")
         .map((e) => e.toArgumentId),
       createdById: arg.authorId,
       createdByName: user?.name || user?.username || "Unknown",
@@ -263,7 +262,7 @@ export async function generateArgumentSnapshot(
 /**
  * Calculate argument acceptability (simplified grounded semantics)
  */
-function calculateArgumentAcceptability(
+export function calculateArgumentAcceptability(
   arguments_: Array<{
     id: string;
     incomingEdges: Array<{ fromArgumentId: string; type: string }>;
@@ -327,7 +326,7 @@ function calculateArgumentAcceptability(
 /**
  * Build attack graph from arguments
  */
-function buildAttackGraph(
+export function buildAttackGraph(
   arguments_: Array<{
     id: string;
     conclusion?: { id: string; text: string } | null;

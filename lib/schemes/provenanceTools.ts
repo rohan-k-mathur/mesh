@@ -158,7 +158,8 @@ export async function compareSchemeProvenanceByKeys(
   const sourceDelta = PROVENANCE_FIELDS.reduce((acc, field) => {
     const a = provenanceA[field];
     const b = provenanceB[field];
-    acc[field] = a === b ? null : { a, b };
+    (acc as Record<keyof SchemeProvenance, unknown>)[field] =
+      a === b ? null : { a, b };
     return acc;
   }, {} as ProvenanceDelta);
 

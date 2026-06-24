@@ -27,7 +27,7 @@ async function resolveCallerUserId(req: NextRequest): Promise<string | null> {
   if (m && expected && m[1] === expected) {
     return process.env.MCP_AUTHOR_USER_ID ?? "mcp-system";
   }
-  return getCurrentUserId();
+  return (await getCurrentUserId())?.toString() ?? null;
 }
 
 export async function GET(

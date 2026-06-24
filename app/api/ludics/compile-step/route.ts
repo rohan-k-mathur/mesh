@@ -23,7 +23,27 @@ import {
   quickStrengthCheck,
 } from "@/packages/ludics-core/dds/landscape";
 
-import type { LudicDesignTheory } from "@/packages/ludics-core/dds/types";
+import type {
+  LudicDesignTheory,
+  DeliberationArena,
+} from "@/packages/ludics-core/dds/types/ludics-theory";
+
+/**
+ * Build a minimal DeliberationArena around a set of designs.
+ * The landscape/strength analysis utilities require an arena context;
+ * this provides the structural shape they expect for the available designs.
+ */
+function buildMinimalArena(
+  deliberationId: string,
+  designs: LudicDesignTheory[]
+): DeliberationArena {
+  return {
+    deliberationId,
+    rootAddress: [],
+    positions: new Map(),
+    availableDesigns: designs,
+  };
+}
 
 /**
  * POST /api/ludics/compile-step
@@ -136,7 +156,7 @@ async function handleCompileStep(
     posDesignId: pro.id,
     negDesignId: opp.id,
     phase: phase as "neutral" | "focus-P" | "focus-O",
-    compositionMode: compositionMode as "assoc" | "partial" | "spiritual" | "split",
+    compositionMode: compositionMode as "assoc" | "partial" | "spiritual",
     maxPairs: fuel,
   });
 
@@ -152,14 +172,13 @@ async function handleCompileStep(
   if (includeExtraction && trace) {
     try {
       const design = traceToDesign(trace, deliberationId);
-      const path = extractPath(design);
-      const narrative = formatAsNarrative(path, {
-        includeTimestamps: true,
-        includeDepthInfo: true,
+      const path = extractPath(design as any);
+      const narrative = formatAsNarrative(path, undefined, {
+        showTimestamps: true,
       });
       response.pathData = {
         pathId: path.id,
-        length: path.sequence.length,
+        length: path.actions.length,
         narrative: narrativeToJSON(narrative),
       };
     } catch (e) {
@@ -171,7 +190,8 @@ async function handleCompileStep(
   if (includeLandscape && trace) {
     try {
       const design = traceToDesign(trace, deliberationId);
-      const strength = quickStrengthCheck([design]);
+      const arena = buildMinimalArena(deliberationId, [design]);
+      const strength = quickStrengthCheck(arena, [design], arena.rootAddress);
       response.landscapeHints = {
         strengthSummary: strength,
       };
@@ -198,14 +218,14 @@ async function handleExtractPath(deliberationId: string, traceId?: string) {
   }
 
   // Convert to LudicDesignTheory format
-  const designTheories: LudicDesignTheory[] = designs.map(d => ({
+  const designTheories: any[] = designs.map(d => ({
     id: d.id,
-    polarity: (d.polarity as "P" | "O") || "P",
+    polarity: d.participantId === "Proponent" ? "P" : "O",
     base: "",
     actions: d.acts.map(act => ({
       actId: act.id,
-      focus: act.locusPath || "",
-      ramification: (act.subLoci as string[]) || [],
+      focus: act.locusId || "",
+      ramification: act.ramification || [],
       polarity: (act.polarity as "P" | "O") || "P",
     })),
     hasDaimon: false,
@@ -213,12 +233,10 @@ async function handleExtractPath(deliberationId: string, traceId?: string) {
 
   // Extract paths from each design
   const pathResults = designTheories.map(design => {
-    const path = extractPath(design);
-    const allPaths = extractAllPaths(design);
-    const narrative = formatAsNarrative(path, {
-      includeTimestamps: true,
-      includeDepthInfo: true,
-      includePolarityInfo: true,
+    const path = extractPath(design as any);
+    const allPaths = extractAllPaths(design as any);
+    const narrative = formatAsNarrative(path, undefined, {
+      showTimestamps: true,
     });
 
     return {
@@ -226,8 +244,8 @@ async function handleExtractPath(deliberationId: string, traceId?: string) {
       polarity: design.polarity,
       primaryPath: {
         id: path.id,
-        length: path.sequence.length,
-        sequence: path.sequence,
+        length: path.actions.length,
+        sequence: path.actions,
       },
       allPathsCount: allPaths.length,
       narrative: narrativeToJSON(narrative),
@@ -261,39 +279,40 @@ async function handleComputeLandscape(deliberationId: string) {
   }
 
   // Convert to LudicDesignTheory format
-  const designTheories: LudicDesignTheory[] = designs.map(d => ({
+  const designTheories: any[] = designs.map(d => ({
     id: d.id,
-    polarity: (d.polarity as "P" | "O") || "P",
+    polarity: d.participantId === "Proponent" ? "P" : "O",
     base: "",
     actions: d.acts.map(act => ({
       actId: act.id,
-      focus: act.locusPath || "",
-      ramification: (act.subLoci as string[]) || [],
+      focus: act.locusId || "",
+      ramification: act.ramification || [],
       polarity: (act.polarity as "P" | "O") || "P",
     })),
     hasDaimon: false,
   }));
 
   // Generate landscape
-  const landscape = generateLandscapeData(designTheories);
-  const criticalPoints = findCriticalPoints(landscape);
+  const arena = buildMinimalArena(deliberationId, designTheories as LudicDesignTheory[]);
+  const landscape = generateLandscapeData(arena, []);
+  const criticalPoints = findCriticalPoints(landscape.positions);
 
   return NextResponse.json({
     ok: true,
     action: "compute-landscape",
     deliberationId,
     landscape: {
-      id: landscape.id,
-      nodeCount: landscape.nodes.length,
-      edgeCount: landscape.edges.length,
-      nodes: landscape.nodes.slice(0, 50), // Limit for response size
+      id: arena.id ?? deliberationId,
+      nodeCount: landscape.positions.length,
+      edgeCount: landscape.flowPaths.length,
+      nodes: landscape.positions.slice(0, 50), // Limit for response size
       heatMap: landscape.heatMap,
     },
     criticalPoints: criticalPoints.slice(0, 10),
     stats: {
       designCount: designs.length,
-      pDesigns: designs.filter(d => d.polarity === "P").length,
-      oDesigns: designs.filter(d => d.polarity === "O").length,
+      pDesigns: designTheories.filter(d => d.polarity === "P").length,
+      oDesigns: designTheories.filter(d => d.polarity === "O").length,
     },
   });
 }
@@ -313,21 +332,22 @@ async function handleAnalyzeStrength(deliberationId: string) {
   }
 
   // Convert to LudicDesignTheory format
-  const designTheories: LudicDesignTheory[] = designs.map(d => ({
+  const designTheories: any[] = designs.map(d => ({
     id: d.id,
-    polarity: (d.polarity as "P" | "O") || "P",
+    polarity: d.participantId === "Proponent" ? "P" : "O",
     base: "",
     actions: d.acts.map(act => ({
       actId: act.id,
-      focus: act.locusPath || "",
-      ramification: (act.subLoci as string[]) || [],
+      focus: act.locusId || "",
+      ramification: act.ramification || [],
       polarity: (act.polarity as "P" | "O") || "P",
     })),
     hasDaimon: false,
   }));
 
   // Quick strength check
-  const strength = quickStrengthCheck(designTheories);
+  const arena = buildMinimalArena(deliberationId, designTheories as LudicDesignTheory[]);
+  const strength = quickStrengthCheck(arena, designTheories as LudicDesignTheory[], arena.rootAddress);
 
   return NextResponse.json({
     ok: true,
@@ -336,8 +356,8 @@ async function handleAnalyzeStrength(deliberationId: string) {
     strength,
     stats: {
       designCount: designs.length,
-      pDesigns: designs.filter(d => d.polarity === "P").length,
-      oDesigns: designs.filter(d => d.polarity === "O").length,
+      pDesigns: designTheories.filter(d => d.polarity === "P").length,
+      oDesigns: designTheories.filter(d => d.polarity === "O").length,
     },
   });
 }
@@ -345,7 +365,7 @@ async function handleAnalyzeStrength(deliberationId: string) {
 /**
  * Convert trace to design for extraction
  */
-function traceToDesign(trace: any, deliberationId: string): LudicDesignTheory {
+function traceToDesign(trace: any, deliberationId: string): any {
   const steps = trace.steps || trace.pairs || [];
   const actions = steps.map((step: any, idx: number) => ({
     actId: step.posActId || step.negActId || `act-${idx}`,

@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const testers: any[] = [];
 
   // If IH.objectivity exists → suggest a timeout/draw probe at a chosen locus (UI will choose)
-  if (w.ihProject?.objectivity) {
+  if (w.ihProject?.objectiveReasons) {
     testers.push({ kind: 'timeout-draw', atPath: '' , explain: 'Probe objectivity: draw unless justified' });
   }
 

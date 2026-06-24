@@ -145,7 +145,11 @@ export async function challengeCriticalQuestion(
   const cqKeyLc = cqKey.toLowerCase();
   type ResolvedScheme = {
     key: string;
-    cq: { burdenOfProof: BurdenOfProof | null; requiresEvidence: boolean };
+    cq: {
+      cqKey: string | null;
+      burdenOfProof: BurdenOfProof;
+      requiresEvidence: boolean;
+    };
   };
   const matches: ResolvedScheme[] = argument.argumentSchemes
     .map((s) => s.scheme)

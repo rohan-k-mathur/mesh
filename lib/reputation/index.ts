@@ -6,7 +6,7 @@
  */
 
 // Types
-export {
+export type {
   ContributionType,
   ExpertiseLevel,
   ContributionDetails,
@@ -14,6 +14,9 @@ export {
   ExpertiseAreaSummary,
   ReviewerProfileSummary,
   ContributionEvent,
+} from "./types";
+
+export {
   CONTRIBUTION_WEIGHTS,
   EXPERTISE_LEVEL_INFO,
   EXPERTISE_THRESHOLDS,

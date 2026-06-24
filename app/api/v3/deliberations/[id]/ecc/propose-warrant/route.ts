@@ -61,7 +61,7 @@ async function resolveCallerUserId(req: NextRequest): Promise<string | null> {
     return process.env.MCP_AUTHOR_USER_ID || "mcp-bot";
   }
   try {
-    return (await getCurrentUserId()) ?? null;
+    return (await getCurrentUserId())?.toString() ?? null;
   } catch {
     return null;
   }

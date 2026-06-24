@@ -59,7 +59,7 @@ export function AttackConstructionWizard({
   
   // Simplified state for CQ-based attacks
   const [attackText, setAttackText] = useState<string>("");
-  const [evidenceLinks, setEvidenceLinks] = useState<string[]>([]);
+  const [evidenceLinks, setEvidenceLinks] = useState<Record<string, string[]>>({});
   
   const [filledPremises, setFilledPremises] = useState<Record<string, string>>({});
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);

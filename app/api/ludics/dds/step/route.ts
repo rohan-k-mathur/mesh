@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       const designs = await prisma.ludicDesign.findMany({
         where: { deliberationId },
         include: { acts: { orderBy: { orderInDesign: "asc" } } },
-        orderBy: { createdAt: "asc" },
+        orderBy: { id: "asc" },
       });
 
       posDesign = designs.find((d) => d.participantId === "Proponent");
@@ -209,7 +209,7 @@ export async function GET(req: NextRequest) {
       const designs = await prisma.ludicDesign.findMany({
         where: { deliberationId },
         include: { acts: { orderBy: { orderInDesign: "asc" } } },
-        orderBy: { createdAt: "asc" },
+        orderBy: { id: "asc" },
       });
 
       posDesign = designs.find((d) => d.participantId === "Proponent");

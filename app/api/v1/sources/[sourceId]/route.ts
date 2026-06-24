@@ -43,16 +43,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const source = await prisma.source.findUnique({
       where: { id: sourceId },
       include: {
-        verification: {
-          select: {
-            id: true,
-            status: true,
-            verifiedAt: true,
-            score: true,
-            httpStatus: true,
-            lastCheckedAt: true,
-          },
-        },
         // Conditionally include citations
         ...(include.includes("citations") && {
           citations: {
@@ -66,22 +56,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
               createdAt: true,
             },
             take: 50,
-          },
-        }),
-        // Conditionally include stacks
-        ...(include.includes("stacks") && {
-          stackItems: {
-            include: {
-              stack: {
-                select: {
-                  id: true,
-                  name: true,
-                  visibility: true,
-                  ownerId: true,
-                },
-              },
-            },
-            take: 20,
           },
         }),
         _count: {
@@ -98,54 +72,28 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const data = {
       id: source.id,
       title: source.title,
-      authors: parseAuthors(source.authors),
-      year: source.publicationDate
-        ? new Date(source.publicationDate).getFullYear()
-        : null,
-      publicationDate: source.publicationDate,
+      authors: parseAuthors(source.authorsJson),
+      year: source.year,
       doi: source.doi,
       url: source.url,
-      type: source.type,
+      type: source.kind,
       container: source.container,
       publisher: source.publisher,
       volume: source.volume,
       issue: source.issue,
       pages: source.pages,
-      abstract: source.abstract,
-      language: source.language,
-      isOpenAccess: source.isOpenAccess,
+      abstract: source.abstractText,
       pdfUrl: source.pdfUrl,
       citationCount: source._count.citations,
-      verification: source.verification
-        ? {
-            status: source.verification.status,
-            verifiedAt: source.verification.verifiedAt,
-            score: source.verification.score,
-            httpStatus: source.verification.httpStatus,
-            lastCheckedAt: source.verification.lastCheckedAt,
-          }
-        : null,
+      verification: {
+        status: source.verificationStatus,
+        verifiedAt: source.verifiedAt,
+        httpStatus: source.httpStatus,
+        lastCheckedAt: source.lastCheckedAt,
+      },
       // Optional includes
       ...(include.includes("citations") && {
-        citations: source.citations,
-      }),
-      ...(include.includes("stacks") && {
-        stacks: source.stackItems
-          ?.filter((item) => {
-            // Only show public stacks or stacks owned by the API user
-            const stack = item.stack;
-            return (
-              stack.visibility === "public_open" ||
-              stack.visibility === "public_closed" ||
-              stack.visibility === "unlisted" ||
-              stack.ownerId === auth.user?.id
-            );
-          })
-          .map((item) => ({
-            id: item.stack.id,
-            name: item.stack.name,
-            visibility: item.stack.visibility,
-          })),
+        citations: (source as { citations?: unknown }).citations,
       }),
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
@@ -159,20 +107,35 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 }
 
 /**
- * Parse authors from JSON string or array
+ * Parse authors from JSON value, JSON string, or array
  */
-function parseAuthors(authors: string | null): Array<{ name: string }> {
+function parseAuthors(authors: unknown): Array<{ name: string }> {
   if (!authors) return [];
 
-  try {
-    const parsed = JSON.parse(authors);
-    if (Array.isArray(parsed)) {
-      return parsed.map((a: string | { name?: string }) =>
-        typeof a === "string" ? { name: a } : { name: a.name || "" }
-      );
+  const toName = (a: unknown): { name: string } => {
+    if (typeof a === "string") return { name: a };
+    if (a && typeof a === "object") {
+      const obj = a as { name?: string; family?: string; given?: string };
+      if (obj.name) return { name: obj.name };
+      const composed = [obj.given, obj.family].filter(Boolean).join(" ").trim();
+      return { name: composed };
     }
-  } catch {
-    return authors.split(",").map((a) => ({ name: a.trim() }));
+    return { name: "" };
+  };
+
+  if (Array.isArray(authors)) {
+    return authors.map(toName);
+  }
+
+  if (typeof authors === "string") {
+    try {
+      const parsed = JSON.parse(authors);
+      if (Array.isArray(parsed)) {
+        return parsed.map(toName);
+      }
+    } catch {
+      return authors.split(",").map((a) => ({ name: a.trim() }));
+    }
   }
 
   return [];

@@ -60,7 +60,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 href={l.href}
                 className={`
                   block rounded px-2 py-1
-                  ${pathname.endsWith(l.href) ? 'font-bold bg-gray-100' : 'text-gray-700'}
+                  ${pathname?.endsWith(l.href) ? 'font-bold bg-gray-100' : 'text-gray-700'}
                 `}
               >
                 {l.label}

@@ -36,7 +36,8 @@ export async function POST(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
+    if (!sessionUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -61,7 +62,7 @@ export async function POST(
         supportsId: parsed.data.supportsId,
         challengesId: parsed.data.challengesId,
       },
-      session.user.id
+      sessionUserId
     );
 
     return NextResponse.json(interpretation, { status: 201 });
@@ -90,7 +91,7 @@ export async function GET(
   try {
     // Get user ID for vote info
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const userId = (session?.user as { id?: string } | undefined)?.id;
 
     // Parse query params
     const url = new URL(req.url);

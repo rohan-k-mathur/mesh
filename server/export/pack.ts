@@ -12,13 +12,14 @@ export function packAsTarZst(entries: {
 }) {
   const pack = tar.pack();
 
-  // 1) db.sql
-  pack.entry({ name: "db.sql" }, (cb) => {
-    entries.dbSql.on("end", cb).on("error", cb).pipe(pack.entry({ name: "db.sql" }, cb as any));
-  });
-
-  // 2) media/*
   (async () => {
+    // 1) db.sql
+    await new Promise<void>((resolve, reject) => {
+      const e = pack.entry({ name: "db.sql" }, (err?: Error | null) => (err ? reject(err) : resolve()));
+      entries.dbSql.on("error", reject).pipe(e).on("error", reject);
+    });
+
+    // 2) media/*
     for (const m of entries.media) {
       await new Promise<void>((resolve, reject) => {
         const e = pack.entry({ name: `media/${m.path}` }, (err) => err ? reject(err) : resolve());

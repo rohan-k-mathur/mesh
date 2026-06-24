@@ -4,7 +4,7 @@ import { updateUserSettings } from "@/lib/settings/service";
 
 export async function PATCH(req: NextRequest) {
   const user = await getUserFromCookies();
-  if (!user) return NextResponse.json({}, { status: 401 });
+  if (!user || user.userId == null) return NextResponse.json({}, { status: 401 });
   const payload = await req.json();
   await updateUserSettings(user.userId, payload);
   return NextResponse.json({ ok: true });

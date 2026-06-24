@@ -8,8 +8,8 @@ export const integration: IntegrationApp = {
     {
       name: "sendMessage",
       run: async (
-        params: { text: string },
-        creds: { webhookUrl: string }
+        params: any,
+        creds: Record<string, any>
       ) => {
         await sendSlackMessage({
           webhookUrl: creds.webhookUrl,

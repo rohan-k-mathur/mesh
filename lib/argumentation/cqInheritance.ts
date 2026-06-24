@@ -64,7 +64,10 @@ export async function getCQsWithInheritance(
   // Add this scheme's own CQs
   for (const cq of scheme.cqs) {
     allCQs.push({
-      ...cq,
+      cqKey: cq.cqKey ?? "",
+      text: cq.text,
+      attackType: cq.attackType ?? "",
+      targetScope: cq.targetScope ?? "",
       inherited: false,
       fromScheme: scheme.name || scheme.key,
     });

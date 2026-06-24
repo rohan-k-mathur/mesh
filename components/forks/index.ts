@@ -68,24 +68,9 @@ export type {
 } from "./MergeRequestPanel";
 
 // ─────────────────────────────────────────────────────────
-// Merge Workflow Components
+// Merge Workflow Components — archived (wave 2.2). The
+// "./MergeWorkflow" module no longer exists; re-exports removed.
 // ─────────────────────────────────────────────────────────
-
-export {
-  MergeStrategySelect,
-  MergeClaimSelector,
-  MergeConflictViewer,
-} from "./MergeWorkflow";
-export type {
-  MergeStrategy,
-  MergeConflictType,
-  ClaimForMerge,
-  MergeClaimSelection,
-  MergeConflict,
-  MergeStrategySelectProps,
-  MergeClaimSelectorProps,
-  MergeConflictViewerProps,
-} from "./MergeWorkflow";
 
 // ─────────────────────────────────────────────────────────
 // Create Merge Request Modal

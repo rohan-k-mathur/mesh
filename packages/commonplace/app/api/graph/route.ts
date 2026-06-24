@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { prisma } from "@cp/lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
+import { prisma } from "../../../lib/prisma";
 
 /**
  * /api/graph
@@ -60,7 +60,7 @@ export async function GET() {
   }
 
   // Trim plainText for tooltip; the full text is one click away.
-  const nodes = entries.map((e) => ({
+  const nodes = entries.map((e: (typeof entries)[number]) => ({
     id: e.id,
     genre: e.genre,
     threadId: e.threadId,
@@ -72,7 +72,7 @@ export async function GET() {
   return NextResponse.json({
     nodes,
     edges: {
-      links: links.map((l) => ({
+      links: links.map((l: (typeof links)[number]) => ({
         id: l.id,
         from: l.fromId,
         to: l.toId,

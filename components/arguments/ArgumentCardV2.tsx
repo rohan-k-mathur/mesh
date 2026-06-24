@@ -984,7 +984,7 @@ export function ArgumentCardV2({
                 <button
                   onClick={() => setSchemeDialogOpen(true)}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer"
-                  title={getSchemeTooltip({ schemeName, schemes })}
+                  title={getSchemeTooltip({ schemeName, schemes } as any)}
                 >
                   <span className="text-xs font-medium text-indigo-700">
                     {/* Week 5: Simple scheme display logic */}
@@ -994,7 +994,7 @@ export function ArgumentCardV2({
                           : `${schemes[0].schemeName} + ${schemes.length - 1} more`)
                       : (schemeName || "No scheme")}
                   </span>
-                  {shouldShowMultiSchemeUI({ schemeName, schemes }) && (
+                  {shouldShowMultiSchemeUI({ schemeName, schemes } as any) && (
                     <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-indigo-600 rounded-full">
                       {schemes.length}
                     </span>
@@ -1113,17 +1113,15 @@ export function ArgumentCardV2({
               {showLudicsBadges && ludicsInsights && (
                 <>
                   {/* Orthogonality Status Badge */}
-                  {ludicsInsights.orthogonalityStatus && (
-                    <OrthogonalityBadge 
-                      status={ludicsInsights.orthogonalityStatus}
-                      size="sm"
-                    />
-                  )}
-                  
+                  <OrthogonalityBadge
+                    status={ludicsInsights.hasOrthogonality ? "orthogonal" : "non-orthogonal"}
+                    size="sm"
+                  />
+
                   {/* Decisive Steps Badge */}
-                  {ludicsInsights.decisiveSteps && ludicsInsights.decisiveSteps > 0 && (
-                    <DecisiveBadge 
-                      count={ludicsInsights.decisiveSteps}
+                  {ludicsInsights.daimonCount > 0 && (
+                    <DecisiveBadge
+                      count={ludicsInsights.daimonCount}
                       size="sm"
                     />
                   )}

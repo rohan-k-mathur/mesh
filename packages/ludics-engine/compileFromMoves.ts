@@ -884,7 +884,8 @@ async function compileScopeActs(
       if (kind === 'DISCHARGE') {
         // DISCHARGE: Close hypothetical scope and assert conclusion
         // Should reference the SUPPOSE locus
-        const supposeLocus = payload.supposeLocus ?? 
+        const supposeLocus: string =
+          (payload.supposeLocus as string | undefined) ??
           (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
           lastAssertLocus ?? '0';
         

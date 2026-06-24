@@ -144,7 +144,11 @@ function SchemeComparisonCard({
   onClick?: () => void;
   isPrimary?: boolean;
 }) {
-  const cqCount = scheme.scheme?.criticalQuestions?.length || 0;
+  const schemeData = scheme.scheme as any;
+  const cqCount =
+    (Array.isArray(schemeData?.cqs) ? schemeData.cqs.length : undefined) ??
+    (Array.isArray(schemeData?.criticalQuestions) ? schemeData.criticalQuestions.length : 0) ??
+    0;
   const confidence = scheme.confidence || 0;
   
   return (
@@ -201,22 +205,22 @@ function SchemeComparisonCard({
       )}
       
       {/* Premises pattern */}
-      {scheme.scheme?.premises && scheme.scheme.premises.length > 0 && (
+      {Array.isArray(schemeData?.premises) && schemeData.premises.length > 0 && (
         <div className="mb-3">
           <h5 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
             <FileText className="w-3 h-3" />
             Premises Pattern
           </h5>
           <div className="space-y-1">
-            {scheme.scheme.premises.slice(0, 3).map((premise: any, idx: number) => (
+            {schemeData.premises.slice(0, 3).map((premise: any, idx: number) => (
               <div key={idx} className="text-xs text-slate-600 flex items-start gap-1">
                 <span className="text-muted-foreground mt-0.5">•</span>
                 <span className="line-clamp-1">{premise.text || premise}</span>
               </div>
             ))}
-            {scheme.scheme.premises.length > 3 && (
+            {schemeData.premises.length > 3 && (
               <div className="text-xs text-muted-foreground italic">
-                +{scheme.scheme.premises.length - 3} more
+                +{schemeData.premises.length - 3} more
               </div>
             )}
           </div>

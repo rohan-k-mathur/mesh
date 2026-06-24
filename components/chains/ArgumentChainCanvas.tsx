@@ -13,7 +13,12 @@ import {
   BackgroundVariant,
   MarkerType,
   useReactFlow,
+  type Node,
+  type Edge,
+  type NodeTypes,
+  type EdgeTypes,
 } from "@xyflow/react";
+import type { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
 import "@xyflow/react/dist/style.css";
 import { ChevronLeft, ChevronRight, Layers, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,13 +39,13 @@ import { CreateScopeDialog, EditScopeDialog } from "./ScopeDialogs";
 import { ScopesPanel } from "./ScopesPanel";
 import { SCOPE_TYPE_CONFIG, type ScopeType } from "@/lib/types/argumentChain";
 
-const nodeTypes = {
-  argumentNode: ArgumentChainNode,
-  scopeBoundary: ScopeBoundary,
+const nodeTypes: NodeTypes = {
+  argumentNode: ArgumentChainNode as NodeTypes[string],
+  scopeBoundary: ScopeBoundary as NodeTypes[string],
 };
 
-const edgeTypes = {
-  chainEdge: ArgumentChainEdge,
+const edgeTypes: EdgeTypes = {
+  chainEdge: ArgumentChainEdge as EdgeTypes[string],
 };
 
 interface ArgumentChainCanvasProps {
@@ -188,8 +193,8 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
           if (loadedNodes.length > 0 && loadedNodes.every((n: any) => !n.data.positionX)) {
             setTimeout(() => {
               const layouted = getLayoutedElements(loadedNodes, loadedEdges, "TB");
-              setNodes(layouted.nodes);
-              setEdges(layouted.edges);
+              setNodes(layouted.nodes as Node<ChainNodeData>[]);
+              setEdges(layouted.edges as Edge<ChainEdgeData>[]);
               fitView({ padding: 0.2, duration: 400 });
             }, 100);
           } else if (loadedNodes.length > 0) {
@@ -886,8 +891,8 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
             edges,
             "TB"
           );
-          setNodes(layouted.nodes);
-          setEdges(layouted.edges);
+          setNodes(layouted.nodes as Node<ChainNodeData>[]);
+          setEdges(layouted.edges as Edge<ChainEdgeData>[]);
           fitView({ padding: 0.2, duration: 400 });
         }, 100);
       }
@@ -902,8 +907,8 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
   // Auto-layout handler
   const handleAutoLayout = useCallback(() => {
     const layouted = getLayoutedElements(nodes, edges, "TB");
-    setNodes(layouted.nodes);
-    setEdges(layouted.edges);
+    setNodes(layouted.nodes as Node<ChainNodeData>[]);
+    setEdges(layouted.edges as Edge<ChainEdgeData>[]);
     
     setTimeout(() => {
       fitView({ padding: 0.2, duration: 400 });
@@ -972,7 +977,7 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
       {/* Main Canvas */}
       <div className={`flex-1 transition-all duration-300 ${showAnalysisPanel ? 'mr-96' : ''}`}>
         <ReactFlow
-          nodes={allNodes}
+          nodes={allNodes as Node[]}
           edges={edges.map((edge) => ({
             ...edge,
             // Add targeted styling to edge data
@@ -1025,7 +1030,7 @@ const ArgumentChainCanvasInner: React.FC<ArgumentChainCanvasProps> = ({
             nodeColor={(node) => {
               // Scope boundaries get their scope color
               if (node.type === "scopeBoundary") {
-                const scopeData = node.data as ScopeBoundaryData;
+                const scopeData = node.data as unknown as ScopeBoundaryData;
                 return scopeData.color || SCOPE_TYPE_CONFIG[scopeData.scopeType]?.color || "#f59e0b";
               }
               

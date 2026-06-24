@@ -8,8 +8,8 @@ export const integration: IntegrationApp = {
     {
       name: "sendEmail",
       run: async (
-        params: { to: string; subject: string; message: string },
-        creds: { email: string; accessToken: string }
+        params: any,
+        creds: Record<string, any>
       ) => {
         await sendEmail({
           from: creds.email,

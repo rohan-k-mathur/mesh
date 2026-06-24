@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 import { ChainNodeData } from "@/lib/types/argumentChain";
 import { Network, Info, Plus, ThumbsUp, Swords, MoreHorizontal } from "lucide-react";
 import {
@@ -28,7 +28,7 @@ interface ExtendedChainNodeData extends ChainNodeData {
   ) => void;
 }
 
-interface ArgumentChainNodeProps extends NodeProps<ExtendedChainNodeData> {}
+interface ArgumentChainNodeProps extends NodeProps<Node<ExtendedChainNodeData>> {}
 
 const roleColors: Record<string, string> = {
   PREMISE: "border-sky-500",
@@ -68,7 +68,7 @@ const ArgumentChainNode: React.FC<ArgumentChainNodeProps> = ({ id, data, selecte
   const hasSchemeNet = data.argument.schemeNet !== null && data.argument.schemeNet !== undefined;
   const multipleSchemes = data.argument.argumentSchemes?.length > 1;
   const schemeCount = data.argument.argumentSchemes?.length || 0;
-  const hasSchemeNetSteps = hasSchemeNet && data.argument.schemeNet?.steps?.length > 0;
+  const hasSchemeNetSteps = hasSchemeNet && (data.argument.schemeNet?.steps?.length ?? 0) > 0;
 
   const showSchemeNetIndicator = hasSchemeNet && (hasSchemeNetSteps || multipleSchemes);
 

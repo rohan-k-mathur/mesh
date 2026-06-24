@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { NodeProps } from "@xyflow/react";
+import { NodeProps, type Node } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -40,7 +40,7 @@ const scopeIconMap: Record<ScopeType, LucideIcon> = {
   MODAL: Sparkles,
 };
 
-export interface ScopeBoundaryData {
+export interface ScopeBoundaryData extends Record<string, unknown> {
   id: string;
   scopeType: ScopeType;
   assumption: string;
@@ -61,7 +61,7 @@ export interface ScopeBoundaryData {
   onEnterMode?: (scopeId: string) => void;
 }
 
-interface ScopeBoundaryProps extends NodeProps<ScopeBoundaryData> {}
+interface ScopeBoundaryProps extends NodeProps<Node<ScopeBoundaryData>> {}
 
 /**
  * ScopeBoundary - A ReactFlow group node that visually contains hypothetical/counterfactual arguments

@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const items: any[] = [];
   const indexMap: number[] = [];
   blocks.forEach((b, i) => {
-    const d = b.dataJson || {};
+    const d: any = b.dataJson || {};
     if (b.live === false && b.pinnedJson) return; // will use pinned directly
     if (b.type === 'claim' && d.id) { items.push({kind:'claim', id:d.id, lens:d.lens, roomId:d.roomId}); indexMap.push(i); }
     if (b.type === 'argument' && d.id) { items.push({kind:'argument', id:d.id, lens:d.lens}); indexMap.push(i); }
@@ -63,7 +63,7 @@ async function hydrateTheoryWork(d:any) {
   if (items.length) {
     const j = await fetch(new URL('/api/kb/transclude', req.url).toString(), {
       method:'POST', headers: new Headers({ ...Object.fromEntries(fwdAuth(req)), 'Content-Type':'application/json' }),
-      body: JSON.stringify({ spaceId: page.spaceId, eval: (page.frontmatter?.eval ?? { mode:'product', imports:'off' }), at: null, items })
+      body: JSON.stringify({ spaceId: page.spaceId, eval: ((page.frontmatter as any)?.eval ?? { mode:'product', imports:'off' }), at: null, items })
     }).then(r => r.json()).catch(()=>({}));
     if (Array.isArray(j?.items)) j.items.forEach((env:any, k:number) => { hydrated[indexMap[k]] = env; });
   }
@@ -80,7 +80,7 @@ for (let i = 0; i < blocks.length; i++) {
   const lines: string[] = [`# ${page.title}`, ''];
   blocks.forEach((b, i) => {
     if (b.type === 'text') {
-      const md = String(b.dataJson?.md ?? '').trim();
+      const md = String((b.dataJson as any)?.md ?? '').trim();
       if (md) lines.push(md, '');
       else lines.push('<!-- empty text block -->', '');
       return;

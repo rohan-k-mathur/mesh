@@ -374,7 +374,7 @@ export function formatNodeAsMarkdown(
   }
 
   // Conclusion as blockquote
-  if (options.includeSchemeDetails && argument.conclusionClaim) {
+  if (options.includeSchemeDetails && (argument as any).conclusionClaim) {
     markdown += formatConclusion(argument);
   }
 
@@ -632,7 +632,7 @@ function generateScopeSection(
     const scopeTemplate = SCOPE_MD_TEMPLATES[scopeType];
     
     // Scope header
-    section += `### ${scopeTemplate?.icon || "📦"} ${scope.name}\n\n`;
+    section += `### ${scopeTemplate?.icon || "📦"} ${scope.assumption}\n\n`;
     
     if (scopeTemplate) {
       section += `*${scopeTemplate.intro}*\n\n`;
@@ -683,7 +683,8 @@ export function generateEnhancedMarkdown(
   options: MarkdownOptions = {}
 ): string {
   // Set defaults with Phase 4 options
-  const opts: Required<MarkdownOptions> = {
+  const opts: Required<Omit<MarkdownOptions, "scopes" | "chainType">> &
+    Pick<MarkdownOptions, "scopes" | "chainType"> = {
     includeToC: options.includeToC ?? (nodes.length > 10),
     includeFrontmatter: options.includeFrontmatter ?? true,
     includeStatistics: options.includeStatistics ?? true,

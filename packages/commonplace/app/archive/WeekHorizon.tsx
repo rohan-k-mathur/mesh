@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@cp/lib/prisma";
+import { prisma } from "@/packages/commonplace/lib/prisma";
 
 const GENRE_LABEL: Record<string, string> = {
   FRAGMENT: "fragment",

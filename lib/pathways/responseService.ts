@@ -80,7 +80,7 @@ export async function recordResponse(
           disposition: it.disposition,
           rationaleText: it.rationaleText ?? null,
           evidenceCitations:
-            (it.evidenceCitations ?? null) as Prisma.InputJsonValue | null,
+            (it.evidenceCitations ?? undefined) as Prisma.InputJsonValue | undefined,
           createdById: input.respondedById,
         },
       });

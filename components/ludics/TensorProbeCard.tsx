@@ -49,7 +49,7 @@ export default function TensorProbeCard({ dialogueId }:{ dialogueId:string }) {
         {ok==='idle' && !!note && <span className="px-2 py-0.5 rounded border bg-amber-50 text-amber-700">{note}</span>}
       </div>
       <div className="mt-1 text-[11px] opacity-70">
-        Tip: enter q as tokens “+@ξ.k” and “-@ξ”, matching your loci. Conditions checked per Prop. 3.6. :contentReference[oaicite:8]{index=8}
+        Tip: enter q as tokens “+@ξ.k” and “-@ξ”, matching your loci. Conditions checked per Prop. 3.6.
       </div>
     </section>
   );

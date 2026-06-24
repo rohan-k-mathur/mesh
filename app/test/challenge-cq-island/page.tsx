@@ -20,7 +20,7 @@ import AnsweredCriticalQuestions, {
 
 function Inner() {
   const sp = useSearchParams();
-  const selfCanonical = sp.get("selfCanonical") === "1";
+  const selfCanonical = sp?.get("selfCanonical") === "1";
 
   const item: AnsweredCriticalQuestion = {
     cqKey: "EO1",

@@ -1,6 +1,17 @@
-import { Extension } from '@tiptap/core';
+import { Extension, type CommandProps } from '@tiptap/core';
 import { sinkListItem, liftListItem } from 'prosemirror-schema-list';
 import { TextSelection } from 'prosemirror-state';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    indent: {
+      /** Increase indentation of the current block or list item */
+      indent: () => ReturnType;
+      /** Decrease indentation of the current block or list item */
+      outdent: () => ReturnType;
+    };
+  }
+}
 
 const INDENTS = [null, 'sm', 'md', 'lg'] as const;
 type IndentLevel = (typeof INDENTS)[number];
@@ -58,7 +69,7 @@ export const Indent = Extension.create({
     return {
       indent:
         () =>
-        ({ state, dispatch, view }) => {
+        ({ state, dispatch, view }: CommandProps) => {
           // Lists: nest
           if (isList(state)) {
             const type = state.schema.nodes.listItem;
@@ -73,7 +84,7 @@ export const Indent = Extension.create({
 
       outdent:
         () =>
-        ({ state, dispatch, view }) => {
+        ({ state, dispatch, view }: CommandProps) => {
           if (isList(state)) {
             const type = state.schema.nodes.listItem;
             return liftListItem(type)(state, dispatch);

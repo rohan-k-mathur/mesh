@@ -40,7 +40,67 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConsensusStatus } from "@prisma/client";
-import { STATUS_CONFIG } from "./ConsensusIndicator";
+
+const STATUS_CONFIG: Record<
+  ConsensusStatus,
+  {
+    label: string;
+    description: string;
+    icon: React.ElementType;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+  }
+> = {
+  UNDETERMINED: {
+    label: "Undetermined",
+    description: "Not enough engagement to determine consensus",
+    icon: Clock,
+    color: "text-slate-500",
+    bgColor: "bg-slate-100 dark:bg-slate-800",
+    borderColor: "border-slate-300 dark:border-slate-600",
+  },
+  EMERGING: {
+    label: "Emerging",
+    description: "Building support, more defended than challenged",
+    icon: MessageSquare,
+    color: "text-blue-600",
+    bgColor: "bg-blue-50 dark:bg-blue-900/20",
+    borderColor: "border-blue-300 dark:border-blue-700",
+  },
+  ACCEPTED: {
+    label: "Accepted",
+    description: "Broad acceptance, all challenges defended",
+    icon: CheckCircle2,
+    color: "text-green-600",
+    bgColor: "bg-green-50 dark:bg-green-900/20",
+    borderColor: "border-green-300 dark:border-green-700",
+  },
+  CONTESTED: {
+    label: "Contested",
+    description: "Active disagreement with open challenges",
+    icon: Swords,
+    color: "text-amber-600",
+    bgColor: "bg-amber-50 dark:bg-amber-900/20",
+    borderColor: "border-amber-300 dark:border-amber-700",
+  },
+  REJECTED: {
+    label: "Rejected",
+    description: "Broadly rejected, majority of challenges conceded",
+    icon: Swords,
+    color: "text-red-600",
+    bgColor: "bg-red-50 dark:bg-red-900/20",
+    borderColor: "border-red-300 dark:border-red-700",
+  },
+  SUPERSEDED: {
+    label: "Superseded",
+    description: "Replaced by a refined version",
+    icon: Clock,
+    color: "text-purple-600",
+    bgColor: "bg-purple-50 dark:bg-purple-900/20",
+    borderColor: "border-purple-300 dark:border-purple-700",
+  },
+};
 
 // ─────────────────────────────────────────────────────────
 // Types

@@ -282,9 +282,6 @@ function mapActTypeToStepType(actType: DialogueAct["type"]): NarrativeStep["type
     case "claim":
     case "argue":
       return "claim";
-    case "support":
-      return "support";
-    case "attack":
     case "negate":
     case "ask":
       return "attack";

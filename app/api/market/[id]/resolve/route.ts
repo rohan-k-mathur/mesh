@@ -19,6 +19,12 @@ export async function POST(
       { status: 400 },
     );
   }
+  if (parsed.data.outcome === "N_A") {
+    return NextResponse.json(
+      { error: "Outcome N_A is not supported for resolution" },
+      { status: 400 },
+    );
+  }
   const result = await resolveMarket({
     marketId: params.id,
     outcome: parsed.data.outcome,

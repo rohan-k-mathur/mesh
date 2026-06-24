@@ -182,7 +182,10 @@ export async function computeMissingMoves(
     const schemeKey = primary?.scheme?.key ?? null;
     if (schemeKey) schemesUsed.add(schemeKey);
 
-    const expectedCqs = primary?.scheme?.cqs?.map((c) => c.cqKey) ?? [];
+    const expectedCqs: string[] =
+      primary?.scheme?.cqs
+        ?.map((c) => c.cqKey)
+        .filter((k): k is string => k != null) ?? [];
     const presentCqs = [...(presentCqsByArg.get(a.id) ?? new Set<string>())];
     const missingCqs = expectedCqs.filter((k) => !presentCqs.includes(k));
 

@@ -131,7 +131,7 @@ export function AnalysisPanel({
           <ChroniclesExplorer
             designId={designId}
             deliberationId={deliberationId}
-            selectedChronicle={analysisState.selectedChronicle}
+            selectedChronicle={analysisState.selectedChronicle as any}
             onSelectChronicle={(chr: any) => onAnalysisUpdate({ selectedChronicle: chr })}
           />
         )}

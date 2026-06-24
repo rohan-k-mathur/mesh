@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { tiptapSharedExtensions } from "@cp/lib/tiptap/shared";
-import SourcePicker from "@cp/app/_components/SourcePicker";
+import { tiptapSharedExtensions } from "@/packages/commonplace/lib/tiptap/shared";
+import SourcePicker from "@/packages/commonplace/app/_components/SourcePicker";
 
 type Genre =
   | "FRAGMENT"

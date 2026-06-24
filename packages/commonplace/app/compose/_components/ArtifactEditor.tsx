@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { ArtifactBlock, ArtifactBody } from "@cp/lib/artifact-types";
+import type { ArtifactBlock, ArtifactBody } from "../../../lib/artifact-types";
 
 type EntrySummary = {
   id: string;

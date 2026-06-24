@@ -30,7 +30,7 @@ async function renderBlockThumbnail(blockId: string): Promise<string | null> {
     const fileName  = `blocks/thumb-${blockId}.png`;
 
     const { fileURL: thumbnail, error } = await uploadFileToSupabase(
-      new File([pngBuffer], fileName, { type: "image/png" })
+      new File([new Uint8Array(pngBuffer)], fileName, { type: "image/png" })
     );
     if (error) throw error;
 
@@ -49,7 +49,7 @@ async function renderBlockThumbnail(blockId: string): Promise<string | null> {
 
 export async function listBlocks(ownerId?: bigint | number | string) {
   const user = await getUserFromCookies().catch(() => null);
-  const owner = toBigIntId(ownerId ?? user?.id);
+  const owner = toBigIntId(ownerId ?? user?.userId);
   if (!owner) throw new Error("Unauthorized");
 
   return prisma.blockManifest.findMany({
@@ -68,7 +68,7 @@ export async function createBlockFromSpec(args: {
   ownerId?: bigint | number | string;
 }) {
   const user = await getUserFromCookies().catch(() => null);
-  const owner = toBigIntId(args.ownerId ?? user?.id);
+  const owner = toBigIntId(args.ownerId ?? user?.userId);
   if (!owner) throw new Error("Unauthorized");
 
   const id = nanoid();
@@ -97,7 +97,7 @@ export async function createBlockFromElement(args: {
   ownerId?: bigint | number | string;
 }) {
   const user = await getUserFromCookies().catch(() => null);
-  const owner = toBigIntId(args.ownerId ?? user?.id);
+  const owner = toBigIntId(args.ownerId ?? user?.userId);
   if (!owner) throw new Error("Unauthorized");
 
   const id = nanoid();
@@ -123,7 +123,7 @@ export async function forkBlock(args: {
   ownerId?: bigint | number | string;
 }) {
   const user = await getUserFromCookies().catch(() => null);
-  const owner = toBigIntId(args.ownerId ?? user?.id);
+  const owner = toBigIntId(args.ownerId ?? user?.userId);
   if (!owner) throw new Error("Unauthorized");
 
   const source = await prisma.blockManifest.findUnique({

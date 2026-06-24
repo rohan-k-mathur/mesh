@@ -3,7 +3,7 @@
 // Track how sources flow through the platform
 
 import { prisma } from "@/lib/prismaclient";
-import { ProvenanceEventType } from "@prisma/client";
+import { Prisma, ProvenanceEventType } from "@prisma/client";
 
 interface RecordProvenanceOptions {
   sourceId: string;
@@ -44,7 +44,7 @@ export async function recordProvenanceEvent(
         fromId,
         toType,
         toId,
-        metadata: metadata || undefined,
+        metadata: (metadata as Prisma.InputJsonValue | undefined) ?? undefined,
       },
     });
 

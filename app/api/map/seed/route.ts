@@ -43,8 +43,7 @@ export async function POST(req: NextRequest) {
         source: 'seed',
       },
       select: { id:true, targetId:true },
-    })),
-    { timeout: 10_000, maxWait: 5_000 }
+    }))
   ).catch(() => []);
 
   // lookup annotation id per argumentId (prefer existing > created)
@@ -91,8 +90,7 @@ export async function POST(req: NextRequest) {
           createdById: 'seed',
           meta: { deliberationId, seeded: true },
         }
-      })),
-      { timeout: 10_000, maxWait: 5_000 }
+      }))
     ).catch(()=>{});
   }
 

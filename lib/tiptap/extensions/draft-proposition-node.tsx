@@ -1,5 +1,5 @@
 // lib/tiptap/extensions/draft-proposition-node.tsx
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, mergeAttributes, type CommandProps, type RawCommands } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
 import React, { useState } from "react";
 import { PropositionComposerEmbeddable, type PropositionData } from "@/components/propositions/PropositionComposerEmbeddable";
@@ -189,7 +189,7 @@ export const DraftPropositionNode = Node.create({
     return {
       insertDraftProposition:
         (attributes?: { deliberationId: string; text?: string; mediaUrl?: string }) =>
-        ({ commands }) => {
+        ({ commands }: CommandProps) => {
           const draftId = `draft_prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           return commands.insertContent({
             type: this.name,
@@ -201,6 +201,6 @@ export const DraftPropositionNode = Node.create({
             },
           });
         },
-    };
+    } as Partial<RawCommands>;
   },
 });

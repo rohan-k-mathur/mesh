@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
-import { bus } from '@/lib/server/bus';
+import bus from '@/lib/server/bus';
 import { createDecisionReceipt } from '@/lib/decisions/createReceipt';
 
 function tallyApproval(options: {id:string}[], ballots: any[]) {
@@ -67,6 +67,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     inputs: { method: s.method, tally, sessionId: s.id, options: opts },
   });
 
-  bus.emitEvent('votes:changed', { deliberationId: s.deliberationId, sessionId: s.id });
+  (bus as any).emitEvent?.('votes:changed', { deliberationId: s.deliberationId, sessionId: s.id });
   return NextResponse.json({ ok: true, session: closed, tally });
 }

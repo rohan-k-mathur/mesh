@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }:{ params:{ id:string }}) 
   const cite = await prisma.claimCitation.findFirst({
     where: { uri },
     select: { claimId: true },
-    orderBy: { createdAt: 'asc' }
+    orderBy: { id: 'asc' }
   });
 
   return NextResponse.json({ ok:true, claimId: cite?.claimId ?? null });

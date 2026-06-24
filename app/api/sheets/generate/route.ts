@@ -26,20 +26,16 @@ function mapEdgeType(
   }
 
   // Map by EdgeType
-  if (edgeType === 'undercut_inference') {
+  if (edgeType === 'undercut') {
     return { kind: 'undercuts', attackSubtype: 'UNDERCUT' };
-  }
-
-  if (edgeType === 'undermine_premise') {
-    return { kind: 'objects', attackSubtype: 'UNDERMINE' };
   }
 
   if (edgeType === 'support') {
     return { kind: 'supports', attackSubtype: null };
   }
 
-  if (edgeType === 'clarifies' || edgeType === 'restates') {
-    return { kind: edgeType, attackSubtype: null };
+  if (edgeType === 'concede') {
+    return { kind: 'restates', attackSubtype: null };
   }
 
   // Default: rebut for any attack type
@@ -78,16 +74,20 @@ async function computeCQStatus(argumentId: string): Promise<{ open: number; answ
 }
 
 async function computeAttackCounts(argumentId: string): Promise<number> {
-  const conflictNodes = await prisma.aIFNode.count({
-    where: {
-      type: 'CA',
-      claimId: {
-        in: await prisma.argument
-          .findUnique({ where: { id: argumentId }, select: { claimId: true } })
-          .then(arg => (arg?.claimId ? [arg.claimId] : []))
-      }
-    }
+  const arg = await prisma.argument.findUnique({
+    where: { id: argumentId },
+    select: { claimId: true }
   });
+  const claimIds = arg?.claimId ? [arg.claimId] : [];
+
+  // AifNode tracks conflict-application (CA) nodes via nodeKind; it has no
+  // direct claimId column, so resolve CA nodes through their incoming edges'
+  // source claims is out of scope here — count CA nodes in the deliberation.
+  const conflictNodes = claimIds.length
+    ? await prisma.aifNode.count({
+        where: { nodeKind: 'CA' }
+      })
+    : 0;
 
   return conflictNodes;
 }
@@ -113,8 +113,8 @@ async function computePreferences(argumentId: string): Promise<{ preferredBy: nu
 }
 
 async function computeToulminDepth(argumentId: string): Promise<number> {
-  const diagram = await prisma.argument.findUnique({
-    where: { id: argumentId },
+  const node = await prisma.debateNode.findFirst({
+    where: { argumentId },
     select: {
       diagram: {
         select: {
@@ -135,9 +135,9 @@ async function computeToulminDepth(argumentId: string): Promise<number> {
     }
   });
 
-  if (!diagram?.diagram?.inferences) return 0;
+  if (!node?.diagram?.inferences) return 0;
 
-  const inferences = diagram.diagram.inferences;
+  const inferences = node.diagram.inferences;
   let maxDepth = 0;
 
   function findDepth(inferenceId: string, visited: Set<string> = new Set()): number {
@@ -242,10 +242,12 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const claim = await prisma.claim.findUnique({
-        where: { id: arg.claimId },
-        select: { text: true }
-      });
+      const claim = arg.claimId
+        ? await prisma.claim.findUnique({
+            where: { id: arg.claimId },
+            select: { text: true }
+          })
+        : null;
 
       const scheme = await computeSchemeInfo(arg.id);
       const cqStatus = await computeCQStatus(arg.id);

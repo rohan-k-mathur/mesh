@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../lib/prisma";
+import { getCurrentAuthor } from "../../lib/auth";
 
 /**
  * /sources — the bibliographic register.
@@ -45,7 +45,7 @@ export default async function SourcesPage() {
         </p>
       ) : (
         <ul className="space-y-4">
-          {sources.map((s) => (
+          {sources.map((s: (typeof sources)[number]) => (
             <li
               key={s.id}
               className="border-b border-stone-100 pb-4 last:border-b-0"

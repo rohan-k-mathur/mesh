@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const source = await prisma.source.findUnique({
     where: { id: sourceId },
-    select: { title: true, authors: true, container: true },
+    select: { title: true, authorsJson: true, container: true },
   });
 
   if (!source) {
@@ -53,13 +53,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+type VerificationInfo = {
+  id: string;
+  status: string;
+  verifiedAt: Date | null;
+  score: number | null;
+} | null;
+
 type SourceWithVerification = Source & {
-  verification: {
-    id: string;
-    status: string;
-    verifiedAt: Date | null;
-    score: number | null;
-  } | null;
   _count: {
     citations: number;
   };
@@ -72,14 +73,6 @@ export default async function SourceEmbedPage({ params, searchParams }: PageProp
   const source = await prisma.source.findUnique({
     where: { id: sourceId },
     include: {
-      verification: {
-        select: {
-          id: true,
-          status: true,
-          verifiedAt: true,
-          score: true,
-        },
-      },
       _count: {
         select: { citations: true },
       },
@@ -90,16 +83,24 @@ export default async function SourceEmbedPage({ params, searchParams }: PageProp
     notFound();
   }
 
+  const verification: VerificationInfo =
+    source.verificationStatus && source.verificationStatus !== "unverified"
+      ? {
+          id: source.id,
+          status: source.verificationStatus,
+          verifiedAt: source.verifiedAt,
+          score: null,
+        }
+      : null;
+
   const isCompact = compact === "true";
   const themeClass = getThemeClass(theme);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mesh.app";
 
-  const authors = parseAuthors(source.authors);
-  const year = source.publicationDate
-    ? new Date(source.publicationDate).getFullYear()
-    : null;
+  const authors = parseAuthors(source.authorsJson);
+  const year = source.year ?? null;
 
-  const typeInfo = getSourceTypeInfo(source.type);
+  const typeInfo = getSourceTypeInfo(source.kind);
 
   return (
     <html lang="en" className={themeClass}>
@@ -155,7 +156,7 @@ export default async function SourceEmbedPage({ params, searchParams }: PageProp
 
             {/* Verification Status */}
             <div className="verification-status">
-              <VerificationBadge verification={source.verification} isCompact={isCompact} />
+              <VerificationBadge verification={verification} isCompact={isCompact} />
             </div>
 
             {/* External Link Icon */}
@@ -177,7 +178,7 @@ export default async function SourceEmbedPage({ params, searchParams }: PageProp
 }
 
 interface VerificationBadgeProps {
-  verification: SourceWithVerification["verification"];
+  verification: VerificationInfo;
   isCompact: boolean;
 }
 
@@ -245,17 +246,30 @@ function getSourceTypeInfo(type: string | null): { icon: React.ReactNode; label:
   }
 }
 
-function parseAuthors(authors: string | null | undefined): string[] {
+function parseAuthors(authors: unknown): string[] {
   if (!authors) return [];
-  try {
-    const parsed = JSON.parse(authors);
-    if (Array.isArray(parsed)) {
-      return parsed.map((a: string | { name?: string }) =>
-        typeof a === "string" ? a : a.name || ""
-      );
+  const toNames = (arr: unknown[]): string[] =>
+    arr.map((a) => {
+      if (typeof a === "string") return a;
+      if (a && typeof a === "object") {
+        const obj = a as { name?: string; family?: string; given?: string };
+        if (obj.name) return obj.name;
+        return [obj.given, obj.family].filter(Boolean).join(" ");
+      }
+      return "";
+    });
+  if (Array.isArray(authors)) {
+    return toNames(authors);
+  }
+  if (typeof authors === "string") {
+    try {
+      const parsed = JSON.parse(authors);
+      if (Array.isArray(parsed)) {
+        return toNames(parsed);
+      }
+    } catch {
+      return authors.split(",").map((a) => a.trim());
     }
-  } catch {
-    return authors.split(",").map((a) => a.trim());
   }
   return [];
 }

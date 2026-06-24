@@ -25,7 +25,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       standardOutput: json.standardOutput,
       visibility: json.visibility,   // 'room' | 'org' | 'public'
       status: json.status,           // 'DRAFT'|'ACTIVE'|'PUBLISHED'|'ARCHIVED'
-      tags: json.tags,
     },
     select: { id: true },
   });

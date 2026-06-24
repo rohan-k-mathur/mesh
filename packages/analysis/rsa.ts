@@ -61,7 +61,7 @@ export async function computeRSAForClaim(deliberationId: string, claimId: string
   // 1) Claim text + warrant + evidence
   const claim = await prisma.claim.findUnique({
     where:{ id: claimId },
-    select:{ text:true, warrant:{ select:{ id:true }}, evidenceLinks: { select:{ id:true } } }
+    select:{ text:true, warrant:{ select:{ id:true }}, ClaimEvidence: { select:{ id:true } } }
   }); // Claim, ClaimWarrant, EvidenceLink exist in schema :contentReference[oaicite:4]{index=4}
   const text = claim?.text || '';
 
@@ -88,7 +88,7 @@ export async function computeRSAForClaim(deliberationId: string, claimId: string
   const S = Math.min(1, (supports + cqsSatisfied) / 4);
 
   // 5) Acceptability: evidence links & warrant present
-  const evidence = claim?.evidenceLinks?.length ?? 0;
+  const evidence = claim?.ClaimEvidence?.length ?? 0;
   const hasWarrant = !!claim?.warrant;
   const A = Math.min(1, (evidence ? 0.5 + Math.min(0.5, evidence/6) : 0.4) + (hasWarrant ? 0.1 : 0));
 

@@ -275,6 +275,12 @@ export default function Plexus({
     });
   }, [allRooms, selectedTags, qNorm, orderBy]);
 
+  // Set of currently-visible room IDs (after tag/search filtering & ordering)
+  const visibleIds = React.useMemo(
+    () => new Set(rooms.map((r) => r.id)),
+    [rooms],
+  );
+
   // Institution nodes (Scope A)
   const allInstitutions = data?.institutions ?? [];
   const institutions = React.useMemo(() => {
@@ -599,7 +605,9 @@ export default function Plexus({
                 if (linkKind === 'transport') {
                   window.location.assign(`/functor/transport?from=${src}&to=${tgt}`);
                 } else {
-                  const kind = linkKind as Exclude<LinkSketchKind,'transport'>;
+                  // The link-kind dropdown only offers imports/xref/stack_ref
+                  // (plus transport, handled above), all of which createLink accepts.
+                  const kind = linkKind as Exclude<EdgeKind, "overlap" | "shared_author">;
                   createLink(kind, src, tgt).catch(err => { console.error(err); alert('Failed to create link'); });
                 }
               }
@@ -1176,7 +1184,7 @@ function useZoomPan({ width, height }: { width: number; height: number }) {
     setCursor(undefined);
   }, []);
 
-  function clientToWorld(e: React.PointerEvent<SVGSVGElement>) {
+  function clientToWorld(e: React.PointerEvent<SVGElement>) {
     const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;

@@ -34,9 +34,9 @@ export default function SearchForm({
 
   // Keep state in sync with URL changes (back/forward).
   useEffect(() => {
-    setQ(params.get("q") ?? "");
-    setGenre(params.get("genre") ?? "");
-    setThreadId(params.get("threadId") ?? "");
+    setQ(params?.get("q") ?? "");
+    setGenre(params?.get("genre") ?? "");
+    setThreadId(params?.get("threadId") ?? "");
   }, [params]);
 
   function submit(e?: React.FormEvent) {

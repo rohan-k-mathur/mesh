@@ -168,7 +168,7 @@ export async function generateSimilarClaimAlerts(
   const interestedExperts = await prisma.scholarExpertise.findMany({
     where: {
       academicFieldId: claimFieldId,
-      expertiseLevel: { in: ["ADVANCED", "EXPERT", "AUTHORITY"] },
+      expertiseLevel: { in: ["ESTABLISHED", "EXPERT", "AUTHORITY"] },
     },
     select: { userId: true },
   });

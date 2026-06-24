@@ -44,7 +44,7 @@ export default async function BriefPublicPage({ params }:{ params: { slug: strin
         primaryCount={primaryCount}
         lastVerify={lastVerify}
       />
-  <BriefDiffViewer current={brief.currentVersion} versions={brief.versions} />
+  <BriefDiffViewer current={brief.currentVersion as any} versions={brief.versions as any} />
   </div>
   );
 

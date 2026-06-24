@@ -194,7 +194,7 @@ export async function promoteCandidate(
   const propose = await proposeTag({
     deliberationId: candidate.deliberationId,
     sessionId: input.sessionScope ? candidate.sessionId : null,
-    targetType: candidate.targetType,
+    targetType: candidate.targetType as DisagreementTagTargetType,
     targetId: candidate.targetId,
     axisKey,
     confidence: input.confidence ?? 0.5,

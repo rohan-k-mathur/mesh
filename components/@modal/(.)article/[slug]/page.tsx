@@ -30,17 +30,5 @@ export default async function ArticlePreviewModal({ params }: { params: { slug: 
     TextStyleTokens,
   ])
 
-  return (
-    <ArticleModal>
-      <div className="prose max-w-none">
-        <h1 data-ff="founders">{a.title}</h1>
-        {/* hero optional */}
-        <div dangerouslySetInnerHTML={{ __html: html }} />
-        <div className="mt-6">
-          <Link className="px-3 py-1.5 rounded bg-amber-500 text-white text-sm"
-                href={`/article/${a.slug}`}>Read full article</Link>
-        </div>
-      </div>
-    </ArticleModal>
-  )
+  return <ArticleModal slug={params.slug} />
 }

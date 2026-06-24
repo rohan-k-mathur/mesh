@@ -780,7 +780,7 @@ export function ArgumentConstructor({
             onVariableChange={(key, value) =>
               setVariables((prev) => ({ ...prev, [key]: value }))
             }
-            conclusion={filledPremises.conclusion || template.conclusion || ""}
+            conclusion={filledPremises.conclusion || template?.conclusion || ""}
             onConclusionChange={(value) =>
               setFilledPremises((prev) => ({ ...prev, conclusion: value }))
             }
@@ -1478,7 +1478,7 @@ function PremisesFillingStep({
                     Major Premise
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    {template.formalStructure.majorPremise}
+                    {template.formalStructure?.majorPremise}
                   </span>
                   <span className="text-red-500">*</span>
                 </Label>
@@ -1510,7 +1510,7 @@ function PremisesFillingStep({
                     Minor Premise
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    {template.formalStructure.minorPremise}
+                    {template.formalStructure?.minorPremise}
                   </span>
                   <span className="text-red-500">*</span>
                 </Label>

@@ -1,5 +1,5 @@
 // helpers/slideVariants.ts
-import { Variants } from 'framer-motion';
+import { Variants, Transition } from 'framer-motion';
 import type { GalleryAnimationStyle } from '../GalleryCarousel';
 export const buildSlideVariants = (
   style: GalleryAnimationStyle,
@@ -11,7 +11,7 @@ export const buildSlideVariants = (
   switch (style) {
     /** EXISTING CYLINDRICAL “FILM STRIP” ************************************/
     case 'cylinder':
-      const springtype = { type: 'spring', stiffness: 440, damping: 50, mass: .9 };
+      const springtype: Transition = { type: 'spring', stiffness: 440, damping: 50, mass: .9 };
 
       return {
         enter: (dir: number) => ({

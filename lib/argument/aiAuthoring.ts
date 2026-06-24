@@ -245,19 +245,20 @@ export async function approveAiDraft(opts: {
     select: { id: true, permalink: true, ...({ authorKind: true } as any) } as any,
   });
   if (!arg) throw new Error("AI draft not found");
+  const argId = (arg as any).id as string;
   if ((arg as any).authorKind === "HUMAN") {
     throw new Error("approveAiDraft only applies to AI/HYBRID rows");
   }
   if ((arg as any).permalink) {
     return {
-      argumentId: arg.id,
+      argumentId: argId,
       shortCode: (arg as any).permalink.shortCode,
     };
   }
   // Lazy-import to avoid a circular dep with the permalink service.
   const { getOrCreatePermalink } = await import("@/lib/citations/permalinkService");
-  const pl = await getOrCreatePermalink(arg.id);
-  return { argumentId: arg.id, shortCode: pl.shortCode };
+  const pl = await getOrCreatePermalink(argId);
+  return { argumentId: argId, shortCode: pl.shortCode };
 }
 
 // ============================================================

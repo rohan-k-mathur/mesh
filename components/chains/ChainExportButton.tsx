@@ -3,8 +3,9 @@
 import React, { useState, useRef } from "react";
 import { Download, Image as ImageIcon, FileCode, Network, FileText, Copy } from "lucide-react";
 import { toPng, toSvg } from "html-to-image";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, type Node, type Edge } from "@xyflow/react";
 import { useChainEditorStore } from "@/lib/stores/chainEditorStore";
+import type { ChainNodeData, ChainEdgeData } from "@/lib/types/argumentChain";
 import { generateNarrative, copyNarrativeToClipboard } from "@/lib/chains/narrativeGenerator";
 import { downloadAsFile, generateFilename, getMimeType } from "@/lib/utils/fileExport";
 
@@ -16,7 +17,7 @@ const ChainExportButton: React.FC<ChainExportButtonProps> = ({ chainName = "argu
   const [isOpen, setIsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<{ text: string; kind: "ok" | "err" } | null>(null);
-  const { getNodes, getEdges } = useReactFlow();
+  const { getNodes, getEdges } = useReactFlow<Node<ChainNodeData>, Edge<ChainEdgeData>>();
   const { chainId } = useChainEditorStore();
 
   const showToast = (text: string, kind: "ok" | "err" = "ok", ms = 2500) => {

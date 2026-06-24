@@ -221,7 +221,7 @@ export default function ArgumentPopout({
         {/* Right panel: Visual diagram */}
         <div className="flex-1 border border-slate-200 rounded-xl p-4 bg-white min-h-[500px]">
           {viewMode === 'toulmin' ? (
-            <DiagramView diagram={normalized} />
+            <DiagramView diagram={normalized as unknown as import("../map/DiagramView").Diagram} />
           ) : hasAifData ? (
             <AifDiagramViewerDagre
               initialGraph={normalized.aif!}

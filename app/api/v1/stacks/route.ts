@@ -84,16 +84,13 @@ export async function GET(req: NextRequest) {
       where,
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-      orderBy: { updatedAt: "desc" },
+      orderBy: { created_at: "desc" },
       select: {
         id: true,
         name: true,
         description: true,
         visibility: true,
-        category: true,
-        tags: true,
-        createdAt: true,
-        updatedAt: true,
+        created_at: true,
         owner: {
           select: {
             id: true,
@@ -105,7 +102,7 @@ export async function GET(req: NextRequest) {
           select: {
             items: true,
             collaborators: true,
-            subscriptions: true,
+            subscribers: true,
           },
         },
       },
@@ -122,8 +119,6 @@ export async function GET(req: NextRequest) {
       name: stack.name,
       description: stack.description,
       visibility: stack.visibility,
-      category: stack.category,
-      tags: stack.tags,
       owner: {
         id: stack.owner.id.toString(),
         username: stack.owner.username,
@@ -131,9 +126,8 @@ export async function GET(req: NextRequest) {
       },
       itemCount: stack._count.items,
       collaboratorCount: stack._count.collaborators,
-      subscriberCount: stack._count.subscriptions,
-      createdAt: stack.createdAt,
-      updatedAt: stack.updatedAt,
+      subscriberCount: stack._count.subscribers,
+      createdAt: stack.created_at,
     }));
 
     return apiPaginated(data, { hasMore, nextCursor });

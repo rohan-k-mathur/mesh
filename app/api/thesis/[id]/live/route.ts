@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/core";
 import { prisma } from "@/lib/prismaclient";
+import type { ClaimAttackType, EdgeType } from "@prisma/client";
 import { getCurrentUserAuthId } from "@/lib/serverutils";
 import {
   collectEmbeddedObjects,
@@ -58,11 +59,15 @@ interface LiveResponse {
   objects: Record<string, LiveObjectStats>;
 }
 
-const CLAIM_ATTACK_TYPES = ["REBUTS", "UNDERMINES", "UNDERCUTS"] as const;
+const CLAIM_ATTACK_TYPES: ClaimAttackType[] = [
+  "REBUTS",
+  "UNDERMINES",
+  "UNDERCUTS",
+];
 // EdgeType enum values are singular (`rebut`, `undercut`); there is no
 // `undermines` variant on ArgumentEdge — undermining attacks live on
 // ClaimEdge against premise claims.
-const ARG_ATTACK_TYPES = ["rebut", "undercut"] as const;
+const ARG_ATTACK_TYPES: EdgeType[] = ["rebut", "undercut"];
 
 function maxIso(...values: Array<Date | string | null | undefined>): string {
   let max = 0;
@@ -144,7 +149,7 @@ export async function GET(
           prisma.claimEdge.findMany({
             where: {
               toClaimId: { in: inventory.claimIds },
-              attackType: { in: CLAIM_ATTACK_TYPES as unknown as string[] },
+              attackType: { in: CLAIM_ATTACK_TYPES },
             },
             select: {
               toClaimId: true,
@@ -178,7 +183,7 @@ export async function GET(
         const counter = await prisma.claimEdge.findMany({
           where: {
             toClaimId: { in: attackerIds },
-            attackType: { in: CLAIM_ATTACK_TYPES as unknown as string[] },
+            attackType: { in: CLAIM_ATTACK_TYPES },
           },
           select: { toClaimId: true },
         });
@@ -273,7 +278,7 @@ export async function GET(
         prisma.argumentEdge.findMany({
           where: {
             toArgumentId: { in: inventory.argumentIds },
-            type: { in: ARG_ATTACK_TYPES as unknown as string[] },
+            type: { in: ARG_ATTACK_TYPES },
           },
           select: {
             toArgumentId: true,
@@ -311,7 +316,7 @@ export async function GET(
         const counter = await prisma.argumentEdge.findMany({
           where: {
             toArgumentId: { in: attackerIds },
-            type: { in: ARG_ATTACK_TYPES as unknown as string[] },
+            type: { in: ARG_ATTACK_TYPES },
           },
           select: { toArgumentId: true },
         });
@@ -472,7 +477,7 @@ export async function GET(
           prisma.argumentEdge.findMany({
             where: {
               toArgumentId: { in: extraArgIdList },
-              type: { in: ARG_ATTACK_TYPES as unknown as string[] },
+              type: { in: ARG_ATTACK_TYPES },
             },
             select: {
               toArgumentId: true,
@@ -490,7 +495,7 @@ export async function GET(
           const counter = await prisma.argumentEdge.findMany({
             where: {
               toArgumentId: { in: extraAttackerIds },
-              type: { in: ARG_ATTACK_TYPES as unknown as string[] },
+              type: { in: ARG_ATTACK_TYPES },
             },
             select: { toArgumentId: true },
           });

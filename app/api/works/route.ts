@@ -86,15 +86,8 @@ export async function POST(req: NextRequest) {
   if (incomingDeliberationId) {
     deliberationId = String(incomingDeliberationId);
   } else {
-    // inherit rule from room if present; fallback 'utilitarian'
-    let rule = 'utilitarian';
-    if (roomId) {
-      const room = await prisma.agoraRoom.findUnique({
-        where: { id: roomId },
-        select: { representationRule: true },
-      });
-      if (room?.representationRule) rule = room.representationRule;
-    }
+    // AgoraRoom has no representation rule to inherit; fallback 'utilitarian'
+    const rule: 'utilitarian' | 'harmonic' | 'maxcov' = 'utilitarian';
 
     const created = await prisma.deliberation.create({
       data: {

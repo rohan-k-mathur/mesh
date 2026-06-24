@@ -1,6 +1,6 @@
 // server/db/tenant.ts
 import { PrismaClient } from '@prisma/client';
-import LRU from 'lru-cache';
+import { LRUCache as LRU } from 'lru-cache';
 import { getRoomById } from '@/server/rooms/dao';
 
 type Entry = { prisma: PrismaClient; url: string; lastUsed: number };

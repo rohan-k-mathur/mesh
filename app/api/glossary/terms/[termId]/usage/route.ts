@@ -15,7 +15,7 @@ export async function GET(
     // Get all usage entries for this term
     const usages = await prisma.glossaryTermUsage.findMany({
       where: { termId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { detectedAt: "desc" },
     });
 
     return NextResponse.json({ usages });

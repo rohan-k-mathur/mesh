@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as any)?.id as string | undefined;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Create quote
-    const quote = await createQuote(parsed.data, session.user.id);
+    const quote = await createQuote(parsed.data, userId);
 
     return NextResponse.json(quote, { status: 201 });
   } catch (error) {

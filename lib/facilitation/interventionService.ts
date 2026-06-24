@@ -35,6 +35,7 @@ import {
   EquityMetricKind,
   FacilitationDismissalTag,
   FacilitationEventType,
+  FacilitationInterventionTargetType,
   FacilitationSessionStatus,
 } from "./types";
 
@@ -156,7 +157,7 @@ export async function recommendNext(
         ctx.openInterventions.push({
           id: persisted.id,
           ruleName: persisted.ruleName,
-          targetType: persisted.targetType,
+          targetType: persisted.targetType as unknown as FacilitationInterventionTargetType,
           targetId: persisted.targetId,
           recommendedAt: persisted.recommendedAt,
         });

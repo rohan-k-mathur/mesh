@@ -59,9 +59,11 @@ export async function POST(req: NextRequest) {
     const designs = await prisma.ludicDesign.findMany({
       where: designWhere,
       include: {
-        acts: true,
+        acts: {
+          include: { locus: true },
+        },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { version: "asc" },
     });
 
     if (designs.length === 0) {
@@ -72,8 +74,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Separate P and O designs
-    const pDesigns = designs.filter(d => d.polarity === "P");
-    const oDesigns = designs.filter(d => d.polarity === "O");
+    const pDesigns = designs.filter(d => d.participantId === "Proponent");
+    const oDesigns = designs.filter(d => d.participantId === "Opponent");
 
     // Collect all unique loci from designs
     const allLoci = new Set<string>();
@@ -82,12 +84,13 @@ export async function POST(req: NextRequest) {
     for (const design of designs) {
       const designLoci = new Set<string>();
       for (const act of design.acts) {
-        if (act.locusPath) {
-          designLoci.add(act.locusPath);
-          allLoci.add(act.locusPath);
+        const locusPath = act.locus?.path ?? act.locusId ?? null;
+        if (locusPath) {
+          designLoci.add(locusPath);
+          allLoci.add(locusPath);
         }
-        // Also include subloci
-        const subLoci = act.subLoci as string[] | null;
+        // Also include subloci (ramification = allowed next sub-addresses)
+        const subLoci = act.ramification;
         if (subLoci) {
           for (const sub of subLoci) {
             designLoci.add(sub);
@@ -122,14 +125,14 @@ export async function POST(req: NextRequest) {
     let chroniclePaths: string[] = [];
     if (includeChronicles) {
       const chronicles = await prisma.ludicChronicle.findMany({
-        where: { deliberationId },
-        select: { pathSequence: true },
+        where: { design: { deliberationId } },
+        select: { act: { select: { locus: { select: { path: true } }, locusId: true } } },
       });
 
       for (const chronicle of chronicles) {
-        const pathSeq = chronicle.pathSequence as string[] | null;
-        if (pathSeq) {
-          chroniclePaths.push(...pathSeq);
+        const pathStep = chronicle.act?.locus?.path ?? chronicle.act?.locusId ?? null;
+        if (pathStep) {
+          chroniclePaths.push(pathStep);
         }
       }
     }
@@ -141,7 +144,7 @@ export async function POST(req: NextRequest) {
     );
     const computedMaxRamification = Math.max(
       ...designs.flatMap(d => d.acts.map(a => {
-        const sub = a.subLoci as string[] | null;
+        const sub = a.ramification;
         return sub?.length ?? 0;
       })),
       3

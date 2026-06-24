@@ -1,11 +1,12 @@
 // server/export/s3walk.ts
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import type { ListObjectsV2CommandOutput } from "@aws-sdk/client-s3";
 import crypto from "node:crypto";
 
 export async function* iterRoomMedia(s3: S3Client, bucket: string, prefix = "") {
   let token: string|undefined = undefined;
   do {
-    const page = await s3.send(new ListObjectsV2Command({
+    const page: ListObjectsV2CommandOutput = await s3.send(new ListObjectsV2Command({
       Bucket: bucket, Prefix: prefix, ContinuationToken: token
     }));
     token = page.NextContinuationToken;

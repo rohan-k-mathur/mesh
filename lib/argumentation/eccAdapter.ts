@@ -275,7 +275,7 @@ export function evaluateEvidentialTyped(
 
   for (const row of allSupports) {
     const isReal = !row.argumentId.startsWith("virt:");
-    const derivId: DerivationId = "id" in row ? row.id : `virt:${row.argumentId}`;
+    const derivId: DerivationId = "id" in row ? (row.id as DerivationId) : `virt:${row.argumentId}`;
 
     const { score } = legacyRowScore(
       row,

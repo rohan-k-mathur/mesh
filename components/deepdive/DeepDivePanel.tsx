@@ -183,7 +183,7 @@ function PanelCard({ deliberationId, targetType, targetId, locusPath }:{
   deliberationId:string; targetType:'argument'|'claim'|'card'; targetId:string; locusPath?:string;
 }) {
   const target = { deliberationId, targetType, targetId, locusPath };
-  const { data } = useSWR(`/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${targetType}&targetId=${targetId}${locusPath ? `&locusPath=${locusPath}` : ''}`, (u)=>fetch(u,{cache:'no-store'}).then(r=>r.json()));
+  const { data } = useSWR(`/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${targetType}&targetId=${targetId}${locusPath ? `&locusPath=${locusPath}` : ''}`, (u: string)=>fetch(u,{cache:'no-store'}).then(r=>r.json()));
   const actions = movesToActions(data?.moves ?? [], target); // ✅ Use newer adapter
   return <CommandCard actions={actions} onPerform={performCommand} />;
 }

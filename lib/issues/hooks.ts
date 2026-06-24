@@ -1,7 +1,7 @@
 // lib/issues/hooks.ts
 import { prisma } from '@/lib/prismaclient';
 import type { MoveKind } from '../dialogue/types';
-import { TargetType } from '@prisma/client';
+import { IssueLinkTargetType } from '@prisma/client';
 const LABEL_PREFIX = 'Open CQ'; // label convention
 
 export async function onDialogueMove(opts: {
@@ -51,7 +51,7 @@ export async function onDialogueMove(opts: {
            key: cqKey,
            createdById: BigInt(payload?.createdById ?? '0'),
            links: argumentId
-             ? { create: [{ targetType: 'argument' as TargetType, targetId: argumentId, argumentId }] }
+             ? { create: [{ targetType: 'argument' as IssueLinkTargetType, targetId: argumentId, argumentId }] }
              : undefined,
         },
       });

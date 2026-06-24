@@ -51,7 +51,7 @@ const SlashCommand = Extension.create({
               });
               if (!props.clientRect) return;
               popup = tippy("body", {
-                getReferenceClientRect: props.clientRect,
+                getReferenceClientRect: props.clientRect as (() => DOMRect),
                 appendTo: () => document.body,
                 content: component.element,
                 showOnCreate: true,

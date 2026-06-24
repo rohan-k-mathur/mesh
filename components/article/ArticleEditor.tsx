@@ -98,7 +98,15 @@ import { tiptapSharedExtensions } from '@/lib/tiptap/extensions/shared';
 const Cropper = dynamic(() => import("react-easy-crop"), {
   ssr: false,
   loading: () => <Spinner />,
-});
+}) as React.ComponentType<{
+  image: string;
+  crop: { x: number; y: number };
+  zoom: number;
+  onCropChange: (location: { x: number; y: number }) => void;
+  onZoomChange: (zoom: number) => void;
+  onCropComplete: (croppedArea: any, croppedAreaPixels: any) => void;
+  aspect?: number;
+}>;
 
 /* -------------------------------------------------------------------------- */
 /*  Module augmentation for CharacterCount storage                             */
@@ -562,7 +570,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       debouncedSave();
     };
     editor.on("update", handler);
-    return () => editor.off("update", handler);
+    return () => {
+      editor.off("update", handler);
+    };
   }, [editor, debouncedSave]);
 
   const publishArticle = useCallback(async () => {
@@ -658,7 +668,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
     updateCounter();
     editor.on("update", updateCounter);
-    return () => editor.off("update", updateCounter);
+    return () => {
+      editor.off("update", updateCounter);
+    };
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
@@ -672,7 +684,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       "Mod-i": () => editor.chain().focus().toggleItalic().run(),
     });
     editor.registerPlugin(plugin);
-    return () => editor.unregisterPlugin(plugin.key);
+    return () => {
+      editor.unregisterPlugin((plugin as unknown as { key: string }).key);
+    };
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
@@ -732,7 +746,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
     updateHeadings();
     editor.on("update", updateHeadings);
-    return () => editor.off("update", updateHeadings);
+    return () => {
+      editor.off("update", updateHeadings);
+    };
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
@@ -854,7 +870,13 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       chain.updateAttributes("image", { src: fileURL }).run();
       toast.success("Image replaced");
     } else {
-      chain.setImage({ src: fileURL, caption: "", align: "center", alt: "" }).run();
+      chain
+        .setImage({ src: fileURL, caption: "", align: "center", alt: "" } as {
+          src: string;
+          alt?: string;
+          title?: string;
+        })
+        .run();
       toast.success("Image inserted");
     }
   };

@@ -85,7 +85,7 @@ export default function RealtimeFeed({
   );
 
   return animated ? (
-    <ScrollList>{content}</ScrollList>
+    <ScrollList>{[content]}</ScrollList>
   ) : (
     <section className="mt-[0rem] flex flex-col gap-8">{content}</section>
   );

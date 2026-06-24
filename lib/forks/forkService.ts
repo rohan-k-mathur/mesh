@@ -61,7 +61,7 @@ export async function createFork(
           schemeId: true,
           conclusionClaimId: true,
           premises: {
-            select: { claimId: true, order: true },
+            select: { claimId: true },
           },
         },
       },
@@ -100,7 +100,7 @@ export async function createFork(
     const forkedDelib = await tx.deliberation.create({
       data: {
         title,
-        hostType: "ROOM", // Default, could be passed in options
+        hostType: "free", // Default, could be passed in options
         hostId: "", // Will be set based on context
         forkedFromId: parentDeliberationId,
         forkedAtReleaseId: forkFromRelease?.id,
@@ -178,7 +178,6 @@ export async function createFork(
             data: {
               argumentId: newArg.id,
               claimId: newPremiseClaimId,
-              order: premise.order,
             },
           });
         }
@@ -366,10 +365,10 @@ export async function getImportedClaims(
     where: { deliberationId },
     include: {
       originalClaim: {
-        select: { id: true, text: true, updatedAt: true },
+        select: { id: true, text: true, consensusUpdatedAt: true },
       },
       localClaim: {
-        select: { id: true, text: true, updatedAt: true },
+        select: { id: true, text: true, consensusUpdatedAt: true },
       },
     },
     orderBy: { importedAt: "desc" },
@@ -387,7 +386,9 @@ export async function getImportedClaims(
     const importer = importerMap.get(imp.importedById);
     const hasLocalChanges = imp.localClaim.text !== imp.originalClaim.text;
     const originalUpdatedSinceImport =
-      imp.lastSyncedAt && imp.originalClaim.updatedAt > imp.lastSyncedAt;
+      imp.lastSyncedAt &&
+      imp.originalClaim.consensusUpdatedAt &&
+      imp.originalClaim.consensusUpdatedAt > imp.lastSyncedAt;
 
     return {
       id: imp.id,

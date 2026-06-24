@@ -73,7 +73,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     include: {
       claims: true,
       dnStructure: true, ihTheses: true, tcTheses: true, opTheses: true,
-      dn: true, ih: true, tc: true, op: true,
+      dnProject: true, ihProject: true, tcProject: true, opProject: true,
     }
   });
   if (!work) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -123,7 +123,9 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   }
 
   // ReasonPairs: FOR/AGAINST → supports/rebuts
-  const rps = await prisma.reasonPair.findMany({ where: { deliberationId } });
+  const rps = deliberationId
+    ? await prisma.reasonPair.findMany({ where: { deliberationId } })
+    : [];
   for (const rp of rps) {
     if (!claimIds.includes(rp.claimId) || !claimIds.includes(rp.reasonId)) continue;
     const type = rp.stance === 'AGAINST' ? 'rebuts' : 'supports';

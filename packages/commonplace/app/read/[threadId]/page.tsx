@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../../lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
 
 type Params = { threadId: string };
 

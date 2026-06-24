@@ -19,8 +19,8 @@ import { QuickArgumentBuilder } from "@/components/arguments/QuickArgumentBuilde
 
 function QuickPageInner() {
   const params = useSearchParams();
-  const initialClaim = params.get("claim") ?? "";
-  const initialUrl = params.get("url") ?? "";
+  const initialClaim = params?.get("claim") ?? "";
+  const initialUrl = params?.get("url") ?? "";
 
   return (
     <div className="min-h-screen bg-slate-50">

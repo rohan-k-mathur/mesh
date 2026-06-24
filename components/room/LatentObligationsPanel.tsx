@@ -41,7 +41,7 @@ type Obligation = {
   cqKey: string;
   cqId: string | null;
   status: ObligationStatus;
-  burdenOfProof: "PROPONENT" | "OPPONENT" | "CHALLENGER";
+  burdenOfProof: "PROPONENT" | "CHALLENGER";
   requiresEvidence: boolean;
   premiseType: "ORDINARY" | "ASSUMPTION" | "EXCEPTION" | null;
   subLocusId: string | null;

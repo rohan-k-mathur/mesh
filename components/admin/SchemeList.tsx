@@ -502,6 +502,13 @@ export default function SchemeList() {
                 reasoningType: editingScheme.reasoningType || "",
                 ruleForm: "",
                 conclusionType: "",
+                epistemicMode: (editingScheme as any).epistemicMode || "FACTUAL",
+                tags: (editingScheme as any).tags || [],
+                examples: (editingScheme as any).examples || [],
+                difficulty: (editingScheme as any).difficulty || "intermediate",
+                identificationConditions:
+                  (editingScheme as any).identificationConditions || [],
+                whenToUse: (editingScheme as any).whenToUse || "",
                 premises: [],
                 conclusion: null,
                 cqs: (editingScheme.cqs || []).map((cq) => ({

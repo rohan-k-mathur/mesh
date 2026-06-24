@@ -306,9 +306,9 @@ export default function NetCQsTestPage() {
                   </div>
                   <div className="h-[calc(100%-60px)]">
                     <NetGraph
-                      net={enhancedNet}
-                      dependencyGraph={enhancedDependencyGraph}
-                      explicitnessAnalysis={mockExplicitnessAnalysis}
+                      net={enhancedNet as any}
+                      dependencyGraph={enhancedDependencyGraph as any}
+                      explicitnessAnalysis={mockExplicitnessAnalysis as any}
                       layout="hierarchical"
                     />
                   </div>

@@ -22,9 +22,9 @@ export async function GET(req: NextRequest) {
     orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     take: limit + 1,
     ...(cursorUpdatedAt && cursorId
-      ? { cursor: { updatedAt_id: { updatedAt: new Date(cursorUpdatedAt), id: cursorId } }, skip: 1 }
+      ? { cursor: { id: cursorId }, skip: 1 }
       : {}),
-    select: { id:true, title:true, spaceId:true, createdAt:true, updatedAt:true, status:true }
+    select: { id:true, title:true, spaceId:true, createdAt:true, updatedAt:true, visibility:true }
   });
 
   const hasMore = items.length > limit;

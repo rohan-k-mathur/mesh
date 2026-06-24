@@ -31,13 +31,15 @@ export async function POST(req: NextRequest) {
 
     if (designIds && designIds.length > 0) {
       // Create arena from existing designs
-      const designs = await prisma.ludicsDesign.findMany({
+      const designs = await prisma.ludicDesign.findMany({
         where: {
           id: { in: designIds },
           deliberationId,
         },
         include: {
-          acts: true,
+          acts: {
+            include: { locus: true },
+          },
         },
       });
 
@@ -53,11 +55,11 @@ export async function POST(req: NextRequest) {
         id: d.id,
         acts: d.acts.map((a) => ({
           id: a.id,
-          locusPath: a.locusPath,
+          locusPath: a.locus?.path ?? "",
           ramification: Array.isArray(a.ramification)
-            ? (a.ramification as number[])
+            ? (a.ramification as unknown as number[])
             : [],
-          polarity: a.polarity,
+          polarity: a.polarity ?? "",
         })),
       }));
 

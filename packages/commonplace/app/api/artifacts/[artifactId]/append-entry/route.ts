@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../../../../lib/prisma";
+import { getCurrentAuthor } from "../../../../../lib/auth";
 import {
   ArtifactBodySchema,
   type ArtifactBody,
-} from "@cp/lib/artifact-types";
+} from "../../../../../lib/artifact-types";
 
 const AppendSchema = z.object({
   entryId: z.string().min(1),

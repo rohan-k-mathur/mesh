@@ -5,7 +5,7 @@ import { getCurrentUserId } from '@/lib/serverutils';
 import { createDecisionReceipt } from '@/lib/decisions/createReceipt';
 import { cloneDesignWithShift } from '@/packages/ludics-engine/delocate';
 import { prisma } from '@/lib/prismaclient';
-import { bus } from '@/lib/server/bus';
+import { emitBus } from '@/lib/server/bus';
 
 const Body = z.object({
   deliberationId: z.string().min(1),
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Let clients refresh
-  bus.emitEvent('dialogue:moves:refresh', { deliberationId });
+  emitBus('dialogue:moves:refresh', { deliberationId });
 
   return NextResponse.json({ ok:true, design: clone, receipt: rec }, { headers: { 'Cache-Control':'no-store' }});
 }

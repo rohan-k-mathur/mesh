@@ -237,7 +237,7 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
         type: "CTX",
         "mesh:scopeType": scope.scopeType as ScopeType,
         "mesh:assumption": scope.assumption,
-        "mesh:parentScopeId": scope.parentId || null,
+        "mesh:parentScopeId": scope.parentScopeId || null,
         "mesh:color": scope.color || null,
       });
       
@@ -247,16 +247,16 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
         scopeType: scope.scopeType as ScopeType,
         assumption: scope.assumption,
         color: scope.color || null,
-        parentContextID: scope.parentId ? `CTX_${scope.parentId}` : null,
+        parentContextID: scope.parentScopeId ? `CTX_${scope.parentScopeId}` : null,
         nodeCount,
       });
 
       // If this scope has a parent, create an edge linking them
-      if (scope.parentId) {
+      if (scope.parentScopeId) {
         edges.push({
           edgeID: `E_scope_${scope.id}_parent`,
           fromID: contextId,
-          toID: `CTX_${scope.parentId}`,
+          toID: `CTX_${scope.parentScopeId}`,
         });
       }
     }
@@ -274,10 +274,10 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
     nodeIdMap.set(chainNode.id, iNodeId);
     
     // Safe date handling
-    const nodeTimestamp = chainNode.createdAt 
-      ? (chainNode.createdAt instanceof Date 
-          ? chainNode.createdAt.toISOString() 
-          : new Date(chainNode.createdAt).toISOString())
+    const nodeTimestamp = chainNode.addedAt
+      ? (chainNode.addedAt instanceof Date
+          ? chainNode.addedAt.toISOString()
+          : new Date(chainNode.addedAt).toISOString())
       : new Date().toISOString();
     
     // Get the best text representation for this argument
@@ -451,7 +451,7 @@ export function convertChainToAif(chain: ArgumentChainWithRelations): AifDocumen
     contexts: contexts.length > 0 ? contexts : undefined,
     metadata: {
       chainId: chain.id,
-      chainName: chain.chainName || "Untitled Chain",
+      chainName: chain.name || "Untitled Chain",
       chainType: chain.chainType || undefined,
       createdBy: chain.createdBy.toString(),
       createdAt: chain.createdAt 

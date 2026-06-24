@@ -222,7 +222,7 @@ function RoomSummaryBlock({ item, evalMode, tau, imports } : {
         {item.actions?.openRoom &&
           <button className="px-1.5 py-0.5 rounded border text-[12px]" onClick={() => window.open(item.actions!.openRoom!, '_blank', 'noopener,noreferrer')}>open room</button>}
       </div>
-      <ProvenanceChip live={item.live} pinnedAt={item.pinnedAt} evalMode={evalMode} tau={tau} imports={imports} provenance={item.provenance} />
+      <ProvenanceChip item={item} />
     </div>
   );
 }
@@ -245,7 +245,7 @@ function SheetBlock({ item }: { item: TranscludeItemEnvelope }) {
         {item.actions?.openSheet &&
           <button className="px-1.5 py-0.5 rounded border text-[12px]" onClick={() => window.open(item.actions!.openSheet!, '_blank', 'noopener,noreferrer')}>open sheet</button>}
       </div>
-      <ProvenanceChip live={item.live} pinnedAt={item.pinnedAt} provenance={item.provenance} />
+      <ProvenanceChip item={item} />
     </div>
   );
 }
@@ -270,7 +270,7 @@ function TransportBlock({ item }: { item: TranscludeItemEnvelope }) {
         {item.actions?.openTransport &&
           <button className="px-1.5 py-0.5 rounded border text-[12px]" onClick={() => window.open(item.actions!.openTransport!, '_blank', 'noopener,noreferrer')}>open transport</button>}
       </div>
-      <ProvenanceChip live={item.live} pinnedAt={item.pinnedAt} provenance={item.provenance} />
+      <ProvenanceChip item={item} />
     </div>
   );
 }

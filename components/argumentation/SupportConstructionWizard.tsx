@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArgumentConstructor } from "./ArgumentConstructor";
 import { SupportSuggestions } from "./SupportSuggestions";
-import { EvidenceSchemeMapper, EvidenceItem } from "./EvidenceSchemeMapper";
+import { EvidenceSchemeMapper } from "./EvidenceSchemeMapper";
 import { BatchArgumentGenerator } from "./BatchArgumentGenerator";
 import {
   Card,
@@ -49,6 +49,17 @@ type WizardStep =
 
 type ConstructionMode = "single" | "batch" | null;
 
+interface WizardEvidenceItem {
+  id: string;
+  title: string;
+  type: string;
+  content: string;
+  quality: number;
+  source: string;
+  credibility: number;
+  relevance: number;
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -61,7 +72,7 @@ export function SupportConstructionWizard({
 }: SupportConstructionWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>("analyze");
   const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
-  const [availableEvidence, setAvailableEvidence] = useState<EvidenceItem[]>([]);
+  const [availableEvidence, setAvailableEvidence] = useState<WizardEvidenceItem[]>([]);
   const [selectedScheme, setSelectedScheme] = useState<any>(null);
   const [constructionMode, setConstructionMode] = useState<ConstructionMode>(null);
   const [completedArguments, setCompletedArguments] = useState<string[]>([]);

@@ -52,8 +52,7 @@ export async function GET(req: NextRequest) {
   if (q) {
     where.OR = [
       { title: { contains: q, mode: "insensitive" } },
-      { abstract: { contains: q, mode: "insensitive" } },
-      { authors: { contains: q, mode: "insensitive" } },
+      { abstractText: { contains: q, mode: "insensitive" } },
     ];
   }
 
@@ -62,14 +61,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (type) {
-    where.type = type;
+    where.kind = type;
   }
 
   if (verified !== null) {
     if (verified === "true") {
-      where.verification = { isNot: null };
+      where.verificationStatus = { not: "unverified" };
     } else if (verified === "false") {
-      where.verification = null;
+      where.verificationStatus = "unverified";
     }
   }
 
@@ -83,27 +82,21 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         title: true,
-        authors: true,
-        publicationDate: true,
+        authorsJson: true,
+        year: true,
         doi: true,
         url: true,
-        type: true,
+        kind: true,
         container: true,
         publisher: true,
         volume: true,
         issue: true,
         pages: true,
-        abstract: true,
-        isOpenAccess: true,
+        abstractText: true,
         createdAt: true,
         updatedAt: true,
-        verification: {
-          select: {
-            status: true,
-            verifiedAt: true,
-            score: true,
-          },
-        },
+        verificationStatus: true,
+        verifiedAt: true,
         _count: {
           select: { citations: true },
         },
@@ -119,22 +112,20 @@ export async function GET(req: NextRequest) {
     const data = results.map((source) => ({
       id: source.id,
       title: source.title,
-      authors: parseAuthors(source.authors),
-      year: source.publicationDate
-        ? new Date(source.publicationDate).getFullYear()
-        : null,
-      publicationDate: source.publicationDate,
+      authors: parseAuthors(source.authorsJson),
+      year: source.year ?? null,
+      publicationDate: source.year ? new Date(source.year, 0, 1) : null,
       doi: source.doi,
       url: source.url,
-      type: source.type,
+      type: source.kind,
       container: source.container,
       publisher: source.publisher,
       volume: source.volume,
       issue: source.issue,
       pages: source.pages,
-      abstract: source.abstract?.slice(0, 500), // Truncate for list view
-      isOpenAccess: source.isOpenAccess,
-      verificationStatus: source.verification?.status || "unverified",
+      abstract: source.abstractText?.slice(0, 500), // Truncate for list view
+      isOpenAccess: null,
+      verificationStatus: source.verificationStatus || "unverified",
       citationCount: source._count.citations,
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
@@ -148,21 +139,38 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Parse authors from JSON string or array
+ * Parse authors from JSON value (string, array, or CSL-esque objects)
  */
-function parseAuthors(authors: string | null): Array<{ name: string }> {
+function parseAuthors(authors: unknown): Array<{ name: string }> {
   if (!authors) return [];
 
-  try {
-    const parsed = JSON.parse(authors);
-    if (Array.isArray(parsed)) {
-      return parsed.map((a: string | { name?: string }) =>
-        typeof a === "string" ? { name: a } : { name: a.name || "" }
-      );
+  // Already-parsed JSON array (e.g. from a Json Prisma column)
+  if (Array.isArray(authors)) {
+    return authors.map((a: unknown) => {
+      if (typeof a === "string") return { name: a };
+      if (a && typeof a === "object") {
+        const obj = a as { name?: string; family?: string; given?: string };
+        const name =
+          obj.name ||
+          [obj.given, obj.family].filter(Boolean).join(" ").trim();
+        return { name: name || "" };
+      }
+      return { name: "" };
+    });
+  }
+
+  if (typeof authors === "string") {
+    try {
+      const parsed = JSON.parse(authors);
+      if (Array.isArray(parsed)) {
+        return parsed.map((a: string | { name?: string }) =>
+          typeof a === "string" ? { name: a } : { name: a.name || "" }
+        );
+      }
+    } catch {
+      // Treat as comma-separated string
+      return authors.split(",").map((a) => ({ name: a.trim() }));
     }
-  } catch {
-    // Treat as comma-separated string
-    return authors.split(",").map((a) => ({ name: a.trim() }));
   }
 
   return [];

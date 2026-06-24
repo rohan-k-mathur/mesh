@@ -713,7 +713,7 @@ function ActivityHeatmap({ moves }: { moves: DialogueMove[] }) {
  */
 export default function DialogueTimelinePage() {
   const params = useParams();
-  const deliberationId = params.id as string;
+  const deliberationId = params?.id as string;
 
   const [filterKind, setFilterKind] = useState<string | null>(null);
   const [filterActor, setFilterActor] = useState<string | null>(null);
@@ -887,12 +887,12 @@ export default function DialogueTimelinePage() {
   }, [movesData, filterKind, filterActor, dateRange, sortOrder]);
 
   // Get unique move kinds and actors for filters
-  const uniqueKinds = useMemo(() => {
+  const uniqueKinds = useMemo<string[]>(() => {
     if (!movesData?.items) return [];
-    return Array.from(new Set(movesData.items.map((m: DialogueMove) => m.kind)));
+    return Array.from(new Set(movesData.items.map((m: DialogueMove) => String(m.kind))));
   }, [movesData]);
 
-  const uniqueActors = useMemo(() => {
+  const uniqueActors = useMemo<string[]>(() => {
     if (!movesData?.items) return [];
     return Array.from(new Set(movesData.items.map((m: DialogueMove) => String(m.actorId))));
   }, [movesData]);

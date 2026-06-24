@@ -158,7 +158,7 @@ function contributionToCvEntry(contribution: {
   type: string;
   createdAt: Date;
   argument?: { text: string } | null;
-  deliberation?: { title: string } | null;
+  deliberation?: { title: string | null } | null;
 }): CvEntry | null {
   const typeLabels: Record<string, string> = {
     ARGUMENT_CREATED: "Scholarly Argument",
@@ -178,7 +178,7 @@ function contributionToCvEntry(contribution: {
     title:
       contribution.argument?.text?.substring(0, 150) || contribution.type,
     date: contribution.createdAt,
-    context: contribution.deliberation?.title,
+    context: contribution.deliberation?.title ?? undefined,
   };
 }
 

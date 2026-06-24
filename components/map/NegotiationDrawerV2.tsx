@@ -13,7 +13,7 @@ function MoveChipsRow({ deliberationId, tType, tId, locusPath }:{
 }) {
   const url = `/api/dialogue/legal-moves?` +
     new URLSearchParams({ deliberationId, targetType: tType, targetId: tId, ...(locusPath ? { locusPath } : {}) }).toString();
-  const { data } = useSWR<{ok:true; moves:Array<any>}>(url, (u)=>fetch(u,{cache:'no-store'}).then(r=>r.json()));
+  const { data } = useSWR<{ok:true; moves:Array<any>}>(url, (u: string)=>fetch(u,{cache:'no-store'}).then(r=>r.json()));
   const moves = data?.moves ?? [];
   if (!moves.length) return null;
   return (
@@ -394,7 +394,7 @@ const lastOpenWhy = React.useMemo(()=>{
       body: JSON.stringify({ deliberationId, sourceDesignId, tag, rationale }),
     });
   }
-   async function postMove(targetType, targetId, kind: ReplyKind, payload: any = {},
+   async function postMove(targetType: string, targetId: string, kind: ReplyKind, payload: any = {},
      extra?: { replyToMoveId?: string, replyTarget?: 'argument'|'claim'|'premise'|'link'|'presupposition' }) {
     const key = `${targetType}:${targetId}`;
     setPostingKey(key);

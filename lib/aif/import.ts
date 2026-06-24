@@ -1,4 +1,5 @@
 // lib/aif/import.ts
+import crypto from 'crypto';
 import { prisma } from '@/lib/prismaclient';
 
 async function ensureArgumentForClaim(deliberationId: string, claimId: string) {
@@ -65,7 +66,12 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
   const claimMap = new Map<string, string>();
   for (const n of I_nodes) {
     const c = await prisma.claim.create({
-      data: { deliberationId, text: textOf(n), createdById: 'importer' }
+      data: {
+        deliberationId,
+        text: textOf(n),
+        createdById: 'importer',
+        moid: `imported-${crypto.randomBytes(8).toString("hex")}`,
+      }
     });
     claimMap.set(n['@id'], c.id);
   }
@@ -128,7 +134,7 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
       await prisma.argumentEdge.create({
         data: {
           deliberationId, fromArgumentId: attackerArgId, toArgumentId: target,
-          attackType: 'UNDERCUTS', targetScope: 'inference', createdById: 'importer',
+          type: 'undercut', attackType: 'UNDERCUTS', targetScope: 'inference', createdById: 'importer',
         }
       });
     } else if (isType(conflictedId, 'aif:InformationNode') && claimMap.has(conflictedId)) {
@@ -139,7 +145,7 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
         await prisma.argumentEdge.create({
           data: {
             deliberationId, fromArgumentId: attackerArgId, toArgumentId: raMap.get(premOf['aif:to'])!,
-            attackType: 'UNDERMINES', targetScope: 'premise', targetPremiseId: cid, createdById: 'importer',
+            type: 'rebut', attackType: 'UNDERMINES', targetScope: 'premise', targetPremiseId: cid, createdById: 'importer',
           }
         });
       } else {
@@ -150,7 +156,7 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
           data: {
             deliberationId, fromArgumentId: attackerArgId,
             toArgumentId: targetArgId ?? attackerArgId,
-            attackType: 'REBUTS', targetScope: 'conclusion', targetClaimId: cid, createdById: 'importer',
+            type: 'rebut', attackType: 'REBUTS', targetScope: 'conclusion', targetClaimId: cid, createdById: 'importer',
           }
         });
       }

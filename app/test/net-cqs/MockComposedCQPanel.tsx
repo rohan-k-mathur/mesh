@@ -548,7 +548,7 @@ export function MockComposedCQPanel({
                   <QuestionCard
                     key={question.id}
                     question={question}
-                    onSchemeClick={(id) => onSchemeSelect?.(id)}
+                    onSchemeClick={(id: string) => onSchemeSelect?.(id)}
                     onDependencyClick={() => {
                       if (question.relatedSchemes.length >= 2) {
                         onDependencyHighlight?.(

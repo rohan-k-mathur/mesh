@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@cp/lib/prisma";
+import { prisma } from "../../lib/prisma";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const WEEKS = 26;
@@ -36,12 +36,30 @@ export default async function HalfYearHorizon({
     new Date(today.getTime() - (WEEKS - 1) * 7 * DAY_MS),
   );
 
+  type EntryRow = { createdAt: Date; threadId: string | null };
+  type ThreadRow = {
+    id: string;
+    name: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    _count: { entries: number };
+  };
+
+  // The commonplace package has its own Prisma client (with `entry`/`thread`
+  // models) that differs from the root client picked up by the monorepo build,
+  // so the model accessors are typed loosely here while the result rows stay
+  // strongly typed.
+  const db = prisma as unknown as {
+    entry: { findMany: (args: unknown) => Promise<EntryRow[]> };
+    thread: { findMany: (args: unknown) => Promise<ThreadRow[]> };
+  };
+
   const [entries, threads] = await Promise.all([
-    prisma.entry.findMany({
+    db.entry.findMany({
       where: { authorId, createdAt: { gte: windowStart } },
       select: { createdAt: true, threadId: true },
     }),
-    prisma.thread.findMany({
+    db.thread.findMany({
       where: { authorId, archivedAt: null },
       select: {
         id: true,

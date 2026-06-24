@@ -21,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const userId = await getCurrentUserId().catch(()=> 'system');
+  const userId = String((await getCurrentUserId().catch(()=> 'system')) ?? 'system');
   const b = Body.parse(await req.json());
   const row = await prisma.kbSpace.create({
     data: {

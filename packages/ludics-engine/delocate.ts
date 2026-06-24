@@ -231,7 +231,7 @@ export async function cloneDesignWithShift(designId: Id, tag: string) {
       deliberationId: dialogueId,
       participantId: src.participantId,
       rootLocusId: idByPath.get(mapPath('0'))!,
-      meta: { shiftedFrom: src.id, tag },
+      extJson: { shiftedFrom: src.id, tag },
     },
   });
 

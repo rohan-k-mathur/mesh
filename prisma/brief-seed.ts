@@ -145,9 +145,10 @@ async function main() {
 
   // 6. Seed a governance status + logbook entry for completeness
   await prisma.contentStatus.upsert({
-    where: { targetType_targetId: { targetType: 'brief', targetId: brief.id } },
+    where: { roomId_targetType_targetId: { roomId: 'room-123', targetType: 'brief', targetId: brief.id } },
     update: { currentStatus: 'WORKSHOP', reason: 'Needs more sources' },
     create: {
+      roomId: 'room-123',
       targetType: 'brief',
       targetId: brief.id,
       currentStatus: 'WORKSHOP',

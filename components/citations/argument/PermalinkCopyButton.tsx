@@ -98,7 +98,7 @@ export function PermalinkCopyButton({
 
     if (format === "url") {
       // URL is available directly from permalink
-      textToCopy = permalink.fullUrl || permalink.permalinkUrl || "";
+      textToCopy = permalink.fullUrl || "";
     } else {
       // Fetch the citation format on demand
       setIsLoadingFormat(true);
@@ -123,7 +123,6 @@ export function PermalinkCopyButton({
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedFormat(format);
-      copyMutation.mutate(format);
       toast.success(
         format === "url" ? "Link copied to clipboard" : `${format.toUpperCase()} citation copied`
       );
@@ -280,7 +279,7 @@ export function PermalinkDisplay({ argumentId, className }: PermalinkDisplayProp
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = async () => {
-    const url = permalink?.fullUrl || permalink?.permalinkUrl;
+    const url = permalink?.fullUrl;
     if (!url) return;
 
     try {

@@ -308,8 +308,8 @@ export default function DebateSheetReader({
         {/* Extracted Header Component */}
         <DebateSheetHeader
           title={title}
-          mode={mode}
-          onModeChange={(newMode) => { setMode(newMode); refetchData(); }}
+          mode={mode as "min" | "product" | "ds"}
+          onModeChange={(newMode) => { setMode(newMode as typeof mode); refetchData(); }}
           imports={imports}
           onImportsChange={setImports}
         />

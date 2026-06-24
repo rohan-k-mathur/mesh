@@ -1,5 +1,5 @@
-import { prisma } from "@cp/lib/prisma";
-import { createClient } from "@cp/lib/supabase/server";
+import { prisma } from "./prisma";
+import { createClient } from "./supabase/server";
 
 /**
  * Returns the current Supabase user joined with the local Author row,

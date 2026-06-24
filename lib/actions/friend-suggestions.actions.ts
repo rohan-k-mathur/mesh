@@ -52,9 +52,7 @@ export async function updateUserEmbedding(userId: Big) {
   try {
     const index = await getPineconeIndex();
     if (index) {
-      await index.upsert({
-        vectors: [{ id: userId.toString(), values: embedding }],
-      });
+      await index.upsert([{ id: userId.toString(), values: embedding }]);
     }
   } catch (err) {
     console.warn("Pinecone upsert failed", err);
@@ -90,14 +88,14 @@ export async function generateFriendSuggestions(userId: Big) {
     otherEmbeddings,
     otherAttrs,
   ] = await Promise.all([
-    prisma.like.findMany({ where: { user_id: userId }, select: { post_id: true } }),
+    prisma.like.findMany({ where: { user_id: userId }, select: { feed_post_id: true } }),
     prisma.userRealtimeRoom.findMany({
       where: { user_id: userId },
       select: { realtime_room_id: true },
     }),
     prisma.like.findMany({
       where: { user_id: { in: otherIds } },
-      select: { user_id: true, post_id: true },
+      select: { user_id: true, feed_post_id: true },
     }),
     prisma.userRealtimeRoom.findMany({
       where: { user_id: { in: otherIds } },
@@ -110,13 +108,13 @@ export async function generateFriendSuggestions(userId: Big) {
   ]);
 
   /* -- constant‑time lookup maps ----------------------------- */
-  const baseLikeSet = new Set(baseLikes.map((l) => l.post_id.toString()));
+  const baseLikeSet = new Set(baseLikes.map((l) => l.feed_post_id.toString()));
   const baseRoomSet = new Set(baseRooms.map((r) => r.realtime_room_id));
 
   const likesMap = new Map<Big, Set<string>>();
-  for (const { user_id, post_id } of otherLikes) {
+  for (const { user_id, feed_post_id } of otherLikes) {
     const set = likesMap.get(user_id as Big) ?? new Set<string>();
-    set.add(post_id.toString());
+    set.add(feed_post_id.toString());
     likesMap.set(user_id as Big, set);
   }
 

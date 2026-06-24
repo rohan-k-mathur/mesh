@@ -16,10 +16,9 @@ export * from "./types";
 // Services
 export {
   findOrCreateCanonicalClaim,
-  registerClaimInstanceToCanonical,
+  linkClaimToCanonical as registerClaimInstanceToCanonical,
   searchCanonicalClaims,
-  getCanonicalClaimById,
-  linkClaimEquivalence,
+  createClaimEquivalence as linkClaimEquivalence,
 } from "./canonicalRegistryService";
 
 export {

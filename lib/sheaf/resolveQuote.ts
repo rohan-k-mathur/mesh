@@ -1,6 +1,5 @@
 // lib/sheaf/resolveQuote.ts
 import { toAclFacet } from '@/app/api/sheaf/_map'; // or your actual import
-import { s } from '@/app/api/sheaf/_util';
 
 // Minimal shapes to avoid Prisma types here
 export type QuoteSpec = { sourceMessageId: bigint; sourceFacetId?: bigint | null };
@@ -39,44 +38,44 @@ export async function resolveQuoteForViewer(q: QuoteSpec, deps: ResolveDeps): Pr
   const { srcMsgById, srcFacetById, srcAttByFacet, requireSourceVisibility = false, canViewerSeeFacetNow } = deps;
 
   const sm = srcMsgById.get(q.sourceMessageId.toString());
-  if (!sm) return { sourceMessageId: s(q.sourceMessageId), status: "unavailable" };
-  if (sm.is_redacted) return { sourceMessageId: s(q.sourceMessageId), status: "redacted" };
+  if (!sm) return { sourceMessageId: q.sourceMessageId.toString(), status: "unavailable" };
+  if (sm.is_redacted) return { sourceMessageId: q.sourceMessageId.toString(), status: "redacted" };
 
   // Quoting a specific facet
   if (q.sourceFacetId) {
     const raw = srcFacetById.get(q.sourceFacetId.toString());
     if (!raw)
-      return { sourceMessageId: s(q.sourceMessageId), sourceFacetId: s(q.sourceFacetId), status: "unavailable" };
+      return { sourceMessageId: q.sourceMessageId.toString(), sourceFacetId: q.sourceFacetId.toString(), status: "unavailable" };
 
     if (requireSourceVisibility && canViewerSeeFacetNow) {
       const ok = await canViewerSeeFacetNow(raw);
-      if (!ok) return { sourceMessageId: s(q.sourceMessageId), sourceFacetId: s(q.sourceFacetId), status: "unavailable" };
+      if (!ok) return { sourceMessageId: q.sourceMessageId.toString(), sourceFacetId: q.sourceFacetId.toString(), status: "unavailable" };
     }
 
     const af = toAclFacet(raw); // { sharePolicy, body, createdAt, updatedAt, id, ... }
     if (af.sharePolicy === "FORBID")
-      return { sourceMessageId: s(q.sourceMessageId), sourceFacetId: s(q.sourceFacetId), status: "unavailable" };
+      return { sourceMessageId: q.sourceMessageId.toString(), sourceFacetId: q.sourceFacetId.toString(), status: "unavailable" };
     if (af.sharePolicy === "REDACT")
-      return { sourceMessageId: s(q.sourceMessageId), sourceFacetId: s(q.sourceFacetId), status: "redacted" };
+      return { sourceMessageId: q.sourceMessageId.toString(), sourceFacetId: q.sourceFacetId.toString(), status: "redacted" };
 
     // ALLOW
     const isEdited = toMs(af.updatedAt) > toMs(af.createdAt);
     return {
-      sourceMessageId: s(q.sourceMessageId),
-      sourceFacetId: s(q.sourceFacetId),
+      sourceMessageId: q.sourceMessageId.toString(),
+      sourceFacetId: q.sourceFacetId.toString(),
       status: "ok",
       body: af.body ?? null,
       attachments: srcAttByFacet.get(af.id) ?? [],
       isEdited,
       sourceAuthor: { name: sm.sender?.name ?? null, image: sm.sender?.image ?? null },
-      updatedAt: af.updatedAt ?? null,
+      updatedAt: af.updatedAt != null ? String(af.updatedAt) : null,
     };
   }
 
   // Quote the plain message
   const isEdited = !!sm.edited_at;
   return {
-    sourceMessageId: s(q.sourceMessageId),
+    sourceMessageId: q.sourceMessageId.toString(),
     status: "ok",
     body: sm.text ?? null,
     attachments: sm.attachments.map((a) => ({

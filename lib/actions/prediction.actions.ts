@@ -167,11 +167,11 @@ export async function resolveMarket({ marketId, outcome }:{ marketId:string; out
   if (market.creatorId !== user.userId && market.oracleId !== user.userId) {
     throw new Error("Not authorized");
   }
-  if (market.state !== "CLOSED") {
-    throw new Error("Market not closed");
-  }
   if (market.state === "RESOLVED") {
     throw new Error("Already resolved");
+  }
+  if (market.state !== "CLOSED") {
+    throw new Error("Market not closed");
   }
 
   return await prisma.$transaction(async tx => {
@@ -181,9 +181,10 @@ export async function resolveMarket({ marketId, outcome }:{ marketId:string; out
       if (trade.side === outcome) {
         await tx.$executeRaw`SELECT lock_wallet(${trade.userId})`;
         await tx.wallet.update({ where:{ userId: trade.userId }, data:{ balanceCents: { increment: Math.floor(trade.shares) } } });
-        await tx.resolutionLog.create({ data:{ marketId, userId: trade.userId, amount: Math.floor(trade.shares) } });
       }
     }
+
+    await tx.resolutionLog.create({ data:{ marketId, resolverId: user.userId!, outcome } });
 
     await tx.predictionMarket.update({
       where:{ id: marketId },

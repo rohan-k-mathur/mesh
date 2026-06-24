@@ -81,8 +81,8 @@ try {
 } catch {}
 try {
   const toWithMoid = await prisma.claim.findMany({
-    where: { deliberationId: toId, /* @ts-ignore */ moid: { not: null } },
-    select: { id:true, text:true, createdAt:true, /* @ts-ignore */ moid:true }
+    where: { deliberationId: toId, moid: { not: null } } as any,
+    select: { id:true, text:true, createdAt:true, moid:true }
   });
   for (const c of toWithMoid) {
     const k = (c as any).moid as string;
@@ -120,8 +120,8 @@ try {
 
     try {
   const fromWithMoid = await prisma.claim.findMany({
-    where: { deliberationId: fromId, /* @ts-ignore */ moid: { not: null } },
-    select: { id:true, text:true, createdAt:true, /* @ts-ignore */ moid:true }
+    where: { deliberationId: fromId, moid: { not: null } } as any,
+    select: { id:true, text:true, createdAt:true, moid:true }
   });
   for (const f of fromWithMoid) {
     const k = (f as any).moid as string;
@@ -177,15 +177,15 @@ try {
   // normalize and intersect domains/DOIs.
   // Placeholder: adjust to your actual evidence tables.
   const norm = (u:string)=> u.toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split(/[?#]/)[0];
-  const fromEv = await prisma.claimEvidence?.findMany({ where:{ deliberationId: fromId }, select:{ claimId:true, url:true } } as any).catch(()=>[]);
-  const toEv   = await prisma.claimEvidence?.findMany({ where:{ deliberationId: toId },   select:{ claimId:true, url:true } } as any).catch(()=>[]);
+  const fromEv = await prisma.claimEvidence?.findMany({ where:{ deliberationId: fromId }, select:{ claimId:true, uri:true } } as any).catch(()=>[]);
+  const toEv   = await prisma.claimEvidence?.findMany({ where:{ deliberationId: toId },   select:{ claimId:true, uri:true } } as any).catch(()=>[]);
   const toByDom = new Map<string,string[]>(); // domain → [claimId]
   for (const e of (toEv||[])) {
-    const d = norm(e.url||''); if (!d) continue;
+    const d = norm(e.uri||''); if (!d) continue;
     (toByDom.get(d) ?? toByDom.set(d,[]).get(d)!).push(e.claimId);
   }
   for (const e of (fromEv||[])) {
-    const d = norm(e.url||''); if (!d || claimMap[e.claimId]) continue;
+    const d = norm(e.uri||''); if (!d || claimMap[e.claimId]) continue;
     const cand = (toByDom.get(d)||[]).find(id => !usedTo.has(id));
     if (cand) { claimMap[e.claimId] = cand; usedTo.add(cand); }
   }

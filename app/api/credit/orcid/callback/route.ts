@@ -6,6 +6,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectOrcid } from "@/lib/credit/orcidService";
 
+// OAuth callback: reads request query params and hits external services at
+// request time; must never be statically prerendered.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);

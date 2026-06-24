@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+// @ts-ignore - cytoscape-navigator ships no type declarations
 import navigator from 'cytoscape-navigator';
 import CyCanvas from './CyCanvas';
 import SchemeOverlayFetch from './SchemeOverlayFetch';
@@ -197,7 +198,7 @@ export default function BipolarLens({
   }, [data, preview]);
 
   // Stylesheet (support + attack + scopes + scheme icons)
-  const stylesheet: cytoscape.Stylesheet[] = [
+  const stylesheet: cytoscape.StylesheetStyle[] = [
     {
       selector: 'node',
       style: {
@@ -250,7 +251,7 @@ export default function BipolarLens({
         'font-size': '8px',
         'text-background-opacity': 0.85,
         'text-background-color': '#fff',
-        'text-background-padding': 1,
+        'text-background-padding': "1",
       },
     },
     { selector: 'edge.support',   style: { 'line-color': '#22c55e', 'target-arrow-color': '#22c55e' } },
@@ -295,7 +296,7 @@ export default function BipolarLens({
   const cacheKey = `cy-layout:bipolar:${deliberationId}`;
 
   function runLayout() {
-    cyRef.current?.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
+    cyRef.current?.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 } as any).run();
   }
   function saveLayout() {
     if (!cyRef.current) return;
@@ -332,7 +333,7 @@ export default function BipolarLens({
 
     const restored = loadLayout();
     if (!restored) {
-      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
+      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 } as any).run();
     }
     cy.on('layoutstop', saveLayout);
 

@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
   const enqueued: string[] = [];
   for (const p of posts) {
     if (p.thumb_urls?.[0]) continue;
+    if (!p.file_url) continue;
     const m = p.file_url.match(/\/storage\/v1\/object\/public\/pdfs\/(.+\.pdf)$/i);
     if (!m) continue;
     const pdfKey = m[1];

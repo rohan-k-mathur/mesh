@@ -57,7 +57,7 @@ const coerceClaimMap = (x: unknown): Record<string, string> => {
 const safeSlice = (s?: string | null, n = 8) =>
   typeof s === 'string' ? s.slice(0, n) : '—';
 
-export default function TransportPage() {
+function TransportPageInner() {
   const params = useSearchParams();
   const fromId = params?.get('from') ?? '';
   const toId = params?.get('to') ?? '';
@@ -89,12 +89,12 @@ export default function TransportPage() {
   const [depth, setDepth] = React.useState<number>(1);
 
 
-const { data: fromNames } = useSWR(
+const { data: fromNames } = useSWR<{ names?: Record<string, string> | null } & { error?: string }>(
   fromId ? `/api/room-functor/claims?room=${encodeURIComponent(fromId)}` : null,
   fetcher,
   { revalidateOnFocus: false }
 );
-const { data: toNames } = useSWR(
+const { data: toNames } = useSWR<{ names?: Record<string, string> | null } & { error?: string }>(
   toId ? `/api/room-functor/claims?room=${encodeURIComponent(toId)}` : null,
   fetcher,
   { revalidateOnFocus: false }
@@ -347,5 +347,15 @@ const [showIds, setShowIds] = React.useState(false);
         </ul>
       </div>
     </div>
+  );
+}
+
+// useSearchParams() requires a Suspense boundary to avoid de-opting the whole
+// page during static prerender.
+export default function TransportPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <TransportPageInner />
+    </React.Suspense>
   );
 }

@@ -1,6 +1,7 @@
 // server/jobs/usageMeter.ts
 import { PrismaClient } from '@prisma/client';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import type { ListObjectsV2CommandOutput } from '@aws-sdk/client-s3';
 
 export async function measureRoom(prisma: PrismaClient, roomId: string, bucket: string, region: string) {
   // DB size approximation: sum table sizes in schema
@@ -14,7 +15,7 @@ export async function measureRoom(prisma: PrismaClient, roomId: string, bucket: 
   let s3Bytes = 0;
   let token: string | undefined = undefined;
   do {
-    const out = await s3.send(new ListObjectsV2Command({ Bucket: bucket, ContinuationToken: token }));
+    const out: ListObjectsV2CommandOutput = await s3.send(new ListObjectsV2Command({ Bucket: bucket, ContinuationToken: token }));
     for (const o of out.Contents ?? []) s3Bytes += o.Size ?? 0;
     token = out.IsTruncated ? out.NextContinuationToken : undefined;
   } while (token);

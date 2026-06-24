@@ -6,9 +6,24 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+interface SchemeNodeData {
+  scheme: {
+    schemeName: string;
+    schemeCategory: string;
+    conclusion: string;
+    premises: unknown[];
+  };
+  depth?: number;
+  role?: string;
+  explicitness?: string;
+  confidence?: number;
+  isOnCriticalPath?: boolean;
+  isInCycle?: boolean;
+}
+
 export const SchemeNode = memo(({ data }: NodeProps) => {
   const { scheme, depth, role, explicitness, confidence, isOnCriticalPath, isInCycle } =
-    data;
+    data as unknown as SchemeNodeData;
 
   // Determine node styling based on properties
   const getNodeStyle = () => {

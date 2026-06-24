@@ -11,7 +11,7 @@ export async function buildAF(deliberationId: string) {
 
   // index helpers
   const byConc = new Map<string,string[]>(
-    Object.entries(args.reduce((m:any,a)=>((m[a.conclusionClaimId] ??= []).push(a.id), m), {}))
+    Object.entries(args.reduce((m:any,a)=>{ if (a.conclusionClaimId) (m[a.conclusionClaimId] ??= []).push(a.id); return m; }, {}))
   );
   const usesPrem = new Map<string,string[]>(
     Object.entries(args.reduce((m:any,a)=>{ for (const p of a.premises) (m[p.claimId] ??= []).push(a.id); return m; }, {}))

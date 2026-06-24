@@ -127,7 +127,7 @@ export async function proposeTag(
           axisVersion, // refresh pin to current registry version
           confidence,
           evidenceText: input.evidenceText,
-          evidenceJson: (input.evidenceJson ?? null) as Prisma.InputJsonValue | null,
+          evidenceJson: (input.evidenceJson ?? Prisma.JsonNull) as Prisma.InputJsonValue,
           sessionId,
         },
       });
@@ -143,11 +143,11 @@ export async function proposeTag(
           axisVersion,
           confidence,
           evidenceText: input.evidenceText,
-          evidenceJson: (input.evidenceJson ?? null) as Prisma.InputJsonValue | null,
+          evidenceJson: (input.evidenceJson ?? Prisma.JsonNull) as Prisma.InputJsonValue,
           authoredById: input.authoredById,
           authoredRole: input.authoredRole,
           seedSource: input.seedSource,
-          seedReferenceJson: (input.seedReferenceJson ?? null) as Prisma.InputJsonValue | null,
+          seedReferenceJson: (input.seedReferenceJson ?? Prisma.JsonNull) as Prisma.InputJsonValue,
           promotedFromCandidateId: input.promotedFromCandidateId ?? null,
         },
       });

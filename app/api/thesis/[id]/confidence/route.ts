@@ -10,6 +10,7 @@
 // deep-link to each contributing object via openInspector().
 
 import { NextRequest, NextResponse } from "next/server";
+import type { EdgeType, ClaimAttackType } from "@prisma/client";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserAuthId } from "@/lib/serverutils";
 import {
@@ -23,8 +24,8 @@ import { instrumentReaderResponse } from "@/lib/thesis/observability";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
-const CLAIM_ATTACK_TYPES = ["REBUTS", "UNDERMINES", "UNDERCUTS"] as const;
-const ARG_ATTACK_TYPES = ["rebut", "undercut"] as const;
+const CLAIM_ATTACK_TYPES: ClaimAttackType[] = ["REBUTS", "UNDERMINES", "UNDERCUTS"];
+const ARG_ATTACK_TYPES: EdgeType[] = ["rebut", "undercut"];
 
 interface ProngScore extends ConfidenceResult {
   id: string;
@@ -122,7 +123,7 @@ export async function GET(
         ? prisma.argumentEdge.findMany({
             where: {
               toArgumentId: { in: allArgIds },
-              type: { in: ARG_ATTACK_TYPES as unknown as string[] },
+              type: { in: ARG_ATTACK_TYPES },
             },
             select: {
               toArgumentId: true,
@@ -161,7 +162,7 @@ export async function GET(
         ? prisma.claimEdge.findMany({
             where: {
               toClaimId: thesis.thesisClaimId,
-              attackType: { in: CLAIM_ATTACK_TYPES as unknown as string[] },
+              attackType: { in: CLAIM_ATTACK_TYPES },
             },
             select: { fromClaimId: true },
           })
@@ -177,7 +178,7 @@ export async function GET(
       const counters = await prisma.argumentEdge.findMany({
         where: {
           toArgumentId: { in: argAttackerIds },
-          type: { in: ARG_ATTACK_TYPES as unknown as string[] },
+          type: { in: ARG_ATTACK_TYPES },
         },
         select: { toArgumentId: true },
       });
@@ -192,7 +193,7 @@ export async function GET(
       const counters = await prisma.claimEdge.findMany({
         where: {
           toClaimId: { in: claimAttackerIds },
-          attackType: { in: CLAIM_ATTACK_TYPES as unknown as string[] },
+          attackType: { in: CLAIM_ATTACK_TYPES },
         },
         select: { toClaimId: true },
       });

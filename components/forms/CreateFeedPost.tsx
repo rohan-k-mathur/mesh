@@ -14,7 +14,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { createFeedPost as createFeedPostAction } from "@/lib/actions/feedpost.actions";
-import { feed_post_type } from "@prisma/client";
+import { feed_post_type, realtime_post_type } from "@prisma/client";
 import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
@@ -121,12 +121,12 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
       if (roomId === "global") {
         await createFeedPost({
           type: "IMAGE",
-          imageUrl: result.fileURL,
+          imageUrl: result.fileURL ?? undefined,
           caption: values.caption,
         });
       } else {
         await createRealtimePost({
-          imageUrl: result.fileURL,
+          imageUrl: result.fileURL ?? undefined,
           text: values.caption,
           path: "/",
           coordinates: { x: 0, y: 0 },
@@ -167,7 +167,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
           // treat audio files the same way we treat images / video in the feed
           await createFeedPost({
             type: "MUSIC",                 // enum value in Prisma
-           videoUrl: result.fileURL,      // ← stored in `video_url` column
+           videoUrl: result.fileURL ?? undefined,      // ← stored in `video_url` column
            caption:  values.title.slice(0, 140) || undefined,
           });}
         // } else {
@@ -190,7 +190,10 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     const uploads = await Promise.all(
       values.images.map((img) => uploadFileToSupabase(img))
     );
-    const urls = uploads.filter((r) => !r.error).map((r) => r.fileURL);
+    const urls = uploads
+      .filter((r) => !r.error)
+      .map((r) => r.fileURL)
+      .filter((u): u is string => u != null);
     if (urls.length > 0) {
       if (roomId === "global") {
         await createFeedPost({
@@ -236,7 +239,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
       await createRealtimePost({
         path: "/",
         coordinates: { x: 0, y: 0 },
-        type: value as string,
+        type: value as realtime_post_type,
         realtimeRoomId: roomId,
       });
       reset();
@@ -322,7 +325,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
             isPublic={false}
             currentImages={[]}
             currentCaption=""
-            onSubmit={handleGallerySubmit}
+            onSubmit={handleGallerySubmit as (values: unknown) => void}
           />
         );
       case "PORTAL":
@@ -436,14 +439,15 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
               );
               const urls = uploads
                 .filter((r) => !r.error)
-                .map((r) => r.fileURL);
+                .map((r) => r.fileURL)
+                .filter((u): u is string => u != null);
               const filtered = vals.claims.filter((c) => c.trim() !== "");
               if (roomId === "global") {
                 await createFeedPostAction({
-                  type: "PRODUCT_REVIEW" as feed_post_type,
+                  postType: "PRODUCT_REVIEW" as feed_post_type,
 
                   caption: vals.summary.slice(0, 140),
-                  imageUrl: urls[0] ?? null,
+                  imageUrl: urls[0] ?? undefined,
                   content: JSON.stringify({        // 👈 add this
                          ...vals,
                          images: urls,

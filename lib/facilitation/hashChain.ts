@@ -45,7 +45,7 @@ export function eventPayloadForHash(
 export function verifyEventHash(event: FacilitationEvent): boolean {
   const expected = computeEventHash(
     event.hashChainPrev,
-    eventPayloadForHash(event),
+    eventPayloadForHash(event) as unknown as Parameters<typeof computeEventHash>[1],
     event.createdAt,
   );
   return expected === event.hashChainSelf;

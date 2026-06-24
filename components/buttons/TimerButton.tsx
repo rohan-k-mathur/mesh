@@ -13,7 +13,7 @@ interface Props {
 
 const TimerButton = ({
   realtimePostId,
-  feedpostId,
+  feedPostId,
   isOwned,
   expirationDate,
 }: Props) => {
@@ -31,7 +31,7 @@ const TimerButton = ({
         openModal(
           <TimerModal
             realtimePostId={realtimePostId}
-            feedPostId={feedpostId}
+            feedPostId={feedPostId}
             isOwned={isOwned}
             expirationDate={expirationDate}
           />

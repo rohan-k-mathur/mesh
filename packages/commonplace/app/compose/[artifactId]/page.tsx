@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { ArtifactBodySchema } from "@cp/lib/artifact-types";
+import { prisma } from "../../../lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
+import { ArtifactBodySchema, type ArtifactBlock, type EntryBlock } from "../../../lib/artifact-types";
 import ArtifactEditor from "../_components/ArtifactEditor";
 
 export default async function ComposeArtifactPage({
@@ -22,9 +22,9 @@ export default async function ComposeArtifactPage({
 
   // Resolve any referenced entries up front so the editor renders snippets
   // without an extra round trip on first paint.
-  const entryIds = body.blocks
-    .filter((b): b is Extract<typeof b, { kind: "entry" }> => b.kind === "entry")
-    .map((b) => b.entryId);
+  const entryIds = (body.blocks as ArtifactBlock[])
+    .filter((b): b is EntryBlock => b.kind === "entry")
+    .map((b: EntryBlock) => b.entryId);
 
   const initialEntries = entryIds.length
     ? await prisma.entry.findMany({

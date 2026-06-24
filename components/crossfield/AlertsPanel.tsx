@@ -7,9 +7,7 @@
 import { useState } from "react";
 import {
   useAlerts,
-  useMarkAlertRead,
-  useMarkAlertActioned,
-  useDismissAlert,
+  useUpdateAlert,
   useUnreadAlertCount,
 } from "@/lib/crossfield/hooks";
 import { Badge } from "@/components/ui/badge";
@@ -37,13 +35,17 @@ interface AlertsPanelProps {
 export function AlertsPanel({ className = "" }: AlertsPanelProps) {
   const [filter, setFilter] = useState<"ALL" | "UNREAD">("ALL");
   const { data: alerts, isLoading } = useAlerts(
-    filter === "UNREAD" ? "UNREAD" : undefined
+    filter === "UNREAD" ? { status: "UNREAD" } : undefined
   );
   const { data: unreadCount } = useUnreadAlertCount();
 
-  const { mutate: markRead } = useMarkAlertRead();
-  const { mutate: markActioned } = useMarkAlertActioned();
-  const { mutate: dismiss } = useDismissAlert();
+  const { mutate: updateAlert } = useUpdateAlert();
+  const markRead = (alertId: string) =>
+    updateAlert({ alertId, action: "read" });
+  const markActioned = (alertId: string) =>
+    updateAlert({ alertId, action: "actioned" });
+  const dismiss = (alertId: string) =>
+    updateAlert({ alertId, action: "dismiss" });
 
   return (
     <div className={className}>
@@ -87,7 +89,7 @@ export function AlertsPanel({ className = "" }: AlertsPanelProps) {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
         </div>
-      ) : !alerts || alerts.length === 0 ? (
+      ) : !alerts || alerts.alerts.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
           <p>
@@ -98,7 +100,7 @@ export function AlertsPanel({ className = "" }: AlertsPanelProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {alerts.map((alert) => (
+          {alerts.alerts.map((alert) => (
             <div
               key={alert.id}
               className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${
@@ -122,7 +124,7 @@ export function AlertsPanel({ className = "" }: AlertsPanelProps) {
                         : "text-gray-700"
                     }`}
                   >
-                    {alert.message}
+                    {alert.title}
                   </p>
                   <StatusBadge status={alert.status} />
                 </div>
@@ -210,9 +212,9 @@ function AlertTypeIcon({ type }: { type: CrossFieldAlertType }) {
   switch (type) {
     case "SIMILAR_CLAIM":
       return <GitCompare className="w-4 h-4 text-blue-500" />;
-    case "EQUIVALENCE_PROPOSED":
+    case "NEW_EQUIVALENCE":
       return <AlertTriangle className="w-4 h-4 text-amber-500" />;
-    case "EQUIVALENCE_VERIFIED":
+    case "TRANSLATION_READY":
       return <Check className="w-4 h-4 text-green-500" />;
     case "FIELD_DISCUSSION":
       return <BookOpen className="w-4 h-4 text-purple-500" />;

@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { tiptapSharedExtensions } from "@cp/lib/tiptap/shared";
-import { pickEpigraph, type Epigraph } from "@cp/lib/epigraphs";
-import SourcePicker from "@cp/app/_components/SourcePicker";
+import { tiptapSharedExtensions } from "../../lib/tiptap/shared";
+import { pickEpigraph, type Epigraph } from "../../lib/epigraphs";
+import SourcePicker from "../_components/SourcePicker";
 
 type Genre =
   | "FRAGMENT"

@@ -97,7 +97,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // them \u2014 a claim with zero arguments has nothing to crawl into.
       prisma.claim.findMany({
         where: {
-          moid: { not: null },
           asConclusion: { some: { permalink: { isNot: null } } },
         },
         select: { moid: true, createdAt: true },

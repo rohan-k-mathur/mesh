@@ -381,7 +381,7 @@ function computeStats(positions: Map<string, ArenaPositionTheory>): Ludicability
     }
     
     // Polarity count
-    if (position.polarity === "P") {
+    if (position.polarity === "+") {
       positivePositions++;
     } else {
       negativePositions++;

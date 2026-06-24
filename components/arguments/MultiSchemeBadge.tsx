@@ -4,7 +4,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Layers, FileText, Eye, EyeOff } from "lucide-react";
-import type { ArgumentSchemeInstanceWithScheme } from "@/lib/types/argument-net";
+import type {
+  ArgumentSchemeInstanceWithScheme,
+  ExplicitnessLevel,
+  SchemeRole,
+} from "@/lib/types/argument-net";
 import { getExplicitnessStyle, getRoleStyle } from "@/lib/utils/argument-net-helpers";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +38,10 @@ export function MultiSchemeBadge({
   showConfidence = false,
   onClick
 }: MultiSchemeBadgeProps) {
-  const explicitnessStyle = getExplicitnessStyle(schemeInstance.explicitness);
-  const roleStyle = getRoleStyle(schemeInstance.role);
+  const explicitnessStyle = getExplicitnessStyle(
+    schemeInstance.explicitness as ExplicitnessLevel
+  );
+  const roleStyle = getRoleStyle(schemeInstance.role as SchemeRole);
   
   const sizeClasses = {
     sm: "text-xs px-2 py-0.5",
@@ -54,17 +60,17 @@ export function MultiSchemeBadge({
     supporting: FileText,
     presupposed: Eye,
     implicit: EyeOff
-  }[schemeInstance.role];
+  }[schemeInstance.role as SchemeRole];
   
   const badgeContent = (
     <Badge
       variant="outline"
       className={cn(
         sizeClasses[size],
-        roleStyle.bgClass,
-        roleStyle.textClass,
-        roleStyle.borderClass,
-        showExplicitness && explicitnessStyle.border,
+        roleStyle.bgColor,
+        roleStyle.color,
+        roleStyle.borderColor,
+        showExplicitness && `border-${explicitnessStyle.borderStyle}`,
         onClick && "cursor-pointer hover:shadow-md",
         !onClick && "cursor-help",
         "transition-all inline-flex items-center gap-1.5"

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prismaclient';
-import bus from '@/lib/server/bus';
+import { emitBus } from '@/lib/server/bus';
 export type LudicDecisionReceiptInput = {
   deliberationId: string;
   kind: 'epistemic'|'procedural'|'allocative'|'editorial';

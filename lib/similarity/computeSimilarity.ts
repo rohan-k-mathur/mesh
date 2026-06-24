@@ -1,6 +1,6 @@
 /**
  * Phase 3.4.2: Similarity Computation
- * 
+ *
  * Computes similarity scores between deliberations and stacks
  * based on topic overlap, citation similarity, and participant overlap.
  */
@@ -21,6 +21,39 @@ export interface SimilarityScore {
 }
 
 /**
+ * Citations are attached polymorphically (targetType / targetId), not via a
+ * direct Deliberation.citations relation. The canonical mapping (see
+ * lib/schemes/protocol/closeDeliberation.ts) is: a citation belongs to a
+ * deliberation when it targets a Claim whose `deliberationId` matches.
+ *
+ * Returns the distinct Source ids cited within the given deliberation.
+ */
+async function sourceIdsForDeliberation(deliberationId: string): Promise<string[]> {
+  const claims = await prisma.claim.findMany({
+    where: { deliberationId },
+    select: { id: true },
+  });
+  const claimIds = claims.map((c) => c.id);
+  if (claimIds.length === 0) return [];
+
+  const citations = await prisma.citation.findMany({
+    where: { targetType: "claim", targetId: { in: claimIds } },
+    select: { sourceId: true },
+  });
+  return Array.from(new Set(citations.map((c) => c.sourceId)));
+}
+
+/**
+ * Extract normalized topic keywords from a set of Source rows.
+ * `Source.keywords` is the schema field holding subject keywords.
+ */
+function normalizeTopics(keywords: string[] | null | undefined): string[] {
+  return (keywords ?? [])
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => t.length > 0);
+}
+
+/**
  * Find deliberations related to the given deliberation
  * based on shared sources and topic overlap
  */
@@ -28,51 +61,72 @@ export async function findRelatedDeliberations(
   deliberationId: string,
   limit: number = 10
 ): Promise<SimilarityScore[]> {
-  // Get current deliberation's characteristics
-  const current = await prisma.deliberation.findUnique({
-    where: { id: deliberationId },
-    include: {
-      citations: {
-        select: { sourceId: true },
-      },
-    },
-  });
-
-  if (!current) return [];
-
-  const currentSourceIds = new Set(current.citations.map((c) => c.sourceId));
+  // Get current deliberation's cited source ids
+  const currentSourceIds = new Set(await sourceIdsForDeliberation(deliberationId));
 
   // If no sources, can't compute similarity
   if (currentSourceIds.size === 0) return [];
 
-  // Get topics from current sources
+  // Get topics from current sources (Source.keywords)
   const sources = await prisma.source.findMany({
     where: { id: { in: Array.from(currentSourceIds) } },
-    select: { topics: true },
+    select: { keywords: true },
   });
 
   const currentTopics = new Set<string>();
   for (const source of sources) {
-    const topics = (source.topics as string[]) || [];
-    topics.forEach((t) => {
-      const normalized = t.trim().toLowerCase();
-      if (normalized) currentTopics.add(normalized);
-    });
+    for (const normalized of normalizeTopics(source.keywords)) {
+      currentTopics.add(normalized);
+    }
   }
 
-  // Find other public deliberations with citations
+  // Find other public deliberations that cite the same sources. Citations are
+  // polymorphic, so we walk: shared sources -> citations -> target claims ->
+  // their deliberations.
+  const sharingCitations = await prisma.citation.findMany({
+    where: {
+      targetType: "claim",
+      sourceId: { in: Array.from(currentSourceIds) },
+    },
+    select: { sourceId: true, targetId: true },
+  });
+
+  const targetClaimIds = Array.from(new Set(sharingCitations.map((c) => c.targetId)));
+  if (targetClaimIds.length === 0) return [];
+
+  const claims = await prisma.claim.findMany({
+    where: { id: { in: targetClaimIds }, deliberationId: { not: null } },
+    select: { id: true, deliberationId: true },
+  });
+
+  // Map claim id -> deliberation id
+  const claimToDelib = new Map<string, string>();
+  for (const c of claims) {
+    if (c.deliberationId) claimToDelib.set(c.id, c.deliberationId);
+  }
+
+  // Collect candidate deliberation ids (excluding the current one) and the
+  // set of shared source ids per deliberation.
+  const delibSharedSources = new Map<string, Set<string>>();
+  for (const cit of sharingCitations) {
+    const delibId = claimToDelib.get(cit.targetId);
+    if (!delibId || delibId === deliberationId) continue;
+    const set = delibSharedSources.get(delibId) ?? new Set<string>();
+    set.add(cit.sourceId);
+    delibSharedSources.set(delibId, set);
+  }
+
+  const candidateIds = Array.from(delibSharedSources.keys());
+  if (candidateIds.length === 0) return [];
+
   const otherDelibs = await prisma.deliberation.findMany({
     where: {
-      id: { not: deliberationId },
-      isPublic: true,
-      citations: { some: {} },
+      id: { in: candidateIds },
+      visibility: "public",
     },
     select: {
       id: true,
       title: true,
-      citations: {
-        select: { sourceId: true },
-      },
     },
     take: 100, // Limit for performance
   });
@@ -85,7 +139,7 @@ export async function findRelatedDeliberations(
     let score = 0;
 
     // Source overlap
-    const delibSourceIds = new Set(delib.citations.map((c) => c.sourceId));
+    const delibSourceIds = delibSharedSources.get(delib.id) ?? new Set<string>();
     const sharedSources = [...currentSourceIds].filter((id) =>
       delibSourceIds.has(id)
     );
@@ -98,19 +152,17 @@ export async function findRelatedDeliberations(
 
     // Topic overlap (only compute if we have topics)
     let sharedTopicsCount = 0;
-    if (currentTopics.size > 0) {
+    if (currentTopics.size > 0 && delibSourceIds.size > 0) {
       const delibSources = await prisma.source.findMany({
         where: { id: { in: Array.from(delibSourceIds) } },
-        select: { topics: true },
+        select: { keywords: true },
       });
 
       const delibTopics = new Set<string>();
       for (const source of delibSources) {
-        const topics = (source.topics as string[]) || [];
-        topics.forEach((t) => {
-          const normalized = t.trim().toLowerCase();
-          if (normalized) delibTopics.add(normalized);
-        });
+        for (const normalized of normalizeTopics(source.keywords)) {
+          delibTopics.add(normalized);
+        }
       }
 
       const sharedTopics = [...currentTopics].filter((t) => delibTopics.has(t));
@@ -127,7 +179,7 @@ export async function findRelatedDeliberations(
       scores.push({
         id: delib.id,
         type: "deliberation",
-        title: delib.title,
+        title: delib.title ?? "",
         score,
         reasons,
         metadata: {
@@ -145,100 +197,20 @@ export async function findRelatedDeliberations(
 }
 
 /**
- * Find stacks related to a deliberation
- * based on shared sources
+ * Find stacks related to a deliberation based on shared sources.
+ *
+ * NOTE: The current data model does not link StackItem rows to Source rows
+ * (StackItem references LibraryPost blocks or embedded stacks, neither of
+ * which carries a Source foreign key). There is therefore no schema-supported
+ * path from a deliberation's cited sources to stacks, so this returns an empty
+ * result set. The signature is preserved for callers; restore the body once a
+ * Source <-> Stack linkage exists in the schema.
  */
 export async function findRelatedStacks(
-  deliberationId: string,
-  limit: number = 10
+  _deliberationId: string,
+  _limit: number = 10
 ): Promise<SimilarityScore[]> {
-  // Get current deliberation's sources
-  const current = await prisma.deliberation.findUnique({
-    where: { id: deliberationId },
-    include: {
-      citations: {
-        select: { sourceId: true },
-      },
-    },
-  });
-
-  if (!current) return [];
-
-  const currentSourceIds = new Set(current.citations.map((c) => c.sourceId));
-
-  // If no sources, can't find related stacks
-  if (currentSourceIds.size === 0) return [];
-
-  // Find stack items with overlapping sources
-  const stackItems = await prisma.stackItem.findMany({
-    where: {
-      sourceId: { in: Array.from(currentSourceIds) },
-      stack: {
-        visibility: { in: ["public", "unlisted"] },
-      },
-    },
-    include: {
-      stack: {
-        select: {
-          id: true,
-          name: true,
-          visibility: true,
-          _count: { select: { items: true } },
-        },
-      },
-    },
-  });
-
-  // Group by stack and count overlaps
-  const stackScores = new Map<
-    string,
-    { stack: typeof stackItems[0]["stack"]; sharedCount: number }
-  >();
-
-  for (const item of stackItems) {
-    const existing = stackScores.get(item.stackId);
-    if (existing) {
-      existing.sharedCount++;
-    } else {
-      stackScores.set(item.stackId, {
-        stack: item.stack,
-        sharedCount: 1,
-      });
-    }
-  }
-
-  // Convert to scores
-  const scores: SimilarityScore[] = [];
-
-  for (const [stackId, data] of stackScores) {
-    const totalItems = data.stack._count.items;
-    const overlapRatio = totalItems > 0 ? data.sharedCount / totalItems : 0;
-    const score = data.sharedCount * 10 + overlapRatio * 20;
-
-    const reasons: string[] = [
-      `${data.sharedCount} shared source${data.sharedCount > 1 ? "s" : ""}`,
-    ];
-    
-    if (overlapRatio >= 0.5) {
-      reasons.push(`${Math.round(overlapRatio * 100)}% overlap`);
-    }
-
-    scores.push({
-      id: stackId,
-      type: "stack",
-      title: data.stack.name,
-      score,
-      reasons,
-      metadata: {
-        sharedSources: data.sharedCount,
-        overlapRatio,
-      },
-    });
-  }
-
-  return scores
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  return [];
 }
 
 /**
@@ -253,26 +225,49 @@ export async function findRelatedSources(
     where: { id: sourceId },
     select: {
       id: true,
-      topics: true,
+      keywords: true,
       citations: {
-        select: { deliberationId: true },
+        select: { id: true, targetType: true, targetId: true },
       },
     },
   });
 
   if (!source) return [];
 
-  const sourceTopics = new Set<string>(
-    ((source.topics as string[]) || []).map((t) => t.trim().toLowerCase()).filter(Boolean)
-  );
-  const sourceDelibIds = new Set(
-    source.citations.map((c) => c.deliberationId).filter((id): id is string => id !== null)
-  );
+  const sourceTopics = new Set<string>(normalizeTopics(source.keywords));
 
-  // Find sources in same deliberations
+  // Resolve this source's citations down to the deliberations they belong to
+  // (via their target claims).
+  const claimTargetIds = source.citations
+    .filter((c) => c.targetType === "claim")
+    .map((c) => c.targetId);
+
+  const sourceDelibIds = new Set<string>();
+  if (claimTargetIds.length > 0) {
+    const claims = await prisma.claim.findMany({
+      where: { id: { in: claimTargetIds }, deliberationId: { not: null } },
+      select: { deliberationId: true },
+    });
+    for (const c of claims) {
+      if (c.deliberationId) sourceDelibIds.add(c.deliberationId);
+    }
+  }
+
+  if (sourceDelibIds.size === 0) return [];
+
+  // Find the claims belonging to those deliberations, then the citations that
+  // target those claims (excluding this source) to discover co-cited sources.
+  const coDelibClaims = await prisma.claim.findMany({
+    where: { deliberationId: { in: Array.from(sourceDelibIds) } },
+    select: { id: true },
+  });
+  const coClaimIds = coDelibClaims.map((c) => c.id);
+  if (coClaimIds.length === 0) return [];
+
   const coOccurringCitations = await prisma.citation.findMany({
     where: {
-      deliberationId: { in: Array.from(sourceDelibIds) },
+      targetType: "claim",
+      targetId: { in: coClaimIds },
       sourceId: { not: sourceId },
     },
     select: {
@@ -281,14 +276,19 @@ export async function findRelatedSources(
         select: {
           id: true,
           title: true,
-          topics: true,
+          keywords: true,
         },
       },
     },
   });
 
   // Score each related source
-  const scoreMap = new Map<string, { source: any; coOccur: number; topicOverlap: number }>();
+  type RelatedSourceAgg = {
+    source: { id: string; title: string | null; keywords: string[] };
+    coOccur: number;
+    topicOverlap: number;
+  };
+  const scoreMap = new Map<string, RelatedSourceAgg>();
 
   for (const citation of coOccurringCitations) {
     if (!citation.source) continue;
@@ -297,11 +297,9 @@ export async function findRelatedSources(
     if (existing) {
       existing.coOccur++;
     } else {
-      const relatedTopics = new Set<string>(
-        ((citation.source.topics as string[]) || []).map((t) => t.trim().toLowerCase()).filter(Boolean)
-      );
+      const relatedTopics = new Set<string>(normalizeTopics(citation.source.keywords));
       const sharedTopics = [...sourceTopics].filter((t) => relatedTopics.has(t));
-      
+
       scoreMap.set(citation.sourceId, {
         source: citation.source,
         coOccur: 1,
@@ -328,7 +326,7 @@ export async function findRelatedSources(
       scores.push({
         id,
         type: "deliberation", // Reusing type for sources
-        title: data.source.title,
+        title: data.source.title ?? "",
         score,
         reasons,
       });

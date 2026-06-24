@@ -9,32 +9,33 @@ export async function POST(_req: NextRequest) {
 
   // idempotent-ish: reuse by text match
   const [u1, u2] = await Promise.all([
-    prisma.user.upsert({ where:{ email:'proponent@example.test' }, update:{}, create:{ email:'proponent@example.test', name:'Proponent' }}),
-    prisma.user.upsert({ where:{ email:'opponent@example.test' }, update:{}, create:{ email:'opponent@example.test', name:'Opponent' }}),
+    prisma.user.upsert({ where:{ auth_id:'proponent@example.test' }, update:{}, create:{ auth_id:'proponent@example.test', username:'proponent', name:'Proponent' }}),
+    prisma.user.upsert({ where:{ auth_id:'opponent@example.test' }, update:{}, create:{ auth_id:'opponent@example.test', username:'opponent', name:'Opponent' }}),
   ]);
 
   const delib = await prisma.deliberation.create({
-    data: { title: 'Seeded debate', createdById: u1.id, dialogicalPreset: 'SR1c' as any }
+    data: { title: 'Seeded debate', createdById: u1.id.toString(), hostType: 'free', hostId: u1.id.toString() } as any
   });
 
   const [c1, c2, c3] = await prisma.$transaction([
-    prisma.claim.create({ data:{ deliberationId: delib.id, text:'Carbon pricing reduces emissions', createdById: u1.id }}),
-    prisma.claim.create({ data:{ deliberationId: delib.id, text:'Experts in climate science support carbon pricing', createdById: u1.id }}),
-    prisma.claim.create({ data:{ deliberationId: delib.id, text:'Dr Smith is a credible climate expert', createdById: u1.id }}),
+    prisma.claim.create({ data:{ deliberationId: delib.id, text:'Carbon pricing reduces emissions', createdById: u1.id.toString(), moid: `smoke-${delib.id}-c1` }}),
+    prisma.claim.create({ data:{ deliberationId: delib.id, text:'Experts in climate science support carbon pricing', createdById: u1.id.toString(), moid: `smoke-${delib.id}-c2` }}),
+    prisma.claim.create({ data:{ deliberationId: delib.id, text:'Dr Smith is a credible climate expert', createdById: u1.id.toString(), moid: `smoke-${delib.id}-c3` }}),
   ]);
 
   const scheme = await prisma.argumentScheme.create({
     data:{
       key:'expert_opinion', name:'Argument from Expert Opinion',
+      summary:'Argument from Expert Opinion',
       slotHints:{ premises:3, conclusion:1 } as any,
-      cqs:{ create:[ { cqKey:'cq_expert_bias', text:'Is the expert unbiased?', attackType:'UNDERCUTS', targetScope:'inference' } ] }
+      cqs:{ create:[ { cqKey:'cq_expert_bias', text:'Is the expert unbiased?', attackKind:'UNDERCUTS', status:'open', attackType:'UNDERCUTS', targetScope:'inference' } ] }
     }
   });
 
   const arg = await prisma.argument.create({
     data:{
       deliberationId: delib.id,
-      authorId: u1.id,
+      authorId: u1.id.toString(),
       conclusionClaimId: c1.id,
       schemeId: scheme.id,
       text: 'Seed: expert opinion for carbon pricing',
@@ -56,8 +57,8 @@ export async function POST(_req: NextRequest) {
     kind: 'WHY',
     type: 'WHY' as any,
     illocution: 'Question' as any,
-    actorId: u2.id,
-    authorId: u2.id,
+    actorId: u2.id.toString(),
+    authorId: u2.id.toString(),
     targetType: 'argument',
     targetId: arg.id,
     signature: ['WHY','argument',arg.id,'cq_expert_bias'].join(':'),
@@ -66,15 +67,15 @@ export async function POST(_req: NextRequest) {
   });
   const why = whySeam.move;
 
-  await prisma.cQStatus.create({ data:{ argumentId: arg.id, cqKey:'cq_expert_bias', status:'open' } }).catch(()=>null);
+  await prisma.cQStatus.create({ data:{ targetType:'argument', targetId: arg.id, argumentId: arg.id, schemeKey:'expert_opinion', cqKey:'cq_expert_bias', status:'open', createdById: u1.id.toString() } }).catch(()=>null);
 
   await createDialogueMove({
     deliberationId: delib.id,
     kind: 'GROUNDS',
     type: 'GROUNDS' as any,
     illocution: 'Argue' as any,
-    actorId: u1.id,
-    authorId: u1.id,
+    actorId: u1.id.toString(),
+    authorId: u1.id.toString(),
     targetType: 'argument',
     targetId: arg.id,
     replyToMoveId: why.id,

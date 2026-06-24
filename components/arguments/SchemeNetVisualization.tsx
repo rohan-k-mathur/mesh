@@ -47,7 +47,7 @@ export default function SchemeNetVisualization({ argumentId, className = "" }: P
 
   const { data, error, isLoading } = useSWR<{ net: SchemeNet | null }>(
     `/api/arguments/${argumentId}/scheme-net`,
-    (url) => fetch(url).then((r) => r.json())
+    (url: string) => fetch(url).then((r) => r.json())
   );
 
   const { data: cqData } = useSWR<{
@@ -60,7 +60,7 @@ export default function SchemeNetVisualization({ argumentId, className = "" }: P
     }>;
   }>(
     showCQs && data?.net ? `/api/arguments/${argumentId}/scheme-net/cqs` : null,
-    (url) => fetch(url).then((r) => r.json())
+    (url: string) => fetch(url).then((r) => r.json())
   );
 
   if (isLoading) {

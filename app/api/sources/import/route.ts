@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
         fingerprint,
         createdById: String(userId),
         // Mark enrichment as done since we got data from academic DB
-        enrichmentStatus: "complete",
+        enrichmentStatus: "enriched",
         enrichedAt: new Date(),
         enrichmentSource: searchResult.source,
       },
@@ -164,19 +164,19 @@ export async function POST(req: NextRequest) {
       // Find the stack and create a library post
       const stack = await prisma.stack.findUnique({
         where: { id: body.stackId },
-        include: { libraryPosts: { orderBy: { order: "desc" }, take: 1 } },
+        include: { posts: { orderBy: { created_at: "desc" }, take: 1 } },
       });
 
       if (stack) {
-        const maxOrder = stack.libraryPosts[0]?.order ?? 0;
-
         await prisma.libraryPost.create({
+          // NOTE: LibraryPost has no source linkage in the current schema
+          // (no sourceId/order/createdById columns). We associate it with the
+          // stack and uploader; source linkage tracked via title for now.
           data: {
-            stackId: body.stackId,
-            sourceId: source.id,
-            order: maxOrder + 1,
-            createdById: String(userId),
-          },
+            stack_id: body.stackId,
+            uploader_id: BigInt(userId),
+            title: source.title ?? undefined,
+          } as any,
         });
       }
     }
@@ -277,7 +277,7 @@ export async function PUT(req: NextRequest) {
             url: sourceData.url,
             fingerprint,
             createdById: String(userId),
-            enrichmentStatus: "complete",
+            enrichmentStatus: "enriched",
             enrichedAt: new Date(),
             enrichmentSource: searchResult.source,
           },
@@ -287,18 +287,19 @@ export async function PUT(req: NextRequest) {
         if (body.stackId) {
           const stack = await prisma.stack.findUnique({
             where: { id: body.stackId },
-            include: { libraryPosts: { orderBy: { order: "desc" }, take: 1 } },
+            include: { posts: { orderBy: { created_at: "desc" }, take: 1 } },
           });
 
           if (stack) {
-            const maxOrder = stack.libraryPosts[0]?.order ?? 0;
             await prisma.libraryPost.create({
+              // NOTE: LibraryPost has no source linkage in the current schema
+              // (no sourceId/order/createdById columns). We associate it with
+              // the stack and uploader; source linkage tracked via title.
               data: {
-                stackId: body.stackId,
-                sourceId: source.id,
-                order: maxOrder + results.imported + 1,
-                createdById: String(userId),
-              },
+                stack_id: body.stackId,
+                uploader_id: BigInt(userId),
+                title: source.title ?? undefined,
+              } as any,
             });
           }
         }

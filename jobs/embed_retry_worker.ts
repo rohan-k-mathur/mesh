@@ -4,10 +4,11 @@ import { getRedis } from '@/lib/redis';
 const GROUP = 'retry_group';
 const BATCH = 50;
 const MAX_RETRY = 3;
-const EMBED_URL = process.env.EMBEDDING_URL;
+const EMBED_URL: string | undefined = process.env.EMBEDDING_URL;
 if (!EMBED_URL) {
   throw new Error('[embed_retry_worker] EMBEDDING_URL env var is required');
 }
+const EMBED_URL_RESOLVED: string = EMBED_URL;
 
 export async function runOnce() {
   const redis = getRedis();
@@ -27,7 +28,7 @@ if (redis) {
     ack.push(id);
     metas[id] = obj;
   }
-  const resp = await fetch(EMBED_URL, {
+  const resp = await fetch(EMBED_URL_RESOLVED, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ids }),

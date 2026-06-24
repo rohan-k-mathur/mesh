@@ -256,7 +256,7 @@ export async function getCommitmentHistory(
   let currentId: string | null = commitmentId;
 
   while (currentId) {
-    const commitment = await prisma.reviewerCommitment.findUnique({
+    const commitment: any = await prisma.reviewerCommitment.findUnique({
       where: { id: currentId },
       include: {
         assignment: {

@@ -1,11 +1,22 @@
-import { Extension } from '@tiptap/core';
-import { NodeSelection, TextSelection } from 'prosemirror-state';
+import { Extension, type CommandProps } from '@tiptap/core';
+import { NodeSelection, TextSelection, type EditorState } from 'prosemirror-state';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    moveBlock: {
+      /** Move the current block up within its parent. */
+      moveBlockUp: () => ReturnType;
+      /** Move the current block down within its parent. */
+      moveBlockDown: () => ReturnType;
+    };
+  }
+}
 
 export const MoveBlock = Extension.create({
   name: 'moveBlock',
 
   addCommands() {
-    const blockRange = (state: any) => {
+    const blockRange = (state: EditorState) => {
       const { $from } = state.selection as TextSelection;
       const depth = $from.depth;
       const pos = $from.before(depth);
@@ -15,7 +26,7 @@ export const MoveBlock = Extension.create({
     return {
       moveBlockUp:
         () =>
-        ({ state, dispatch }) => {
+        ({ state, dispatch }: CommandProps) => {
           const { pos, node, depth } = blockRange(state);
           if (!node) return false;
           const $pos = state.doc.resolve(pos);
@@ -23,12 +34,12 @@ export const MoveBlock = Extension.create({
           if (index === 0) return false; // already top
           const prevPos = $pos.before($pos.depth) - node.nodeSize - 1;
           const tr = state.tr.delete(pos, pos + node.nodeSize).insert(prevPos, node);
-          dispatch(tr.setSelection(NodeSelection.create(tr.doc, prevPos)));
+          dispatch?.(tr.setSelection(NodeSelection.create(tr.doc, prevPos)));
           return true;
         },
       moveBlockDown:
         () =>
-        ({ state, dispatch }) => {
+        ({ state, dispatch }: CommandProps) => {
           const { pos, node } = blockRange(state);
           if (!node) return false;
           const after = pos + node.nodeSize;
@@ -38,7 +49,7 @@ export const MoveBlock = Extension.create({
           if (index >= parent.childCount) return false; // already last
           const insertPos = $after.after($after.depth);
           const tr = state.tr.delete(pos, pos + node.nodeSize).insert(insertPos, node);
-          dispatch(tr.setSelection(NodeSelection.create(tr.doc, insertPos)));
+          dispatch?.(tr.setSelection(NodeSelection.create(tr.doc, insertPos)));
           return true;
         },
     };

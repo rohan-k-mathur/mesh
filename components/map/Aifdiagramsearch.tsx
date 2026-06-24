@@ -40,11 +40,12 @@ export function searchGraph(
     }
     
     // Search in text (for I-nodes)
-    if (node.text?.toLowerCase().includes(lowerQuery)) {
+    const nodeText = (node as AifNode & { text?: string | null }).text;
+    if (nodeText?.toLowerCase().includes(lowerQuery)) {
       results.push({
         node,
         matchType: 'text',
-        excerpt: getExcerpt(node.text, lowerQuery),
+        excerpt: getExcerpt(nodeText, lowerQuery),
       });
       continue;
     }

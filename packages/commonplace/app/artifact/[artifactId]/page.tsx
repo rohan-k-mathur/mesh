@@ -1,8 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { ArtifactBodySchema, type ArtifactBlock } from "@cp/lib/artifact-types";
+import { prisma } from "../../../lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
+import {
+  ArtifactBodySchema,
+  EMPTY_BODY,
+  type ArtifactBlock,
+} from "../../../lib/artifact-types";
 import PrintButton from "../_components/PrintButton";
 
 /**
@@ -27,7 +31,7 @@ export default async function ArtifactReadPage({
   if (!artifact) notFound();
 
   const parsed = ArtifactBodySchema.safeParse(artifact.body);
-  const body = parsed.success ? parsed.data : { blocks: [] };
+  const body = parsed.success ? parsed.data : EMPTY_BODY;
 
   const entryIds = body.blocks
     .filter(
@@ -48,7 +52,10 @@ export default async function ArtifactReadPage({
         },
       })
     : [];
-  const entryMap = new Map(entries.map((e) => [e.id, e]));
+  const resolvedEntries = entries as ResolvedEntry[];
+  const entryMap = new Map(
+    resolvedEntries.map((e: ResolvedEntry) => [e.id, e] as const),
+  );
 
   return (
     <article className="artifact space-y-8">

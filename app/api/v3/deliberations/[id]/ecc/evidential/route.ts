@@ -29,7 +29,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED = new Set<Mode>(["min", "product", "ds"]);
+/** Route-facing mode (closed-enum ECC plan §4 row 5). `ds` maps to the
+ *  adapter's `logodds` (weight-of-evidence / Dempster-Shafer-style) semiring. */
+type RouteMode = "min" | "product" | "ds";
+const ALLOWED = new Set<RouteMode>(["min", "product", "ds"]);
+const toAdapterMode = (m: RouteMode): Mode => (m === "ds" ? "logodds" : m);
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
 export async function GET(
@@ -38,7 +42,7 @@ export async function GET(
 ) {
   const { id: deliberationId } = await ctx.params;
   const url = new URL(req.url);
-  const mode = (url.searchParams.get("mode") ?? "product").toLowerCase() as Mode;
+  const mode = (url.searchParams.get("mode") ?? "product").toLowerCase() as RouteMode;
   const imports = (url.searchParams.get("imports") ?? "off").toLowerCase() as
     | "off" | "materialized" | "virtual" | "all";
   if (!ALLOWED.has(mode)) {
@@ -101,7 +105,7 @@ export async function GET(
     new Set(localSupports.map((s) => s.argumentId).filter((id) => !id.startsWith("virt:"))),
   );
 
-  const [edges, derivAssumptions, uses, negMaps] = await Promise.all([
+  const [edges, derivAssumptions, uses, _negMaps] = await Promise.all([
     prisma.argumentEdge.findMany({
       where: { deliberationId, type: "support" as any, toArgumentId: { in: realArgIds } },
       select: { fromArgumentId: true, toArgumentId: true },
@@ -152,12 +156,14 @@ export async function GET(
     })),
     assumptionStatus,
     legacyAssumptionsByArg,
-    negationMap: negMaps,
+    // NOTE: `negMaps` (DS negation pairs) is fetched for the `ds` branch but the
+    // current `EvidentialInputs`/`evaluateEvidentialTyped` adapter folds DS
+    // semantics into its `logodds` semiring and does not accept a negation map.
     defaultArgumentConfidence: DEFAULT_ARGUMENT_CONFIDENCE,
     defaultPremiseBase: DEFAULT_PREMISE_BASE,
   };
 
-  const typed = evaluateEvidentialTyped(inputs, mode);
+  const typed = evaluateEvidentialTyped(inputs, toAdapterMode(mode));
 
   // Cross-room band (Sprint C3/C4 parity).
   const supportBand: Record<string, { local: number; imported: number; total: number }> = {};

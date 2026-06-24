@@ -16,7 +16,7 @@ export interface CQPermissionContext {
 export async function isRoomModerator(userId: string, roomId: string): Promise<boolean> {
   const role = await prisma.userRole.findFirst({
     where: {
-      userId: userId,
+      userId: BigInt(userId),
       role: { in: ["moderator", "admin"] },
     },
   });

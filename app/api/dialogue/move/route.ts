@@ -280,7 +280,7 @@ if (!userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 })
   const actorId = String(userId ?? 'unknown');
 
     // ---- Protocol validator (R1…R7) ----
-    const legal = await validateMove({ deliberationId, actorId, kind, targetType, targetId, replyToMoveId, replyTarget, payload });
+    const legal = await validateMove({ deliberationId, actorId, kind: kind as MoveKind, targetType, targetId, replyToMoveId, replyTarget, payload });
     if (!('ok' in legal) || !legal.ok) {
       return NextResponse.json({ ok:false, reasonCodes: legal.reasons }, { status: 409 });
     }
@@ -503,18 +503,18 @@ if (prop && kind === 'ASSERT' && !wasConcede && !wasAccept) {
   try {
     // Get existing commitments for this participant
     const storesResult = await getCommitmentStores(deliberationId);
-    if (storesResult.ok) {
+    if (storesResult && 'data' in storesResult && Array.isArray(storesResult.data)) {
       const participantStore = storesResult.data.find(s => s.participantId === actorId);
       if (participantStore) {
         // Convert to simple commitment records
         const existingCommitments = participantStore.commitments
-          .filter(c => !c.retractedAt) // Only active commitments
+          .filter(c => c.isActive) // Only active commitments
           .map(c => ({
             claimId: c.claimId,
             claimText: c.claimText,
             moveId: c.moveId,
             moveKind: c.moveKind,
-            timestamp: c.timestamp,
+            timestamp: new Date(c.timestamp),
             isActive: true,
           }));
         
@@ -662,7 +662,7 @@ if (prop) {
   }
 
   try {
-    await onDialogueMove({ deliberationId, targetType, targetId, kind, payload });
+    await onDialogueMove({ deliberationId, targetType, targetId, kind: kind as MoveKind, payload });
     emitBus('issues:changed', { deliberationId });
   } catch {}
 
