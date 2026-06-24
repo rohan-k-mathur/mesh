@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * AIF Neighborhood API Route - Schema Corrected
  * 

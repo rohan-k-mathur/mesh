@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Conflict resolution API
  * POST: Apply resolution strategy to conflict

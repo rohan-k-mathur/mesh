@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/connective-test/route.ts
 //
 // ⚠️  DEV-ONLY — blocked in production.

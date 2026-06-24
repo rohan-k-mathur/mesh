@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { placeTrade } from "@/packages/server/src/prediction/service";
 import { getUserFromCookies } from "@/lib/serverutils";

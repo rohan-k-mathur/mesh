@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/ludics/step/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { stepInteraction } from 'packages/ludics-engine/stepper';

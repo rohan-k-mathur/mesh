@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/theory-works/[id]/checklist/route.ts
 // ✅ CORRECTED VERSION - Uses proper lowercase field names from updated schema
 

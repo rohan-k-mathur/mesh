@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/ca/[id]/ratify/route.ts
 //
 // Attack-ratification sign-off (DEV_SPEC §5.1/§5.2). POST = sign off; DELETE =

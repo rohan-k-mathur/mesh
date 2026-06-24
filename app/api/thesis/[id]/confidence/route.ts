@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/confidence/route.ts
 //
 // Living Thesis — Phase 4.2: confidence audit endpoint.

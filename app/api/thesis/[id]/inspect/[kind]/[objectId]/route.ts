@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/inspect/[kind]/[objectId]/route.ts
 //
 // Living Thesis — Phase 2.3: per-object inspection detail.

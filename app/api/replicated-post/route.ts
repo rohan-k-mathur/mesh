@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { fetchPostById } from "@/lib/actions/thread.actions";
 import { fetchRealtimePostById } from "@/lib/actions/realtimepost.actions";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route to get the status of branches in a dialogue (deliberation)
 // app/api/dialogues/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';

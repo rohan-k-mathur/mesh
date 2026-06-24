@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Claim Timeline API
  * GET /api/claims/[id]/timeline - Get claim timeline events

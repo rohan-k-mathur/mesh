@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/deliberations/[id]/evidence/route.ts
 // Phase 2.4: Deliberation-level evidence browsing with filtering
 

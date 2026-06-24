@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Public Sources API - Get Single Source
  *

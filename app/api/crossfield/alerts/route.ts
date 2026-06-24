@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 5.1: Cross-field alerts API
  * GET — list alerts or get unread count (authenticated)

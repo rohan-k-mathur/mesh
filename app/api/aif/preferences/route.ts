@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/aif/preferences/route.ts
 //
 // DEPRECATED (PA_NODE_PREFERENCE_INTEGRATION_ROADMAP Phase 0.2, decision Q3).

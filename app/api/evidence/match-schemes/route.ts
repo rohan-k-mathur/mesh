@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Evidence-to-Scheme Matching API
  * 

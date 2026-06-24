@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/aif/import/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { importAifJSONLD } from "@/packages/aif-core/src/import";

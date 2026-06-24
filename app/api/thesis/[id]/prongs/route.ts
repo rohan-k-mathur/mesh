@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/prongs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

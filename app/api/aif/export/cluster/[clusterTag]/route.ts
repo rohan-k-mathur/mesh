@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * AIF Cluster Export API Route
  * GET /api/aif/export/cluster/:clusterTag

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/ca/[id]/retract/route.ts
 //
 // Author retract → WITHDRAWN (DEV_SPEC §5.3). Terminal, author-only. A WITHDRAWN

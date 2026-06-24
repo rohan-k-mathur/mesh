@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.3: Cross-Room Search API
  * GET /api/cross-room-search - Search claims across all deliberations

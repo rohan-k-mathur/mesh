@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 2: Plays(V) Operation API
  * POST /api/ludics/dds/strategies/plays

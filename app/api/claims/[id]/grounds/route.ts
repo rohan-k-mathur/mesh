@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route to add a ground to a claim
 //app/api/claims/[id]/grounds/route.ts
 import { NextRequest, NextResponse } from 'next/server';

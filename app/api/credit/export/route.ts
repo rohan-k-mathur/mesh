@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * CV export endpoint
  * POST - generate a new export

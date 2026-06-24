@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { computeAffinityClusters } from '@/lib/topology/affinityClusters';
 import { z } from 'zod';

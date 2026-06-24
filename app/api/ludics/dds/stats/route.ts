@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Deliberation-wide stats endpoint for DDS Analysis Panel
  * Returns aggregate counts across ALL designs in a deliberation

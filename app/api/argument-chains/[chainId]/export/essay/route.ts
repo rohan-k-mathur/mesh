@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Export argument chain as essay
  * 

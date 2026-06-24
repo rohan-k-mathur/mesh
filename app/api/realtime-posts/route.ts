@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
 import { realtime_post_type } from "@prisma/client";

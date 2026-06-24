@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/focus/route.ts
 //
 // Living Thesis — Phase 6.1: focus resolver.

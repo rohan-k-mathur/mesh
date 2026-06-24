@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/rooms/[id]/export/route.ts
 import { NextResponse } from "next/server";
 import { streamPgDump } from "@/server/export/pgdump";

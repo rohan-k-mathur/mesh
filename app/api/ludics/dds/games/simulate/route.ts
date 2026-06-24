@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Game Simulation API Route
  * 

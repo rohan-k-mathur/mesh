@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/arguments/[id]/dialogue-status/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { computeDialogueState } from "@/lib/dialogue/computeDialogueState";

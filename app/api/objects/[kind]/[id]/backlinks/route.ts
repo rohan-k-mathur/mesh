@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/objects/[kind]/[id]/backlinks/route.ts
 //
 // Living Thesis — Phase 6.3: "used in" backlinks for any object.

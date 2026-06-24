@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/snapshots/[snapshotId]/compare/route.ts
 //
 // Living Thesis — Phase 5.2: snapshot comparison endpoint.

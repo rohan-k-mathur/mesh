@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { serializeBigInt } from "@/lib/utils";
 import { createFeedPost, fetchFeedPosts } from "@/lib/actions/feed.actions";

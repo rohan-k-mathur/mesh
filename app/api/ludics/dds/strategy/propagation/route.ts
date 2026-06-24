@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Strategy Propagation API - Alias Route
  * GET/POST /api/ludics/dds/strategy/propagation

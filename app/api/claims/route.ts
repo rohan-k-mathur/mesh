@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route to create or promote a claim
 //app/api/claims/route.ts
 import { NextResponse } from 'next/server';

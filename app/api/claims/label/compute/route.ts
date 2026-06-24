@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/claims/label/compute/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';

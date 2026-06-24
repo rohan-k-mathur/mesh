@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 5.1: Single alert actions API
  * PATCH — mark alert as read/actioned/dismissed (authenticated)

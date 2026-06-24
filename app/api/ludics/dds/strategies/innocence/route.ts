@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 2: Innocence Checking API
  * POST /api/ludics/dds/strategies/innocence

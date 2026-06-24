@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Ludic Design by ID API
  * GET /api/ludics/designs/[id]

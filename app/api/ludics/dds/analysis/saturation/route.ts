@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 5: Saturation Analysis API
  * POST /api/ludics/dds/analysis/saturation

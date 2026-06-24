@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/arguments/[id]/scheme-net/steps/route.ts
 /**
  * Phase 5B: Individual Scheme Net Step Management

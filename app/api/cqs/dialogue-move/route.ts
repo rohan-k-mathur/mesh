@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * API endpoint for creating DialogueMoves from Critical Questions with ASPIC+ integration
  * 

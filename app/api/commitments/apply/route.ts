@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { zCommitmentsApply } from 'packages/ludics-rest/zod';
 import { applyToCS, interactCE } from 'packages/ludics-engine/commitments';

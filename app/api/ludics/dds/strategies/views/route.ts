@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Phase 2: Views(S) Operation API
  * GET/POST /api/ludics/dds/strategies/views

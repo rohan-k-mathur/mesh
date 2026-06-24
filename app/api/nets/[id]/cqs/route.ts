@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { NetAwareCQService } from "@/app/server/services/NetAwareCQService";
 import { NetIdentificationService } from "@/app/server/services/NetIdentificationService";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Conflict detection API
  * GET: Detect conflicts in deliberation preferences

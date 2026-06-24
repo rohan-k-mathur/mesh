@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/debug/db/route.ts
 //
 // ⚠️  DEV-ONLY — blocked in production. Returns 404 unless NODE_ENV=development.

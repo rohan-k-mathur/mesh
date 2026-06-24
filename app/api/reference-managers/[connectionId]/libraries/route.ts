@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Reference Manager Libraries API
  *

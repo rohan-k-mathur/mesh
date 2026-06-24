@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Claim Versions API
  * GET /api/claims/[id]/versions - Get all versions

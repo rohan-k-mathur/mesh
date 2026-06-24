@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.3: Claim Cross-Room Status API
  * GET /api/claims/:claimId/cross-room-status

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/rooms/import/route.ts
 import { NextResponse } from "next/server";
 import { provisionShard } from "@/server/shards/provision";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 //api/deliberations/upsert/route.ts
 import { prisma } from '@/lib/prismaclient';
 import { asUserIdString } from '@/lib/auth/normalize';

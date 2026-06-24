@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 5.1: Concepts API
  * GET  — search concepts or list by field

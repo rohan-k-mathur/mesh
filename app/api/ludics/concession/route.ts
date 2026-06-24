@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { zConcession } from 'packages/ludics-rest/zod';
 import { concede } from 'packages/ludics-engine/concession';

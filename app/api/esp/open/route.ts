@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { espSessions } from "@/lib/espSessionStore";
 import { supabase } from "@/lib/supabaseclient";

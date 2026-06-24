@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/citations/bulk/route.ts
 // Phase 2.4: Bulk operations API for citations
 

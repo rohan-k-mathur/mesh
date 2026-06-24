@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/feed/replicate/route.ts
 import { NextResponse } from "next/server";
 import { replicateFeedPost } from "@/lib/actions/feed.actions";

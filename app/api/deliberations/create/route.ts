@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/deliberations/create/route.ts
 //
 // From-scratch deliberation creation (docs/DELIBERATION_CREATION_DEV_SPEC.md §3.1).

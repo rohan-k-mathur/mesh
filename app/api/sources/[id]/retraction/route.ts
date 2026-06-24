@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/[id]/retraction/route.ts
 // Phase 3.1: Retraction Check API
 // Check a source for retraction/correction status

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/thesis/[id]/attacks/route.ts
 //
 // Living Thesis — Phase 3.2: attack-register endpoint.

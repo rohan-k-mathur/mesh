@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { computeTopicClusters } from '@/lib/topology/topicClusters';
 import { z } from 'zod';

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.4.1: Knowledge Graph Rebuild Cron
  * 

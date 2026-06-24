@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Defense Outcome API
  * PATCH /api/claims/[id]/challenges/[challengeId]/defenses/[defenseId] - Update defense outcome

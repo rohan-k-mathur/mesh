@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // API route for claim citations
 // app/api/claims/[id]/citations/route.ts
 import { NextRequest, NextResponse } from 'next/server';

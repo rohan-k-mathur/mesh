@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/aspic/transposition/generate/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * ORCID connection endpoints
  * GET - check connection status or get auth URL

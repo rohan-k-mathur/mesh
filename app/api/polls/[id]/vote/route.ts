@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { upsertVote } from "@/lib/actions/poll.actions";
 

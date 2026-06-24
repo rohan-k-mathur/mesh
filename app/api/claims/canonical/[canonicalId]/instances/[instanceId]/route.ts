@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * Phase 3.1: Unlink Claim Instance API
  * DELETE /api/claims/canonical/[canonicalId]/instances/[instanceId] - Unlink claim from canonical

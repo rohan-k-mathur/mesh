@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { zJudgeForce } from 'packages/ludics-rest/zod';
 import { forceConcession, closeBranch } from 'packages/ludics-engine/judge';

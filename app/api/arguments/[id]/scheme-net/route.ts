@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/arguments/[id]/scheme-net/route.ts
 /**
  * Phase 5B: Scheme Net CRUD Endpoints

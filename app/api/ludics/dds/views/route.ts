@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * DDS Views API - Deliberation-Wide View Computation
  * GET/POST /api/ludics/dds/views

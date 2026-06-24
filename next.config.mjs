@@ -93,6 +93,11 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // ESLint is run separately (CI / `npm run lint`); skip it during the Vercel
+  // build to cut deploy time. It only emits warnings here anyway.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   };
   
 

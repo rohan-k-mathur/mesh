@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/glossary/terms/[termId]/history/route.ts
 
 import { NextRequest, NextResponse } from "next/server";

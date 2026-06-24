@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/api/sources/[id]/verify/route.ts
 // Phase 3.1: Source Verification API
 
