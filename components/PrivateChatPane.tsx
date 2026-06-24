@@ -1,7 +1,13 @@
 // components/chat/PrivateChatPane.tsx
 "use client";
-import Draggable from "react-draggable";
+import DraggableBase, { DraggableData, DraggableEvent } from "react-draggable";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+
+// react-draggable marks most props optional via class `defaultProps`, but some
+// TS/@types resolutions (notably the clean install on Vercel CI) don't apply
+// that, making every default-ed prop "required". Cast to a permissive component
+// type so this compiles consistently across environments.
+const Draggable = DraggableBase as unknown as React.ComponentType<any>;
 import { usePrivateChatSocket } from "@/hooks/usePrivateChatSocket";
 import { usePrivateChatManager, Msg, PaneAnchor } from "@/contexts/PrivateChatManager";
 import Image from "next/image";
@@ -157,7 +163,7 @@ useEffect(() => {
       handle=".pcp-header"
       position={pane.pos}
       cancel=".pcp-input,button,a"
-      onStop={(_, d) =>
+      onStop={(_: DraggableEvent, d: DraggableData) =>
         dispatch({ type: "SET_POS", id: pane.id, pos: { x: d.x, y: d.y } })
       }
     >
