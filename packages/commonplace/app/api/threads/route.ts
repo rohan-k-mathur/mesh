@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "@/packages/commonplace/lib/prisma";
+import { getCurrentAuthor } from "@/packages/commonplace/lib/auth";
 
 const CreateThreadSchema = z.object({
   name: z.string().trim().min(1).max(200).nullish(),

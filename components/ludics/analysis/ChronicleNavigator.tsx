@@ -2,8 +2,17 @@
 
 import * as React from "react";
 import useSWR from "swr";
-import type { Chronicle } from "@/packages/ludics-core/dds/chronicles";
 import type { ChronicleViewMode } from "./types";
+
+// API-returned chronicle shape rendered by this navigator (distinct from the
+// proof-theoretic dds Chronicle type).
+type Chronicle = {
+  id?: string;
+  designId?: string;
+  sequence?: any[];
+  isMaximal?: boolean;
+  length?: number;
+};
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 

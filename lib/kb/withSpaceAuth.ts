@@ -145,7 +145,7 @@ const RANK: Record<Need, number> = { reader: 1, editor: 2, owner: 3 };
 export async function currentUserOr401() {
   const user = await getUserFromCookies();
   if (!user) throw NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  return { userId: String(user.userId ?? user.id) };
+  return { userId: String(user.userId ?? (user as { id?: unknown }).id) };
 }
 
 export async function requireKbRole(

@@ -62,7 +62,6 @@ const TimerModal = ({
         <button
           onClick={async () => {
             await updatePostExpiration({
-              postId,
               realtimePostId,
               feedPostId,
               duration,

@@ -90,7 +90,7 @@ export default function WorkStatusRail({
 
   async function postMove(kind: 'WHY'|'GROUNDS') {
     const target =
-      data?.dialogue?.legalMoves?.find(m => m.kind === kind && m.targetId)?.targetId ??
+      data?.dialogue?.legalMoves?.find((m: any) => m.kind === kind && m.targetId)?.targetId ??
       data?.dialogue?.sampleTargetId ??
       data?.claims?.ids?.[0];
 
@@ -231,7 +231,7 @@ export default function WorkStatusRail({
                 </button>
                 {showDetails && (
                   <div className="mt-2 space-y-2 px-3 py-2 bg-neutral-50 rounded-md">
-                    {data?.claims?.cq?.openByScheme?.slice(0, 3).map(s => (
+                    {data?.claims?.cq?.openByScheme?.slice(0, 3).map((s: any) => (
                       <div key={s.schemeKey} className="flex justify-between text-xs">
                         <span className="font-medium text-neutral-700">{s.schemeKey}:</span>
                         <span className="text-neutral-600">
@@ -309,7 +309,7 @@ export default function WorkStatusRail({
           {/* Legal Moves - Only show in coupled mode */}
           {!decoupled && data?.dialogue?.legalMoves?.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {data.dialogue.legalMoves.slice(0, 6).map((m, i) => (
+              {data.dialogue.legalMoves.slice(0, 6).map((m: any, i: number) => (
                 <span
                   key={i}
                   className={`

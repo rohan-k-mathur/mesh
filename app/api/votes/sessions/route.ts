@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
-import { bus } from '@/lib/server/bus';
+import { emitBus } from '@/lib/server/bus';
 
 const Create = z.object({
   deliberationId: z.string().min(1),
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  bus.emitEvent('votes:changed', { deliberationId: s.deliberationId, sessionId: s.id });
+  emitBus('votes:changed', { deliberationId: s.deliberationId, sessionId: s.id });
   return NextResponse.json({ ok: true, session: s });
 }
 

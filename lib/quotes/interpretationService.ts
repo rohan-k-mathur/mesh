@@ -12,9 +12,62 @@ import {
   CreateInterpretationOptions,
   InterpretationWithVotes,
   InterpretationSummary,
+  UserSummary,
   VoteResult,
   FrameworkStats,
 } from "./types";
+
+// ─────────────────────────────────────────────────────────
+// Author resolution helpers
+//
+// `QuoteInterpretation` stores `authorId` as a String but has no Prisma
+// relation to `User` (whose `id` is a BigInt). We resolve authors with a
+// separate batched lookup and expose them as `UserSummary`.
+// ─────────────────────────────────────────────────────────
+
+const UNKNOWN_AUTHOR: UserSummary = { id: "", name: "Unknown" };
+
+function toAuthorSummary(
+  authorId: string,
+  authors: Map<string, UserSummary>
+): UserSummary {
+  return authors.get(authorId) ?? { ...UNKNOWN_AUTHOR, id: authorId };
+}
+
+async function fetchAuthors(
+  authorIds: Array<string | null | undefined>
+): Promise<Map<string, UserSummary>> {
+  const map = new Map<string, UserSummary>();
+  const ids = Array.from(
+    new Set(authorIds.filter((id): id is string => !!id))
+  );
+  if (ids.length === 0) return map;
+
+  const bigIntIds: bigint[] = [];
+  for (const id of ids) {
+    try {
+      bigIntIds.push(BigInt(id));
+    } catch {
+      // Non-numeric id; cannot map to a User row.
+    }
+  }
+  if (bigIntIds.length === 0) return map;
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: bigIntIds } },
+    select: { id: true, name: true, image: true },
+  });
+
+  for (const user of users) {
+    map.set(user.id.toString(), {
+      id: user.id.toString(),
+      name: user.name || "Unknown",
+      image: user.image || undefined,
+    });
+  }
+
+  return map;
+}
 
 // ─────────────────────────────────────────────────────────
 // Create Interpretation
@@ -65,23 +118,16 @@ export async function createInterpretation(
       challengesId: options.challengesId,
       authorId: userId,
     },
-    include: {
-      author: {
-        select: { id: true, name: true, image: true },
-      },
-    },
   });
+
+  const authors = await fetchAuthors([interpretation.authorId]);
 
   return {
     id: interpretation.id,
     interpretation: interpretation.interpretation,
     framework: interpretation.framework || undefined,
     methodology: interpretation.methodology || undefined,
-    author: {
-      id: interpretation.author.id,
-      name: interpretation.author.name || "Unknown",
-      image: interpretation.author.image || undefined,
-    },
+    author: toAuthorSummary(interpretation.authorId, authors),
     voteScore: interpretation.voteScore,
     createdAt: interpretation.createdAt,
   };
@@ -101,9 +147,6 @@ export async function getInterpretations(
   const interpretations = await prisma.quoteInterpretation.findMany({
     where: { quoteId },
     include: {
-      author: {
-        select: { id: true, name: true, image: true },
-      },
       votes: userId
         ? {
             where: { userId },
@@ -111,16 +154,10 @@ export async function getInterpretations(
           }
         : false,
       supportedBy: {
-        include: {
-          author: { select: { id: true, name: true, image: true } },
-        },
         orderBy: { voteScore: "desc" },
         take: 10,
       },
       challengedBy: {
-        include: {
-          author: { select: { id: true, name: true, image: true } },
-        },
         orderBy: { voteScore: "desc" },
         take: 10,
       },
@@ -128,28 +165,28 @@ export async function getInterpretations(
     orderBy: { voteScore: "desc" },
   });
 
+  const authorIds = interpretations.flatMap((i) => [
+    i.authorId,
+    ...i.supportedBy.map((s) => s.authorId),
+    ...i.challengedBy.map((c) => c.authorId),
+  ]);
+  const authors = await fetchAuthors(authorIds);
+
   return interpretations.map((i) => ({
     id: i.id,
     interpretation: i.interpretation,
     framework: i.framework || undefined,
     methodology: i.methodology || undefined,
-    author: {
-      id: i.author.id,
-      name: i.author.name || "Unknown",
-      image: i.author.image || undefined,
-    },
+    author: toAuthorSummary(i.authorId, authors),
     voteScore: i.voteScore,
-    userVote: userId && Array.isArray(i.votes) && i.votes[0]?.vote,
+    userVote:
+      (userId && Array.isArray(i.votes) && i.votes[0]?.vote) || undefined,
     supportedBy: i.supportedBy.map((s) => ({
       id: s.id,
       interpretation: s.interpretation,
       framework: s.framework || undefined,
       methodology: s.methodology || undefined,
-      author: {
-        id: s.author.id,
-        name: s.author.name || "Unknown",
-        image: s.author.image || undefined,
-      },
+      author: toAuthorSummary(s.authorId, authors),
       voteScore: s.voteScore,
       createdAt: s.createdAt,
     })),
@@ -158,11 +195,7 @@ export async function getInterpretations(
       interpretation: c.interpretation,
       framework: c.framework || undefined,
       methodology: c.methodology || undefined,
-      author: {
-        id: c.author.id,
-        name: c.author.name || "Unknown",
-        image: c.author.image || undefined,
-      },
+      author: toAuthorSummary(c.authorId, authors),
       voteScore: c.voteScore,
       createdAt: c.createdAt,
     })),
@@ -180,9 +213,6 @@ export async function getInterpretation(
   const interpretation = await prisma.quoteInterpretation.findUnique({
     where: { id: interpretationId },
     include: {
-      author: {
-        select: { id: true, name: true, image: true },
-      },
       votes: userId
         ? {
             where: { userId },
@@ -190,15 +220,9 @@ export async function getInterpretation(
           }
         : false,
       supportedBy: {
-        include: {
-          author: { select: { id: true, name: true, image: true } },
-        },
         orderBy: { voteScore: "desc" },
       },
       challengedBy: {
-        include: {
-          author: { select: { id: true, name: true, image: true } },
-        },
         orderBy: { voteScore: "desc" },
       },
     },
@@ -206,29 +230,30 @@ export async function getInterpretation(
 
   if (!interpretation) return null;
 
+  const authors = await fetchAuthors([
+    interpretation.authorId,
+    ...interpretation.supportedBy.map((s) => s.authorId),
+    ...interpretation.challengedBy.map((c) => c.authorId),
+  ]);
+
   return {
     id: interpretation.id,
     interpretation: interpretation.interpretation,
     framework: interpretation.framework || undefined,
     methodology: interpretation.methodology || undefined,
-    author: {
-      id: interpretation.author.id,
-      name: interpretation.author.name || "Unknown",
-      image: interpretation.author.image || undefined,
-    },
+    author: toAuthorSummary(interpretation.authorId, authors),
     voteScore: interpretation.voteScore,
     userVote:
-      userId && Array.isArray(interpretation.votes) && interpretation.votes[0]?.vote,
+      (userId &&
+        Array.isArray(interpretation.votes) &&
+        interpretation.votes[0]?.vote) ||
+      undefined,
     supportedBy: interpretation.supportedBy.map((s) => ({
       id: s.id,
       interpretation: s.interpretation,
       framework: s.framework || undefined,
       methodology: s.methodology || undefined,
-      author: {
-        id: s.author.id,
-        name: s.author.name || "Unknown",
-        image: s.author.image || undefined,
-      },
+      author: toAuthorSummary(s.authorId, authors),
       voteScore: s.voteScore,
       createdAt: s.createdAt,
     })),
@@ -237,11 +262,7 @@ export async function getInterpretation(
       interpretation: c.interpretation,
       framework: c.framework || undefined,
       methodology: c.methodology || undefined,
-      author: {
-        id: c.author.id,
-        name: c.author.name || "Unknown",
-        image: c.author.image || undefined,
-      },
+      author: toAuthorSummary(c.authorId, authors),
       voteScore: c.voteScore,
       createdAt: c.createdAt,
     })),
@@ -371,23 +392,16 @@ export async function updateInterpretation(
       ...updates,
       updatedAt: new Date(),
     },
-    include: {
-      author: {
-        select: { id: true, name: true, image: true },
-      },
-    },
   });
+
+  const authors = await fetchAuthors([updated.authorId]);
 
   return {
     id: updated.id,
     interpretation: updated.interpretation,
     framework: updated.framework || undefined,
     methodology: updated.methodology || undefined,
-    author: {
-      id: updated.author.id,
-      name: updated.author.name || "Unknown",
-      image: updated.author.image || undefined,
-    },
+    author: toAuthorSummary(updated.authorId, authors),
     voteScore: updated.voteScore,
     createdAt: updated.createdAt,
   };
@@ -494,25 +508,18 @@ export async function getTopInterpretationsByFramework(
         mode: "insensitive",
       },
     },
-    include: {
-      author: {
-        select: { id: true, name: true, image: true },
-      },
-    },
     orderBy: { voteScore: "desc" },
     take: limit,
   });
+
+  const authors = await fetchAuthors(interpretations.map((i) => i.authorId));
 
   return interpretations.map((i) => ({
     id: i.id,
     interpretation: i.interpretation,
     framework: i.framework || undefined,
     methodology: i.methodology || undefined,
-    author: {
-      id: i.author.id,
-      name: i.author.name || "Unknown",
-      image: i.author.image || undefined,
-    },
+    author: toAuthorSummary(i.authorId, authors),
     voteScore: i.voteScore,
     createdAt: i.createdAt,
   }));

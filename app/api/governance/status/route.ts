@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
 
   // Upsert current content status
   const existing = await prisma.contentStatus.findUnique({
-    where: { targetType_targetId: { targetType, targetId } },
+    where: { roomId_targetType_targetId: { roomId, targetType, targetId } },
   });
 
   const updated = await prisma.contentStatus.upsert({
-    where: { targetType_targetId: { targetType, targetId } },
+    where: { roomId_targetType_targetId: { roomId, targetType, targetId } },
     create: {
       roomId,
       targetType,

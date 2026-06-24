@@ -6,7 +6,7 @@ export default async function LedgerEvent({ params }: { params: { id: string } }
   return (
     <div className="p-6 space-y-2">
       <h1 className="text-lg font-semibold">Amplification Event</h1>
-      <div className="text-sm">Kind: {evt.kind}</div>
+      <div className="text-sm">Kind: {evt.eventType}</div>
       <div className="text-sm">Reason: {evt.reason}</div>
       <pre className="p-3 bg-neutral-50 border rounded text-xs overflow-auto">
         {JSON.stringify(evt.payload, null, 2)}

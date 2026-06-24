@@ -21,7 +21,11 @@ export const DependencyEdge = memo(({
   data,
   markerEnd,
 }: EdgeProps) => {
-  const { dependency, explicitness, isOnCriticalPath } = data || {};
+  const { dependency, explicitness, isOnCriticalPath } = (data || {}) as {
+    dependency?: { type?: string; strength?: number };
+    explicitness?: string;
+    isOnCriticalPath?: boolean;
+  };
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,

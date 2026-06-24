@@ -436,8 +436,8 @@ export function ArenaViewer({
   // Stats
   const stats = React.useMemo(() => {
     if (!arena?.moves) return null;
-    const pMoves = arena.moves.filter((m) => m.player === "P").length;
-    const oMoves = arena.moves.filter((m) => m.player === "O").length;
+    const pMoves = arena.moves.filter((m: ArenaMove) => m.player === "P").length;
+    const oMoves = arena.moves.filter((m: ArenaMove) => m.player === "O").length;
     return {
       total: arena.moves.length,
       pMoves,

@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
   const b = LinkBody.parse(await req.json());
   if ("argumentId" in b) {
     await prisma.issueLink.upsert({
-      where: { issueId_argumentId: { issueId: params.issueId, argumentId: b.argumentId } } as any,
+      where: { issueId_targetType_targetId: { issueId: params.issueId, targetType: "argument", targetId: b.argumentId } } as any,
       create: { issueId: params.issueId, argumentId: b.argumentId, targetType: "argument", targetId: b.argumentId, role: b.role ?? "related" } as any,
       update: { role: b.role ?? "related", targetType: "argument", targetId: b.argumentId } as any,
     });
@@ -116,7 +116,7 @@ const url = new URL(req.url);
   if (!current || current.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
    if (argumentId) {
-     await prisma.issueLink.delete({ where: { issueId_argumentId: { issueId: params.issueId, argumentId } } });
+     await prisma.issueLink.deleteMany({ where: { issueId: params.issueId, argumentId } });
    } else {
      await prisma.issueLink.delete({ where: { issueId_targetType_targetId: { issueId: params.issueId, targetType: tt, targetId: tid } } } as any);
    }

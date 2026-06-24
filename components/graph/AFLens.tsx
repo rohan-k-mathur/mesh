@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+// @ts-expect-error - cytoscape-navigator ships no type declarations
 import navigator from 'cytoscape-navigator';
 import CyCanvas from './CyCanvas';
 import SchemeOverlayFetch from './SchemeOverlayFetch';
@@ -178,7 +179,7 @@ if (preview?.pairs?.length) {
 return els;
 }, [data, preview]);
 
-  const stylesheet: cytoscape.Stylesheet[] = [
+  const stylesheet: cytoscape.StylesheetStyle[] = [
     {
       selector: 'node',
       style: {
@@ -232,7 +233,7 @@ return els;
 
   const cacheKey = `cy-layout:af:${deliberationId}`;
   function runLayout() {
-    cyRef.current?.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
+    cyRef.current?.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 } as any).run();
   }
   function saveLayout() {
     if (!cyRef.current) return;
@@ -258,7 +259,7 @@ return els;
 
     const restored = loadLayout();
     if (!restored) {
-      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
+      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 } as any).run();
     }
     cy.on('layoutstop', saveLayout);
     cy.on('tap', 'node', evt => {
@@ -284,7 +285,7 @@ function focusListener(ev: any) {
   }
 }
 window.addEventListener('mesh:graph:focusNode', focusListener);
-cy.on('destroy', () => window.removeEventListener('mesh:graph:focusNode', focusListener));
+cy?.on('destroy', () => window.removeEventListener('mesh:graph:focusNode', focusListener));
 
     if (!cy || !data) return;
   
@@ -298,7 +299,7 @@ cy.on('destroy', () => window.removeEventListener('mesh:graph:focusNode', focusL
     // run a layout (or try to restore saved positions first)
     // if you keep your loadLayout/saveLayout helpers:
     if (!loadLayout()) {
-      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
+      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 } as any).run();
     }
   }, [data, elements]); // <-- no remounts, just update
 

@@ -103,7 +103,7 @@ export async function computeWindow(
     });
     created.push({
       id: row.id,
-      metricKind: row.metricKind,
+      metricKind: row.metricKind as unknown as EquityMetricKind,
       value: Number(row.value as unknown as string),
     });
   }

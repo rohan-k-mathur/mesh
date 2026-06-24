@@ -63,7 +63,7 @@ export default async function ArticlePage({ params }: { params: { key: string } 
     'article',
     article.id,
     null, // roomId no longer on Article model
-    userId ?? 'system'
+    userId != null ? String(userId) : 'system'
   );
 
   const threadsDb = await prisma.commentThread.findMany({

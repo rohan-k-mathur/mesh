@@ -231,8 +231,8 @@ export function ChainArgumentComposer({
   
   // Get epistemic scope styling
   const epistemicScope = context?.epistemicScope;
-  const scopeColor = epistemicScope?.color || 
-    (epistemicScope ? SCOPE_TYPE_CONFIG[epistemicScope.scopeType]?.color : null);
+  const scopeColor = epistemicScope?.color ||
+    (epistemicScope ? SCOPE_TYPE_CONFIG[epistemicScope.scopeType]?.color : undefined) || undefined;
 
   const handleCreated = useCallback(
     async (argumentId: string, argument?: any) => {

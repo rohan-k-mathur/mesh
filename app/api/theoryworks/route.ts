@@ -49,13 +49,20 @@ export async function POST(req: NextRequest) {
 
   // 4) create work
   try {
+    const slug = `${title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 80)}-${Math.random().toString(36).slice(2, 8)}`;
+
     const work = await prisma.theoryWork.create({
       data: {
         deliberationId,
         authorId: authorIdStr,                      // ← derived from cookie session
+        slug,
         title,
         body,
-        ...(theoryType ? { theoryType } : {}),      // optional
+        theoryType: theoryType ?? "OP",             // required enum; default when not supplied
         standardOutput: standardOutput ?? null,
       },
     });

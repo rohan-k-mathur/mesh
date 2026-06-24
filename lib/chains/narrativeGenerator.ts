@@ -730,11 +730,11 @@ function generateScopeNarrativeSection(
     
     // Scope introduction
     section += `\n\n════════════════════════════════════════════\n`;
-    section += `SCOPE: ${scope.name.toUpperCase()}\n`;
+    section += `SCOPE: ${scope.assumption.toUpperCase()}\n`;
     section += `════════════════════════════════════════════\n\n`;
     
     if (scopeTemplate) {
-      section += `${scopeTemplate.intro} ${scope.description || scope.name.toLowerCase()}.\n\n`;
+      section += `${scopeTemplate.intro} ${scope.description || scope.assumption.toLowerCase()}.\n\n`;
     }
   } else if (scopeId === null) {
     // Main/unscoped arguments

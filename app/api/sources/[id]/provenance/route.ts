@@ -53,9 +53,9 @@ export async function GET(
         if (event.fromType === "stack" && event.fromId) {
           const stack = await prisma.stack.findUnique({
             where: { id: event.fromId },
-            select: { title: true },
+            select: { name: true },
           });
-          fromName = stack?.title || null;
+          fromName = stack?.name || null;
         } else if (event.fromType === "deliberation" && event.fromId) {
           const delib = await prisma.deliberation.findUnique({
             where: { id: event.fromId },
@@ -68,9 +68,9 @@ export async function GET(
         if (event.toType === "stack" && event.toId) {
           const stack = await prisma.stack.findUnique({
             where: { id: event.toId },
-            select: { title: true },
+            select: { name: true },
           });
-          toName = stack?.title || null;
+          toName = stack?.name || null;
         } else if (event.toType === "deliberation" && event.toId) {
           const delib = await prisma.deliberation.findUnique({
             where: { id: event.toId },

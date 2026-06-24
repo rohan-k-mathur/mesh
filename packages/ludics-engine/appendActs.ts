@@ -142,14 +142,14 @@ export async function appendActs(
   designCache?: Map<string, { id: string; deliberationId: string; participantId: string }>
 ) {
   // Use design cache if available to avoid repeated database lookups (major performance bottleneck)
-  let design: { id: string; deliberationId: string; participantId: string } | null = null;
+  let design: { id: string; deliberationId: string; participantId: string; version?: number } | null = null;
   if (designCache?.has(designId)) {
     design = designCache.get(designId)!;
   } else {
     // Fallback to database lookup if no cache
-    design = await prisma.ludicDesign.findUnique({ 
+    design = await prisma.ludicDesign.findUnique({
       where: { id: designId },
-      select: { id: true, deliberationId: true, participantId: true }
+      select: { id: true, deliberationId: true, participantId: true, version: true }
     });
   }
   
@@ -256,5 +256,5 @@ export async function appendActs(
       });
     }
   }
-  return { ok: true, appended, designVersion: design.version };
+  return { ok: true, appended, designVersion: design.version ?? 1 };
 }

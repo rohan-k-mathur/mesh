@@ -26,6 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     select: { id: true, deliberationId: true, theoryType: true },
   });
   if (!work) return NextResponse.json({ error: 'Work not found' }, { status: 404 });
+  const workId = work.id;
 
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -35,16 +36,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   async function loadSlotText(): Promise<string | null> {
     const [kind, field] = slotKey.split('.') as [string, string];
     if (kind === 'DN') {
-      const dn = await prisma.workDNStructure.findUnique({ where: { workId: work.id } });
+      const dn = await prisma.workDNStructure.findUnique({ where: { workId } });
       return (dn && (dn as any)[field]) ?? null;
     } else if (kind === 'IH') {
-      const ih = await prisma.workIHTheses.findUnique({ where: { workId: work.id } });
+      const ih = await prisma.workIHTheses.findUnique({ where: { workId } });
       return (ih && (ih as any)[field]) ?? null;
     } else if (kind === 'TC') {
-      const tc = await prisma.workTCTheses.findUnique({ where: { workId: work.id } });
+      const tc = await prisma.workTCTheses.findUnique({ where: { workId } });
       return (tc && (tc as any)[field]) ?? null;
     } else if (kind === 'OP') {
-      const op = await prisma.workOPTheses.findUnique({ where: { workId: work.id } });
+      const op = await prisma.workOPTheses.findUnique({ where: { workId } });
       return (op && (op as any)[field]) ?? null;
     }
     return null;

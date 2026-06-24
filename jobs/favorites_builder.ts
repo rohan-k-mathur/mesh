@@ -22,10 +22,10 @@ export interface RunResult {
   latencyMs: number;
 }
 
-const EMBEDDING_ENDPOINT = process.env.EMBEDDING_URL;
-if (!EMBEDDING_ENDPOINT) {
+if (!process.env.EMBEDDING_URL) {
   throw new Error('[favorites_builder] EMBEDDING_URL env var is required');
 }
+const EMBEDDING_ENDPOINT: string = process.env.EMBEDDING_URL;
 const PCA_DIM_IN = 768;
 const PCA_DIM_OUT = 256;
 const BATCH_SIZE = 200; // for embedding calls
@@ -51,7 +51,7 @@ async function loadPcaMatrix(): Promise<Matrix> {
 }
 
 /** Fast dot‑product projection */
-function project(vec: readonly number[], pca: Matrix): Float32Array {
+function project(vec: ArrayLike<number>, pca: Matrix): Float32Array {
   const out = new Float32Array(pca.length);
   for (let i = 0; i < pca.length; i++) {
     let sum = 0;
@@ -74,7 +74,15 @@ function vecToPg(arr: Float32Array): string {
 }
 
 // /api/_cron/favorites_builder.ts
-export default async function handler(req, res) {
+export default async function handler(
+  req: { method?: string },
+  res: {
+    status: (code: number) => {
+      send: (body: string) => unknown;
+      json: (body: unknown) => unknown;
+    };
+  },
+) {
   if (process.env.ENABLE_FAV_BUILDER !== 'true') {
     return res.status(200).send('favorites builder disabled');
   }
@@ -97,7 +105,7 @@ export async function run(opts: RunOptions = {}): Promise<RunResult> {
   const favs = await prisma.favoriteItem.findMany({
     where: {
       addedAt: { gt: since },
-      ...(opts.userId ? { userId: opts.userId } : {}),
+      ...(opts.userId ? { userId: BigInt(opts.userId) } : {}),
     },
     include: { media: true },
     orderBy: { addedAt: 'desc' },

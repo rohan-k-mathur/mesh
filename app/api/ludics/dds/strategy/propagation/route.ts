@@ -102,8 +102,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       satisfiesPropagation: propagationCheck.satisfiesPropagation,
-      isTotallyOrdered: propagationCheck.isTotallyOrdered,
-      isLinearlyExtended: propagationCheck.isLinearlyExtended,
       violations: propagationCheck.violations,
       strategyId: strategyRecord.id,
       cached: false,

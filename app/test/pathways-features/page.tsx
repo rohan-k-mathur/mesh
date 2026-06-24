@@ -431,7 +431,7 @@ function LifecycleDemo() {
             <div className="rounded-lg border bg-white px-3 py-2 text-xs">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-slate-800">
-                  {evt.type.replaceAll("_", " ").toLowerCase()}
+                  {evt.type.replace(/_/g, " ").toLowerCase()}
                 </span>
                 <span className="px-1.5 py-0.5 rounded-full border text-[10px] bg-slate-50 text-slate-600">
                   round {evt.round}

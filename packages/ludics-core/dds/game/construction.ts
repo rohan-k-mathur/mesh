@@ -69,7 +69,9 @@ export function constructGame(
       acts: (d.acts || []).map(a => ({
         id: a.id,
         locusPath: a.locusPath || "",
-        ramification: Array.isArray(a.ramification) ? a.ramification : [],
+        ramification: (Array.isArray(a.ramification) ? a.ramification : [])
+          .map((r) => Number(r))
+          .filter((r) => Number.isFinite(r)),
         polarity: a.polarity,
       })),
     }));
@@ -164,7 +166,7 @@ function extractStrategiesFromBehaviour(
       gameId,
       sourceDesignId: design.id,
       player,
-      name: design.name || `${player}-Strategy-${strategies.length + 1}`,
+      name: `${player}-Strategy-${strategies.length + 1}`,
       responseMap,
     });
   }
@@ -198,7 +200,9 @@ function buildResponseMapFromDesign(
     
     responseMap[positionKey] = {
       address: act.locusPath || "",
-      ramification: Array.isArray(act.ramification) ? act.ramification : [],
+      ramification: (Array.isArray(act.ramification) ? act.ramification : [])
+        .map((r) => Number(r))
+        .filter((r) => Number.isFinite(r)),
     };
   }
   

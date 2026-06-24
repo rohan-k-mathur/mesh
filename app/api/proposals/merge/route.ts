@@ -49,7 +49,7 @@ async function canMergeLocal({
   if (proposalMessageId) {
     const prop = await prisma.message.findUnique({
       where: { id: proposalMessageId },
-      select: { drift: { select: { created_by: true } } } as any,
+      select: { drift: { select: { created_by: true } } },
     });
     if (prop?.drift?.created_by && prop.drift.created_by === userId) return true;
   }

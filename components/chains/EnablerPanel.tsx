@@ -97,14 +97,14 @@ export function EnablerPanel({
 
         extractedEnablers.push({
           nodeId: node.id,
-          nodeName: data.argument?.claim || "Unnamed node",
+          nodeName: data.argument?.text || "Unnamed node",
           schemeName: scheme.name || scheme.title || scheme.key,
           schemeKey: scheme.key,
           enablerText,
           confidence: schemeInstance.confidence || 1.0,
           role: schemeInstance.role || "primary",
           premiseCount: Array.isArray(scheme.premises) ? scheme.premises.length : 0,
-          conclusionText: data.argument?.claim,
+          conclusionText: data.argument?.text,
           justification: schemeInstance.justification || undefined
         });
       });

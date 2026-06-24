@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArgumentConstructor, type AttackContext } from "./ArgumentConstructor";
-import { TemplateLibrary } from "./TemplateLibrary";
+import { ArgumentConstructor, type AttackContext } from "../ArgumentConstructor";
+import { TemplateLibrary } from "../TemplateLibrary";
 import { EvidenceMatchingVisualizer } from "./EvidenceMatchingVisualizer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

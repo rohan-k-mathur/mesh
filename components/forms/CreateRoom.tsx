@@ -44,8 +44,8 @@ function CreateRoom() {
     }
     const room = await createAndJoinRoom({
       roomName: values.roomName,
-      roomIcon: result.fileURL,
-      path: pathname,
+      roomIcon: result.fileURL ?? "",
+      path: pathname ?? "",
     });
 
     router.push(`/room/${room.id}`);

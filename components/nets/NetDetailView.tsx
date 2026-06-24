@@ -106,8 +106,8 @@ export function NetDetailView({ netId, open, onClose, onEdit }: NetDetailViewPro
   const [net, setNet] = useState<NetDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   // Build ReactFlow graph from net structure
   const buildGraph = useCallback((netData: NetDetail) => {

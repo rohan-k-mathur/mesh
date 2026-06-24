@@ -21,6 +21,7 @@ import {
   DeliberationArena,
   ArenaPositionTheory,
   LudicAddress,
+  Polarity,
   addressToKey,
   keyToAddress,
 } from "../types/ludics-theory";
@@ -28,6 +29,36 @@ import {
 import {
   createArenaMove,
 } from "../arena/types";
+
+// ============================================================================
+// LOCAL TYPES & POLARITY MAPPING
+// ============================================================================
+
+/**
+ * DeliberationArena extended with the ludicability/validation metadata that the
+ * arena-construction pipeline attaches at runtime. These fields are not part of
+ * the core `DeliberationArena` interface but are produced/consumed by adapters.
+ */
+type DeliberationArenaExt = DeliberationArena & {
+  isLudicable?: boolean;
+  validationErrors?: Array<{
+    type: string;
+    address?: LudicAddress;
+    message: string;
+    severity: string;
+  }>;
+  metadata?: Record<string, unknown>;
+};
+
+/** Game-engine player ("P"/"O") for a ludics polarity ("+"/"-"). */
+function polarityToPlayer(polarity: Polarity): "P" | "O" {
+  return polarity === "+" ? "P" : "O";
+}
+
+/** Ludics polarity ("+"/"-") for a game-engine player ("P"/"O"). */
+function playerToPolarity(player: "P" | "O"): Polarity {
+  return player === "P" ? "+" : "-";
+}
 
 // ============================================================================
 // DELIBERATION ARENA → UNIVERSAL ARENA
@@ -63,7 +94,7 @@ export function deliberationArenaToUniversal(
       position.ramification,
       {
         id: `move-${key}`,
-        player: position.polarity,
+        player: polarityToPlayer(position.polarity),
         metadata: options?.includeMetadata ? {
           content: position.content,
           type: position.type,
@@ -126,7 +157,7 @@ export function deliberationArenaToUniversal(
  */
 export function universalToDeliberationArena(
   universal: UniversalArena
-): DeliberationArena {
+): DeliberationArenaExt {
   const positions = new Map<string, ArenaPositionTheory>();
   
   for (const move of universal.moves) {
@@ -146,16 +177,17 @@ export function universalToDeliberationArena(
       content: metadata?.content ?? (move.address || "(root)"),
       type: mapMoveType(metadata?.type),
       ramification: [...move.ramification],
-      polarity: move.player as "P" | "O",
+      polarity: playerToPolarity(move.player),
       sourceId: metadata?.sourceId,
       sourceType: metadata?.sourceType as "claim" | "argument" | undefined,
     });
   }
-  
+
   return {
     deliberationId: universal.deliberationId ?? universal.id,
     rootAddress: [],
     positions,
+    availableDesigns: [],
     isLudicable: true, // Assume valid since it exists
     validationErrors: [],
     metadata: {
@@ -184,7 +216,7 @@ export function positionToMove(
     position.ramification,
     {
       id: options?.id ?? `move-${addressToKey(position.address)}`,
-      player: position.polarity,
+      player: polarityToPlayer(position.polarity),
       metadata: options?.includeMetadata ? {
         content: position.content,
         type: position.type,
@@ -214,7 +246,7 @@ export function moveToPosition(
     content: metadata?.content ?? (move.address || "(root)"),
     type: mapMoveType(metadata?.type),
     ramification: [...move.ramification],
-    polarity: move.player as "P" | "O",
+    polarity: playerToPolarity(move.player),
     sourceId: metadata?.sourceId,
     sourceType: metadata?.sourceType as "claim" | "argument" | undefined,
   };
@@ -314,18 +346,18 @@ function mapMoveType(
  * @returns Merged arena with both position sets
  */
 export function mergeArenas(
-  arena1: DeliberationArena,
-  arena2: DeliberationArena
-): DeliberationArena {
+  arena1: DeliberationArenaExt,
+  arena2: DeliberationArenaExt
+): DeliberationArenaExt {
   const positions = new Map<string, ArenaPositionTheory>();
-  
+
   // Add root position
   positions.set(addressToKey([]), {
     address: [],
     content: "Merged deliberation root",
     type: "claim",
     ramification: [0, 1],
-    polarity: "P",
+    polarity: "+",
   });
   
   // Add arena1 positions with [0, ...] prefix
@@ -356,10 +388,11 @@ export function mergeArenas(
     deliberationId: `merged-${arena1.deliberationId}-${arena2.deliberationId}`,
     rootAddress: [],
     positions,
-    isLudicable: arena1.isLudicable && arena2.isLudicable,
+    availableDesigns: [],
+    isLudicable: (arena1.isLudicable ?? true) && (arena2.isLudicable ?? true),
     validationErrors: [
-      ...arena1.validationErrors,
-      ...arena2.validationErrors,
+      ...(arena1.validationErrors ?? []),
+      ...(arena2.validationErrors ?? []),
     ],
     metadata: {
       merged: true,
@@ -376,9 +409,9 @@ export function mergeArenas(
  * @returns Sub-arena with positions relative to new root
  */
 export function extractSubArena(
-  arena: DeliberationArena,
+  arena: DeliberationArenaExt,
   rootAddress: LudicAddress
-): DeliberationArena {
+): DeliberationArenaExt {
   const positions = new Map<string, ArenaPositionTheory>();
   const rootKey = addressToKey(rootAddress);
   
@@ -388,6 +421,7 @@ export function extractSubArena(
       deliberationId: arena.deliberationId,
       rootAddress: [],
       positions,
+      availableDesigns: [],
       isLudicable: false,
       validationErrors: [{
         type: "missing-prefix",
@@ -420,7 +454,8 @@ export function extractSubArena(
     deliberationId: `${arena.deliberationId}-sub-${rootKey}`,
     rootAddress: [],
     positions,
-    isLudicable: arena.isLudicable,
+    availableDesigns: [],
+    isLudicable: arena.isLudicable ?? true,
     validationErrors: [],
     metadata: {
       extractedFrom: arena.deliberationId,
@@ -472,7 +507,7 @@ export function computeArenaStats(arena: DeliberationArena): {
     }
     
     // Polarity
-    if (position.polarity === "P") {
+    if (position.polarity === "+") {
       pPositions++;
     } else {
       oPositions++;

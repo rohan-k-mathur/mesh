@@ -94,8 +94,8 @@ export default function PrivateChatDock({ currentUserId }: { currentUserId?: str
   //   console.log("[DOCK] minimised tabs:", minimised.map(p => ({id:p.id, unread:p.unread})));
   // }, [state.panes, openPanes.length, minimised.length]);
 
-  const meName = user?.name ?? user?.username ?? null;
-  const meImage = user?.image ?? null;
+  const meName = user?.displayName ?? user?.username ?? null;
+  const meImage = user?.photoURL ?? null;
 
   return (
     <div id="pcp-bounds" className="fixed inset-0 pointer-events-none z-[9990]">

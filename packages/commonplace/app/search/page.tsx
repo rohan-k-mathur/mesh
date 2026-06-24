@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../lib/prisma";
+import { getCurrentAuthor } from "../../lib/auth";
 import SearchForm from "./SearchForm";
 
 const GENRES = [
@@ -88,7 +88,7 @@ export default async function SearchPage({
               : `${entries.length} result${entries.length === 1 ? "" : "s"}${entries.length === PAGE_SIZE ? " (showing first " + PAGE_SIZE + ")" : ""}`}
           </p>
           <ul className="space-y-4">
-            {entries.map((e) => (
+            {entries.map((e: (typeof entries)[number]) => (
               <li key={e.id} className="border-b border-stone-100 pb-4">
                 <Link href={`/entry/${e.id}`} className="block group">
                   <div className="flex flex-wrap items-center gap-2 font-sans text-xs text-stone-500">

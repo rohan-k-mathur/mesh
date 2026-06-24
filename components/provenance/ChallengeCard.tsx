@@ -95,13 +95,13 @@ const ATTACK_STATUS_CONFIG: Record<
     icon: React.ElementType;
   }
 > = {
-  PENDING: {
-    label: "Pending",
+  OPEN: {
+    label: "Open",
     color: "text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30",
     icon: HelpCircle,
   },
-  ACTIVE: {
-    label: "Active",
+  UNDER_REVIEW: {
+    label: "Under Review",
     color: "text-red-600 bg-red-100 dark:bg-red-900/30",
     icon: AlertTriangle,
   },
@@ -109,6 +109,11 @@ const ATTACK_STATUS_CONFIG: Record<
     label: "Defended",
     color: "text-green-600 bg-green-100 dark:bg-green-900/30",
     icon: Shield,
+  },
+  PARTIALLY_DEFENDED: {
+    label: "Partially Defended",
+    color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30",
+    icon: AlertTriangle,
   },
   CONCEDED: {
     label: "Conceded",
@@ -119,6 +124,11 @@ const ATTACK_STATUS_CONFIG: Record<
     label: "Withdrawn",
     color: "text-slate-500 bg-slate-100 dark:bg-slate-900/30",
     icon: XCircle,
+  },
+  STALEMATE: {
+    label: "Stalemate",
+    color: "text-slate-600 bg-slate-100 dark:bg-slate-900/30",
+    icon: HelpCircle,
   },
 };
 
@@ -140,7 +150,7 @@ const DEFENSE_OUTCOME_CONFIG: Record<
     color: "text-green-600",
     icon: CheckCircle2,
   },
-  PARTIALLY_SUCCESSFUL: {
+  PARTIAL: {
     label: "Partial",
     color: "text-amber-600",
     icon: AlertTriangle,
@@ -240,13 +250,13 @@ export function ChallengeCard({
           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              {attack.attacker?.name || "Unknown"}
+              {attack.argument?.authorName || "Unknown"}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {formatDate(attack.createdAt)}
             </span>
-            {attack.argumentId && (
+            {attack.argument?.id && (
               <span className="flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" />
                 Has supporting argument
@@ -320,7 +330,7 @@ interface DefenseItemProps {
 }
 
 function DefenseItem({ defense, className }: DefenseItemProps) {
-  const outcomeConfig = DEFENSE_OUTCOME_CONFIG[defense.outcome];
+  const outcomeConfig = DEFENSE_OUTCOME_CONFIG[defense.outcome ?? "PENDING"];
   const OutcomeIcon = outcomeConfig.icon;
 
   return (
@@ -344,10 +354,10 @@ function DefenseItem({ defense, className }: DefenseItemProps) {
           {formatDate(defense.createdAt)}
         </span>
       </div>
-      {defense.defender && (
+      {defense.argument?.authorName && (
         <div className="flex items-center gap-1 mt-1 text-muted-foreground">
           <User className="h-3 w-3" />
-          {defense.defender.name}
+          {defense.argument.authorName}
         </div>
       )}
     </div>
@@ -369,7 +379,40 @@ export function ChallengeReportCard({
   onChallengeClick,
   className,
 }: ChallengeReportCardProps) {
-  const { summary, attacksByType, activeAttacks, resolvedAttacks } = report;
+  const allAttacks: AttackSummary[] = [
+    ...report.challenges.rebuttals,
+    ...report.challenges.undercuts,
+    ...report.challenges.undermines,
+  ];
+
+  const summary = {
+    totalAttacks: allAttacks.length,
+    defended: allAttacks.filter(
+      (a) => a.status === "DEFENDED" || a.status === "PARTIALLY_DEFENDED"
+    ).length,
+    conceded: allAttacks.filter((a) => a.status === "CONCEDED").length,
+    active: allAttacks.filter(
+      (a) => a.status === "OPEN" || a.status === "UNDER_REVIEW"
+    ).length,
+  };
+
+  const attacksByType: Record<AttackType, number> = {
+    REBUTS: report.challenges.rebuttals.length,
+    UNDERCUTS: report.challenges.undercuts.length,
+    UNDERMINES: report.challenges.undermines.length,
+  };
+
+  const activeAttacks = allAttacks.filter(
+    (a) => a.status === "OPEN" || a.status === "UNDER_REVIEW"
+  );
+  const resolvedAttacks = allAttacks.filter(
+    (a) =>
+      a.status === "DEFENDED" ||
+      a.status === "PARTIALLY_DEFENDED" ||
+      a.status === "CONCEDED" ||
+      a.status === "WITHDRAWN" ||
+      a.status === "STALEMATE"
+  );
 
   return (
     <Card className={cn("", className)}>

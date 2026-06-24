@@ -44,7 +44,7 @@ function nodePathFromRoot(root: Node, target: Node): number[] {
   const path: number[] = [];
   let n: Node | null = target;
   while (n && n !== root) {
-    const p = n.parentNode;
+    const p: (Node & ParentNode) | null = n.parentNode;
     if (!p) break;
     const idx = Array.prototype.indexOf.call(p.childNodes, n);
     path.unshift(idx);

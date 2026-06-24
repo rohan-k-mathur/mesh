@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { appendActs } from '@/packages/ludics-engine/appendActs';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
+import type { DialogueAct } from '@/packages/ludics-core/types';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,12 +29,12 @@ export async function POST(req: NextRequest) {
     let i = 0;
     for (const s of textSentences) {
       await appendActs(P.id, [
-        { kind:'PROPER', polarity:'P', locus:`0.${++i}`, ramification:['1'], expression:s, additive:false, meta:{ from:'T' } },
+        { kind:'PROPER', polarity:'P', locus:`0.${++i}`, ramification:['1'], expression:s, additive:false, meta:{ from:'T' } } as DialogueAct,
       ], { enforceAlternation:false }, prisma);
     }
     // O asks the hypothesis as a WHY on 0.h
     await appendActs(O.id, [
-      { kind:'PROPER', polarity:'O', locus:`0.${++i}`, ramification:[], expression:`why: ${hypothesis}`, additive:false, meta:{ from:'H' } },
+      { kind:'PROPER', polarity:'O', locus:`0.${++i}`, ramification:[], expression:`why: ${hypothesis}`, additive:false, meta:{ from:'H' } } as DialogueAct,
     ], { enforceAlternation:false }, prisma);
 
     // Optionally replay ‘steps’ by appending short GROUNDS where derived facts happened
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     for (const st of (steps ?? [])) {
       if (st?.derived) {
         await appendActs(P.id, [
-          { kind:'PROPER', polarity:'P', locus:`0.${i}.${++j}`, ramification:[], expression: st.derived, additive:false, meta:{ rule:st.rule } },
+          { kind:'PROPER', polarity:'P', locus:`0.${i}.${++j}`, ramification:[], expression: st.derived, additive:false, meta:{ rule:st.rule } } as DialogueAct,
         ], { enforceAlternation:false }, prisma);
       }
     }

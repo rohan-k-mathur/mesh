@@ -34,7 +34,7 @@ const extendedPrisma = basePrisma.$extends({
         const result = await query(args);
         
         // Auto-create ArgumentSupport if argument has a conclusion
-        if (result.claimId && result.deliberationId) {
+        if (result.id && result.claimId && result.deliberationId) {
           try {
             await basePrisma.argumentSupport.create({
               data: {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
-import { bus } from '@/lib/server/bus';
+import { emitBus } from '@/lib/server/bus';
 
 const Body = z.object({
   approvals: z.record(z.boolean()).optional(), // approval
@@ -22,10 +22,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   await prisma.voteBallot.upsert({
     where: { sessionId_voterId: { sessionId: params.id, voterId: String(userId) } },
-    update: { approvalsJson: parsed.data.approvals ?? null, rankingJson: parsed.data.ranking ?? null },
-    create: { sessionId: params.id, voterId: String(userId), approvalsJson: parsed.data.approvals ?? null, rankingJson: parsed.data.ranking ?? null },
+    update: { approvalsJson: parsed.data.approvals ?? undefined, rankingJson: parsed.data.ranking ?? undefined },
+    create: { sessionId: params.id, voterId: String(userId), approvalsJson: parsed.data.approvals ?? undefined, rankingJson: parsed.data.ranking ?? undefined },
   });
 
-  bus.emitEvent('votes:changed', { deliberationId: session.deliberationId, sessionId: session.id });
+  emitBus('votes:changed', { deliberationId: session.deliberationId, sessionId: session.id });
   return NextResponse.json({ ok: true });
 }

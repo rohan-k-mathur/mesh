@@ -888,8 +888,8 @@ export function RepresentativeViewpoints(props: {
                 window.dispatchEvent(
                   new CustomEvent('mesh:composer:insert', { detail: { template: tmpl } })
                 );
+                setOpenSequentView(null);
               }}
-              onClose={() => setOpenSequentView(null)}
             />
           )}
         </>

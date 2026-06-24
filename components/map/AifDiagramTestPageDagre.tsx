@@ -344,10 +344,10 @@ export default function AifDiagramTestPageDagre() {
                 <div className="text-slate-900">{clickedNode.schemeKey || '(none)'}</div>
               </div>
             </div>
-            {clickedNode.text && (
+            {(clickedNode as AifNode & { text?: string | null }).text && (
               <div className="mt-3 pt-3 border-t border-slate-200">
                 <div className="text-xs text-slate-500 mb-1">Content</div>
-                <div className="text-sm text-slate-700">{clickedNode.text}</div>
+                <div className="text-sm text-slate-700">{(clickedNode as AifNode & { text?: string | null }).text}</div>
               </div>
             )}
           </div>

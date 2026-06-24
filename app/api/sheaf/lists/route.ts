@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const ownerId = searchParams.get('ownerId');
   if (!ownerId) return badRequest('Missing ownerId');
   const rows = await prisma.sheafAudienceList.findMany({
-    where: { ownerId: String(ownerId) },
+    where: { ownerId: BigInt(ownerId) },
     select: { id: true, name: true }
   });
   return ok({ lists: rows });

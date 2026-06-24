@@ -15,7 +15,7 @@ export async function GET(
 
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const userId = (session?.user as { id?: string } | undefined)?.id;
 
     // Build the where clause for contexts
     // Include public contexts, plus private ones user has access to

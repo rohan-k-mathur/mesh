@@ -112,7 +112,7 @@ export type PollUI =
         // @ts-ignore
         linkPreviews: Array.isArray(f.linkPreviews) ? f.linkPreviews : undefined,
       }))
-      .sort((a, b) => a.priorityRank - b.priorityRank);
+      .sort((a: { priorityRank: number }, b: { priorityRank: number }) => a.priorityRank - b.priorityRank);
     }
   
     return base;
@@ -167,7 +167,7 @@ function normalizeMessage(incoming: any): Message {
         // @ts-ignore
         linkPreviews: Array.isArray(f.linkPreviews) ? f.linkPreviews : undefined,
       }))
-      .sort((a, b) => a.priorityRank - b.priorityRank);
+      .sort((a: { priorityRank: number }, b: { priorityRank: number }) => a.priorityRank - b.priorityRank);
   }
 
   return base;

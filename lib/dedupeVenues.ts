@@ -1,4 +1,6 @@
 import uniqBy from "lodash/uniqBy";
+// fast-levenshtein ships no type declarations and cannot be augmented.
+// @ts-ignore
 import { get as levenshtein } from "fast-levenshtein";
 
 export type Venue = {

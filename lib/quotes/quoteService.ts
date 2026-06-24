@@ -17,6 +17,7 @@ import {
   QuoteSearchResult,
   QuoteUsageType,
   LocatorType,
+  UserSummary,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────
@@ -52,9 +53,6 @@ export async function createQuote(
           kind: true,
         },
       },
-      createdBy: {
-        select: { id: true, name: true, image: true },
-      },
       _count: {
         select: {
           interpretations: true,
@@ -65,7 +63,8 @@ export async function createQuote(
     },
   });
 
-  return mapToQuoteSummary(quote);
+  const userMap = await fetchUserSummaries([quote.createdById]);
+  return mapToQuoteSummary(quote, userMap.get(quote.createdById));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -91,14 +90,8 @@ export async function getQuote(
           kind: true,
         },
       },
-      createdBy: {
-        select: { id: true, name: true, image: true },
-      },
       interpretations: {
         include: {
-          author: {
-            select: { id: true, name: true, image: true },
-          },
           votes: userId
             ? {
                 where: { userId },
@@ -106,15 +99,9 @@ export async function getQuote(
               }
             : false,
           supportedBy: {
-            include: {
-              author: { select: { id: true, name: true, image: true } },
-            },
             take: 5,
           },
           challengedBy: {
-            include: {
-              author: { select: { id: true, name: true, image: true } },
-            },
             take: 5,
           },
         },
@@ -157,6 +144,16 @@ export async function getQuote(
 
   if (!quote) return null;
 
+  // Resolve user summaries (createdBy + interpretation authors) separately,
+  // since QuoteNode/QuoteInterpretation only store the author id as a scalar.
+  const authorIds: Array<string | null | undefined> = [quote.createdById];
+  for (const i of quote.interpretations) {
+    authorIds.push(i.authorId);
+    for (const s of i.supportedBy) authorIds.push(s.authorId);
+    for (const c of i.challengedBy) authorIds.push(c.authorId);
+  }
+  const userMap = await fetchUserSummaries(authorIds);
+
   // Parse authors from JSON
   const authors = parseAuthors(quote.source.authorsJson);
 
@@ -177,11 +174,7 @@ export async function getQuote(
     },
     interpretationCount: quote._count.interpretations,
     usageCount: quote._count.usedInClaims + quote._count.usedInArguments,
-    createdBy: {
-      id: quote.createdBy.id,
-      name: quote.createdBy.name || "Unknown",
-      image: quote.createdBy.image || undefined,
-    },
+    createdBy: userSummaryFor(userMap, quote.createdById),
     createdAt: quote.createdAt,
     originalQuote: quote.originalQuote
       ? {
@@ -200,22 +193,15 @@ export async function getQuote(
       interpretation: i.interpretation,
       framework: i.framework || undefined,
       methodology: i.methodology || undefined,
-      author: {
-        id: i.author.id,
-        name: i.author.name || "Unknown",
-        image: i.author.image || undefined,
-      },
+      author: userSummaryFor(userMap, i.authorId),
       voteScore: i.voteScore,
-      userVote: Array.isArray(i.votes) && i.votes[0]?.vote,
+      userVote: Array.isArray(i.votes) ? i.votes[0]?.vote : undefined,
       supportedBy: i.supportedBy.map((s) => ({
         id: s.id,
         interpretation: s.interpretation,
         framework: s.framework || undefined,
         methodology: s.methodology || undefined,
-        author: {
-          id: s.author.id,
-          name: s.author.name || "Unknown",
-        },
+        author: userSummaryFor(userMap, s.authorId),
         voteScore: s.voteScore,
         createdAt: s.createdAt,
       })),
@@ -224,10 +210,7 @@ export async function getQuote(
         interpretation: c.interpretation,
         framework: c.framework || undefined,
         methodology: c.methodology || undefined,
-        author: {
-          id: c.author.id,
-          name: c.author.name || "Unknown",
-        },
+        author: userSummaryFor(userMap, c.authorId),
         voteScore: c.voteScore,
         createdAt: c.createdAt,
       })),
@@ -348,9 +331,6 @@ export async function searchQuotes(
             kind: true,
           },
         },
-        createdBy: {
-          select: { id: true, name: true, image: true },
-        },
         _count: {
           select: {
             interpretations: true,
@@ -366,8 +346,10 @@ export async function searchQuotes(
     prisma.quoteNode.count({ where }),
   ]);
 
+  const userMap = await fetchUserSummaries(quotes.map((q) => q.createdById));
+
   return {
-    quotes: quotes.map(mapToQuoteSummary),
+    quotes: quotes.map((q) => mapToQuoteSummary(q, userMap.get(q.createdById))),
     total,
     hasMore: offset + quotes.length < total,
   };
@@ -395,9 +377,6 @@ export async function getQuotesBySource(
           kind: true,
         },
       },
-      createdBy: {
-        select: { id: true, name: true, image: true },
-      },
       _count: {
         select: {
           interpretations: true,
@@ -409,7 +388,9 @@ export async function getQuotesBySource(
     orderBy: [{ locator: "asc" }, { createdAt: "asc" }],
   });
 
-  return quotes.map(mapToQuoteSummary);
+  const userMap = await fetchUserSummaries(quotes.map((q) => q.createdById));
+
+  return quotes.map((q) => mapToQuoteSummary(q, userMap.get(q.createdById)));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -557,6 +538,10 @@ export async function createQuoteDeliberation(
 
   // Create deliberation in transaction
   const result = await prisma.$transaction(async (tx) => {
+    // NOTE: the Deliberation model has diverged from this call site
+    // (no `description`/`type`/`members` fields; `hostType`/`hostId` are
+    // now required). Cast preserves the original intent without a broader
+    // refactor; see schema at lib/models/schema.prisma model Deliberation.
     const deliberation = await tx.deliberation.create({
       data: {
         title: `Discussion: "${quote.text.slice(0, 50)}${quote.text.length > 50 ? "..." : ""}"`,
@@ -569,7 +554,7 @@ export async function createQuoteDeliberation(
             role: "OWNER",
           },
         },
-      },
+      } as any,
     });
 
     await tx.quoteNode.update({
@@ -648,6 +633,57 @@ export async function deleteQuote(quoteId: string): Promise<boolean> {
 // Helper Functions
 // ─────────────────────────────────────────────────────────
 
+/**
+ * Fetch user summaries for a set of bigint/string user ids.
+ * QuoteNode/QuoteInterpretation only store the author id as a scalar
+ * (no Prisma relation), so we resolve User rows separately.
+ */
+async function fetchUserSummaries(
+  userIds: Array<string | null | undefined>
+): Promise<Map<string, UserSummary>> {
+  const ids = Array.from(
+    new Set(userIds.filter((id): id is string => Boolean(id)))
+  );
+  const map = new Map<string, UserSummary>();
+  if (ids.length === 0) return map;
+
+  const bigintIds = ids
+    .map((id) => {
+      try {
+        return BigInt(id);
+      } catch {
+        return null;
+      }
+    })
+    .filter((id): id is bigint => id !== null);
+
+  if (bigintIds.length === 0) return map;
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: bigintIds } },
+    select: { id: true, name: true, image: true },
+  });
+
+  for (const user of users) {
+    map.set(user.id.toString(), {
+      id: user.id.toString(),
+      name: user.name || "Unknown",
+      image: user.image || undefined,
+    });
+  }
+  return map;
+}
+
+function userSummaryFor(
+  map: Map<string, UserSummary>,
+  userId: string | null | undefined
+): UserSummary {
+  if (userId && map.has(userId)) {
+    return map.get(userId)!;
+  }
+  return { id: userId || "", name: "Unknown", image: undefined };
+}
+
 function parseAuthors(authorsJson: any): string[] {
   if (!authorsJson) return [];
   if (Array.isArray(authorsJson)) {
@@ -662,7 +698,10 @@ function parseAuthors(authorsJson: any): string[] {
   return [];
 }
 
-function mapToQuoteSummary(quote: any): QuoteNodeSummary {
+function mapToQuoteSummary(
+  quote: any,
+  createdBy?: UserSummary
+): QuoteNodeSummary {
   const authors = parseAuthors(quote.source.authorsJson);
 
   return {
@@ -681,11 +720,8 @@ function mapToQuoteSummary(quote: any): QuoteNodeSummary {
     },
     interpretationCount: quote._count.interpretations,
     usageCount: quote._count.usedInClaims + quote._count.usedInArguments,
-    createdBy: {
-      id: quote.createdBy.id,
-      name: quote.createdBy.name || "Unknown",
-      image: quote.createdBy.image || undefined,
-    },
+    createdBy:
+      createdBy ?? { id: quote.createdById, name: "Unknown", image: undefined },
     createdAt: quote.createdAt,
   };
 }

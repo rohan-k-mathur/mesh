@@ -49,11 +49,14 @@ async function resolveContent(item: {
       }
     }
     if (kind === PacketItemKind.CITATION || targetType === "citation" || targetType === "Citation") {
-      const citation = await prisma.citation.findUnique({ where: { id: targetId } });
+      const citation = await prisma.citation.findUnique({
+        where: { id: targetId },
+        include: { source: true },
+      });
       if (citation) {
         return {
           id: citation.id,
-          uri: citation.uri,
+          uri: citation.source?.url ?? null,
           quote: citation.quote,
           locator: citation.locator,
         };

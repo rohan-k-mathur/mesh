@@ -38,11 +38,12 @@ export async function createFeedPost({
     postType,
 }: CreateFeedPostParams) {
   const user = await getUserFromCookies();
-  if (!user) throw new Error("Unauthenticated");
+  if (!user || user.userId == null) throw new Error("Unauthenticated");
+  const authorId = BigInt(user.userId);
 
   const post = await prisma.feedPost.create({
     data: {
-      author: { connect: { id: BigInt(user.userId) } },
+      author_id: authorId,
       type: postType, // ✅ correct Prisma column
       isPublic: isPublic ?? true,
       content: content ?? null,
@@ -58,11 +59,11 @@ export async function createFeedPost({
       ...(productReview && {
         productReview: {
           create: {
-            author_id: BigInt(user.userId),
+            author_id: authorId,
             product_name: productReview.productName,
             rating: productReview.rating,
-            summary: productReview.summary,
-            product_link: productReview.productLink,
+            ...(productReview.summary && { summary: productReview.summary }),
+            ...(productReview.productLink && { product_link: productReview.productLink }),
             image_urls: productReview.images ?? [],
             claims: {
               create: (productReview.claims ?? []).map((t) => ({ text: t })),

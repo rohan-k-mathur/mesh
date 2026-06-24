@@ -17,9 +17,8 @@ import type {
   StrategyProperties,
   GameProperties,
   ComplexityMetrics,
-  createPropertyAnalysis,
-  createComplexityMetrics,
 } from "./types";
+import { createPropertyAnalysis, createComplexityMetrics } from "./types";
 import { checkSaturation } from "./saturation";
 
 // ============================================================================

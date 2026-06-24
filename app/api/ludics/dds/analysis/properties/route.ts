@@ -1,7 +1,7 @@
 /**
  * DDS Phase 5: Property Analysis API
  * POST /api/ludics/dds/analysis/properties
- * 
+ *
  * Comprehensive property analysis for designs, strategies, and games.
  * Validates theoretical properties from Faggian & Hyland (2002).
  */
@@ -16,7 +16,53 @@ import {
   batchAnalyzeDesigns,
 } from "@/packages/ludics-core/dds/analysis";
 import { constructStrategy } from "@/packages/ludics-core/dds/strategy";
-import type { Action, Dispute } from "@/packages/ludics-core/dds/types";
+import { createGame } from "@/packages/ludics-core/dds/behaviours/types";
+import type { Game } from "@/packages/ludics-core/dds/behaviours/types";
+import type { Dispute } from "@/packages/ludics-core/dds/types";
+import type {
+  DesignForCorrespondence,
+  DesignAct,
+} from "@/packages/ludics-core/dds/correspondence/types";
+
+/**
+ * Prisma result type with acts and locus
+ */
+type PrismaDesignWithActs = {
+  id: string;
+  deliberationId: string;
+  participantId: string;
+  acts: Array<{
+    id: string;
+    expression: string | null;
+    polarity: string | null;
+    kind: string;
+    ramification: string[];
+    locus: { path: string } | null;
+  }>;
+};
+
+/**
+ * Convert a Prisma design (with acts + locus) to DesignForCorrespondence format.
+ */
+function toDesignForCorr(design: PrismaDesignWithActs): DesignForCorrespondence {
+  return {
+    id: design.id,
+    deliberationId: design.deliberationId,
+    participantId: design.participantId,
+    acts: design.acts.map((act): DesignAct => ({
+      id: act.id,
+      designId: design.id,
+      expression: act.expression || "",
+      polarity: (act.polarity as "P" | "O") || "P",
+      kind: act.kind as "PROPER" | "DAIMON",
+      ramification: act.ramification.map((r) => {
+        const num = parseInt(r, 10);
+        return isNaN(num) ? r : num;
+      }),
+      locusPath: act.locus?.path || "",
+    })),
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,32 +77,27 @@ export async function POST(req: NextRequest) {
       // Batch analysis of multiple designs
       const designs = await prisma.ludicDesign.findMany({
         where: { id: { in: designIds } },
-        include: { acts: true },
+        include: { acts: { include: { locus: true } } },
       });
 
-      const designActions = designs.map((d) => ({
-        id: d.id,
-        actions: d.acts.map((act) => ({
-          focus: act.locusPath,
-          ramification: (act.subLoci as string[]) || [],
-          polarity: (act.polarity as "P" | "O") || "P",
-          actId: act.id,
-        })),
-      }));
+      const designsForCorr = designs.map((d) => toDesignForCorr(d));
 
-      const results = batchAnalyzeDesigns(designActions);
+      const resultsMap = await batchAnalyzeDesigns(designsForCorr);
+      const results = Array.from(resultsMap.entries());
 
       return NextResponse.json({
         ok: true,
         type: "batch",
-        results: results.map((r) => ({
-          designId: r.designId,
-          properties: r.properties,
-          valid: r.valid,
+        results: results.map(([id, analysis]) => ({
+          designId: id,
+          properties: analysis.properties,
+          proofs: analysis.proofs,
         })),
         summary: {
           total: results.length,
-          validCount: results.filter((r) => r.valid).length,
+          legalCount: results.filter(
+            ([, analysis]) => analysis.properties.legal
+          ).length,
         },
       });
     }
@@ -71,7 +112,7 @@ export async function POST(req: NextRequest) {
 
       const design = await prisma.ludicDesign.findUnique({
         where: { id: designId },
-        include: { acts: true },
+        include: { acts: { include: { locus: true } } },
       });
 
       if (!design) {
@@ -81,16 +122,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const actions: Action[] = design.acts.map((act) => ({
-        focus: act.locusPath,
-        ramification: (act.subLoci as string[]) || [],
-        polarity: (act.polarity as "P" | "O") || "P",
-        actId: act.id,
-        expression: act.expression || undefined,
-      }));
+      const designForCorr = toDesignForCorr(design);
 
-      const properties = analyzeDesignProperties(actions);
-      const complexity = analyzeComplexity(actions, [], []);
+      const properties = await analyzeDesignProperties(designForCorr, [
+        designForCorr,
+      ]);
+      const complexity = analyzeComplexity(designForCorr);
 
       return NextResponse.json({
         ok: true,
@@ -98,7 +135,7 @@ export async function POST(req: NextRequest) {
         designId,
         properties,
         complexity,
-        actCount: actions.length,
+        actCount: designForCorr.acts.length,
       });
     }
 
@@ -111,12 +148,13 @@ export async function POST(req: NextRequest) {
       }
 
       let strategy: any;
+      let allDesignsForCorr: DesignForCorrespondence[] = [];
 
       if (strategyId) {
         const strategyRecord = await prisma.ludicStrategy.findUnique({
           where: { id: strategyId },
           include: {
-            design: { include: { acts: true } },
+            design: { include: { acts: { include: { locus: true } } } },
             plays: true,
           },
         });
@@ -129,6 +167,7 @@ export async function POST(req: NextRequest) {
         }
 
         const player = strategyRecord.player as "P" | "O";
+        allDesignsForCorr = [toDesignForCorr(strategyRecord.design)];
         strategy = {
           id: strategyRecord.id,
           designId: strategyRecord.designId,
@@ -136,17 +175,18 @@ export async function POST(req: NextRequest) {
           plays: strategyRecord.plays.map((p) => ({
             id: p.id,
             strategyId: p.strategyId,
-            sequence: (p.actions as any) || [],
-            length: (p.actions as any[])?.length || 0,
-            isPositive: true,
+            sequence: (p.sequence as any) || [],
+            length: p.length,
+            isPositive: p.isPositive,
           })),
           isInnocent: strategyRecord.isInnocent,
+          satisfiesPropagation: strategyRecord.satisfiesPropagation,
         };
       } else {
         // Construct from design
         const design = await prisma.ludicDesign.findUnique({
           where: { id: designId },
-          include: { acts: true },
+          include: { acts: { include: { locus: true } } },
         });
 
         if (!design) {
@@ -156,6 +196,7 @@ export async function POST(req: NextRequest) {
           );
         }
 
+        allDesignsForCorr = [toDesignForCorr(design)];
         const player = design.participantId === "Proponent" ? "P" : "O";
 
         const disputes = await prisma.ludicDispute.findMany({
@@ -177,7 +218,10 @@ export async function POST(req: NextRequest) {
         strategy = constructStrategy(designId!, player, disputeData);
       }
 
-      const properties = analyzeStrategyProperties(strategy);
+      const properties = await analyzeStrategyProperties(
+        strategy,
+        allDesignsForCorr
+      );
 
       return NextResponse.json({
         ok: true,
@@ -198,29 +242,29 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const targetDesignIds = designIds || [designId];
+      const targetDesignIds: string[] = designIds || [designId];
 
-      // Fetch behaviours that form the game
+      // Fetch behaviours that materialize any of the target designs
       const behaviours = await prisma.ludicBehaviour.findMany({
         where: {
-          OR: targetDesignIds.map((id: string) => ({
-            designIds: { has: id },
-          })),
+          materialDesigns: {
+            some: { designId: { in: targetDesignIds } },
+          },
         },
       });
 
-      // Construct game data
-      const gameData = {
-        behaviours: behaviours.map((b) => ({
-          id: b.id,
-          designIds: b.designIds as string[],
-          isClosed: b.isClosed,
-        })),
-        designCount: targetDesignIds.length,
-        behaviourCount: behaviours.length,
-      };
+      // Construct a minimal game describing the collected behaviours.
+      // The analysis routines only inspect game.id, positions, moves and
+      // strategies, so an empty arena/positions set is a valid baseline.
+      const game: Game = createGame(
+        behaviours[0]?.id ?? targetDesignIds[0] ?? "game",
+        { addresses: [], legalPositionIds: [], labeling: {} },
+        [],
+        [],
+        []
+      );
 
-      const properties = analyzeGameProperties(gameData);
+      const properties = await analyzeGameProperties(game);
 
       return NextResponse.json({
         ok: true,
@@ -228,7 +272,7 @@ export async function POST(req: NextRequest) {
         designIds: targetDesignIds,
         properties,
         behaviourCount: behaviours.length,
-        isClosed: behaviours.some((b) => b.isClosed),
+        regularBehaviours: behaviours.filter((b) => b.regular === true).length,
       });
     }
 
@@ -277,7 +321,10 @@ export async function GET(req: NextRequest) {
       });
 
       const behaviours = await prisma.ludicBehaviour.findMany({
-        where: { designIds: { has: designId } },
+        where: {
+          materialDesigns: { some: { designId } },
+        },
+        include: { materialDesigns: true },
       });
 
       return NextResponse.json({
@@ -299,9 +346,10 @@ export async function GET(req: NextRequest) {
           : null,
         behaviours: behaviours.map((b) => ({
           id: b.id,
-          name: b.name,
-          isClosed: b.isClosed,
-          designCount: (b.designIds as string[]).length,
+          base: b.base,
+          polarity: b.polarity,
+          regular: b.regular,
+          designCount: b.materialDesigns.length,
         })),
       });
     }
@@ -332,7 +380,7 @@ export async function GET(req: NextRequest) {
           strategyCount: strategies.length,
           innocentStrategies: strategies.filter((s) => s.isInnocent).length,
           behaviourCount: behaviours.length,
-          closedBehaviours: behaviours.filter((b) => b.isClosed).length,
+          regularBehaviours: behaviours.filter((b) => b.regular === true).length,
         },
         designs: designs.map((d) => ({
           id: d.id,

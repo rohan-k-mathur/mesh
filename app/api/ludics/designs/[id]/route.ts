@@ -61,7 +61,13 @@ export async function GET(
     };
 
     // Extract unique loci paths
-    const lociPaths = [...new Set(design.acts.map((a) => a.locusPath))];
+    const lociPaths = [
+      ...new Set(
+        design.acts
+          .map((a) => a.locus?.path)
+          .filter((p): p is string => Boolean(p))
+      ),
+    ];
 
     return NextResponse.json({
       ok: true,

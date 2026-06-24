@@ -32,7 +32,7 @@ export async function uploadMediaFolder(s3: S3Client, bucket: string, folder: st
   };
   const files = walk(folder);
   for (const f of files) {
-    const key = path.relative(folder, f).replaceAll("\\", "/");
+    const key = path.relative(folder, f).replace(/\\/g, "/");
     await s3.send(new PutObjectCommand({
       Bucket: bucket,
       Key: key,

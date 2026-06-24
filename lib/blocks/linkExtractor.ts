@@ -118,7 +118,7 @@ export function parseHtmlMetadata(html: string, baseUrl: string): LinkMetadata {
   const description = getMeta("og:description") || getMeta("twitter:description") || getMeta("description") || "";
 
   // Extract image
-  let image = getMeta("og:image") || getMeta("twitter:image") || getMeta("twitter:image:src");
+  let image: string | null = getMeta("og:image") || getMeta("twitter:image") || getMeta("twitter:image:src") || null;
   if (image && !image.startsWith("http")) {
     try {
       image = new URL(image, baseUrl).href;
@@ -135,7 +135,7 @@ export function parseHtmlMetadata(html: string, baseUrl: string): LinkMetadata {
   // Extract favicon
   const faviconMatch = html.match(/<link[^>]+rel=["'](?:icon|shortcut icon)["'][^>]+href=["']([^"']+)["']/i);
   const faviconMatchRev = html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:icon|shortcut icon)["']/i);
-  let favicon = faviconMatch?.[1] || faviconMatchRev?.[1];
+  let favicon: string | null = faviconMatch?.[1] || faviconMatchRev?.[1] || null;
   if (favicon && !favicon.startsWith("http")) {
     try {
       favicon = new URL(favicon, baseUrl).href;

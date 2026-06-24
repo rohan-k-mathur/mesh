@@ -4,7 +4,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 
 export async function GET() {
   const u = await getUserFromCookies();
-  if (!u) return NextResponse.json({ items: [] });
+  if (!u || u.userId == null) return NextResponse.json({ items: [] });
   const rows = await prisma.stackSubscription.findMany({
     where: { user_id: BigInt(u.userId) },
     select: { stack_id: true },

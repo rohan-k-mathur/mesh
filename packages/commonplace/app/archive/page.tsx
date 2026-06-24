@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { prisma } from "@cp/lib/prisma";
+import { getCurrentAuthor } from "@/packages/commonplace/lib/auth";
+import { prisma } from "@/packages/commonplace/lib/prisma";
 import HorizonNav from "./HorizonNav";
 import WeekHorizon from "./WeekHorizon";
 import HalfYearHorizon from "./HalfYearHorizon";

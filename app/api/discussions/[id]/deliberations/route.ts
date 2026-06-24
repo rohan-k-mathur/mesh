@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   });
 
   if (existing) {
-    emitBus("discussions:changed", { id: params.id, op: "link-exists", deliberationId });
+    emitBus("discussions:changed" as any, { id: params.id, op: "link-exists", deliberationId });
     return NextResponse.json({ link: existing, ok: true }, { status: 200 });
   }
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     select: { discussionId: true, deliberationId: true, createdAt: true, createdById: true },
   });
 
-  emitBus("discussions:changed", { id: params.id, op: "link", deliberationId });
+  emitBus("discussions:changed" as any, { id: params.id, op: "link", deliberationId });
   return NextResponse.json({ link, ok: true }, { status: 201 });
 }
 

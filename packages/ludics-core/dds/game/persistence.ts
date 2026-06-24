@@ -5,12 +5,12 @@
  * Based on design document §8.1.
  */
 
-import type {
-  LudicsGame,
-  GamePlayState,
-  ArenaMove,
-  UniversalArena,
-} from "../types";
+import type { LudicsGame, GamePlayState } from "./types";
+import type { ArenaMove, UniversalArena } from "../arena/types";
+import {
+  validatePosition,
+  computeViewForSequence,
+} from "../arena/positions";
 
 /**
  * Compact encoded game state for storage
@@ -191,8 +191,12 @@ export function decodeGameState(
     id: `pos-${encoded.g}-${moves.length}`,
     arenaId: encoded.a,
     sequence: moves,
+    length: moves.length,
     currentPlayer: currentPlayer as "P" | "O",
+    pView: computeViewForSequence(moves, "P"),
+    oView: computeViewForSequence(moves, "O"),
     isTerminal: encoded.s >= 2 && encoded.s <= 4,
+    validity: validatePosition(moves, arena),
   };
 
   return {

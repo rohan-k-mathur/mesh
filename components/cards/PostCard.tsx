@@ -111,10 +111,9 @@ const [postId, setPostId] = useState<string | null>(null);
         id={id}
         originalPostId={originalId}
         source={source}
-        isRealtimePost={isRealtimePost}
         currentUserId={currentUserId}
         author={author}
-        createdAt={createdAt}
+        createdAt={new Date(createdAt)}
         likeCount={likeCount}
         expirationDate={expirationDate ?? undefined}
         text={replicateText}
@@ -227,7 +226,7 @@ const [postId, setPostId] = useState<string | null>(null);
               </div>
             )}
             {type === "MUSIC" && video_url && (
-              <SoundCloudPlayer src={video_url} title={content || caption} />
+              <SoundCloudPlayer src={video_url} title={content || caption || undefined} />
             )}
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
@@ -322,7 +321,7 @@ const [postId, setPostId] = useState<string | null>(null);
               })()}
             {type === "DRAW" && (
               <div className="mt-2 mb-2 flex justify-center items-center">
-                <DrawCanvas id={id.toString()} content={content} />
+                <DrawCanvas id={id.toString()} content={content ?? undefined} />
               </div>
             )}
             {/* {type === "ROOM_CANVAS" && roomPostContent && (

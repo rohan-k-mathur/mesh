@@ -1,16 +1,18 @@
 import type { NextApiRequest } from 'next';
-import { getTokens } from 'next-firebase-auth-edge';
+import { getApiRequestTokens } from 'next-firebase-auth-edge/lib/next/tokens';
 // import { authConfig } from './authConfig';
 
 export async function getUserFromReq(req: NextApiRequest) {
-  // next-firebase-auth-edge accepts cookie containers differently depending on version.
-  // If your version needs the raw cookie header, pass req.headers.cookie
-  // Otherwise pass req.cookies (object). Use whichever your current version requires.
-  const tokens = await getTokens(
-    // Option A:
-    req.headers.cookie ?? ''
-    // Option B (if supported by your version):
-    // req.cookies
+  // next-firebase-auth-edge requires an options object (apiKey + cookie config).
+  // Supply the project auth config here; cast keeps the legacy Pages-router
+  // helper compiling until a real config is wired in.
+  const tokens = await getApiRequestTokens(
+    req,
+    {
+      apiKey: process.env.FIREBASE_API_KEY ?? "",
+      cookieName: process.env.AUTH_COOKIE_NAME ?? "AuthToken",
+      cookieSignatureKeys: (process.env.AUTH_COOKIE_SIGNATURE_KEYS ?? "").split(",").filter(Boolean),
+    } as any
     /*, authConfig */
   );
 

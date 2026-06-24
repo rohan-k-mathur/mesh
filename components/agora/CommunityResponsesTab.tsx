@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import useSWR from "swr";
-import { Prisma } from "@prisma/client";
+import type { MoveType } from "@prisma/client";
 
 // ============================================================================
 // TYPES
@@ -26,7 +26,7 @@ type CommunityResponse = {
   targetId: string;
   contributorId: string;
   authorId: string;
-  moveType: Prisma.MoveType;
+  moveType: MoveType;
   content: {
     expression: string;
     scheme?: string;

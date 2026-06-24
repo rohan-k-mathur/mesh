@@ -6,6 +6,21 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+interface SchemeNodeData {
+  scheme: {
+    schemeId?: string;
+    schemeName?: string;
+    conclusion?: string;
+  };
+  role?: string;
+  explicitness?: string;
+  confidence?: number;
+  _highlighted?: boolean;
+  _dimmed?: boolean;
+  isCriticalPath?: boolean;
+  hasCircularDependency?: boolean;
+}
+
 export const HighlightableSchemeNode = memo(({ data, selected }: NodeProps) => {
   const {
     scheme,
@@ -16,7 +31,7 @@ export const HighlightableSchemeNode = memo(({ data, selected }: NodeProps) => {
     _dimmed,
     isCriticalPath,
     hasCircularDependency,
-  } = data;
+  } = data as unknown as SchemeNodeData;
 
   return (
     <div

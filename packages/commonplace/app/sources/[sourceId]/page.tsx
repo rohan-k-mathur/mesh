@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../../lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
 
 type Params = { sourceId: string };
 
@@ -97,7 +97,7 @@ export default async function SourceDetailPage({
           </p>
         ) : (
           <ul className="space-y-4">
-            {entries.map((e) => (
+            {entries.map((e: (typeof entries)[number]) => (
               <li
                 key={e.id}
                 className="border-b border-stone-100 pb-4 last:border-b-0"

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../lib/prisma";
+import { getCurrentAuthor } from "../../lib/auth";
 import { redirect } from "next/navigation";
 
 function dormancyLabel(date: Date): string {
@@ -56,7 +56,7 @@ export default async function ReadPage() {
           </p>
         ) : (
           <ul className="space-y-4">
-            {threads.map((t) => {
+            {threads.map((t: (typeof threads)[number]) => {
               const latest = t.entries[0];
               const lastDate = latest?.updatedAt ?? t.updatedAt;
               const dormancy = dormancyLabel(lastDate);
@@ -101,7 +101,7 @@ export default async function ReadPage() {
           </p>
         ) : (
           <ul className="space-y-3">
-            {recentEntries.map((e) => (
+            {recentEntries.map((e: (typeof recentEntries)[number]) => (
               <li key={e.id} className="border-b border-stone-100 pb-3">
                 <Link href={`/entry/${e.id}`} className="block group">
                   <div className="flex flex-wrap items-center gap-2 font-sans text-xs text-stone-500">

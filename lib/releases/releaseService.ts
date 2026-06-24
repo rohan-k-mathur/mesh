@@ -1,8 +1,8 @@
 /**
  * Release Service - Main CRUD Operations
- * 
+ *
  * Phase 2.1: Debate Releases & Versioned Memory
- * 
+ *
  * Orchestrates release creation, retrieval, and comparison.
  */
 
@@ -73,13 +73,18 @@ export interface CompareReleasesOutput {
   changelogText: string;
 }
 
+// Build a "x.y.z" version string from numeric components without needing a full SemanticVersion.
+function verStr(major: number, minor: number, patch: number): string {
+  return formatVersion({ major, minor, patch, raw: `${major}.${minor}.${patch}` });
+}
+
 // ─────────────────────────────────────────────────────────
 // Create Release
 // ─────────────────────────────────────────────────────────
 
 /**
  * Create a new release for a deliberation
- * 
+ *
  * Takes a point-in-time snapshot of all claims and arguments,
  * calculates statuses, and generates changelog from previous version.
  */
@@ -100,15 +105,15 @@ export async function createRelease(input: CreateReleaseInput): Promise<ReleaseO
   const latestRelease = await prisma.debateRelease.findFirst({
     where: { deliberationId },
     orderBy: [
-      { versionMajor: "desc" },
-      { versionMinor: "desc" },
-      { versionPatch: "desc" },
+      { major: "desc" },
+      { minor: "desc" },
+      { patch: "desc" },
     ],
     select: {
       id: true,
-      versionMajor: true,
-      versionMinor: true,
-      versionPatch: true,
+      major: true,
+      minor: true,
+      patch: true,
       claimSnapshot: true,
       argumentSnapshot: true,
     },
@@ -118,14 +123,10 @@ export async function createRelease(input: CreateReleaseInput): Promise<ReleaseO
   let newVersion: SemanticVersion;
   if (latestRelease) {
     const currentVersion: SemanticVersion = {
-      major: latestRelease.versionMajor,
-      minor: latestRelease.versionMinor,
-      patch: latestRelease.versionPatch,
-      raw: formatVersion({
-        major: latestRelease.versionMajor,
-        minor: latestRelease.versionMinor,
-        patch: latestRelease.versionPatch,
-      }),
+      major: latestRelease.major,
+      minor: latestRelease.minor,
+      patch: latestRelease.patch,
+      raw: verStr(latestRelease.major, latestRelease.minor, latestRelease.patch),
     };
     newVersion = incrementVersion(currentVersion, versionType);
   } else {
@@ -138,7 +139,7 @@ export async function createRelease(input: CreateReleaseInput): Promise<ReleaseO
   // 4. Generate snapshots
   const claimSnapshot = await generateClaimSnapshot(deliberationId);
   const argumentSnapshot = await generateArgumentSnapshot(deliberationId);
-  const statsSnapshot = generateStatsSnapshot(claimSnapshot.stats, argumentSnapshot.stats, deliberationId);
+  const statsSnapshot = await generateStatsSnapshot(deliberationId, claimSnapshot, argumentSnapshot);
 
   // 5. Generate changelog (if not first release)
   let changelog: Changelog | null = null;
@@ -149,11 +150,7 @@ export async function createRelease(input: CreateReleaseInput): Promise<ReleaseO
     const previousArgs = latestRelease.argumentSnapshot as unknown as ArgumentSnapshot;
 
     changelog = generateChangelog(
-      formatVersion({
-        major: latestRelease.versionMajor,
-        minor: latestRelease.versionMinor,
-        patch: latestRelease.versionPatch,
-      }),
+      verStr(latestRelease.major, latestRelease.minor, latestRelease.patch),
       versionString,
       previousClaims,
       claimSnapshot,
@@ -167,46 +164,47 @@ export async function createRelease(input: CreateReleaseInput): Promise<ReleaseO
   const citationUri = generateCitationUri(deliberationId, versionString);
 
   // 7. Generate BibTeX
-  const bibtex = generateBibtex(deliberation.title, versionString, citationUri, new Date());
+  const bibtex = generateBibtex(deliberation.title ?? "Untitled", versionString, citationUri, new Date());
 
   // 8. Create release record
   const release = await prisma.debateRelease.create({
     data: {
       deliberationId,
-      versionMajor: newVersion.major,
-      versionMinor: newVersion.minor,
-      versionPatch: newVersion.patch,
+      version: versionString,
+      major: newVersion.major,
+      minor: newVersion.minor,
+      patch: newVersion.patch,
       title: title || `Release ${versionString}`,
-      description,
+      summary: description,
       claimSnapshot: claimSnapshot as unknown as Prisma.JsonObject,
       argumentSnapshot: argumentSnapshot as unknown as Prisma.JsonObject,
       statsSnapshot: statsSnapshot as unknown as Prisma.JsonObject,
-      changelog: changelog as unknown as Prisma.JsonObject,
+      changelogFromPrevious: changelog as unknown as Prisma.JsonObject,
       changelogText,
       citationUri,
       bibtex,
-      createdById,
+      releasedById: createdById,
     },
   });
 
   return {
     id: release.id,
     deliberationId: release.deliberationId,
-    versionMajor: release.versionMajor,
-    versionMinor: release.versionMinor,
-    versionPatch: release.versionPatch,
+    versionMajor: release.major,
+    versionMinor: release.minor,
+    versionPatch: release.patch,
     version: versionString,
     title: release.title,
-    description: release.description,
-    citationUri: release.citationUri,
+    description: release.summary,
+    citationUri: release.citationUri ?? citationUri,
     bibtex: release.bibtex,
     claimSnapshot,
     argumentSnapshot,
     statsSnapshot,
     changelog,
     changelogText,
-    createdById: release.createdById,
-    createdAt: release.createdAt,
+    createdById: release.releasedById,
+    createdAt: release.releasedAt,
   };
 }
 
@@ -221,23 +219,20 @@ export async function listReleases(deliberationId: string): Promise<ReleaseListI
   const releases = await prisma.debateRelease.findMany({
     where: { deliberationId },
     orderBy: [
-      { versionMajor: "desc" },
-      { versionMinor: "desc" },
-      { versionPatch: "desc" },
+      { major: "desc" },
+      { minor: "desc" },
+      { patch: "desc" },
     ],
     select: {
       id: true,
-      versionMajor: true,
-      versionMinor: true,
-      versionPatch: true,
+      major: true,
+      minor: true,
+      patch: true,
       title: true,
-      description: true,
+      summary: true,
       claimSnapshot: true,
       citationUri: true,
-      createdAt: true,
-      createdBy: {
-        select: { name: true },
-      },
+      releasedAt: true,
     },
   });
 
@@ -245,19 +240,15 @@ export async function listReleases(deliberationId: string): Promise<ReleaseListI
     const snapshot = r.claimSnapshot as unknown as ClaimSnapshot;
     return {
       id: r.id,
-      version: formatVersion({
-        major: r.versionMajor,
-        minor: r.versionMinor,
-        patch: r.versionPatch,
-      }),
+      version: verStr(r.major, r.minor, r.patch),
       title: r.title,
-      description: r.description,
+      description: r.summary,
       claimsCount: snapshot?.stats?.total || 0,
       argumentsCount: 0, // Would need to join with argumentSnapshot
       defendedCount: snapshot?.stats?.defended || 0,
-      citationUri: r.citationUri,
-      createdAt: r.createdAt,
-      createdByName: r.createdBy?.name || "Unknown",
+      citationUri: r.citationUri ?? "",
+      createdAt: r.releasedAt,
+      createdByName: "Unknown",
     };
   });
 }
@@ -280,12 +271,9 @@ export async function getRelease(
     release = await prisma.debateRelease.findFirst({
       where: {
         deliberationId,
-        versionMajor: version.major,
-        versionMinor: version.minor,
-        versionPatch: version.patch,
-      },
-      include: {
-        createdBy: { select: { name: true } },
+        major: version.major,
+        minor: version.minor,
+        patch: version.patch,
       },
     });
   } catch {
@@ -295,38 +283,31 @@ export async function getRelease(
         id: releaseIdOrVersion,
         deliberationId,
       },
-      include: {
-        createdBy: { select: { name: true } },
-      },
     });
   }
 
   if (!release) return null;
 
-  const versionString = formatVersion({
-    major: release.versionMajor,
-    minor: release.versionMinor,
-    patch: release.versionPatch,
-  });
+  const versionString = verStr(release.major, release.minor, release.patch);
 
   return {
     id: release.id,
     deliberationId: release.deliberationId,
-    versionMajor: release.versionMajor,
-    versionMinor: release.versionMinor,
-    versionPatch: release.versionPatch,
+    versionMajor: release.major,
+    versionMinor: release.minor,
+    versionPatch: release.patch,
     version: versionString,
     title: release.title,
-    description: release.description,
-    citationUri: release.citationUri,
+    description: release.summary,
+    citationUri: release.citationUri ?? "",
     bibtex: release.bibtex,
     claimSnapshot: release.claimSnapshot as unknown as ClaimSnapshot,
     argumentSnapshot: release.argumentSnapshot as unknown as ArgumentSnapshot,
     statsSnapshot: release.statsSnapshot as unknown as StatsSnapshot,
-    changelog: release.changelog as unknown as Changelog,
+    changelog: release.changelogFromPrevious as unknown as Changelog,
     changelogText: release.changelogText,
-    createdById: release.createdById,
-    createdAt: release.createdAt,
+    createdById: release.releasedById,
+    createdAt: release.releasedAt,
   };
 }
 
@@ -337,41 +318,34 @@ export async function getLatestRelease(deliberationId: string): Promise<ReleaseO
   const release = await prisma.debateRelease.findFirst({
     where: { deliberationId },
     orderBy: [
-      { versionMajor: "desc" },
-      { versionMinor: "desc" },
-      { versionPatch: "desc" },
+      { major: "desc" },
+      { minor: "desc" },
+      { patch: "desc" },
     ],
-    include: {
-      createdBy: { select: { name: true } },
-    },
   });
 
   if (!release) return null;
 
-  const versionString = formatVersion({
-    major: release.versionMajor,
-    minor: release.versionMinor,
-    patch: release.versionPatch,
-  });
+  const versionString = verStr(release.major, release.minor, release.patch);
 
   return {
     id: release.id,
     deliberationId: release.deliberationId,
-    versionMajor: release.versionMajor,
-    versionMinor: release.versionMinor,
-    versionPatch: release.versionPatch,
+    versionMajor: release.major,
+    versionMinor: release.minor,
+    versionPatch: release.patch,
     version: versionString,
     title: release.title,
-    description: release.description,
-    citationUri: release.citationUri,
+    description: release.summary,
+    citationUri: release.citationUri ?? "",
     bibtex: release.bibtex,
     claimSnapshot: release.claimSnapshot as unknown as ClaimSnapshot,
     argumentSnapshot: release.argumentSnapshot as unknown as ArgumentSnapshot,
     statsSnapshot: release.statsSnapshot as unknown as StatsSnapshot,
-    changelog: release.changelog as unknown as Changelog,
+    changelog: release.changelogFromPrevious as unknown as Changelog,
     changelogText: release.changelogText,
-    createdById: release.createdById,
-    createdAt: release.createdAt,
+    createdById: release.releasedById,
+    createdAt: release.releasedAt,
   };
 }
 
@@ -462,7 +436,7 @@ function generateBibtex(
 ): string {
   const year = date.getFullYear();
   const month = date.toLocaleString("en-US", { month: "short" }).toLowerCase();
-  
+
   // Generate a citation key from title
   const key = title
     .toLowerCase()

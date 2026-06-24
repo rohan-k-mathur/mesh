@@ -9,9 +9,8 @@ import type {
   PerformanceMetric,
   PerformanceStats,
   BottleneckAnalysis,
-  createPerformanceMetric,
-  computePerformanceStats,
 } from "./types";
+import { createPerformanceMetric, computePerformanceStats } from "./types";
 
 // In-memory metrics store (production would use database)
 const metricsStore: PerformanceMetric[] = [];

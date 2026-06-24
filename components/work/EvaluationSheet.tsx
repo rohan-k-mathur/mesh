@@ -94,6 +94,11 @@ export default function EvaluationSheet() {
     setPending(true);
     setError(null);
     try {
+      if (!ctx) {
+        setError('Missing evaluation context');
+        setPending(false);
+        return;
+      }
       if (!deliberationId) {
         setError('Missing deliberationId for target work');
         setPending(false);

@@ -17,7 +17,7 @@ export function RoomSummaryBlock({ env }: { env: any }) {
         ))}
       </ul>
       <div className="mt-2">
-        <ProvenanceChip source="deliberation" href={env?.actions?.openRoom} />
+        <ProvenanceChip item={{ provenance: { source: "deliberation" }, href: env?.actions?.openRoom }} />
       </div>
     </div>
   );

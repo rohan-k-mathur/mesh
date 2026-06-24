@@ -12,20 +12,20 @@ export function validateAif(nodes:any[], edges:any[]) {
   }
   // 2) RA role cardinalities (Condition 4)
   for (const n of nodes.filter(n => n['@type']==='aif:RA')) {
-    const prem = (incoming[n['@id']]||[]).filter(e => e['@type']==='aif:Premise').length;
-    const concl= (outgoing[n['@id']]||[]).filter(e => e['@type']==='aif:Conclusion').length;
+    const prem = (incoming[n['@id']]||[]).filter((e: any) => e['@type']==='aif:Premise').length;
+    const concl= (outgoing[n['@id']]||[]).filter((e: any) => e['@type']==='aif:Conclusion').length;
     if (!(prem>=1 && concl===1)) throw new Error(`RA ${n['@id']} violates premise/conclusion cardinality`);
   }
   // 3) CA role cardinalities (Condition 6)
   for (const n of nodes.filter(n => n['@type']==='aif:CA')) {
-    const left = (incoming[n['@id']]||[]).filter(e => e['@type']==='aif:ConflictingElement').length;
-    const right= (outgoing[n['@id']]||[]).filter(e => e['@type']==='aif:ConflictedElement').length;
+    const left = (incoming[n['@id']]||[]).filter((e: any) => e['@type']==='aif:ConflictingElement').length;
+    const right= (outgoing[n['@id']]||[]).filter((e: any) => e['@type']==='aif:ConflictedElement').length;
     if (!(left===1 && right===1)) throw new Error(`CA ${n['@id']} violates conflicting/conflicted cardinality`);
   }
   // 4) PA role cardinalities (Condition 5)
   for (const n of nodes.filter(n => n['@type']==='aif:PA')) {
-    const left = (incoming[n['@id']]||[]).filter(e => e['@type']==='aif:PreferredElement').length;
-    const right= (outgoing[n['@id']]||[]).filter(e => e['@type']==='aif:DispreferredElement').length;
+    const left = (incoming[n['@id']]||[]).filter((e: any) => e['@type']==='aif:PreferredElement').length;
+    const right= (outgoing[n['@id']]||[]).filter((e: any) => e['@type']==='aif:DispreferredElement').length;
     if (!(left===1 && right===1)) throw new Error(`PA ${n['@id']} violates preferred/dispreferred cardinality`);
   }
 

@@ -3,6 +3,7 @@ import type { StepResult, DaimonHint } from 'packages/ludics-core/types';
 import { Hooks } from './hooks';
 import { detectDirectoryCollisions } from './detect-collisions';
 import { stepCore } from './stepCore';
+import type { CoreAct } from './stepCore';
 
 type Locus = { path: string; openings: string[]; additive?: boolean };
 type Act   = { polarity:'pos'|'neg'|'daimon'; locus:string; openings:string[]; additive?:boolean };
@@ -268,8 +269,8 @@ export async function stepInteraction(opts: {
   //    therefore exercises the same kernel; pure unit/bridge tests can drive
   //    `stepCore` directly with hand-built act lists and no database.
   const core = stepCore({
-    posActs: A.acts,
-    negActs: B.acts,
+    posActs: A.acts as CoreAct[],
+    negActs: B.acts as CoreAct[],
     pathById,
     idByPath,
     posParticipantId: A.design.participantId,

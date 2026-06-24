@@ -31,6 +31,7 @@ import {
   DeliberationArena,
   ArenaPositionTheory,
   LudicAddress,
+  Polarity,
   addressToKey,
   keyToAddress,
 } from "../types/ludics-theory";
@@ -235,7 +236,12 @@ export async function buildArenaFromDeliberation(
     }
     
     // 2. Convert to input format
-    const deliberationInput = toDeliberationInput(deliberation);
+    // The locally-declared DeliberationWithRelationsData is a loose mirror of the
+    // Prisma payload type expected by toDeliberationInput; cast through the
+    // imported parameter type to bridge the two compatible shapes.
+    const deliberationInput = toDeliberationInput(
+      deliberation as Parameters<typeof toDeliberationInput>[0]
+    );
     
     // 3. Build address tree
     const addressTree = buildAddressTree(deliberationInput, {
@@ -258,30 +264,29 @@ export async function buildArenaFromDeliberation(
       validation = validateLudicability(positions);
     }
     
-    // 7. Build the arena
-    const arena: DeliberationArena = {
-      deliberationId: options.deliberationId,
-      rootAddress: addressTree.roots[0] ?? [],
-      positions,
-      isLudicable: validation?.isValid ?? true,
-      validationErrors: validation?.errors ?? [],
-      metadata: {
-        builtAt: new Date(),
-        sourceDeliberationId: options.deliberationId,
-        rootClaimId: options.rootClaimId,
-        maxDepth: options.maxDepth,
-        repairsMade,
-      },
-    };
-    
-    // 8. Compute stats
+    // 7. Compute stats
     let maxDepth = 0;
     for (const position of positions.values()) {
       if (position.address.length > maxDepth) {
         maxDepth = position.address.length;
       }
     }
-    
+
+    // 8. Build the arena
+    const arena: DeliberationArena = {
+      deliberationId: options.deliberationId,
+      rootAddress: addressTree.roots[0] ?? [],
+      positions,
+      availableDesigns: [],
+      statistics: {
+        positionCount: positions.size,
+        maxDepth,
+        branchingFactor: 0,
+        terminalCount: 0,
+        designCount: 0,
+      },
+    };
+
     return {
       success: true,
       arena,
@@ -347,30 +352,29 @@ export function buildArenaFromDeliberationSync(
       validation = validateLudicability(positions);
     }
     
-    // 5. Build the arena
-    const arena: DeliberationArena = {
-      deliberationId: deliberationInput.id,
-      rootAddress: addressTree.roots[0] ?? [],
-      positions,
-      isLudicable: validation?.isValid ?? true,
-      validationErrors: validation?.errors ?? [],
-      metadata: {
-        builtAt: new Date(),
-        sourceDeliberationId: deliberationInput.id,
-        rootClaimId: options?.rootClaimId,
-        maxDepth: options?.maxDepth,
-        repairsMade,
-      },
-    };
-    
-    // 6. Compute stats
+    // 5. Compute stats
     let maxDepth = 0;
     for (const position of positions.values()) {
       if (position.address.length > maxDepth) {
         maxDepth = position.address.length;
       }
     }
-    
+
+    // 6. Build the arena
+    const arena: DeliberationArena = {
+      deliberationId: deliberationInput.id,
+      rootAddress: addressTree.roots[0] ?? [],
+      positions,
+      availableDesigns: [],
+      statistics: {
+        positionCount: positions.size,
+        maxDepth,
+        branchingFactor: 0,
+        terminalCount: 0,
+        designCount: 0,
+      },
+    };
+
     return {
       success: true,
       arena,
@@ -500,13 +504,17 @@ export function getPositionsByPolarity(
   polarity: "P" | "O"
 ): ArenaPositionTheory[] {
   const result: ArenaPositionTheory[] = [];
-  
+
+  // ArenaPositionTheory uses Girard-style polarity ("+"/"-"); map the
+  // Player/Opponent convention used by this query onto it (P → "+", O → "-").
+  const target: Polarity = polarity === "P" ? "+" : "-";
+
   for (const position of arena.positions.values()) {
-    if (position.polarity === polarity) {
+    if (position.polarity === target) {
       result.push(position);
     }
   }
-  
+
   return result;
 }
 
@@ -543,9 +551,9 @@ export function serializeArena(arena: DeliberationArena): object {
       key,
       ...pos,
     })),
-    isLudicable: arena.isLudicable,
-    validationErrors: arena.validationErrors,
-    metadata: arena.metadata,
+    availableDesigns: arena.availableDesigns,
+    statistics: arena.statistics,
+    id: arena.id,
   };
 }
 
@@ -556,24 +564,24 @@ export function deserializeArena(data: {
   deliberationId: string;
   rootAddress: LudicAddress;
   positions: Array<{ key: string } & ArenaPositionTheory>;
-  isLudicable: boolean;
-  validationErrors: LudicabilityError[];
-  metadata?: Record<string, unknown>;
+  availableDesigns?: DeliberationArena["availableDesigns"];
+  statistics?: DeliberationArena["statistics"];
+  id?: string;
 }): DeliberationArena {
   const positions = new Map<string, ArenaPositionTheory>();
-  
+
   for (const pos of data.positions) {
     const { key, ...position } = pos;
     positions.set(key, position);
   }
-  
+
   return {
     deliberationId: data.deliberationId,
     rootAddress: data.rootAddress,
     positions,
-    isLudicable: data.isLudicable,
-    validationErrors: data.validationErrors,
-    metadata: data.metadata,
+    availableDesigns: data.availableDesigns ?? [],
+    statistics: data.statistics,
+    id: data.id,
   };
 }
 

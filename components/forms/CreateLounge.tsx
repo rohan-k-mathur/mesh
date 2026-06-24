@@ -45,9 +45,9 @@ function CreateLounge() {
     }
     const lounge = await createAndJoinLounge({
       loungeName: values.roomName,
-      roomIcon: result.fileURL,
+      roomIcon: result.fileURL ?? "",
       isPublic: values.isPublic,
-      path: pathname,
+      path: pathname ?? "",
     });
 
     router.push(`/lounges/${lounge.id}`);

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import Graph from "@cp/app/_components/Graph";
+import { prisma } from "../../lib/prisma";
+import { getCurrentAuthor } from "../../lib/auth";
+import Graph from "../_components/Graph";
 
 /**
  * /graph — the citation map.

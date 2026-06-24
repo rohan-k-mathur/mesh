@@ -9,6 +9,7 @@
  * with review, edit, and batch creation capabilities.
  */
 
+import * as React from "react";
 import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AcademicClaimType } from "@prisma/client";
@@ -26,16 +27,7 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import {
   AlertCircle,
   Check,
@@ -53,6 +45,70 @@ import {
 } from "lucide-react";
 import { ClaimTypeSelector, ClaimTypeBadge, CLAIM_TYPE_INFO } from "./ClaimTypeSelector";
 import { cn } from "@/lib/utils";
+
+// ─────────────────────────────────────────────────────────
+// AlertDialog (shadcn-style wrappers over Radix; the shared
+// @/components/ui/alert-dialog module is not present in this repo)
+// ─────────────────────────────────────────────────────────
+const AlertDialog = AlertDialogPrimitive.Root;
+
+const AlertDialogContent = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Portal>
+    <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
+    <AlertDialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border bg-white p-6 shadow-lg rounded-lg",
+        className,
+      )}
+      {...props}
+    />
+  </AlertDialogPrimitive.Portal>
+));
+AlertDialogContent.displayName = "AlertDialogContent";
+
+const AlertDialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />
+);
+
+const AlertDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)} {...props} />
+);
+
+const AlertDialogTitle = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Title ref={ref} className={cn("text-lg font-semibold", className)} {...props} />
+));
+AlertDialogTitle.displayName = "AlertDialogTitle";
+
+const AlertDialogDescription = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Description ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+));
+AlertDialogDescription.displayName = "AlertDialogDescription";
+
+const AlertDialogAction = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Action>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Action ref={ref} className={cn("inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground", className)} {...props} />
+));
+AlertDialogAction.displayName = "AlertDialogAction";
+
+const AlertDialogCancel = React.forwardRef<
+  React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
+>(({ className, ...props }, ref) => (
+  <AlertDialogPrimitive.Cancel ref={ref} className={cn("mt-2 inline-flex h-9 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium sm:mt-0", className)} {...props} />
+));
+AlertDialogCancel.displayName = "AlertDialogCancel";
 
 // ─────────────────────────────────────────────────────────
 // Types

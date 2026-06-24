@@ -556,9 +556,9 @@ async function _computeSyntheticReadoutUncached(
       select: { id: true },
     });
     if (rootBehaviour) {
-      const { minimals } = await findMinimalIncarnations(rootBehaviour.id);
-      if (minimals.length > 0) {
-        const m = minimals[0];
+      const { incarnations } = await findMinimalIncarnations(rootBehaviour.id);
+      if (incarnations.length > 0) {
+        const m = incarnations[0];
         bottomIncarnation = {
           behaviourId: rootBehaviour.id,
           designId: m.designId,

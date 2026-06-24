@@ -113,7 +113,7 @@ export function EntailmentWidget({
         throw new Error(JSON.stringify((j as any)?.error ?? `HTTP ${r.status}`));
       }
       setRes(j as DialogicalEntailResponse);
-      if ((j as DialogicalEntailResponse)?.viz && onViz) onViz(j.viz!);
+      if ((j as DialogicalEntailResponse)?.viz && onViz) onViz((j as DialogicalEntailResponse).viz!);
     } catch (e: any) {
       setError(String(e?.message ?? e ?? 'entailment_failed'));
     } finally {

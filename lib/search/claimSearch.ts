@@ -159,7 +159,7 @@ export async function searchClaims(
     where,
     include: {
       source: {
-        select: { name: true },
+        select: { title: true },
       },
     },
     take: limit * 2, // Get extra for scoring/sorting
@@ -175,7 +175,7 @@ export async function searchClaims(
       claimType: claim.claimType,
       academicClaimType: claim.academicClaimType,
       sourceId: claim.sourceId,
-      sourceTitle: claim.source?.name || null,
+      sourceTitle: claim.source?.title || null,
       humanVerified: claim.humanVerified,
       extractedByAI: claim.extractedByAI,
     }))
@@ -230,17 +230,17 @@ export async function findRelatedClaims(claimId: string): Promise<{
   // Get direct relationships from ClaimEdge table
   const edges = await prisma.claimEdge.findMany({
     where: {
-      OR: [{ sourceClaimId: claimId }, { targetClaimId: claimId }],
+      OR: [{ fromClaimId: claimId }, { toClaimId: claimId }],
     },
     include: {
-      sourceClaim: {
+      from: {
         include: {
-          source: { select: { name: true } },
+          source: { select: { title: true } },
         },
       },
-      targetClaim: {
+      to: {
         include: {
-          source: { select: { name: true } },
+          source: { select: { title: true } },
         },
       },
     },
@@ -250,8 +250,8 @@ export async function findRelatedClaims(claimId: string): Promise<{
   const supports: RelatedClaim[] = [];
 
   for (const edge of edges) {
-    const isOutgoing = edge.sourceClaimId === claimId;
-    const relatedClaim = isOutgoing ? edge.targetClaim : edge.sourceClaim;
+    const isOutgoing = edge.fromClaimId === claimId;
+    const relatedClaim = isOutgoing ? edge.to : edge.from;
     const direction = isOutgoing ? "outgoing" : "incoming";
 
     const related: RelatedClaim = {
@@ -259,19 +259,16 @@ export async function findRelatedClaims(claimId: string): Promise<{
       text: relatedClaim.text,
       claimType: relatedClaim.claimType,
       academicClaimType: relatedClaim.academicClaimType,
-      sourceTitle: relatedClaim.source?.name || null,
+      sourceTitle: relatedClaim.source?.title || null,
       edgeType: edge.type,
       direction,
       createdAt: relatedClaim.createdAt,
     };
 
     // Categorize by edge type
-    const attackTypes = ["ATTACK", "REBUT", "UNDERCUT", "UNDERMINE"];
-    const supportTypes = ["SUPPORT", "ENTAIL", "PREMISE"];
-
-    if (attackTypes.includes(edge.type)) {
+    if (edge.type === "rebuts") {
       attacks.push(related);
-    } else if (supportTypes.includes(edge.type)) {
+    } else if (edge.type === "supports") {
       supports.push(related);
     }
   }
@@ -293,13 +290,13 @@ export async function findRelatedClaims(claimId: string): Promise<{
 export async function getChallenges(claimId: string): Promise<ChallengesResponse> {
   const edges = await prisma.claimEdge.findMany({
     where: {
-      targetClaimId: claimId,
-      type: { in: ["REBUT", "UNDERCUT", "UNDERMINE", "ATTACK"] },
+      toClaimId: claimId,
+      type: "rebuts",
     },
     include: {
-      sourceClaim: {
+      from: {
         include: {
-          source: { select: { name: true } },
+          source: { select: { title: true } },
         },
       },
     },
@@ -311,26 +308,27 @@ export async function getChallenges(claimId: string): Promise<ChallengesResponse
 
   for (const edge of edges) {
     const related: RelatedClaim = {
-      claimId: edge.sourceClaim.id,
-      text: edge.sourceClaim.text,
-      claimType: edge.sourceClaim.claimType,
-      academicClaimType: edge.sourceClaim.academicClaimType,
-      sourceTitle: edge.sourceClaim.source?.name || null,
+      claimId: edge.from.id,
+      text: edge.from.text,
+      claimType: edge.from.claimType,
+      academicClaimType: edge.from.academicClaimType,
+      sourceTitle: edge.from.source?.title || null,
       edgeType: edge.type,
       direction: "incoming",
-      createdAt: edge.sourceClaim.createdAt,
+      createdAt: edge.from.createdAt,
     };
 
-    switch (edge.type) {
-      case "REBUT":
-      case "ATTACK":
-        rebuttals.push(related);
-        break;
-      case "UNDERCUT":
+    // Categorize by finer-grained attack type when available
+    switch (edge.attackType) {
+      case "UNDERCUTS":
         undercuts.push(related);
         break;
-      case "UNDERMINE":
+      case "UNDERMINES":
         undermines.push(related);
+        break;
+      case "REBUTS":
+      default:
+        rebuttals.push(related);
         break;
     }
   }
@@ -344,27 +342,27 @@ export async function getChallenges(claimId: string): Promise<ChallengesResponse
 export async function getSupports(claimId: string): Promise<RelatedClaim[]> {
   const edges = await prisma.claimEdge.findMany({
     where: {
-      targetClaimId: claimId,
-      type: { in: ["SUPPORT", "ENTAIL", "PREMISE"] },
+      toClaimId: claimId,
+      type: "supports",
     },
     include: {
-      sourceClaim: {
+      from: {
         include: {
-          source: { select: { name: true } },
+          source: { select: { title: true } },
         },
       },
     },
   });
 
   return edges.map((edge) => ({
-    claimId: edge.sourceClaim.id,
-    text: edge.sourceClaim.text,
-    claimType: edge.sourceClaim.claimType,
-    academicClaimType: edge.sourceClaim.academicClaimType,
-    sourceTitle: edge.sourceClaim.source?.name || null,
+    claimId: edge.from.id,
+    text: edge.from.text,
+    claimType: edge.from.claimType,
+    academicClaimType: edge.from.academicClaimType,
+    sourceTitle: edge.from.source?.title || null,
     edgeType: edge.type,
     direction: "incoming" as const,
-    createdAt: edge.sourceClaim.createdAt,
+    createdAt: edge.from.createdAt,
   }));
 }
 
@@ -413,7 +411,7 @@ export async function getClaimsByAuthor(
       academicClaimType: options?.types ? { in: options.types } : undefined,
     },
     include: {
-      source: { select: { name: true } },
+      source: { select: { title: true } },
     },
     take: options?.limit || 50,
     orderBy: { createdAt: "desc" },
@@ -426,7 +424,7 @@ export async function getClaimsByAuthor(
     claimType: claim.claimType,
     academicClaimType: claim.academicClaimType,
     sourceId: claim.sourceId,
-    sourceTitle: claim.source?.name || null,
+    sourceTitle: claim.source?.title || null,
     humanVerified: claim.humanVerified,
     extractedByAI: claim.extractedByAI,
   }));
@@ -443,7 +441,7 @@ export async function getRecentVerifiedClaims(
       humanVerified: true,
     },
     include: {
-      source: { select: { name: true } },
+      source: { select: { title: true } },
     },
     orderBy: { verifiedAt: "desc" },
     take: limit,
@@ -456,7 +454,7 @@ export async function getRecentVerifiedClaims(
     claimType: claim.claimType,
     academicClaimType: claim.academicClaimType,
     sourceId: claim.sourceId,
-    sourceTitle: claim.source?.name || null,
+    sourceTitle: claim.source?.title || null,
     humanVerified: true,
     extractedByAI: claim.extractedByAI,
   }));

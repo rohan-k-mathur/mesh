@@ -8,12 +8,17 @@ import { canEditWorkOrClaimOrphan } from '@/lib/permissions/canEditWork';
 
 export const dynamic = 'force-dynamic';
 
-const Body = z.object({
-  text: z.string().min(3).max(4000),
-  locatorStart: z.number().int().nonnegative(),
-  locatorEnd: z.number().int().nonnegative().refine((v,ctx)=>v>ctx.parent.locatorStart, 'locatorEnd>locatorStart'),
-  excerptHash: z.string().min(8).max(128).optional(),
-});
+const Body = z
+  .object({
+    text: z.string().min(3).max(4000),
+    locatorStart: z.number().int().nonnegative(),
+    locatorEnd: z.number().int().nonnegative(),
+    excerptHash: z.string().min(8).max(128).optional(),
+  })
+  .refine((b) => b.locatorEnd > b.locatorStart, {
+    message: "locatorEnd>locatorStart",
+    path: ["locatorEnd"],
+  });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string }}) {
   const user = await getUserFromCookies();

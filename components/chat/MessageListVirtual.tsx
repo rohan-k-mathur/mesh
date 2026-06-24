@@ -23,7 +23,7 @@ export const MessageListVirtual = React.forwardRef<
     follow = true,
     ariaLabel = "Room messages",
   }: MessageListVirtualProps<T>,
-  forwardedRef
+  forwardedRef: React.ForwardedRef<VirtuosoHandle>
 ) {
   const virtuosoRef = React.useRef<VirtuosoHandle | null>(null);
   const stuckOnce = React.useRef(false);

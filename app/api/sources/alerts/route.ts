@@ -24,11 +24,11 @@ export async function GET(request: Request) {
     const countOnly = url.searchParams.get("countOnly") === "true";
 
     if (countOnly) {
-      const count = await getPendingAlertCount(userId);
+      const count = await getPendingAlertCount(userId.toString());
       return NextResponse.json({ count });
     }
 
-    const alerts = await getUserPendingAlerts(userId);
+    const alerts = await getUserPendingAlerts(userId.toString());
     return NextResponse.json({ alerts });
   } catch (error) {
     console.error("[sources/alerts] Error:", error);

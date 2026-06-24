@@ -335,12 +335,10 @@ export async function removeDependency(dependencyId: string) {
  * Get arguments that depend on this argument
  */
 export async function getArgumentDependents(argumentId: string) {
+  // Note: explicit relations could be added in schema if needed; for now we
+  // just return the IDs and clients can fetch separately.
   return prisma.argumentDependency.findMany({
     where: { targetArgId: argumentId },
-    include: {
-      // Note: These will need to be added as explicit relations in schema if needed
-      // For now, we just return the IDs and clients can fetch separately
-    },
   });
 }
 
@@ -348,11 +346,9 @@ export async function getArgumentDependents(argumentId: string) {
  * Get arguments this argument depends on
  */
 export async function getArgumentDependencies(argumentId: string) {
+  // Note: explicit relations could be added in schema if needed.
   return prisma.argumentDependency.findMany({
     where: { sourceArgId: argumentId },
-    include: {
-      // Note: These will need to be added as explicit relations in schema if needed
-    },
   });
 }
 

@@ -120,18 +120,7 @@ export async function GET(req: NextRequest) {
     
     // Get commitment stores for this deliberation
     const storesResult = await getCommitmentStores(deliberationId);
-    
-    if (!storesResult.ok) {
-      return NextResponse.json(
-        { 
-          ok: false, 
-          error: "Failed to load commitment stores",
-          details: storesResult.error 
-        },
-        { status: 500 }
-      );
-    }
-    
+
     // Find participant's store
     const participantStore = storesResult.data.find(
       (store) => store.participantId === participantId
@@ -156,8 +145,8 @@ export async function GET(req: NextRequest) {
       claimText: commitment.claimText,
       moveId: commitment.moveId,
       moveKind: commitment.moveKind,
-      timestamp: commitment.timestamp,
-      isActive: !commitment.retractedAt, // Active if not retracted
+      timestamp: new Date(commitment.timestamp),
+      isActive: commitment.isActive,
     }));
     
     // Analyze contradictions

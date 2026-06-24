@@ -77,8 +77,8 @@ const hoursLeft = (iso?: string) => {
 };
 
 // Stable stable-extension enumerator (only for small AFs; falls back when large)
-function computeStableExtension(A: { id: string }[], R: Array<[string, string]>): Set<string> | null {
-  const ids = A.map((a) => a.id);
+function computeStableExtension(A: string[], R: Array<[string, string]>): Set<string> | null {
+  const ids = A;
   if (ids.length > 18) return null;
   const attacks = new Set(R.map(([x, y]) => `${x}→${y}`));
   const n = ids.length, total = 1 << n;

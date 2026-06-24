@@ -172,7 +172,7 @@ export async function fetchPostTreeById(id: bigint) {
       include: { author: true, _count: { select: { children: true } } },
     });
     for (const child of children) {
-      child.children = await fetchChildren(child.id);
+      (child as any).children = await fetchChildren(child.id);
     }
     return children.map((c) => ({
       ...c,
@@ -181,7 +181,7 @@ export async function fetchPostTreeById(id: bigint) {
   };
 
   if (post) {
-    post.children = await fetchChildren(post.id);
+    (post as any).children = await fetchChildren(post.id);
     return { ...post, commentCount: post._count.children };
   }
   return post;
@@ -242,12 +242,13 @@ export async function replicatePost({
     const newPost = await prisma.feedPost.create({
       data: {
         content: `REPLICATE:${payload}`,
+        type: "TEXT",
         author_id: uid,
       },
     });
     await prisma.user.update({
       where: { id: uid },
-      data: { posts: { connect: { id: newPost.id } } },
+      data: { feedPosts: { connect: { id: newPost.id } } },
     });
     revalidatePath(path);
     return newPost;
@@ -336,7 +337,7 @@ export async function archiveExpiredPosts() {
         original_post_id: p.id,
         // type; p.type,
         created_at: p.created_at,
-        content: p.content,
+        content: p.content ?? "",
         author_id: p.author_id,
         updated_at: p.updated_at,
         parent_id: p.parent_id,

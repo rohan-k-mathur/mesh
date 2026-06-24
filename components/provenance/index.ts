@@ -14,10 +14,8 @@
 // ConsensusIndicator - Consensus status display
 export {
   ConsensusIndicator,
-  ChallengeSummaryDisplay,
   ConsensusStatusSelect,
   ChallengeBreakdown,
-  STATUS_CONFIG,
   type ConsensusIndicatorProps,
 } from "./ConsensusIndicator";
 

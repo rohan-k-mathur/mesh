@@ -11,33 +11,37 @@ export const integration: IntegrationApp = {
   actions: [
     {
       name: "appendRow",
-      run: async (
-        params: { spreadsheetId: string; range: string; values: (string | number)[] },
-        creds: { accessToken: string }
-      ) => {
+      run: async (params: any, creds: Record<string, any>) => {
+        const { spreadsheetId, range, values } = params as {
+          spreadsheetId: string;
+          range: string;
+          values: (string | number)[];
+        };
         await appendRow({
-          spreadsheetId: params.spreadsheetId,
-          range: params.range,
-          values: params.values,
+          spreadsheetId,
+          range,
+          values,
           accessToken: creds.accessToken,
         });
       },
     },
     {
       name: "createSpreadsheet",
-      run: async (params: { title: string }, creds: { accessToken: string }) => {
-        return await createSpreadsheet({ title: params.title, accessToken: creds.accessToken });
+      run: async (params: any, creds: Record<string, any>) => {
+        const { title } = params as { title: string };
+        return await createSpreadsheet({ title, accessToken: creds.accessToken });
       },
     },
     {
       name: "readRange",
-      run: async (
-        params: { spreadsheetId: string; range: string },
-        creds: { accessToken: string }
-      ) => {
+      run: async (params: any, creds: Record<string, any>) => {
+        const { spreadsheetId, range } = params as {
+          spreadsheetId: string;
+          range: string;
+        };
         return await readRange({
-          spreadsheetId: params.spreadsheetId,
-          range: params.range,
+          spreadsheetId,
+          range,
           accessToken: creds.accessToken,
         });
       },

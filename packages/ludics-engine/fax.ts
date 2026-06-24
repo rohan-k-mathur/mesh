@@ -83,10 +83,15 @@ export async function faxBranch(params: {
         locusId: newLocusId ?? undefined,
         ramification: a.ramification,
         expression: a.expression,
-        metaJson: a.metaJson,
+        metaJson: a.metaJson ?? undefined,
         isAdditive: a.isAdditive,
         orderInDesign: ++lastOrder,
-        extJson: { ...a.extJson, faxOf: a.id },
+        extJson: {
+          ...(a.extJson && typeof a.extJson === "object" && !Array.isArray(a.extJson)
+            ? (a.extJson as Record<string, unknown>)
+            : {}),
+          faxOf: a.id,
+        },
       },
     });
     await prisma.ludicChronicle.create({ data: { designId: toDesignId, order: lastOrder, actId: clone.id } });

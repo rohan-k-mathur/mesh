@@ -64,19 +64,20 @@ export async function GET(req: NextRequest) {
   try {
     // If you have a Scheme table: { key, name, fieldsJson jsonb }
     // If not, this will throw; we’ll fall back below.
-    const rows = await prisma.scheme.findMany({
-      select: { key: true, name: true, fieldsJson: true },
-      orderBy: { name: 'asc' },
-    });
+    const rows: Array<{ key: string; name: string | null; fieldsJson: unknown }> =
+      await (prisma as any).scheme.findMany({
+        select: { key: true, name: true, fieldsJson: true },
+        orderBy: { name: 'asc' },
+      });
 
     // Map + validate DB rows
     const dbDefs = rows
-      .map(r => ({
+      .map((r) => ({
         key: r.key,
         label: r.name ?? r.key,
         fields: Array.isArray(r.fieldsJson) ? r.fieldsJson : [],
       }))
-      .map(d => ok(d, SchemeZ))
+      .map((d) => ok(d, SchemeZ))
       .filter(Boolean) as z.infer<typeof SchemeZ>[];
 
     // Merge: DB overrides fallback by key

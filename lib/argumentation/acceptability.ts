@@ -44,7 +44,7 @@ export interface FiniteArgumentSet {
 
 /** Lift a design-level collection of argument ids to the power-set level. */
 export function liftToPowerSet(args: Iterable<ArgId>): FiniteArgumentSet {
-  return { members: new Set(args) } as FiniteArgumentSet;
+  return { members: new Set(args) } as unknown as FiniteArgumentSet;
 }
 
 /**
@@ -58,7 +58,7 @@ export function joinArgumentSets(
 ): FiniteArgumentSet {
   const out = new Set<ArgId>(a.members);
   for (const x of b.members) out.add(x);
-  return { members: out } as FiniteArgumentSet;
+  return { members: out } as unknown as FiniteArgumentSet;
 }
 
 /** Join a finite family of argument sets (⊥ = ∅ when the family is empty). */

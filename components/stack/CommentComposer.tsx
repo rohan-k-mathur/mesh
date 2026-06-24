@@ -31,6 +31,9 @@ export default function CommentComposer({ rootId }: { rootId: bigint | number | 
     initialLocator?: string;
     initialQuote?: string;
     initialNote?: string;
+    anchorType?: string;
+    anchorId?: string;
+    anchorData?: Record<string, unknown>;
   }>({});
   const [justPostedId, setJustPostedId] = React.useState<string | null>(null);
 

@@ -209,8 +209,8 @@ export function GamePanel({
         {mode === "setup" && (
           <GameSetupPanel
             deliberationId={deliberationId}
-            existingGame={game}
-            onGameCreated={handleGameCreated}
+            existingGame={game as any}
+            onGameCreated={handleGameCreated as (game: any) => void}
           />
         )}
 

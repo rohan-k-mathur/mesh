@@ -1191,7 +1191,12 @@ function analyzeNarrativeStructure(
     inDegree.set(e.targetNodeId, (inDegree.get(e.targetNodeId) || 0) + 1);
     
     // Track attack relationships
-    if (e.edgeType === "REFUTES" || e.edgeType === "ATTACKS") {
+    if (
+      e.edgeType === "REFUTES" ||
+      e.edgeType === "REBUTS" ||
+      e.edgeType === "UNDERCUTS" ||
+      e.edgeType === "UNDERMINES"
+    ) {
       attackedBy.get(e.targetNodeId)?.push(e.sourceNodeId);
       attacks.get(e.sourceNodeId)?.push(e.targetNodeId);
     }
@@ -2082,7 +2087,7 @@ function composeRefusalBanner(
 function pickInlineTransition(
   targetNodeId: string,
   renderedIds: Set<string>,
-  edges: ArgumentChainEdgeWithRelations[],
+  edges: ArgumentChainEdgeWithNodes[],
   nodeMap: Map<string, ArgumentChainNodeWithArgument>,
   threshold: number,
   options: EssayOptions
@@ -2212,7 +2217,7 @@ export function conclusionSynthesisInputs(
   const nodeMap = new Map(nodes.map(n => [n.id, n] as const));
   const ATTACK = new Set(["REBUTS", "UNDERCUTS", "UNDERMINES", "REFUTES"]);
 
-  const attacksByTarget = new Map<string, ArgumentChainEdgeWithRelations[]>();
+  const attacksByTarget = new Map<string, ArgumentChainEdgeWithNodes[]>();
   for (const e of edges) {
     if (!ATTACK.has(e.edgeType)) continue;
     const arr = attacksByTarget.get(e.targetNodeId) || [];

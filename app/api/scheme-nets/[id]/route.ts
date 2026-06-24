@@ -27,8 +27,8 @@ export async function GET(
         argument: {
           select: {
             id: true,
-            conclusion: true,
-         authorId: true,
+            conclusion: { select: { text: true } },
+            authorId: true,
           },
         },
         steps: {
@@ -38,7 +38,7 @@ export async function GET(
                 id: true,
                 name: true,
                 description: true,
-                criticalQuestions: true,
+                cqs: true,
               },
             },
           },
@@ -53,6 +53,16 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Argument has no direct author relation (only authorId), so resolve the
+    // author User record separately for the response payload.
+    const authorId = net.argument?.authorId;
+    const author = authorId
+      ? await prisma.user.findUnique({
+          where: { id: BigInt(authorId) },
+          select: { username: true, name: true },
+        })
+      : null;
 
     // Infer net type from structure
     let netType: "serial" | "convergent" | "divergent" | "hybrid" = "serial";
@@ -75,10 +85,10 @@ export async function GET(
       overallConfidence: net.overallConfidence,
       netType,
       argument: {
-        conclusion: net.argument.conclusion || "Untitled Argument",
+        conclusion: net.argument?.conclusion?.text || "Untitled Argument",
         author: {
-          username: net.argument.author.username,
-          name: net.argument.author.name,
+          username: author?.username ?? "",
+          name: author?.name ?? "",
         },
       },
       steps: net.steps.map(step => ({
@@ -93,7 +103,7 @@ export async function GET(
           id: step.scheme.id,
           name: step.scheme.name,
           description: step.scheme.description,
-          criticalQuestions: step.scheme.criticalQuestions || [],
+          criticalQuestions: step.scheme.cqs || [],
         },
       })),
     };

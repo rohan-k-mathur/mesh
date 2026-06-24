@@ -94,7 +94,7 @@ export async function getOrCreatePermalink(
   }
 
   // Generate slug
-  const slug = generateSlug(argument.text, argument.deliberation.title);
+  const slug = generateSlug(argument.text, argument.deliberation?.title ?? undefined);
 
   // Create permalink
   const permalink = await prisma.argumentPermalink.create({

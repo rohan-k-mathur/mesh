@@ -13,6 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     include: { instance: true },
   });
   if (!cq) return NextResponse.json({ error: 'CQ not found' }, { status: 404 });
+  if (!cq.instance) return NextResponse.json({ error: 'CQ has no scheme instance' }, { status: 404 });
 
   // target is the instance target (we assume targetType='claim' for MVP)
   const targetClaimId = cq.instance.targetId;

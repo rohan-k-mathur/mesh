@@ -265,7 +265,7 @@ export async function computeContestedFrontier(
         unansweredCqs.push({
           targetArgumentId: a.id,
           schemeKey: primary.scheme.key,
-          cqKey: cq.cqKey,
+          cqKey: cq.cqKey ?? "",
           cqPrompt: cq.text,
           // Severity: every catalog CQ is treated as scheme-required when
           // the scheme defines it. A finer split (required vs recommended)

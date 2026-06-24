@@ -67,7 +67,7 @@ export async function appendEvent(
     const prevHash = prev?.hashChainSelf ?? null;
     const hashChainSelf = computeEventHash(
       prevHash,
-      eventPayloadForHash(input),
+      eventPayloadForHash(input) as unknown as Parameters<typeof computeEventHash>[1],
       createdAt,
     );
 

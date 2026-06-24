@@ -31,12 +31,12 @@ export function useScrollAnalytics() {
     let lastTimestamp = performance.now();
     let throttle = false;
 
-    function onScroll() {
+    async function onScroll() {
       const now = performance.now();
       const deltaY = Math.abs(window.scrollY - lastY);
       if (deltaY > 50) {
         const dwell = now - lastTimestamp;
-        const user = supabaseRef.current.auth.getUser().data?.user;
+        const user = (await supabaseRef.current.auth.getUser()).data?.user;
         const payload = {
           user_id: user?.id as string,
           session_id: sessionId as string,

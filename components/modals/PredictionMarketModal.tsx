@@ -7,7 +7,7 @@ interface Props {
   onSubmit: (values: z.infer<typeof PredictionPostValidation>) => void;
 }
 
-export default function PredictionMarketModal({ onSubmit }: Props) {
+export default function PredictionMarketModal(_props: Props) {
   return (
     <DialogContent className="max-w-[40rem] px-8 py-8  bg-slate-700  border-blue">
     <div className="grid rounded-xl px-4">
@@ -15,7 +15,7 @@ export default function PredictionMarketModal({ onSubmit }: Props) {
         Create Prediction Market
         <hr></hr>
       </DialogHeader>
-      <CreatePredictionPost onSubmit={onSubmit} />
+      <CreatePredictionPost />
       </div>
     </DialogContent>
   );

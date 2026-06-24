@@ -1,7 +1,7 @@
 // lib/auth.ts  (or lib/supabase-server.ts)
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/supabase/database-supabase';
 
 export function getSupabaseServerClient() {
   const store = cookies();                        // request‑scoped cookie store

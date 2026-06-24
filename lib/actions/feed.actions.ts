@@ -113,11 +113,11 @@ export async function createFeedPost(
       ...(rest.caption && { caption: rest.caption }),
       ...(rest.libraryPostId && { library_post_id: rest.libraryPostId }),
       ...(rest.stackId && { stack_id: rest.stackId }),
-      ...(rest.articleId && { id: rest.articleId  }),
+      ...(rest.articleId && { articleId: rest.articleId }),
       ...(rest.productReview && {
         productReview: {
           create: {
-            author_id: user.userId!,
+            author_id: BigInt(user.userId!),
             product_name: rest.productReview.productName,
             rating: rest.productReview.rating,
             ...(rest.productReview.summary && {

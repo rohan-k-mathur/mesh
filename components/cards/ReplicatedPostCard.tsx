@@ -47,10 +47,12 @@ export default function ReplicatedPostCard(props: Props) {
   return (
     <PostCard
       id={id}
+      canonicalId={id}
+      commentCount={0}
       type="TEXT"
       content={text}
       author={author}
-      createdAt={createdAt}
+      createdAt={createdAt instanceof Date ? createdAt.toISOString() : createdAt}
       likeCount={likeCount}
       expirationDate={expirationDate ?? undefined}
       currentUserId={currentUserId}

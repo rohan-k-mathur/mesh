@@ -18,11 +18,11 @@ const Body = z.object({
 type BodyT = z.infer<typeof Body>;
 
 const toAF = (k: BodyT['kind']): $Enums.DebateEdgeKind => {
-  if (k === 'supports')  return 'support';
-  if (k === 'undercuts') return 'undercut';
-  // Treat 'rebuts' and 'objects' as rebuttal; everything else buckets to rebut (non-AF kinds)
-  if (k === 'rebuts' || k === 'objects') return 'rebut';
-  return 'rebut';
+  if (k === 'supports')  return 'supports';
+  if (k === 'undercuts') return 'undercuts';
+  // Treat 'rebuts' and 'objects' as rebuttal; everything else buckets to rebuts (non-AF kinds)
+  if (k === 'rebuts' || k === 'objects') return 'rebuts';
+  return 'rebuts';
 };
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

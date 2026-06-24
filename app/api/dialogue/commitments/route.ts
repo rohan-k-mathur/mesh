@@ -33,17 +33,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Deliberation not found" }, { status: 404 });
   }
 
-  // Check room access if deliberation has a roomId
+  // Check room access if deliberation has a roomId. Room membership is tracked
+  // via the linked Conversation's participants.
   if (deliberation.roomId) {
-    const roomMember = await prisma.roomMember.findFirst({
-      where: {
-        roomId: deliberation.roomId,
-        userId: userId
-      }
+    const room = await prisma.room.findUnique({
+      where: { id: deliberation.roomId },
+      select: { conversation_id: true },
     });
 
-    if (!roomMember) {
-      return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
+    if (room?.conversation_id != null) {
+      const roomMember = await prisma.conversationParticipant.findFirst({
+        where: {
+          conversation_id: room.conversation_id,
+          user_id: userId,
+        },
+      });
+
+      if (!roomMember) {
+        return NextResponse.json({ ok: false, error: "Access denied" }, { status: 403 });
+      }
     }
   }
 

@@ -23,10 +23,10 @@ export async function getConnection(userId: bigint | number | string, provider: 
 
   return {
     provider,
-    accessToken: row.access_token_cipher ? decryptBytesToString(row.access_token_cipher) : undefined,
-    refreshToken: row.refresh_token_cipher ? decryptBytesToString(row.refresh_token_cipher) : null,
+    accessToken: row.access_token_cipher ? decryptBytesToString(Buffer.from(row.access_token_cipher)) : undefined,
+    refreshToken: row.refresh_token_cipher ? decryptBytesToString(Buffer.from(row.refresh_token_cipher)) : null,
     expiresAt: row.expires_at ?? null,
-    scopes: row.scopes ?? row.scope ?? [], // tolerate old column name if it exists
+    scopes: row.scopes ?? [],
     accountLabel: row.external_account_id ?? null,
     metadata: row.metadata ? decryptBytesToJson(row.metadata as any) ?? {} : {}, // if you store encrypted JSON here
   };

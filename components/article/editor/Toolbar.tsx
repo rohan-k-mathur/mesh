@@ -1,5 +1,6 @@
 import { Editor } from "@tiptap/react";
 import React from "react";
+import type { TextTokens } from "@/lib/tiptap/extensions/text-style-ssr";
 import {
   Bold, Italic, Underline, Strikethrough, Code,
   List, ListOrdered, ListChecks, Quote,
@@ -128,7 +129,7 @@ export default function Toolbar({ editor }: Props) {
         onChange={(e) => {
           const v = e.target.value;
           if (!v) return;
-          editor!.chain().focus().setTextStyleTokens({ ff: v }).run();
+          editor!.chain().focus().setTextStyleTokens({ ff: v as TextTokens["ff"] }).run();
         }}
       >
         {/* keep first option as a hint label in the menu */}
@@ -145,7 +146,7 @@ export default function Toolbar({ editor }: Props) {
           if (!v) return;
           v === "unset"
             ? editor!.chain().focus().unsetTextStyleTokens(["fs"]).run()
-            : editor!.chain().focus().setTextStyleTokens({ fs: v }).run();
+            : editor!.chain().focus().setTextStyleTokens({ fs: v as TextTokens["fs"] }).run();
         }}
       >
         <option value="" disabled>Size</option>
@@ -162,7 +163,7 @@ export default function Toolbar({ editor }: Props) {
           if (!v) return;
           v === "unset"
             ? editor!.chain().focus().unsetTextStyleTokens(["clr"]).run()
-            : editor!.chain().focus().setTextStyleTokens({ clr: v }).run();
+            : editor!.chain().focus().setTextStyleTokens({ clr: v as TextTokens["clr"] }).run();
         }}
       >
         <option value="" disabled>Color</option>

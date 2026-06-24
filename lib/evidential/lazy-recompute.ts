@@ -145,7 +145,7 @@ export async function tagSupportsForArguments(argumentIds: string[]): Promise<nu
   const supports = await prisma.argumentSupport.findMany({
     where: { argumentId: { in: argumentIds } },
     select: { id: true, argumentId: true, claimId: true, metaJson: true } as any,
-  }) as Array<{ id: string; argumentId: string; claimId: string; metaJson: any }>;
+  }) as unknown as Array<{ id: string; argumentId: string; claimId: string; metaJson: any }>;
 
   if (supports.length === 0) return 0;
 

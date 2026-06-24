@@ -10,7 +10,8 @@ export async function unresolvedCQsForNode(sheetId: string, nodeId: string, targ
   });
   const latest = new Map<string, { kind:'WHY'|'GROUNDS', createdAt: Date }>();
   for (const r of rows) {
-    const key = String(r.payload?.cqId ?? r.payload?.schemeKey ?? 'default');
+    const payload = (r.payload ?? {}) as { cqId?: unknown; schemeKey?: unknown };
+    const key = String(payload.cqId ?? payload.schemeKey ?? 'default');
     const prev = latest.get(key);
     if (!prev || r.createdAt > prev.createdAt) latest.set(key, { kind: r.kind as any, createdAt: r.createdAt });
   }

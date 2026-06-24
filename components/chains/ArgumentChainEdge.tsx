@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState } from "react";
-import { BaseEdge, EdgeProps, getBezierPath, EdgeLabelRenderer } from "@xyflow/react";
+import { BaseEdge, EdgeProps, Edge, getBezierPath, EdgeLabelRenderer } from "@xyflow/react";
 import { ChainEdgeData } from "@/lib/types/argumentChain";
 import { getEdgeTypeConfig, getEdgeStrokeWidth } from "@/lib/constants/chainEdgeTypes";
 import { Swords } from "lucide-react";
@@ -19,7 +19,9 @@ interface ExtendedChainEdgeData extends ChainEdgeData {
   onAttackEdge?: (edgeId: string, sourceNodeId: string, targetNodeId: string) => void;
 }
 
-interface ArgumentChainEdgeProps extends EdgeProps<ExtendedChainEdgeData> {}
+type ExtendedChainEdge = Edge<ExtendedChainEdgeData>;
+
+interface ArgumentChainEdgeProps extends EdgeProps<ExtendedChainEdge> {}
 
 const ArgumentChainEdge: React.FC<ArgumentChainEdgeProps> = ({
   id,

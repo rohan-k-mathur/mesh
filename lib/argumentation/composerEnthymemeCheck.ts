@@ -41,10 +41,8 @@ export function checkComposerEnthymemes(input: ComposerCheckInput): EnthymemeNud
   const arrow: Arrow = {
     from: "premises",
     to: input.argumentId,
-    derivs: [derivId],
+    derivs: new Set<DerivationId>([derivId]),
     assumptions: new Map<DerivationId, Set<AssumptionId>>([[derivId, new Set()]]),
-    scores: new Map([[derivId, 1]]),
-    meta: new Map(),
   };
   const catalog: SchemeCatalog = {
     get(key) {

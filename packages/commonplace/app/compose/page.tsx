@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
+import { prisma } from "../../lib/prisma";
+import { getCurrentAuthor } from "../../lib/auth";
 import NewArtifactButton from "./_components/NewArtifactButton";
 
 /**
@@ -23,8 +23,9 @@ export default async function ComposePage() {
     },
   });
 
-  const drafts = artifacts.filter((a) => !a.publishedAt);
-  const published = artifacts.filter((a) => a.publishedAt);
+  type ArtifactListItem = (typeof artifacts)[number];
+  const drafts = artifacts.filter((a: ArtifactListItem) => !a.publishedAt);
+  const published = artifacts.filter((a: ArtifactListItem) => a.publishedAt);
 
   return (
     <div className="space-y-8">
@@ -44,7 +45,7 @@ export default async function ComposePage() {
             Drafts
           </h2>
           <ul className="space-y-3">
-            {drafts.map((a) => (
+            {drafts.map((a: ArtifactListItem) => (
               <li key={a.id}>
                 <Link
                   href={`/compose/${a.id}`}
@@ -74,7 +75,7 @@ export default async function ComposePage() {
             Published
           </h2>
           <ul className="space-y-3">
-            {published.map((a) => (
+            {published.map((a: ArtifactListItem) => (
               <li key={a.id}>
                 <Link
                   href={`/compose/${a.id}`}

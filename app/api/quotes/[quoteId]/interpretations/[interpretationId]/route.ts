@@ -44,7 +44,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const userId = (session?.user as { id?: string } | undefined)?.id;
 
     const interpretation = await getInterpretation(
       params.interpretationId,
@@ -85,7 +85,8 @@ export async function PATCH(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -108,7 +109,7 @@ export async function PATCH(
         { status: 404 }
       );
     }
-    if (existing.author.id !== session.user.id) {
+    if (existing.author.id !== userId) {
       return NextResponse.json(
         { error: "Can only edit your own interpretations" },
         { status: 403 }
@@ -118,7 +119,7 @@ export async function PATCH(
     // 4. Update interpretation
     const interpretation = await updateInterpretation(
       params.interpretationId,
-      session.user.id,
+      userId,
       parsed.data
     );
 
@@ -146,7 +147,8 @@ export async function DELETE(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -158,7 +160,7 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    if (existing.author.id !== session.user.id) {
+    if (existing.author.id !== userId) {
       return NextResponse.json(
         { error: "Can only delete your own interpretations" },
         { status: 403 }
@@ -166,7 +168,7 @@ export async function DELETE(
     }
 
     // 3. Delete interpretation
-    await deleteInterpretation(params.interpretationId, session.user.id);
+    await deleteInterpretation(params.interpretationId, userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -200,7 +202,8 @@ export async function POST(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -229,7 +232,7 @@ export async function POST(
     // 4. Vote
     const result = await voteOnInterpretation(
       params.interpretationId,
-      session.user.id,
+      userId,
       parsed.data.value
     );
 

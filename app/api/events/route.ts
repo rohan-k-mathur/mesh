@@ -10,11 +10,11 @@ export const dynamic = 'force-dynamic';
 EventEmitter.defaultMaxListeners = Math.max(EventEmitter.defaultMaxListeners, 50);
 
 type FeedEvent = { id: string; ts: number; type: string; [k: string]: any };
-const RING = (globalThis as any).__agoraRing__ ??= { buf: [] as FeedEvent[], cap: 2048 };
+const RING: { buf: FeedEvent[]; cap: number } = (globalThis as any).__agoraRing__ ??= { buf: [] as FeedEvent[], cap: 2048 };
 let seq = (globalThis as any).__agoraSeq__ ??= 0;
 
 function pushRing(e: Omit<FeedEvent,'id'>): FeedEvent {
-  const full = { ...e, id: String(++seq) };
+  const full: FeedEvent = { ...e, ts: e.ts, type: e.type, id: String(++seq) };
   RING.buf.push(full);
   if (RING.buf.length > RING.cap) RING.buf.shift();
   return full;

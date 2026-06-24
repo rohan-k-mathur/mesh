@@ -52,7 +52,7 @@ export async function createRealtimePost({
   text,
   imageUrl,
   videoUrl,
-
+  caption,
   path,
   coordinates,
   type,
@@ -87,8 +87,8 @@ export async function createRealtimePost({
         locked: false,
         isPublic,
         ...(pluginType && { pluginType }),
-        ...(pluginData && { pluginData }),
-        ...(roomPostContent && { room_post_content: roomPostContent }),
+        ...(pluginData && { pluginData: pluginData as Prisma.InputJsonValue }),
+        ...(roomPostContent && { room_post_content: roomPostContent as Prisma.InputJsonValue }),
 
          // Collage fields
          ...(collageLayoutStyle && { collageLayoutStyle }),
@@ -198,8 +198,10 @@ export async function updateRealtimePost({
       ...(collageGap !== undefined && { collageGap }),
       ...(isPublic !== undefined && { isPublic }),
       ...(pluginType && { pluginType }),
-      ...(pluginData && { pluginData }),
-      ...(roomPostContent && { room_post_content: roomPostContent }),
+      ...(pluginData && { pluginData: pluginData as Prisma.InputJsonValue }),
+      ...(roomPostContent && {
+        room_post_content: roomPostContent as Prisma.InputJsonValue,
+      }),
     };
 
     if (coordinates && coordChanged) {
@@ -419,7 +421,7 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
       productReview: post.productReview
         ? {
             ...post.productReview,
-            claims: post.productReview.claims.map((c) => ({
+            claims: post.productReview.claims.map((c: any) => ({
               ...c,
               id: c.id.toString(),
               review_id: c.review_id.toString(),
@@ -454,7 +456,7 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
   if (!post) return null;
 
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
-    const children = await prisma.realtimePost.findMany({
+    const children: any[] = await prisma.realtimePost.findMany({
       where: { parent_id: parentId },
       include: {
         author: true,
@@ -470,7 +472,7 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
       productReview: c.productReview
         ? {
             ...c.productReview,
-            claims: c.productReview.claims.map((cl) => ({
+            claims: c.productReview.claims.map((cl: any) => ({
               ...cl,
               id: cl.id.toString(),
               review_id: cl.review_id.toString(),
@@ -491,7 +493,7 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
       productReview: post.productReview
         ? {
             ...post.productReview,
-            claims: post.productReview.claims.map((c) => ({
+            claims: post.productReview.claims.map((c: any) => ({
               ...c,
               id: c.id.toString(),
               review_id: c.review_id.toString(),

@@ -52,7 +52,7 @@ export default function PlexusMatrix({ scope='public' }: { scope?: 'public'|'fol
 
   // Filter & order rooms
   const qn = q.trim().toLowerCase();
-  const rooms = (data.rooms ?? [])
+  const rooms = (data?.rooms ?? [])
     .filter(r => !qn || (r.title ?? '').toLowerCase().includes(qn) || r.id.toLowerCase().includes(qn))
     .slice();
 
@@ -74,7 +74,7 @@ export default function PlexusMatrix({ scope='public' }: { scope?: 'public'|'fol
   const bundle = React.useMemo(() => {
     const m = new Map<string, Cell>();
     const key = (i:number, j:number) => i<=j ? `${i}|${j}` : `${j}|${i}`;
-    for (const e of data.edges) {
+    for (const e of (data?.edges ?? [])) {
       const i = idx.get(e.from), j = idx.get(e.to);
       if (i==null || j==null) continue;
       const k = key(i,j);
@@ -83,7 +83,7 @@ export default function PlexusMatrix({ scope='public' }: { scope?: 'public'|'fol
       m.set(k, cell);
     }
     return m;
-  }, [data.edges, idx]);
+  }, [data?.edges, idx]);
 
   // Sizing for matrix
   const cell = N <= 160 ? 12 : N <= 300 ? 8 : N <= 520 ? 6 : 4;

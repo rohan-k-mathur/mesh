@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { generateHTML } from "@tiptap/html";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { tiptapSharedExtensions } from "@cp/lib/tiptap/shared";
-import Connections from "@cp/app/_components/Connections";
-import SendToArtifact from "@cp/app/_components/SendToArtifact";
+import { prisma } from "../../../lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
+import { tiptapSharedExtensions } from "../../../lib/tiptap/shared";
+import Connections from "../../_components/Connections";
+import SendToArtifact from "../../_components/SendToArtifact";
 
 type Params = { entryId: string };
 

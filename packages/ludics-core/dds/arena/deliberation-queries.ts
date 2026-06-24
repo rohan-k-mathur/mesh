@@ -170,13 +170,13 @@ export async function fetchClaimEdges(deliberationId: string) {
   return prisma.claimEdge.findMany({
     where: { deliberationId },
     include: {
-      fromClaim: {
+      from: {
         select: {
           id: true,
           text: true,
         },
       },
-      toClaim: {
+      to: {
         select: {
           id: true,
           text: true,

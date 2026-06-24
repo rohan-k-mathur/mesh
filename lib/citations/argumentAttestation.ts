@@ -926,7 +926,7 @@ export async function buildArgumentAttestation(
   // so consumers see the *gap*, not silence.
   let criticalQuestionsAggregate: CriticalQuestionsAggregate | null = null;
   if (primarySchemeRow) {
-    const schemeKey = primarySchemeRow.scheme.key ?? null;
+    const schemeKey = ((primarySchemeRow.scheme as any).key as string | null) ?? null;
     // ---- Answer-provenance nudge inputs (§12.1) -------------------------
     // Derive whether this argument's canonical CQ answers were self-asserted
     // by an AI agent over MCP. Same predicate as `isSelfCanonicalEligible`
@@ -952,9 +952,11 @@ export async function buildArgumentAttestation(
     // scheme CQ labels can't bleed into the aggregate.
     const statusByCqKey = new Map<string, typeof cqStatusRows[number]>();
     for (const s of cqStatusRows) {
-      if (!s.cqKey) continue;
-      if (schemeKey && s.schemeKey && s.schemeKey !== schemeKey) continue;
-      statusByCqKey.set(s.cqKey.toLowerCase(), s);
+      const sCqKey = (s as any).cqKey as string | null;
+      const sSchemeKey = (s as any).schemeKey as string | null;
+      if (!sCqKey) continue;
+      if (schemeKey && sSchemeKey && sSchemeKey !== schemeKey) continue;
+      statusByCqKey.set(sCqKey.toLowerCase(), s);
     }
     const projected: CriticalQuestionStatus[] = primarySchemeRow.scheme.cqs.map(
       (cq: any) => {
@@ -1046,7 +1048,7 @@ export async function buildArgumentAttestation(
         where: {
           targetType: "claim",
           targetId: conclusionClaimId,
-          schemeId: primarySchemeRow.scheme.id,
+          schemeId: (primarySchemeRow.scheme as any).id as string,
         },
         select: { id: true },
         orderBy: { createdAt: "desc" },

@@ -58,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     for (const claimId of ids) {
       const set = new Set(byClaim.get(claimId) ?? []);
       let n = 0;
-      for (const g of links) if (set.has(g.argumentId)) n += g._count.argumentId;
+      for (const g of links) if (g.argumentId && set.has(g.argumentId)) n += g._count.argumentId;
       counts[claimId] = n + (direct[claimId] ?? 0);
     }
     return NextResponse.json({ ok: true, counts });
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     for (const c of cards) {
       const set = new Set(byClaim.get(c.claimId!) ?? []);
       let n = 0;
-      for (const g of links) if (set.has(g.argumentId)) n += g._count.argumentId;
+      for (const g of links) if (g.argumentId && set.has(g.argumentId)) n += g._count.argumentId;
       counts[c.id] = n + (direct[c.id] ?? 0);
     }
     return NextResponse.json({ ok: true, counts });
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   });
 
   const counts: Record<string, number> = Object.fromEntries(ids.map(id => [id, 0]));
-  for (const g of links) counts[g.argumentId] = g._count.argumentId;
+  for (const g of links) if (g.argumentId) counts[g.argumentId] = g._count.argumentId;
 
   return NextResponse.json({ ok: true, counts });
 }

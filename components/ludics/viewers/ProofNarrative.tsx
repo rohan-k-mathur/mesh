@@ -498,7 +498,7 @@ export function ProofNarrative({
 
   // Expanded state for each step
   const [expandedSteps, setExpandedSteps] = React.useState<Set<number>>(
-    defaultExpanded ? new Set(narrative?.steps.map((s) => s.stepNumber) || []) : new Set()
+    defaultExpanded ? new Set(narrative?.steps.map((s: NarrativeStep) => s.stepNumber) || []) : new Set()
   );
 
   const highlightedSet = React.useMemo(
@@ -520,7 +520,7 @@ export function ProofNarrative({
 
   // Expand/collapse all
   const expandAll = () => {
-    setExpandedSteps(new Set(narrative?.steps.map((s) => s.stepNumber) || []));
+    setExpandedSteps(new Set(narrative?.steps.map((s: NarrativeStep) => s.stepNumber) || []));
   };
   const collapseAll = () => {
     setExpandedSteps(new Set());
@@ -589,7 +589,7 @@ export function ProofNarrative({
       <div className="border rounded-lg bg-white p-4">
         {style === "cards" && (
           <div className="space-y-3">
-            {narrative.steps.map((step) => (
+            {narrative.steps.map((step: NarrativeStep) => (
               <StepCard
                 key={step.stepNumber}
                 step={step}

@@ -71,6 +71,7 @@ export async function POST(
     const authId = await getCurrentUserAuthId();
     const gate = await checkThesisWritable(authId, params.id);
     if (!gate.ok) return bad(gate.status, gate.message);
+    if (!authId) return bad(401, "Unauthorized");
 
     const thesis = await prisma.thesis.findUnique({
       where: { id: params.id },

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import useSWR from "swr";
-import type { View } from "@/packages/ludics-core/dds/views";
+import type { View } from "@/packages/ludics-core/dds/types";
 import type { ViewDebugMode } from "./types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());

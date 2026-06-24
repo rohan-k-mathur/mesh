@@ -53,7 +53,7 @@ export async function GET(
   try {
     // Get user ID for personalized vote info
     const session = await getServerSession(authOptions);
-    const userId = session?.user?.id;
+    const userId = (session?.user as { id?: string } | undefined)?.id;
 
     const quote = await getQuote(params.quoteId, userId);
 
@@ -82,7 +82,7 @@ export async function PATCH(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!(session?.user as { id?: string } | undefined)?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -126,7 +126,7 @@ export async function DELETE(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!(session?.user as { id?: string } | undefined)?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -164,7 +164,7 @@ export async function POST(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!(session?.user as { id?: string } | undefined)?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -174,7 +174,7 @@ export async function POST(
     if (action === "create-deliberation") {
       const deliberation = await createQuoteDeliberation(
         params.quoteId,
-        session.user.id
+        (session!.user as { id: string }).id
       );
       return NextResponse.json(deliberation, { status: 201 });
     }

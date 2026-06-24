@@ -70,7 +70,7 @@ React.useEffect(() => {
   (async () => {
     setLoadingCandidates(true);
     try {
-      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId)}`, { cache:'no-store' });
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId ?? '')}`, { cache:'no-store' });
       const j = await res.json();
       const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
       setCandidates(ihTc);
@@ -104,7 +104,7 @@ React.useEffect(() => {
 //   (async () => {
 //     setLoadingCandidates(true);
 //     try {
-//       const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId)}`, { cache:'no-store' });
+//       const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId ?? '')}`, { cache:'no-store' });
 //       const j = await res.json();
 //       const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
 //       setCandidates(ihTc);

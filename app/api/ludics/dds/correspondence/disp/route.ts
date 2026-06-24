@@ -19,9 +19,9 @@ function toDesignForCorr(design: {
   acts: Array<{
     id: string;
     designId: string;
-    locusPath: string;
-    polarity: string;
-    subLoci: unknown;
+    locus?: { path: string } | null;
+    polarity: string | null;
+    ramification: string[];
     kind: string;
     expression: string | null;
     orderInDesign: number;
@@ -34,9 +34,9 @@ function toDesignForCorr(design: {
     acts: design.acts.map((act) => ({
       id: act.id,
       designId: act.designId,
-      locusPath: act.locusPath,
-      polarity: act.polarity as "P" | "O",
-      ramification: (act.subLoci as (string | number)[]) || [],
+      locusPath: act.locus?.path ?? "",
+      polarity: (act.polarity ?? "P") as "P" | "O",
+      ramification: (act.ramification as (string | number)[]) || [],
       kind: act.kind as "PROPER" | "DAIMON",
       expression: act.expression || undefined,
       orderInDesign: act.orderInDesign,
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     // Fetch design
     const design = await prisma.ludicDesign.findUnique({
       where: { id: designId },
-      include: { acts: true },
+      include: { acts: { include: { locus: true } } },
     });
 
     if (!design) {
@@ -70,14 +70,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch counter-designs (designs with opposite polarity at same loci)
-    const designLoci = design.acts.map((a) => a.locusPath);
+    const designLoci = design.acts.map((a) => a.locus?.path ?? "");
     const counterDesigns = await prisma.ludicDesign.findMany({
       where: {
         deliberationId: design.deliberationId,
         id: { not: designId },
         participantId: { not: design.participantId },
       },
-      include: { acts: true },
+      include: { acts: { include: { locus: true } } },
     });
 
     const designForCorr = toDesignForCorr(design);

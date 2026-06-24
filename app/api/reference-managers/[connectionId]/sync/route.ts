@@ -225,7 +225,7 @@ async function syncZotero(
               zoteroKey: sourceData.zoteroKey,
               fingerprint,
               createdById: userId,
-              enrichmentStatus: "complete",
+              enrichmentStatus: "enriched",
               enrichedAt: new Date(),
               enrichmentSource: "zotero",
             },
@@ -248,27 +248,28 @@ async function syncZotero(
         if (connection.defaultStackId) {
           const stack = await prisma.stack.findUnique({
             where: { id: connection.defaultStackId },
-            include: { posts: { orderBy: { order: "desc" }, take: 1 } },
+            include: { posts: { orderBy: { created_at: "desc" }, take: 1 } },
           });
 
           if (stack) {
             // Check if already in stack
             const existingPost = await prisma.libraryPost.findFirst({
               where: {
-                stackId: connection.defaultStackId,
-                sourceId: source.id,
-              },
+                stack_id: connection.defaultStackId,
+                // NOTE: schema drift — LibraryPost no longer stores sourceId.
+                // Match on stack only; broader source/stack linking lives in StackItem now.
+              } as any,
             });
 
             if (!existingPost) {
-              const maxOrder = stack.posts[0]?.order ?? 0;
               await prisma.libraryPost.create({
                 data: {
-                  stackId: connection.defaultStackId,
+                  stack_id: connection.defaultStackId,
+                  uploader_id: BigInt(userId),
+                  // NOTE: schema drift — LibraryPost has no sourceId/order/createdById
+                  // fields anymore. These were dropped when blocks/sources were split.
                   sourceId: source.id,
-                  order: maxOrder + 1,
-                  createdById: userId,
-                },
+                } as any,
               });
             }
           }

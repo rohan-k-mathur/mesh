@@ -41,7 +41,6 @@ export async function upsertAifGraph(doc: any) {
         text: n['aif:name'] || '',
         schemeId: scheme?.id ?? null,
         conclusionClaimId: conc.id,
-        implicitWarrant: null,
       }
     });
     await prisma.argumentPremise.createMany({ data: premIds.map(cid => ({ argumentId: a.id, claimId: cid, isImplicit:false })) });

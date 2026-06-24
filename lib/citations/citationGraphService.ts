@@ -45,7 +45,6 @@ export async function buildArgumentCitationGraph(
     const argument = await prisma.argument.findUnique({
       where: { id },
       include: {
-        createdBy: { select: { id: true, name: true } },
         conclusion: { select: { text: true } },
         citationsMade: {
           include: {
@@ -78,7 +77,7 @@ export async function buildArgumentCitationGraph(
       type: "argument",
       label: argument.conclusion?.text?.slice(0, 80) || argument.text?.slice(0, 80) || "Argument",
       deliberationId: argument.deliberation?.id,
-      authorId: argument.createdBy?.id,
+      authorId: argument.authorId,
       citationCount: argument.citationMetrics?.totalCitations || 0,
       depth: currentDepth,
     });
@@ -150,14 +149,12 @@ export async function buildDeliberationCitationGraph(
   const arguments_ = await prisma.argument.findMany({
     where: { deliberationId },
     include: {
-      createdBy: { select: { id: true, name: true } },
       conclusion: { select: { text: true } },
       citationsMade: {
         include: {
           citedArgument: {
             include: {
               deliberation: { select: { id: true, title: true } },
-              createdBy: { select: { id: true, name: true } },
               conclusion: { select: { text: true } },
             },
           },
@@ -168,7 +165,6 @@ export async function buildDeliberationCitationGraph(
           citingArgument: {
             include: {
               deliberation: { select: { id: true, title: true } },
-              createdBy: { select: { id: true, name: true } },
               conclusion: { select: { text: true } },
             },
           },
@@ -187,7 +183,7 @@ export async function buildDeliberationCitationGraph(
       type: "argument",
       label: arg.conclusion?.text?.slice(0, 80) || arg.text?.slice(0, 80) || "Argument",
       deliberationId,
-      authorId: arg.createdBy?.id,
+      authorId: arg.authorId,
       citationCount: arg.citationMetrics?.totalCitations || 0,
     });
 
@@ -205,7 +201,7 @@ export async function buildDeliberationCitationGraph(
               type: "external",
               label: `[${cited.deliberation?.title || "External"}] ${cited.conclusion?.text?.slice(0, 50) || cited.text?.slice(0, 50) || ""}`,
               deliberationId: cited.deliberation?.id,
-              authorId: cited.createdBy?.id,
+              authorId: cited.authorId,
               citationCount: 0,
             });
           }
@@ -233,7 +229,7 @@ export async function buildDeliberationCitationGraph(
               type: "external",
               label: `[${citing.deliberation?.title || "External"}] ${citing.conclusion?.text?.slice(0, 50) || citing.text?.slice(0, 50) || ""}`,
               deliberationId: citing.deliberation?.id,
-              authorId: citing.createdBy?.id,
+              authorId: citing.authorId,
               citationCount: 0,
             });
           }
@@ -373,7 +369,6 @@ export async function getMostCitedArguments(
     include: {
       argument: {
         include: {
-          createdBy: { select: { id: true, name: true } },
           conclusion: { select: { text: true } },
           deliberation: { select: { id: true, title: true } },
           permalink: { select: { shortCode: true, permalinkUrl: true } },

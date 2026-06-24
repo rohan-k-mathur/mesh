@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const items = drifts.map(d => ({
-      anchorMessageId: d.anchor_message_id.toString(),
+      anchorMessageId: d.anchor_message_id ? d.anchor_message_id.toString() : null,
       drift: {
         id: d.id.toString(),
         conversationId: d.conversation_id.toString(),
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         isArchived: d.is_archived,
         messageCount: d.message_count,
         lastMessageAt: d.last_message_at ? d.last_message_at.toISOString() : null,
-        anchorMessageId: d.anchor_message_id.toString(),
+        anchorMessageId: d.anchor_message_id ? d.anchor_message_id.toString() : null,
         kind: d.kind,
         rootMessageId: d.root_message_id ? d.root_message_id.toString() : null,
       },

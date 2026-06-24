@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { extractPlainText } from "@cp/lib/extract-plain-text";
+import { prisma } from "../../../lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
+import { extractPlainText } from "../../../lib/extract-plain-text";
 
 const GENRES = [
   "EXCERPT",

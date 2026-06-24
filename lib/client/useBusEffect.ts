@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type {  BusEvent } from "@/lib/server/bus";
+import type { BusEvent } from "@/lib/events/topics";
 
  type BusEnvelope<T extends BusEvent = BusEvent> = {
   type: T;

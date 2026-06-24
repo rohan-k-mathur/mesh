@@ -13,7 +13,7 @@ import { IsonomiaWidget } from "@/components/embeddable/IsonomiaWidget";
 
 function Inner() {
   const sp = useSearchParams();
-  const id = sp.get("deliberationId") ?? "";
+  const id = sp?.get("deliberationId") ?? "";
   if (!id) {
     return (
       <div className="p-8 text-sm text-slate-700">

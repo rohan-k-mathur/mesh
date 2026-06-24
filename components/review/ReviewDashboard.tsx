@@ -148,7 +148,7 @@ export function ReviewDashboard({ reviewId }: ReviewDashboardProps) {
       {/* Phase Timeline */}
       {progress && (
         <PhaseTimeline
-          phases={progress.phases}
+          phases={progress.phases as any}
           currentPhaseId={review.currentPhase?.id}
         />
       )}
@@ -166,12 +166,12 @@ export function ReviewDashboard({ reviewId }: ReviewDashboardProps) {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Reviewers */}
-        <ReviewerPanel reviewId={reviewId} assignments={assignments || []} />
+        <ReviewerPanel reviewId={reviewId} assignments={(assignments || []) as any} />
 
         {/* Commitments */}
         <CommitmentPanel
           reviewId={reviewId}
-          commitments={commitments || []}
+          commitments={(commitments || []) as any}
           showOnlyUnresolved
         />
       </div>

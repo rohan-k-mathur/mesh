@@ -34,9 +34,12 @@ export async function computeAffinityClusters(deliberationId: string, k = 4) {
   });
 
   // reuse kmeans from topic module (copy the functions or import)
-  const { assign } = (await import('./topicClusters')).kmeansCosine?.(vecs as any, k, 6) 
+  const topicMod = (await import('./topicClusters')) as {
+    kmeansCosine?: (vecs: unknown, k: number, iters: number) => { assign: number[] };
+  };
+  const { assign } = topicMod.kmeansCosine?.(vecs as any, k, 6)
     // fallback: trivial 1-cluster
-    ?? { assign: new Array(vecs.length).fill(0) };
+    ?? { assign: new Array(vecs.length).fill(0) as number[] };
 
   // wipe old
   const clusters = await prisma.cluster.findMany({ where: { deliberationId, type: 'affinity' } });

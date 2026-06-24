@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prismaclient";
+import { Prisma } from "@prisma/client";
 import type { PreferenceConflict, PreferenceInCycle } from "./detection";
 import { detectConflicts } from "./detection";
 
@@ -150,7 +151,7 @@ export async function undoResolution(
     where: { id: { in: paIds } },
     data: {
       conflictStatus: "none",
-      conflictResolution: null,
+      conflictResolution: Prisma.JsonNull,
       conflictResolvedAt: null,
       conflictResolvedBy: null,
     },

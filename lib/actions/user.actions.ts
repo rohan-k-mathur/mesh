@@ -148,7 +148,7 @@ export async function fetchUserThreads(userId: bigint) {
         id: userId,
       },
       include: {
-        posts: {
+        feedPosts: {
           where: {
             OR: [
               { expiration_date: null },
@@ -180,7 +180,7 @@ export async function fetchUserThreads(userId: bigint) {
     if (!posts) return null;
     const mapped = {
       ...posts,
-      posts: posts.posts.map((p) => ({
+      posts: posts.feedPosts.map((p) => ({
         ...p,
         commentCount: p._count.children,
         children: p.children.map((c) => ({

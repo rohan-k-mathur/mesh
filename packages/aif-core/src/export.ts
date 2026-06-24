@@ -211,8 +211,8 @@ export async function exportDeliberationAsAifJSONLD(deliberationId: string) {
     aid ? idRA(aid) : (cid ? idI(cid) : (sid ? `SCH|${sid}` : ''));
   for (const pa of pas) {
     nodes.push({ '@id': idPA(pa.id), '@type':'aif:PA', scheme: pa.scheme?.key ?? null });
-    const pref = ref(pa.preferredClaimId, pa.preferredArgumentId, pa.preferredSchemeId);
-    const disp = ref(pa.dispreferredClaimId, pa.dispreferredArgumentId, pa.dispreferredSchemeId);
+    const pref = ref(pa.preferredClaimId ?? undefined, pa.preferredArgumentId ?? undefined, pa.preferredSchemeId ?? undefined);
+    const disp = ref(pa.dispreferredClaimId ?? undefined, pa.dispreferredArgumentId ?? undefined, pa.dispreferredSchemeId ?? undefined);
     edges.push({ '@type':'aif:PreferredElement',    from: pref,   to: idPA(pa.id) });
     edges.push({ '@type':'aif:DispreferredElement', from: idPA(pa.id), to: disp   });
   }

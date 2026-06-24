@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // author) may rename. `createdById` alone is unreliable for host-bound
   // deliberations (created by whoever first loads the host page). All ids
   // follow the stringified internal User.id convention.
-  if (!(await canRenameDeliberation(existing, userId))) {
+  if (!(await canRenameDeliberation(existing, String(userId)))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

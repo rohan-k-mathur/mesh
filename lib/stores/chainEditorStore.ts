@@ -87,13 +87,13 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
   
   onNodesChange: (changes) => {
     set({
-      nodes: applyNodeChanges(changes, get().nodes),
+      nodes: applyNodeChanges(changes, get().nodes) as Node<ChainNodeData>[],
     });
   },
   
   onEdgesChange: (changes) => {
     set({
-      edges: applyEdgeChanges(changes, get().edges),
+      edges: applyEdgeChanges(changes, get().edges) as Edge<ChainEdgeData>[],
     });
   },
   

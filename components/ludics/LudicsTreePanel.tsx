@@ -66,7 +66,7 @@ export function LudicsTreePanel({
   
   // For NLCommitPopover target context (simplified - may need actual context)
   const targetIdFromContext = deliberationId;
-  const targetTypeFromContext = "deliberation";
+  const targetTypeFromContext: "argument" | "claim" | "card" = "claim";
 
   return (
     <div className="grid gap-4">
@@ -81,10 +81,17 @@ export function LudicsTreePanel({
           
           <LociTreeWithControls
             dialogueId={deliberationId}
-            posDesignId={proDesignId}
-            negDesignId={oppDesignId}
+            posDesignId={proDesignId ?? ""}
+            negDesignId={oppDesignId ?? ""}
             defaultMode="assoc"
-            suggestCloseDaimonAt={suggestClose}
+            suggestCloseDaimonAt={
+              suggestClose
+                ? (path: string) => {
+                    suggestClose(path);
+                    return true;
+                  }
+                : undefined
+            }
           />
 
           {commitOpen && commitPath && targetIdFromContext && (
@@ -140,7 +147,12 @@ export function LudicsTreePanel({
               </div>
               <LociTree
                 root={shapeToTree(d)}
-                onPickBranch={pickAdditive}
+                onPickBranch={
+                  pickAdditive
+                    ? (parentPath: string, childSuffix: string) =>
+                        pickAdditive(parentPath, Number(childSuffix))
+                    : undefined
+                }
                 usedAdditive={trace?.usedAdditive}
                 focusPath={focusPath}
                 onFocusPathChange={onFocusPathChange}

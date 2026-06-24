@@ -13,8 +13,9 @@
  */
 
 import {
-  computeEventHash,
+  computeEventHash as computeEventHashBase,
   type ChainVerificationResult,
+  type HashableEventPayload,
 } from "@/lib/pathways/hashChain";
 import type {
   MetaConsensusEvent,
@@ -22,7 +23,23 @@ import type {
   MetaConsensusHashableEventPayload,
 } from "./types";
 
-export { computeEventHash } from "@/lib/pathways/hashChain";
+/**
+ * Meta-consensus variant of `computeEventHash`. Reuses the pathway
+ * primitive verbatim — only the hashable payload shape differs, so the
+ * canonical-JSON hashing is shape-agnostic at runtime.
+ */
+export function computeEventHash(
+  prevHash: string | null,
+  payload: MetaConsensusHashableEventPayload,
+  createdAt: Date,
+): string {
+  return computeEventHashBase(
+    prevHash,
+    payload as unknown as HashableEventPayload,
+    createdAt,
+  );
+}
+
 export type { ChainVerificationResult } from "@/lib/pathways/hashChain";
 
 export function eventPayloadForHash(

@@ -60,7 +60,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   const work = await prisma.theoryWork.findUnique({ where: { id: params.id } });
   if (!work) return NextResponse.json({ error: 'Work not found' }, { status: 404 });
-  if (work.authorId !== user.userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (work.authorId !== String(user.userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const json = await req.json();
   const parsed = BodySchema.safeParse(json);

@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { resolveDeliberationName } from "@/lib/deliberations/resolveName";
 import {
   MergeOptions,
@@ -66,8 +67,8 @@ export async function createMergeRequest(
       targetDeliberationId: input.targetDeliberationId,
       title: input.title,
       description: input.description,
-      claimsToMerge: input.claimsToMerge,
-      argumentsToMerge: input.argumentsToMerge,
+      claimsToMerge: input.claimsToMerge as unknown as Prisma.InputJsonValue,
+      argumentsToMerge: input.argumentsToMerge as unknown as Prisma.InputJsonValue,
       authorId,
       status: "OPEN",
     },
@@ -261,8 +262,8 @@ export async function executeMerge(
     throw new Error(`Merge request is not in a mergeable state: ${mergeRequest.status}`);
   }
 
-  const claimsToMerge = mergeRequest.claimsToMerge as MergeClaimSelection[];
-  const argumentsToMerge = mergeRequest.argumentsToMerge as MergeArgumentSelection[];
+  const claimsToMerge = mergeRequest.claimsToMerge as unknown as MergeClaimSelection[];
+  const argumentsToMerge = mergeRequest.argumentsToMerge as unknown as MergeArgumentSelection[];
   const targetDelibId = mergeRequest.targetDeliberationId;
 
   // Execute in transaction
@@ -321,7 +322,7 @@ export async function executeMerge(
           data: {
             fromClaimId: newClaim.id,
             toClaimId: selection.targetClaimId,
-            type: "SUPPORT",
+            type: "supports",
             deliberationId: targetDelibId,
           },
         });
@@ -344,7 +345,7 @@ export async function executeMerge(
           data: {
             fromClaimId: newClaim.id,
             toClaimId: selection.targetClaimId,
-            type: "ATTACK",
+            type: "rebuts",
             deliberationId: targetDelibId,
           },
         });
@@ -392,7 +393,6 @@ export async function executeMerge(
             data: {
               argumentId: newArg.id,
               claimId: mappedClaimId,
-              order: premise.order,
             },
           });
         }
@@ -459,8 +459,8 @@ export async function listMergeRequests(
 
   return requests.map((req) => {
     const author = authorMap.get(req.authorId);
-    const claimsToMerge = req.claimsToMerge as MergeClaimSelection[];
-    const argumentsToMerge = req.argumentsToMerge as MergeArgumentSelection[];
+    const claimsToMerge = req.claimsToMerge as unknown as MergeClaimSelection[];
+    const argumentsToMerge = req.argumentsToMerge as unknown as MergeArgumentSelection[];
 
     return {
       id: req.id,
@@ -523,8 +523,8 @@ export async function getMergeRequest(
   const userMap = new Map(users.map((u) => [u.id.toString(), u]));
 
   const author = userMap.get(req.authorId);
-  const claimsToMerge = req.claimsToMerge as MergeClaimSelection[];
-  const argumentsToMerge = req.argumentsToMerge as MergeArgumentSelection[];
+  const claimsToMerge = req.claimsToMerge as unknown as MergeClaimSelection[];
+  const argumentsToMerge = req.argumentsToMerge as unknown as MergeArgumentSelection[];
 
   // Run analysis
   const analysis = await analyzeMerge(

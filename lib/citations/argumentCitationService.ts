@@ -236,7 +236,7 @@ export async function getArgumentCitations(
         text: c.citedArgument.text,
         authorId: c.citedArgument.authorId,
         deliberationId: c.citedArgument.deliberationId,
-        deliberationTitle: c.citedArgument.deliberation.title,
+        deliberationTitle: c.citedArgument.deliberation.title ?? undefined,
       },
     })),
     citationsReceived: argument.citationsReceived.map((c) => ({
@@ -253,7 +253,7 @@ export async function getArgumentCitations(
         text: c.citingArgument.text,
         authorId: c.citingArgument.authorId,
         deliberationId: c.citingArgument.deliberationId,
-        deliberationTitle: c.citingArgument.deliberation.title,
+        deliberationTitle: c.citingArgument.deliberation.title ?? undefined,
       },
     })),
     permalink: argument.permalink

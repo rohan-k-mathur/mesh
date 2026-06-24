@@ -49,9 +49,9 @@ export async function closeSchemeInstance(
   await ensureObligationRowsForInstance(instanceId);
 
   const state = await loadProtocolState(instanceId);
-  const verdict =
+  const verdict: SoundnessVerdict =
     mode === "off"
-      ? ({ ok: true, waived: [] } as const)
+      ? { ok: true, waived: [] }
       : checkSoundnessOnClose(state);
 
   if (!verdict.ok) {

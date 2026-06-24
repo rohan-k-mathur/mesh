@@ -1,4 +1,10 @@
 // kb/blocks/registry.ts
+import type React from "react";
+import type { BaseBlock as KbBlock, KbBlockType } from "@/lib/kb/types";
+
+// Lexical is not a hard dependency here; the editor instance is opaque.
+type LexicalEditor = any;
+
 export type BlockContext = { resolveUrn: (u:string)=>Promise<any>; now: Date };
 
 export type BlockHandlers = {
@@ -13,4 +19,4 @@ export type BlockHandlers = {
   pin:    (block:KbBlock, ctx:BlockContext)=>Promise<KbBlock>,
 };
 
-export const registry: Record<KbBlockType, BlockHandlers> = { /* … */ };
+export const registry: Record<KbBlockType, BlockHandlers> = { /* … */ } as Record<KbBlockType, BlockHandlers>;

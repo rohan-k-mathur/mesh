@@ -33,21 +33,14 @@ export async function GET(_: NextRequest) {
         conclusionType: true,
         slotHints: true,
         // Phase 0.2: Epistemic Mode
-        // @ts-expect-error - Phase 0.2 field, Prisma types may be cached
         epistemicMode: true,
         // Phase 0.3: Enhanced Metadata
-        // @ts-expect-error - Phase 0.3 fields
         tags: true,
-        // @ts-expect-error - Phase 0.3 fields
         examples: true,
-        // @ts-expect-error - Phase 0.3 fields
         usageCount: true,
-        // @ts-expect-error - Phase 0.3 fields
         difficulty: true,
         // Phase 0.5: Identification Conditions
-        // @ts-expect-error - Phase 0.5 fields
         identificationConditions: true,
-        // @ts-expect-error - Phase 0.5 fields
         whenToUse: true,
         premises: true,
         conclusion: true,
@@ -56,9 +49,8 @@ export async function GET(_: NextRequest) {
         parentSchemeId: true,
         clusterTag: true,
         // Roadmap E1: behaviour fingerprint feeds the catalogue-health projection.
-        // @ts-expect-error - Phase 2 field, Prisma types may be cached
         fingerprint: true,
-        // @ts-expect-error - Q-018 discriminator, Prisma types may be cached
+        // Q-018 discriminator
         kind: true,
       },
     });

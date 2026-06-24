@@ -1,5 +1,10 @@
 import Redis from "ioredis";
 
+declare global {
+  // eslint-disable-next-line no-var
+  var _redis: Redis | undefined;
+}
+
 // Disable Redis in local dev if REDIS_URL is not set
 const redis = process.env.REDIS_URL 
   ? new Redis(process.env.REDIS_URL)

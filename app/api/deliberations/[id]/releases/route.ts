@@ -34,7 +34,7 @@ export async function POST(
   try {
     // 1. Auth check
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!(session?.user as any)?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -58,7 +58,7 @@ export async function POST(
       title,
       description,
       versionType,
-      createdById: session.user.id,
+      createdById: (session!.user as any).id,
     });
 
     return NextResponse.json(

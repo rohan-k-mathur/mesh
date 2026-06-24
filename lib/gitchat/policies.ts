@@ -12,7 +12,7 @@
    // Heuristic: check ConversationParticipant role if you have it, else grant to room creator (cheap baseline).
    const part = await prisma.conversationParticipant.findFirst({
      where: { conversation_id: msg.conversation_id, user_id: userId },
-     select: { role: true },
+     select: { id: true },
    }).catch(() => null as any);
    const role = (part as any)?.role ?? "";
    return ["MOD", "ADMIN", "OWNER"].includes(String(role).toUpperCase());

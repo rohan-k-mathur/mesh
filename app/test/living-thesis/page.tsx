@@ -761,13 +761,13 @@ const PHASE_FEATURES: PhaseFeature[] = [
 ];
 
 const PHASE_BANDS = [
-  { id: "phase1", label: "Phase 1", title: "Live Binding", color: "from-indigo-500/10 to-violet-500/15", iconColor: "text-indigo-600", icon: Radio, done: true },
-  { id: "phase2", label: "Phase 2", title: "Inspector", color: "from-violet-500/10 to-purple-500/15", iconColor: "text-violet-600", icon: PanelRightOpen, done: true },
-  { id: "phase3", label: "Phase 3", title: "Attack Register", color: "from-rose-500/10 to-orange-500/15", iconColor: "text-rose-600", icon: Swords, done: true },
-  { id: "phase4", label: "Phase 4", title: "Confidence", color: "from-fuchsia-500/10 to-violet-500/15", iconColor: "text-fuchsia-600", icon: Gauge, done: true },
-  { id: "phase5", label: "Phase 5", title: "Snapshots", color: "from-amber-500/10 to-orange-500/15", iconColor: "text-amber-600", icon: Camera, done: true },
-  { id: "phase6", label: "Phase 6", title: "Traversals", color: "from-emerald-500/10 to-teal-500/15", iconColor: "text-emerald-600", icon: Workflow, done: true },
-  { id: "phase7", label: "Phase 7", title: "Hardening", color: "from-slate-500/10 to-zinc-500/15", iconColor: "text-slate-500", icon: ShieldCheck, done: true },
+  { id: "phase1", label: "Phase 1", title: "Live Binding", color: "from-indigo-500/10 to-violet-500/15", iconColor: "text-indigo-600", icon: Radio, done: true, active: false },
+  { id: "phase2", label: "Phase 2", title: "Inspector", color: "from-violet-500/10 to-purple-500/15", iconColor: "text-violet-600", icon: PanelRightOpen, done: true, active: false },
+  { id: "phase3", label: "Phase 3", title: "Attack Register", color: "from-rose-500/10 to-orange-500/15", iconColor: "text-rose-600", icon: Swords, done: true, active: false },
+  { id: "phase4", label: "Phase 4", title: "Confidence", color: "from-fuchsia-500/10 to-violet-500/15", iconColor: "text-fuchsia-600", icon: Gauge, done: true, active: false },
+  { id: "phase5", label: "Phase 5", title: "Snapshots", color: "from-amber-500/10 to-orange-500/15", iconColor: "text-amber-600", icon: Camera, done: true, active: false },
+  { id: "phase6", label: "Phase 6", title: "Traversals", color: "from-emerald-500/10 to-teal-500/15", iconColor: "text-emerald-600", icon: Workflow, done: true, active: false },
+  { id: "phase7", label: "Phase 7", title: "Hardening", color: "from-slate-500/10 to-zinc-500/15", iconColor: "text-slate-500", icon: ShieldCheck, done: true, active: false },
 ];
 
 const FILES = [

@@ -670,7 +670,7 @@ export function LandscapeHeatMap({
           {/* Color scheme */}
           <select
             value={currentColorScheme}
-            onChange={(e) => setCurrentColorScheme(e.target.value)}
+            onChange={(e) => setCurrentColorScheme(e.target.value as "outcome" | "heat" | "polarity")}
             className="text-sm border rounded px-2 py-1"
           >
             <option value="heat">Heat</option>

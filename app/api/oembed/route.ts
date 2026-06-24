@@ -219,7 +219,7 @@ async function getMetadata(
             select: {
               id: true,
               name: true,
-              displayName: true,
+              username: true,
             },
           },
           _count: { select: { items: true } },
@@ -240,8 +240,8 @@ async function getMetadata(
       return {
         title: stack.name,
         description: stack.description || undefined,
-        authorName: stack.owner.displayName || stack.owner.name || undefined,
-        authorUrl: stack.owner.id ? `${baseUrl}/profile/${stack.owner.id}` : undefined,
+        authorName: stack.owner.name || stack.owner.username || undefined,
+        authorUrl: stack.owner.id ? `${baseUrl}/profile/${stack.owner.id.toString()}` : undefined,
         itemCount: stack._count.items,
       };
     }

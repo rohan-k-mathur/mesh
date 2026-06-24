@@ -246,7 +246,9 @@ export interface ChainAnalysis {
 
 // ReactFlow node data
 export interface ChainNodeData {
-  argument: ArgumentChainNodeWithArgument["argument"];
+  argument: ArgumentChainNodeWithArgument["argument"] & {
+    conclusion?: { id: string; text: string } | null;
+  };
   role?: string;
   addedBy: {
     id: string;

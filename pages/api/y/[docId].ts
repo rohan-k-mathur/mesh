@@ -1,7 +1,11 @@
 // pages/api/y/[docId].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { WebSocketServer } from 'ws';
-import { setupWSConnection } from 'y-websocket';
+// `setupWSConnection` is published under the `./bin/utils` subpath export,
+// which has no bundled type declaration; require it with an explicit signature.
+const { setupWSConnection } = require('y-websocket/bin/utils') as {
+  setupWSConnection: (conn: any, req: any, opts?: { docName?: string; gc?: boolean }) => void;
+};
 
 // Next should not parse the body for websocket upgrades
 export const config = { api: { bodyParser: false } };
@@ -22,7 +26,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   // Attach the single upgrade hook once
-  const server: any = res.socket?.server;
+  const server: any = (res.socket as any)?.server;
   if (!upgradeHookAttached && server) {
     server.on('upgrade', (request: any, socket: any, head: any) => {
       try {

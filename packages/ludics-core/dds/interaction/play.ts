@@ -392,7 +392,8 @@ export function getWinner(play: Play): Participant | undefined {
   const winnerPolarity = play.result.path.winner;
   if (!winnerPolarity) return undefined;
 
-  return play.participants.find((p) => p.perspective === winnerPolarity);
+  const targetPerspective: Polarity = winnerPolarity === "P" ? "+" : "-";
+  return play.participants.find((p) => p.perspective === targetPerspective);
 }
 
 /**

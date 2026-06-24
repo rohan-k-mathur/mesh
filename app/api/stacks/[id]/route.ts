@@ -70,7 +70,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  if (!user || user.userId == null) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
 
   await prisma.stack.delete({ where: { id: params.id, owner_id: BigInt(user.userId) } as any });
   return NextResponse.json({ ok: true });

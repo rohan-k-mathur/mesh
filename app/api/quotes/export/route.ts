@@ -78,11 +78,11 @@ export async function GET(req: NextRequest) {
     where.id = { in: quoteIds.split(",").map((id) => id.trim()) };
   if (sourceId) where.sourceId = sourceId;
   if (claimId) {
-    where.claimQuotes = { some: { claimId } };
+    where.usedInClaims = { some: { claimId } };
   }
 
   // Fetch quotes with related data
-  const quotes = await prisma.quote.findMany({
+  const quotes = await prisma.quoteNode.findMany({
     where,
     take: limit,
     orderBy: { createdAt: "desc" },
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Get author info using auth_id
-  const authorAuthIds = [...new Set(quotes.map((q) => q.authorId).filter(Boolean))];
+  const authorAuthIds = [...new Set(quotes.map((q) => q.createdById).filter(Boolean))];
   const authors = authorAuthIds.length
     ? await prisma.user.findMany({
         where: { auth_id: { in: authorAuthIds as string[] } },
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
 
   // Transform quotes to exportable format
   const exportableQuotes: ExportableQuote[] = quotes.map((quote) => {
-    const author = quote.authorId ? authorMap.get(quote.authorId) : null;
+    const author = quote.createdById ? authorMap.get(quote.createdById) : null;
     return {
       id: quote.id,
       text: quote.text,

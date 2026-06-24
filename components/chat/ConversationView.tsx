@@ -48,7 +48,6 @@ export default function ConversationView({
       <MessageComposer
         conversationId={conversationId}
         currentUserId={currentUserId}
-        quoteRef={quoteRef}
         // driftId can be provided if you mount a composer in a drift pane
       />
       <MessengerPane currentUserId={currentUserId} />

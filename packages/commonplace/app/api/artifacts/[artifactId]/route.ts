@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { ArtifactBodySchema } from "@cp/lib/artifact-types";
+import { prisma } from "../../../../lib/prisma";
+import { getCurrentAuthor } from "../../../../lib/auth";
+import { ArtifactBodySchema } from "../../../../lib/artifact-types";
 
 const PatchArtifactSchema = z.object({
   title: z.string().trim().min(1).max(300).optional(),

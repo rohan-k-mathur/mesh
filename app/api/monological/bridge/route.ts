@@ -625,6 +625,11 @@ export async function GET(req: NextRequest) {
   const argumentId = req.nextUrl.searchParams.get('argumentId') || '';
   if (!argumentId) return NextResponse.json({ ok:false, error:'argumentId required' }, { status:400 });
 
-  const res = await bridge(argumentId);
-  return res.ok ? NextResponse.json(res) : NextResponse.json(res, { status:400 });
+  // The legacy `bridge(argumentId)` helper was removed; bridging is now performed
+  // by POST (which writes dialogue moves via the H1 seam). GET no longer mutates;
+  // callers should POST { argumentId } instead.
+  return NextResponse.json(
+    { ok:false, error:'Use POST { argumentId } to bridge; GET is deprecated.' },
+    { status:405 },
+  );
 }

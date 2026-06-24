@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { prisma } from "@cp/lib/prisma";
+import { getCurrentAuthor } from "../../../lib/auth";
+import { prisma } from "../../../lib/prisma";
 
 const GENRES = new Set([
   "FRAGMENT",

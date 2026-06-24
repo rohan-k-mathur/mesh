@@ -224,7 +224,7 @@ export function ArgumentNetBuilder({
   const overallConfidence = steps.length > 0 ? Math.min(...steps.map((s) => s.confidence)) : 1.0;
 
   // Validation
-  const canProceedToSteps = netType !== "";
+  const canProceedToSteps = Boolean(netType);
   const canProceedToDependencies = steps.length > 0 && steps.every((s) => s.schemeId && s.label);
   const canSubmit = canProceedToDependencies && steps.length > 0;
 

@@ -13,7 +13,7 @@ const ThreadsTab = async ({ currentUserId, accountId }: Props) => {
 
   return (
     <section className="mt-9 flex flex-col gap-10">
-      {result.posts.map((post) => (
+      {result.posts.map((post: any) => (
         <ThreadCard
           key={post.id.toString()}
           post={mapFeedPost(post)}

@@ -42,7 +42,7 @@ export async function POST(
       where: {
         dialogueMoveId_voterId: {
           dialogueMoveId,
-          voterId: user.userId,
+          voterId: user.userId.toString(),
         },
       },
       update: {
@@ -50,7 +50,7 @@ export async function POST(
       },
       create: {
         dialogueMoveId,
-        voterId: user.userId,
+        voterId: user.userId.toString(),
         voteType,
       },
     });
@@ -116,7 +116,7 @@ export async function DELETE(
     await prisma.responseVote.deleteMany({
       where: {
         dialogueMoveId,
-        voterId: user.userId,
+        voterId: user.userId.toString(),
       },
     });
 

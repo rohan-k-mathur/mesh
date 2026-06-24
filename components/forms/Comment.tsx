@@ -38,7 +38,6 @@ const Comment = ({ postId, realtimePostId, currentUserImg, currentUserId }: Prop
     resolver: zodResolver(CommentValidation),
     defaultValues: {
       thread: "",
-      accountId: currentUserId,
     },
   });
 
@@ -48,14 +47,14 @@ const Comment = ({ postId, realtimePostId, currentUserImg, currentUserId }: Prop
         parentPostId: BigInt(realtimePostId),
         commentText: values.thread,
         userId: currentUserId,
-        path: pathname,
+        path: pathname ?? "",
       });
     } else if (postId) {
       await addCommentToPost({
         parentPostId: postId,
         commentText: values.thread,
         userId: currentUserId,
-        path: pathname,
+        path: pathname ?? "",
       });
     }
 

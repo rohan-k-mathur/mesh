@@ -27,17 +27,17 @@ export async function POST(
     // Upsert: create or update the user's vote
     const vote = await prisma.responseVote.upsert({
       where: {
-        dialogueActionId_voterId: {
-          dialogueActionId,
-          voterId: user.userId,
+        dialogueMoveId_voterId: {
+          dialogueMoveId: dialogueActionId,
+          voterId: user.userId.toString(),
         },
       },
       update: {
         voteType,
       },
       create: {
-        dialogueActionId,
-        voterId: user.userId,
+        dialogueMoveId: dialogueActionId,
+        voterId: user.userId.toString(),
         voteType,
       },
     });
@@ -61,7 +61,7 @@ export async function GET(
 
     // Get vote counts grouped by type
     const votes = await prisma.responseVote.findMany({
-      where: { dialogueActionId },
+      where: { dialogueMoveId: dialogueActionId },
       select: { voteType: true },
     });
 

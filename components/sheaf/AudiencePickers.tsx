@@ -53,7 +53,7 @@ export function AudiencePicker(props: {
         onChange({ kind: 'EVERYONE' });
         break;
       case 'ROLE':
-        onChange({ kind: 'ROLE', role });
+        onChange({ kind: 'ROLE', role, mode: 'DYNAMIC' });
         break;
       case 'LIST':
         onChange({ kind: 'LIST', listId, mode });

@@ -18,9 +18,9 @@ const DeleteCardButton = ({  realtimePostId, feedPostId }: Props) => {
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this post?")) return;
     if (realtimePostId) {
-      await deleteRealtimePost({ id: realtimePostId, path: pathname });
+      await deleteRealtimePost({ id: realtimePostId, path: pathname ?? undefined });
     } else if (feedPostId) {
-      await deleteFeedPost({ id: feedPostId, path: pathname });
+      await deleteFeedPost({ id: feedPostId, path: pathname ?? "" });
     } 
     router.refresh();
   };

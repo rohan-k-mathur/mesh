@@ -32,7 +32,7 @@ export async function getClaimProvenance(
     where: { id: claimId },
     include: {
       source: {
-        select: { id: true, title: true, authors: true },
+        select: { id: true, title: true, authorsJson: true },
       },
       versions: {
         orderBy: { versionNumber: "asc" },
@@ -50,13 +50,13 @@ export async function getClaimProvenance(
   const origin: ClaimOrigin = {
     sourceId: claim.sourceId || undefined,
     sourceTitle: claim.source?.title || undefined,
-    sourceAuthors: claim.source?.authors ? (claim.source.authors as unknown as string[]) : undefined,
+    sourceAuthors: claim.source?.authorsJson ? (claim.source.authorsJson as unknown as string[]) : undefined,
     date: claim.originDate ?? claim.createdAt,
     authorId: claim.originAuthorId ?? claim.createdById,
   };
 
   // Map versions to summaries
-  const versions: ClaimVersionSummary[] = claim.versions.map((v) => ({
+  const versions: ClaimVersionSummary[] = claim.versions.map((v: (typeof claim.versions)[number]) => ({
     id: v.id,
     versionNumber: v.versionNumber,
     text: v.text,
@@ -320,7 +320,7 @@ export async function getClaimOrigin(claimId: string): Promise<ClaimOrigin | nul
     where: { id: claimId },
     include: {
       source: {
-        select: { id: true, title: true, authors: true },
+        select: { id: true, title: true, authorsJson: true },
       },
     },
   });
@@ -340,7 +340,7 @@ export async function getClaimOrigin(claimId: string): Promise<ClaimOrigin | nul
   return {
     sourceId: claim.sourceId || undefined,
     sourceTitle: claim.source?.title || undefined,
-    sourceAuthors: claim.source?.authors ? (claim.source.authors as unknown as string[]) : undefined,
+    sourceAuthors: claim.source?.authorsJson ? (claim.source.authorsJson as unknown as string[]) : undefined,
     date: claim.originDate ?? claim.createdAt,
     authorId: claim.originAuthorId ?? claim.createdById,
     authorName,

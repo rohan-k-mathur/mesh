@@ -9,9 +9,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+// `d3` is the runtime umbrella package. `@types/d3` is not installed in this
+// workspace (only individual `@types/d3-*` sub-packages are), so the import is
+// untyped here and the callback parameters below are annotated explicitly to
+// retain type-safety at every D3 call site.
+// @ts-ignore -- no bundled types for the `d3` umbrella package
 import * as d3 from "d3";
+import type { D3ZoomEvent } from "d3-zoom";
 import { useRouter } from "next/navigation";
-import { 
+import {
   Search, 
   Filter, 
   ZoomIn, 
@@ -31,6 +37,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+
+// Minimal local typing for the d3-force simulation surface used here. The
+// `@types/d3-force` package is not installed in this workspace, so we describe
+// only the methods this component calls.
+interface D3Simulation {
+  alphaTarget(target: number): D3Simulation;
+  restart(): D3Simulation;
+  stop(): D3Simulation;
+}
 
 // Node type colors
 const NODE_COLORS: Record<string, string> = {
@@ -105,7 +120,7 @@ export function KnowledgeGraphExplorer({
   const router = useRouter();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const simulationRef = useRef<d3.Simulation<GraphNode, GraphEdge> | null>(null);
+  const simulationRef = useRef<D3Simulation | null>(null);
 
   // State
   const [centerNode, setCenterNode] = useState<{ type: string; id: string } | null>(
@@ -226,8 +241,8 @@ export function KnowledgeGraphExplorer({
     // Create zoom behavior
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
-      .on("zoom", (event) => {
-        g.attr("transform", event.transform);
+      .on("zoom", (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
+        g.attr("transform", event.transform.toString());
       });
 
     svg.call(zoom);
@@ -238,7 +253,7 @@ export function KnowledgeGraphExplorer({
     svg.append("defs").selectAll("marker")
       .data(["arrow"])
       .enter().append("marker")
-      .attr("id", (d) => d)
+      .attr("id", (d: string) => d)
       .attr("viewBox", "0 -5 10 10")
       .attr("refX", 20)
       .attr("refY", 0)
@@ -259,13 +274,13 @@ export function KnowledgeGraphExplorer({
       .force(
         "link",
         d3.forceLink<GraphNode, GraphEdge>(edges)
-          .id((d) => d.id)
+          .id((d: GraphNode) => d.id)
           .distance(100)
           .strength(0.5)
       )
       .force("charge", d3.forceManyBody().strength(-400))
       .force("center", d3.forceCenter(width / 2, svgHeight / 2))
-      .force("collision", d3.forceCollide<GraphNode>().radius((d) => 
+      .force("collision", d3.forceCollide<GraphNode>().radius((d: GraphNode) =>
         Math.max(15, d.weight * 8 + 10)
       ));
 
@@ -278,7 +293,7 @@ export function KnowledgeGraphExplorer({
       .data(edges)
       .enter().append("line")
       .attr("stroke", "#cbd5e1")
-      .attr("stroke-width", (d) => Math.max(1, d.weight * 0.5))
+      .attr("stroke-width", (d: GraphEdge) => Math.max(1, d.weight * 0.5))
       .attr("stroke-opacity", 0.6)
       .attr("marker-end", "url(#arrow)");
 
@@ -294,19 +309,19 @@ export function KnowledgeGraphExplorer({
 
     // Node circles
     node.append("circle")
-      .attr("r", (d) => Math.max(8, d.weight * 5 + 5))
-      .attr("fill", (d) => NODE_COLORS[d.type] || "#6b7280")
-      .attr("stroke", (d) => 
-        d.depth === 0 ? "#000" : 
+      .attr("r", (d: GraphNode) => Math.max(8, d.weight * 5 + 5))
+      .attr("fill", (d: GraphNode) => NODE_COLORS[d.type] || "#6b7280")
+      .attr("stroke", (d: GraphNode) =>
+        d.depth === 0 ? "#000" :
         selectedNode?.id === d.id ? "#000" : "#fff"
       )
-      .attr("stroke-width", (d) => d.depth === 0 ? 3 : 2);
+      .attr("stroke-width", (d: GraphNode) => d.depth === 0 ? 3 : 2);
 
     // Node labels
     node.append("text")
-      .text((d) => truncateLabel(d.label, 20))
+      .text((d: GraphNode) => truncateLabel(d.label, 20))
       .attr("x", 0)
-      .attr("y", (d) => Math.max(8, d.weight * 5 + 5) + 14)
+      .attr("y", (d: GraphNode) => Math.max(8, d.weight * 5 + 5) + 14)
       .attr("text-anchor", "middle")
       .attr("font-size", "10px")
       .attr("fill", "#374151")
@@ -314,23 +329,23 @@ export function KnowledgeGraphExplorer({
 
     // Node interactions
     node
-      .on("mouseover", function(event, d) {
+      .on("mouseover", function(this: SVGGElement, event: MouseEvent, d: GraphNode) {
         setHoveredNode(d);
-        d3.select(this).select("circle")
+        d3.select<SVGGElement, GraphNode>(this).select("circle")
           .attr("stroke", "#000")
           .attr("stroke-width", 3);
       })
-      .on("mouseout", function(event, d) {
+      .on("mouseout", function(this: SVGGElement, event: MouseEvent, d: GraphNode) {
         setHoveredNode(null);
-        d3.select(this).select("circle")
+        d3.select<SVGGElement, GraphNode>(this).select("circle")
           .attr("stroke", d.depth === 0 ? "#000" : selectedNode?.id === d.id ? "#000" : "#fff")
           .attr("stroke-width", d.depth === 0 ? 3 : 2);
       })
-      .on("click", (event, d) => {
+      .on("click", (event: MouseEvent, d: GraphNode) => {
         event.stopPropagation();
         handleNodeClick(d);
       })
-      .on("dblclick", (event, d) => {
+      .on("dblclick", (event: MouseEvent, d: GraphNode) => {
         event.stopPropagation();
         handleNodeDoubleClick(d);
       });
@@ -343,7 +358,7 @@ export function KnowledgeGraphExplorer({
         .attr("x2", (d: any) => d.target.x)
         .attr("y2", (d: any) => d.target.y);
 
-      node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+      node.attr("transform", (d: GraphNode) => `translate(${d.x},${d.y})`);
     });
 
     // Zoom to fit after layout stabilizes
@@ -372,7 +387,7 @@ export function KnowledgeGraphExplorer({
   }, [data, height, selectedNode, handleNodeClick, handleNodeDoubleClick]);
 
   // Drag behavior
-  function drag(simulation: d3.Simulation<GraphNode, GraphEdge>) {
+  function drag(simulation: D3Simulation) {
     function dragstarted(event: any) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       event.subject.fx = event.subject.x;

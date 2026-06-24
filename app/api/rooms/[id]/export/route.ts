@@ -5,6 +5,7 @@ import { iterRoomMedia, streamAndHashObject } from "@/server/export/s3walk";
 import { packAsTarZst } from "@/server/export/pack";
 import { emptyManifest } from "@/server/export/manifest";
 import { S3Client } from "@aws-sdk/client-s3";
+import type { Readable } from "node:stream";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prismaclient";
 
@@ -44,7 +45,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   // pack tar (streaming)
   const out = packAsTarZst({
     dbSql: teeDb,
-    media: mediaEntries.map(({ path, stream }) => ({ path, stream })),
+    media: mediaEntries.map(({ path, stream }) => ({ path, stream: stream as Readable })),
     manifest, // NB: manifest.hashes.* will be empty until we await hash promises; good enough for MVP
   });
 

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@cp/lib/prisma";
-import { getCurrentAuthor } from "@cp/lib/auth";
-import { ArtifactBodySchema, type ArtifactBody } from "@cp/lib/artifact-types";
+import { prisma } from "../../../../../lib/prisma";
+import { getCurrentAuthor } from "../../../../../lib/auth";
+import {
+  ArtifactBodySchema,
+  type ArtifactBody,
+} from "../../../../../lib/artifact-types";
 
 /**
  * GET /api/artifacts/:id/export.md

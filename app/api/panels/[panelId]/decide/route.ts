@@ -30,11 +30,11 @@ export async function POST(req: NextRequest, { params }: { params: { panelId: st
   const newStatus = mapDecisionToStatus(decision);
 
   const existing = await prisma.contentStatus.findUnique({
-    where: { targetType_targetId: { targetType, targetId } },
+    where: { roomId_targetType_targetId: { roomId, targetType, targetId } },
   });
 
   const updated = await prisma.contentStatus.upsert({
-    where: { targetType_targetId: { targetType, targetId } },
+    where: { roomId_targetType_targetId: { roomId, targetType, targetId } },
     create: {
       roomId,
       targetType,

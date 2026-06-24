@@ -4,10 +4,10 @@
  export default function StarredFilterToggle() {
    const router = useRouter();
    const sp = useSearchParams();
-   const starred = sp.get("starred") === "1";
- 
+   const starred = sp?.get("starred") === "1";
+
    function toggle() {
-     const params = new URLSearchParams(sp.toString());
+     const params = new URLSearchParams(sp?.toString() ?? "");
      if (starred) params.delete("starred");
      else params.set("starred", "1");
      router.replace("?" + params.toString());

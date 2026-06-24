@@ -40,5 +40,22 @@
     ".next/types/**/*.ts",
     "scripts/**/*.ts", "lib/**/*.ts", "packages/**/*.ts"
   ],
-  "exclude": ["node_modules", "__tests__/**"]
+  "exclude": [
+    "node_modules",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.old.ts",
+    "**/*.old.tsx",
+    "tests/**",
+    "scripts/**",
+    "experiments/**",
+    "extensions/**",
+    "supabase/functions/**",
+    "eval/**",
+    "functions/**",
+    "workers/**"
+  ]
 }

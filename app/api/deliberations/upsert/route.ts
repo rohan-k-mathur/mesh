@@ -21,8 +21,8 @@ async function getOrCreateDeliberationId(
       hostId,
       roomId: roomId ?? undefined,
       createdById: userIdStr,
-      // default rule inherits from room if set; fallback utilitarian
-      rule: roomId ? (await prisma.agoraRoom.findUnique({ where: { id: roomId }, select: { representationRule: true }}))?.representationRule ?? 'utilitarian' : 'utilitarian',
+      // AgoraRoom has no representation rule column; default to utilitarian
+      rule: 'utilitarian',
     },
     select: { id: true }
   });

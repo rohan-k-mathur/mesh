@@ -50,14 +50,14 @@ export async function POST(req: NextRequest) {
 
   const rows = await prisma.canonicalMedia.findMany({
     where: { id: { in: ids } },
-    select: { id: true, title: true, description: true, metadata: true, embedding: true },
+    select: { id: true, title: true, metadata: true, embedding: true },
   });
 
   const texts: Record<string, string[]> = {};
   for (const r of rows) {
     if (r.embedding && r.embedding.length) continue;
     const tags = ((r.metadata as any)?.tags || []).slice(0, 3).join(" ");
-    const text = [r.title, r.description || "", tags].filter(Boolean).join(" ");
+    const text = [r.title, tags].filter(Boolean).join(" ");
     (texts[text] ||= []).push(r.id);
   }
 

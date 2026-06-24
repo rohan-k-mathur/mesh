@@ -189,10 +189,14 @@ function CitationRow({ citation, baseUrl, isCompact }: CitationRowProps) {
   const source = citation.source;
 
   // Build inline citation display
-  const authors = parseAuthors(source.authors);
-  const year = source.publicationDate
-    ? new Date(source.publicationDate).getFullYear()
-    : null;
+  const authors = parseAuthors(
+    typeof source.authorsJson === "string"
+      ? source.authorsJson
+      : source.authorsJson != null
+        ? JSON.stringify(source.authorsJson)
+        : null
+  );
+  const year = source.year ?? null;
 
   const inlineCitation = authors.length > 0
     ? `${authors[0]}${authors.length > 1 ? " et al." : ""}${year ? ` (${year})` : ""}`

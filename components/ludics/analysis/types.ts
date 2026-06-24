@@ -3,8 +3,7 @@
  * Analysis state and configuration types for DDS UI components
  */
 
-import type { View } from "@/packages/ludics-core/dds/views";
-import type { Chronicle } from "@/packages/ludics-core/dds/chronicles";
+import type { View, Chronicle } from "@/packages/ludics-core/dds/types";
 import type { InnocenceCheck, PropagationCheck } from "@/packages/ludics-core/dds/strategy/types";
 import type { IsomorphismResults } from "@/packages/ludics-core/dds/correspondence/types";
 

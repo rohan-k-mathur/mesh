@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/prismaclient";
+import { Prisma } from "@prisma/client";
 import { OrcidConnectionSummary, OrcidWorkData, OrcidWorkType } from "./types";
 
 // ORCID API configuration
@@ -361,7 +362,7 @@ export async function syncAllToOrcid(userId: bigint): Promise<{
     where: { id: connection.id },
     data: {
       lastSyncAt: new Date(),
-      syncErrors: errors.length > 0 ? errors : null,
+      syncErrors: errors.length > 0 ? errors : Prisma.JsonNull,
     },
   });
 
