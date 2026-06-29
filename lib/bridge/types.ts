@@ -44,6 +44,17 @@ export interface BridgeAct {
   arg?: ArgId;
   /** Child loci opened by this act (the opponent's reply options). */
   ramification: string[];
+  /**
+   * Additive-opener marker (session 21, `⟦·⟧₊`). When set, this act's
+   * `ramification` is an **additive superposition** — the children are
+   * mutually-exclusive alternatives, not a multiplicative conjunction. The
+   * grounded emitter (`buildDisputeDesign`) never sets it; only the additive
+   * emitter (`buildAdditiveDisputeDesign`) does, at game branch points. Mirrors
+   * `LudicAct.isAdditive` (the kernel's exclusive-choice flag — see
+   * `packages/ludics-engine/stepCore.ts`). Optional + defaulting to falsy keeps
+   * the multiplicative, additive-free grounded surface (T005) unchanged.
+   */
+  isAdditive?: boolean;
 }
 
 /**

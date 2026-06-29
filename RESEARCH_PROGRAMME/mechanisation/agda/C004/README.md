@@ -97,6 +97,7 @@ Expected output: clean, no errors, no warnings, no unsolved metas.
 | `σ`                            | `σ_joint`                                                 |
 | `σ-ext` / `σ-mono` / `σ-idem`  | the three closure axioms                                  |
 | `Saturated` / `σ-below`        | the saturated poset and the `(σ_joint, restrict)` Galois half |
+| `Latent` / `drainage` (§3.2)   | the latent stratum `Λ(B,W)` and the drainage corollary ([T014](../../02_THEOREMS_AND_PROOFS/T014-exposure-map-drainage.md)) |
 | `Model` (`Reach = id`)         | non-vacuity witness                                       |
 
 ## What this cannot check
@@ -108,8 +109,15 @@ Per the Register policy and in line with the T001/T002 caveats:
   *asserted*, not built; that is exactly why C004's status stays `open`.
 - Faithfulness of `moves` to the real ι-binding witness extraction —
   human review.
-- The **drainage corollary** (monotone decrease of the `latent`-stratum
-  cardinality of `κ ∘ proj_des ∘ σ_joint` along the update sequence) is a
-  *separate* claim in the conjecture statement; it depends on the
-  exposure map `κ` and the update dynamics and is **not** modelled here.
-  Only the closure-operator + Galois half is mechanised.
+- The **drainage corollary** is now mechanised at its `⊆`-antitone core
+  (§3.2: `Latent` / `drainage` / `walked-not-latent` / `promoted-drains`;
+  see [T014](../../02_THEOREMS_AND_PROOFS/T014-exposure-map-drainage.md)),
+  but two things stay outside Agda: (i) the **cardinality** form
+  `|Λ_{t+1}| ≤ |Λ_t|` and strict-decrease *counting* (argued on paper from
+  `⊆` over a finite frontier `B`); (ii) the **modelling choices** the
+  theorem rests on — the fixed behaviour frontier `B` as the universe (vs.
+  the growing `S_t`), the **accrual** (no-retraction) scope, and **LB2**
+  (union reachability) — which are faithfulness obligations for human
+  review, exactly like the `ForwardClosure` record. The drainage core still
+  *depends on* the asserted `Reach`, so it inherits C004 front (a)'s open
+  status.

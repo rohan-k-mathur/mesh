@@ -3,6 +3,9 @@
 **Date:** 2026-06-15
 **Direction:** 8 — Information geometry of confidence (`12_RESEARCHER_COLLABORATION_PROSPECTUS.md` §4.2; the prospectus direction the six-direction spine under-weights)
 **Status:** **Scoping — OPEN** (no production code changed, no theorem proved). This session frames [Q-045](../01_OPEN_QUESTIONS_REGISTRY.md#q-045), writes the Fisher–Rao metric on the single-claim confidence line, runs the one decisive check the registry's `next-action` names (is log-odds addition the geodesic operation?), and records a **strong preliminary finding** that splits the question into a *ratified-aggregation* half and an *open-metric* half. It does **not** settle the position-metric lift or the correlation-structure obligation.
+**Update 2026-06-25 — build-order steps 1–2 DONE:** F1 is written up rigorously and closed in [Session 14a](14a-F1-logodds-eflat-ratification-2026-06-25.md) (the $e$-flat/$m$-flat/Fisher–Rao trichotomy + the log-odds-addition = sum-of-natural-parameters = Bayesian-independent-evidence-fusion identity, against the `corroborateProbs` worked example). F2 is decided in [Session 14b](14b-F2-position-distance-fisherrao-vs-kl-2026-06-25.md): the position *distance* is **two non-substitutable registers** — Fisher–Rao $d_{FR}$ (symmetric metric, clustering/nearest) and KL = Bregman-of-$\psi$ (asymmetric divergence, directed disagreement/transport) — adopted **both, tagged by use**. The build order below advances to **step 3 (settle O1, the correlation obligation — the gating item)**.
+**Update 2026-06-27 — build-order step 3 (O1) DONE:** O1 is resolved in [Session 14c](14c-O1-correlation-pullback-induced-2026-06-27.md) as a **dichotomy**: graph-mediated correlation is **canonically induced** — a position lives on the DAG-image submanifold and inherits the **pullback** $\Phi^*g$ of the product Fisher–Rao/Bregman metric through the existing reducer map $\Phi$, off-diagonal terms = shared-premise Jacobian cross-terms, closed-form in `logodds` mode, **no schema change** (shared-premise corr $\approx0.49$ vs $0$ unshared); exogenous correlation (no graph path) is **out-of-model by design** and its repair reduces to adding a graph node (back to the induced case). **Net: F1+F2+O1 settle Q-045's core.**
+**Update 2026-06-27 — build-order step 4 (B-abelian offshoot) DONE — NEGATIVE:** [Session 14d](14d-step4-babelian-offshoot-refuted-2026-06-27.md) **refutes** the §5 conjecture. Every F2/F1 magnitude is node-derived, so it fails **B2b**'s requirement of a node-independent edge datum ($\Delta w$ = the killed coboundary; KL = not an oriented cochain; antisym-KL = spurious non-coboundary nonzero on coherent cycles). Confidence geometry cannot supply the B-abelian per-edge weight; B-abelian stays gated behind its exogenous meaning-decision ([Q-042](../01_OPEN_QUESTIONS_REGISTRY.md#q-042)). **Q-045 is now fully resolved — core (F1+F2+O1) + offshoot (refuted); no build-order item remains.**
 **Purpose:** [Session 01](01-confidence-algebra-semiring-vs-quantale-2026-06-02.md) resolved the confidence *algebra* to a log-odds / weight-of-evidence semiring (corroboration ⊕ = addition in $\mathbb{R}$). The observation Q-045 registers: log-odds **is** the natural (canonical) parameter of the Bernoulli exponential family, so the Session-01 algebra decision **already implies** a geometry that nobody has drawn out. This session draws it out far enough to decide whether the geometry *ratifies* or *competes with* the resolved rule, and whether it supplies the per-edge magnitude that the quantitative-cohomology companion ([Session 08](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) §3) explicitly lacks.
 
 > Reading order: [Session 01](01-confidence-algebra-semiring-vs-quantale-2026-06-02.md)
@@ -151,6 +154,8 @@ graph structure *induces* a canonical covariance (e.g. from `ArgumentEdge` suppo
 weights), or (b) record that the principled position metric needs a correlation
 object the schema lacks, and scope what minimal structure would supply it.
 
+**— RESOLVED 2026-06-27, [Session 14c](14c-O1-correlation-pullback-induced-2026-06-27.md): branch (a).** A position is not a free point in the product family — derived claims are *computed from* their premises by the reducer map $\Phi$, so a position lives on the **DAG-image submanifold** and the canonical position metric is the **pullback** $\Phi^*g = J^{\mathsf T} g\,J$ (Fisher–Rao) / the $\Phi$-pushed Bregman (KL), whose off-diagonal terms are the shared-premise Jacobian cross-terms — **induced, closed-form in `logodds` mode, no schema change** (verified: shared-premise corr $\approx0.49$ vs $\approx0$ unshared). The residual (b) — *exogenous* correlation with no graph path — is **out-of-model by design** (epistemic dependence is *argued*) and its repair **reduces to adding a graph node** (latent common cause), landing back in (a). This **tightens** the independence hypothesis: it is on the **free inputs** (leaves/premises), not on all claims; derived claims' correlation is *computed, not posited*.
+
 ## 5. The cross-cutting payoff (why this is worth more than a single metric)
 
 [Session 08 §3](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) parked
@@ -164,33 +169,47 @@ shape an $\mathbb{R}$-coefficient holonomy needs. This turns a stuck *modelling*
 ("what does a per-edge weight *mean*?") into a *derived* value, and is the strongest
 argument for prioritising the metric half.
 
+**— REFUTED 2026-06-27, [Session 14d](14d-step4-babelian-offshoot-refuted-2026-06-27.md).** This conjecture is **wrong**, for the reason **B2b** ([Session 08](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) §1 / [Session 07](07-distributed-semantics-sheaf-cohomology-2026-06-07.md) §3.2) already supplies: a non-trivial $H^1(\mathbb{R})$ needs an edge datum **independent of the nodes**, but every F2/F1 magnitude is a function $f(p_{\mathrm{src}},p_{\mathrm{tgt}})$ of the node confidences. Tested on a *coherent* (zero-obstruction) cycle: $\Delta w$ telescopes to $0$ (the coboundary B2b killed), unsigned KL is not even an oriented 1-cochain (fires positive on every loop), and antisymmetrised-KL is a node-derived *non*-coboundary that is **nonzero on coherent cycles** (a false-positive "confidence-circulation" class). So confidence geometry is structurally the **wrong source**; F2/F1 supply only the *unit* (log-odds nats) and *functional form* (a Bregman discrepancy of an **edge-asserted alignment**), never the datum. B-abelian stays gated behind its exogenous meaning-decision ([Q-042](../01_OPEN_QUESTIONS_REGISTRY.md#q-042)) — the metric half does **not** unblock it.
+
 ## 6. Grades and build order
 
 | Sub-claim | Grade | Why |
 |---|---|---|
 | §1 log-odds = Bernoulli natural parameter | **resolved (fact)** | Definitional; the migration already computes in $\theta$. |
 | §2 Fisher–Rao metric on the single claim | **resolved (written)** | $ds^2 = dp^2/(p(1-p)) = p(1-p)\,dw^2$; spherical geodesics. |
-| §3 F1 — aggregation = e-flat translation, ratified | **strong preliminary** | The worked example lands; wants a one-paragraph write-up tying "sum of natural params = independent-evidence Bayes fusion". |
-| §3 F2 — metric/divergence is a new object | **open (well-posed)** | Two canonical candidates ($d_{FR}$ symmetric, KL asymmetric); the substrate must *choose* which the product surfaces. |
+| §3 F1 — aggregation = e-flat translation, ratified | **resolved (closed)** — [Session 14a](14a-F1-logodds-eflat-ratification-2026-06-25.md) | The rigorous write-up landed (2026-06-25): trichotomy + "sum of natural params = independent-evidence Bayes fusion" identity + the midpoint-vs-group-law sharpening, against the `corroborateProbs([0.6,0.6]) = 9/13` worked example. |
+| §3 F2 — metric/divergence is a new object | **resolved (decided)** — [Session 14b](14b-F2-position-distance-fisherrao-vs-kl-2026-06-25.md) | **Both, tagged by use** (2026-06-25): $d_{FR}$ = the symmetric *metric* register ($\ell^2$ lift, bounded $\pi$ — clustering/nearest-position); KL = Bregman-of-$\psi$ = the asymmetric *divergence* register ($\ell^1$ lift, nats, dually-flat-canonical — directed disagreement/transport). Non-substitutable: clustering needs the metric KL lacks; directed cost needs the asymmetry $d_{FR}$ lacks. |
+| §4 O1 — position lift / correlation | **resolved (closed)** — [Session 14c](14c-O1-correlation-pullback-induced-2026-06-27.md) | **Induced (branch a)** (2026-06-27): position = point on the DAG-image submanifold; canonical metric = pullback $\Phi^*g=J^{\mathsf T}gJ$ through the reducer $\Phi$; off-diagonal = shared-premise Jacobian cross-terms, closed-form, **no schema change** (corr $\approx0.49$ shared vs $0$ unshared). Exogenous (no-path) correlation is out-of-model by design; its repair reduces to a graph node. |
 | §4 position lift (independent) | **partially scoped** | Product metric is immediate; the **correlation** case (O1) is the real work. |
-| §5 feed B-abelian per-edge magnitude | **conjecture (offshoot)** | Plausible and high-value; not yet checked against the Session-08 holonomy shape. |
+| §5 feed B-abelian per-edge magnitude | **resolved (refuted)** — [Session 14d](14d-step4-babelian-offshoot-refuted-2026-06-27.md) | **Negative** (2026-06-27): F2 magnitudes are node-derived $f(p_{\mathrm{src}},p_{\mathrm{tgt}})$, so they fail **B2b**'s node-independence requirement — $\Delta w$ is the killed coboundary, KL is not an oriented cochain, antisym-KL is a spurious non-coboundary (nonzero on coherent cycles). Confidence geometry cannot supply the B-abelian weight; it supplies only the unit/form. B-abelian stays gated behind its exogenous meaning-decision. |
 
 **Build order (when taken up):**
-1. **Write F1 up rigorously** (½ session) — the e-flat/m-flat/Fisher–Rao trichotomy
+1. ~~**Write F1 up rigorously**~~ **— DONE 2026-06-25, [Session 14a](14a-F1-logodds-eflat-ratification-2026-06-25.md).** The e-flat/m-flat/Fisher–Rao trichotomy
    on Bernoulli + the "log-odds addition = Bayesian independent-evidence fusion = sum
-   of natural parameters" identity, against one `evidential/route.ts` worked example.
-   This is the deliverable that *ratifies Session-01 geometrically* and is the cheapest
-   real result.
-2. **Choose the metric (F2)** — decide whether the product surfaces $d_{FR}$ (symmetric,
-   bounded, triangle-inequality — good for "nearest position" / clustering) or KL
-   (asymmetric, additive, dually-flat-canonical — good for "directed disagreement" /
-   transport). Likely *both*, tagged by use, mirroring Session-01's `min`-as-skeptical-projection
-   discipline.
-3. **Settle O1 (correlation)** — the position-metric obligation; the gating mathematical
-   question, where the answer may be a *missing-structure* finding rather than a metric.
-4. **Test the B-abelian offshoot (§5)** — only after F2's metric is chosen, check it against
-   the [Session 08](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) §3
-   per-edge-weight requirement.
+   of natural parameters" identity, against the `corroborateProbs` worked example.
+   This was the deliverable that *ratifies Session-01 geometrically* and the cheapest
+   real result. **Verdict: ratifies** (corroboration = $e$-flat group law, non-idempotent
+   by construction; the idempotence trade-off lives in the metric/join register, not here).
+2. ~~**Choose the metric (F2)**~~ **— DONE 2026-06-25, [Session 14b](14b-F2-position-distance-fisherrao-vs-kl-2026-06-25.md).** Verdict: **both, tagged by use** —
+   $d_{FR}$ (symmetric, bounded, triangle-inequality — "nearest position" / clustering)
+   *and* KL = Bregman-of-$\psi$ (asymmetric, additive, dually-flat-canonical — "directed
+   disagreement" / transport), in two **non-substitutable** registers (clustering needs the
+   metric KL is not; directed cost needs the asymmetry $d_{FR}$ is not), mirroring
+   Session-01's `min`-as-skeptical-projection discipline. Same-units trap flagged: KL is in
+   nats like $w$, but a *displacement* not a *standing* — never summed into the weight.
+3. ~~**Settle O1 (correlation)**~~ **— DONE 2026-06-27, [Session 14c](14c-O1-correlation-pullback-induced-2026-06-27.md).** Verdict: **induced (branch a)** — a position lives on the
+   DAG-image submanifold, so the canonical position metric is the **pullback** $\Phi^*g=J^{\mathsf T}gJ$
+   of the product Fisher–Rao/Bregman through the existing reducer map $\Phi$; off-diagonal
+   terms = shared-premise Jacobian cross-terms, **closed-form in `logodds` mode, no schema
+   change** (shared-premise corr $\approx0.49$ vs $0$ unshared). Exogenous (no-graph-path)
+   correlation is *out-of-model by design* and its repair reduces to adding a graph node
+   (back to branch a). Tightens the independence hypothesis to the **free inputs**, not all claims.
+4. ~~**Test the B-abelian offshoot (§5)**~~ **— DONE 2026-06-27, [Session 14d](14d-step4-babelian-offshoot-refuted-2026-06-27.md): REFUTED.** Checked the [Session 14b](14b-F2-position-distance-fisherrao-vs-kl-2026-06-25.md) §6
+   fork against [Session 08](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) §3 / **B2b**: every F2/F1 magnitude is node-derived $f(p_{\mathrm{src}},p_{\mathrm{tgt}})$ and so fails B2b's
+   node-independence requirement — $\Delta w$ is the killed coboundary, KL is not an oriented
+   1-cochain, antisym-KL is a spurious non-coboundary (nonzero on coherent cycles).
+   Confidence geometry cannot supply the B-abelian weight; B-abelian stays gated behind its
+   exogenous meaning-decision. **No build-order item remains.**
 
 ## 7. What this session did *not* do (discipline)
 
@@ -207,13 +226,19 @@ argument for prioritising the metric half.
 
 ## 8. Hand-off
 
-- **Stays open** in [Q-045](../01_OPEN_QUESTIONS_REGISTRY.md#q-045) with this session as its
-  scoping pointer. The aggregation half (F1) is a candidate for a short standalone note or a
-  conjecture-grade write-up; the metric half (F2 + O1) is the substantive open content.
-- **If F2/O1 land,** the position-distance function promotes to an
+- **FULLY RESOLVED** in [Q-045](../01_OPEN_QUESTIONS_REGISTRY.md#q-045). Core: F1 ([14a](14a-F1-logodds-eflat-ratification-2026-06-25.md)),
+  F2 ([14b](14b-F2-position-distance-fisherrao-vs-kl-2026-06-25.md)), O1 ([14c](14c-O1-correlation-pullback-induced-2026-06-27.md))
+  answer Q-045's core question — *the principled geometry is the Bernoulli information
+  geometry, aggregation is the $e$-flat group law, and "distance between positions" acquires
+  the two canonical registers, with the off-diagonal structure induced by the support DAG as
+  a pullback*. Offshoot: the B-abelian per-edge-magnitude conjecture is **refuted** ([14d](14d-step4-babelian-offshoot-refuted-2026-06-27.md)) — confidence geometry is node-derived
+  and cannot supply a node-independent edge weight (B2b). No build-order item remains.
+- **If a consumer appears,** the position-distance function promotes to an
   [`IMPLEMENTATION_TRACKS.md`](../IMPLEMENTATION_TRACKS.md) item attaching to the
-  evidential reducers, and the §5 offshoot promotes to a pointer in
-  [Session 08](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) §3 (B-abelian).
+  evidential reducers (the pullback $\Phi^*g$ over the support DAG). The B-abelian route
+  ([Session 08](08-distributed-semantics-quantitative-cohomology-2026-06-08.md) §3) keeps its
+  **exogenous edge-weight** requirement — the F2 shortcut is closed — and is taken up, if
+  ever, at its own meaning-decision, denominated in the F1 log-odds register.
 - **Read-with:** the Session-01 register discipline (no shared currency between truth-support
   and any other scale) governs here too — a Fisher–Rao/KL *distance* is a different register
   from the log-odds *weight*, and must not be summed into it.

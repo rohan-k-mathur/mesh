@@ -1,10 +1,10 @@
 # C004 — Joint saturation `σ_joint(D_P, W)` is a closure operator on the product poset of design-sets and witness-record sets
 
-- **status:** open
+- **status:** partially-resolved (closure-operator + Galois half mechanised **evidence-only** 2026-06-01; **drainage corollary settled 2026-06-24** as [T014](../02_THEOREMS_AND_PROOFS/T014-exposure-map-drainage.md), `established` — independent cross-check signed off 2026-06-24, no defects). The only residual content is the construction of the forward-closure operator `Reach` itself (Q-004 front (a), rides on [Q-002](../01_OPEN_QUESTIONS_REGISTRY.md#q-002)).
 - **ring:** core
 - **depends-on:** C002, C003
 - **linked-open-questions:** Q-004
-- **last-reviewed:** 2026-06-01 (added corroborating Agda mechanisation; see §Corroborating mechanisation)
+- **last-reviewed:** 2026-06-24 (drainage corollary settled; see §Resolution)
 - **corroborating-mechanisation:** [`../mechanisation/agda/C004/C004.agda`](../mechanisation/agda/C004/C004.agda) (Agda 2.7.0.1, agda-stdlib v2.0; `--safe --without-K`, no postulates/holes; evidence-only — see §Corroborating mechanisation)
 - **build-instructions:** [`../mechanisation/agda/C004/README.md`](../mechanisation/agda/C004/README.md)
 
@@ -65,14 +65,40 @@ supplied as a hypothesis:
   visible in the types. `Model` discharges that record on `Reach = id`
   with an arbitrary monotone `moves`, so the development is non-vacuous.
 
-Under the Register policy this is **evidence-only** and C004's `status`
-stays **open**: the artefact shows the closure/Galois claims *reduce to*
-`Reach` being a closure operator, but does not settle that `Reach`
-construction (asserted via the record, a human-review obligation recorded
-in [`../mechanisation/agda/C004/README.md`](../mechanisation/agda/C004/README.md)
-§"What this cannot check"). The **drainage corollary** (latent-stratum
-cardinality decrease along the update sequence) is a separate claim and is
-**not** mechanised.
+Under the Register policy this is **evidence-only** and the closure-operator
+half's `status` stays mechanised-evidence-only: the artefact shows the
+closure/Galois claims *reduce to* `Reach` being a closure operator, but does
+not settle that `Reach` construction (asserted via the record, a human-review
+obligation recorded in [`../mechanisation/agda/C004/README.md`](../mechanisation/agda/C004/README.md)
+§"What this cannot check").
+
+## Resolution of the drainage corollary (2026-06-24, [T014](../02_THEOREMS_AND_PROOFS/T014-exposure-map-drainage.md), `established`)
+
+The **drainage corollary** (the second sentence of §Statement — latent-stratum
+cardinality decrease along the update sequence) is now **proven and cross-checked**
+(independent non-author sign-off 2026-06-24, all of §§1–6 discharged, no defects),
+with its constructive core **mechanised** in [`C004.agda §3.2`](../mechanisation/agda/C004/C004.agda)
+(`Latent`, `drainage`, `walked-not-latent`, `promoted-drains`; `--safe
+--without-K`, no postulates/holes). Statement and scope:
+
+- The latent stratum lives in a **fixed behaviour frontier** `B` (the glossary's
+  *"exists in the behaviour"* reading), as `Λ(B, W) = {m ∈ B : m ∉ Reach(moves W)}`.
+- Along an **accrual** update sequence (`W_t ⊆ W_{t+1}`, no retraction), `Λ` is
+  `⊆`-decreasing, hence `|Λ_{t+1}| ≤ |Λ_t|` (cardinality monotone non-increasing),
+  with strictness exactly at promotion steps (a latent move newly reaches), and a
+  residual latent stratum `Λ_∞ = B ∖ Reach(moves W_∞)` (the *unwalked residue*).
+- This is the **W-axis** (witness-growth) dual of [T013](../02_THEOREMS_AND_PROOFS/T013-exposure-map-stratified-strength.md)
+  clause 3's **D-axis** (Proponent-seed-growth) monotonicity — opposite sign,
+  different variable, so no contradiction (T014 §4). The `κ ∘ proj_des` stratum
+  map this quantifies over was supplied by T013 §7.
+- **Honest scope:** retraction breaks drainage (source §0c.3, `walked → latent`
+  reassignment), so the result is scoped to the append-only accrual fragment; and
+  the *growing-universe* reading (classify the growing `S_t` rather than the fixed
+  `B`) is **non-monotone** (argument-dumping), so the universe is fixed at `B`.
+
+The drainage corollary is **established** ([T014 cross-check](../02_THEOREMS_AND_PROOFS/T014-verification-prompt.md)
+signed off 2026-06-24). With drainage settled, **C004's only residual content is front (a)** —
+constructing `Reach` (rides on Q-002).
 
 ## Bibliography
 
