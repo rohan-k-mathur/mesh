@@ -1,6 +1,6 @@
 # C002 — Reading C multi-agent Ludics is conservative over bilateral Reading A on convergence verdicts
 
-- **status:** open
+- **status:** settled (abstract-AF) — **general fidelity theorem [T012](../02_THEOREMS_AND_PROOFS/T012-reading-c-conservative.md) established (cross-checked, signed off, 2026-06-28):** RC convergence = conjunction of bilateral pairs, nesting- and shift-invariant, conservative for all `|W|`; abstract-AF, rests on T015's `&`=∀ one-shot reading. Base cases (3-agent + polarity-shift + `|W|`≤6) differential-corroborated ([`tests/bridge/reading-c-conservativity.test.ts`](../../tests/bridge/reading-c-conservativity.test.ts)); Q-002 closed on the abstract-AF fragment. ASPIC+/structured-`B` open
 - **ring:** core
 - **depends-on:** T002, C001
 - **linked-open-questions:** Q-002

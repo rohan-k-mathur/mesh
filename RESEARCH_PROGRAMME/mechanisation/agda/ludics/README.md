@@ -171,6 +171,39 @@ corpus are different type-theory regimes and **cannot share a module**, so
   the inferentialist's "equivalence is equality". The tie to the constitutive
   `_⊥_`-behaviour (T003's C006 𝐑(𝑢)) is a *documented correspondence*, not a
   cross-regime import.
+
+## Cross-program tests — Diairesis Session 20 (the (co)algebra / arrow classification)
+
+Four modules built for the *Diairesis* cross-test
+([session 20](../../../10_IDEATION_SESSIONS/20-ludics-diairesis-crosstest.md);
+aggregation [`L4-aggregation-2026-06-26.md`](../../../Diairesis/L4-aggregation-2026-06-26.md)).
+They **reuse** the M0–M4 core to classify ludics against the (co)algebra paradigm:
+**Q-A** (is the core (co)algebraic?) is CONFIRM at all three objects; **Q-B** (does
+interaction *generate* the arrow?) closes — the arrow is imported, not generated.
+
+- [`DesignAlgebra.agda`](DesignAlgebra.agda) — **L0 (designs = `μF`).** Over the
+  action functor `F Y = ⊤ ⊎ (Act × Y)`, `Design = List Act` is the **initial
+  algebra**: structure map `into`, catamorphism `⟦_⟧ = foldr`, homomorphism
+  square (`fold-hom`) + **uniqueness** (`foldr-unique`) = initiality; and
+  **Lambek** concretely — `into`/`uncons` mutually inverse give `Design ≅ F Design`,
+  the literal `X ≅ F(X)` fixed point.
+- [`ArrowIndex.agda`](ArrowIndex.agda) — **L1 (normalisation = ℕ-recursion).**
+  `interact` is recursion over the ℕ step-index (`no-fuel-is-ONGOING` gates
+  progress); a decided verdict is monotone & **irreversible** along `≤`
+  (`verdict-irreversible`, from M2 `interact-mono-≤`). The arrow = the reduction
+  order / ℕ-index, imported.
+- [`ClosureMonad.agda`](ClosureMonad.agda) — **L2 (behaviours = closure monad).**
+  Surfaces, at the real `_⊥_`, the **Galois connection** `A ⊆ B^⊥ ⇔ B ⊆ A^⊥`
+  (`galois`/`galois⁻¹`) and the **closure-operator** axioms for `(·)^⊥⊥`
+  (`clo-extensive`/`-monotone`/`-idempotent`); behaviours are its fixed points.
+  (Discharges Session-20 Risk 1.)
+- [`DaimonOrientation.agda`](DaimonOrientation.agda) — **L3 (the daimon is the
+  orientation).** `no-daimon-no-conv`: with no daimon act in either design the
+  run never converges (the posited `†` is required); `dai-wins`: a producer
+  playing `†` converges against *every* opponent (unilateral orientation);
+  `interact-not-symmetric`: the operative relation is producer-first, not
+  symmetric. (Discharges Session-20 Risk 2.)
+
 ## Build
 
 From `RESEARCH_PROGRAMME/mechanisation/agda`:
@@ -183,6 +216,15 @@ agda ludics/Locus.agda
 agda ludics/Completeness.agda
 agda ludics/Composition.agda
 agda ludics/CutElim.agda
+```
+
+The Diairesis Session-20 cross-test modules (reuse the core; `--safe --without-K`, EXIT:0):
+
+```
+agda ludics/DesignAlgebra.agda
+agda ludics/ArrowIndex.agda
+agda ludics/ClosureMonad.agda
+agda ludics/DaimonOrientation.agda
 ```
 
 The cubical M5 tree builds separately (from `mechanisation/agda/hott`):

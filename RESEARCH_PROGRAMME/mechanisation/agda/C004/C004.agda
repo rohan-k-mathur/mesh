@@ -54,6 +54,7 @@ module C004.C004 where
 open import Level using (Level; suc; _⊔_)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Empty using (⊥)
 open import Function using (id)
 
 open import lib.Closure using (module Powerset)
@@ -190,6 +191,60 @@ module JointSaturation
     below-σ {x} σx⊑c =
         (λ m∈ → proj₁ σx⊑c (proj₁ (σ-ext {x}) m∈))
       , (λ w∈ → proj₂ σx⊑c (proj₂ (σ-ext {x}) w∈))
+
+    --------------------------------------------------------------------
+    -- §3.2  Drainage: the latent stratum is antitone in the walked set
+    --
+    -- Fix a frontier `B` (the moves of the mature behaviour — the universe
+    -- the exposure map classifies; per the glossary, "latent" = "the move
+    -- exists in the behaviour but is reachable by no current participant").
+    -- The walked loci at witness-state W are exactly `moves W`, and
+    -- "reachable by a participant" is the protocol forward-closure of the
+    -- walked loci, `Reach (moves W)` — the same `Reach` as σ_joint, applied
+    -- to the witness seed only (σ_joint with an empty Proponent seed).  So a
+    -- move m is LATENT at W iff  m ∈ B  and  m ∉ Reach (moves W).
+    --
+    -- DRAINAGE.  Along an accrual update sequence (W only grows — no
+    -- retraction; cf. LUDICS_OPEN_COMPOSITION_JOINT §0c.3, where retraction
+    -- can re-assign walked → latent), the latent stratum is ⊆-DECREASING:
+    -- `Reach (moves W)` grows, so its complement within the fixed `B`
+    -- shrinks.  This is the W-axis (live-state growth) dual of T013's D-axis
+    -- monotonicity (latent NON-decreasing as the Proponent seed grows at
+    -- fixed witness state).  Cardinality decrease |Latent B W'| ≤ |Latent B W|
+    -- follows from ⊆ on a finite `B` (standard; not formalised here — the
+    -- ⊆-antitone core below is the constructive content).
+    --------------------------------------------------------------------
+
+    -- "m is reachable from the walked set of W" (= σ_joint's reach of the
+    -- witness seed; the non-latent predicate).
+    ReachWalked : Wt.Pred → M.Pred
+    ReachWalked W = Reach (moves W)
+
+    -- The latent stratum within a fixed frontier `B` at witness-state `W`.
+    Latent : M.Pred → Wt.Pred → M.Pred
+    Latent B W m = (m M.∈ B) × (m M.∈ ReachWalked W → ⊥)
+
+    -- A walked move is never latent (extensivity of Reach ∘ moves): the
+    -- three strata are disjoint at their boundary.
+    walked-not-latent : ∀ {B W m} → m M.∈ moves W → m M.∈ Latent B W → ⊥
+    walked-not-latent {W = W} mW (_ , ¬reach) = ¬reach (reach-ext {moves W} mW)
+
+    -- DRAINAGE.  W ⊆ W'  ⇒  Latent B W' ⊆ Latent B W
+    -- (a later, larger witness state has a SMALLER latent stratum).
+    drainage : ∀ {B W W'} → W Wt.⊆ W' → Latent B W' M.⊆ Latent B W
+    drainage {B} {W} {W'} W⊆W' (m∈B , ¬reachW') =
+      m∈B , (λ reachW → ¬reachW' (reach-mono (moves-mono W⊆W') reachW))
+
+    -- A move PROMOTED at a step (reachable now, not before) leaves the
+    -- latent stratum: latent at W, not latent at W' — the witness of strict
+    -- drainage.
+    promoted-drains : ∀ {B W W' m}
+                    → m M.∈ B
+                    → (m M.∈ ReachWalked W → ⊥)   -- latent at W
+                    → m M.∈ ReachWalked W'          -- reached at W'
+                    → (m M.∈ Latent B W) × (m M.∈ Latent B W' → ⊥)
+    promoted-drains m∈B ¬reachW reachW' =
+      (m∈B , ¬reachW) , (λ { (_ , ¬reachW') → ¬reachW' reachW' })
 
 ------------------------------------------------------------------------
 -- §4.  Non-vacuity: a concrete closure-operator instance

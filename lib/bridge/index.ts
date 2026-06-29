@@ -23,3 +23,21 @@ export {
   type Strategy,
   type AcceptanceResult,
 } from "./dispute";
+
+export {
+  buildAdditiveDisputeDesign,
+  acceptableByAdditiveInteraction,
+  forkCensus,
+  conflictFree,
+  allAttacking,
+  isStableByAdditive,
+  stableExtensionsByAdditive,
+  credulouslyStableByAdditive,
+  skepticallyStableByAdditive,
+  isAdmissibleByAdditive,
+  preferredExtensionsByAdditive,
+  credulouslyPreferredByAdditive,
+  skepticallyPreferredByAdditive,
+  type ForkCensus,
+  type AdditiveAcceptanceResult,
+} from "./disputeAdditive";
