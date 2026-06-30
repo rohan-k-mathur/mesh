@@ -47,9 +47,9 @@ export default function Login() {
   return (
     <div className={`${founderslight.className}`}>
       <main className="flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8">
-        <div className="w-full bg-white bg-opacity-30  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+        <div className="w-full bg-white bg-opacity-50  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-            <h1 className="text-center tracking-widest text-slate-800 font-bold text-[2rem]">
+            <h1 className="text-center tracking-wider text-slate-800 font-bold text-[2rem]">
                 Sign In
                             </h1>
             <form
@@ -60,7 +60,7 @@ export default function Login() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block mb-3 text-[1.2rem]  text-gray-700 dark:text-white"
+                  className="block mb-3 text-[1.4rem] tracking-wide text-slate-700 dark:text-white"
                 >
                   Email
                 </label>
@@ -70,7 +70,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   id="email"
-                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  className=" text-gray-900 sm:text-sm rounded-lg  block w-full p-2.5 articlesearchfield"
                   placeholder="name@email.com"
                   required
                 />
@@ -78,7 +78,7 @@ export default function Login() {
               <div>
                 <label
                   htmlFor="password"
-                  className="block mb-3 text-[1.2rem] text-gray-700 dark:text-white"
+                  className="block mb-3 text-[1.4rem] tracking-wide text-slate-700 dark:text-white"
                 >
                   Password
                 </label>
@@ -89,7 +89,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   id="password"
                   placeholder="••••••••"
-                  className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  className=" text-gray-900 sm:text-sm rounded-lg  block w-full p-2.5 articlesearchfield"
                   required
                 />
               </div>
@@ -104,15 +104,15 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-[50%] items-center justify-center text-center content-center mx-auto text-white bg-transparent loginbutton py-2 border-white rounded-md"
+                className="flex w-[50%] text-[1.2rem] tracking-widest  items-center justify-center font-medium text-center content-center mx-auto text-slate-900 btnv2 py-3 px-2 rounded-full"
               >
                 {loading && <Spinner className="mr-2" />} {loading ? "Loading" : "Next"}
               </button>
-              <p className="text-[1.2rem] text-center mx-auto text-gray-400 dark:text-gray-400">
+              <p className="text-[1.2rem] text-center mx-auto text-gray-500 dark:text-gray-400">
                 No Account?{" "}
                 <Link
                   href="/register"
-                  className=" text-gray-700 hover:underline dark:text-gray-500"
+                  className=" text-gray-800 ml-1 hover:underline dark:text-gray-500"
                 >
                   Register Here
                 </Link>

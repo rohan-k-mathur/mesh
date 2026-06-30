@@ -42,7 +42,27 @@
 --     `Reach = id` with an arbitrary monotone `moves`) so the development
 --     is demonstrably non-vacuous.
 --
+--   * §4 DISCHARGES `Reach` (Q-004 front (a)).  The protocol's forward-
+--     closure operator is, on the Reading-C-fixed abstract-AF substrate,
+--     reflexive-transitive REACHABILITY along the dispute move-graph
+--     `_↦_`: `Reach P` is every move reachable from a move of `P` by
+--     following move-graph edges.  This operator is CONSTRUCTED from an
+--     arbitrary step relation and its three closure axioms are PROVEN
+--     (extensivity = ε, monotonicity = functoriality on the seed,
+--     idempotence = path concatenation), so `ForwardClosure` is now
+--     inhabited by the substrate operator, not merely hypothesised.  The
+--     discharge is uniform in the move-graph; the abstract-AF instance
+--     (§6) fixes `_↦_` to the attack-induced dispute edges (T012
+--     participation closure, Q-002 abstract-AF fragment).  §5's empty
+--     move-graph recovers the `Reach = id` witness as a special case.
+--
 -- Status: type-checks WITHOUT POSTULATES OR HOLES.
+-- Q-004 front (a) discharged on the abstract-AF fragment: the
+--   `ForwardClosure` axioms are theorems of the reachability construction
+--   (§4), parameterised by the move-graph.  RESIDUAL (human review):
+--   faithfulness of the move-graph `_↦_` to the substrate's actual
+--   abstract-AF dispute protocol — the relation is supplied, reachability
+--   over it is proven a closure operator.
 -- Tested against: Agda 2.7.0.1, agda-stdlib v2.0.
 -- Build (from mechanisation/agda): `agda C004/C004.agda`.
 ------------------------------------------------------------------------
@@ -52,7 +72,7 @@
 module C004.C004 where
 
 open import Level using (Level; suc; _⊔_)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥)
 open import Function using (id)
@@ -247,13 +267,79 @@ module JointSaturation
       (m∈B , ¬reachW) , (λ { (_ , ¬reachW') → ¬reachW' reachW' })
 
 ------------------------------------------------------------------------
--- §4.  Non-vacuity: a concrete closure-operator instance
+-- §4.  Discharge of `Reach` (Q-004 front (a)): the substrate forward-
+--       closure operator is reflexive-transitive reachability of the
+--       move-graph.
 --
--- Take the discrete forward-closure `Reach = id` (already a closure
--- operator: extensive, monotone, idempotent on the nose) and an arbitrary
--- monotone `moves`.  σ_joint then specialises to (D , W) ↦ (D ∪ moves W,
--- W), and §3 shows it is a closure operator — so the abstract development
--- is non-empty.
+-- Front (a) replaces the `ForwardClosure` HYPOTHESIS record with the
+-- substrate's actual forward-closure operator.  On the abstract-AF
+-- fragment — now that Reading-C participation closure is fixed (T012,
+-- Q-002 abstract-AF) — that operator is reachability along the dispute
+-- move-graph `_↦_`: `Reach P` is every move reachable from some move of
+-- `P` by following move-graph edges.  We CONSTRUCT this operator from an
+-- arbitrary step relation and PROVE the three closure axioms, so the
+-- `ForwardClosure` consumed by §2–§3 is now inhabited by the substrate
+-- operator rather than asserted.  Reflexive-transitive closure of ANY
+-- relation is extensive (the empty path `ε`), monotone (re-seed the same
+-- path), and idempotent (path concatenation), so the discharge is uniform
+-- in the move-graph.
+------------------------------------------------------------------------
+
+module Reachability {a : Level} (Move : Set a) (_↦_ : Move → Move → Set a) where
+
+  open Powerset Move
+
+  -- Reflexive-transitive closure of the move-graph step relation: a path
+  -- of dispute edges (`ε` = stay put, `_◅_` = take one edge then continue).
+  data _↦⋆_ : Move → Move → Set a where
+    ε   : ∀ {x}     → x ↦⋆ x
+    _◅_ : ∀ {x y z} → x ↦ y → y ↦⋆ z → x ↦⋆ z
+
+  -- Path concatenation (transitivity of reachability).
+  _⋆∘_ : ∀ {x y z} → x ↦⋆ y → y ↦⋆ z → x ↦⋆ z
+  ε       ⋆∘ q = q
+  (r ◅ p) ⋆∘ q = r ◅ (p ⋆∘ q)
+
+  -- The forward-closure operator: every move reachable from the seed `P`.
+  Reach : Pred → Pred
+  Reach P y = ∃ λ x → (x ∈ P) × (x ↦⋆ y)
+
+  -- Extensivity: a move is reachable from itself by the empty path.
+  reach-ext : ∀ {P} → P ⊆ Reach P
+  reach-ext x∈ = _ , x∈ , ε
+
+  -- Monotonicity: a larger seed reaches at least as much (same paths).
+  reach-mono : ∀ {P Q} → P ⊆ Q → Reach P ⊆ Reach Q
+  reach-mono P⊆Q (x , x∈P , path) = x , P⊆Q x∈P , path
+
+  -- Idempotence: a path through an intermediate reachable move splices
+  -- into a single path from the original seed.
+  reach-idem : ∀ {P} → Reach (Reach P) ⊆ Reach P
+  reach-idem (y , (x , x∈P , p) , q) = x , x∈P , (p ⋆∘ q)
+
+  -- The substrate forward-closure operator, packaged as a `ForwardClosure`
+  -- with its axioms PROVEN (no longer hypothesised).
+  reachForwardClosure : ForwardClosure Move
+  reachForwardClosure = record
+    { Reach      = Reach
+    ; reach-ext  = reach-ext
+    ; reach-mono = reach-mono
+    ; reach-idem = reach-idem
+    }
+
+------------------------------------------------------------------------
+-- §5.  Non-vacuity / instances.
+--
+--   * `idForwardClosure` — the discrete forward-closure `Reach = id`
+--     (extensive, monotone, idempotent on the nose).  σ_joint then
+--     specialises to (D , W) ↦ (D ∪ moves W, W), and §3 shows it is a
+--     closure operator.  It is the special case of §4's reachability on
+--     the EMPTY move-graph (no edges ⇒ only the `ε` path ⇒ Reach = id).
+--
+--   * `substrateForwardClosure` — front (a)'s genuine operator: given the
+--     dispute move-graph `_↦_`, reachability over it is a `ForwardClosure`
+--     by §4, so JointSaturation runs on the substrate operator, not on a
+--     hypothesis record.
 ------------------------------------------------------------------------
 
 module Model {a : Level} (Move Wit : Set a) where
@@ -266,7 +352,32 @@ module Model {a : Level} (Move Wit : Set a) where
     ; reach-idem = λ x∈ → x∈
     }
 
-  -- With moves = (the constant-empty extraction is monotone, as is any
-  -- chosen `moves`); we leave `moves`/`moves-mono` as the instance's
-  -- remaining inputs.  The point is only that `idForwardClosure` is a
-  -- legal `ForwardClosure`, so JointSaturation is inhabited.
+  -- Front (a): for ANY move-graph step relation, reachability is a legal,
+  -- non-hypothesised `ForwardClosure` (§4).  This supersedes
+  -- `idForwardClosure` as the witness JointSaturation should consume; the
+  -- identity closure is the empty-move-graph degenerate case.
+  substrateForwardClosure : (_↦_ : Move → Move → Set a) → ForwardClosure Move
+  substrateForwardClosure _↦_ = Reachability.reachForwardClosure Move _↦_
+
+  -- With moves = any chosen monotone ι-binding extraction, the point is
+  -- that both `idForwardClosure` and (for every move-graph)
+  -- `substrateForwardClosure` are legal `ForwardClosure`s, so
+  -- JointSaturation is inhabited — now by the substrate operator.
+
+------------------------------------------------------------------------
+-- §6.  Abstract-AF instance (T012 participation closure).
+--
+-- On the abstract-AF fragment the dispute move-graph follows attack
+-- edges: from a move on argument `a` the dispute steps to a move on each
+-- attacker `b ↣ a` (the CON continuation; cf. lib/bridge/dispute.ts and
+-- T012's Reading-C participation closure).  Reachability of that relation
+-- IS the substrate `Reach`, and §3a proves it a closure operator — so
+-- Q-004 front (a) is discharged on the abstract-AF fragment, modulo the
+-- human-review obligation that `_↣_` is the faithful dispute move-graph.
+------------------------------------------------------------------------
+
+module AbstractAF {a : Level} (Arg : Set a) (_↣_ : Arg → Arg → Set a) where
+
+  -- The abstract-AF forward-closure operator: reachability along attacks.
+  reachFC : ForwardClosure Arg
+  reachFC = Reachability.reachForwardClosure Arg _↣_

@@ -1,6 +1,6 @@
 # T015 — The additive realizability keystone: stable and preferred-admissibility are interactive; ⊆-maximality is a constraint
 
-- **status:** established (2026-06-28; cross-checked, signed off — one-shot LB1+LB2, abstract-AF fragment; pending strategy-isomorphism). Additive (`&`/`⊕`) layer over T005.
+- **status:** established (2026-06-28; cross-checked, signed off — one-shot LB1+LB2, abstract-AF fragment; strategy-isomorphism mechanised 2026-06-29 at the abstract game-tree level, see §Scope). Additive (`&`/`⊕`) layer over T005.
 - **closes (target):** the stable + admissibility branch of Q-039 / [C011](../03_CONJECTURES/C011-additive-preferred-games-bridge.md); pins the preferred maximality obstruction as the realizability characterization
 - **depends-on:** [T005](T005-grounded-ludics-keystone.md) (the grounded, additive-free base case); [C011](../03_CONJECTURES/C011-additive-preferred-games-bridge.md) (the conjecture); session 21 (shared additive layer)
 - **proved-by:** drafted 2026-06-28
@@ -14,7 +14,17 @@
   (`⟦·⟧₊` reproduces grounded), and
   [`../../tests/bridge/preferred-stable-additive.property.test.ts`](../../tests/bridge/preferred-stable-additive.property.test.ts)
   (stable + preferred ⟺ oracle, every AF on `n ≤ 3`). Evidence only.
-- **build-instructions:** `node --max-old-space-size=2048 ./node_modules/.bin/jest tests/bridge/`
+- **corroborating-mechanisation:**
+  [`../mechanisation/agda/T015/T015.agda`](../mechanisation/agda/T015/T015.agda)
+  (Agda 2.7.0.1, stdlib v2.0, `--safe --without-K`, no postulates/holes) mechanises
+  the realizability trichotomy: clauses (1)–(3) parametric over an arbitrary
+  `(Arg, ⇝)` (`n`-unbounded) — `stable⇔cf×orth`, `stable→admissible`/`∅-admissible`,
+  `Preferred`/`preferred→admissible`; and the no-go (4) / boundary (5) on their
+  canonical witnesses — `NoGo.Ec-not-preferred` (`{c}` ⊊ `{a,c}` both admissible) and
+  `Boundary.boundary` (`{a}` stable yet not defended by ∅). LB1/LB2 and ⟦·⟧₊-fidelity
+  are parameters; the trichotomy is the proved content. Evidence only (see
+  [README](../mechanisation/agda/T015/README.md)).
+- **build-instructions:** `node --max-old-space-size=2048 ./node_modules/.bin/jest tests/bridge/`; mechanisation: `agda T015/T015.agda` (from `RESEARCH_PROGRAMME/mechanisation/agda`)
 
 > Methodology. The *prove* half of session 21's test-then-prove: Steps A–D
 > corroborated the equivalences empirically; this entry gives the human-checked
@@ -120,8 +130,17 @@ Abstract AF; `n ≤ 3` exhaustively corroborated; clauses (1)–(5) elementary h
 + per-attacker orthogonality, **not** the full strategy-preserving game
 isomorphism C011 ultimately wants; for stable/admissibility the descent is
 provably unnecessary (clause 2), but a `⊕`-resolution-vs-strategy isomorphism for
-the general preferred game is future work. Partial settlement: stable + preferred
-admissibility branch of C011; maximality = the realizability characterization.
+the general preferred game is future work. **Update 2026-06-29: the strategy-iso
+is now mechanised** at the abstract game-tree level —
+[`../mechanisation/agda/T015Strat/T015Strat.agda`](../mechanisation/agda/T015Strat/T015Strat.agda)
+proves `strategy-iso : wins g ≡ true ⇔ Σ (r : Res g). evalRes r ≡ true`, i.e. the
+branching AND-OR preferred-game verdict (⋁ defences / ⋀ attacks) is realized by a
+concrete winning `⊕`-resolution (= PRO strategy), and conversely; n-unbounded over
+finite game trees, `--safe --without-K`, no postulates/holes. Residual: this is the
+strategy-realization of the game verdict, NOT Modgil–Caminada adequacy (game =
+Dung preferred extensions), which stays cited. Partial settlement: stable +
+preferred admissibility branch of C011; maximality = the realizability
+characterization.
 
 ## Cross-check
 
@@ -166,3 +185,18 @@ No over-read of orthogonality as the full game.
 
 Non-blocking: tests are evidence over `n ≤ 3` only; clauses are pen-proof for
 `n`-unbounded.
+
+**Update 2026-06-29 — (d) n-unbounded mechanisation discharged.** The realizability
+trichotomy is now mechanised in Agda
+([`../mechanisation/agda/T015/T015.agda`](../mechanisation/agda/T015/T015.agda),
+`--safe --without-K`, no postulates/holes): clauses (1)–(3) parametric over an
+arbitrary `(Arg, ⇝)` (hence `n`-unbounded) — `stable⇔cf×orth` (clause 1),
+`stable→admissible` + `∅-admissible` (clause 2, one-shot defense / no descent),
+`Preferred` + `preferred→admissible` (clause 3); and the no-go (4) / boundary (5)
+on their canonical witnesses — `NoGo.Ec-not-preferred` (the `{c}` ⊊ `{a,c}` gap, both
+admissible) and `Boundary.boundary` (`{a}` stable yet not ∅-defended). LB1 (one-shot
+reading, via `Defends`/`Answered`), LB2 (universal test, via `Orth`) and ⟦·⟧₊-fidelity
+remain parameters — the human-review obligations — so this is evidence, not a
+re-settlement; cross-check item (d) is retired. Item (c) (reconcile with Q-002's
+`&`=∀) is shared with the [T012 mechanisation](../mechanisation/agda/T012/T012.agda);
+the strategy-isomorphism (handoff item 2) is still future work.
